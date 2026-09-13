@@ -169,7 +169,7 @@ pub(super) async fn models(
             "config_version":page.version.id.to_string(),"revision":revision.as_token(),
             "target":{"endpoint_id":params.endpoint_id,"credential_id":params.credential_id,"snapshot_version":page.target.snapshot_version,"observed_at_ms":page.target.observed_at_ms,"stale_at_ms":page.target.stale_at_ms,"expires_at_ms":page.target.expires_at_ms},
             "items":page.items.into_iter().map(|r|serde_json::json!({"model":r.model,"present_in_last_success":r.present_in_last_success})).collect::<Vec<_>>(),
-            "next_cursor":next,
+            "next_cursor":next,"current_model_count":page.current_model_count,"total_count":page.total_count,
         }),
     )
 }

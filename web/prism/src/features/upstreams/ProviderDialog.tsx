@@ -33,7 +33,7 @@ export function ProviderDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
       const id=`provider-${crypto.randomUUID()}`,endpoint=`endpoint-${crypto.randomUUID()}`,policy=`policy-${crypto.randomUUID()}`;
       await task.mutate("createEgressPolicy",{body:{id:policy,name:`${name.trim()} · 连接`,allowed_schemes:["https"],allowed_hosts:[address.host],allowed_ports:[address.port],allowed_cidrs:[],redirect_mode:"deny",max_redirects:0}});
       await task.mutate("createUpstream",{body:{id,name:name.trim(),kind:preset.kind,enabled:true,tags:[],egress_policy_id:policy}});
-      await task.mutate("createEndpoint",{path:{upstream_id:id},body:{id:endpoint,adapter_id:preset.adapter,api_format:preset.format,base_url:address.base,inference_path:path.trim(),models_path:null,transport:"https",enabled:true}});
+      await task.mutate("createEndpoint",{path:{upstream_id:id},body:{id:endpoint,adapter_id:preset.adapter,api_format:preset.format,base_url:address.base,inference_path:path.trim(),models_path:preset.native||preset.id==="kiro"||preset.id==="codex"?null:preset.format==="anthropic/messages"&&!address.base.endsWith("/v1")?"/v1/models":"/models",transport:"https",enabled:true}});
       if(!preset.native&&material){
         const account=await task.mutate<{id:string}>("importChannelAccount",{path:{upstream_id:id},body:{id:`account-${crypto.randomUUID()}`,channel:preset.channel,secret:material}});
         material="";

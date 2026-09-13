@@ -68,6 +68,8 @@ async fn saved_catalog_models_are_bounded_target_local_and_revision_guarded() ->
     let first: Value = test::read_body_json(first).await;
     assert_eq!(first["items"].as_array().ok_or("items")?.len(), 100);
     assert_eq!(first["items"][0]["model"], "model-000");
+    assert_eq!(first["current_model_count"], 103);
+    assert_eq!(first["total_count"], 103);
     assert_eq!(first["target"]["expires_at_ms"], 4000); // expired evidence remains readable
     let cursor = first["next_cursor"].as_str().ok_or("cursor")?;
     let next_path = format!("{path}&cursor={cursor}");
@@ -1327,5 +1329,100 @@ async fn refused_identity_read_preserves_import_and_reports_the_provider_refusal
             .ok_or("message")?
             .contains("403")
     );
+    Ok(())
+}
+
+struct CatalogRefreshFixture;
+impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFacade
+    for CatalogRefreshFixture
+{
+    fn refresh(
+        &self,
+        version: ConfigVersionId,
+        endpoint: EndpointId,
+        credential: CredentialId,
+    ) -> gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFuture {
+        Box::pin(async move {
+            use gateway_http_actix::management_resources::catalog_refresh::*;
+            if credential.as_str() == "failed" {
+                return Err(CatalogRefreshError::Upstream);
+            }
+            Ok(CatalogRefreshReceipt {
+                config_version: version.as_str().to_owned(),
+                endpoint_id: endpoint.as_str().to_owned(),
+                credential_id: credential.as_str().to_owned(),
+                observed_at_ms: 1234,
+                model_count: 7,
+            })
+        })
+    }
+}
+
+#[actix_web::test]
+async fn explicit_catalog_refresh_requires_auth_and_rejects_browser_secrets() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(
+                state.with_catalog_refresh(std::sync::Arc::new(CatalogRefreshFixture)),
+            ))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = "/admin/catalog/refresh";
+    let body = serde_json::json!({"endpoint_id":"endpoint-owner-a","credential_id":"account-000"});
+    assert_eq!(
+        test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri(path)
+                .set_json(&body)
+                .to_request()
+        )
+        .await
+        .status(),
+        StatusCode::NOT_FOUND
+    );
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(path))
+            .set_json(&body)
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .headers()
+            .get("cache-control")
+            .ok_or("cache header")?,
+        "no-store"
+    );
+    let result: Value = test::read_body_json(response).await;
+    assert_eq!(result["model_count"], 7);
+    assert_eq!(result["config_version"], VERSION);
+    for (body, status) in [
+        (
+            serde_json::json!({"endpoint_id":"endpoint-owner-a","credential_id":"account-000","client_key":"forbidden"}),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            serde_json::json!({"endpoint_id":"endpoint-owner-a","credential_id":"failed"}),
+            StatusCode::BAD_GATEWAY,
+        ),
+    ] {
+        assert_eq!(
+            test::call_service(
+                &app,
+                authorized(test::TestRequest::post().uri(path))
+                    .set_json(&body)
+                    .to_request()
+            )
+            .await
+            .status(),
+            status
+        );
+    }
     Ok(())
 }

@@ -137,22 +137,22 @@ impl ManagementEndpointWorkflow for DeterministicWorkflow {
         }
     }
 
-    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff> {
         self.preview_calls.fetch_add(1, Ordering::SeqCst);
-        ManagementCatalogDiff {
+        Some(ManagementCatalogDiff {
             added: 3,
             removed: 1,
             unchanged: 8,
-        }
+        })
     }
 
-    fn apply_catalog(&mut self, _endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+    fn apply_catalog(&mut self, _endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff> {
         self.apply_calls.fetch_add(1, Ordering::SeqCst);
-        ManagementCatalogDiff {
+        Some(ManagementCatalogDiff {
             added: 3,
             removed: 1,
             unchanged: 8,
-        }
+        })
     }
 
     fn start_oauth(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {

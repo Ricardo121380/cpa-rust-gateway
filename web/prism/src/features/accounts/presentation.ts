@@ -19,3 +19,8 @@ export function protocolName(format: string): string {
   const names:Record<string,string>={"openai/responses":"Responses", "openai/chat-completions":"Chat Completions", "anthropic/messages":"Messages", openai_responses:"Responses", "openai-responses":"Responses",responses:"Responses",openai_chat:"Chat Completions","openai-chat":"Chat Completions",chat_completions:"Chat Completions",anthropic_messages:"Messages","anthropic-messages":"Messages",messages:"Messages"};
   return names[format] ?? "兼容接口";
 }
+
+export function nativeConnections(provider:string,endpoints:readonly {id:string;adapter_id:string;api_format:string;base_url:string;enabled:boolean}[]) {
+  const adapters:Record<string,string>={grok_build:"grok.build.responses",grok_console:"grok.console.responses",grok_web:"grok.web.responses"};
+  return endpoints.filter(endpoint=>endpoint.adapter_id===adapters[provider]).map(endpoint=>({id:endpoint.id,api_format:endpoint.api_format,enabled:endpoint.enabled,host:new URL(endpoint.base_url).host}));
+}

@@ -3,6 +3,8 @@
 #![deny(unsafe_code)]
 
 mod account_entitlement;
+mod catalog;
+pub use catalog::{CompatibleCatalogPage, parse_compatible_catalog};
 mod codex_catalog;
 mod oauth_transport;
 mod openai_chat_completions;

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { accountName, protocolName } from "../accounts/presentation";
 import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
@@ -27,7 +28,6 @@ type EndpointTest = Readonly<{
   status_class?: string;
   canonical_lifecycle?: boolean;
 }>;
-type CatalogDiff = Readonly<{ added: number; removed: number; unchanged: number }>;
 
 /** Full endpoint record. The operational inventory is URL-free by contract, so
  *  editing needs this read: PATCH takes a whole EndpointInput and a form that
@@ -380,9 +380,6 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
   const scope = context?.configVersionId;
   const [testResults, setTestResults] = useState<Record<string, EndpointTest>>({});
   const [reconcile, setReconcile] = useState<string | undefined>();
-  const [discovery, setDiscovery] = useState<
-    { endpointId: string; diff: CatalogDiff; applied: boolean } | undefined
-  >();
   const [accountTarget, setAccountTarget] = useState<string | undefined>();
   const [channelForm, setChannelForm] = useState<ChannelForm | undefined>();
   const [accountForm, setAccountForm] = useState<AccountForm | undefined>();
@@ -425,28 +422,6 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
       ),
     onSuccess: (result, input) =>
       setTestResults((current) => ({ ...current, [input.endpointId]: result })),
-    onError: (cause) => setError(asAppError(cause).message),
-  });
-
-  const preview = useMutation({
-    mutationFn: (endpointId: string) =>
-      call<CatalogDiff>(
-        "previewCatalogDiscovery",
-        { path: { endpoint_id: endpointId } },
-        { versionScoped: true },
-      ),
-    onSuccess: (diff, endpointId) => setDiscovery({ endpointId, diff, applied: false }),
-    onError: (cause) => setError(asAppError(cause).message),
-  });
-
-  const apply = useMutation({
-    mutationFn: (endpointId: string) =>
-      call<CatalogDiff>(
-        "applyCatalogDiscovery",
-        { path: { endpoint_id: endpointId } },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: (diff, endpointId) => setDiscovery({ endpointId, diff, applied: true }),
     onError: (cause) => setError(asAppError(cause).message),
   });
 
@@ -601,14 +576,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                   ) : null}
                 </td>
                 <td className="row-actions">
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={preview.isPending}
-                    onClick={() => preview.mutate(channel.channel_id)}
-                  >
-                    预览
-                  </button>
+                  <Link to={`/catalog?endpoint_id=${encodeURIComponent(channel.channel_id)}`}>模型目录</Link>
                   <button
                     type="button"
                     className="secondary"
@@ -767,35 +735,6 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           }
           onClose={() => setReconcile(undefined)}
         />
-      ) : null}
-
-      {discovery !== undefined ? (
-        <Sheet
-          title={`目录发现 · ${resourceName(discovery.endpointId,"endpoint")}`}
-          onEscape={() => setDiscovery(undefined)}
-        >
-          <div className="diff-row">
-            <StatusBadge status="active">新增 {discovery.diff.added}</StatusBadge>
-            <StatusBadge status="credential_forbidden">移除 {discovery.diff.removed}</StatusBadge>
-            <StatusBadge status="archived">不变 {discovery.diff.unchanged}</StatusBadge>
-          </div>
-          {discovery.applied ? <p>已应用到草稿(revision 已推进)。</p> : null}
-          <div className="sheet-actions">
-            <button type="button" className="secondary" onClick={() => setDiscovery(undefined)}>
-              关闭
-            </button>
-            {!discovery.applied ? (
-              <button
-                type="button"
-                disabled={context?.status!=="draft" || apply.isPending}
-                title={editable ? undefined : "仅草稿版本可应用"}
-                onClick={() => apply.mutate(discovery.endpointId)}
-              >
-                应用到草稿
-              </button>
-            ) : null}
-          </div>
-        </Sheet>
       ) : null}
 
       {channelForm !== undefined ? (

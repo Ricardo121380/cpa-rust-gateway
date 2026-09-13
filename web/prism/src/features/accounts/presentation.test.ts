@@ -1,5 +1,5 @@
 import {describe,expect,it} from "vitest";
-import {accountGroups,accountName,accountSource,protocolName} from "./presentation";
+import {accountGroups,accountName,accountSource,protocolName,nativeConnections} from "./presentation";
 describe("account presentation",()=>{
   it("keeps six human-facing families and prefers observed identity",()=>{
     expect(accountGroups.map((g)=>g.id)).toEqual(["api","codex","claude","kimi","kiro","grok"]);
@@ -11,6 +11,12 @@ describe("account presentation",()=>{
     expect(accountSource("autoreg-batch-20260911")).toBe("Autoreg");
     expect(accountName(undefined,"billing-owner")).toBeUndefined();
     expect(accountName(undefined,"+8613800138000")).toBeUndefined();
+  });
+  it("uses configured native protocols, without inventing connections from a pool",()=>{
+    const endpoint={id:"build",adapter_id:"grok.build.responses",api_format:"openai/responses",base_url:"https://example.test/v1",enabled:true};
+    expect(nativeConnections("grok_build",[endpoint])).toEqual([{id:"build",api_format:"openai/responses",host:"example.test",enabled:true}]);
+    expect(nativeConnections("grok_console",[endpoint])).toEqual([]);
+    expect(nativeConnections("grok_build",[])).toEqual([]);
   });
   it("labels actual connection protocols instead of opaque endpoint counts",()=>{
     expect(protocolName("openai/responses")).toBe("Responses");

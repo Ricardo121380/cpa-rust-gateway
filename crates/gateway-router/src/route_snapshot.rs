@@ -21,7 +21,6 @@ use gateway_core::{
     AccessGroupId, ClientKeyId, CredentialId, EndpointId, ErrorScope, GatewayError,
     GatewayErrorCode, InvalidIdentifier, PublicModelId, RouteCandidateId, RouteId, UpstreamId,
 };
-use sha2::{Digest, Sha256};
 
 use crate::ProtocolFormat;
 
@@ -912,18 +911,11 @@ impl RouteSnapshot {
         snapshot
     }
 
-    /// Materializes exact discovered models into a new immutable Snapshot.
-    ///
-    /// Existing Routes remain the capability and permission templates. A model is bound only to
-    /// Credentials whose exact target-local Catalog still admits it. Newly discovered model IDs
-    /// inherit their template Route's access grants; if more than one base Route could own the
-    /// same new exact ID, that ID is omitted rather than resolved heuristically.
-    ///
+    /// Restricts explicitly configured models to target-local Credential catalog evidence.
+    /// Discovery never creates a public model, route or access grant. Opening a model belongs to
+    /// an explicit management publication, independently of metadata refresh.
     /// # Errors
-    ///
-    /// Returns the ordinary Snapshot validation error if deterministic derived identities or the
-    /// reconstructed graph violate an immutable routing invariant.
-    #[allow(clippy::too_many_lines)] // Keep one atomic derived-Snapshot construction path auditable.
+    /// Returns the ordinary Snapshot validation error if the reconstructed graph is invalid.
     pub fn materialize_credential_catalogs(
         &self,
         catalogs: impl IntoIterator<Item = SnapshotCredentialCatalog>,
@@ -951,16 +943,14 @@ impl RouteSnapshot {
             }
         }
 
-        let mut public_models = self.public_models.values().cloned().collect::<Vec<_>>();
+        let public_models = self.public_models.values().cloned().collect::<Vec<_>>();
         let mut routes = Vec::new();
-        let mut existing_exact_models = self.public_models.keys().cloned().collect::<BTreeSet<_>>();
         for route in self.routes.values() {
             let candidates = route
                 .candidates
                 .iter()
                 .cloned()
                 .map(|candidate| {
-                    existing_exact_models.insert(candidate.upstream_model.clone());
                     restrict_catalog_candidate(candidate, &managed_endpoints, &eligibility)
                 })
                 .collect();
@@ -972,93 +962,6 @@ impl RouteSnapshot {
                 route.bootstrap_timeout_ms,
                 candidates,
             ));
-        }
-
-        let discovered_models = eligibility
-            .keys()
-            .map(|(_, model)| model.clone())
-            .collect::<BTreeSet<_>>();
-        let mut derived_base_routes = BTreeMap::<RouteId, Vec<RouteId>>::new();
-        for model in discovered_models.difference(&existing_exact_models) {
-            let matching_routes = self
-                .routes
-                .values()
-                .filter(|route| {
-                    route.candidates.iter().any(|candidate| {
-                        eligibility.contains_key(&(candidate.endpoint_id.clone(), model.clone()))
-                            && eligibility.contains_key(&(
-                                candidate.endpoint_id.clone(),
-                                candidate.upstream_model.clone(),
-                            ))
-                    })
-                })
-                .collect::<Vec<_>>();
-            if matching_routes.len() != 1 {
-                continue;
-            }
-            let template_route = matching_routes[0];
-            let Some(template_public_model_name) = self
-                .public_model_names_by_id
-                .get(&template_route.public_model_id)
-            else {
-                return Err(RouteSnapshotBuildError::UnknownRoutePublicModel);
-            };
-            let Some(template_public_model) = self.public_models.get(template_public_model_name)
-            else {
-                return Err(RouteSnapshotBuildError::UnknownRoutePublicModel);
-            };
-            let public_model_id = PublicModelId::try_new(derived_id(
-                "catalog-model",
-                template_route.id.as_str(),
-                model,
-            ))
-            .map_err(|_| RouteSnapshotBuildError::InvalidDerivedIdentity)?;
-            let route_id = RouteId::try_new(derived_id(
-                "catalog-route",
-                template_route.id.as_str(),
-                model,
-            ))
-            .map_err(|_| RouteSnapshotBuildError::InvalidDerivedIdentity)?;
-            let candidates = template_route
-                .candidates
-                .iter()
-                .filter_map(|candidate| {
-                    let (state, credentials) =
-                        eligibility.get(&(candidate.endpoint_id.clone(), model.clone()))?;
-                    let mut candidate = candidate.clone();
-                    candidate.id = RouteCandidateId::try_new(derived_id(
-                        "catalog-candidate",
-                        candidate.id.as_str(),
-                        model,
-                    ))
-                    .ok()?;
-                    candidate.upstream_model.clone_from(model);
-                    candidate.catalog_admission = SnapshotCatalogAdmission::Listed(*state);
-                    Some(candidate.with_eligible_credentials(credentials.clone()))
-                })
-                .collect::<Vec<_>>();
-            if candidates.is_empty() {
-                continue;
-            }
-            public_models.push(SnapshotPublicModel::new(
-                public_model_id.clone(),
-                model.clone(),
-                model.clone(),
-                template_public_model.required_capabilities.clone(),
-                route_id.clone(),
-            ));
-            routes.push(SnapshotRoute::new(
-                route_id.clone(),
-                public_model_id,
-                template_route.policy,
-                template_route.max_attempts,
-                template_route.bootstrap_timeout_ms,
-                candidates,
-            ));
-            derived_base_routes
-                .entry(template_route.id.clone())
-                .or_default()
-                .push(route_id);
         }
 
         let mut evidence_by_endpoint =
@@ -1086,36 +989,8 @@ impl RouteSnapshot {
             }
         }
 
-        let access_groups = self
-            .access_groups
-            .values()
-            .cloned()
-            .map(|mut group| {
-                for (base_route, derived_routes) in &derived_base_routes {
-                    if group.allowed_route_ids.contains(base_route) {
-                        group
-                            .allowed_route_ids
-                            .extend(derived_routes.iter().cloned());
-                    }
-                }
-                group
-            })
-            .collect::<Vec<_>>();
-        let grants = access_groups
-            .iter()
-            .map(|group| (group.id.clone(), group.allowed_route_ids.clone()))
-            .collect::<BTreeMap<_, _>>();
-        let client_keys = self
-            .client_keys
-            .values()
-            .map(|client_key| {
-                let allowed = grants
-                    .get(client_key.access_group_id())
-                    .cloned()
-                    .unwrap_or_default();
-                SnapshotClientKeyView::new(client_key.record.clone(), allowed)
-            })
-            .collect();
+        let access_groups = self.access_groups.values().cloned().collect();
+        let client_keys = self.client_keys.values().cloned().collect();
 
         Self::try_new(RouteSnapshotInput::new(
             self.version.clone(),
@@ -1601,27 +1476,6 @@ const fn fresher_catalog_state(
         (_, CatalogModelState::Fresh | CatalogModelState::Manual) => right,
         _ => CatalogModelState::Stale,
     }
-}
-
-fn derived_id(domain: &str, base: &str, model: &str) -> String {
-    let mut digest = Sha256::new();
-    digest.update(domain.as_bytes());
-    digest.update([0]);
-    digest.update(base.as_bytes());
-    digest.update([0]);
-    digest.update(model.as_bytes());
-    let digest = digest.finalize();
-    format!("dyn-{}", hex_prefix(&digest, 16))
-}
-
-fn hex_prefix(bytes: &[u8], length: usize) -> String {
-    use std::fmt::Write as _;
-
-    let mut output = String::with_capacity(length.saturating_mul(2));
-    for byte in bytes.iter().take(length) {
-        let _ = write!(output, "{byte:02x}");
-    }
-    output
 }
 
 impl Error for RouteSnapshotBuildError {}
@@ -2215,7 +2069,8 @@ mod tests {
     }
 
     #[test]
-    fn materialized_catalog_inherits_access_and_keeps_exact_credential_eligibility() -> TestResult {
+    fn materialized_catalog_preserves_manual_opening_and_exact_credential_eligibility() -> TestResult
+    {
         let snapshot = sample_snapshot("version-a")?;
         let materialized = snapshot.materialize_credential_catalogs([
             SnapshotCredentialCatalog::new(
@@ -2244,9 +2099,14 @@ mod tests {
             }),
         ])?;
         let group_id = AccessGroupId::try_new("group-a")?;
+        assert!(materialized.resolve_public_model("grok-4.6").is_none());
+        assert_eq!(
+            materialized.public_models().count(),
+            snapshot.public_models().count()
+        );
         let public_model = materialized
-            .resolve_public_model_for_access_group(&group_id, "grok-4.6")
-            .ok_or("discovered model did not inherit access")?;
+            .resolve_public_model_for_access_group(&group_id, "public-model")
+            .ok_or("configured model lost access")?;
         let route = materialized
             .route(public_model.route_id())
             .ok_or("discovered route missing")?;
@@ -2266,7 +2126,7 @@ mod tests {
         assert!(
             materialized
                 .exact_upstream_models_for_access_group_at(&group_id, 199)
-                .any(|id| id == "grok-4.6")
+                .any(|id| id == "upstream-model")
         );
         assert_eq!(
             materialized
@@ -2281,8 +2141,11 @@ mod tests {
                 .is_empty()
         );
         assert!(matches!(
-            materialized
-                .resolve_exact_upstream_model_for_access_group_at(&group_id, "grok-4.6", 200),
+            materialized.resolve_exact_upstream_model_for_access_group_at(
+                &group_id,
+                "upstream-model",
+                200
+            ),
             SnapshotExactModelResolution::Absent
         ));
 

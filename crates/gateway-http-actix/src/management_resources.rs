@@ -6,6 +6,7 @@
 
 mod account_channels;
 mod catalog_inventory;
+pub mod catalog_refresh;
 mod configuration_diff;
 mod configuration_edit;
 mod credential_status;
@@ -113,6 +114,8 @@ const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
 /// serialized transactions. Provider and OAuth workflows remain separately injected in later
 /// P10-04 code and never run while this lock is held.
 pub struct ManagementResourceHttpState {
+    catalog_refresh: Option<std::sync::Arc<dyn catalog_refresh::CatalogRefreshFacade>>,
+    catalog_refresh_slots: std::sync::Arc<tokio::sync::Semaphore>,
     system_information: Option<ManagementSystemInformation>,
     started_at: std::time::Instant,
     native_accounts: Option<std::sync::Arc<native_accounts::NativeAccountManagement>>,
@@ -376,6 +379,8 @@ impl ManagementResourceHttpState {
         usage: Box<dyn ManagementUsageFacade>,
     ) -> Self {
         Self {
+            catalog_refresh: None,
+            catalog_refresh_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
             system_information: None,
             started_at: std::time::Instant::now(),
             native_accounts: None,
@@ -1882,10 +1887,10 @@ pub trait ManagementEndpointWorkflow: Send {
     ) -> ManagementEndpointTestResult;
 
     /// Returns a value-free Catalog preview for one exact Endpoint.
-    fn preview_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff;
+    fn preview_catalog(&mut self, endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff>;
 
     /// Applies a previously supported Catalog action for one exact Endpoint.
-    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff;
+    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff>;
 
     /// Starts an explicit Credential-local OAuth workflow.
     fn start_oauth(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation;
@@ -2204,15 +2209,11 @@ impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
         }
     }
 
-    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> ManagementCatalogDiff {
-        ManagementCatalogDiff {
-            added: 0,
-            removed: 0,
-            unchanged: 0,
-        }
+    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff> {
+        None
     }
 
-    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff> {
         self.preview_catalog(endpoint_id)
     }
 
@@ -2384,15 +2385,11 @@ impl ManagementEndpointWorkflow for RejectingManagementEndpointWorkflow {
         }
     }
 
-    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> ManagementCatalogDiff {
-        ManagementCatalogDiff {
-            added: 0,
-            removed: 0,
-            unchanged: 0,
-        }
+    fn preview_catalog(&mut self, _endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff> {
+        None
     }
 
-    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> ManagementCatalogDiff {
+    fn apply_catalog(&mut self, endpoint_id: &EndpointId) -> Option<ManagementCatalogDiff> {
         self.preview_catalog(endpoint_id)
     }
 
@@ -2727,6 +2724,7 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
         .route("/models/effective", web::get().to(get_effective_models))
         .route("/catalog/status", web::get().to(get_catalog_status))
         .route("/catalog/models", web::get().to(catalog_inventory::models))
+        .route("/catalog/refresh", web::post().to(catalog_refresh::refresh))
         .route(
             "/runtime/availability",
             web::get().to(get_runtime_availability),
@@ -5887,6 +5885,14 @@ async fn execute_channel_pin(
     }
 }
 
+fn unsupported_catalog_discovery() -> HttpResponse {
+    error_response(
+        StatusCode::NOT_IMPLEMENTED,
+        "management_catalog_source_unsupported",
+        "请选择账号后刷新上游模型目录",
+    )
+}
+
 async fn preview_catalog_discovery(
     request: HttpRequest,
     path: web::Path<String>,
@@ -5906,7 +5912,10 @@ async fn preview_catalog_discovery(
         Ok(mut workflow) => workflow.preview_catalog(&endpoint_id),
         Err(response) => return response,
     };
-    HttpResponse::Ok().json(CatalogDiffResponse::from(result))
+    match result {
+        Some(result) => HttpResponse::Ok().json(CatalogDiffResponse::from(result)),
+        None => unsupported_catalog_discovery(),
+    }
 }
 
 async fn apply_catalog_discovery(
@@ -5929,6 +5938,9 @@ async fn apply_catalog_discovery(
     let result = match workflow(&state) {
         Ok(mut workflow) => workflow.apply_catalog(&endpoint_id),
         Err(response) => return response,
+    };
+    let Some(result) = result else {
+        return unsupported_catalog_discovery();
     };
     let actor = match principal(&request) {
         Ok(actor) => actor,

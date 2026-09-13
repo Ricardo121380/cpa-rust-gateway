@@ -2686,18 +2686,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         canonical_lifecycle: body.mode === "sse",
       });
     }
-    const discoverPreview = /^POST \/admin\/endpoints\/([^/]+)\/models\/discover-preview$/u.exec(route);
-    if (discoverPreview !== null) {
-      return json(200, { added: 2, removed: 0, unchanged: 3 });
-    }
-    const discoverApply = /^POST \/admin\/endpoints\/([^/]+)\/models\/discover-apply$/u.exec(route);
-    if (discoverApply !== null) {
-      const version = versionByHeader(headers);
-      if (version instanceof Response) return version;
-      const rejected = requireDraftAndMatch(version, headers);
-      if (rejected !== undefined) return rejected;
-      version.revision += 1;
-      return json(200, { added: 2, removed: 0, unchanged: 3 }, revisionToken(version));
+    if (/^POST \/admin\/endpoints\/[^/]+\/models\/discover-(?:preview|apply)$/u.test(route)) {
+      return errorResponse(501, "management_catalog_source_unsupported", "请选择账号后刷新上游模型目录");
     }
 
     // ---- PROPOSED G3: analytics + dashboard summary (deterministic demo data) ----
@@ -2725,13 +2715,20 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       ];
       return json(200, rows, revisionToken(version));
     }
+    if (route === "POST /admin/catalog/refresh") {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const body = JSON.parse(bodyText ?? "{}") as {endpoint_id: string; credential_id: string};
+      return json(200, {config_version: version.id, endpoint_id: body.endpoint_id,
+        credential_id: body.credential_id, observed_at_ms: Date.now(), model_count: 2});
+    }
     if (route === "GET /admin/catalog/models") {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const endpoint=url.searchParams.get("endpoint_id"),credential=url.searchParams.get("credential_id");
       if(endpoint!=="ep-relay-a-responses"||credential!=="cred-relay-key")return errorResponse(404,"management_resource_not_found","Catalog not observed");
       const observed=1_784_880_000_000;
       const all=["gpt-5.5","gpt-5.6-terra"].filter(model=>model.includes(url.searchParams.get("q")??""));
-      return json(200,{config_version:version.id,revision:revisionToken(version),target:{endpoint_id:endpoint,credential_id:credential,snapshot_version:3,observed_at_ms:observed,stale_at_ms:Date.now()+3_600_000,expires_at_ms:Date.now()+7_200_000},items:all.map(model=>({model,present_in_last_success:true})),next_cursor:null},revisionToken(version));
+      return json(200,{config_version:version.id,revision:revisionToken(version),target:{endpoint_id:endpoint,credential_id:credential,snapshot_version:3,observed_at_ms:observed,stale_at_ms:Date.now()+3_600_000,expires_at_ms:Date.now()+7_200_000},current_model_count:2,total_count:all.length,items:all.map(model=>({model,present_in_last_success:true})),next_cursor:null},revisionToken(version));
     }
     if (route === "GET /admin/catalog/status") {
       const version = versionByHeader(headers);

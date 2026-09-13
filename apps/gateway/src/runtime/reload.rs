@@ -42,6 +42,7 @@ pub(super) struct RuntimeFactory {
 }
 
 struct Generation {
+    catalog: Option<Arc<RuntimeModelCatalogWorker>>,
     active: Arc<AtomicBool>,
     data: Arc<ResponsesHttpState>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
@@ -196,8 +197,14 @@ impl RuntimeFactory {
         native
             .managed_account_page(1, "", "", Some(stamp))
             .map_err(|_| RuntimeCompositionError::Unavailable)?;
+        let model_catalog_worker = model_catalog_worker.map(|mut worker| {
+            worker.generation_guard =
+                Some((Arc::clone(&self.publication_gate), Arc::clone(&active)));
+            worker
+        });
         Ok(BuiltGeneration {
             generation: Arc::new(Generation {
+                catalog: model_catalog_worker.clone().map(Arc::new),
                 active: Arc::clone(&active),
                 data: Arc::new(data),
                 runtime: Mutex::new(Box::new(SnapshotManagementRuntimeFacade {
@@ -221,10 +228,7 @@ impl RuntimeFactory {
                         Arc::clone(&active),
                     )
                 }),
-                catalog: model_catalog_worker.map(|mut worker| {
-                    worker.generation_guard = Some((Arc::clone(&self.publication_gate), active));
-                    worker
-                }),
+                catalog: model_catalog_worker,
             },
             native_generation: stamp,
         })
@@ -563,5 +567,29 @@ impl ManagementRuntimeFacade for RuntimePublicationController {
             .lock()
             .map_err(|_| ManagementRuntimeError::Unavailable)?
             .list_request_attempts(request)
+    }
+}
+
+impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFacade
+    for RuntimePublicationController
+{
+    fn refresh(
+        &self,
+        version: ConfigVersionId,
+        endpoint: gateway_core::EndpointId,
+        credential: gateway_core::CredentialId,
+    ) -> gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFuture {
+        let generation = self.current.load_full();
+        Box::pin(async move {
+            use gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError;
+            let worker = generation
+                .catalog
+                .as_ref()
+                .ok_or(CatalogRefreshError::Unsupported)?;
+            if worker.config_version_id != version.as_str() {
+                return Err(CatalogRefreshError::Conflict);
+            }
+            worker.refresh_target(endpoint, credential).await
+        })
     }
 }

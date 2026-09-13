@@ -2499,3 +2499,23 @@ is production-models-20260913, with four original model IDs/four connections. Re
 must retain current databases and cannot blindly handle later new multi-Provider configurations.
 No DNS/Caddy/Autoreg changes, production cleanup or new manual Provider invocation. EgoLite public
 login is retained for the user's existing administrator credentials. No separate implementer action.
+
+
+## 2026-09-13 - Codex - Explicit catalog refresh and manual opening
+
+**What:** `web/prism/contracts/management-v1.json`, `web/prism/src/dev/fixtures.ts`, `web/prism/src/features/access/IssueKeyDialog.tsx`, `web/prism/src/features/accounts/AccountsPage.tsx`, `web/prism/src/features/accounts/NativeAccountDialog.tsx`, `web/prism/src/features/accounts/presentation.test.ts`, `web/prism/src/features/accounts/presentation.ts`, `web/prism/src/features/catalog/CatalogPage.tsx`, `web/prism/src/features/catalog/UpstreamModelBrowser.tsx`, `web/prism/src/features/upstreams/ProviderDialog.tsx`, `web/prism/src/features/upstreams/SubresourcePanel.tsx`, `web/prism/src/features/upstreams/UpstreamsPage.tsx`, `web/prism/src/generated/management-client.ts`, `web/prism/src/utils/resourceNames.test.ts`, `web/prism/src/utils/resourceNames.ts`; authoritative contract `docs/openapi/management-v1.json`,
+`docs/change-requests/CR-PRISM-COMPLETE-WORKFLOWS-005.md`,
+`docs/handoffs/prism-complete-alignment-execution.md` and
+`docs/design/prism-compact-workspace.md`. Generated artifacts updated with sync-contract.
+
+**Why:** Explicit user authorization for joint frontend/backend alignment. Refresh must perform
+real metadata I/O without opening models or expanding key permissions. Spaced legacy prefixes and
+native account connection protocols need consistent presentation.
+
+**Other side:** FYI. POST /admin/catalog/refresh accepts only endpoint/account IDs, with active
+runtime generation, source capability, concurrency, timeout and server credential boundaries.
+Catalog pages distinguish complete latest-success count and matching saved count. Unsupported legacy
+workflows no longer report fake zero-change success or increment revisions. Frontend distinguishes
+refresh from cache reread, and key creation can select all currently opened models explicitly.
+This batch is NOT full alignment or deployment. Production service/permission freeze, alias removal,
+real source acceptance, unified workflows, request timing and full visual acceptance remain required.

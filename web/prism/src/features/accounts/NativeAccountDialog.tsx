@@ -1,3 +1,4 @@
+import { useModelConnections } from "../models/useModelConnections";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
 import { call } from "../../api/client";
@@ -5,7 +6,7 @@ import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { IdentityDetails } from "../../components/ResourceIdentity";
-import { accountName } from "./presentation";
+import { accountName, nativeConnections, protocolName } from "./presentation";
 import type { NativeAccount } from "./NativeAccounts";
 
 export type NativeReceipt = Readonly<{account_id:string;revision:number;removed:boolean;runtime_applied:boolean;identity_state?:"observed"|"unavailable"}>;
@@ -16,6 +17,8 @@ const actions: Record<string,string> = {enabled:"启用账号",disabled:"停用�
 export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Readonly<{
   account:NativeAccount;onClose:()=>void;onChanged:(notice:string)=>void;onAuthorize:()=>void;
 }>) {
+  const topology=useModelConnections();
+  const connections=nativeConnections(account.provider,topology.data?.endpoints??[]);
   const [mode,setMode]=useState<"details"|"credential"|"status"|"remove">("details");
   const [error,setError]=useState<string>();
   const [saved,setSaved]=useState<NativeReceipt>();
@@ -54,6 +57,8 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
         <button className="secondary" onClick={()=>select("status")}>{account.enabled?"停用":"启用"}</button>
         <button className="secondary" onClick={()=>select("remove")}>移除</button>
       </div>
+      <h3>接口协议</h3>{topology.isError?<p role="alert">接口读取失败</p>:topology.isPending?<p>读取接口…</p>:!connections.length?<p>尚未配置接口</p>:<ul className="account-connections">{connections.map(c=><li key={c.id}><span>{protocolName(c.api_format)}</span><span>{c.host}</span><span>{c.enabled?"已启用":"已停用"}</span></li>)}</ul>}
+      <details><summary>调度方式</summary><p>已启用的账号参与对应渠道的请求调度；认证、额度与模型目录仍分别校验。</p></details>
       <details><summary>最近操作</summary>
         {history.isPending?<p>读取中…</p>:history.isError?<p role="alert">{asAppError(history.error).message}</p>:!history.data?.length?<p className="muted">暂无维护记录</p>:<ul className="account-connections">{history.data.map((entry)=><li key={entry.id}><span>{actions[entry.action]??"账号操作"}</span><time>{new Date(entry.occurred_at_ms).toLocaleString()}</time></li>)}</ul>}
       </details>

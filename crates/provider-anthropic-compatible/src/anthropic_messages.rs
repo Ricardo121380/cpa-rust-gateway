@@ -111,14 +111,18 @@ impl AnthropicMessagesAuthorization {
         })
     }
 
-    pub(crate) const fn header_name(&self) -> &'static str {
+    /// Returns the protocol authorization header name for an admitted metadata request.
+    #[must_use]
+    pub const fn header_name(&self) -> &'static str {
         match self.kind {
             AnthropicAuthorizationKind::ApiKey => "x-api-key",
             AnthropicAuthorizationKind::Bearer => "authorization",
         }
     }
 
-    pub(crate) fn header_value(&self) -> &str {
+    /// Borrows secret authorization material solely for the admitted upstream transport.
+    #[must_use]
+    pub fn header_value(&self) -> &str {
         self.value.as_str()
     }
 

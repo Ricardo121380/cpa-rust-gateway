@@ -1,10 +1,10 @@
 /** Presentation only. Original IDs must remain the values used by APIs, URLs,
  * filters, React keys and audit references. Model protocol names are excluded. */
-export type ResourceKind = "account" | "upstream" | "endpoint" | "route" | "candidate" | "group" | "key" | "policy" | "config" | "catalog" | "resource";
+export type ResourceKind = "account" | "upstream" | "endpoint" | "route" | "candidate" | "group" | "key" | "policy" | "config" | "catalog" | "model" | "resource";
 
 const nouns: Record<ResourceKind, string> = {
   account: "账号", upstream: "提供商", endpoint: "接口", route: "路由", candidate: "候选",
-  group: "访问组", key:"访问密钥", policy: "出口策略", config: "配置", catalog: "目录", resource: "资源",
+  group: "访问组", key:"访问密钥", policy: "出口策略", config: "配置", catalog: "目录", model: "模型", resource: "资源",
 };
 const words: Record<string, string> = {
   codex: "Codex", grok: "Grok", openai: "OpenAI", anthropic: "Anthropic", claude: "Claude", chatgpt: "ChatGPT", go: "Go",
@@ -14,7 +14,7 @@ const words: Record<string, string> = {
 };
 
 export function isInternalLabel(value: string): boolean {
-  return /^p\d{1,2}[-_]/iu.test(value)
+  return /^p\d{1,2}[\s_-]+/iu.test(value)
     || /(?:^|[-_])(?:test|testing|e2e|fixture|smoke|preview|staging|acceptance)(?:[-_]|$)/iu.test(value)
     || /(?:^|[-_])[a-f0-9]{24,}$/iu.test(value)
     || /[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(value);
@@ -22,17 +22,18 @@ export function isInternalLabel(value: string): boolean {
 
 export function resourceName(id: string, kind: ResourceKind = "resource", name?: string | null): string {
   const source = name?.trim() || id;
+  if (kind === "model") return source;
   if (kind === "config" && !name?.trim() && /^edit-/u.test(id)) return "配置副本";
   if (kind === "account" && name?.trim()) return name.trim();
-  if (/^p\d{1,2}[-_]\d+[a-z\d]*$/iu.test(source)) return kind === "resource" ? "历史标签" : nouns[kind];
+  if (/^p\d{1,2}[\s_-]+\d+[a-z\d]*$/iu.test(source)) return kind === "resource" ? "历史标签" : nouns[kind];
   if (!isInternalLabel(source)) return source.replace(/p\d{1,2}[-_][\w.-]+/giu, value=>resourceName(value,kind));
   const readable = source
-    .replace(/^p\d{1,2}[-_]\d+[a-z\d]*[-_\s]+/iu, "")
-    .replace(/^p\d{1,2}[-_]/iu, "")
+    .replace(/^p\d{1,2}[\s_-]+\d+[a-z\d]*[-_\s]+/iu, "")
+    .replace(/^p\d{1,2}[\s_-]+/iu, "")
     .replace(/(?:^|[-_])[a-f0-9]{24,}$/iu, "")
     .replace(/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu, "")
     .split(/[\s_-]+/u)
-    .filter((part) => !/^(production|existing|test|testing|e2e|fixture|smoke|preview|staging|acceptance|bridge|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version|v\d+|\d{6,})$/iu.test(part))
+    .filter((part) => !/^(production|independent|existing|test|testing|e2e|fixture|smoke|preview|staging|acceptance|bridge|credential|credentials|upstream|endpoint|route|candidate|egress|policy|group|key|config|version|v\d+|\d{6,})$/iu.test(part))
     .map((part) => words[part.toLowerCase()] ?? part)
     .join(" ").trim();
   return `${readable}${readable ? " " : ""}${nouns[kind]}`;

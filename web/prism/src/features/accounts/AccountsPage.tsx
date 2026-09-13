@@ -1,3 +1,4 @@
+import { useModelConnections } from "../models/useModelConnections";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -11,7 +12,7 @@ import { OAuthWizard } from "../upstreams/OAuthWizard";
 import {useNativeAccounts, type NativeAccount} from "./NativeAccounts";
 import {GrokDeviceWizard} from "./GrokDeviceWizard";
 import {AccountList, type AccountListRow} from "./AccountList";
-import {accountGroups, accountName, accountSource, protocolName} from "./presentation";
+import {accountGroups, accountName, accountSource, protocolName, nativeConnections} from "./presentation";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { NativeAccountDialog } from "./NativeAccountDialog";
 import { AccountRuntimePanel } from "./AccountRuntimePanel";
@@ -39,6 +40,7 @@ function ManagedAccounts() {
   const provider = params.get("provider") ?? "";
   const inventory = useManagedInventory("credentials", provider);
   const native = useNativeAccounts();
+  const topology = useModelConnections();
   const nativeRows = native.data?.pages.flatMap((p)=>p.items) ?? [];
   const selectedCategory = params.get("category") ?? "";
   const [nativeDetail,setNativeDetail] = useState<NativeAccount>();
@@ -93,7 +95,7 @@ function ManagedAccounts() {
   const nativeView=(row:NativeAccount):AccountListRow=>({key:row.id,name:accountName(row.identity,row.import_batch_id),source:accountSource(row.import_batch_id),provider:nativeNames[row.provider],authentication:row.provider==="grok_build"?"OAuth 授权":"SSO 授权",
     selected:selection.has(`native:${row.id}`),onSelect:selecting?()=>toggle([`native:${row.id}`]):undefined,
     status:<StatusBadge status={!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"active":"unauthorized"}>{!row.enabled||row.auth_status==="disabled"?"已停用":row.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>,
-    connection:<button className="account-connection-link" onClick={()=>setNativeDetail(row)}>渠道账号池<span className="entity-meta">按 {nativeNames[row.provider]} 渠道调度</span></button>,
+    connection:<button className="account-connection-link" onClick={()=>setNativeDetail(row)}>{topology.isError?"接口读取失败":!topology.data?"读取接口…":[...new Set(nativeConnections(row.provider,topology.data.endpoints).map(c=>protocolName(c.api_format)))].join(" · ")||"未配置接口"}<span className="entity-meta">查看接口连接</span></button>,
     actions:<div className="page-actions"><button className="secondary" onClick={()=>setNativeDetail(row)}>详情</button>{row.provider==="grok_build"?<button className="secondary" onClick={()=>setNativeOauth(row)}>重新授权</button>:null}</div>,
   });
   const groupedView=(group:ManagedCredential[]):AccountListRow=>{

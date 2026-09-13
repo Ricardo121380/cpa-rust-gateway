@@ -1749,6 +1749,86 @@
           }
         }
       }
+    },
+    "/admin/catalog/refresh": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        }
+      ],
+      "post": {
+        "operationId": "refreshCatalogModels",
+        "tags": [
+          "runtime"
+        ],
+        "description": "Explicit metadata-only refresh for one exact active Endpoint/Credential. Server-owned credentials and admitted egress; never opens models or grants access. Bounded request, old successful evidence retained on failure.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "endpoint_id",
+                  "credential_id"
+                ],
+                "properties": {
+                  "endpoint_id": {
+                    "$ref": "#/components/schemas/Id"
+                  },
+                  "credential_id": {
+                    "$ref": "#/components/schemas/Id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed complete upstream model catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "config_version",
+                    "endpoint_id",
+                    "credential_id",
+                    "observed_at_ms",
+                    "model_count"
+                  ],
+                  "properties": {
+                    "config_version": {
+                      "$ref": "#/components/schemas/Id"
+                    },
+                    "endpoint_id": {
+                      "$ref": "#/components/schemas/Id"
+                    },
+                    "credential_id": {
+                      "$ref": "#/components/schemas/Id"
+                    },
+                    "observed_at_ms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "model_count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2202,7 +2282,9 @@
           "revision",
           "target",
           "items",
-          "next_cursor"
+          "next_cursor",
+          "current_model_count",
+          "total_count"
         ],
         "properties": {
           "config_version": {
@@ -2278,6 +2360,16 @@
                 "type": "null"
               }
             ]
+          },
+          "current_model_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Complete last-success count for this account and endpoint; independent of search and page."
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Matching saved entries, including models absent in the latest success."
           }
         }
       }

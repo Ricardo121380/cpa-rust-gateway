@@ -53,6 +53,10 @@ pub struct CatalogModelPage {
     pub version: ConfigVersion,
     /// Target-local source clock.
     pub target: CatalogTargetHeader,
+    /// Exact last-success model count, independent of filtering and pagination.
+    pub current_model_count: i64,
+    /// Matching saved entries, including entries absent in the last success.
+    pub total_count: i64,
     /// Stable model-ordered page.
     pub items: Vec<CatalogModelRow>,
     /// Continuation key, when another matching row exists.
@@ -96,6 +100,13 @@ impl ResourceInventoryReader {
         }) {
             return Err(StoreError::ConfigVersionRevisionConflict);
         }
+        let (current_model_count, total_count) = tx.query_row(
+            "SELECT COALESCE(SUM(CASE WHEN present_in_last_success THEN 1 ELSE 0 END),0),
+                    COALESCE(SUM(CASE WHEN ?4='' OR instr(lower(model),lower(?4))>0 THEN 1 ELSE 0 END),0)
+             FROM model_catalog_models WHERE config_version_id=?1 AND endpoint_id=?2 AND credential_id=?3",
+            params![query.version.as_str(), query.endpoint_id, query.credential_id, query.search],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+        )?;
         let mut stmt = tx.prepare(
             "SELECT model,present_in_last_success FROM model_catalog_models
              WHERE config_version_id=?1 AND endpoint_id=?2 AND credential_id=?3
@@ -131,6 +142,8 @@ impl ResourceInventoryReader {
             target,
             items,
             next_after,
+            current_model_count,
+            total_count,
         })
     }
 }

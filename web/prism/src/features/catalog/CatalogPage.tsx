@@ -61,7 +61,7 @@ export function CatalogPage() {
             void catalog.refetch();
           }}
         >
-          刷新目录
+          重新读取
         </button>
       </header>
       <UpstreamModelBrowser />

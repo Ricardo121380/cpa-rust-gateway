@@ -6,7 +6,7 @@ import { asAppError } from "../../api/errors";
 import { resourceName } from "../../utils/resourceNames";
 import { useManagedInventory } from "../accounts/inventory";
 import { useNativeAccounts } from "../accounts/NativeAccounts";
-import { accountName, protocolName } from "../accounts/presentation";
+import { accountName, protocolName, nativeConnections } from "../accounts/presentation";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -14,7 +14,7 @@ import { connectModel } from "../models/connectModel";
 import { useModelConnections } from "../models/useModelConnections";
 import type { CatalogRow } from "../runtime/model";
 
-type CatalogModelPage=Readonly<{config_version:string;revision:string;target:{endpoint_id:string;credential_id:string;snapshot_version:number;observed_at_ms:number;stale_at_ms:number;expires_at_ms:number};items:readonly {model:string;present_in_last_success:boolean}[];next_cursor:string|null}>;
+type CatalogModelPage=Readonly<{config_version:string;revision:string;current_model_count:number;total_count:number;target:{endpoint_id:string;credential_id:string;snapshot_version:number;observed_at_ms:number;stale_at_ms:number;expires_at_ms:number};items:readonly {model:string;present_in_last_success:boolean}[];next_cursor:string|null}>;
 
 export function UpstreamModelBrowser() {
   const navigate=useNavigate();
@@ -31,7 +31,10 @@ export function UpstreamModelBrowser() {
   const [workingId,setWorkingId]=useState<string>();
   const endpoints=(topology.data?.endpoints??[]).filter(e=>!provider||e.upstream_id===provider);
   const endpoint=endpoints.find(e=>e.id===endpointChoice)??endpoints[0];
-  const targets=(catalog.data??[]).filter(row=>row.endpoint_id===endpoint?.id);
+  const known=[...(catalog.data??[]).filter(row=>row.endpoint_id===endpoint?.id),
+    ...(credentials.data?.pages.flatMap(p=>p.items).filter(c=>c.connections.some(e=>e.id===endpoint?.id)).map(c=>({endpoint_id:endpoint!.id,credential_id:c.credential.id}))??[]),
+    ...(native.data?.pages.flatMap(p=>p.items).filter(c=>nativeConnections(c.provider,endpoint?[endpoint]:[]).length).map(c=>({endpoint_id:endpoint!.id,credential_id:c.id}))??[])];
+  const targets=[...new Map(known.map(t=>[t.credential_id,t])).values()];
   const target=targets.find(t=>t.credential_id===credentialChoice)??targets[0];
   const name=(id:string)=>accountName(credentials.data?.pages.flatMap(p=>p.items).find(c=>c.credential.id===id)?.identity)??accountName(native.data?.pages.flatMap(p=>p.items).find(c=>c.id===id)?.identity)??"未提供账号身份";
   const query=useInfiniteQuery({queryKey:["catalog-models",scope,endpoint?.id,target?.credential_id,search],initialPageParam:undefined as string|undefined,enabled:!!scope&&!!endpoint&&!!target,retry:false,queryFn:({pageParam})=>call<CatalogModelPage>("listCatalogModels",{query:{endpoint_id:endpoint!.id,credential_id:target!.credential_id,limit:100,q:search,...(pageParam?{cursor:pageParam}:{})}},{versionScoped:true}),getNextPageParam:last=>last.next_cursor??undefined});
@@ -49,16 +52,22 @@ export function UpstreamModelBrowser() {
     for(const model of picked)await connectModel(task,{upstreamModel:model,endpointId:endpoint.id,allowUnlisted:false});
     return task.finish();
   },onSuccess:version=>{setPicked(new Set());useVersionStore.getState().select(version);navigate("/models");}});
-  const resetSelection=()=>{setPicked(new Set());setWorkingId(undefined);save.reset();};
+  const refresh=useMutation({mutationFn:async()=>{
+    if(!endpoint||!target)throw new Error("请先连接账号。");
+    return call<{model_count:number}>("refreshCatalogModels",{body:{endpoint_id:endpoint.id,credential_id:target.credential_id}},{versionScoped:true});
+  },onSuccess:()=>{setPicked(new Set());void catalog.refetch();void query.refetch();}});
+  const resetSelection=()=>{setPicked(new Set());setWorkingId(undefined);save.reset();refresh.reset();};
   return <section className="upstream-model-browser" aria-label="上游模型清单">
-    <div className="data-toolbar"><label>提供商<select value={provider} disabled={save.isPending} onChange={e=>{setProvider(e.target.value);setEndpoint("");setCredential("");resetSelection();}}><option value="">全部提供商</option>{providers.data?.map(p=><option key={p.id} value={p.id}>{resourceName(p.id,"upstream",p.name)}</option>)}</select></label>
-      <label>接口<select value={endpoint?.id??""} disabled={save.isPending} onChange={e=>{setEndpoint(e.target.value);setCredential("");resetSelection();}}>{!endpoints.length?<option value="">尚未配置接口</option>:endpoints.map(e=><option key={e.id} value={e.id}>{resourceName(e.upstream_id,"upstream",providers.data?.find(p=>p.id===e.upstream_id)?.name)} · {protocolName(e.api_format)} · {new URL(e.base_url).host}</option>)}</select></label>
-      <label>目录账号<select value={target?.credential_id??""} disabled={save.isPending} onChange={e=>{setCredential(e.target.value);resetSelection();}}>{!targets.length?<option value="">尚无目录观测</option>:targets.map(t=><option key={t.credential_id} value={t.credential_id}>{name(t.credential_id)}</option>)}</select></label>
+    <div className="data-toolbar"><label>提供商<select value={provider} disabled={save.isPending||refresh.isPending} onChange={e=>{setProvider(e.target.value);setEndpoint("");setCredential("");resetSelection();}}><option value="">全部提供商</option>{providers.data?.map(p=><option key={p.id} value={p.id}>{resourceName(p.id,"upstream",p.name)}</option>)}</select></label>
+      <label>接口<select value={endpoint?.id??""} disabled={save.isPending||refresh.isPending} onChange={e=>{setEndpoint(e.target.value);setCredential("");resetSelection();}}>{!endpoints.length?<option value="">尚未配置接口</option>:endpoints.map(e=><option key={e.id} value={e.id}>{resourceName(e.upstream_id,"upstream",providers.data?.find(p=>p.id===e.upstream_id)?.name)} · {protocolName(e.api_format)} · {new URL(e.base_url).host}</option>)}</select></label>
+      <label>目录账号<select value={target?.credential_id??""} disabled={save.isPending||refresh.isPending} onChange={e=>{setCredential(e.target.value);resetSelection();}}>{!targets.length?<option value="">尚无目录观测</option>:targets.map(t=><option key={t.credential_id} value={t.credential_id}>{name(t.credential_id)}</option>)}</select></label>
     </div>
-    <div className="data-toolbar"><input type="search" aria-label="搜索上游模型" placeholder="搜索模型 ID" value={search} disabled={save.isPending} onChange={e=>{setSearch(e.target.value);resetSelection();}}/><button className="secondary" disabled={query.isFetching||save.isPending} onClick={()=>{resetSelection();void catalog.refetch();if(target)void query.refetch();}}>重读目录</button><Link to={`/models?add=model${endpoint?`&from_endpoint=${encodeURIComponent(endpoint.id)}`:""}`}>手动批量接入</Link></div>
+    <div className="data-toolbar"><input type="search" aria-label="搜索上游模型" placeholder="搜索模型 ID" value={search} disabled={save.isPending||refresh.isPending} onChange={e=>{setSearch(e.target.value);resetSelection();}}/><button disabled={!endpoint||!target||save.isPending||refresh.isPending} onClick={()=>refresh.mutate()}>{refresh.isPending?"正在刷新…":"刷新上游模型"}</button><button className="secondary" disabled={query.isFetching||save.isPending} onClick={()=>{resetSelection();void catalog.refetch();if(target)void query.refetch();}}>重读目录</button><Link to={`/models?add=model${endpoint?`&from_endpoint=${encodeURIComponent(endpoint.id)}`:""}`}>手动批量接入</Link></div>
+    {refresh.isError?<p role="alert">{asAppError(refresh.error).message}</p>:null}
+    {refresh.isSuccess?<p role="status">上游目录已更新，共 {refresh.data.model_count} 个模型。</p>:null}
     {topology.error||providers.error||catalog.error?<p role="alert">{asAppError(topology.error??providers.error??catalog.error).message}</p>:null}
     {!target?<p className="empty-state">此接口尚无已观测的模型目录。可在提供商中配置目录发现，或按上游公布的模型 ID 批量接入。</p>:query.isError?<p role="alert" className="empty-state">{asAppError(query.error).status===404?"尚未取得该账号的成功目录。":asAppError(query.error).message}</p>:query.isPending?<p role="status">读取上游模型…</p>:null}
-    {header?<p className="stat-sub">观测于 {new Date(header.observed_at_ms).toLocaleString()} · 已载入 {rows.length} 个模型{query.hasNextPage?"，还有更多":""}{expired?" · 目录已过期，请更新目录后接入":""}</p>:null}
+    {header?<p className="stat-sub">观测于 {new Date(header.observed_at_ms).toLocaleString()} · 上游模型 {query.data?.pages[0]?.current_model_count} · 已载入 {rows.length} / {query.data?.pages[0]?.total_count}{query.hasNextPage?"，还有更多":""}{expired?" · 目录已过期，请更新目录后接入":""}</p>:null}
     {rows.length?<><div className="data-toolbar"><span>已选 {picked.size} / 20</span><button disabled={!picked.size||save.isPending||save.isError||query.isError||expired} onClick={()=>save.mutate()}>{save.isPending?"正在接入…":`接入所选模型${picked.size?`（${picked.size}）`:""}`}</button></div><div className="tablewrap"><table><thead><tr><th>选择</th><th>上游模型 ID</th><th>接入状态</th></tr></thead><tbody>{rows.map(row=><tr key={row.model}><td><input type="checkbox" aria-label={`选择 ${row.model}`} checked={picked.has(row.model)} disabled={save.isPending||query.isError||expired||!row.present_in_last_success||row.model.length>256||connected.has(row.model)||(!picked.has(row.model)&&picked.size>=20)} onChange={e=>setPicked(previous=>{const next=new Set(previous);if(e.target.checked)next.add(row.model);else next.delete(row.model);return next;})}/></td><td className="mono">{row.model}</td><td>{connected.has(row.model)?"已连接此接口":row.present_in_last_success?"待接入":"最近目录已不再返回"}</td></tr>)}</tbody></table></div></>:null}
     {!query.isPending&&!query.isError&&target&&header&&!rows.length?<p className="empty-state">{search?"没有匹配的模型。":"上游最近成功返回了空模型目录。"}</p>:null}
     {query.hasNextPage?<button className="secondary" disabled={query.isFetching||query.isError||save.isPending} onClick={()=>void query.fetchNextPage()}>加载更多模型</button>:null}

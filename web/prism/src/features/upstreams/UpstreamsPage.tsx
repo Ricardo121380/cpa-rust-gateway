@@ -202,7 +202,7 @@ export function UpstreamsPage() {
           return <article className="provider-card" key={upstream.id}>
             <header><div><span className="provider-kind">{providerKindLabel(upstream.kind)}</span><h3>{name}</h3></div><StatusBadge status={upstream.enabled?"active":"disabled"}>{upstream.enabled?"已启用":"已停用"}</StatusBadge></header>
             <div className="provider-connections">{!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div>
-            <div className="provider-models"><span className="muted">已配置模型 {topology.data?models.length:"—"}</span><div>{models.slice(0,8).map(model=><code key={model}>{model}</code>)}{models.length>8?<span>另有 {models.length-8} 个</span>:null}</div></div>
+            <div className="provider-models"><span className="muted">已开放模型 {topology.data?models.length:"—"}</span><div>{models.slice(0,8).map(model=><code key={model}>{model}</code>)}{models.length>8?<span>另有 {models.length-8} 个</span>:null}</div></div>
             <footer><div><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>浏览上游模型</Link><Link to={`/models?add=model${endpoints[0]?`&from_endpoint=${encodeURIComponent(endpoints[0].id)}`:""}`}>批量接入模型</Link></div><div className="row-actions">
               <button className="secondary" onClick={()=>setExpanded(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
               <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);setDraft(toDraft(upstream));}}>编辑</button>

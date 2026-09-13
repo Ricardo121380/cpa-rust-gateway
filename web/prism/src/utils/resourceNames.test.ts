@@ -13,7 +13,7 @@ it("uses readable production labels for legacy phase IDs and opaque accounts", (
 });
 it("preserves custom labels and exact protocol model names", () => {
   expect(resourceName("p12-12-production-route", "route", "家庭工作区")).toBe("家庭工作区");
-  for (const id of ["gpt-5.5", "grok-4.6", "p12 research model", "cred-relay-key"]) {
+  for (const id of ["gpt-5.5", "grok-4.6", "cred-relay-key"]) {
     expect(isInternalLabel(id)).toBe(false);
     expect(resourceName(id)).toBe(id);
   }
@@ -26,4 +26,13 @@ it("omits invented hashes while retaining exact values for callers", () => {
   expect(a).toBe("p12-06-codex-bridge-credential");
   expect(referenceText(`删除 ${a}，保留 gpt-5.5。`)).toBe("删除 Codex 账号，保留 gpt-5.5。");
   expect(resourceName("acceptance-grok-console-1786163922","upstream")).toBe("Grok Console 提供商");
+});
+
+it("removes spaced production phase names without rewriting real identities or model IDs", () => {
+  for (const phase of ["P12", "p12", "P12-12", "p12_12"]) {
+    expect(resourceName("legacy", "upstream", `${phase} production Grok Build`)).toBe("Grok Build 提供商");
+    expect(resourceName("legacy", "upstream", `${phase} production independent Krill`)).toBe("Krill 提供商");
+  }
+  expect(resourceName("legacy", "account", "p12-person@example.com")).toBe("p12-person@example.com");
+  expect(resourceName("p12 research model", "model")).toBe("p12 research model");
 });

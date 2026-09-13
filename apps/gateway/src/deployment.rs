@@ -479,7 +479,9 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         crate::account_identity::SessionIdentityTransport::new(command.grok_web_proxy.clone())
             .map_err(|_| DeploymentError::RuntimeUnavailable)?,
     ));
-    let resources = resources.with_native_accounts(native_accounts.with_runtime(reload.clone()));
+    let resources = resources
+        .with_native_accounts(native_accounts.with_runtime(reload.clone()))
+        .with_catalog_refresh(reload.clone());
     let resources = resources.with_provider_egress_status(provider_egress_status);
     let resources = resources.with_channel_pin(channel_pin);
     let resources = resources.with_system_information(

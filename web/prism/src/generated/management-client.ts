@@ -2144,6 +2144,20 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "refreshCatalogModels": {
+    "method": "POST",
+    "path": "/admin/catalog/refresh",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "refreshCredentialOAuth": {
     "method": "POST",
     "path": "/admin/credentials/{credential_id}/oauth/refresh",
@@ -3291,6 +3305,10 @@ export class ManagementApi {
 
   publishConfigVersion(request: ManagementRequest = {}): Promise<Response> {
     return this.request("publishConfigVersion", request);
+  }
+
+  refreshCatalogModels(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("refreshCatalogModels", request);
   }
 
   refreshCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {

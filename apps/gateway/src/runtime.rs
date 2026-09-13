@@ -490,6 +490,7 @@ fn p13_channel_pin_request_id() -> Result<RequestId, ManagementChannelPinError> 
     .map_err(|_| ManagementChannelPinError::Unavailable)
 }
 
+mod catalog_refresh;
 /// Production pieces that must be attached to the separate P12 listeners together.
 mod reload;
 pub(crate) use reload::RuntimePublicationController;
@@ -3442,12 +3443,17 @@ struct EndpointRuntime {
 
 const MODEL_CATALOG_RUNTIME_INTERVAL: Duration = Duration::from_hours(1);
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum RuntimeCatalogProvider {
     GrokBuild,
     Codex,
+    Compatible {
+        url: gateway_upstream::EndpointUrl,
+        anthropic: bool,
+    },
 }
 
+#[derive(Clone)]
 struct RuntimeCatalogTarget {
     endpoint_id: EndpointId,
     provider: RuntimeCatalogProvider,
@@ -3457,6 +3463,7 @@ struct RuntimeCatalogTarget {
 }
 
 /// Background owner for P13-15C/D durable discovery and atomic route publication.
+#[derive(Clone)]
 pub(crate) struct RuntimeModelCatalogWorker {
     generation_guard: Option<(Arc<tokio::sync::Mutex<()>>, Arc<AtomicBool>)>,
     config_version_id: String,
@@ -3495,6 +3502,21 @@ impl RuntimeModelCatalogWorker {
                             .starts_with("https://chatgpt.com/backend-api/codex/") =>
                 {
                     RuntimeCatalogProvider::Codex
+                }
+                EndpointAdapter::OpenAiChatCompletions(_)
+                | EndpointAdapter::OpenAiResponses(_)
+                | EndpointAdapter::AnthropicMessages(_)
+                    if endpoint.models_path.is_some() =>
+                {
+                    let url = gateway_upstream::EndpointUrl::compose(
+                        &endpoint.base_url,
+                        endpoint.models_path.as_deref().unwrap_or("/models"),
+                    )
+                    .map_err(|_| RuntimeCompositionError::Unavailable)?;
+                    RuntimeCatalogProvider::Compatible {
+                        url,
+                        anthropic: matches!(runtime.adapter, EndpointAdapter::AnthropicMessages(_)),
+                    }
                 }
                 _ => continue,
             };
@@ -3647,7 +3669,11 @@ impl RuntimeModelCatalogWorker {
         lease: &CredentialLease,
         observed_at_ms: i64,
     ) -> Result<Vec<gateway_catalog::DiscoveredModel>, GatewayError> {
-        match target.provider {
+        match &target.provider {
+            RuntimeCatalogProvider::Compatible { url, anthropic } => {
+                self.discover_compatible(target, url, *anthropic, lease, observed_at_ms)
+                    .await
+            }
             RuntimeCatalogProvider::GrokBuild => {
                 let credential =
                     GrokBuildCredential::import_runtime_json(lease.secret_bytes(), observed_at_ms)
