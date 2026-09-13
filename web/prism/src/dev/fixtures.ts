@@ -2239,6 +2239,25 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
 
 
+    if(route === "GET /admin/accounts/inventory") {
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const q=(url.searchParams.get("q")??"").trim().toLowerCase(),category=url.searchParams.get("category"),status=url.searchParams.get("status"),owner=url.searchParams.get("upstream_id"),sort=url.searchParams.get("sort")??"name",limit=Number(url.searchParams.get("limit")??50);
+      const ordinary=(state.credentials.get(version.id)??[]).filter(c=>!owner||c.upstream_id===owner).map(credential=>{
+        const bindings=(state.bindings.get(version.id)??[]).filter(b=>b.credential_id===credential.id);
+        const connections=bindings.flatMap(b=>{const e=state.endpoints.get(version.id)?.find(e=>e.id===b.endpoint_id);return e?[{id:e.id,api_format:e.api_format,enabled:b.enabled&&e.enabled,host:new URL(e.base_url).hostname}]:[];});
+        const identity={email:credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null};
+        const category=credential.kind==="oauth_json"?"codex":"api",provider=category==="codex"?"Codex":"API";
+        return {id:credential.id,native:false,identity,name:identity.email??"",category,provider,status:credential.status==="active"?"enabled":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(category==="codex"?["reauthorize"]:[])],managed:{credential,identity,category,provider,connections,binding_count:bindings.length},native_account:null};
+      });
+      const native=owner?[]:nativeFixtureAccounts.map(row=>{const identity=row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null};return {id:row.id,native:true,identity,name:identity.email??identity.phone??identity.username??"",category:"grok",provider:row.provider==="grok_build"?"Grok Build":row.provider==="grok_console"?"Grok Console":"Grok Web",status:!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"enabled":"reauth_required",operations:["details","update_credential","enable","disable","remove","models",...(row.provider==="grok_build"?["reauthorize"]:[])],managed:null,native_account:{...row,identity}};});
+      const rows=[...ordinary,...native].filter(r=>(!category||r.category===category)&&(!status||r.status===status)&&[r.name,r.provider,r.category,r.identity.email,r.identity.phone,r.identity.username].join(" ").toLowerCase().includes(q));
+      rows.sort((a,b)=>{const ka=(sort==="provider"?a.provider+" ":"")+a.name,kb=(sort==="provider"?b.provider+" ":"")+b.name;const c=ka.toLowerCase()<kb.toLowerCase()?-1:ka.toLowerCase()>kb.toLowerCase()?1:a.id.localeCompare(b.id);return sort==="name_desc"?-c:c;});
+      const filter=JSON.stringify([q,category,status,owner,sort,limit]);let offset=0;
+      const encoded=url.searchParams.get("cursor");if(encoded){try{const c=JSON.parse(atob(encoded));if(c.version!==version.id||c.revision!==version.revision||c.sequence!==inventorySequence||c.native!==nativeFixtureGeneration||c.filter!==filter)return errorResponse(409,"management_account_inventory_conflict","账号目录已改变");offset=c.offset;}catch{return errorResponse(400,"invalid_management_request","invalid cursor");}}
+      const counts:Record<string,number>={};for(const row of rows)counts[row.category]=(counts[row.category]??0)+1;
+      return json(200,{config_version:version.id,revision:revisionToken(version),total:rows.length,category_totals:counts,items:rows.slice(offset,offset+limit),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({version:version.id,revision:version.revision,sequence:inventorySequence,native:nativeFixtureGeneration,filter,offset:offset+limit})):null});
+    }
+
     if (route === "GET /admin/credentials" || route === "GET /admin/endpoints") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;

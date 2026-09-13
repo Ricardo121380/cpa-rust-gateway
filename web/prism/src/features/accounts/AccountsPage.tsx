@@ -1,6 +1,7 @@
+import {useAccountDirectory} from "./useAccountDirectory";
 import { useModelConnections } from "../models/useModelConnections";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
@@ -9,7 +10,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { useVersionStore } from "../config-versions/versionStore";
 import { CredentialSheet } from "../upstreams/CredentialSheet";
 import { OAuthWizard } from "../upstreams/OAuthWizard";
-import {useNativeAccounts, type NativeAccount} from "./NativeAccounts";
+import {type NativeAccount} from "./NativeAccounts";
 import {GrokDeviceWizard} from "./GrokDeviceWizard";
 import {AccountList, type AccountListRow} from "./AccountList";
 import {accountGroups, accountName, accountSource, protocolName, nativeConnections} from "./presentation";
@@ -18,7 +19,7 @@ import { NativeAccountDialog } from "./NativeAccountDialog";
 import { AccountRuntimePanel } from "./AccountRuntimePanel";
 import { AccountBatchDialog, type AccountAction, type AccountTarget } from "./AccountBatchDialog";
 import { CredentialUpdateDialog } from "./CredentialUpdateDialog";
-import { groupManagedIdentities, useManagedInventory, type ManagedCredential } from "./inventory";
+import { groupManagedIdentities, type ManagedCredential } from "./inventory";
 
 export function AccountsPage() {
   const [params, setParams] = useSearchParams();
@@ -38,16 +39,22 @@ function ManagedAccounts() {
   const client = useQueryClient();
   const search = params.get("q") ?? "";
   const provider = params.get("provider") ?? "";
-  const inventory = useManagedInventory("credentials", provider);
-  const native = useNativeAccounts();
-  const topology = useModelConnections();
-  const nativeRows = native.data?.pages.flatMap((p)=>p.items) ?? [];
+  const [searchInput,setSearchInput]=useState(search);
+  useEffect(()=>setSearchInput(search),[search]);
+  useEffect(()=>{if(searchInput===search)return;const timer=setTimeout(()=>{setSelection(new Set());const next=new URLSearchParams(params);if(searchInput)next.set("q",searchInput);else next.delete("q");setParams(next,{replace:true});},300);return()=>clearTimeout(timer);},[searchInput,search,params,setParams]);
   const selectedCategory = params.get("category") ?? "";
+  const selectedStatus=params.get("status")??"";
+  const sort=params.get("sort")??"name";
+  const inventory=useAccountDirectory({q:search,category:selectedCategory,status:selectedStatus,sort,upstream_id:provider});
+  const native=inventory;
+  const topology = useModelConnections();
+  const directory=inventory.data?.pages.flatMap(p=>p.items)??[];
+  const nativeRows=directory.flatMap(row=>row.native_account?[row.native_account]:[]);
   const [nativeDetail,setNativeDetail] = useState<NativeAccount>();
   const [nativeOauth,setNativeOauth] = useState<NativeAccount>();
   const [connections,setConnections] = useState<ManagedCredential>();
   const [authorizations,setAuthorizations] = useState<ManagedCredential[]>();
-  const rows = inventory.data?.pages.flatMap((p) => p.items) ?? [];
+  const rows=directory.flatMap(row=>row.managed?[row.managed]:[]);
   const [detail, setDetail] = useState<string>();
   const [oauth, setOauth] = useState<string>();
   const [more, setMore] = useState<ManagedCredential>();
@@ -56,14 +63,15 @@ function ManagedAccounts() {
   const [selecting, setSelecting] = useState(false);
   const [batch, setBatch] = useState<{targets:AccountTarget[];action:AccountAction}>();
   const [notice, setNotice] = useState<string>();
-  const refresh = () => Promise.all(["managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.resetQueries({queryKey:[key]})));
+  const refresh = () => Promise.all(["account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.resetQueries({queryKey:[key]})));
   const update = (name: string, value: string) => {
-    if (["q", "provider", "category"].includes(name)) setSelection(new Set());
+    if (["q", "provider", "category", "status", "sort"].includes(name)) setSelection(new Set());
     const next = new URLSearchParams(params);
     if (value) next.set(name, value); else next.delete(name);
     setParams(next, {replace: true});
   };
-  const ordinaryTarget=(row:ManagedCredential):AccountTarget=>({id:row.credential.id,native:false,name:accountName(row.identity)??"未提供账号身份",provider:row.provider,enabled:row.credential.status!=="disabled",revision:row.credential.revision});
+  const ordinaryStatus=(row:ManagedCredential)=>directory.find(item=>!item.native&&item.id===row.credential.id)?.status??"disabled";
+  const ordinaryTarget=(row:ManagedCredential):AccountTarget=>({id:row.credential.id,native:false,name:accountName(row.identity)??"未提供账号身份",provider:row.provider,enabled:ordinaryStatus(row)!=="disabled",revision:row.credential.revision});
   const targetKey=(target:AccountTarget)=>`${target.native?"native":"ordinary"}:${target.id}`;
   const toggle=(keys:string[])=>setSelection((current)=>{
     const next=new Set(current);
@@ -76,20 +84,17 @@ function ManagedAccounts() {
   const error = inventory.isError ? asAppError(inventory.error) : undefined;
   const actions = (row: ManagedCredential) => <div className="page-actions">
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setDetail(row.credential.id);}}>详情</button>
-              {row.credential.kind === "oauth_json" ? <button className="secondary" onClick={() => {setAuthorizations(undefined);setOauth(row.credential.id);}}>重新授权</button> : null}
+              {directory.find(item=>item.id===row.credential.id&&!item.native)?.operations.includes("reauthorize") ? <button className="secondary" onClick={() => {setAuthorizations(undefined);setOauth(row.credential.id);}}>重新授权</button> : null}
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setMore(row);}}>更多</button>
             </div>;
   const nativeNames={grok_web:"Grok Web",grok_console:"Grok Console",grok_build:"Grok Build"};
   const nativeTarget=(row:NativeAccount):AccountTarget=>({id:row.id,native:true,name:accountName(row.identity)??"未提供账号身份",provider:nativeNames[row.provider],enabled:row.enabled,revision:row.revision});
   const selectedTargets=[...rows.map(ordinaryTarget),...nativeRows.map(nativeTarget)].filter((target)=>selection.has(targetKey(target)));
-  const hasSearch=(values:readonly (string|null|undefined)[])=>values.join(" ").toLocaleLowerCase().includes(search.toLocaleLowerCase());
-  const matches=(row:ManagedCredential)=>hasSearch([accountName(row.identity,row.credential.id),row.provider,row.category,row.credential.id,accountSource(row.credential.id)]);
-  const matchesNative=(row:NativeAccount)=>hasSearch([accountName(row.identity,row.import_batch_id),"Grok",nativeNames[row.provider],row.id,accountSource(row.import_batch_id)]);
   const ordinaryView=(row:ManagedCredential):AccountListRow=>({
     selected:selection.has(`ordinary:${row.credential.id}`),onSelect:selecting?()=>toggle([`ordinary:${row.credential.id}`]):undefined,
     key:row.credential.id,name:accountName(row.identity,row.credential.id),source:accountSource(row.credential.id),provider:row.provider,
     authentication:row.credential.kind==="oauth_json"?"OAuth 授权":"API / 渠道凭据",
-    status:<StatusBadge status={row.credential.status}>{row.credential.status==="active"?"已启用":"已停用"}</StatusBadge>,
+    status:<StatusBadge status={ordinaryStatus(row)==="enabled"?"active":ordinaryStatus(row)==="reauth_required"?"unauthorized":"disabled"}>{ordinaryStatus(row)==="enabled"?"已启用":ordinaryStatus(row)==="reauth_required"?"需要重新授权":"已停用"}</StatusBadge>,
     connection:<button className="account-connection-link" onClick={()=>setConnections(row)}>{row.binding_count===0?"未连接接口":[...new Set(row.connections.map((c)=>protocolName(c.api_format)))].join(" · ")||"查看连接"}<span className="entity-meta">{row.binding_count?`${row.binding_count} 个已配置连接 · 查看`:"添加连接后用于请求"}</span></button>,actions:actions(row),
   });
   const nativeView=(row:NativeAccount):AccountListRow=>({key:row.id,name:accountName(row.identity,row.import_batch_id),source:accountSource(row.import_batch_id),provider:nativeNames[row.provider],authentication:row.provider==="grok_build"?"OAuth 授权":"SSO 授权",
@@ -100,7 +105,7 @@ function ManagedAccounts() {
   });
   const groupedView=(group:ManagedCredential[]):AccountListRow=>{
     const first=group[0]!;if(group.length===1)return ordinaryView(first);
-    const active=group.filter((row)=>row.credential.status==="active").length;
+    const active=group.filter((row)=>ordinaryStatus(row)!=="disabled").length;
     const protocols=[...new Set(group.flatMap((row)=>row.connections.map((c)=>protocolName(c.api_format))))];
     return {...ordinaryView(first),source:undefined,authentication:`${group.length} 份授权`,
       selected:group.every((row)=>selection.has(`ordinary:${row.credential.id}`)),onSelect:selecting?()=>toggle(group.map((row)=>`ordinary:${row.credential.id}`)):undefined,
@@ -119,8 +124,10 @@ function ManagedAccounts() {
     {notice ? <p role="status">{notice}</p> : null}
     {selecting?<div className="account-batch-toolbar" aria-label="批量账号操作"><span>已选 {selectedTargets.length} / 20 份授权</span><div className="page-actions">{(["enable","disable","remove"] as const).map((action)=><button key={action} className="secondary" disabled={!selectedTargets.length} onClick={()=>setBatch({targets:selectedTargets,action})}>{({enable:"启用",disable:"停用",remove:"移除"})[action]}</button>)}<button className="secondary" disabled={!selection.size} onClick={()=>setSelection(new Set())}>清除选择</button></div></div>:null}
     <div className="account-directory-toolbar">
-      <label className="account-search"><span className="sr-only">搜索账号</span><input aria-label="搜索账号" placeholder="搜索已加载的邮箱、用户名或渠道" value={search} onChange={(e)=>update("q",e.target.value)} /></label>
-      <span className="entity-meta">已加载 {rows.length + (provider ? 0 : nativeRows.length)} 份授权</span>
+      <label className="account-search"><span className="sr-only">搜索账号</span><input aria-label="搜索账号" placeholder="搜索邮箱、用户名、电话或渠道" value={searchInput} onChange={(e)=>setSearchInput(e.target.value)} /></label>
+      <label><span className="sr-only">账号状态</span><select aria-label="账号状态" value={selectedStatus} onChange={e=>update("status",e.target.value)}><option value="">全部状态</option><option value="enabled">已启用</option><option value="disabled">已停用</option><option value="reauth_required">需要重新授权</option></select></label>
+      <label><span className="sr-only">账号排序</span><select aria-label="账号排序" value={sort} onChange={e=>update("sort",e.target.value)}><option value="name">身份 A–Z</option><option value="name_desc">身份 Z–A</option><option value="provider">按渠道</option></select></label>
+      <span className="entity-meta">匹配 {inventory.data?.pages[0]?.total??"…"} 份授权</span>
       {provider?<button className="secondary" onClick={()=>update("provider","")}>清除提供商筛选</button>:null}
     </div>
     <nav className="account-category-filter" aria-label="账号类别">
@@ -128,25 +135,23 @@ function ManagedAccounts() {
       {accountGroups.map((group)=><button key={group.id} aria-pressed={selectedCategory===group.id} onClick={()=>update("category",group.id)}>{group.name}</button>)}
     </nav>
     {error?<div role="alert" className="empty-state">{error.message}<button onClick={()=>void refresh()}>重新读取账号</button></div>:null}
-    {native.isError&&!provider?<div role="alert" className="empty-state">Grok：{asAppError(native.error).message}<button onClick={()=>void client.resetQueries({queryKey:["native-accounts"]})}>重新读取 Grok</button></div>:null}
     <div className="account-directory">
       {accountGroups.filter((group)=>!selectedCategory||selectedCategory===group.id).map((group)=>{
-        const ordinary=rows.filter((row)=>(row.category??"api")===group.id&&matches(row));
+        const ordinary=rows.filter((row)=>(row.category??"api")===group.id);
         const identities=groupManagedIdentities(ordinary);
-        const grok=provider?[]:nativeRows.filter(matchesNative);
+        const grok=provider?[]:nativeRows;
         const loading=group.id==="grok"?native.isPending:!!context&&inventory.isPending;
         const failed=group.id==="grok"?native.isError:inventory.isError;
         return <section className="account-group" key={group.id} aria-label={`${group.name} 账号`}>
-          <header className="account-directory-head"><div><h3>{group.name}</h3><span className="entity-meta">{group.description}</span></div><span className="account-group-count">{loading?"读取中":failed?"读取失败":`${group.id==="grok"?grok.length:identities.length}`}</span></header>
+          <header className="account-directory-head"><div><h3>{group.name}</h3><span className="entity-meta">{group.description}</span></div><span className="account-group-count">{loading?"读取中":failed?"读取失败":`${inventory.data?.pages[0]?.category_totals[group.id]??0} 份授权`}</span></header>
           {loading?<p className="account-group-empty">读取账号…</p>:failed?<p className="account-group-empty">暂时无法显示此类别</p>:group.id==="grok"?
             (["grok_web","grok_console","grok_build"] as const).map((channel)=><section className="account-subgroup" key={channel} aria-label={nativeNames[channel]}><h4>{nativeNames[channel]}</h4><AccountList rows={grok.filter((row)=>row.provider===channel).map(nativeView)} /></section>):
             <AccountList rows={identities.map(groupedView)} />}
         </section>;
       })}
     </div>
-    <div className="data-footer account-directory-footer"><span>搜索和分类结果基于已加载账号{inventory.hasNextPage||native.hasNextPage?"，可继续加载更多":""}</span><div className="page-actions">
+    <div className="data-footer account-directory-footer"><span>已显示 {directory.length} / {inventory.data?.pages[0]?.total??"…"} 份匹配授权</span><div className="page-actions">
       {inventory.hasNextPage?<button className="secondary" disabled={inventory.isFetchingNextPage||inventory.isError} onClick={()=>void inventory.fetchNextPage()}>加载更多账号</button>:null}
-      {!provider&&native.hasNextPage?<button className="secondary" disabled={native.isFetchingNextPage||native.isError} onClick={()=>void native.fetchNextPage()}>加载更多 Grok 账号</button>:null}
     </div></div>
     {authorizations?<Sheet layout="inspector" title="关联授权" onEscape={()=>setAuthorizations(undefined)}>
       <h3>{accountName(authorizations[0]?.identity)}</h3><p>该身份有 {authorizations.length} 份授权，分别保留连接和状态。操作只影响所选授权。</p>

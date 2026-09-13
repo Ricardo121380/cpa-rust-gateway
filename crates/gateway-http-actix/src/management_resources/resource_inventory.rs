@@ -170,23 +170,7 @@ async fn read(
         };
         Ok(if kind == "credentials" {
             reader.credentials_with_identity(query,project.as_ref()).map(|page| {
-                mapped(page, |row| {
-                    let urls=row.connections.iter().map(|c|url::Url::parse(&c.base_url).ok()).collect::<Vec<_>>();
-                    let (category,provider) = gateway_control::account_presentation::ordinary_channel(&row.kind,&row.upstream_kind,row.connections.iter().zip(&urls).map(|(c,u)|(c.adapter_id.as_str(),u.as_ref().and_then(url::Url::host_str))));
-                    let connections=row.connections.iter().map(|c|serde_json::json!({"id":c.id,"api_format":c.api_format,"enabled":c.enabled,"host":url::Url::parse(&c.base_url).ok().and_then(|u|u.host_str().map(str::to_owned))})).collect::<Vec<_>>();
-                    let body = CredentialResponse {
-                        id: row.id.to_string(),
-                        upstream_id: row.upstream_id.to_string(),
-                        kind: row.kind,
-                        status: match row.status {
-                            CredentialStatus::Active => "active",
-                            _ => "disabled",
-                        },
-                        revision: row.revision,
-                        secret_present: row.secret_present,
-                    };
-                    serde_json::json!({"credential":body,"binding_count":row.binding_count,"identity":row.identity,"category":category,"provider":provider,"connections":connections})
-                })
+                mapped(page, credential_value)
             })
         } else {
             reader
@@ -243,4 +227,24 @@ fn response(
             next_cursor,
         },
     )
+}
+
+pub(super) fn credential_value(row: gateway_store::control_plane::ManagedCredential) -> serde_json::Value {
+
+                    let urls=row.connections.iter().map(|c|url::Url::parse(&c.base_url).ok()).collect::<Vec<_>>();
+                    let (category,provider) = gateway_control::account_presentation::ordinary_channel(&row.kind,&row.upstream_kind,row.connections.iter().zip(&urls).map(|(c,u)|(c.adapter_id.as_str(),u.as_ref().and_then(url::Url::host_str))));
+                    let connections=row.connections.iter().map(|c|serde_json::json!({"id":c.id,"api_format":c.api_format,"enabled":c.enabled,"host":url::Url::parse(&c.base_url).ok().and_then(|u|u.host_str().map(str::to_owned))})).collect::<Vec<_>>();
+                    let body = CredentialResponse {
+                        id: row.id.to_string(),
+                        upstream_id: row.upstream_id.to_string(),
+                        kind: row.kind,
+                        status: match row.status {
+                            CredentialStatus::Active => "active",
+                            _ => "disabled",
+                        },
+                        revision: row.revision,
+                        secret_present: row.secret_present,
+                    };
+                    serde_json::json!({"credential":body,"binding_count":row.binding_count,"identity":row.identity,"category":category,"provider":provider,"connections":connections})
+
 }

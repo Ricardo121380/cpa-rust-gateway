@@ -2544,3 +2544,12 @@ This is visual fixture evidence only, not real directory, authorization or full 
 **Why:** Explicit joint implementation authorization. Real request totals and latency require durable terminal evidence at the HTTP delivery boundary; key edits must select models without altering sibling keys.
 
 **Other side:** FYI. Schema27 terminal event, indexed snapshot-bound request history/summary, nullable historical timing, real dashboard/list/detail/export, scoped name resolution and direct key permission editing. Retained model grants do not broaden sources; shared quota groups cannot silently split. Frontend288 tests, HTTP72 tests, large SQLite narrow-window regression, selected all-target clippy and real loopback gateway receipt passed. EgoLite16 verified manual model opening, restricted issuance and editing; zero real-provider inference. Four-file gate is rerun for final CSS. This is a local implementation batch, NOT complete alignment or production deployment. Remaining work is tracked in `docs/reports/prism-complete-alignment-progress.md`; schema26 rollback after terminal writes is intentionally refused pending the production-copy rollback design.
+
+
+## 2026-09-13 - Codex - Unified searchable account inventory
+
+**What:** `web/prism/contracts/management-v1.json`, `web/prism/src/dev/fixtures.ts`, `web/prism/src/features/accounts/AccountsPage.tsx`, `web/prism/src/features/accounts/useAccountDirectory.ts`, `web/prism/src/generated/management-client.ts`. Backend `crates/gateway-http-actix/src/management_resources/account_inventory.rs`, reused credential projection and authoritative OpenAPI account inventory operation.
+
+**Why:** Explicit user-authorized full workflow alignment: search must cover encrypted identity projections on later source pages, including native accounts, rather than filtering only browser-loaded rows.
+
+**Other side:** FYI. Complete bounded search and counts, shared categories/status/sorting/paging, safe existing operations, snapshot-bound continuation; no upstream call during reads. Two real SQLite/HTTP regression tests and frontend288 tests passed, selected clippy and134-operation four-file gate passed. EgoLite16 actual loopback app mobile filter/empty/recovery/overflow checks passed. Package limits, remaining authorization, price and all-workspace acceptance remain pending; no deployment or production mutations.

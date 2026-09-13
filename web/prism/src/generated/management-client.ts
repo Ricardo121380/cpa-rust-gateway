@@ -1315,6 +1315,55 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listAccountInventory": {
+    "method": "GET",
+    "path": "/admin/accounts/inventory",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "q",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "category",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "upstream_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "sort",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listBillingCatalogs": {
     "method": "GET",
     "path": "/admin/billing/catalogs",
@@ -3303,6 +3352,10 @@ export class ManagementApi {
 
   listAccountChannels(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listAccountChannels", request);
+  }
+
+  listAccountInventory(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listAccountInventory", request);
   }
 
   listBillingCatalogs(request: ManagementRequest = {}): Promise<Response> {
