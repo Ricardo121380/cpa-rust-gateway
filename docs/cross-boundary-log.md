@@ -2519,3 +2519,19 @@ workflows no longer report fake zero-change success or increment revisions. Fron
 refresh from cache reread, and key creation can select all currently opened models explicitly.
 This batch is NOT full alignment or deployment. Production service/permission freeze, alias removal,
 real source acceptance, unified workflows, request timing and full visual acceptance remain required.
+
+
+## 2026-09-13 - Codex - Compact provider workspace
+
+**What:** `web/prism/src/app/v6.css`,
+`web/prism/src/features/upstreams/UpstreamsPage.tsx`,
+`web/prism/src/features/upstreams/SubresourcePanel.tsx`.
+
+**Why:** User requested compact desktop provider rows, a detail workspace and consistent mobile
+cards instead of oversized duplicate provider cards. Preserve configured protocols and existing
+maintenance actions; move scheduling detail out of the primary view.
+
+**Other side:** FYI under joint authorization. No contract/backend change. EgoLite space16 used
+isolated development fixtures: provider creation, detail opening, desktop1440x900, dark1280x720 and
+mobile390x844 were inspected. Mobile and desktop detail controls do not overflow viewport width.
+This is visual fixture evidence only, not real directory, authorization or full production acceptance.

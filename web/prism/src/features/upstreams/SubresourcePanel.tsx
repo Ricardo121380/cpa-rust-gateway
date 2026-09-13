@@ -507,7 +507,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           type="button"
           className="secondary"
           disabled={!editable}
-          title={editable ? undefined : "仅草稿版本可编辑"}
+          title={editable ? undefined : "请先读取当前配置"}
           onClick={() => setChannelForm({ mode: "create" })}
         >
           新建接口
@@ -516,23 +516,20 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           type="button"
           className="secondary"
           disabled={!editable}
-          title={editable ? undefined : "仅草稿版本可编辑"}
+          title={editable ? undefined : "请先读取当前配置"}
           onClick={() => setBindingForm({ channelId: "" })}
         >
-          加绑定
+          连接账号
         </button>
       </h3>
-      <p className="stat-sub">已保存端点均可管理，未绑定端点可继续添加凭据。</p>
       <table>
         <thead>
           <tr>
             <th>接口</th>
-            <th>连接方式</th>
             <th>协议</th>
-            <th>传输</th>
             <th>状态</th>
             <th>测试</th>
-            <th>目录发现</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -541,9 +538,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
             return (
               <tr key={channel.channel_id}>
                 <td><ResourceIdentity id={channel.channel_id} kind="endpoint" name={channel.display} /></td>
-                <td className="mono">{channel.adapter_id}</td>
                 <td>{protocolName(channel.api_format)}</td>
-                <td className="mono">{channel.transport}</td>
                 <td>
                   <StatusBadge status={channel.channel_enabled ? "active" : "disabled"}>
                     {channel.channel_enabled ? "已启用" : "已停用"}
@@ -583,7 +578,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
                     disabled={!editable}
                     onClick={() => setBindingForm({ channelId: channel.channel_id })}
                   >
-                    加绑定
+                    连接账号
                   </button>
                   <button
                     type="button"
@@ -625,10 +620,10 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
           type="button"
           className="secondary"
           disabled={!editable}
-          title={editable ? undefined : "仅草稿版本可编辑"}
+          title={editable ? undefined : "请先读取当前配置"}
           onClick={() => setAccountForm({ mode: "create" })}
         >
-          新建账号
+          添加账号
         </button>
       </h3>
       <table>
@@ -684,6 +679,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         </tbody>
       </table>
 
+      <details className="provider-scheduling"><summary>高级调度配置</summary>
       <h3>
         绑定 <span className="idchip mono">{pools.isError || !pools.data ? "—" : pool.bindings.length}</span>
       </h3>
@@ -723,6 +719,7 @@ export function SubresourcePanel({ upstreamId }: Readonly<{ upstreamId: string }
         认证、额度和调度情况见账号管理的运行状态。
       </p>
 
+      </details>
       {reconcile !== undefined ? (
         <BindingReconcileSheet
           channelId={reconcile}
