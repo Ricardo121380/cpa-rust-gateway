@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  compareCatalogEntries,
   formatCatalogEntries,
   formatRate,
   isEffective,
@@ -190,5 +191,22 @@ describe("formatting", () => {
     expect(sourceLabel("operator")).toBe("运维录入");
     expect(sourceLabel("test")).toBe("测试");
     expect(sourceLabel("future_source")).toBe("future_source");
+  });
+});
+
+describe("catalog difference confirmation",()=>{
+  it("does not merge the same raw model across channels or providers",()=>{
+    const old=[entry(),entry({channel_id:"another-channel"})];
+    const next=[entry({reasoning_microunits_per_million:7}),entry({provider_id:"another-provider"})];
+    const changes=compareCatalogEntries(old,next);
+    expect(changes.map(row=>row.kind)).toEqual(["changed","added","removed"]);
+    expect(changes[0]?.before?.input_microunits_per_million).toBe(changes[0]?.after?.input_microunits_per_million);
+    expect(changes[2]?.before?.channel_id).toBe("another-channel");
+  });
+  it("preserves explicit zero rates and ignores row order",()=>{
+    const free=entry({cached_microunits_per_million:0});
+    const other=entry({model:"Exact/Other"});
+    expect(compareCatalogEntries([free,other],[other,{...free}])).toEqual([]);
+    expect(compareCatalogEntries([entry({cached_microunits_per_million:2})],[free])[0]?.kind).toBe("changed");
   });
 });

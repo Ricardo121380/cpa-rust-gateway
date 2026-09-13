@@ -1,3 +1,5 @@
+import {beginConfigurationTask} from "../config-versions/configurationTask";
+import {ConfigurationTaskNotice} from "../config-versions/ConfigurationTaskNotice";
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "./ProcessingStatus";
@@ -21,9 +23,10 @@ import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { useMessages } from "../../i18n/messages";
-import { useVersionStore } from "../config-versions/versionStore";
+import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import "./billing.css";
 import {
+  compareCatalogEntries,
   COMPARISON,
   formatCatalogEntries,
   formatCount,
@@ -239,42 +242,57 @@ function PolicyCard({
 }
 
 function ImportSheet({
+  completed,
+  saved,
+  error,
+  catalogs,
   initial,
   pending,
   onCancel,
   onInvalid,
   onSubmit,
 }: Readonly<{
+  completed:boolean;
+  saved?: ImportReceipt;
+  error?: unknown;
+  catalogs: readonly Catalog[];
   initial: Readonly<{ id: string; entries: string }> | undefined;
   pending: boolean;
   onCancel: () => void;
-  onInvalid: (message: string) => void;
+  onInvalid: (message: string | undefined) => void;
   onSubmit: (input: ImportInput) => void;
 }>) {
+  const [catalogId]=useState(()=>`catalog-${crypto.randomUUID()}`);
+  const [validation,setValidation]=useState<string>();
+  const [prepared,setPrepared]=useState<ImportInput>();
+  const [baselineId,setBaselineId]=useState(initial?.id??sortCatalogs(catalogs).find(c=>isEffective(c,Date.now()))?.catalog_version_id??"");
+  const baseline=catalogs.find(c=>c.catalog_version_id===baselineId);
+  const changes=prepared?compareCatalogEntries(baseline?.entries??[],prepared.entries):[];
+  if(completed)return <Sheet title="价目表已导入" onEscape={onCancel}><p role="status">已保存 {saved?.entry_count??0} 条价格并应用配置。</p><p>生效时间：{formatTime(saved?.effective_at_ms??0)}</p><div className="sheet-actions"><button onClick={onCancel}>完成</button></div></Sheet>;
   return (
-    <Sheet title={initial === undefined ? "导入价格目录" : "以现有目录为模板导入"} onEscape={onCancel}>
-      <p className="stat-sub">
-        导入是<strong>整份提交</strong>,不是增量:这里的条目就是新目录的<strong>全部</strong>内容。
-        目录<strong>只能新增</strong> —— 契约没有修改或删除算子。
-        <br />
-        新目录对<strong>所有配置版本</strong>立即可见;它不属于当前草稿。
-      </p>
+    <Sheet title={initial === undefined ? "导入价格目录" : "以现有目录为模板导入"} onEscape={()=>!pending&&onCancel()}>
+      <p className="stat-sub">导入一份完整的新价目表；历史目录和账本保留。确认后对所有配置可见。</p>
+      <label>对比目录<select value={baselineId} disabled={pending} onChange={event=>setBaselineId(event.target.value)}><option value="">不与现有目录对比</option>{sortCatalogs(catalogs).map(c=><option key={c.catalog_version_id} value={c.catalog_version_id}>{formatTime(c.effective_at_ms)} · {sourceLabel(c.source)}</option>)}</select></label>
       <form
-        className="sheet-form"
+        hidden={prepared!==undefined}
+        className="sheet-form price-import-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
           const parsed = parseCatalogEntries(String(data.get("entries") ?? ""));
           if (!parsed.ok) {
+            setValidation(parsed.reason);
             onInvalid(parsed.reason);
             return;
           }
           const effectiveAt = Date.parse(String(data.get("effective_at") ?? ""));
           if (!Number.isFinite(effectiveAt)) {
+            setValidation("生效时间不是一个合法时刻。");
             onInvalid("生效时间不是一个合法时刻。");
             return;
           }
-          onSubmit({
+          setValidation(undefined);onInvalid(undefined);
+          setPrepared({
             catalog_version_id: String(data.get("catalog_version_id") ?? "").trim(),
             effective_at_ms: effectiveAt,
             source: String(data.get("source") ?? "operator"),
@@ -282,12 +300,9 @@ function ImportSheet({
           });
         }}
       >
+        <input type="hidden" name="catalog_version_id" value={catalogId}/>
         <label>
-          目录版本 ID
-          <input name="catalog_version_id" className="mono" required maxLength={128} />
-        </label>
-        <label>
-          生效时间(UTC)
+          生效时间（本地时区）
           <input name="effective_at" type="datetime-local" required />
           <small>
             生效时间在未来的目录可以导入,但<strong>在到期之前不能绑定为路由价格策略</strong>。
@@ -298,11 +313,10 @@ function ImportSheet({
           <select name="source" defaultValue="operator">
             {WRITABLE_SOURCES.map((source) => (
               <option key={source} value={source}>
-                {source}
+                {sourceLabel(source)}
               </option>
             ))}
           </select>
-          <small>读模型里还有 test,但契约不接受它作为写入值。</small>
         </label>
         <label>
           条目(JSON 数组,1–{MAX_ENTRIES} 条)
@@ -320,14 +334,23 @@ function ImportSheet({
           </small>
         </label>
         <div className="sheet-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
+          <button type="button" className="secondary" disabled={pending} onClick={onCancel}>
             取消
           </button>
           <button type="submit" disabled={pending}>
-            导入
+            预览差异
           </button>
         </div>
       </form>
+      {saved?<p role="status">价目表已保存；配置应用尚待确认，请勿重复导入。</p>:null}
+      {validation?<p role="alert">{validation}</p>:null}
+      {error?<p role="alert">{asAppError(error).message}</p>:null}
+      {prepared?<div className="price-import-preview">
+        <h3>确认价格变更</h3><p>生效时间：{formatTime(prepared.effective_at_ms)} · 共 {prepared.entries.length} 项</p>
+        <p>新增 {changes.filter(c=>c.kind==="added").length} · 变价 {changes.filter(c=>c.kind==="changed").length} · 不再包含 {changes.filter(c=>c.kind==="removed").length}</p>
+        {changes.length===0?<p>费率没有变化。</p>:changes.map((change,index)=>{const row=change.after??change.before!;return <details key={index}><summary>{row.model} · {({added:"新增",changed:"变价",removed:"新目录不再包含"})[change.kind]}</summary><p><ResourceIdentity id={row.provider_id} kind="upstream"/> · <ResourceIdentity id={row.channel_id} kind="endpoint"/></p><dl className="fact-grid">{RATE_FIELDS.map(field=><div key={field}><dt>{rateLabel(field)}</dt><dd>{change.before?formatRate(change.before[field]):"—"} → {change.after?formatRate(change.after[field]):"—"}</dd></div>)}</dl></details>})}
+        <div className="sheet-actions"><button type="button" className="secondary" disabled={pending} onClick={()=>setPrepared(undefined)}>返回修改</button><button type="button" disabled={pending||saved!==undefined} onClick={()=>onSubmit(prepared)}>确认导入</button></div>
+      </div>:null}
     </Sheet>
   );
 }
@@ -337,10 +360,13 @@ export function BillingPage() {
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
-  const editable = context?.status === "draft";
+  const editable = context?.status !== "archived";
 
   const [notice, setNotice] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [workingId,setWorkingId]=useState<string>();
+  const [appliedVersion,setAppliedVersion]=useState<ConfigVersionSummary>();
+  const [savedCatalog,setSavedCatalog]=useState<ImportReceipt>();
   const [importing, setImporting] = useState<
     Readonly<{ id: string; entries: string }> | undefined
   >();
@@ -374,27 +400,22 @@ export function BillingPage() {
   };
 
   const importCatalog = useMutation({
-    mutationFn: (input: ImportInput) =>
-      call<ImportReceipt>(
-        "importBillingCatalog",
-        { body: input },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: receipt,
+    mutationFn: async (input: ImportInput) => {
+      const task=await beginConfigurationTask("导入价格目录");setWorkingId(task.version.id);
+      const catalog=await task.mutate<ImportReceipt>("importBillingCatalog",{body:input});setSavedCatalog(catalog);
+      return {catalog,version:await task.finish()};
+    },
+    onSuccess: ({catalog,version})=>{setAppliedVersion(version);setSavedCatalog(catalog);invalidate();},
     onError: (cause) => setError(asAppError(cause).message),
   });
 
   const rollbackCatalog = useMutation({
-    mutationFn: (input: Readonly<{ from: string; id: string; effective_at_ms: number }>) =>
-      call<ImportReceipt>(
-        "rollbackBillingCatalog",
-        {
-          path: { catalog_version_id: input.from },
-          body: { new_catalog_version_id: input.id, effective_at_ms: input.effective_at_ms },
-        },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: receipt,
+    mutationFn: async (input: Readonly<{ from: string; id: string; effective_at_ms: number }>) => {
+      const task=await beginConfigurationTask("恢复价格目录");setWorkingId(task.version.id);
+      const catalog=await task.mutate<ImportReceipt>("rollbackBillingCatalog",{path:{catalog_version_id:input.from},body:{new_catalog_version_id:input.id,effective_at_ms:input.effective_at_ms}});setSavedCatalog(catalog);
+      return {catalog,version:await task.finish()};
+    },
+    onSuccess: ({catalog,version})=>{useVersionStore.getState().select(version);receipt(catalog);setSavedCatalog(undefined);setWorkingId(undefined);},
     onError: (cause) => setError(asAppError(cause).message),
   });
 
@@ -437,7 +458,8 @@ export function BillingPage() {
         </p>
       ) : null}
 
-      <PolicyCard catalogs={rows} nowMs={nowMs} editable={editable} onError={setError} />
+      <details className="card"><summary>高级路由价格策略</summary><PolicyCard catalogs={rows} nowMs={nowMs} editable={context?.status==="draft"} onError={setError} /></details>
+      <ConfigurationTaskNotice workingId={workingId} error={importCatalog.error??rollbackCatalog.error} onReview={(version)=>{setImportOpen(false);setRollback(undefined);useVersionStore.getState().select(version);}}/>
 
       <div className="card bill-catalogs">
         <header className="page-head">
@@ -447,8 +469,9 @@ export function BillingPage() {
           <button
             type="button"
             disabled={!editable}
-            title={editable ? undefined : "仅草稿版本可编辑"}
+            title={editable ? undefined : "请返回当前配置后修改"}
             onClick={() => {
+              setAppliedVersion(undefined);setSavedCatalog(undefined);setWorkingId(undefined);importCatalog.reset();
               setImporting(undefined);
               setImportOpen(true);
             }}
@@ -456,13 +479,7 @@ export function BillingPage() {
             导入目录
           </button>
         </header>
-        <p className="bill-note">
-          目录是<strong>全局</strong>的,不属于任何配置版本 —— 查看任何配置都使用同一份清单,
-          导入也会立刻对所有版本可见。上限 {MAX_CATALOGS} 份。
-          <br />
-          没有修改与删除算子:改价的做法是<strong>导入一份新目录</strong>,
-          撤销的做法是<strong>回滚出一份新目录</strong>(复制旧内容,向前追加,不删除历史)。
-        </p>
+        <p className="bill-note">导入新价目表更新费率，历史目录和账本保留。最多保存 {MAX_CATALOGS} 份。</p>
 
         {catalogs.isError ? (
           <div className="empty-state" data-kind="error">
@@ -492,15 +509,15 @@ export function BillingPage() {
                   <th scope="row" className="mono">
                     <ResourceIdentity id={catalog.catalog_version_id} kind="catalog" />
                   </th>
-                  <td className="mono">
+                  <td data-label="生效时间" className="mono">
                     {formatTime(catalog.effective_at_ms)}
                     {isEffective(catalog, nowMs) ? null : (
                       <span className="bill-future">未生效</span>
                     )}
                   </td>
-                  <td className="mono">{formatTime(catalog.created_at_ms)}</td>
-                  <td>{sourceLabel(catalog.source)}</td>
-                  <td className="mono bill-num">{formatCount(catalog.entries.length)}</td>
+                  <td data-label="创建时间" className="mono">{formatTime(catalog.created_at_ms)}</td>
+                  <td data-label="来源">{sourceLabel(catalog.source)}</td>
+                  <td data-label="价格条目" className="mono bill-num">{formatCount(catalog.entries.length)}</td>
                   <td className="row-actions">
                     <button className="secondary" onClick={() => setInspected(catalog)}>详情</button>
                     <button
@@ -521,6 +538,7 @@ export function BillingPage() {
                       className="secondary"
                       disabled={!editable}
                       onClick={() => {
+                        setAppliedVersion(undefined);setSavedCatalog(undefined);setWorkingId(undefined);importCatalog.reset();
                         setImporting({
                           id: catalog.catalog_version_id,
                           entries: formatCatalogEntries(catalog.entries),
@@ -528,15 +546,15 @@ export function BillingPage() {
                         setImportOpen(true);
                       }}
                     >
-                      当模板
+                      复制编辑
                     </button>
                     <button
                       type="button"
                       className="secondary"
                       disabled={!editable}
-                      onClick={() => setRollback(catalog)}
+                      onClick={() => {setSavedCatalog(undefined);setWorkingId(undefined);rollbackCatalog.reset();setRollback(catalog);}}
                     >
-                      回滚到它
+                      恢复价格
                     </button>
                   </td>
                 </tr>
@@ -599,9 +617,14 @@ export function BillingPage() {
 
       {importOpen ? (
         <ImportSheet
+          completed={appliedVersion!==undefined}
+          saved={savedCatalog}
+          error={importCatalog.error}
+          catalogs={catalogs.data??[]}
           initial={importing}
           pending={importCatalog.isPending}
           onCancel={() => {
+            if(appliedVersion)useVersionStore.getState().select(appliedVersion);
             setImportOpen(false);
             setImporting(undefined);
           }}
@@ -638,14 +661,14 @@ export function BillingPage() {
               <input name="new_catalog_version_id" className="mono" required maxLength={128} />
             </label>
             <label>
-              生效时间(UTC)
+              生效时间（本地时区）
               <input name="effective_at" type="datetime-local" required />
             </label>
             <div className="sheet-actions">
               <button type="button" className="secondary" onClick={() => setRollback(undefined)}>
                 取消
               </button>
-              <button type="submit" disabled={rollbackCatalog.isPending}>
+              <button type="submit" disabled={rollbackCatalog.isPending||savedCatalog!==undefined}>
                 创建回滚目录
               </button>
             </div>

@@ -2553,3 +2553,12 @@ This is visual fixture evidence only, not real directory, authorization or full 
 **Why:** Explicit user-authorized full workflow alignment: search must cover encrypted identity projections on later source pages, including native accounts, rather than filtering only browser-loaded rows.
 
 **Other side:** FYI. Complete bounded search and counts, shared categories/status/sorting/paging, safe existing operations, snapshot-bound continuation; no upstream call during reads. Two real SQLite/HTTP regression tests and frontend288 tests passed, selected clippy and134-operation four-file gate passed. EgoLite16 actual loopback app mobile filter/empty/recovery/overflow checks passed. Package limits, remaining authorization, price and all-workspace acceptance remain pending; no deployment or production mutations.
+
+
+## 2026-09-13 - Codex - Price difference confirmation and direct import
+
+**What:** `web/prism/src/features/billing/BillingPage.tsx`, `web/prism/src/features/billing/model.ts`, `web/prism/src/features/billing/model.test.ts`, `web/prism/src/features/billing/billing.css`.
+
+**Why:** User-authorized workflow alignment. Price import needs six-rate differences and explicit confirmation, and daily operations must not require manually selecting a draft.
+
+**Other side:** FYI. Reuses existing immutable global catalog import/rollback and automatic configuration task; preserved catalog save receipts on application failure, added completion view. Local time input labels corrected; mobile rows show all actions. Pure difference tests, frontend290 tests, type/build/134-operation embed gate, and EgoLite16 actual gateway future-price imports passed. Old local catalog retained; no production changes or real inference. Remote price-source sync and the remaining complete-plan work are still pending.

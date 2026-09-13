@@ -90,3 +90,19 @@
   background: var(--surface);
   color: var(--ink);
 }
+
+.price-import-form[hidden] { display:none; }
+.price-import-preview { display:grid; gap:12px; }
+.price-import-preview details { border:1px solid var(--separator); border-radius:12px; padding:12px; overflow-wrap:anywhere; }
+.price-import-preview summary { cursor:pointer; font-weight:600; }
+@media(max-width:720px) {
+ .canvas .bill-catalogs { overflow:visible; }
+ .bill-catalogs .bill-table,.bill-catalogs .bill-table tbody { display:block; min-width:0; }
+ .bill-catalogs .bill-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+ .bill-catalogs .bill-table tr { display:grid; gap:10px; padding:14px; margin:12px 0; border:1px solid var(--separator); border-radius:14px; }
+ .canvas .bill-catalogs .bill-table :is(td,th) { display:block; padding:0; border:0; overflow-wrap:anywhere; }
+ .canvas .bill-catalogs .bill-table td[data-label] { display:grid; grid-template-columns:80px minmax(0,1fr); gap:8px; text-align:left; }
+ .bill-catalogs .bill-table td[data-label]::before { content:attr(data-label); color:var(--ink-2); font-family:var(--font-sans); font-size:12px; }
+ .canvas .bill-catalogs .bill-table .row-actions { display:flex; flex-wrap:wrap; gap:8px; }
+ .bill-catalogs .row-actions button { min-height:44px; }
+}

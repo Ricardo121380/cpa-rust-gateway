@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "real_gateway": true,
+  "egolite": true,
+  "preview_added": 1,
+  "preview_changed": 1,
+  "confirmation_and_completion_verified": true,
+  "catalog_count": 3,
+  "old_catalog_preserved": true,
+  "future_effective_preserved": true,
+  "production_modified": false
+}
