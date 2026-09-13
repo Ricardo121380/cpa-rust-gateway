@@ -31,7 +31,15 @@ fn management_contract_has_the_versioned_complete_resource_surface() -> TestResu
     assert!(paths.keys().all(|path| path.starts_with("/admin/")));
     assert!(!paths.contains_key("/admin/proxy"));
     assert!(!paths.contains_key("/admin/http"));
-    assert!(!paths.contains_key("/admin/requests"));
+    // Request history is a read-only observation surface, never an arbitrary HTTP proxy.
+    for (path, operation) in [
+        ("/admin/requests", "listRequests"),
+        ("/admin/requests/summary", "summarizeRequests"),
+    ] {
+        assert_eq!(paths[path]["get"]["operationId"], operation);
+        assert!(paths[path].get("post").is_none());
+        assert!(paths[path]["get"].get("requestBody").is_none());
+    }
     Ok(())
 }
 
