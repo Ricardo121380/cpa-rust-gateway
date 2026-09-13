@@ -1767,3 +1767,67 @@ async fn alias_delete_is_authenticated_revisioned_and_keeps_public_model() -> Te
     assert_eq!(aliases["items"], serde_json::json!([]));
     Ok(())
 }
+
+#[actix_web::test]
+async fn credential_replacement_invalidates_old_browser_authorization() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let start = "/admin/credentials/account-000/oauth/start";
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(start)).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::ACCEPTED);
+    let first: Value = test::read_body_json(response).await;
+    let url = url::Url::parse(
+        first["authorization_url"]
+            .as_str()
+            .ok_or("authorization URL")?,
+    )?;
+    let old_state = url
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .ok_or("state")?
+        .1
+        .into_owned();
+    let response = test::call_service(&app, authorized(test::TestRequest::patch().uri("/admin/credentials/account-000"))
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(serde_json::json!({"id":"account-000","kind":"bearer","status":"active","secret":"new-synthetic-authorization"})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(start)).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::ACCEPTED);
+    let second: Value = test::read_body_json(response).await;
+    assert_ne!(first["authorization_url"], second["authorization_url"]);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/credentials/account-000/oauth/callback"))
+            .set_json(serde_json::json!({"state":old_state,"code":"stale-synthetic-code"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials/account-000/oauth/status"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let status: Value = test::read_body_json(response).await;
+    assert_eq!(
+        status["state"], "pending",
+        "old callback must not consume the newer authorization"
+    );
+    Ok(())
+}

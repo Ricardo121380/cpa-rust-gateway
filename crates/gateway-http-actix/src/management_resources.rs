@@ -6128,6 +6128,7 @@ async fn delete_credential(
 fn credential_oauth_scope(
     version: &ConfigVersionId,
     credential: &CredentialId,
+    credential_revision: i64,
 ) -> Result<CredentialId, HttpResponse> {
     let mut digest = sha2::Sha256::new();
     digest.update(b"cpar-management-credential-oauth");
@@ -6136,6 +6137,7 @@ fn credential_oauth_scope(
         digest.update(length.to_be_bytes());
         digest.update(bytes);
     }
+    digest.update(credential_revision.to_be_bytes());
     CredentialId::try_new(format!(
         "oauth-{}",
         URL_SAFE_NO_PAD.encode(digest.finalize())
@@ -6155,13 +6157,19 @@ async fn start_credential_oauth(
     let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
         return invalid_input();
     };
-    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
-        return response;
-    }
-    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
-        Ok(id) => id,
+    let current = match service(&state).and_then(|mut service| {
+        service
+            .get_credential(&context.version, &credential_id)
+            .map_err(management_error)
+    }) {
+        Ok(current) => current,
         Err(response) => return response,
     };
+    let workflow_id =
+        match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
+            Ok(id) => id,
+            Err(response) => return response,
+        };
     let operation = match workflow(&state) {
         Ok(mut workflow) => workflow.start_oauth(&workflow_id),
         Err(response) => return response,
@@ -6181,13 +6189,19 @@ async fn get_credential_oauth_status(
     let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
         return invalid_input();
     };
-    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
-        return response;
-    }
-    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
-        Ok(id) => id,
+    let current = match service(&state).and_then(|mut service| {
+        service
+            .get_credential(&context.version, &credential_id)
+            .map_err(management_error)
+    }) {
+        Ok(current) => current,
         Err(response) => return response,
     };
+    let workflow_id =
+        match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
+            Ok(id) => id,
+            Err(response) => return response,
+        };
     let mut operation = match workflow(&state) {
         Ok(mut workflow) => workflow.oauth_status(&workflow_id),
         Err(response) => return response,
@@ -6221,13 +6235,19 @@ async fn cancel_credential_oauth(
     let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
         return invalid_input();
     };
-    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
-        return response;
-    }
-    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
-        Ok(id) => id,
+    let current = match service(&state).and_then(|mut service| {
+        service
+            .get_credential(&context.version, &credential_id)
+            .map_err(management_error)
+    }) {
+        Ok(current) => current,
         Err(response) => return response,
     };
+    let workflow_id =
+        match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
+            Ok(id) => id,
+            Err(response) => return response,
+        };
     match workflow(&state) {
         Ok(mut workflow) => workflow.cancel_oauth(&workflow_id),
         Err(response) => return response,
@@ -6265,13 +6285,19 @@ async fn complete_credential_oauth(
     let Ok(credential_id) = CredentialId::try_new(path.into_inner()) else {
         return invalid_input();
     };
-    if let Err(response) = require_credential(&state, &context.version, &credential_id) {
-        return response;
-    }
-    let workflow_id = match credential_oauth_scope(&context.version, &credential_id) {
-        Ok(id) => id,
+    let current = match service(&state).and_then(|mut service| {
+        service
+            .get_credential(&context.version, &credential_id)
+            .map_err(management_error)
+    }) {
+        Ok(current) => current,
         Err(response) => return response,
     };
+    let workflow_id =
+        match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
+            Ok(id) => id,
+            Err(response) => return response,
+        };
     let callback = match parse_oauth_callback_request(&payload) {
         Ok(callback) => callback,
         Err(OAuthCallbackInputError::Invalid) => return invalid_input(),
@@ -6315,10 +6341,8 @@ async fn complete_credential_oauth(
         Ok(service) => service,
         Err(response) => return response,
     };
-    let current = match service.get_credential(&context.version, &credential_id) {
-        Ok(current) => current,
-        Err(error) => return management_error(error),
-    };
+    // Compare against the credential observed before the potentially slow token exchange.
+    // A concurrent update must win over this older browser callback.
     let persisted = service.persist_oauth_credential_if_revision(
         &actor,
         &context.version,
@@ -10570,6 +10594,35 @@ mod tests {
         assert_eq!(second.state, ManagementCredentialOAuthState::Pending);
         assert_eq!(first.expires_at_ms, second.expires_at_ms);
         assert_eq!(first.authorization_url, second.authorization_url);
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_scope_rejects_callbacks_for_replaced_credentials() -> TestResult {
+        let version = ConfigVersionId::try_new("draft")?;
+        let credential = CredentialId::try_new("account")?;
+        let old = credential_oauth_scope(&version, &credential, 1).map_err(|_| "scope")?;
+        let new = credential_oauth_scope(&version, &credential, 2).map_err(|_| "scope")?;
+        assert_ne!(old, new);
+        let mut workflow = CodexOAuthManagementWorkflow::new();
+        let started = workflow.start_oauth(&old);
+        let url = url::Url::parse(started.authorization_url.as_deref().ok_or("URL")?)?;
+        let encoded = url
+            .query_pairs()
+            .find(|(k, _)| k == "state")
+            .ok_or("state")?
+            .1
+            .into_owned();
+        let state = decode_oauth_state(encoded.as_bytes()).ok_or("state encoding")?;
+        assert!(
+            workflow
+                .complete_oauth(&new, &state, Zeroizing::new("old-code".to_owned()))
+                .is_none()
+        );
+        assert_eq!(
+            workflow.oauth_status(&old).state,
+            ManagementCredentialOAuthState::Pending
+        );
         Ok(())
     }
 

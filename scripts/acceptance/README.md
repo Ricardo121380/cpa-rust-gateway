@@ -37,3 +37,21 @@ call and a real mock request whose missing price remains `unpriced`, not zero co
 The controller supports a `restart-request` marker in its own temporary root after a rebuild.
 Terminate only the controller belonging to this receipt; its cleanup stops its gateway and mock.
 These checks do not prove real provider authorization or model-directory completeness.
+
+## Legacy alias retirement
+
+`prism-retire-legacy-aliases.py` performs an explicit plan/apply migration using
+existing management credentials. First use an isolated production copy. `--base`,
+`--origin`, `--credential-dir` and an unused `--receipt` path are required. Optional
+`--upstream-names` reads a reviewed JSON object mapping exact upstream IDs to formal
+names; it changes only the name field. Never place credential material in that file.
+
+The initial invocation writes an owner-only plan. Apply that same plan with
+`--apply-plan <plan-file> --target <new-draft-id>` and the same name mapping. The script
+requires all six approved legacy aliases, preserves custom aliases, brackets reads
+with the active revision and compares models/routes/candidates/groups/grants/keys
+before publication and after readback. It does not edit original model IDs, account
+credentials, historical requests or ledger rows, and makes no Provider calls.
+A changed plan or existing target stops execution; inspect an interrupted draft
+instead of replaying it. A successful local synthetic run is not production-copy
+or real-channel acceptance.
