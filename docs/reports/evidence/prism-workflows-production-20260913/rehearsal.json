@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "network_isolated": true,
+  "schema_before": 26,
+  "schema_after": 27,
+  "fallback_revision": "915983b8e91f00fe3d205d070bb5249cad814c67",
+  "candidate_revision": "8578e5540d00f3bdecf5d96f6ae3a131fd033d8a",
+  "candidate_fallback_candidate": true,
+  "terminal_record_retained_and_checkpointed": true,
+  "historical_rows_retained": {
+    "grok_accounts": 5,
+    "upstream_credentials": 27,
+    "gateway_event_log": 2229,
+    "billing_ledger_entries": 593,
+    "native_account_identity_observations": 0,
+    "native_account_management_events": 0,
+    "access_groups": 23,
+    "access_group_routes": 64,
+    "client_keys": 23,
+    "public_models": 60,
+    "model_aliases": 8
+  },
+  "administrator_store_unchanged": true,
+  "effective_permissions_preserved": true,
+  "account_count": 7,
+  "unknown_history_preserved": true,
+  "real_provider_requests": 0
+}

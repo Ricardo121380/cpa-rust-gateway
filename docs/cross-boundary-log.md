@@ -2562,3 +2562,21 @@ This is visual fixture evidence only, not real directory, authorization or full 
 **Why:** User-authorized workflow alignment. Price import needs six-rate differences and explicit confirmation, and daily operations must not require manually selecting a draft.
 
 **Other side:** FYI. Reuses existing immutable global catalog import/rollback and automatic configuration task; preserved catalog save receipts on application failure, added completion view. Local time input labels corrected; mobile rows show all actions. Pure difference tests, frontend290 tests, type/build/134-operation embed gate, and EgoLite16 actual gateway future-price imports passed. Old local catalog retained; no production changes or real inference. Remote price-source sync and the remaining complete-plan work are still pending.
+
+
+## 2026-09-13 - Codex - Partial workflow production deployment
+
+**What:** `docs/handoffs/claude-code-oracle-singapore-vps.md`,
+`docs/reports/prism-workflows-production-20260913.md`,
+`docs/reports/prism-complete-alignment-progress.md` and machine receipts/screenshot in
+`docs/reports/evidence/prism-workflows-production-20260913/`.
+
+**Why:** User explicitly requested deployment of the completed batches with remaining work tracked.
+
+**Other side:** FYI. Production8578e55/schema27 verified,1022ms stop-to-ready, unchanged active config,
+accounts/admin/2229 prior events/593 ledger rows and effective permissions. Exact gate and both signed
+architectures passed; ARM64 synthetic auth and isolated production-copy upgrade/fallback/upgrade
+passed. Signed915983b is the compatible same-schema fallback; do not use prior schema26 binaries or
+restore old databases. Public EgoLite login is user-owned for manual acceptance. Full alignment,
+legacy-alias/name migration and missing real-channel acceptance remain unfinished. No DNS/Caddy/
+Autoreg edits or real-provider inference in release acceptance.

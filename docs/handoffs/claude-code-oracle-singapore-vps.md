@@ -1,6 +1,22 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
-## 2026-09-13: raw model IDs and provider workspaces (latest)
+## 2026-09-13: completed workflow batches deployed (latest)
+
+Production now serves signed8578e55, schema27. User explicitly requested this partial deployment;
+full alignment remains unfinished. Request terminal/history/trend/latency, unified account search,
+explicit model/key permissions and price-difference import are live. Active production-models-20260913,
+seven managed accounts, administrator store,2229 events and593 ledger records remain.
+Legacy aliases remain in this release; DNS/Caddy/Autoreg and credentials were not reconfigured.
+
+**Rollback target is signed915983b, schema27-compatible. Never directly switch to schema26 binaries,
+down-migrate27 or restore stale token/admin databases.** The compatible standby preserves terminal
+records and the manual-model permission guard, with the previous production UI/runtime behavior.
+Network-isolated production-copy candidate/fallback/candidate and checkpoint preservation passed.
+Private release/backups: `/var/backups/cpa-rust-gateway/prism-workflows-20260913`.
+See [current deployment evidence and remaining scope](../reports/prism-workflows-production-20260913.md).
+Earlier entries below describe historical releases only.
+
+## 2026-09-13: raw model IDs and provider workspaces (previous release)
 
 Production serves signed `57e32d1`, schema26, at the existing domain. Active configuration is
 `production-models-20260913`: four raw IDs, four explicit source connections and six compatibility
