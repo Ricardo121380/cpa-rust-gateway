@@ -8,7 +8,11 @@ mod configuration_diff;
 use std::collections::BTreeMap;
 mod configuration_edit;
 pub use configuration_edit::{ConfigurationEditOrigin, ConfigurationEditSource};
+mod catalog_inventory;
 mod resource_inventory;
+pub use catalog_inventory::{
+    CatalogModelPage, CatalogModelQuery, CatalogModelRow, CatalogTargetHeader,
+};
 pub use configuration_diff::{
     ConfigurationDiffError, ConfigurationDiffPage, ConfigurationDiffQuery, ConfigurationDiffReader,
     ConfigurationResourceChange,

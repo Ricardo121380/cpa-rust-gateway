@@ -1,0 +1,67 @@
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { call } from "../../api/client";
+import { asAppError } from "../../api/errors";
+import { resourceName } from "../../utils/resourceNames";
+import { useManagedInventory } from "../accounts/inventory";
+import { useNativeAccounts } from "../accounts/NativeAccounts";
+import { accountName, protocolName } from "../accounts/presentation";
+import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { useVersionStore } from "../config-versions/versionStore";
+import { connectModel } from "../models/connectModel";
+import { useModelConnections } from "../models/useModelConnections";
+import type { CatalogRow } from "../runtime/model";
+
+type CatalogModelPage=Readonly<{config_version:string;revision:string;target:{endpoint_id:string;credential_id:string;snapshot_version:number;observed_at_ms:number;stale_at_ms:number;expires_at_ms:number};items:readonly {model:string;present_in_last_success:boolean}[];next_cursor:string|null}>;
+
+export function UpstreamModelBrowser() {
+  const navigate=useNavigate();
+  const scope=useVersionStore(s=>s.context?.configVersionId);
+  const [params]=useSearchParams();
+  const topology=useModelConnections();
+  const providers=useQuery({queryKey:["upstreams",scope],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});
+  const catalog=useQuery({queryKey:["catalog-status",scope],queryFn:()=>call<CatalogRow[]>("getCatalogStatus",{},{versionScoped:true}),enabled:!!scope});
+  const credentials=useManagedInventory("credentials");const native=useNativeAccounts();
+  const [provider,setProvider]=useState(params.get("upstream_id")??"");
+  const [endpointChoice,setEndpoint]=useState(params.get("endpoint_id")??"");
+  const [credentialChoice,setCredential]=useState(params.get("credential_id")??"");
+  const [search,setSearch]=useState("");const [picked,setPicked]=useState<Set<string>>(new Set());
+  const [workingId,setWorkingId]=useState<string>();
+  const endpoints=(topology.data?.endpoints??[]).filter(e=>!provider||e.upstream_id===provider);
+  const endpoint=endpoints.find(e=>e.id===endpointChoice)??endpoints[0];
+  const targets=(catalog.data??[]).filter(row=>row.endpoint_id===endpoint?.id);
+  const target=targets.find(t=>t.credential_id===credentialChoice)??targets[0];
+  const name=(id:string)=>accountName(credentials.data?.pages.flatMap(p=>p.items).find(c=>c.credential.id===id)?.identity)??accountName(native.data?.pages.flatMap(p=>p.items).find(c=>c.id===id)?.identity)??"未提供账号身份";
+  const query=useInfiniteQuery({queryKey:["catalog-models",scope,endpoint?.id,target?.credential_id,search],initialPageParam:undefined as string|undefined,enabled:!!scope&&!!endpoint&&!!target,retry:false,queryFn:({pageParam})=>call<CatalogModelPage>("listCatalogModels",{query:{endpoint_id:endpoint!.id,credential_id:target!.credential_id,limit:100,q:search,...(pageParam?{cursor:pageParam}:{})}},{versionScoped:true}),getNextPageParam:last=>last.next_cursor??undefined});
+  const header=query.data?.pages[0]?.target;
+  const expired=!!header&&Date.now()>=header.expires_at_ms;
+  const rows=query.data?.pages.flatMap(p=>p.items)??[];
+  const connected=new Set(topology.data?.candidates.filter(c=>c.endpoint_id===endpoint?.id).map(c=>c.upstream_model)??[]);
+  const save=useMutation({mutationFn:async()=>{
+    if(!endpoint||!target||!picked.size||picked.size>20||expired)throw new Error("请选择有效目录中的 1–20 个模型。");
+    const selected=rows.filter(row=>picked.has(row.model));
+    if(selected.length!==picked.size||selected.some(row=>!row.present_in_last_success||row.model.length>256))throw new Error("目录选择已变化，请重新选择。");
+    const latest=await call<CatalogModelPage>("listCatalogModels",{query:{endpoint_id:endpoint.id,credential_id:target.credential_id,limit:1}},{versionScoped:true});
+    if(latest.target.snapshot_version!==header?.snapshot_version||latest.target.observed_at_ms!==header?.observed_at_ms)throw new Error("目录已更新，请重读后重新选择。");
+    const task=await beginConfigurationTask(`从上游目录接入 ${picked.size} 个模型`);setWorkingId(task.version.id);
+    for(const model of picked)await connectModel(task,{upstreamModel:model,endpointId:endpoint.id,allowUnlisted:false});
+    return task.finish();
+  },onSuccess:version=>{setPicked(new Set());useVersionStore.getState().select(version);navigate("/models");}});
+  const resetSelection=()=>{setPicked(new Set());setWorkingId(undefined);save.reset();};
+  return <section className="upstream-model-browser" aria-label="上游模型清单">
+    <div className="data-toolbar"><label>提供商<select value={provider} disabled={save.isPending} onChange={e=>{setProvider(e.target.value);setEndpoint("");setCredential("");resetSelection();}}><option value="">全部提供商</option>{providers.data?.map(p=><option key={p.id} value={p.id}>{resourceName(p.id,"upstream",p.name)}</option>)}</select></label>
+      <label>接口<select value={endpoint?.id??""} disabled={save.isPending} onChange={e=>{setEndpoint(e.target.value);setCredential("");resetSelection();}}>{!endpoints.length?<option value="">尚未配置接口</option>:endpoints.map(e=><option key={e.id} value={e.id}>{resourceName(e.upstream_id,"upstream",providers.data?.find(p=>p.id===e.upstream_id)?.name)} · {protocolName(e.api_format)} · {new URL(e.base_url).host}</option>)}</select></label>
+      <label>目录账号<select value={target?.credential_id??""} disabled={save.isPending} onChange={e=>{setCredential(e.target.value);resetSelection();}}>{!targets.length?<option value="">尚无目录观测</option>:targets.map(t=><option key={t.credential_id} value={t.credential_id}>{name(t.credential_id)}</option>)}</select></label>
+    </div>
+    <div className="data-toolbar"><input type="search" aria-label="搜索上游模型" placeholder="搜索模型 ID" value={search} disabled={save.isPending} onChange={e=>{setSearch(e.target.value);resetSelection();}}/><button className="secondary" disabled={query.isFetching||save.isPending} onClick={()=>{resetSelection();void catalog.refetch();if(target)void query.refetch();}}>重读目录</button><Link to={`/models?add=model${endpoint?`&from_endpoint=${encodeURIComponent(endpoint.id)}`:""}`}>手动批量接入</Link></div>
+    {topology.error||providers.error||catalog.error?<p role="alert">{asAppError(topology.error??providers.error??catalog.error).message}</p>:null}
+    {!target?<p className="empty-state">此接口尚无已观测的模型目录。可在提供商中配置目录发现，或按上游公布的模型 ID 批量接入。</p>:query.isError?<p role="alert" className="empty-state">{asAppError(query.error).status===404?"尚未取得该账号的成功目录。":asAppError(query.error).message}</p>:query.isPending?<p role="status">读取上游模型…</p>:null}
+    {header?<p className="stat-sub">观测于 {new Date(header.observed_at_ms).toLocaleString()} · 已载入 {rows.length} 个模型{query.hasNextPage?"，还有更多":""}{expired?" · 目录已过期，请更新目录后接入":""}</p>:null}
+    {rows.length?<><div className="data-toolbar"><span>已选 {picked.size} / 20</span><button disabled={!picked.size||save.isPending||save.isError||query.isError||expired} onClick={()=>save.mutate()}>{save.isPending?"正在接入…":`接入所选模型${picked.size?`（${picked.size}）`:""}`}</button></div><div className="tablewrap"><table><thead><tr><th>选择</th><th>上游模型 ID</th><th>接入状态</th></tr></thead><tbody>{rows.map(row=><tr key={row.model}><td><input type="checkbox" aria-label={`选择 ${row.model}`} checked={picked.has(row.model)} disabled={save.isPending||query.isError||expired||!row.present_in_last_success||row.model.length>256||connected.has(row.model)||(!picked.has(row.model)&&picked.size>=20)} onChange={e=>setPicked(previous=>{const next=new Set(previous);if(e.target.checked)next.add(row.model);else next.delete(row.model);return next;})}/></td><td className="mono">{row.model}</td><td>{connected.has(row.model)?"已连接此接口":row.present_in_last_success?"待接入":"最近目录已不再返回"}</td></tr>)}</tbody></table></div></>:null}
+    {!query.isPending&&!query.isError&&target&&header&&!rows.length?<p className="empty-state">{search?"没有匹配的模型。":"上游最近成功返回了空模型目录。"}</p>:null}
+    {query.hasNextPage?<button className="secondary" disabled={query.isFetching||query.isError||save.isPending} onClick={()=>void query.fetchNextPage()}>加载更多模型</button>:null}
+    <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={version=>useVersionStore.getState().select(version)}/>
+  </section>;
+}

@@ -411,3 +411,22 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 @media (max-width:720px) {
   .shell .account-directory-head, .shell .account-group-empty, .shell .account-subgroup > h4 { padding-left:16px; }
 }
+
+/* Daily workflows keep processing and implementation details secondary. */
+.processing-fold { padding:12px 0; border-bottom:1px solid var(--separator); margin-bottom:16px; }
+.processing-fold > summary { cursor:pointer; color:var(--ink-2); font-size:13px; }
+.upstream-model-browser .data-toolbar label { display:grid; gap:6px; flex:1 1 180px; font-size:13px; }
+.upstream-model-browser .data-toolbar select { min-width:0; width:100%; }
+.provider-list { display:grid; gap:16px; }
+.provider-card { border:1px solid var(--separator); border-radius:20px; padding:24px; background:color-mix(in srgb,var(--surface) 40%,transparent); }
+.provider-card > header { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.provider-card h3 { margin:5px 0 0; font-size:19px; }
+.provider-kind { color:var(--ink-2); font-size:12px; }
+.provider-connections { display:flex; flex-wrap:wrap; gap:8px 18px; margin:18px 0; color:var(--ink-2); font-size:13px; }
+.provider-models { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:baseline; font-size:13px; }
+.provider-models > div { display:flex; flex-wrap:wrap; gap:8px; }
+.provider-models code { padding:4px 8px; border-radius:7px; background:color-mix(in srgb,var(--surface) 70%,transparent); overflow-wrap:anywhere; }
+.provider-card > footer { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; margin-top:20px; padding-top:16px; border-top:1px solid var(--separator); }
+.provider-card > footer > div:first-child { display:flex; flex-wrap:wrap; gap:18px; font-size:13px; }
+@media(max-width:600px) { .provider-card { padding:18px; } .provider-card h3 { font-size:17px; } }
+.provider-expanded { margin-top:24px; border-top:1px solid var(--separator); padding-top:16px; }

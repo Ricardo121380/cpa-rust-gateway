@@ -588,7 +588,7 @@ export function MonitoringPage() {
         <h2>{t.nav.monitoring}</h2>
         <span className="scope-row">{tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope === undefined ? "未选择版本" : resourceName(scope, "config")}`}</span>
       </header>
-      <ProcessingStatus />
+      <ProcessingStatus compact />
 
       <details className="reading-notes"><summary>数据范围与口径</summary><p className="mon-hint">
         契约里<strong>没有延迟</strong>,也<strong>没有请求成败清单</strong> ——

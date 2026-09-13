@@ -34,6 +34,146 @@ use std::{
 type TestResult = Result<(), Box<dyn Error>>;
 
 #[actix_web::test]
+async fn saved_catalog_models_are_bounded_target_local_and_revision_guarded() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    for (endpoint, credential) in [
+        ("endpoint-owner-a", "account-000"),
+        ("endpoint-owner-b", "account-001"),
+    ] {
+        db.execute(
+            "INSERT INTO model_catalog_targets VALUES (?1,?2,?3,1,1000,2000,3000,4000)",
+            (VERSION, endpoint, credential),
+        )?;
+    }
+    for i in 0..103 {
+        db.execute("INSERT INTO model_catalog_models VALUES (?1,'endpoint-owner-a','account-000',?2,1,0,NULL,NULL)",(VERSION,format!("model-{i:03}")))?;
+    }
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = "/admin/catalog/models?endpoint_id=endpoint-owner-a&credential_id=account-000";
+    let denied = test::call_service(&app, test::TestRequest::get().uri(path).to_request()).await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    let first = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(path)).to_request(),
+    )
+    .await;
+    assert_eq!(first.status(), StatusCode::OK);
+    let first: Value = test::read_body_json(first).await;
+    assert_eq!(first["items"].as_array().ok_or("items")?.len(), 100);
+    assert_eq!(first["items"][0]["model"], "model-000");
+    assert_eq!(first["target"]["expires_at_ms"], 4000); // expired evidence remains readable
+    let cursor = first["next_cursor"].as_str().ok_or("cursor")?;
+    let next_path = format!("{path}&cursor={cursor}");
+    let next: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&next_path)).to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(next["items"].as_array().ok_or("items")?.len(), 3);
+    assert_eq!(next["items"][0]["model"], "model-100");
+    assert!(next["next_cursor"].is_null());
+    for bad in [
+        format!("{path}&limit=101"),
+        format!("{path}&limit=1&limit=2"),
+    ] {
+        assert_eq!(
+            test::call_service(
+                &app,
+                authorized(test::TestRequest::get().uri(&bad)).to_request()
+            )
+            .await
+            .status(),
+            StatusCode::BAD_REQUEST
+        );
+    }
+    let wrong_target = next_path.replace(
+        "endpoint_id=endpoint-owner-a",
+        "endpoint_id=endpoint-owner-b",
+    );
+    assert_eq!(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&wrong_target)).to_request()
+        )
+        .await
+        .status(),
+        StatusCode::CONFLICT
+    );
+    let absent = path.replace("credential_id=account-000", "credential_id=account-001");
+    assert_eq!(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&absent)).to_request()
+        )
+        .await
+        .status(),
+        StatusCode::NOT_FOUND
+    );
+    let empty: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(
+                "/admin/catalog/models?endpoint_id=endpoint-owner-b&credential_id=account-001",
+            ))
+            .to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(empty["items"], serde_json::json!([]));
+    let searched: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&format!("{path}&q=model-102"))).to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(searched["items"].as_array().ok_or("items")?.len(), 1);
+    db.execute(
+        "UPDATE model_catalog_targets SET snapshot_version=2 WHERE endpoint_id='endpoint-owner-a'",
+        [],
+    )?;
+    assert_eq!(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&next_path)).to_request()
+        )
+        .await
+        .status(),
+        StatusCode::CONFLICT
+    );
+    db.execute(
+        "UPDATE model_catalog_targets SET snapshot_version=1 WHERE endpoint_id='endpoint-owner-a'",
+        [],
+    )?;
+    db.execute(
+        "UPDATE config_versions SET revision=revision+1 WHERE id=?1",
+        [VERSION],
+    )?;
+    assert_eq!(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&next_path)).to_request()
+        )
+        .await
+        .status(),
+        StatusCode::CONFLICT
+    );
+    Ok(())
+}
+
+#[actix_web::test]
 async fn deleting_provider_clears_only_its_current_catalog_targets() -> TestResult {
     let (file, state) = fixture(false)?;
     let db = gateway_store::open(&file.0)?;

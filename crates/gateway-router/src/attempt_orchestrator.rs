@@ -610,6 +610,51 @@ impl AttemptOrchestrator {
         .await
     }
 
+    /// Routes one authorized exact model across its explicitly configured sources.
+    ///
+    /// The exact ID and request predicate are checked before any lease. A single Provider keeps
+    /// its existing price-aware selector; multiple Providers use the configured Route policy.
+    /// Retry budget, snapshot pinning, Health/Quota and binding isolation remain in one loop.
+    /// This entry does not apply to Channel Pin or stored-response continuations.
+    /// # Errors
+    /// Returns the existing safe errors for stale snapshots, no matching source or failed attempts.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn start_with_event_sink_exact_model_matching<D, F>(
+        &self,
+        request_id: &RequestId,
+        snapshot: Option<&Arc<RouteSnapshot>>,
+        route_id: &RouteId,
+        exact_model: &str,
+        is_candidate_eligible: F,
+        driver: &D,
+        retry_gate: &dyn TransparentRetryGate,
+        event_sink: &dyn GatewayEventSink,
+    ) -> Result<StartedAttempt<D::Output>, GatewayError>
+    where
+        D: AttemptDriver,
+        F: Fn(&SnapshotRouteCandidate) -> bool + Sync,
+    {
+        let admitted = |candidate: &SnapshotRouteCandidate| {
+            candidate.upstream_model() == exact_model && is_candidate_eligible(candidate)
+        };
+        let route = self
+            .scheduler
+            .route_from_snapshot(snapshot, route_id)?
+            .ok_or_else(credential_unavailable_error)?;
+        let one_provider = unique_provider_scope(&route, &admitted).is_ok();
+        self.start_inner(
+            Some(request_id),
+            snapshot,
+            route_id,
+            &admitted,
+            one_provider,
+            driver,
+            retry_gate,
+            event_sink,
+        )
+        .await
+    }
+
     /// Starts the bounded Attempt loop with the Provider-scoped selector as an advisory ranking.
     ///
     /// The route must have exactly one Provider after the caller's admission predicate is
@@ -1880,6 +1925,75 @@ mod tests {
                 .ok_or("missing ambiguous-route pool")?;
             assert_eq!(
                 pool.active_lease_count(&CredentialId::try_new(credential)?),
+                Some(0)
+            );
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn exact_model_sources_fail_over_without_crossing_model_or_binding_scope() -> TestResult {
+        let (orchestrator, route_id, _clock, _health, pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a"), ("candidate-b", "endpoint-b")],
+            vec![
+                ("endpoint-a", vec!["credential-a"]),
+                ("endpoint-b", vec!["credential-b"]),
+            ],
+            2,
+            100,
+        )?;
+        let driver = ScriptedDriver::new(vec![
+            DriverStep::Failure(AttemptFailure::Connection),
+            DriverStep::Success("second-explicit-source".to_owned()),
+        ]);
+        let started = orchestrator
+            .start_with_event_sink_exact_model_matching(
+                &RequestId::try_new("exact-multiple-sources")?,
+                None,
+                &route_id,
+                "upstream-model",
+                |_| true,
+                &driver,
+                &TestRetryGate::default(),
+                &NoopGatewayEventSink,
+            )
+            .await?;
+        assert_eq!(started.output(), "second-explicit-source");
+        assert_eq!(started.attempts_started(), 2);
+        assert_eq!(
+            driver.attempts()?,
+            vec![
+                ("candidate-a".to_owned(), "credential-a".to_owned()),
+                ("candidate-b".to_owned(), "credential-b".to_owned())
+            ]
+        );
+        drop(started);
+        let rejected = ScriptedDriver::new(vec![DriverStep::Success("must-not-start".to_owned())]);
+        assert!(
+            orchestrator
+                .start_with_event_sink_exact_model_matching(
+                    &RequestId::try_new("exact-wrong-model")?,
+                    None,
+                    &route_id,
+                    "another-model",
+                    |_| true,
+                    &rejected,
+                    &TestRetryGate::default(),
+                    &NoopGatewayEventSink,
+                )
+                .await
+                .is_err()
+        );
+        assert!(rejected.attempts()?.is_empty());
+        for (endpoint, credential) in [
+            ("endpoint-a", "credential-a"),
+            ("endpoint-b", "credential-b"),
+        ] {
+            assert_eq!(
+                pools
+                    .pool(&EndpointId::try_new(endpoint)?)
+                    .ok_or("missing pool")?
+                    .active_lease_count(&CredentialId::try_new(credential)?),
                 Some(0)
             );
         }

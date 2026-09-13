@@ -579,6 +579,44 @@ pub(crate) fn explain(
     })
 }
 
+/// Reuses the same evidence while restricting only the policy projection to admitted models/protocols.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn explain_admitted(
+    snapshot: &RouteSnapshot,
+    credential_pools: &EndpointCredentialPools,
+    runtime_health: &RuntimeHealthRegistry,
+    runtime_quota: &RuntimeQuotaRegistry,
+    input: &RouteExplainInput,
+    exclusions: &AttemptExclusionSet,
+    admitted: &BTreeSet<RouteCandidateId>,
+) -> Result<RouteExplainSnapshot, RouteExplainError> {
+    let mut result = explain(
+        snapshot,
+        credential_pools,
+        runtime_health,
+        runtime_quota,
+        input,
+        exclusions,
+    )?;
+    let schedule = snapshot
+        .route_schedule(input.route_id())
+        .ok_or(RouteExplainError::MissingRouteSchedule)?;
+    let candidates = result
+        .candidates
+        .iter()
+        .filter(|row| admitted.contains(row.candidate_id()))
+        .cloned()
+        .collect::<Vec<_>>();
+    result.projected_selection = project_selection(
+        schedule,
+        &candidates,
+        credential_pools,
+        input.candidate_schedule_start(),
+        input.credential_schedule_start(),
+    );
+    Ok(result)
+}
+
 #[allow(clippy::too_many_arguments)] // One exact binding evaluation makes every fail-closed reason explicit.
 fn explain_candidate(
     candidate: &crate::SnapshotRouteCandidate,

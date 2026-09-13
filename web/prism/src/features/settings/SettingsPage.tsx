@@ -51,6 +51,12 @@ export function SettingsPage() {
         <h2>{t.settings.title}</h2>
       </header>
       <SystemInformation/>
+      <details className="card settings-maintenance" data-gap="top"><summary>高级维护</summary><div className="settings-tool-grid">
+        <Link to="/runtime"><strong>运行诊断</strong><span>账号状态、故障与恢复</span></Link>
+        <Link to="/egress"><strong>网络与出口</strong><span>访问范围、代理与连接策略</span></Link>
+        <Link to="/versions"><strong>配置历史</strong><span>检查待应用修改、差异和回滚</span></Link>
+        <Link to="/audit"><strong>操作记录与备份</strong><span>查看变更记录及备份信息</span></Link>
+      </div></details>
 
       <div className="card" data-gap="top">
         <div className="card-head">

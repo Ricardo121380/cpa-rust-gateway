@@ -2425,3 +2425,53 @@ rollback (new audit exported). Public readback and real EgoLite login page passe
 accounts/config/history remain; no production data cleanup or manual Provider call. DNS/Caddy/Autoreg
 unchanged. Rollback must preserve latest state and downgrade only schema 26 after exporting audit;
 new user configuration/native mutations require a fresh compatibility review, not blind rollback.
+
+
+## 2026-09-13 — Codex — Raw model IDs and provider workspaces
+
+**What:**
+
+- `web/prism/contracts/management-v1.json`
+- `web/prism/src/api/errors.ts`
+- `web/prism/src/app/AppShell.tsx`
+- `web/prism/src/app/v6.css`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/features/billing/BillingPage.tsx`
+- `web/prism/src/features/billing/ProcessingStatus.tsx`
+- `web/prism/src/features/catalog/CatalogPage.tsx`
+- `web/prism/src/features/catalog/UpstreamModelBrowser.tsx`
+- `web/prism/src/features/egress/CompatibleProxyPanel.tsx`
+- `web/prism/src/features/models/ConnectModelDialog.tsx`
+- `web/prism/src/features/models/ModelConnectionsDialog.tsx`
+- `web/prism/src/features/models/ModelsPage.tsx`
+- `web/prism/src/features/models/connectModel.test.ts`
+- `web/prism/src/features/models/connectModel.ts`
+- `web/prism/src/features/models/models.css`
+- `web/prism/src/features/models/useModelConnections.ts`
+- `web/prism/src/features/monitoring/MonitoringPage.tsx`
+- `web/prism/src/features/settings/SettingsPage.tsx`
+- `web/prism/src/features/settings/SystemInformation.tsx`
+- `web/prism/src/features/settings/settings.css`
+- `web/prism/src/features/upstreams/ProviderDialog.tsx`
+- `web/prism/src/features/upstreams/UpstreamsPage.tsx`
+- `web/prism/src/features/usage/UsagePage.tsx`
+- `web/prism/src/generated/management-client.ts`
+
+The backend implements the authority change in `docs/openapi/management-v1.json` (130 operations);
+contracts/client were regenerated through sync-contract. `CR-PRISM-UPSTREAM-MODELS-004.md` explains
+saved target-local model enumeration and exact-model multi-source dispatch. No schema change.
+
+**Why:** User requested further alignment with the three CPA projects and deployment. One upstream
+can have many models; one exact model can have explicitly configured sources. Model aliases are
+optional and do not create duplicate models. Real loopback acceptance exposed and fixed the old
+single-Provider inference restriction for authorized exact IDs. Custom mixed mappings, Channel Pin,
+stored continuation, credential isolation, protocol semantics and bounded retries retain their scope.
+
+**Other side:** FYI under ongoing joint frontend/backend authorization. Daily provider/model/catalog
+workspaces, bulk selection and source editing are implemented; advanced maintenance stays reachable
+through existing links. V6 material, eight primary workspaces, fourteen legacy routes, CSP, memory-only
+secrets and four deterministic assets remain. Current local evidence: 286 frontend tests, 130-operation
+double build, 179 router tests, 71 HTTP library tests, 132 gateway tests, 16 inventory tests and 3 embedded
+asset tests. Real UI model/key/alias/source flows and TLS mock requests to ledger passed. No production
+mutation in this commit; signed release, production-copy normalization/rollback and public readback
+remain required before claiming deployment. Existing history/accounts/admin must be retained.

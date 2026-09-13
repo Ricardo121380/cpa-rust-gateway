@@ -63,3 +63,19 @@
   font-size: 12px;
   color: var(--ink-2);
 }
+
+.model-source-preview { display: grid; gap: 6px; color: var(--ink-2); font-size: 13px; }
+.model-source-list { display: grid; gap: 14px; }
+.model-source-card { padding: 18px; border: 1px solid var(--separator); border-radius: 16px; background: var(--surface); }
+.model-source-card h4 { margin: 0 0 6px; }
+.model-source-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sheet-form .check-row { display: flex; flex-direction: row; align-items: flex-start; gap: 9px; }
+.sheet-form .check-row input { width: auto; flex: 0 0 auto; margin-top: 3px; }
+.model-advanced { border-top: 1px solid var(--separator); padding-top: 12px; }
+.model-advanced summary { color: var(--ink-2); cursor: pointer; margin-bottom: 12px; }
+.row-menu { position: relative; }
+.row-menu summary { cursor: pointer; color: var(--ink-2); padding: 8px; }
+.row-menu > div { display: grid; gap: 6px; min-width: 96px; }
+.model-source-preview span { overflow-wrap: anywhere; }
+
+.models-page td > .entity-meta { display: block; margin-top: 4px; }

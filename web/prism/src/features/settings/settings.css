@@ -85,3 +85,8 @@
 .system-links a { color:var(--tint); text-decoration:none; }
 .system-links a:hover { text-decoration:underline; }
 @media (max-width:900px) { .system-facts { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 12px; } }
+.settings-maintenance summary { cursor: pointer; font-weight: 600; }
+.settings-tool-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:18px; }
+.settings-tool-grid a { display:grid; gap:6px; padding:16px; border:1px solid var(--separator); border-radius:14px; text-decoration:none; }
+.settings-tool-grid span { font-size:13px; color:var(--ink-2); }
+@media(max-width:600px) { .settings-tool-grid { grid-template-columns:1fr; } }

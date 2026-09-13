@@ -48,7 +48,7 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
       query.state.status === "error" ? false : 5_000,
   });
   const data = query.data;
-  return (
+  const panel = (
     <aside className={`data-panel data-panel--padded${compact ? " billing-processing-compact" : ""}`} aria-label="计费处理状态" data-state={data?.state} data-gap="top">
       <header className="page-head">
         <h3>计费处理</h3>
@@ -104,4 +104,5 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
       ) : null}
     </aside>
   );
+  return compact && data?.state==="current" && !query.error ? <details className="processing-fold"><summary>计费处理已追平 · 查看详情</summary>{panel}</details> : panel;
 }

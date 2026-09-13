@@ -1,4 +1,4 @@
-import { resourceName } from "../../utils/resourceNames";
+import { UpstreamModelBrowser } from "./UpstreamModelBrowser";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { EffectiveModels } from "./EffectiveModels";
 import { useQuery } from "@tanstack/react-query";
@@ -50,8 +50,7 @@ export function CatalogPage() {
         <div>
           <h2>{t.nav.catalog}</h2>
           <p className="scope-row">
-            {scope === undefined ? "未选择配置版本" : `配置版本 ${resourceName(scope ?? "—", "config")}`} · 逐
-            Endpoint × Credential 的目录证据
+            按提供商和账号查看真实模型，再选择需要接入的模型。
           </p>
         </div>
         <button
@@ -65,7 +64,9 @@ export function CatalogPage() {
           刷新目录
         </button>
       </header>
-      <EffectiveModels />
+      <UpstreamModelBrowser />
+      <details className="card" data-gap="top"><summary>检查客户端可用模型</summary><EffectiveModels /></details>
+      <details className="card" data-gap="top"><summary>目录状态与诊断</summary>
       <div className="stat-row">
         {FRESHNESS_STATES.map((state) => (
           <div className="stat-tile" key={state}>
@@ -75,7 +76,7 @@ export function CatalogPage() {
                 ? "—"
                 : catalog.data.filter((r) => r.freshness === state).length}
             </strong>
-            <span className="stat-sub">目录 target</span>
+            <span className="stat-sub">账号目录</span>
           </div>
         ))}
       </div>
@@ -83,7 +84,7 @@ export function CatalogPage() {
         <div className="data-toolbar">
           <input
             aria-label="搜索目录目标"
-            placeholder="搜索 Endpoint、Credential"
+            placeholder="搜索接口或账号引用"
             value={query}
             onChange={(e) => update("q", e.target.value)}
           />
@@ -171,7 +172,7 @@ export function CatalogPage() {
         )}
         <div className="data-footer">
           <span>
-            {rows.length} 个 target · 目录模型数不等于授权可调用模型数
+            {rows.length} 份目录 · 目录模型数不等于授权可调用模型数
           </span>
         </div>
       </div>
@@ -182,6 +183,7 @@ export function CatalogPage() {
           小时硬过期。状态以服务端返回为准。Missing
           表示没有成功目录，不能解释为刷新成功但模型数为零。
         </p>
+      </details>
       </details>
       {selected === undefined ? null : (
         <Sheet

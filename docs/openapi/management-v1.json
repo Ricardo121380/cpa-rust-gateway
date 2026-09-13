@@ -1670,6 +1670,85 @@
           }
         }
       }
+    },
+    "/admin/catalog/models": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "name": "endpoint_id",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Id"
+          }
+        },
+        {
+          "name": "credential_id",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Id"
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 100
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 7000
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "operationId": "listCatalogModels",
+        "description": "Read saved target-local model evidence, including models not configured in routes. No Provider calls or secrets. Reads under bounded blocking admission with storage-side keyset filtering and LIMIT. Cursor binds configuration revision, target identity, snapshot version and observation time; changed sources return 409. Missing successful target returns 404; successful empty catalogs return an empty page. Expired evidence remains inspectable and never grants access. Retained successful omissions are identified explicitly.",
+        "responses": {
+          "200": {
+            "description": "One bounded, consistent page of saved source models",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogModelPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2112,6 +2191,93 @@
               }
             ],
             "description": "Current admission of new requests. Null means not observed; false after an unapplied durable runtime change."
+          }
+        }
+      },
+      "CatalogModelPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "config_version",
+          "revision",
+          "target",
+          "items",
+          "next_cursor"
+        ],
+        "properties": {
+          "config_version": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "endpoint_id",
+              "credential_id",
+              "snapshot_version",
+              "observed_at_ms",
+              "stale_at_ms",
+              "expires_at_ms"
+            ],
+            "properties": {
+              "endpoint_id": {
+                "$ref": "#/components/schemas/Id"
+              },
+              "credential_id": {
+                "$ref": "#/components/schemas/Id"
+              },
+              "snapshot_version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "observed_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "stale_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expires_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "model",
+                "present_in_last_success"
+              ],
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "present_in_last_success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 7000
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       }

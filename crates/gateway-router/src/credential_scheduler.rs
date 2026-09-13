@@ -6,7 +6,10 @@
 //! runtime-health registry; attempt, retry, transport, and Provider behavior remain outside this
 //! module.
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 use arc_swap::ArcSwap;
 
@@ -970,6 +973,30 @@ impl RouteCredentialScheduler {
             runtime_quota,
             input,
             exclusions,
+        )
+    }
+
+    /// Projects the Route policy over explicitly admitted exact-model/protocol candidates.
+    /// This read neither leases credentials nor advances routing cursors.
+    /// # Errors
+    /// Returns the same immutable-route errors as [`Self::explain`].
+    pub fn explain_admitted(
+        &self,
+        input: &RouteExplainInput,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        exclusions: &AttemptExclusionSet,
+        admitted: &BTreeSet<RouteCandidateId>,
+    ) -> Result<RouteExplainSnapshot, RouteExplainError> {
+        let candidates = self.candidates.load_full();
+        crate::route_explain::explain_admitted(
+            candidates.snapshot(),
+            &self.credential_pools,
+            runtime_health,
+            runtime_quota,
+            input,
+            exclusions,
+            admitted,
         )
     }
 

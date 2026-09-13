@@ -1861,31 +1861,46 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                         .is_none_or(|model| candidate.upstream_model() == model)
                         && driver.project_candidate(candidate).is_ok()
                 };
-                match route_snapshot.as_ref() {
-                    Some(snapshot) => {
-                        orchestrator
-                            .start_with_event_sink_provider_scoped_matching_from_snapshot(
-                                context.request_id(),
-                                snapshot,
-                                &route_id,
-                                is_candidate_eligible,
-                                &driver,
-                                retry_gate.as_ref(),
-                                event_sink.as_ref(),
-                            )
-                            .await?
-                    }
-                    None => {
-                        orchestrator
-                            .start_with_event_sink_provider_scoped_matching(
-                                context.request_id(),
-                                &route_id,
-                                is_candidate_eligible,
-                                &driver,
-                                retry_gate.as_ref(),
-                                event_sink.as_ref(),
-                            )
-                            .await?
+                if let Some(exact_model) = exact_upstream_model.as_deref() {
+                    orchestrator
+                        .start_with_event_sink_exact_model_matching(
+                            context.request_id(),
+                            route_snapshot.as_ref(),
+                            &route_id,
+                            exact_model,
+                            is_candidate_eligible,
+                            &driver,
+                            retry_gate.as_ref(),
+                            event_sink.as_ref(),
+                        )
+                        .await?
+                } else {
+                    match route_snapshot.as_ref() {
+                        Some(snapshot) => {
+                            orchestrator
+                                .start_with_event_sink_provider_scoped_matching_from_snapshot(
+                                    context.request_id(),
+                                    snapshot,
+                                    &route_id,
+                                    is_candidate_eligible,
+                                    &driver,
+                                    retry_gate.as_ref(),
+                                    event_sink.as_ref(),
+                                )
+                                .await?
+                        }
+                        None => {
+                            orchestrator
+                                .start_with_event_sink_provider_scoped_matching(
+                                    context.request_id(),
+                                    &route_id,
+                                    is_candidate_eligible,
+                                    &driver,
+                                    retry_gate.as_ref(),
+                                    event_sink.as_ref(),
+                                )
+                                .await?
+                        }
                     }
                 }
             };
@@ -7622,6 +7637,10 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                     .map_err(|_| ManagementRuntimeError::Unavailable)
             })
             .collect::<Result<BTreeSet<_>, _>>()?;
+        let exact_model_sources = route
+            .candidates()
+            .iter()
+            .all(|candidate| candidate.upstream_model() == public_model.model_name());
         let inferred_provider = match request.provider_id().cloned() {
             Some(provider_id) => Some(provider_id),
             None if provider_ids.len() == 1 => provider_ids.iter().next().cloned(),
@@ -7659,11 +7678,12 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                 .as_ref()
                 .map(|scheduler| {
                     scheduler
-                        .explain(
+                        .explain_admitted(
                             &RouteExplainInput::new(route.id().clone(), request.observed_at_ms()),
                             &self.runtime_health,
                             &self.runtime_quota,
                             &AttemptExclusionSet::new(),
+                            &admitted_candidate_ids,
                         )
                         .map_err(|_| ManagementRuntimeError::Unavailable)
                 })
@@ -7699,16 +7719,24 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
         };
         let ambiguous_provider_scope = self.route_explain_scheduler.is_some()
             && request.provider_id().is_none()
-            && provider_ids.len() > 1;
+            && provider_ids.len() > 1
+            && !exact_model_sources;
         let legacy_selected = if projected.is_none()
             && !ambiguous_provider_scope
             && request.provider_id().is_none()
         {
-            route
-                .candidates()
-                .iter()
-                .find(|candidate| candidate.is_hard_eligible() && pair_is_publishable(candidate))
-                .map(|candidate| candidate.id().clone())
+            if let Some(base) = &base_explain {
+                base.projected_selection()
+                    .map(|selection| selection.candidate_id().clone())
+            } else {
+                route
+                    .candidates()
+                    .iter()
+                    .find(|candidate| {
+                        candidate.is_hard_eligible() && pair_is_publishable(candidate)
+                    })
+                    .map(|candidate| candidate.id().clone())
+            }
         } else {
             None
         };
@@ -12609,9 +12637,24 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::too_many_lines)] // One explicit two-Provider fixture proves the scope boundary.
     fn provider_scoped_route_explain_requires_scope_for_multiple_providers()
     -> Result<(), Box<dyn Error>> {
+        multi_provider_explain_fixture(false)
+    }
+
+    #[test]
+    fn exact_model_route_explain_projects_configured_sources_without_provider_scope()
+    -> Result<(), Box<dyn Error>> {
+        multi_provider_explain_fixture(true)
+    }
+
+    #[allow(clippy::too_many_lines)] // One explicit two-Provider fixture proves both scope boundaries.
+    fn multi_provider_explain_fixture(exact_model: bool) -> Result<(), Box<dyn Error>> {
+        let public_name = if exact_model {
+            "p13-07b-upstream-model"
+        } else {
+            "p13-07b-public-model"
+        };
         let version = ConfigVersionId::try_new("p13-07b-explain-config")?;
         let route_id = RouteId::try_new("p13-07b-explain-route")?;
         let public_model_id = PublicModelId::try_new("p13-07b-explain-model")?;
@@ -12638,7 +12681,7 @@ mod tests {
             SnapshotVersion::try_new(version.as_str())?,
             vec![SnapshotPublicModel::new(
                 public_model_id.clone(),
-                "p13-07b-public-model".to_owned(),
+                public_name.to_owned(),
                 "P13-07B public model".to_owned(),
                 CapabilitySet::empty(),
                 route_id.clone(),
@@ -12700,7 +12743,7 @@ mod tests {
         let unscoped = ManagementRouteExplainRequest::try_new(
             version.clone(),
             route_id.clone(),
-            "p13-07b-public-model".to_owned(),
+            public_name.to_owned(),
             ManagementRequestProtocol::OpenAiResponses,
             None,
             100,
@@ -12709,17 +12752,25 @@ mod tests {
         let unscoped = facade
             .explain_route(&unscoped)
             .map_err(|_| std::io::Error::other("unscoped route explain unavailable"))?;
-        assert!(
-            unscoped
-                .candidates()
-                .iter()
-                .all(|candidate| candidate.reason() == Some("provider_scope_required"))
-        );
+        if exact_model {
+            assert!(unscoped.candidates()[0].selected_by_projection());
+            assert_eq!(
+                unscoped.candidates()[1].reason(),
+                Some("after_selected_candidate")
+            );
+        } else {
+            assert!(
+                unscoped
+                    .candidates()
+                    .iter()
+                    .all(|candidate| candidate.reason() == Some("provider_scope_required"))
+            );
+        }
 
         let scoped = ManagementRouteExplainRequest::try_new(
             version,
             route_id,
-            "p13-07b-public-model".to_owned(),
+            public_name.to_owned(),
             ManagementRequestProtocol::OpenAiResponses,
             Some(ProviderId::try_new("provider-a")?),
             100,

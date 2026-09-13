@@ -110,14 +110,8 @@ function PolicyCard({
     <div className="card bill-policy">
       <header className="page-head">
         <h3>路由价格策略</h3>
-        <code className="idchip mono">getRoutingPricePolicy</code>
       </header>
-      <p className="bill-note">
-        这一项<strong>属于当前配置版本</strong>(与下方全局的目录不同)。它决定 Route Explain
-        与调度看到的价格证据来自哪一份目录。<strong>未配置时,每个候选的{" "}
-        <span className="mono">price_evidence</span> 都是 <span className="mono">disabled</span></strong>
-        —— 那不是"没有价格",而是"没有做比较"。
-      </p>
+      <p className="bill-note">选择用于比较路由成本的价格目录。计费用的价格目录在下方管理。</p>
 
       {policy.isPending ? (
         <p className="stat-sub">读取中…</p>
@@ -125,11 +119,6 @@ function PolicyCard({
         <div className="empty-state" data-kind="empty">
           <p>
             本版本未配置价格策略。
-            <br />
-            <small className="muted-3">
-              404 <span className="mono">management_resource_not_found</span> 在这里是一个正常状态,
-              不是错误。
-            </small>
           </p>
         </div>
       ) : policy.isError ? (
@@ -413,7 +402,7 @@ export function BillingPage() {
     return (
       <section>
         <h2>{t.nav.billing}</h2>
-        <ProcessingStatus />
+        <ProcessingStatus compact />
         <div className="card empty-state" data-kind="empty">
           <p>选择配置版本后维护该版本的价格策略。计费处理状态跨版本可读。</p>
         </div>
@@ -428,9 +417,8 @@ export function BillingPage() {
     <section className="billing-page">
       <header className="page-head">
         <h2>{t.nav.billing}</h2>
-        <code className="idchip mono">listBillingCatalogs</code>
       </header>
-      <ProcessingStatus />
+      <ProcessingStatus compact />
 
       {notice !== undefined ? (
         <p className="action-notice">

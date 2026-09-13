@@ -2725,6 +2725,14 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       ];
       return json(200, rows, revisionToken(version));
     }
+    if (route === "GET /admin/catalog/models") {
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const endpoint=url.searchParams.get("endpoint_id"),credential=url.searchParams.get("credential_id");
+      if(endpoint!=="ep-relay-a-responses"||credential!=="cred-relay-key")return errorResponse(404,"management_resource_not_found","Catalog not observed");
+      const observed=1_784_880_000_000;
+      const all=["gpt-5.5","gpt-5.6-terra"].filter(model=>model.includes(url.searchParams.get("q")??""));
+      return json(200,{config_version:version.id,revision:revisionToken(version),target:{endpoint_id:endpoint,credential_id:credential,snapshot_version:3,observed_at_ms:observed,stale_at_ms:Date.now()+3_600_000,expires_at_ms:Date.now()+7_200_000},items:all.map(model=>({model,present_in_last_success:true})),next_cursor:null},revisionToken(version));
+    }
     if (route === "GET /admin/catalog/status") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;

@@ -57,7 +57,7 @@ export function AppShell() {
   const setChoice = useThemeStore((s) => s.setChoice);
   const currentGroup = NAV_GROUPS.find((group) => group.items.some((item) => item.to === primaryRoute(pathname)));
   const currentPage = NAV_ITEMS.find((item) => item.to === pathname);
-  const pages = workspacePages(pathname);
+  const pages = primaryRoute(pathname)==="/settings" ? (pathname==="/settings"?[]:NAV_ITEMS.filter(item=>item.to==="/settings"||item.to===pathname)) : workspacePages(pathname);
   const canvasRef = useRef<HTMLElement>(null);
 
   // The canvas — not the window — is the scroll container now (content slides
@@ -157,7 +157,7 @@ export function AppShell() {
       <main className="canvas" ref={canvasRef}>
         <div className="workspace">
           {pages.length > 1 ? <nav className="workspace-navigation" aria-label="工作区页面">
-            {pages.map((item) => <NavLink key={item.to} to={item.to} end>{t.nav[item.key]}</NavLink>)}
+            {pages.map((item) => <NavLink key={item.to} to={item.to} end>{item.to==="/models"?"已接入模型":item.to==="/catalog"?"上游模型":t.nav[item.key]}</NavLink>)}
           </nav> : null}
           <Outlet key={`${sessionGeneration}:${selectionGeneration}`} />
         </div>

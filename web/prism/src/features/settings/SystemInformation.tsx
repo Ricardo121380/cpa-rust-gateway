@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { RuntimeApplyNotice } from "../accounts/RuntimeApplyNotice";
@@ -14,6 +13,5 @@ export function SystemInformation() {
       {info.data?.accepting_requests===false?<RuntimeApplyNotice onApplied={()=>void info.refetch()}/>:null}
       <details><summary>构建详情</summary><dl className="settings-facts"><dt>完整修订</dt><dd className="mono">{build.build_revision}</dd><dt>平台</dt><dd>{build.build_target}</dd><dt>Rust</dt><dd>{build.rust_version}</dd><dt>数据结构</dt><dd>{build.schema_version}</dd><dt>配置应用</dt><dd>保存后生效</dd></dl></details>
     </>}
-    <div className="system-links"><Link to="/egress">网络与出口</Link><Link to="/runtime">运行诊断</Link><Link to="/versions">高级配置</Link></div>
   </div>;
 }

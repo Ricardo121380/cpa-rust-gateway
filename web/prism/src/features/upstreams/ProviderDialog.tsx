@@ -39,7 +39,7 @@ export function ProviderDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
         material="";
         await task.mutate("createEndpointCredentialBinding",{path:{endpoint_id:endpoint},body:{credential_id:account.id,enabled:true,priority:0,weight:1,concurrency:1}});
       }
-      for(const model of modelNames)await connectModel(task,{model,upstreamModel:model,endpointId:endpoint,allowUnlisted:manual});
+      for(const model of modelNames)await connectModel(task,{upstreamModel:model,endpointId:endpoint,allowUnlisted:manual});
       return task.finish();
     } finally {material="";}
   },onSuccess:onSaved});

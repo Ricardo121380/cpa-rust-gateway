@@ -2422,6 +2422,19 @@ fn resolve_public_model(
                 return Err(route_not_found());
             };
             let public_model_name = public_model.model_name().to_owned();
+            // An explicit alias of a raw-ID model shares the same bounded source selection.
+            // Custom mappings keep their existing Provider-scoped behavior.
+            let snapshot = authenticated_client.snapshot();
+            let exact_upstream_model = snapshot
+                .route(public_model.route_id())
+                .filter(|route| {
+                    !route.candidates().is_empty()
+                        && route
+                            .candidates()
+                            .iter()
+                            .all(|candidate| candidate.upstream_model() == public_model_name)
+                })
+                .map(|_| public_model_name.clone());
             let route_alias =
                 (requested_model != public_model_name).then(|| requested_model.to_owned());
             Ok(ResolvedPublicModel {
@@ -2429,8 +2442,8 @@ fn resolve_public_model(
                 route_alias,
                 route: ResponsesRouteSelection {
                     route_id: Some(public_model.route_id().clone()),
-                    exact_upstream_model: None,
-                    snapshot: Some(authenticated_client.snapshot()),
+                    exact_upstream_model,
+                    snapshot: Some(snapshot),
                 },
             })
         }

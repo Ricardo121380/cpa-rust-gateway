@@ -103,7 +103,7 @@ pub struct ResourceInventoryReader {
 }
 
 impl ResourceInventoryReader {
-    fn repository(&self) -> StoreResult<SqliteControlPlaneRepository> {
+    pub(super) fn repository(&self) -> StoreResult<SqliteControlPlaneRepository> {
         let connection = Connection::open_with_flags(&self.path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         connection.busy_timeout(Duration::from_secs(5))?;
         Ok(SqliteControlPlaneRepository { connection })

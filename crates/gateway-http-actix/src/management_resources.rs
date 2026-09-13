@@ -5,6 +5,7 @@
 //! credential Secret/ciphertext, or bypass the P10-02 `/admin` security scope.
 
 mod account_channels;
+mod catalog_inventory;
 mod configuration_diff;
 mod configuration_edit;
 mod credential_status;
@@ -2725,6 +2726,7 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route("/models/effective", web::get().to(get_effective_models))
         .route("/catalog/status", web::get().to(get_catalog_status))
+        .route("/catalog/models", web::get().to(catalog_inventory::models))
         .route(
             "/runtime/availability",
             web::get().to(get_runtime_availability),

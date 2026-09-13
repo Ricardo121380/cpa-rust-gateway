@@ -1329,6 +1329,45 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listCatalogModels": {
+    "method": "GET",
+    "path": "/admin/catalog/models",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "endpoint_id",
+        "in": "query",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "query",
+        "required": true
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "q",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listClientKeys": {
     "method": "GET",
     "path": "/admin/client-keys",
@@ -3116,6 +3155,10 @@ export class ManagementApi {
 
   listBillingCatalogs(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listBillingCatalogs", request);
+  }
+
+  listCatalogModels(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listCatalogModels", request);
   }
 
   listClientKeys(request: ManagementRequest = {}): Promise<Response> {

@@ -1,3 +1,7 @@
+import { Link } from "react-router-dom";
+import { useModelConnections } from "./useModelConnections";
+import { ModelConnectionsDialog } from "./ModelConnectionsDialog";
+import { protocolName } from "../accounts/presentation";
 import { resourceName } from "../../utils/resourceNames";
 import { useSearchParams } from "react-router-dom";
 import { ReadStatus } from "../../components/ReadStatus";
@@ -87,6 +91,11 @@ export function ModelsPage() {
   const scope = context?.configVersionId;
   const [draft, setDraft] = useState<DraftModel | undefined>();
   const [inspected, setInspected] = useState<PublicModel>();
+  const [connectionTarget,setConnectionTarget]=useState<PublicModel>();
+  const [searchText,setSearchText]=useState("");
+  const [connectionSeed,setConnectionSeed]=useState<{model:string;endpoint:string;alias?:string;targetModelId?:string}>();
+  const topology=useModelConnections();
+  const providers=useQuery({queryKey:["upstreams",scope],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});
   const [confirmDelete, setConfirmDelete] = useState<PublicModel | undefined>();
   const [aliasTarget, setAliasTarget] = useState<PublicModel | undefined>();
   const [routeTarget, setRouteTarget] = useState<PublicModel | undefined>();
@@ -199,18 +208,11 @@ export function ModelsPage() {
       <header className="page-head">
         <h2>{t.nav.models}</h2>
         <div className="page-actions">
-          <button onClick={()=>setConnecting(true)}>开放模型</button>
-          <button
-            type="button"
-            disabled={!editable}
-            title={editable ? undefined : t.version.readOnly}
-            onClick={() => setDraft(emptyDraft())}
-          >
-            高级模型配置
-          </button>
+          <button onClick={()=>{setConnectionSeed(undefined);setConnecting(true);}}>接入模型</button>
+
         </div>
       </header>
-      {connecting?<ConnectModelDialog seed={modelSeed} onClose={closeConnecting} onSaved={(version)=>{closeConnecting();invalidate();useVersionStore.getState().select(version);}}/>:null}
+      {connecting?<ConnectModelDialog targetModelId={connectionSeed?.targetModelId} endpointSeed={search.get("from_endpoint")??undefined} seed={connectionSeed??modelSeed} onClose={closeConnecting} onSaved={(version)=>{closeConnecting();invalidate();useVersionStore.getState().select(version);}}/>:null}
 
       {modelSeed !== undefined ? (
         <section className="data-panel data-panel--padded" aria-label="待用于草稿的模型">
@@ -263,66 +265,34 @@ export function ModelsPage() {
 
       <ReadStatus pending={!!scope&&models.isPending} error={models.error} hasData={models.data !== undefined} retry={() => void models.refetch()} />
 
+      <div className="data-toolbar"><input type="search" aria-label="搜索已接入模型" placeholder="搜索模型 ID" value={searchText} onChange={e=>setSearchText(e.target.value)}/><span className="muted">{models.data?.length??"—"} 个已接入模型</span><Link to="/catalog">浏览上游模型目录 →</Link></div>
+      <ReadStatus pending={false} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
       <div className="card tablewrap">
         <table>
           <thead>
             <tr>
-              <th>模型名(客户端可见)</th>
-              <th>显示名</th>
-              <th>状态</th>
-              <th>能力</th>
-              <th>操作</th>
+              <th>模型 ID</th><th>来源连接</th><th>状态</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {(models.data ?? []).map((model) => (
-              <tr key={model.id}>
-                <td className="mono">{model.model_name}</td>
-                <td>{model.display_name}</td>
-                <td>
-                  <StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge>
+            {searchText&&models.data&&!models.data.some(m=>m.model_name.toLowerCase().includes(searchText.toLowerCase()))?<tr><td colSpan={4} className="empty-state">没有匹配的模型。</td></tr>:null}
+            {(models.data ?? []).filter(m=>m.model_name.toLowerCase().includes(searchText.toLowerCase())).map((model) => {
+              const route=topology.data?.routes.find(r=>r.public_model_id===model.id);
+              const sources=topology.data?.candidates.filter(c=>c.route_id===route?.id)??[];
+              return <tr key={model.id}>
+                <td><strong className="mono">{model.model_name}</strong>{model.display_name!==model.model_name?<span className="entity-meta">{model.display_name}</span>:null}</td>
+                <td><div className="model-source-preview">{!topology.data?"读取连接…":!sources.length?"未添加连接":[...new Map(sources.map(c=>[c.endpoint_id,c])).values()].map(c=>{const endpoint=topology.data?.endpoints.find(e=>e.id===c.endpoint_id);return <span key={c.id}>{resourceName(endpoint?.upstream_id??"","upstream",providers.data?.find(p=>p.id===endpoint?.upstream_id)?.name)} · {protocolName(endpoint?.api_format??"")}{sources.some(s=>s.endpoint_id===c.endpoint_id&&s.enabled)?"":" · 已停用"}</span>;})}</div></td>
+                <td><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
+                <td className="row-actions"><button className="secondary" onClick={()=>setConnectionTarget(model)}>管理连接</button><button className="secondary" onClick={()=>setInspected(model)}>详情</button>
+                  <details className="row-menu"><summary>更多</summary><div>
+                    <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setDraft(toDraft(model));}}>编辑模型</button>
+                    <button className="secondary" onClick={()=>{addAlias.reset();setWorkingId(undefined);setAliasTarget(model);}}>添加别名</button>
+                    {editable?<button className="secondary" onClick={()=>setRouteTarget(model)}>配置路由</button>:null}
+                    <button className="danger" onClick={()=>{remove.reset();setWorkingId(undefined);setConfirmDelete(model);}}>删除模型</button>
+                  </div></details>
                 </td>
-                <td>
-                  {enabledCapabilities(model.capabilities).map((capability) => (
-                    <span key={capability} className="idchip">
-                      {capability}
-                    </span>
-                  ))}
-                </td>
-                <td className="row-actions">
-                  <button className="secondary" onClick={() => setInspected(model)}>详情</button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {save.reset();setWorkingId(undefined);setDraft(toDraft(model));}}
-                  >
-                    编辑
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {addAlias.reset();setWorkingId(undefined);setAliasTarget(model);}}
-                  >
-                    加别名
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={!editable}
-                    onClick={() => setRouteTarget(model)}
-                  >
-                    建路由
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {remove.reset();setWorkingId(undefined);setConfirmDelete(model);}}
-                  >
-                    删除
-                  </button>
-                </td>
-              </tr>
-            ))}
+              </tr>;
+            })}
           </tbody>
         </table>
         {models.data?.length === 0 ? (
@@ -332,8 +302,16 @@ export function ModelsPage() {
         ) : null}
       </div>
 
-      <details className="models-advanced" open={createdRouteId!==undefined?true:undefined}><summary>高级路由、候选与别名</summary><RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
+      <details className="models-advanced" open={createdRouteId!==undefined?true:undefined}><summary>高级路由、候选与别名</summary>          <button
+            type="button"
+            disabled={!editable}
+            title={editable ? undefined : t.version.readOnly}
+            onClick={() => setDraft(emptyDraft())}
+          >
+            高级模型配置
+          </button><RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
 
+      {connectionTarget?<ModelConnectionsDialog model={connectionTarget} onClose={()=>setConnectionTarget(undefined)} onSaved={version=>{setConnectionTarget(undefined);invalidate();useVersionStore.getState().select(version);}} onAdd={()=>{const route=topology.data?.routes.find(r=>r.public_model_id===connectionTarget.id);const source=topology.data?.candidates.find(c=>c.route_id===route?.id);setConnectionSeed({model:source?.upstream_model??connectionTarget.model_name,endpoint:"",targetModelId:connectionTarget.id});setConnectionTarget(undefined);setConnecting(true);}}/>:null}
       {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
         ["配置 ID", inspected.id], ["模型名称", inspected.model_name], ["配置状态", inspected.status],
         ["声明能力", enabledCapabilities(inspected.capabilities).join(" · ") || "未声明"],

@@ -1,5 +1,7 @@
-import { ResourceIdentity } from "../../components/ResourceIdentity";
-import { resourceName, referenceText, isInternalLabel } from "../../utils/resourceNames";
+import { Link } from "react-router-dom";
+import { useModelConnections } from "../models/useModelConnections";
+import { protocolName } from "../accounts/presentation";
+import { resourceName, referenceText } from "../../utils/resourceNames";
 import { ReadStatus } from "../../components/ReadStatus";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -28,6 +30,10 @@ type Upstream = Readonly<{
   tags: readonly string[];
   egress_policy_id?: string | null;
 }>;
+
+function providerKindLabel(kind:string) {
+  return ({"openai-compatible":"OpenAI 兼容","anthropic-compatible":"Anthropic 兼容",codex:"Codex / ChatGPT",claude:"Claude",kimi:"Kimi",kiro:"Kiro","grok.official":"Grok API","grok-web-native":"Grok Web","grok-console-native":"Grok Console","grok-build-native":"Grok Build"} as Record<string,string>)[kind]??kind;
+}
 
 const KIND_SUGGESTIONS = [
   "grok.official",
@@ -88,6 +94,9 @@ export function UpstreamsPage() {
   const [adding,setAdding]=useState(searchParams.get("add")==="provider");
   const closeAdding=()=>{setAdding(false);const next=new URLSearchParams(searchParams);next.delete("add");setSearchParams(next,{replace:true});};
   const [workingId,setWorkingId]=useState<string>();
+  const topology=useModelConnections();
+  const [filter,setFilter]=useState("");
+  const [kindFilter,setKindFilter]=useState("");
 
   const upstreams = useQuery({
     queryKey: ["upstreams", scope],
@@ -181,74 +190,30 @@ export function UpstreamsPage() {
 
       <ReadStatus pending={!!scope&&upstreams.isPending} error={upstreams.error} hasData={upstreams.data !== undefined} retry={() => void upstreams.refetch()} />
 
-      <div className="card tablewrap">
-        <table>
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>渠道类型</th>
-              <th>状态</th>
-              <th>标签</th>
-              <th>出口策略</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(upstreams.data ?? []).map((upstream) => (
-              <tr key={upstream.id}>
-                <td><ResourceIdentity id={upstream.id} name={upstream.name} kind="upstream" /></td>
-                <td className="mono">{upstream.kind}</td>
-                <td>
-                  <StatusBadge status={upstream.enabled ? "active" : "disabled"}>
-                    {upstream.enabled ? "已启用" : "已停用"}
-                  </StatusBadge>
-                </td>
-                <td>
-                  {upstream.tags.some(tag=>!isInternalLabel(tag))
-                    ? upstream.tags.filter(tag=>!isInternalLabel(tag)).map((tag) => (
-                        <span key={referenceText(tag)} className="idchip">
-                          {referenceText(tag)}
-                        </span>
-                      ))
-                    : "—"}
-                </td>
-                <td>{upstream.egress_policy_id ? <ResourceIdentity id={upstream.egress_policy_id} kind="policy" /> : "—"}</td>
-                <td className="row-actions">
-                  <button className="secondary" onClick={() => setInspected(upstream)}>详情</button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => setExpanded(expanded === upstream.id ? undefined : upstream.id)}
-                  >
-                    {expanded === upstream.id ? "收起" : "接口与账号"}
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => setDraft(toDraft(upstream))}
-                  >
-                    编辑
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => {remove.reset();setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);}}
-                  >
-                    删除
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!scope||upstreams.data?.length === 0 ? (
-          <div className="empty-state" data-kind="empty">
-            <p>添加提供商，设置接口地址并连接账号。</p>
-          </div>
-        ) : null}
+      <div className="data-toolbar"><input type="search" aria-label="搜索提供商或模型" placeholder="搜索提供商、地址或模型 ID" value={filter} onChange={e=>setFilter(e.target.value)}/><select aria-label="渠道类型" value={kindFilter} onChange={e=>setKindFilter(e.target.value)}><option value="">全部渠道</option>{[...new Set(upstreams.data?.map(p=>p.kind)??[])].map(kind=><option key={kind} value={kind}>{providerKindLabel(kind)}</option>)}</select></div>
+      <ReadStatus pending={false} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
+      <div className="provider-list">
+        {(upstreams.data??[]).filter(p=>!kindFilter||p.kind===kindFilter).map(upstream=>{
+          const endpoints=topology.data?.endpoints.filter(e=>e.upstream_id===upstream.id)??[];
+          const endpointIds=new Set(endpoints.map(e=>e.id));
+          const models=[...new Set(topology.data?.candidates.filter(c=>endpointIds.has(c.endpoint_id)).map(c=>c.upstream_model)??[])];
+          const name=resourceName(upstream.id,"upstream",upstream.name);
+          if(![name,upstream.kind,...models,...endpoints.map(e=>e.base_url)].join(" ").toLowerCase().includes(filter.toLowerCase()))return null;
+          return <article className="provider-card" key={upstream.id}>
+            <header><div><span className="provider-kind">{providerKindLabel(upstream.kind)}</span><h3>{name}</h3></div><StatusBadge status={upstream.enabled?"active":"disabled"}>{upstream.enabled?"已启用":"已停用"}</StatusBadge></header>
+            <div className="provider-connections">{!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div>
+            <div className="provider-models"><span className="muted">已配置模型 {topology.data?models.length:"—"}</span><div>{models.slice(0,8).map(model=><code key={model}>{model}</code>)}{models.length>8?<span>另有 {models.length-8} 个</span>:null}</div></div>
+            <footer><div><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>浏览上游模型</Link><Link to={`/models?add=model${endpoints[0]?`&from_endpoint=${encodeURIComponent(endpoints[0].id)}`:""}`}>批量接入模型</Link></div><div className="row-actions">
+              <button className="secondary" onClick={()=>setExpanded(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
+              <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);setDraft(toDraft(upstream));}}>编辑</button>
+              <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>setInspected(upstream)}>详情</button><button className="danger" onClick={()=>{remove.reset();setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);}}>移除提供商</button></div></details>
+            </div></footer>
+            {expanded===upstream.id?<div className="provider-expanded"><SubresourcePanel upstreamId={upstream.id}/></div>:null}
+          </article>;
+        })}
+        {!scope||upstreams.data?.length===0?<div className="empty-state">添加提供商，设置接口地址并连接账号。</div>:null}
       </div>
 
-      {expanded !== undefined ? <SubresourcePanel upstreamId={expanded} /> : null}
       {adding?<ProviderDialog onClose={closeAdding} onSaved={(version)=>{closeAdding();invalidate();useVersionStore.getState().select(version);}}/>:null}
 
       {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "upstream", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[

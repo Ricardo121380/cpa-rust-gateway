@@ -86,14 +86,12 @@ type SaveInput = Readonly<{
 
 function Section({
   title,
-  operation,
   help,
   onCreate,
   editable,
   children,
 }: Readonly<{
   title: string;
-  operation: string;
   help: ReactNode;
   onCreate: () => void;
   editable: boolean;
@@ -105,7 +103,6 @@ function Section({
         <div className="cp-head-text">
           <h3>
             {title}
-            <span className="cp-op mono">{operation}</span>
           </h3>
           <p className="cp-help">{help}</p>
         </div>
@@ -581,7 +578,7 @@ export function CompatibleProxyPanel({
       <h2>兼容出口 · 代理池 / 节点 / 绑定</h2>
       <p className="cp-help">
         出口策略决定<strong>请求可以去哪里</strong>,这里决定<strong>请求从哪条线出去</strong>。
-        三层是 池 → 节点 → 绑定,每层都是本配置版本自己的资源,改动全部走 If-Match。
+        先添加代理池与节点，再选择它们服务的接口。
         {editable ? null : <strong> 当前版本不是草稿,以下只读。</strong>}
       </p>
 
@@ -602,7 +599,6 @@ export function CompatibleProxyPanel({
 
       <Section
         title="代理池"
-        operation="listCompatibleProxyPools"
         help="一个池是一组可互换的出口节点。池本身不持有任何地址。"
         editable={editable === true}
         onCreate={() => setDraft({ kind: "pool", existing: undefined })}
@@ -665,7 +661,6 @@ export function CompatibleProxyPanel({
 
       <Section
         title="代理节点"
-        operation="listCompatibleProxyNodes"
         help={
           <>
             节点持有出口地址,但<strong>读模型只回一个「已配置」布尔值</strong> ——
@@ -750,7 +745,6 @@ export function CompatibleProxyPanel({
 
       <Section
         title="兼容出口绑定"
-        operation="listCompatibleEgressBindings"
         help="把一对 (endpoint, credential) 绑到直连、某个固定节点,或某个池。"
         editable={editable === true}
         onCreate={() => setDraft({ kind: "binding", existing: undefined })}
