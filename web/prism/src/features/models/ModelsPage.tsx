@@ -270,7 +270,7 @@ export function ModelsPage() {
 
       <div className="data-toolbar"><input type="search" aria-label="搜索已接入模型" placeholder="搜索模型 ID" value={searchText} onChange={e=>setSearchText(e.target.value)}/><span className="muted">{models.data?.length??"—"} 个已接入模型</span><Link to="/catalog">浏览上游模型目录 →</Link></div>
       <ReadStatus pending={false} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
-      <div className="card tablewrap">
+      <div className="card tablewrap models-inventory">
         <table>
           <thead>
             <tr>
@@ -283,9 +283,9 @@ export function ModelsPage() {
               const route=topology.data?.routes.find(r=>r.public_model_id===model.id);
               const sources=topology.data?.candidates.filter(c=>c.route_id===route?.id)??[];
               return <tr key={model.id}>
-                <td><strong className="mono">{model.model_name}</strong>{model.display_name!==model.model_name?<span className="entity-meta">{model.display_name}</span>:null}</td>
-                <td><div className="model-source-preview">{!topology.data?"读取连接…":!sources.length?"未添加连接":[...new Map(sources.map(c=>[c.endpoint_id,c])).values()].map(c=>{const endpoint=topology.data?.endpoints.find(e=>e.id===c.endpoint_id);return <span key={c.id}>{resourceName(endpoint?.upstream_id??"","upstream",providers.data?.find(p=>p.id===endpoint?.upstream_id)?.name)} · {protocolName(endpoint?.api_format??"")}{sources.some(s=>s.endpoint_id===c.endpoint_id&&s.enabled)?"":" · 已停用"}</span>;})}</div></td>
-                <td><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
+                <td data-label="模型 ID"><strong className="mono">{model.model_name}</strong>{model.display_name!==model.model_name?<span className="entity-meta">{model.display_name}</span>:null}</td>
+                <td data-label="来源连接"><div className="model-source-preview">{!topology.data?"读取连接…":!sources.length?"未添加连接":[...new Map(sources.map(c=>[c.endpoint_id,c])).values()].map(c=>{const endpoint=topology.data?.endpoints.find(e=>e.id===c.endpoint_id);return <span key={c.id}>{resourceName(endpoint?.upstream_id??"","upstream",providers.data?.find(p=>p.id===endpoint?.upstream_id)?.name)} · {protocolName(endpoint?.api_format??"")}{sources.some(s=>s.endpoint_id===c.endpoint_id&&s.enabled)?"":" · 已停用"}</span>;})}</div></td>
+                <td data-label="状态"><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
                 <td className="row-actions"><button className="secondary" onClick={()=>setConnectionTarget(model)}>管理连接</button><button className="secondary" onClick={()=>setInspected(model)}>详情</button>
                   <details className="row-menu"><summary>更多</summary><div>
                     <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setDraft(toDraft(model));}}>编辑模型</button>

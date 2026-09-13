@@ -10,7 +10,7 @@ import { accountName, protocolName, nativeConnections } from "../accounts/presen
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import { useVersionStore } from "../config-versions/versionStore";
-import { connectModel } from "../models/connectModel";
+import { connectModelBatch, type ModelBatchRow } from "../models/connectModelBatch";
 import { useModelConnections } from "../models/useModelConnections";
 import type { CatalogRow } from "../runtime/model";
 
@@ -29,6 +29,7 @@ export function UpstreamModelBrowser() {
   const [credentialChoice,setCredential]=useState(params.get("credential_id")??"");
   const [search,setSearch]=useState("");const [picked,setPicked]=useState<Set<string>>(new Set());
   const [workingId,setWorkingId]=useState<string>();
+  const [batchRows,setBatchRows]=useState<readonly ModelBatchRow[]>([]);
   const endpoints=(topology.data?.endpoints??[]).filter(e=>!provider||e.upstream_id===provider);
   const endpoint=endpoints.find(e=>e.id===endpointChoice)??endpoints[0];
   const known=[...(catalog.data??[]).filter(row=>row.endpoint_id===endpoint?.id),
@@ -49,14 +50,14 @@ export function UpstreamModelBrowser() {
     const latest=await call<CatalogModelPage>("listCatalogModels",{query:{endpoint_id:endpoint.id,credential_id:target.credential_id,limit:1}},{versionScoped:true});
     if(latest.target.snapshot_version!==header?.snapshot_version||latest.target.observed_at_ms!==header?.observed_at_ms)throw new Error("目录已更新，请重读后重新选择。");
     const task=await beginConfigurationTask(`从上游目录接入 ${picked.size} 个模型`);setWorkingId(task.version.id);
-    for(const model of picked)await connectModel(task,{upstreamModel:model,endpointId:endpoint.id,allowUnlisted:false});
+    await connectModelBatch(task,[...picked],endpoint.id,setBatchRows);
     return task.finish();
   },onSuccess:version=>{setPicked(new Set());useVersionStore.getState().select(version);navigate("/models");}});
   const refresh=useMutation({mutationFn:async()=>{
     if(!endpoint||!target)throw new Error("请先连接账号。");
     return call<{model_count:number}>("refreshCatalogModels",{body:{endpoint_id:endpoint.id,credential_id:target.credential_id}},{versionScoped:true});
   },onSuccess:()=>{setPicked(new Set());void catalog.refetch();void query.refetch();}});
-  const resetSelection=()=>{setPicked(new Set());setWorkingId(undefined);save.reset();refresh.reset();};
+  const resetSelection=()=>{setPicked(new Set());setWorkingId(undefined);setBatchRows([]);save.reset();refresh.reset();};
   return <section className="upstream-model-browser" aria-label="上游模型清单">
     <div className="data-toolbar"><label>提供商<select value={provider} disabled={save.isPending||refresh.isPending} onChange={e=>{setProvider(e.target.value);setEndpoint("");setCredential("");resetSelection();}}><option value="">全部提供商</option>{providers.data?.map(p=><option key={p.id} value={p.id}>{resourceName(p.id,"upstream",p.name)}</option>)}</select></label>
       <label>接口<select value={endpoint?.id??""} disabled={save.isPending||refresh.isPending} onChange={e=>{setEndpoint(e.target.value);setCredential("");resetSelection();}}>{!endpoints.length?<option value="">尚未配置接口</option>:endpoints.map(e=><option key={e.id} value={e.id}>{resourceName(e.upstream_id,"upstream",providers.data?.find(p=>p.id===e.upstream_id)?.name)} · {protocolName(e.api_format)} · {new URL(e.base_url).host}</option>)}</select></label>
@@ -71,6 +72,7 @@ export function UpstreamModelBrowser() {
     {rows.length?<><div className="data-toolbar"><span>已选 {picked.size} / 20</span><button disabled={!picked.size||save.isPending||save.isError||query.isError||expired} onClick={()=>save.mutate()}>{save.isPending?"正在接入…":`接入所选模型${picked.size?`（${picked.size}）`:""}`}</button></div><div className="tablewrap"><table><thead><tr><th>选择</th><th>上游模型 ID</th><th>接入状态</th></tr></thead><tbody>{rows.map(row=><tr key={row.model}><td><input type="checkbox" aria-label={`选择 ${row.model}`} checked={picked.has(row.model)} disabled={save.isPending||query.isError||expired||!row.present_in_last_success||row.model.length>256||connected.has(row.model)||(!picked.has(row.model)&&picked.size>=20)} onChange={e=>setPicked(previous=>{const next=new Set(previous);if(e.target.checked)next.add(row.model);else next.delete(row.model);return next;})}/></td><td className="mono">{row.model}</td><td>{connected.has(row.model)?"已连接此接口":row.present_in_last_success?"待接入":"最近目录已不再返回"}</td></tr>)}</tbody></table></div></>:null}
     {!query.isPending&&!query.isError&&target&&header&&!rows.length?<p className="empty-state">{search?"没有匹配的模型。":"上游最近成功返回了空模型目录。"}</p>:null}
     {query.hasNextPage?<button className="secondary" disabled={query.isFetching||query.isError||save.isPending} onClick={()=>void query.fetchNextPage()}>加载更多模型</button>:null}
+    {batchRows.length?<section aria-label="模型接入进度" aria-live="polite"><h3>接入结果</h3><ul className="model-batch-results">{batchRows.map(row=><li key={row.model}><code>{row.model}</code><span>{{waiting:"未执行",saving:"正在保存",saved:"已保存，待应用",existing:"连接已存在",uncertain:"未完成，请核对"}[row.state]}</span></li>)}</ul>{save.isError?<p>本批已停止。已保存的修改保留在待应用配置中；请核对后再应用。</p>:null}</section>:null}
     <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={version=>useVersionStore.getState().select(version)}/>
   </section>;
 }

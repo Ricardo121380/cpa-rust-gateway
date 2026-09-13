@@ -82,3 +82,41 @@
 
 .alias-list code { overflow-wrap:anywhere; white-space:normal; min-width:0; }
 .alias-list .data-toolbar { flex-wrap:wrap; }
+
+/* Keep the same data and actions in one DOM; mobile exposes every row action. */
+@media (max-width: 700px) {
+  .models-inventory { overflow: visible; }
+  .models-inventory table,
+  .models-inventory tbody { display: block; width: 100%; min-width: 0; }
+  .models-inventory thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  .models-inventory tbody tr {
+    display: grid; gap: 10px; padding: 16px;
+    border-bottom: 1px solid var(--separator);
+  }
+  .models-inventory tbody tr:last-child { border-bottom: 0; }
+  .models-inventory tbody td {
+    display: block; padding: 0; min-width: 0; width: auto;
+    border: 0; white-space: normal; overflow-wrap: anywhere;
+  }
+  .models-inventory td[data-label]::before {
+    content: attr(data-label); display: block; margin-bottom: 4px;
+    color: var(--ink-2); font-size: 12px;
+  }
+  .models-inventory td:first-child::before { display: none; }
+  .models-inventory .mono { white-space: normal; overflow-wrap: anywhere; }
+  .models-inventory td.row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .models-inventory .row-actions button,
+  .models-inventory .row-menu summary { min-height: 44px; }
+  .models-inventory .row-menu summary { display: flex; align-items: center; }
+  .models-inventory .row-menu[open] { flex-basis: 100%; }
+  .models-inventory .row-menu > div { display: flex; flex-wrap: wrap; gap: 8px; }
+  .models-page > .data-toolbar { flex-wrap: wrap; }
+  .models-page > .data-toolbar input { min-width: 0; max-width: 100%; }
+}
+
+.model-batch-results { list-style: none; padding: 0; display: grid; gap: 8px; }
+.model-batch-results li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.model-batch-results code { overflow-wrap: anywhere; white-space: normal; min-width: 0; }
