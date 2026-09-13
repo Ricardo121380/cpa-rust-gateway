@@ -1696,3 +1696,74 @@ async fn unified_native_identity_and_generation_are_in_the_same_cursor() -> Test
     assert!(!found.to_string().contains("synthetic-session"));
     Ok(())
 }
+
+#[actix_web::test]
+async fn alias_delete_is_authenticated_revisioned_and_keeps_public_model() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/public-models")).insert_header(("If-Match","rev-0")).set_json(serde_json::json!({"id":"alias-owner","model_name":"Exact/Model","display_name":"Exact/Model","status":"active","capabilities":{}})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let path = "/admin/public-models/alias-owner/aliases";
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(path))
+            .insert_header(("If-Match", "rev-1"))
+            .set_json(serde_json::json!({"alias":"legacy/name"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let denied = test::call_service(
+        &app,
+        test::TestRequest::delete()
+            .uri(path)
+            .set_json(serde_json::json!({"alias":"legacy/name"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    let stale = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri(path))
+            .insert_header(("If-Match", "rev-1"))
+            .set_json(serde_json::json!({"alias":"legacy/name"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+    let deleted = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri(path))
+            .insert_header(("If-Match", "rev-2"))
+            .set_json(serde_json::json!({"alias":"legacy/name"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+    assert_eq!(deleted.headers().get("ETag").ok_or("etag")?, "\"rev-3\"");
+    let models: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/public-models")).to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(models[0]["model_name"], "Exact/Model");
+    let aliases: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/model-aliases")).to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(aliases["items"], serde_json::json!([]));
+    Ok(())
+}

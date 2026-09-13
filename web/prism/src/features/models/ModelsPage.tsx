@@ -1,3 +1,4 @@
+import {AliasList} from "./AliasList";
 import { Link } from "react-router-dom";
 import { useModelConnections } from "./useModelConnections";
 import { ModelConnectionsDialog } from "./ModelConnectionsDialog";
@@ -7,7 +8,7 @@ import { useSearchParams } from "react-router-dom";
 import { ReadStatus } from "../../components/ReadStatus";
 // Public models: client-visible model names + capabilities + 1:1 route.
 // Complete route/candidate/alias enumeration lives in RouteWorkbench.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -97,6 +98,7 @@ export function ModelsPage() {
   const topology=useModelConnections();
   const providers=useQuery({queryKey:["upstreams",scope],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});
   const [confirmDelete, setConfirmDelete] = useState<PublicModel | undefined>();
+  const aliasBusy=useIsMutating({mutationKey:["model-alias-write"]})>0;
   const [aliasTarget, setAliasTarget] = useState<PublicModel | undefined>();
   const [routeTarget, setRouteTarget] = useState<PublicModel | undefined>();
   const [createdRouteId, setCreatedRouteId] = useState<string | undefined>();
@@ -146,6 +148,7 @@ export function ModelsPage() {
   });
 
   const addAlias = useMutation({
+    mutationKey:["model-alias-write"],
     mutationFn: async (input: { modelId: string; alias: string }) => {
       const task=await beginConfigurationTask("添加模型别名");setWorkingId(task.version.id);
       const created=await task.mutate<{alias:string}>("createModelAlias",{path:{public_model_id:input.modelId},body:{alias:input.alias}});
@@ -286,7 +289,7 @@ export function ModelsPage() {
                 <td className="row-actions"><button className="secondary" onClick={()=>setConnectionTarget(model)}>管理连接</button><button className="secondary" onClick={()=>setInspected(model)}>详情</button>
                   <details className="row-menu"><summary>更多</summary><div>
                     <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setDraft(toDraft(model));}}>编辑模型</button>
-                    <button className="secondary" onClick={()=>{addAlias.reset();setWorkingId(undefined);setAliasTarget(model);}}>添加别名</button>
+                    <button className="secondary" onClick={()=>{addAlias.reset();setWorkingId(undefined);setAliasTarget(model);}}>管理别名</button>
                     {editable?<button className="secondary" onClick={()=>setRouteTarget(model)}>配置路由</button>:null}
                     <button className="danger" onClick={()=>{remove.reset();setWorkingId(undefined);setConfirmDelete(model);}}>删除模型</button>
                   </div></details>
@@ -405,7 +408,8 @@ export function ModelsPage() {
       ) : null}
 
       {aliasTarget !== undefined ? (
-        <Sheet title={`为 ${aliasTarget.model_name} 添加别名`} onEscape={() => !addAlias.isPending&&setAliasTarget(undefined)}>
+        <Sheet title={`模型别名 · ${aliasTarget.model_name}`} onEscape={() => !aliasBusy&&setAliasTarget(undefined)}>
+          <AliasList model={aliasTarget} onRemoved={(version)=>{setAliasTarget(undefined);void queryClient.resetQueries({queryKey:["routing-inventory"]});useVersionStore.getState().select(version);}}/>
           <ConfigurationTaskNotice workingId={workingId} error={addAlias.error} onReview={(version)=>{setAliasTarget(undefined);useVersionStore.getState().select(version);}}/>
           <form
             className="sheet-form"
@@ -420,10 +424,10 @@ export function ModelsPage() {
               <input name="alias" className="mono" required maxLength={256} />
             </label>
             <div className="sheet-actions">
-              <button type="button" className="secondary" disabled={addAlias.isPending} onClick={() => setAliasTarget(undefined)}>
+              <button type="button" className="secondary" disabled={aliasBusy} onClick={() => setAliasTarget(undefined)}>
                 取消
               </button>
-              <button type="submit" disabled={addAlias.isPending}>
+              <button type="submit" disabled={aliasBusy}>
                 创建
               </button>
             </div>

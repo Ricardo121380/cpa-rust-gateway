@@ -1205,6 +1205,15 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       list[index] = next;
       return json(200, next, revisionToken(version));
     }
+    const aliasDelete = /^DELETE \/admin\/public-models\/([^/]+)\/aliases$/u.exec(route);
+    if(aliasDelete){
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const rejected=requireDraftAndMatch(version,headers);if(rejected)return rejected;
+      const body=JSON.parse(bodyText??"{}") as {alias:string};const modelId=decodeURIComponent(aliasDelete[1]??"");
+      const rows=state.aliases.get(version.id)??[];const index=rows.findIndex(a=>a.alias===body.alias&&a.public_model_id===modelId);
+      if(index<0)return errorResponse(404,"management_resource_not_found","alias not found");
+      rows.splice(index,1);version.revision+=1;return json(204,undefined,revisionToken(version));
+    }
     const aliasCreate = /^POST \/admin\/public-models\/([^/]+)\/aliases$/u.exec(route);
     if (aliasCreate !== null) {
       const version = versionByHeader(headers);

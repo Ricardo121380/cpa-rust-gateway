@@ -286,6 +286,26 @@ pub struct GrokBuildCatalogAdapter {
 }
 
 impl GrokBuildCatalogAdapter {
+    /// Uses the same JSON/compact credential formats and expiry admission as inference serving.
+    /// # Errors
+    /// Rejects malformed or expired authorization without contacting the transport.
+    pub fn from_runtime_credential(
+        endpoint_id: EndpointId,
+        credential_id: CredentialId,
+        material: &[u8],
+        observed_at_ms: i64,
+        transport: Arc<dyn GrokBuildCatalogTransport>,
+    ) -> Result<Self, GatewayError> {
+        let credential = GrokBuildCredential::import_active_runtime(material, observed_at_ms)
+            .map_err(|_| {
+                GatewayError::new(
+                    GatewayErrorCode::CredentialUnauthorized,
+                    ErrorScope::Credential,
+                )
+            })?;
+        Self::try_new(endpoint_id, credential_id, credential, transport)
+    }
+
     /// Creates one isolated Build catalog source.
     ///
     /// # Errors
@@ -494,4 +514,63 @@ const fn catalog_http_error(status: u16) -> GatewayError {
 
 const fn internal_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+}
+
+#[cfg(test)]
+mod runtime_material_tests {
+    use super::{
+        GrokBuildCatalogAdapter, GrokBuildCatalogRequest, GrokBuildCatalogTransport,
+        GrokBuildCatalogTransportResponse, GrokBuildCredential,
+    };
+    use gateway_catalog::{ModelCatalogSource, ModelCatalogTarget};
+    use gateway_core::{CredentialId, EndpointId, GatewayError};
+    use gateway_provider::ProviderFuture;
+    use std::sync::Arc;
+    struct Transport;
+    impl GrokBuildCatalogTransport for Transport {
+        fn send(
+            &self,
+            request: GrokBuildCatalogRequest,
+        ) -> ProviderFuture<'_, Result<GrokBuildCatalogTransportResponse, GatewayError>> {
+            assert_eq!(request.url(), "https://cli-chat-proxy.grok.com/v1/models");
+            Box::pin(async {
+                Ok(GrokBuildCatalogTransportResponse::new(
+                    200,
+                    br#"{"data":[{"id":"Exact/First"},{"id":"Exact/Second"}]}"#.to_vec(),
+                ))
+            })
+        }
+    }
+    #[tokio::test]
+    async fn compact_account_authorization_reads_all_models_but_expiry_still_rejects()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let credential=GrokBuildCredential::import_json(br#"{"access_token":"catalog-fixture-access","refresh_token":"catalog-fixture-refresh","expires_in":3600}"#,1000)?;
+        let compact = credential.persisted_bytes()?;
+        let endpoint = EndpointId::try_new("catalog-endpoint")?;
+        let account = CredentialId::try_new("catalog-account")?;
+        assert!(GrokBuildCredential::import_runtime_json(&compact, 1001).is_err());
+        let source = GrokBuildCatalogAdapter::from_runtime_credential(
+            endpoint.clone(),
+            account.clone(),
+            &compact,
+            1001,
+            Arc::new(Transport),
+        )?;
+        let rows = source
+            .models(ModelCatalogTarget::new(endpoint.clone(), account.clone()))
+            .await?;
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].upstream_model(), "Exact/First");
+        assert!(
+            GrokBuildCatalogAdapter::from_runtime_credential(
+                endpoint,
+                account,
+                &compact,
+                3_601_000,
+                Arc::new(Transport)
+            )
+            .is_err()
+        );
+        Ok(())
+    }
 }

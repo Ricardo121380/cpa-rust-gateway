@@ -2661,6 +2661,10 @@ fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
             web::post().to(create_model_alias),
         )
         .route(
+            "/public-models/{public_model_id}/aliases",
+            web::delete().to(delete_model_alias),
+        )
+        .route(
             "/public-models/{public_model_id}/routes",
             web::post().to(create_model_route),
         )
@@ -6804,6 +6808,45 @@ async fn delete_public_model(
         Err(response) => return response,
     };
     match service.delete_public_model(&actor, &context.version, context.revision, &id) {
+        Ok(revision) => empty_with_revision(revision),
+        Err(error) => management_error(error),
+    }
+}
+
+async fn delete_model_alias(
+    request: HttpRequest,
+    path: web::Path<String>,
+    body: web::Bytes,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match write_context(&request) {
+        Ok(c) => c,
+        Err(r) => return r,
+    };
+    let Ok(public_model_id) = PublicModelId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let alias = match parse_json::<AliasInput>(&body)
+        .and_then(|input| model_alias(input, public_model_id))
+    {
+        Ok(a) => a,
+        Err(r) => return r,
+    };
+    let actor = match principal(&request) {
+        Ok(a) => a,
+        Err(r) => return r,
+    };
+    let mut service = match service(&state) {
+        Ok(s) => s,
+        Err(r) => return r,
+    };
+    match service.delete_model_alias(
+        &actor,
+        &context.version,
+        context.revision,
+        &alias.public_model_id,
+        &alias.alias,
+    ) {
         Ok(revision) => empty_with_revision(revision),
         Err(error) => management_error(error),
     }

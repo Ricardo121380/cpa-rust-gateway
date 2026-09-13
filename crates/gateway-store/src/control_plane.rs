@@ -3289,6 +3289,23 @@ impl ControlPlaneTransaction<'_> {
         Ok(())
     }
 
+    /// Deletes only the named alias owned by the expected model; routes and grants remain intact.
+    /// # Errors
+    /// Rejects non-drafts, a missing/changed relation, or storage failure.
+    pub fn delete_model_alias(
+        &mut self,
+        config_version_id: &ConfigVersionId,
+        public_model_id: &PublicModelId,
+        alias: &str,
+    ) -> StoreResult<()> {
+        self.ensure_draft_config_version(config_version_id)?;
+        let deleted = self.transaction.execute(
+            "DELETE FROM model_aliases WHERE config_version_id=?1 AND public_model_id=?2 AND alias=?3",
+            params![config_version_id.as_str(), public_model_id.as_str(), alias],
+        )?;
+        resource_updated(deleted)
+    }
+
     /// Inserts one Route under an existing Public Model into an existing draft graph.
     ///
     /// # Errors

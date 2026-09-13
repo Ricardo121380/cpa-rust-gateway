@@ -18,3 +18,8 @@ Schema27 保留既有事件序号与历史，增加终态类型、时间索引�
 ## 统一账号查询补充
 
 `GET /admin/accounts/inventory`：版本与普通资源审计、原生账号代际共同约束游标。安全身份全量搜索、类别/状态/提供商筛选、名称/提供商排序、每页最多100，完整查询最多10000条，超过返回503而非伪造完整结果。复用加密身份投影，不把邮箱索引明文写入数据库，不发起Provider请求。返回普通/原生来源及真实现有动作；套餐/运行健康仍使用单独观测，不由启用状态推断。
+
+
+## 别名维护补充
+
+在既有 `/admin/public-models/{public_model_id}/aliases` 增加 DELETE，复用 AliasInput JSON（保留含斜杠的 exact alias）与 ConfigVersion/IfMatch。只删除属于指定模型的那一条别名，审计为 `model_alias_deleted`；模型、候选和权限不受影响。先补齐通用操作，再用于已授权的六个遗留别名清理。

@@ -2580,3 +2580,11 @@ passed. Signed915983b is the compatible same-schema fallback; do not use prior s
 restore old databases. Public EgoLite login is user-owned for manual acceptance. Full alignment,
 legacy-alias/name migration and missing real-channel acceptance remain unfinished. No DNS/Caddy/
 Autoreg edits or real-provider inference in release acceptance.
+
+## 2026-09-14 - Codex - Exact alias deletion and native Build catalog material
+
+**What:** `web/prism/contracts/management-v1.json`, `web/prism/src/generated/management-client.ts`, `web/prism/src/dev/fixtures.ts`, `web/prism/src/features/models/AliasList.tsx`, `web/prism/src/features/models/ModelsPage.tsx`, `web/prism/src/features/models/models.css`; authoritative `docs/openapi/management-v1.json` adds revisioned alias deletion.
+
+**Why:** User-authorized complete workflow alignment and removal of six legacy aliases requires a real exact-alias delete operation while retaining normal custom aliases. Native Grok Build catalog refresh must accept the same persisted credential format as inference.
+
+**Other side:** FYI. Generated via sync-contract (135 operations). Alias delete uses JSON body to preserve slash-containing names, draft/CAS/ownership/audit checks, and automatic configuration lifecycle in Prism. Build catalog now imports active JSON or compact credential material and still rejects expiry. Frontend290 tests, type/build/double-build/embed checks, targeted service/HTTP/Build regressions and workspace all-target/all-feature clippy passed. Actual local synthetic gateway alias create/delete/validate/publish preserved public models and another custom alias; zero Provider calls. EgoLite is paused for user control, so browser acceptance remains pending. Production metadata attempts exposed the Build format bug; actual corrected Build directory and production migration are NOT yet verified or deployed.

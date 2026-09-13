@@ -632,6 +632,30 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "deleteModelAlias": {
+    "method": "DELETE",
+    "path": "/admin/public-models/{public_model_id}/aliases",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "public_model_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "deleteNativeAccount": {
     "method": "DELETE",
     "path": "/admin/native-accounts/{account_id}",
@@ -3204,6 +3228,10 @@ export class ManagementApi {
 
   deleteEndpoint(request: ManagementRequest = {}): Promise<Response> {
     return this.request("deleteEndpoint", request);
+  }
+
+  deleteModelAlias(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("deleteModelAlias", request);
   }
 
   deleteNativeAccount(request: ManagementRequest = {}): Promise<Response> {

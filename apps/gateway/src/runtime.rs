@@ -3675,24 +3675,17 @@ impl RuntimeModelCatalogWorker {
                     .await
             }
             RuntimeCatalogProvider::GrokBuild => {
-                let credential =
-                    GrokBuildCredential::import_runtime_json(lease.secret_bytes(), observed_at_ms)
-                        .map_err(|_| {
-                            GatewayError::new(
-                                GatewayErrorCode::CredentialUnauthorized,
-                                ErrorScope::Credential,
-                            )
-                        })?;
                 let transport = Arc::new(GrokBuildUpstreamCatalogTransport::new(
                     target.policy.clone(),
                     Arc::clone(&target.resolver),
                     self.client_pool.clone(),
                     target.profile.clone(),
                 ));
-                let source = Arc::new(GrokBuildCatalogAdapter::try_new(
+                let source = Arc::new(GrokBuildCatalogAdapter::from_runtime_credential(
                     target.endpoint_id.clone(),
                     lease.credential_id().clone(),
-                    credential,
+                    lease.secret_bytes(),
+                    observed_at_ms,
                     transport,
                 )?);
                 ModelCatalogScheduler::new(source)

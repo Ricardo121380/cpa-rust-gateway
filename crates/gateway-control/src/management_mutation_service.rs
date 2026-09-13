@@ -2008,6 +2008,30 @@ impl ManagementMutationService {
         ))
     }
 
+    /// Deletes one exact alias with model ownership, revision and audit in the same transaction.
+    /// # Errors
+    /// Rejects stale/non-draft configuration, absent relation or persistence failure.
+    pub fn delete_model_alias(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        public_model_id: &PublicModelId,
+        alias: &str,
+    ) -> Result<ConfigRevision, ManagementResourceError> {
+        self.delete_resource(
+            actor,
+            config_version_id,
+            expected_revision,
+            ResourceAction {
+                action: "model_alias_deleted",
+                resource_kind: "model_alias",
+                resource_id: alias,
+            },
+            |transaction| transaction.delete_model_alias(config_version_id, public_model_id, alias),
+        )
+    }
+
     /// Returns one Route in one Version together with its current revision.
     ///
     /// # Errors
@@ -3966,6 +3990,79 @@ mod tests {
                 .list_model_aliases_page(&version_id, next),
             Err(StoreError::ConfigVersionRevisionConflict)
         ));
+        Ok(())
+    }
+
+    #[test]
+    fn alias_delete_preserves_model_routes_grants_and_checks_ownership() -> TestResult {
+        let (mut service, version, actor) = test_service()?;
+        let revision = create_minimax_routing_graph(&mut service, &actor, &version)?;
+        let model = PublicModelId::try_new("model-minimax-m3")?;
+        let created = service.create_model_alias(
+            &actor,
+            &version,
+            revision,
+            ModelAliasConfiguration {
+                alias: "custom/exact-name".to_owned(),
+                public_model_id: model.clone(),
+            },
+        )?;
+        let before = service.configuration(&version)?;
+        assert!(
+            service
+                .delete_model_alias(
+                    &actor,
+                    &version,
+                    created.revision(),
+                    &PublicModelId::try_new("another-model")?,
+                    "custom/exact-name"
+                )
+                .is_err()
+        );
+        assert_eq!(
+            service.configuration(&version)?.version.revision,
+            created.revision().as_i64()
+        );
+        let updated = service.delete_model_alias(
+            &actor,
+            &version,
+            created.revision(),
+            &model,
+            "custom/exact-name",
+        )?;
+        let after = service.configuration(&version)?;
+        assert_eq!(after.model_aliases.len(), before.model_aliases.len() - 1);
+        assert!(
+            after
+                .model_aliases
+                .iter()
+                .any(|a| a.alias == "minimax-m3-latest")
+        );
+        assert_eq!(after.public_models, before.public_models);
+        assert_eq!(after.model_routes, before.model_routes);
+        assert_eq!(after.route_candidates, before.route_candidates);
+        assert_eq!(after.access_group_routes, before.access_group_routes);
+        assert!(
+            service
+                .delete_model_alias(
+                    &actor,
+                    &version,
+                    created.revision(),
+                    &model,
+                    "minimax-m3-latest"
+                )
+                .is_err()
+        );
+        assert_eq!(
+            service.configuration(&version)?.version.revision,
+            updated.as_i64()
+        );
+        assert!(
+            service
+                .resource_audit_events()?
+                .iter()
+                .any(|a| a.action() == "model_alias_deleted")
+        );
         Ok(())
     }
 

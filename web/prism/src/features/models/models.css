@@ -79,3 +79,6 @@
 .model-source-preview span { overflow-wrap: anywhere; }
 
 .models-page td > .entity-meta { display: block; margin-top: 4px; }
+
+.alias-list code { overflow-wrap:anywhere; white-space:normal; min-width:0; }
+.alias-list .data-toolbar { flex-wrap:wrap; }
