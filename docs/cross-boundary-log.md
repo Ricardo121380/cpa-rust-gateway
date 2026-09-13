@@ -2475,3 +2475,27 @@ double build, 179 router tests, 71 HTTP library tests, 132 gateway tests, 16 inv
 asset tests. Real UI model/key/alias/source flows and TLS mock requests to ledger passed. No production
 mutation in this commit; signed release, production-copy normalization/rollback and public readback
 remain required before claiming deployment. Existing history/accounts/admin must be retained.
+
+
+## 2026-09-13 — Codex — Model workspaces production acceptance
+
+**What:** `web/prism/DESIGN.md` records the verified deployed workspace and V6 precedence.
+`docs/handoffs/prism-model-workspace-plan-20260913.md`,
+`docs/handoffs/claude-code-oracle-singapore-vps.md`, `docs/handoffs/prism-domain-access.md`,
+`docs/reports/prism-model-workspace-delivery-20260913.md` and
+`docs/reports/evidence/prism-model-workspace-20260913/acceptance.json` record the completed release;
+new screenshots in that same evidence directory cover models, providers, mobile source detail,
+settings, auxiliary preferences and public login.
+
+**Why:** Complete the user's explicit request to align functionality/frontends and deploy for manual
+acceptance. A production-copy failure exposed duplicate source uniqueness; the existing canonical
+bridge already covers the other paths, so normalization retains one equivalent source, not three
+invalid duplicate candidates. All six old names remain aliases; original ACL sets/history remain.
+
+**Other side:** FYI. App57e32d1/schema26, signed ARM64 verification, exact-revision formal gate,
+isolated production-copy normalization/rollback and HTTPS verification passed. Active configuration
+is production-models-20260913, with four original model IDs/four connections. Retained2229 events,
+593 ledger records, original accounts/admin and all old links. Same-schema rollback target1b81ce7
+must retain current databases and cannot blindly handle later new multi-Provider configurations.
+No DNS/Caddy/Autoreg changes, production cleanup or new manual Provider invocation. EgoLite public
+login is retained for the user's existing administrator credentials. No separate implementer action.

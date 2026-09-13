@@ -1,6 +1,25 @@
 # Prism HTTPS domain access
 
-## 2026-09-13: CPA daily workflow alignment (latest)
+## 2026-09-13: raw model IDs and provider workspaces (latest)
+
+Production serves signed `57e32d1`, schema26, at the existing domain. Active configuration is
+`production-models-20260913`: four raw IDs, four explicit source connections and six compatibility
+aliases. The former production configuration is archived, not deleted. Multiple models per upstream,
+exact-model sources, optional aliases, saved-catalog selection and advanced settings are deployed.
+Accounts/admin, 2229 events and 593 ledger records remain; no DNS/Caddy/Autoreg changes, cleanup or
+new manual Provider request. Both signed targets, exact-revision formal gate, independent ARM64
+verification, isolated production-copy normalization and same-schema rollback passed. Public assets,
+CSP, auth boundary, local authenticated inventory and model/alias/effective-context readback passed.
+
+Rollback target is `1b81ce7`, also schema26. Retain latest data/rotating credentials and switch the
+binary only; **do not run the older 26→25 migration**. New user publications, especially exact-model
+multi-Provider routes, require renewed compatibility review before reverting the executor. Prefer
+roll-forward; never restore stale token/admin databases. Private backup/rehearsal receipts are under
+`/var/backups/cpa-rust-gateway/prism-model-workspace-20260913`. See
+[delivery and verification](../reports/prism-model-workspace-delivery-20260913.md).
+The older entries below are historical. This does not authorize unrelated remote work.
+
+## 2026-09-13: CPA daily workflow alignment (previous release)
 
 Production serves `1b81ce7`, schema 26, at the existing domain and CPAR service. Native account
 maintenance, bounded import/batch actions, provider/model/client-key workflows and complete live

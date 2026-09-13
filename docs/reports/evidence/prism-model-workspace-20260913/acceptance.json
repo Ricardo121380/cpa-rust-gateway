@@ -1,0 +1,615 @@
+{
+  "revision": "57e32d1b6c550c3e8b8ab63163cad1e277a962ab",
+  "local": {
+    "local-data-acceptance": {
+      "passed": true,
+      "real_gateway": true,
+      "ui_issued_key": true,
+      "models": [
+        "Exact/Model-v2",
+        "next-model"
+      ],
+      "checks": [
+        {
+          "path": "/v1/responses",
+          "model": "next-model",
+          "status": 200
+        },
+        {
+          "path": "/v1/responses",
+          "model": "Exact/Model-v2",
+          "status": 200
+        }
+      ],
+      "ungranted_model_denied": true,
+      "raw_model_ids_received_by_tls_mock": true,
+      "ledger_rows": 5,
+      "real_provider_requests": 0
+    },
+    "local-alias-sources": {
+      "passed": true,
+      "model_count_unchanged": 4,
+      "optional_alias_created": true,
+      "raw_ids_on_both_source_paths": true,
+      "alias_resolves_same_raw_model": true,
+      "checks": [
+        "optional-alias",
+        "Exact/Model-v2",
+        "Exact/Model-v2"
+      ],
+      "real_provider_calls": 0
+    },
+    "route-matrix": {
+      "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "checks": [
+        {
+          "route": "/",
+          "width": 1440,
+          "height": 900,
+          "heading": "仪表盘",
+          "overflow": false,
+          "content": 533,
+          "unhandled": false
+        },
+        {
+          "route": "/monitoring",
+          "width": 1440,
+          "height": 900,
+          "heading": "请求日志",
+          "overflow": false,
+          "content": 2080,
+          "unhandled": false
+        },
+        {
+          "route": "/usage",
+          "width": 1440,
+          "height": 900,
+          "heading": "用量与费用",
+          "overflow": false,
+          "content": 1125,
+          "unhandled": false
+        },
+        {
+          "route": "/billing",
+          "width": 1440,
+          "height": 900,
+          "heading": "计费与价格",
+          "overflow": false,
+          "content": 410,
+          "unhandled": false
+        },
+        {
+          "route": "/accounts",
+          "width": 1440,
+          "height": 900,
+          "heading": "账号管理",
+          "overflow": false,
+          "content": 411,
+          "unhandled": false
+        },
+        {
+          "route": "/upstreams",
+          "width": 1440,
+          "height": 900,
+          "heading": "AI 提供商",
+          "overflow": false,
+          "content": 254,
+          "unhandled": false
+        },
+        {
+          "route": "/catalog",
+          "width": 1440,
+          "height": 900,
+          "heading": "模型目录",
+          "overflow": false,
+          "content": 812,
+          "unhandled": false
+        },
+        {
+          "route": "/models",
+          "width": 1440,
+          "height": 900,
+          "heading": "模型管理",
+          "overflow": false,
+          "content": 602,
+          "unhandled": false
+        },
+        {
+          "route": "/access",
+          "width": 1440,
+          "height": 900,
+          "heading": "API 密钥",
+          "overflow": false,
+          "content": 185,
+          "unhandled": false
+        },
+        {
+          "route": "/runtime",
+          "width": 1440,
+          "height": 900,
+          "heading": "运行诊断",
+          "overflow": false,
+          "content": 1878,
+          "unhandled": false
+        },
+        {
+          "route": "/egress",
+          "width": 1440,
+          "height": 900,
+          "heading": "出口策略",
+          "overflow": false,
+          "content": 1244,
+          "unhandled": false
+        },
+        {
+          "route": "/versions",
+          "width": 1440,
+          "height": 900,
+          "heading": "配置版本",
+          "overflow": false,
+          "content": 253,
+          "unhandled": false
+        },
+        {
+          "route": "/audit",
+          "width": 1440,
+          "height": 900,
+          "heading": "审计与备份",
+          "overflow": false,
+          "content": 1463,
+          "unhandled": false
+        },
+        {
+          "route": "/settings",
+          "width": 1440,
+          "height": 900,
+          "heading": "设置",
+          "overflow": false,
+          "content": 632,
+          "unhandled": false
+        },
+        {
+          "route": "/",
+          "width": 1280,
+          "height": 720,
+          "heading": "仪表盘",
+          "overflow": false,
+          "content": 533,
+          "unhandled": false
+        },
+        {
+          "route": "/monitoring",
+          "width": 1280,
+          "height": 720,
+          "heading": "请求日志",
+          "overflow": false,
+          "content": 2080,
+          "unhandled": false
+        },
+        {
+          "route": "/usage",
+          "width": 1280,
+          "height": 720,
+          "heading": "用量与费用",
+          "overflow": false,
+          "content": 1125,
+          "unhandled": false
+        },
+        {
+          "route": "/billing",
+          "width": 1280,
+          "height": 720,
+          "heading": "计费与价格",
+          "overflow": false,
+          "content": 410,
+          "unhandled": false
+        },
+        {
+          "route": "/accounts",
+          "width": 1280,
+          "height": 720,
+          "heading": "账号管理",
+          "overflow": false,
+          "content": 411,
+          "unhandled": false
+        },
+        {
+          "route": "/upstreams",
+          "width": 1280,
+          "height": 720,
+          "heading": "AI 提供商",
+          "overflow": false,
+          "content": 254,
+          "unhandled": false
+        },
+        {
+          "route": "/catalog",
+          "width": 1280,
+          "height": 720,
+          "heading": "模型目录",
+          "overflow": false,
+          "content": 812,
+          "unhandled": false
+        },
+        {
+          "route": "/models",
+          "width": 1280,
+          "height": 720,
+          "heading": "模型管理",
+          "overflow": false,
+          "content": 602,
+          "unhandled": false
+        },
+        {
+          "route": "/access",
+          "width": 1280,
+          "height": 720,
+          "heading": "API 密钥",
+          "overflow": false,
+          "content": 185,
+          "unhandled": false
+        },
+        {
+          "route": "/runtime",
+          "width": 1280,
+          "height": 720,
+          "heading": "运行诊断",
+          "overflow": false,
+          "content": 1878,
+          "unhandled": false
+        },
+        {
+          "route": "/egress",
+          "width": 1280,
+          "height": 720,
+          "heading": "出口策略",
+          "overflow": false,
+          "content": 1244,
+          "unhandled": false
+        },
+        {
+          "route": "/versions",
+          "width": 1280,
+          "height": 720,
+          "heading": "配置版本",
+          "overflow": false,
+          "content": 253,
+          "unhandled": false
+        },
+        {
+          "route": "/audit",
+          "width": 1280,
+          "height": 720,
+          "heading": "审计与备份",
+          "overflow": false,
+          "content": 1463,
+          "unhandled": false
+        },
+        {
+          "route": "/settings",
+          "width": 1280,
+          "height": 720,
+          "heading": "设置",
+          "overflow": false,
+          "content": 632,
+          "unhandled": false
+        },
+        {
+          "route": "/",
+          "width": 390,
+          "height": 844,
+          "heading": "仪表盘",
+          "overflow": false,
+          "content": 533,
+          "unhandled": false
+        },
+        {
+          "route": "/monitoring",
+          "width": 390,
+          "height": 844,
+          "heading": "请求日志",
+          "overflow": false,
+          "content": 2080,
+          "unhandled": false
+        },
+        {
+          "route": "/usage",
+          "width": 390,
+          "height": 844,
+          "heading": "用量与费用",
+          "overflow": false,
+          "content": 1125,
+          "unhandled": false
+        },
+        {
+          "route": "/billing",
+          "width": 390,
+          "height": 844,
+          "heading": "计费与价格",
+          "overflow": false,
+          "content": 410,
+          "unhandled": false
+        },
+        {
+          "route": "/accounts",
+          "width": 390,
+          "height": 844,
+          "heading": "账号管理",
+          "overflow": false,
+          "content": 411,
+          "unhandled": false
+        },
+        {
+          "route": "/upstreams",
+          "width": 390,
+          "height": 844,
+          "heading": "AI 提供商",
+          "overflow": false,
+          "content": 254,
+          "unhandled": false
+        },
+        {
+          "route": "/catalog",
+          "width": 390,
+          "height": 844,
+          "heading": "模型目录",
+          "overflow": false,
+          "content": 812,
+          "unhandled": false
+        },
+        {
+          "route": "/models",
+          "width": 390,
+          "height": 844,
+          "heading": "模型管理",
+          "overflow": false,
+          "content": 602,
+          "unhandled": false
+        },
+        {
+          "route": "/access",
+          "width": 390,
+          "height": 844,
+          "heading": "API 密钥",
+          "overflow": false,
+          "content": 185,
+          "unhandled": false
+        },
+        {
+          "route": "/runtime",
+          "width": 390,
+          "height": 844,
+          "heading": "运行诊断",
+          "overflow": false,
+          "content": 1878,
+          "unhandled": false
+        },
+        {
+          "route": "/egress",
+          "width": 390,
+          "height": 844,
+          "heading": "出口策略",
+          "overflow": false,
+          "content": 1244,
+          "unhandled": false
+        },
+        {
+          "route": "/versions",
+          "width": 390,
+          "height": 844,
+          "heading": "配置版本",
+          "overflow": false,
+          "content": 253,
+          "unhandled": false
+        },
+        {
+          "route": "/audit",
+          "width": 390,
+          "height": 844,
+          "heading": "审计与备份",
+          "overflow": false,
+          "content": 1463,
+          "unhandled": false
+        },
+        {
+          "route": "/settings",
+          "width": 390,
+          "height": 844,
+          "heading": "设置",
+          "overflow": false,
+          "content": 632,
+          "unhandled": false
+        }
+      ]
+    },
+    "ui-interactions": {
+      "passed": true,
+      "multiModelBatch": true,
+      "existingModelSecondSource": true,
+      "weightReread": 2,
+      "lastSourceRemovalDisablesModel": true,
+      "aliasDoesNotDuplicateModel": true,
+      "catalogSaveNavigatesToModels": true,
+      "keyboardTrap": true,
+      "escapeCloses": true,
+      "focusRestored": true,
+      "emptySearch": true,
+      "mobileInspectorWidth": 366,
+      "mobileInspectorMargins": 12,
+      "auxiliaryMediaPreferencesChecked": true
+    }
+  },
+  "release": {
+    "release-status": {
+      "conclusion": "success",
+      "headSha": "57e32d1b6c550c3e8b8ab63163cad1e277a962ab",
+      "status": "completed",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34744622126"
+    },
+    "gate-status": {
+      "conclusion": "success",
+      "headSha": "57e32d1b6c550c3e8b8ab63163cad1e277a962ab",
+      "status": "completed",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/34744623624"
+    },
+    "verified-artifact": {
+      "revision": "57e32d1b6c550c3e8b8ab63163cad1e277a962ab",
+      "signature_verified": true,
+      "artifact_and_sbom_verified": true,
+      "binary_sha256": "978dfe6bc851dd7950c8384bb2a17288f7dcb1e038f9a427d0c96cbe4fae7178",
+      "frontend_assets": {
+        "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+        "/admin-ui/assets/main.js": "22fafe7d7f5602946d6f3629a6255e8b3dda4144f0e8b6125613750748d2eac5",
+        "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+        "/admin-ui/assets/index.css": "ccd4b495cf05687d82e409823a3dd7ce879257390135e073274cfb1f5b11ad5b"
+      }
+    },
+    "isolated-auth": {
+      "result": "passed",
+      "real_gateway": true,
+      "provider_requests": 0,
+      "checks": [
+        "one-time owner-only bootstrap, existing credentials preserved",
+        "all four embedded assets match the locally accepted channel-management build",
+        "exact origin, wrong password, first-session restriction, legacy CLI",
+        "first password change, automatic CSRF, revoked initial password/session, real draft write/read",
+        "server logout revocation",
+        "restart persists changed password and discards sessions"
+      ]
+    },
+    "rehearsal": {
+      "passed": true,
+      "active_configuration": "production-models-20260913",
+      "normalized_models": [
+        "gpt-5.5",
+        "gpt-5.6-terra",
+        "grok-4.20-0309",
+        "grok-4.5"
+      ],
+      "normalized_count": 4,
+      "original_conversion_paths": 6,
+      "active_candidates": 4,
+      "redundant_paths_covered_by_existing_bridge": 2,
+      "source_connections": 4,
+      "compatibility_aliases": 6,
+      "authorization_sets_preserved": true,
+      "endpoint_credentials_untouched": true,
+      "provider_requests": 0,
+      "schema": 26,
+      "schema_changed": false,
+      "network_isolated": true,
+      "service_user": true,
+      "old_binary_restarted_with_normalized_configuration": true,
+      "effective_model_projection_preserved_on_rollback": true,
+      "durable_tables_unchanged": [
+        "grok_accounts",
+        "gateway_event_log",
+        "billing_ledger_entries",
+        "native_account_identity_observations",
+        "native_account_management_events"
+      ],
+      "administrator_store_unchanged": true,
+      "candidate_assets_verified": true
+    },
+    "production-receipt": {
+      "passed": true,
+      "revision": "57e32d1b6c550c3e8b8ab63163cad1e277a962ab",
+      "binary_sha256": "978dfe6bc851dd7950c8384bb2a17288f7dcb1e038f9a427d0c96cbe4fae7178",
+      "stop_to_ready_ms": 1036,
+      "four_assets": {
+        "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+        "/admin-ui/assets/main.js": "22fafe7d7f5602946d6f3629a6255e8b3dda4144f0e8b6125613750748d2eac5",
+        "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+        "/admin-ui/assets/index.css": "ccd4b495cf05687d82e409823a3dd7ce879257390135e073274cfb1f5b11ad5b"
+      },
+      "original_configuration_archived": true,
+      "normalization": {
+        "passed": true,
+        "active_configuration": "production-models-20260913",
+        "normalized_models": [
+          "gpt-5.5",
+          "gpt-5.6-terra",
+          "grok-4.20-0309",
+          "grok-4.5"
+        ],
+        "normalized_count": 4,
+        "original_conversion_paths": 6,
+        "active_candidates": 4,
+        "redundant_paths_covered_by_existing_bridge": 2,
+        "source_connections": 4,
+        "compatibility_aliases": 6,
+        "authorization_sets_preserved": true,
+        "endpoint_credentials_untouched": true,
+        "provider_requests": 0
+      },
+      "events_retained": 2229,
+      "ledger_retained": 593,
+      "historical_repairs_retained": 87,
+      "retired_drafts": 11,
+      "control_schema": 26,
+      "existing_administrator_store_retained": true,
+      "administrator_password_accessed": false,
+      "caddy_dns_autoreg_changed": false,
+      "manual_provider_requests": 0,
+      "cli_readback": true,
+      "channel_entries": 10,
+      "native_accounts_retained": 5,
+      "build_authorization_available": true,
+      "public_csp_and_assets": true,
+      "native_identity_available": 3,
+      "ordinary_accounts_loaded": 2,
+      "ordinary_identity_available": 1,
+      "same_schema_26_rollback_rehearsed": true,
+      "runtime_presentation": true,
+      "runtime_connections": 8,
+      "same_identity_authorizations": [],
+      "codex_credentials": 1,
+      "codex_runtime_connections": 1
+    },
+    "public-check": {
+      "passed": true,
+      "revision": "57e32d1b6c550c3e8b8ab63163cad1e277a962ab",
+      "operator_https": true,
+      "four_assets": {
+        "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+        "/admin-ui/assets/main.js": "22fafe7d7f5602946d6f3629a6255e8b3dda4144f0e8b6125613750748d2eac5",
+        "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+        "/admin-ui/assets/index.css": "ccd4b495cf05687d82e409823a3dd7ce879257390135e073274cfb1f5b11ad5b"
+      },
+      "csp_checked": true,
+      "unauthenticated_management_denied": true,
+      "health": true,
+      "provider_requests": 0
+    },
+    "model-readback": {
+      "passed": true,
+      "active_configuration": "production-models-20260913",
+      "models": [
+        {
+          "model": "gpt-5.6-terra",
+          "source_connections": 1,
+          "aliases": 1
+        },
+        {
+          "model": "grok-4.5",
+          "source_connections": 1,
+          "aliases": 1
+        },
+        {
+          "model": "grok-4.20-0309",
+          "source_connections": 1,
+          "aliases": 1
+        },
+        {
+          "model": "gpt-5.5",
+          "source_connections": 1,
+          "aliases": 3
+        }
+      ],
+      "raw_model_names_match_upstream": true,
+      "legacy_aliases_resolve": true,
+      "effective_contexts_read": 2,
+      "provider_requests": 0
+    }
+  }
+}
