@@ -1674,7 +1674,9 @@ pub fn compile_operational_usage_page(
                     usages.insert(key, event.clone());
                 }
             }
-            GatewayEvent::Health(_) | GatewayEvent::Diagnostic(_) => {}
+            GatewayEvent::RequestFinished(_)
+            | GatewayEvent::Health(_)
+            | GatewayEvent::Diagnostic(_) => {}
         }
     }
 

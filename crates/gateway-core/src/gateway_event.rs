@@ -10,8 +10,9 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AccessGroupId, AttemptId, ClientKeyId, CredentialId, EndpointId, GatewayError, HealthEventId,
-    RequestId, ResponseId, RouteCandidateId, RouteId, UpstreamId, Usage,
+    AccessGroupId, AttemptId, ClientKeyId, CredentialId, EndpointId, GatewayError,
+    GatewayErrorCode, HealthEventId, RequestId, ResponseId, RouteCandidateId, RouteId, UpstreamId,
+    Usage,
 };
 
 /// The public protocol that accepted a request observation.
@@ -74,6 +75,8 @@ impl GatewayEventSink for NoopGatewayEventSink {
 pub enum GatewayEvent {
     /// An authenticated, decoded request entered execution.
     Request(RequestEvent),
+    /// Final external-request result and monotonic timings.
+    RequestFinished(RequestFinishedEvent),
     /// One concrete upstream Attempt reached a terminal local decision.
     Attempt(AttemptEvent),
     /// One final token-usage snapshot reached the canonical response path.
@@ -89,9 +92,11 @@ impl GatewayEvent {
     #[must_use]
     pub const fn priority(&self) -> GatewayEventPriority {
         match self {
-            Self::Request(_) | Self::Attempt(_) | Self::Usage(_) | Self::Health(_) => {
-                GatewayEventPriority::Required
-            }
+            Self::Request(_)
+            | Self::RequestFinished(_)
+            | Self::Attempt(_)
+            | Self::Usage(_)
+            | Self::Health(_) => GatewayEventPriority::Required,
             Self::Diagnostic(_) => GatewayEventPriority::Diagnostic,
         }
     }
@@ -102,6 +107,10 @@ impl fmt::Debug for GatewayEvent {
         match self {
             Self::Request(event) => formatter
                 .debug_tuple("GatewayEvent::Request")
+                .field(event)
+                .finish(),
+            Self::RequestFinished(event) => formatter
+                .debug_tuple("GatewayEvent::RequestFinished")
                 .field(event)
                 .finish(),
             Self::Attempt(event) => formatter
@@ -700,4 +709,36 @@ mod tests {
         );
         Ok(())
     }
+}
+
+/// Final observed outcome of one accepted external request, independent of retries.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestOutcome {
+    /// The canonical response completed successfully.
+    Succeeded,
+    /// Execution or response streaming failed.
+    Failed,
+    /// The consumer cancelled before completion.
+    Cancelled,
+}
+
+/// Content-free terminal request observation. Missing historical observations stay unknown.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequestFinishedEvent {
+    /// Correlates to the accepted request and its attempts.
+    pub request_id: RequestId,
+    /// Wall clock when execution began.
+    pub started_at_ms: i64,
+    /// Wall clock when execution ended.
+    pub finished_at_ms: i64,
+    /// Monotonic handler duration through the server transport handoff.
+    pub duration_ms: u64,
+    /// Monotonic delay to first encoded content handoff; absent if none was delivered.
+    pub first_content_ms: Option<u64>,
+    /// Explicit terminal outcome.
+    pub outcome: RequestOutcome,
+    /// Sanitized error code, never provider payloads.
+    pub error_code: Option<GatewayErrorCode>,
 }
