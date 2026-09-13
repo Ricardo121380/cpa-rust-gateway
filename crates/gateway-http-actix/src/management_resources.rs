@@ -8,6 +8,7 @@ mod account_channels;
 mod account_inventory;
 mod catalog_inventory;
 pub mod catalog_refresh;
+mod codex_enrollment;
 mod configuration_diff;
 mod configuration_edit;
 mod credential_status;
@@ -1881,6 +1882,11 @@ pub struct ManagementCredentialOAuthOperation {
 /// own admitted Endpoint/Credential runtime handles; it must not derive a URL, Secret, Cookie or
 /// arbitrary outbound request from the management HTTP body.
 pub trait ManagementEndpointWorkflow: Send {
+    /// Whether a real first-authorization exchange is configured.
+    fn codex_enrollment_available(&self) -> bool {
+        false
+    }
+
     /// Performs at most the implementation's declared bounded Endpoint test.
     fn test_endpoint(
         &mut self,
@@ -2143,6 +2149,7 @@ pub struct RejectingManagementEndpointWorkflow {
 pub struct CodexOAuthManagementWorkflow {
     oauth: BTreeMap<CredentialId, CodexOAuthSession>,
     exchange: Box<dyn ManagementCodexOAuthExchange>,
+    enrollment_available: bool,
 }
 
 impl CodexOAuthManagementWorkflow {
@@ -2152,6 +2159,7 @@ impl CodexOAuthManagementWorkflow {
         Self {
             oauth: BTreeMap::new(),
             exchange: Box::new(RejectingManagementCodexOAuthExchange),
+            enrollment_available: false,
         }
     }
 
@@ -2161,6 +2169,7 @@ impl CodexOAuthManagementWorkflow {
         Self {
             oauth: BTreeMap::new(),
             exchange,
+            enrollment_available: true,
         }
     }
 
@@ -2199,6 +2208,10 @@ impl Default for CodexOAuthManagementWorkflow {
 }
 
 impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
+    fn codex_enrollment_available(&self) -> bool {
+        self.enrollment_available
+    }
+
     fn test_endpoint(
         &mut self,
         _endpoint_id: &EndpointId,
@@ -2221,6 +2234,16 @@ impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
 
     fn start_oauth(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
         let now = Self::now_ms();
+        self.oauth
+            .retain(|_, session| session.view(now).expires_at_ms > now);
+        if self.oauth.len() >= 128 && !self.oauth.contains_key(credential_id) {
+            return ManagementCredentialOAuthOperation {
+                state: ManagementCredentialOAuthState::Failed,
+                expires_at_ms: None,
+                authorization_url: None,
+                failure_class: Some("session_capacity"),
+            };
+        }
         if let Some(session) = self.oauth.get_mut(credential_id) {
             let view = session.view(now);
             if view.state == CodexOAuthSessionState::Pending {
@@ -2605,6 +2628,18 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
             web::post().to(native_accounts::import),
         )
         .route("/account-channels", web::get().to(account_channels::list))
+        .route(
+            "/upstreams/{upstream_id}/codex-authorization/start",
+            web::post().to(codex_enrollment::start),
+        )
+        .route(
+            "/upstreams/{upstream_id}/codex-authorization/cancel",
+            web::post().to(codex_enrollment::cancel),
+        )
+        .route(
+            "/upstreams/{upstream_id}/codex-authorization/callback",
+            web::post().to(codex_enrollment::complete),
+        )
         .route("/system", web::get().to(system_information))
         .route(
             "/upstreams/{upstream_id}/account-import",
@@ -10580,6 +10615,29 @@ mod tests {
             query
                 .get("scope")
                 .is_some_and(|scope| scope.contains("offline_access"))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_sessions_have_a_hard_capacity_without_disrupting_pending_authorization() -> TestResult
+    {
+        let mut workflow = CodexOAuthManagementWorkflow::new();
+        let first_id = CredentialId::try_new("enrollment-0")?;
+        let first = workflow.start_oauth(&first_id);
+        for index in 1..128 {
+            let id = CredentialId::try_new(format!("enrollment-{index}"))?;
+            assert_eq!(
+                workflow.start_oauth(&id).state,
+                ManagementCredentialOAuthState::Pending
+            );
+        }
+        let overflow = workflow.start_oauth(&CredentialId::try_new("overflow")?);
+        assert_eq!(overflow.state, ManagementCredentialOAuthState::Failed);
+        assert_eq!(overflow.failure_class, Some("session_capacity"));
+        assert_eq!(
+            workflow.start_oauth(&first_id).authorization_url,
+            first.authorization_url
         );
         Ok(())
     }

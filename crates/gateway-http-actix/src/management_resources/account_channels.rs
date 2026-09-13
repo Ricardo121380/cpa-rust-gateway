@@ -22,6 +22,10 @@ struct Channel {
 }
 
 pub(super) async fn list(state: web::Data<ManagementResourceHttpState>) -> HttpResponse {
+    let codex_authorization = state
+        .workflow
+        .lock()
+        .is_ok_and(|workflow| workflow.codex_enrollment_available());
     let entries = [
         (
             "openai-compatible",
@@ -73,7 +77,8 @@ pub(super) async fn list(state: web::Data<ManagementResourceHttpState>) -> HttpR
                 || (id.starts_with("grok.") && state.native_accounts.is_some()),
             authorization_flow,
             // This catalog describes NEW account enrollment; legacy Codex reauth is separate.
-            authorization_available: id == "grok.build" && state.native_accounts.is_some(),
+            authorization_available: (id == "grok.build" && state.native_accounts.is_some())
+                || (id == "codex" && codex_authorization),
             upstream_kinds: upstream_kinds(id),
         },
     );

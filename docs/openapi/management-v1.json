@@ -938,6 +938,210 @@
       "patch": { "tags": ["configuration"], "operationId": "updateClientKey", "parameters": [{ "$ref": "#/components/parameters/IfMatch" }], "x-audit-action": "client_key_updated", "requestBody": { "$ref": "#/components/requestBodies/ClientKeyInput" }, "responses": { "200": { "$ref": "#/components/responses/ClientKey" }, "default": { "$ref": "#/components/responses/Error" } } },
       "delete": { "tags": ["configuration"], "operationId": "revokeClientKey", "parameters": [{ "$ref": "#/components/parameters/IfMatch" }], "x-audit-action": "client_key_revoked", "responses": { "204": { "description": "Revoked" }, "default": { "$ref": "#/components/responses/Error" } } }
     },
+    "/admin/upstreams/{upstream_id}/codex-authorization/start": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/UpstreamId"
+        },
+        {
+          "$ref": "#/components/parameters/IfMatch"
+        }
+      ],
+      "post": {
+        "tags": [
+          "upstreams"
+        ],
+        "operationId": "startCodexEnrollment",
+        "description": "Revision-bound first Codex authorization in an owned draft; no placeholder account or browser Provider secret.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "202": {
+            "$ref": "#/components/responses/OAuthOperation"
+          }
+        }
+      }
+    },
+    "/admin/upstreams/{upstream_id}/codex-authorization/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/UpstreamId"
+        },
+        {
+          "$ref": "#/components/parameters/IfMatch"
+        }
+      ],
+      "post": {
+        "tags": [
+          "upstreams"
+        ],
+        "operationId": "cancelCodexEnrollment",
+        "description": "Revision-bound first Codex authorization in an owned draft; no placeholder account or browser Provider secret.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "204": {
+            "description": "Transient authorization cancelled; no account created"
+          }
+        }
+      }
+    },
+    "/admin/upstreams/{upstream_id}/codex-authorization/callback": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/UpstreamId"
+        },
+        {
+          "$ref": "#/components/parameters/IfMatch"
+        }
+      ],
+      "post": {
+        "tags": [
+          "upstreams"
+        ],
+        "operationId": "completeCodexEnrollment",
+        "description": "Revision-bound first Codex authorization in an owned draft; no placeholder account or browser Provider secret.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "callback"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "callback": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512
+                      },
+                      "code": {
+                        "type": "string",
+                        "maxLength": 16384
+                      },
+                      "error": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "callback_url": {
+                        "type": "string",
+                        "maxLength": 20480,
+                        "format": "uri"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "200": {
+            "description": "Authorized credential saved; identical credential material may reuse an existing credential",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Credential"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Authorized credential saved; identical credential material may reuse an existing credential",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Credential"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/credentials/{credential_id}/oauth/start": {
       "parameters": [{ "$ref": "#/components/parameters/ConfigVersion" }, { "$ref": "#/components/parameters/CredentialId" }],
       "post": { "tags": ["upstreams"], "operationId": "startCredentialOAuth", "x-delivery-phase": "P10-04", "responses": { "202": { "$ref": "#/components/responses/OAuthOperation" }, "default": { "$ref": "#/components/responses/Error" } } }

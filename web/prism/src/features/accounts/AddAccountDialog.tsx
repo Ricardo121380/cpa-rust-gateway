@@ -8,6 +8,7 @@ import { resourceName } from "../../utils/resourceNames";
 import { useSessionStore } from "../../session/sessionStore";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { CodexEnrollmentDialog } from "./CodexEnrollmentDialog";
 import { GrokDeviceWizard } from "./GrokDeviceWizard";
 import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
 import { useManagedInventory } from "./inventory";
@@ -116,6 +117,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     setRows(items.map(({id,label})=>({id,label,status:"待导入"})));
     create.mutate({provider:String(form.get("provider")??""),endpoint:String(form.get("endpoint")??""),items});
   };
+  if(oauth&&channelId==="codex")return <CodexEnrollmentDialog providerId={selectedProvider} providerName={resourceName(selectedProvider,"upstream",matches.find(row=>row.id===selectedProvider)?.name)} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth)return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   return <Sheet title="添加账号" onEscape={close}>
     {completed?<>
@@ -123,7 +125,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
       {needsApply?<RuntimeApplyNotice onApplied={()=>setNeedsApply(false)}/>:null}
     </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:<>
       <label>渠道<select aria-label="渠道" value={channelId} disabled={busy} onChange={(event)=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(event.target.value);}}>{channels.data?.map((entry)=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
-      {channel?.authorization_available?<button type="button" disabled={busy} onClick={()=>{resetInput();setOauth(true);}}>授权登录</button>:null}
+      {channel?.authorization_available?<button type="button" disabled={busy||(!native&&!selectedProvider)} onClick={()=>{resetInput();setOauth(true);}}>授权登录</button>:null}
       {!native&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!!context&&providers.isPending?<p>读取提供商…</p>:!native&&!matches.length?<p><Link to={`/upstreams?add=provider&channel=${encodeURIComponent(channelId)}`} onClick={onClose}>添加 AI 提供商</Link>后，即可导入这类账号。</p>:channel?.import_available?<form className="sheet-form" onSubmit={submit} autoComplete="off">
         {!native?<><label>提供商<select name="provider" value={selectedProvider} onChange={(event)=>{setProviderId(event.target.value);setEndpointId(null);}} disabled={busy} required>{matches.map((provider)=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>
           <label>接口连接<select name="endpoint" value={selectedEndpoint} onChange={(event)=>setEndpointId(event.target.value)} disabled={busy||endpoints.isFetching}><option value="">稍后连接</option>{connections.map((endpoint)=><option key={endpoint.id} value={endpoint.id}>{protocolName(endpoint.api_format)} · {new URL(endpoint.base_url).host}{endpoint.enabled?"":" · 已停用"}</option>)}</select></label>

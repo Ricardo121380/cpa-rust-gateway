@@ -326,6 +326,16 @@ impl Drop for Database {
 }
 
 fn fixture(active: bool) -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> {
+    fixture_with_workflow(
+        active,
+        Box::new(gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::new()),
+    )
+}
+
+fn fixture_with_workflow(
+    active: bool,
+    workflow: Box<dyn gateway_http_actix::management_resources::ManagementEndpointWorkflow>,
+) -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> {
     let name = format!(
         "prism-inventory-{}-{}-{}.sqlite3",
         std::process::id(),
@@ -401,7 +411,7 @@ fn fixture(active: bool) -> Result<(Database, ManagementResourceHttpState), Box<
         file,
         ManagementResourceHttpState::with_workflow(
             ManagementMutationService::new(repository, store),
-            Box::new(gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::new()),
+            workflow,
         )
         .with_native_accounts(native),
     ))
@@ -1829,5 +1839,131 @@ async fn credential_replacement_invalidates_old_browser_authorization() -> TestR
         status["state"], "pending",
         "old callback must not consume the newer authorization"
     );
+    Ok(())
+}
+
+struct SyntheticCodexExchange;
+impl gateway_http_actix::management_resources::ManagementCodexOAuthExchange
+    for SyntheticCodexExchange
+{
+    fn exchange(
+        &mut self,
+        _: &CredentialId,
+        _: zeroize::Zeroizing<String>,
+        _: zeroize::Zeroizing<Vec<u8>>,
+    ) -> Option<zeroize::Zeroizing<Vec<u8>>> {
+        Some(zeroize::Zeroizing::new(br#"{"kind":"codex_oauth","access_token":"synthetic-first-access","refresh_token":"synthetic-first-refresh","expires_at_ms":4102444800000,"account_id":"synthetic-first-account","email":"enrollment@example.test"}"#.to_vec()))
+    }
+}
+
+#[actix_web::test]
+async fn first_codex_authorization_creates_only_after_callback_and_rejects_replay() -> TestResult {
+    let (file, state) = fixture_with_workflow(
+        false,
+        Box::new(
+            gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::with_exchange(
+                Box::new(SyntheticCodexExchange),
+            ),
+        ),
+    )?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = "/admin/upstreams/owner-a/codex-authorization/start";
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(path))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(serde_json::json!({"id":"new-codex"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::ACCEPTED);
+    let started: Value = test::read_body_json(response).await;
+    let url = url::Url::parse(started["authorization_url"].as_str().ok_or("URL")?)?;
+    let state = url
+        .query_pairs()
+        .find(|(k, _)| k == "state")
+        .ok_or("state")?
+        .1
+        .into_owned();
+    let db = gateway_store::open(&file.0)?;
+    let count = || {
+        db.query_row(
+            "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1",
+            [VERSION],
+            |row| row.get::<_, i64>(0),
+        )
+    };
+    assert_eq!(
+        count()?,
+        250,
+        "starting must not create a placeholder account"
+    );
+    let callback =
+        serde_json::json!({"id":"new-codex","callback":{"state":state,"code":"synthetic-code"}});
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-b/codex-authorization/callback"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(&callback)
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    assert_eq!(count()?, 250);
+    let callback_path = "/admin/upstreams/owner-a/codex-authorization/callback";
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(callback_path))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(&callback)
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    assert_eq!(response.headers().get("ETag").ok_or("etag")?, "\"rev-1\"");
+    let credential: Value = test::read_body_json(response).await;
+    assert_eq!(credential["id"], "new-codex");
+    assert_eq!(credential["kind"], "oauth_json");
+    assert!(!credential.to_string().contains("synthetic-first-access"));
+    assert_eq!(count()?, 251);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(callback_path))
+            .insert_header(("If-Match", "rev-1"))
+            .set_json(&callback)
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    assert_eq!(count()?, 251);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri(path))
+            .insert_header(("If-Match", "rev-1"))
+            .set_json(serde_json::json!({"id":"cancelled-codex"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::ACCEPTED);
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/codex-authorization/cancel"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(serde_json::json!({"id":"cancelled-codex"}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    assert_eq!(count()?, 251);
     Ok(())
 }

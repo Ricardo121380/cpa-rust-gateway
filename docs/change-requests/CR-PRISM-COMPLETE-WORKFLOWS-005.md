@@ -23,3 +23,18 @@ Schema27 保留既有事件序号与历史，增加终态类型、时间索引�
 ## 别名维护补充
 
 在既有 `/admin/public-models/{public_model_id}/aliases` 增加 DELETE，复用 AliasInput JSON（保留含斜杠的 exact alias）与 ConfigVersion/IfMatch。只删除属于指定模型的那一条别名，审计为 `model_alias_deleted`；模型、候选和权限不受影响。先补齐通用操作，再用于已授权的六个遗留别名清理。
+
+## First Codex enrollment (2026-09-14)
+
+Add revision-bound POST start/cancel/callback operations under
+`/admin/upstreams/{upstream_id}/codex-authorization/`. Start requires an owned draft
+and unused proposed credential ID, creates only a bounded transient PKCE session,
+and returns the existing value-limited OAuth operation. Session identity binds the
+configuration revision, upstream and proposed ID. Callback uses the existing validated
+Codex token exchange off the Actix thread, imports encrypted material under CAS and
+returns Credential plus ETag; identical stored material can reuse an existing credential.
+Cancel never creates a placeholder account. Tokens are never returned to Prism. This is
+Codex enrollment only, not a claim that Claude/Kiro enrollment is implemented. Existing
+Codex reauthorization remains its own revision-bound operation. Browser mutation failures
+are not automatically replayed; saved drafts remain inspectable after partial connection
+or publication failure. First authorization is advertised only with an injected exchange.

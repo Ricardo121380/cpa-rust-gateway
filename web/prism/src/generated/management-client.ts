@@ -66,6 +66,30 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "cancelCodexEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/codex-authorization/cancel",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "cancelCredentialOAuth": {
     "method": "POST",
     "path": "/admin/credentials/{credential_id}/oauth/cancel",
@@ -154,6 +178,30 @@ export const managementOperations = {
     "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
+  },
+  "completeCodexEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/codex-authorization/callback",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
   },
   "completeCredentialOAuth": {
     "method": "POST",
@@ -2460,6 +2508,30 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "startCodexEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/codex-authorization/start",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "startCredentialOAuth": {
     "method": "POST",
     "path": "/admin/credentials/{credential_id}/oauth/start",
@@ -3122,6 +3194,10 @@ export class ManagementApi {
     return this.request("applyRuntimeConfiguration", request);
   }
 
+  cancelCodexEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("cancelCodexEnrollment", request);
+  }
+
   cancelCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("cancelCredentialOAuth", request);
   }
@@ -3140,6 +3216,10 @@ export class ManagementApi {
 
   compareConfigVersions(request: ManagementRequest = {}): Promise<Response> {
     return this.request("compareConfigVersions", request);
+  }
+
+  completeCodexEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("completeCodexEnrollment", request);
   }
 
   completeCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
@@ -3568,6 +3648,10 @@ export class ManagementApi {
 
   setRoutingPricePolicy(request: ManagementRequest = {}): Promise<Response> {
     return this.request("setRoutingPricePolicy", request);
+  }
+
+  startCodexEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("startCodexEnrollment", request);
   }
 
   startCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
