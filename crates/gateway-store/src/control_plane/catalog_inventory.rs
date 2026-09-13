@@ -140,10 +140,10 @@ impl ResourceInventoryReader {
         Ok(CatalogModelPage {
             version,
             target,
-            items,
-            next_after,
             current_model_count,
             total_count,
+            items,
+            next_after,
         })
     }
 }

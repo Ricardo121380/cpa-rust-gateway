@@ -138,11 +138,12 @@ export function UsagePage() {
 
   // The window is pinned to the query key, not recomputed on every render:
   // a moving `now` would make every re-render a cache miss.
-  const window = useMemo(() => rangeParams(range, Date.now()), [range]);
+  const from=params.get("from_ms"),to=params.get("to_ms");
+  const window = useMemo(() => from!==null&&to!==null&&Number.isFinite(Number(from))&&Number.isFinite(Number(to))&&Number(from)>=0&&Number(to)>=Number(from)?{from_ms:Number(from),to_ms:Number(to)}:rangeParams(range,Date.now()), [range,from,to]);
 
   const usage = useQuery({
     // No config version in the key: this operation is not version-scoped.
-    queryKey: ["usage", range, JSON.stringify(filters)],
+    queryKey: ["usage", window, JSON.stringify(filters)],
     queryFn: () => fetchAll(filters, window),
     retry: false,
   });
@@ -156,6 +157,7 @@ export function UsagePage() {
 
   function patch(next: Readonly<Record<string, string | null>>): void {
     const merged = new URLSearchParams(params);
+    if("range" in next){merged.delete("from_ms");merged.delete("to_ms");}
     for (const [key, value] of Object.entries(next)) {
       if (value === null || value === "") {
         merged.delete(key);

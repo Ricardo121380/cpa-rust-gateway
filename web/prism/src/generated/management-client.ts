@@ -1988,6 +1988,75 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "listRequests": {
+    "method": "GET",
+    "path": "/admin/requests",
+    "parameters": [
+      {
+        "name": "from_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "to_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "bucket_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "model",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "upstream_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "credential_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "client_key_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "outcome",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "request_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "include_unknown",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "listRouteCandidates": {
     "method": "GET",
     "path": "/admin/route-candidates",
@@ -2344,6 +2413,75 @@ export const managementOperations = {
     "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
+  },
+  "summarizeRequests": {
+    "method": "GET",
+    "path": "/admin/requests/summary",
+    "parameters": [
+      {
+        "name": "from_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "to_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "bucket_ms",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "model",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "upstream_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "credential_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "client_key_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "outcome",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "request_id",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "include_unknown",
+        "in": "query",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
   },
   "testEndpoint": {
     "method": "POST",
@@ -3267,6 +3405,10 @@ export class ManagementApi {
     return this.request("listRequestAttempts", request);
   }
 
+  listRequests(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("listRequests", request);
+  }
+
   listRouteCandidates(request: ManagementRequest = {}): Promise<Response> {
     return this.request("listRouteCandidates", request);
   }
@@ -3353,6 +3495,10 @@ export class ManagementApi {
 
   startNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {
     return this.request("startNativeAccountAuthorization", request);
+  }
+
+  summarizeRequests(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("summarizeRequests", request);
   }
 
   testEndpoint(request: ManagementRequest = {}): Promise<Response> {

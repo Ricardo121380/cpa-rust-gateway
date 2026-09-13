@@ -661,6 +661,7 @@ function renderMetrics(scrape: number): string {
 }
 
 const fixtureSessions = new Map<string, { csrf: string; expires: number; initial: boolean }>();
+const fixtureRequestAnchor=Date.now();
 let fixturePassword = "Prism-demo-2026";
 let fixtureSequence = 0;
 
@@ -2721,6 +2722,16 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const body = JSON.parse(bodyText ?? "{}") as {endpoint_id: string; credential_id: string};
       return json(200, {config_version: version.id, endpoint_id: body.endpoint_id,
         credential_id: body.credential_id, observed_at_ms: Date.now(), model_count: 2});
+    }
+    if (route === "GET /admin/requests" || route === "GET /admin/requests/summary") {
+      const rows=Array.from({length:4},(_,index)=>({request_id:`demo-request-${index}`,client_key_id:"dev-key",model:"gpt-5.5",requested_model:"gpt-5.5",protocol:"openai_responses",streaming:true,upstream_id:"relay-a",endpoint_id:"ep-relay-a-responses",credential_id:"cred-relay-key",attempt_count:index===1?2:1,outcome:index===2?"failed":"succeeded",started_at_ms:fixtureRequestAnchor-index*3600000-1000,finished_at_ms:fixtureRequestAnchor-index*3600000,duration_ms:1000+index*100,first_content_ms:100+index*10,error_code:index===2?"ProviderTransient":null,usage:{input_tokens:3,output_tokens:5,reasoning_tokens:null,cache_read_tokens:null,cache_creation_tokens:null,cached_tokens:null},cost_microunits:25,cost_confidence:"exact",ledger_records:1}));
+      const matching=rows.filter(row=>(!url.searchParams.has("from_ms")||row.finished_at_ms>=Number(url.searchParams.get("from_ms")))&&(!url.searchParams.has("to_ms")||row.finished_at_ms<=Number(url.searchParams.get("to_ms")))&&["model","upstream_id","credential_id","client_key_id","outcome","request_id"].every(key=>!url.searchParams.get(key)||String(row[key as keyof typeof row])===url.searchParams.get(key)));
+      const successes=matching.filter(row=>row.outcome==="succeeded").length;
+      const duration=matching.map(row=>row.duration_ms).sort((a,b)=>a-b);
+      const mean=(values:number[])=>values.length?values.reduce((sum,value)=>sum+value,0)/values.length:null;
+      const bucket=Number(url.searchParams.get("bucket_ms"))||3600000;
+      const grouped=new Map<number,typeof rows>();for(const row of matching){const at=Math.floor(row.finished_at_ms/bucket)*bucket;const group=grouped.get(at)??[];group.push(row);grouped.set(at,group);}
+      return json(200,{snapshot:12,ledger_snapshot:4,items:matching.slice(0,Number(url.searchParams.get("limit"))||50),next_cursor:null,summary:route.endsWith("summary")?{requests:matching.length,succeeded:successes,failed:matching.length-successes,cancelled:0,unknown:0,attempts:matching.reduce((sum,row)=>sum+row.attempt_count,0),success_rate:matching.length?successes/matching.length:null,average_duration_ms:mean(duration),average_first_content_ms:mean(matching.map(row=>row.first_content_ms)),p50_duration_ms:duration[Math.ceil(duration.length*.5)-1]??null,p95_duration_ms:duration[Math.ceil(duration.length*.95)-1]??null}:null,series:route.endsWith("summary")?[...grouped].sort(([a],[b])=>a-b).map(([at,items])=>({at_ms:at,requests:items.length,succeeded:items.filter(row=>row.outcome==="succeeded").length,failed:items.filter(row=>row.outcome==="failed").length,cancelled:0,average_duration_ms:mean(items.map(row=>row.duration_ms)),average_first_content_ms:mean(items.map(row=>row.first_content_ms))})):[]});
     }
     if (route === "GET /admin/catalog/models") {
       const version=versionByHeader(headers);if(version instanceof Response)return version;

@@ -524,6 +524,7 @@ async fn pre_semantic_http_5xx_fails_over_to_the_second_upstream() -> TestResult
     let mut attempts = Vec::new();
     let mut saw_request = false;
     let mut saw_usage = false;
+    let mut saw_terminal = false;
     while let Some(event) = receiver.try_recv() {
         match event {
             GatewayEvent::Request(event) => {
@@ -531,6 +532,12 @@ async fn pre_semantic_http_5xx_fails_over_to_the_second_upstream() -> TestResult
                 assert_eq!(event.request_id().as_str(), REQUEST_ID);
                 assert_eq!(event.public_model(), PUBLIC_MODEL);
                 assert_eq!(event.route_alias(), Some(MODEL_ALIAS));
+            }
+            GatewayEvent::RequestFinished(event) => {
+                assert!(!saw_terminal);
+                saw_terminal = true;
+                assert_eq!(event.request_id.as_str(), REQUEST_ID);
+                assert_eq!(event.outcome, gateway_core::RequestOutcome::Succeeded);
             }
             GatewayEvent::Attempt(event) => {
                 assert_eq!(event.request_id().as_str(), REQUEST_ID);
@@ -553,6 +560,7 @@ async fn pre_semantic_http_5xx_fails_over_to_the_second_upstream() -> TestResult
     }
     assert!(saw_request);
     assert!(saw_usage);
+    assert!(saw_terminal);
     assert_eq!(attempts.len(), 2);
     assert_eq!(attempts[0].attempt_number(), 1);
     assert_eq!(

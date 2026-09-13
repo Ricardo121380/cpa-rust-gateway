@@ -1426,3 +1426,107 @@ async fn explicit_catalog_refresh_requires_auth_and_rejects_browser_secrets() ->
     }
     Ok(())
 }
+
+#[actix_web::test]
+async fn request_history_is_authenticated_and_cursor_bound_to_filters() -> TestResult {
+    use gateway_core::{
+        ClientKeyId, GatewayEvent, GatewayProtocol, RequestEvent, RequestFinishedEvent, RequestId,
+        RequestOutcome,
+    };
+    let (file, state) = fixture(false)?;
+    let mut store = gateway_store::event_store::SqliteEventStore::open(&file.0)?;
+    for id in ["request-one", "request-two"] {
+        let request_id = RequestId::try_new(id)?;
+        store.append_batch(&[
+            GatewayEvent::Request(RequestEvent::new(
+                request_id.clone(),
+                ClientKeyId::try_new("client")?,
+                None,
+                GatewayProtocol::OpenAiResponses,
+                "exact".into(),
+                "exact".into(),
+                None,
+                true,
+            )),
+            GatewayEvent::RequestFinished(RequestFinishedEvent {
+                request_id,
+                started_at_ms: 1000,
+                finished_at_ms: 1100,
+                duration_ms: 100,
+                first_content_ms: Some(20),
+                outcome: RequestOutcome::Succeeded,
+                error_code: None,
+            }),
+        ])?;
+    }
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = "/admin/requests?limit=1&from_ms=0&to_ms=2000";
+    assert_eq!(
+        test::call_service(&app, test::TestRequest::get().uri(path).to_request())
+            .await
+            .status(),
+        StatusCode::NOT_FOUND
+    );
+    let first = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(path)).to_request(),
+    )
+    .await;
+    assert_eq!(first.status(), StatusCode::OK);
+    let first: Value = test::read_body_json(first).await;
+    assert_eq!(first["items"].as_array().ok_or("items")?.len(), 1);
+    let cursor = first["next_cursor"].as_str().ok_or("cursor")?;
+    let next: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&format!("{path}&cursor={cursor}")))
+                .to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(next["items"][0]["request_id"], "request-one");
+    assert!(next["next_cursor"].is_null());
+    assert_eq!(
+        test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::get().uri(&format!("{path}&outcome=failed&cursor={cursor}"))
+            )
+            .to_request()
+        )
+        .await
+        .status(),
+        StatusCode::CONFLICT
+    );
+    assert_eq!(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/requests?client_key_secret=forbidden"))
+                .to_request()
+        )
+        .await
+        .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let summary: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::get().uri("/admin/requests/summary?from_ms=0&to_ms=2000"),
+            )
+            .to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(summary["summary"]["requests"], 2);
+    assert_eq!(summary["summary"]["succeeded"], 2);
+    Ok(())
+}

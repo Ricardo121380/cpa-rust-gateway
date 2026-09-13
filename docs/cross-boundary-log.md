@@ -2535,3 +2535,12 @@ maintenance actions; move scheduling detail out of the primary view.
 isolated development fixtures: provider creation, detail opening, desktop1440x900, dark1280x720 and
 mobile390x844 were inspected. Mobile and desktop detail controls do not overflow viewport width.
 This is visual fixture evidence only, not real directory, authorization or full production acceptance.
+
+
+## 2026-09-13 - Codex - Durable request observations and direct key permissions
+
+**What:** `web/prism/contracts/management-v1.json`, `web/prism/src/components/ResourceIdentity.tsx`, `web/prism/src/dev/fixtures.ts`, `web/prism/src/features/access/AccessPage.tsx`, `web/prism/src/features/access/KeyPermissionsDialog.tsx`, `web/prism/src/features/access/access.css`, `web/prism/src/features/monitoring/MonitoringPage.tsx`, `web/prism/src/features/monitoring/RequestHistory.tsx`, `web/prism/src/features/monitoring/model.ts`, `web/prism/src/features/monitoring/requests.css`, `web/prism/src/features/overview/OverviewPage.tsx`, `web/prism/src/features/usage/UsagePage.tsx`, `web/prism/src/generated/management-client.ts`, `web/prism/src/utils/resourceLabels.ts`. Authoritative request schemas and operations in `docs/openapi/management-v1.json`; generated artifacts produced by sync-contract.
+
+**Why:** Explicit joint implementation authorization. Real request totals and latency require durable terminal evidence at the HTTP delivery boundary; key edits must select models without altering sibling keys.
+
+**Other side:** FYI. Schema27 terminal event, indexed snapshot-bound request history/summary, nullable historical timing, real dashboard/list/detail/export, scoped name resolution and direct key permission editing. Retained model grants do not broaden sources; shared quota groups cannot silently split. Frontend288 tests, HTTP72 tests, large SQLite narrow-window regression, selected all-target clippy and real loopback gateway receipt passed. EgoLite16 verified manual model opening, restricted issuance and editing; zero real-provider inference. Four-file gate is rerun for final CSS. This is a local implementation batch, NOT complete alignment or production deployment. Remaining work is tracked in `docs/reports/prism-complete-alignment-progress.md`; schema26 rollback after terminal writes is intentionally refused pending the production-copy rollback design.

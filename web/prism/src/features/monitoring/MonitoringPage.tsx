@@ -2,25 +2,13 @@ import { ResourcePicker, resourceFilterKinds } from "../../components/ResourcePi
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
-// 请求监控 — two independent contract sources, deliberately not merged.
-//
-// The page this replaces showed a KPI row with P50/P95 latency, a success rate
-// and a "realtime events" table. None of those exist in the delivered contract,
-// and it read a fixtures-only endpoint, so in production it rendered an empty
-// state. Rewiring was not possible; this is a redesign.
-//
-// The reasoning lives on the model (features/monitoring/model.ts). The three
-// facts that shape the screen:
-//
-//   * NO LATENCY EXISTS ANYWHERE in the management contract.
-//   * The ledger and the failure stream are NOT two halves of one total, so no
-//     success rate is derivable from them.
-//   * They disagree on scope: failures are version-scoped, the ledger is not.
+import { RequestHistoryPanel } from "./RequestHistory";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
+import { editedExpiry, toLocalInput } from "../access/model";
 import { Sheet } from "../../components/Sheet";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -44,7 +32,6 @@ import {
   LEDGER_FILTER_KEYS,
   PAGE_LIMIT,
   parseFilters,
-  parseTab,
   retryDetail,
   retryLabel,
   retryTone,
@@ -83,10 +70,20 @@ function FilterForm({
   onApply: (next: Readonly<Record<string, string>>) => void;
   onClear: () => void;
 }>) {
+  const [rangeError,setRangeError]=useState("");
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    onApply(Object.fromEntries(keys.map((key) => [key, String(data.get(key) ?? "").trim()])));
+    const next=Object.fromEntries(keys.map(key=>{
+      const raw=String(data.get(key)??"").trim();
+      if(key==="from_ms"||key==="to_ms") {
+        const previous=values[key]&&Number.isFinite(Number(values[key]))?Number(values[key]):null;
+        return [key,String(editedExpiry(raw,previous)??"")];
+      }
+      return [key,raw];
+    }));
+    if(next.from_ms&&next.to_ms&&Number(next.from_ms)>Number(next.to_ms)){setRangeError("结束时间不得早于开始时间。");return;}
+    setRangeError("");onApply(next);
   }
   return (
     <form className="card mon-filters" onSubmit={onSubmit}>
@@ -106,10 +103,11 @@ function FilterForm({
         ) : (
           <label key={key}>
             {filterLabel(key)}
-            {resourceFilterKinds[key] ? <ResourcePicker key={values[key]??""} allowCustom name={key} kind={resourceFilterKinds[key]} defaultValue={values[key]??""} runtime={key==="account_id"}/> : <input name={key} className="mono" maxLength={256} defaultValue={values[key] ?? ""} />}
+            {key==="from_ms"||key==="to_ms"?<input type="datetime-local" name={key} defaultValue={values[key]&&Number.isFinite(Number(values[key]))?toLocalInput(Number(values[key])):""}/>:resourceFilterKinds[key] ? <ResourcePicker key={values[key]??""} allowCustom name={key} kind={resourceFilterKinds[key]} defaultValue={values[key]??""} runtime={key==="account_id"}/> : <input name={key} className="mono" maxLength={256} defaultValue={values[key] ?? ""} />}
           </label>
         ),
       )}
+      {rangeError?<p role="alert">{rangeError}</p>:null}
       <div className="mon-filter-actions">
         <button type="submit">应用筛选</button>
         <button type="button" className="secondary" onClick={onClear}>
@@ -566,7 +564,7 @@ export function MonitoringPage() {
   const scope = useVersionStore((state) => state.context?.configVersionId);
   const t = useMessages();
   const [params, setParams] = useSearchParams();
-  const tab = parseTab(params.get("tab"));
+  const tab = params.get("tab")==="failures"?"failures":params.get("tab")==="ledger"||(!params.has("tab")&&["provider_id","channel_id","account_id","status"].some(key=>params.has(key)))?"ledger":"requests";
   const keys = tab === "ledger" ? LEDGER_FILTER_KEYS : FAILURE_FILTER_KEYS;
   const filters = parseFilters(keys, (key) => params.get(key));
 
@@ -586,23 +584,12 @@ export function MonitoringPage() {
     <section className="monitoring-page">
       <header className="page-head">
         <h2>{t.nav.monitoring}</h2>
-        <span className="scope-row">{tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope === undefined ? "未选择版本" : resourceName(scope, "config")}`}</span>
+        <span className="scope-row">{tab === "requests" ? "请求记录 · 跨配置版本" : tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope === undefined ? "未选择版本" : resourceName(scope, "config")}`}</span>
       </header>
       <ProcessingStatus compact />
 
-      <details className="reading-notes"><summary>数据范围与口径</summary><p className="mon-hint">
-        契约里<strong>没有延迟</strong>,也<strong>没有请求成败清单</strong> ——
-        所以这里没有 P50/P95,也没有成功率。能诚实给出的是两条互相独立的流:
-        <strong>已计费请求的账本</strong>与<strong>归因到账号的失败尝试</strong>。
-        <br />
-        <strong>它们不是同一个总体的两半</strong>:一次请求可能同时出现在两边、
-        一边都不出现,或在失败流里出现多次。用它们相除得到的「成功率」是编的。
-        <br />
-        两者<strong>作用域也不同</strong>:失败归因带{" "}
-        <span className="mono">X-Config-Version</span>,账本不带 —— 所选配置只影响前者。
-      </p></details>
-
       <div className="mon-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={tab==="requests"} onClick={()=>patch({tab:"requests"})}>请求记录</button>
         <button
           type="button"
           role="tab"
@@ -621,7 +608,7 @@ export function MonitoringPage() {
         </button>
       </div>
 
-      {tab === "ledger" ? (
+      {tab === "requests" ? <RequestHistoryPanel/> : tab === "ledger" ? (
         <LedgerPanel
           filters={filters}
           onApply={(next) => patch(next)}

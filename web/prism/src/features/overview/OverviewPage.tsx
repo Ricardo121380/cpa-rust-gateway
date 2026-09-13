@@ -1,12 +1,7 @@
 import { ProcessingStatus } from "../billing/ProcessingStatus";
-// Overview. Three truth layers, honestly separated (docs/07 §7.1):
-//  - wiring scale: real counts from the existing list contracts, per version;
-//  - live counters: the REAL bounded Prometheus exposition (G2 partial) —
-//    cumulative since gateway start, no time window, no per-entity split;
-//  - time-dimension analytics: still the PROPOSED G3 shapes (fixtures only),
-//    otherwise the dedicated "pipeline unwired" state.
+import { RequestOverview } from "../monitoring/RequestHistory";
 import { useQuery } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { call, callText } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -212,13 +207,13 @@ function LiveCountersSection() {
  *     one-page approximation here would contradict it. So this links there
  *     instead of showing a partial sum that looks authoritative.
  *
- * There is still no latency and no success rate anywhere in the contract.
+ * Request timing is supplied separately by persisted terminal observations.
  */
-function BillingGlance() {
+function BillingGlance({range}:Readonly<{range:{from_ms:number;to_ms:number}}>) {
   const billing = useQuery({
     // Not version-scoped, like the monitoring ledger it summarises.
-    queryKey: ["overview-billing"],
-    queryFn: () => call<BillingResponse>("listOperationalBilling", { query: { limit: 1 } }),
+    queryKey: ["overview-billing",range],
+    queryFn: () => call<BillingResponse>("listOperationalBilling", { query: { ...range,limit: 1 } }),
     retry: false,
     refetchInterval: 60_000,
   });
@@ -237,7 +232,7 @@ function BillingGlance() {
     <div className="card" data-gap="top">
       <h3>费用概览</h3>
       <p className="stat-sub">
-        覆盖整个账本窗口 · 跨配置版本。金额与计价置信度以已处理的账本为准。
+        与请求概览使用同一时间范围；账本可能稍后完成处理。
       </p>
       {summary === undefined ? (
         <p className="stat-sub">读取中…</p>
@@ -260,7 +255,7 @@ function BillingGlance() {
           </span>
         </div>
       )}
-      <Link to="/billing">查看费用与计价详情 →</Link>
+      <Link to={`/monitoring?tab=ledger&from_ms=${range.from_ms}&to_ms=${range.to_ms}`}>查看费用与计价详情 →</Link>
     </div>
   );
 }
@@ -276,6 +271,7 @@ function AnalyticsPointers() {
 }
 
 export function OverviewPage() {
+  const [requestRange,setRequestRange]=useState(()=>({from_ms:Date.now()-86_400_000,to_ms:Date.now()}));
   const t = useMessages();
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
@@ -301,9 +297,10 @@ export function OverviewPage() {
     <section className="overview-page">
       <header className="page-head"><h2>{t.nav.overview}</h2><Link to="/monitoring">查看请求 →</Link></header>
       {!versions.isPending&&(!active||upstreams.data===0||models.data===0||keys.data===0)?<div className="card setup-guide"><h3>开始使用</h3><ol className="setup-steps"><li><Link to="/upstreams?add=provider"><strong>1. 接入提供商</strong><span>设置接口地址并添加账号</span></Link></li><li><Link to="/models?add=model"><strong>2. 开放模型</strong><span>选择模型与接口连接</span></Link></li><li><Link to="/access"><strong>3. 创建客户端密钥</strong><span>选择允许使用的模型</span></Link></li></ol></div>:null}
+      <RequestOverview onRangeChange={setRequestRange}/>
       <div className="overview-workspace">
         <div className="overview-primary">
-          <BillingGlance />
+          <BillingGlance range={requestRange} />
           <ProcessingStatus compact />
           <AnalyticsPointers />
         </div>

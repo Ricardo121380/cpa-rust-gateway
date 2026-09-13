@@ -274,7 +274,10 @@ fn compile_usage_entry(
                 }
             }
             GatewayEvent::Usage(value) if value == usage => matching_usage = true,
-            GatewayEvent::Usage(_) | GatewayEvent::Health(_) | GatewayEvent::Diagnostic(_) => {}
+            GatewayEvent::Usage(_)
+            | GatewayEvent::RequestFinished(_)
+            | GatewayEvent::Health(_)
+            | GatewayEvent::Diagnostic(_) => {}
         }
     }
     if !matching_usage {

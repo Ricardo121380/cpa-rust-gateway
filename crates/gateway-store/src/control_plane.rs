@@ -9,6 +9,8 @@ use std::collections::BTreeMap;
 mod configuration_edit;
 pub use configuration_edit::{ConfigurationEditOrigin, ConfigurationEditSource};
 mod catalog_inventory;
+mod request_history;
+pub use request_history::{RequestHistoryPage, RequestHistoryQuery};
 mod resource_inventory;
 pub use catalog_inventory::{
     CatalogModelPage, CatalogModelQuery, CatalogModelRow, CatalogTargetHeader,

@@ -36,6 +36,8 @@ pub const OTEL_SCOPE_NAME: &str = "gateway-observability";
 pub enum TelemetryEventKind {
     /// A client request entered gateway execution.
     Request,
+    /// Terminal external request observation.
+    RequestFinished,
     /// An upstream Attempt reached a terminal decision.
     Attempt,
     /// A final usage observation reached the canonical response path.
@@ -52,6 +54,7 @@ impl TelemetryEventKind {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Request => "request",
+            Self::RequestFinished => "request_finished",
             Self::Attempt => "attempt",
             Self::Usage => "usage",
             Self::Health => "health",
@@ -277,7 +280,7 @@ impl OpenTelemetrySpan {
                     attributes_for_health(health),
                 ))
             }
-            GatewayEvent::Diagnostic(_) => None,
+            GatewayEvent::RequestFinished(_) | GatewayEvent::Diagnostic(_) => None,
         }
     }
 
@@ -591,6 +594,7 @@ impl PrometheusMetrics {
     pub fn observe_event(&self, event: &GatewayEvent) {
         match event {
             GatewayEvent::Request(_) => increment(&self.request_events, 1),
+            GatewayEvent::RequestFinished(_) => {}
             GatewayEvent::Attempt(attempt) => {
                 increment(&self.attempt_events, 1);
                 match attempt.outcome() {
@@ -994,6 +998,14 @@ fn event_kind_and_attributes(event: &GatewayEvent) -> (TelemetryEventKind, Telem
         GatewayEvent::Request(request) => {
             (TelemetryEventKind::Request, attributes_for_request(request))
         }
+        GatewayEvent::RequestFinished(event) => (
+            TelemetryEventKind::RequestFinished,
+            TelemetryAttributes {
+                request_id: Some(event.request_id.as_str().to_owned()),
+                error_code: event.error_code,
+                ..TelemetryAttributes::default()
+            },
+        ),
         GatewayEvent::Attempt(attempt) => {
             (TelemetryEventKind::Attempt, attributes_for_attempt(attempt))
         }

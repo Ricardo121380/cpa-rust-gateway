@@ -12,6 +12,7 @@ mod configuration_edit;
 mod credential_status;
 mod grok_device;
 pub mod native_accounts;
+mod request_history;
 mod resource_inventory;
 
 use std::{
@@ -2723,6 +2724,8 @@ fn configure_runtime_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route("/models/effective", web::get().to(get_effective_models))
         .route("/catalog/status", web::get().to(get_catalog_status))
+        .route("/requests", web::get().to(request_history::list))
+        .route("/requests/summary", web::get().to(request_history::summary))
         .route("/catalog/models", web::get().to(catalog_inventory::models))
         .route("/catalog/refresh", web::post().to(catalog_refresh::refresh))
         .route(

@@ -1,3 +1,4 @@
+import "./access.css";
 import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { resourceName, resourceOption } from "../../utils/resourceNames";
@@ -18,6 +19,7 @@ import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { KeyPermissionsDialog } from "./KeyPermissionsDialog";
 import { IssueKeyDialog } from "./IssueKeyDialog";
 import {
   displayKeyStatus,
@@ -25,9 +27,6 @@ import {
   formatLimits,
   parseLimits,
   type AccessGroupRecord,
-  isReactivation,
-  toLocalInput,
-  editedExpiry,
   type ClientKeyRecord,
   type IssuedClientKey,
 } from "./model";
@@ -175,9 +174,6 @@ export function AccessPage() {
   const [issuing, setIssuing] = useState(false);
   const [issued, setIssued] = useState<IssuedClientKey | undefined>();
   const [editKey, setEditKey] = useState<ClientKeyRecord | undefined>();
-  // Live status inside the edit sheet, so the reactivation warning can appear
-  // the moment the operator selects it rather than after they submit.
-  const [editStatus, setEditStatus] = useState<string>("active");
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
   const [confirmRevoke, setConfirmRevoke] = useState<string | undefined>();
@@ -224,13 +220,6 @@ export function AccessPage() {
     onError: (error) => setActionError(asAppError(error).message),
   });
 
-  const updateKey=useMutation({mutationFn:async(input:Omit<ClientKeyRecord,"prefix">)=>{
-    const task=await beginConfigurationTask("更新客户端密钥");setWorkingId(task.version.id);
-    const current=(await task.read<ClientKeyRecord[]>("listClientKeys")).find((row)=>row.id===input.id);
-    if(!editKey||!current||current.status!==editKey.status||current.access_group_id!==editKey.access_group_id||(current.expires_at_ms??null)!==(editKey.expires_at_ms??null))throw new Error("密钥已被修改，请重新读取后操作。");
-    await task.mutate("updateClientKey",{path:{client_key_id:input.id},body:{...input,expires_at_ms:input.expires_at_ms??null}});
-    return task.finish();
-  },onSuccess:(version)=>{setEditKey(undefined);void queryClient.invalidateQueries({queryKey:["client-keys"]});useVersionStore.getState().select(version);},onError:(error)=>setActionError(asAppError(error).message)});
   const revoke=useMutation({mutationFn:async(id:string)=>{
     const task=await beginConfigurationTask("吊销客户端密钥");setWorkingId(task.version.id);
     await task.mutate("revokeClientKey",{path:{client_key_id:id}});return task.finish();
@@ -324,28 +313,11 @@ export function AccessPage() {
   const nowMs = Date.now();
 
   return (
-    <section>
+    <section className="access-page">
       <header className="page-head">
         <h2>{t.nav.access}</h2>
         <div className="page-actions">
           <button onClick={()=>setCreating(true)}>创建客户端密钥</button>
-          <button
-            type="button"
-            className="secondary"
-            disabled={!editable}
-            title={editable ? undefined : t.version.readOnly}
-            onClick={() => setGroupForm(null)}
-          >
-            新建访问组
-          </button>
-          <button
-            type="button"
-            disabled={!editable}
-            title={editable ? undefined : t.version.readOnly}
-            onClick={() => setIssuing(true)}
-          >
-            按访问组签发
-          </button>
         </div>
       </header>
       {creating?<IssueKeyDialog onClose={()=>setCreating(false)} onSaved={(version)=>{setCreating(false);useVersionStore.getState().select(version);}}/>:null}
@@ -362,7 +334,24 @@ export function AccessPage() {
       <ReadStatus pending={!!scope&&groups.isPending} error={groups.error} hasData={groups.data !== undefined} retry={() => void groups.refetch()} />
       <ReadStatus pending={!!scope&&keys.isPending} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
 
-      <details className="card"><summary>高级访问组</summary><div className="tablewrap">
+      <details className="card"><summary>高级访问组</summary><div className="page-actions">          <button
+            type="button"
+            className="secondary"
+            disabled={!editable}
+            title={editable ? undefined : t.version.readOnly}
+            onClick={() => setGroupForm(null)}
+          >
+            新建访问组
+          </button>
+          <button
+            type="button"
+            disabled={!editable}
+            title={editable ? undefined : t.version.readOnly}
+            onClick={() => setIssuing(true)}
+          >
+            按访问组签发
+          </button>
+</div><div className="tablewrap">
         <table>
           <thead>
             <tr>
@@ -434,13 +423,13 @@ export function AccessPage() {
       </div>
 
       </details>
-      <div className="card tablewrap">
+      <div className="card tablewrap key-list-wrap">
         <h3>客户端密钥</h3>
-        <table>
+        <table className="key-list">
           <thead>
             <tr>
-              <th>前缀</th>
-              <th>访问组</th>
+              <th>名称</th>
+              <th>密钥标识</th>
               <th>状态</th>
               <th>过期</th>
               <th>操作</th>
@@ -451,21 +440,20 @@ export function AccessPage() {
               const status = displayKeyStatus(record, nowMs);
               return (
                 <tr key={record.id}>
-                  <td className="mono">{record.prefix}</td>
-                  <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" name={groups.data?.find((group)=>group.id===record.access_group_id)?.name}/> : "—"}</td>
-                  <td>
+                  <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" name={groups.data?.find((group)=>group.id===record.access_group_id)?.name}/> : "未命名密钥"}</td>
+                  <td data-label="密钥标识" className="mono">{record.prefix}</td>
+                  <td data-label="状态">
                     <StatusBadge status={status}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[status]}</StatusBadge>
                   </td>
-                  <td className="mono">{formatExpiry(record.expires_at_ms)}</td>
+                  <td data-label="有效期" className="mono">{formatExpiry(record.expires_at_ms)}</td>
                   <td className="row-actions">
                     <button className="secondary" onClick={() => setInspectedKey(record)}>详情</button>
                     <button
                       type="button"
                       className="secondary"
                       onClick={() => {
-                        updateKey.reset();setActionError(undefined);setWorkingId(undefined);
+                        setActionError(undefined);setWorkingId(undefined);
                         setEditKey(record);
-                        setEditStatus(record.status);
                       }}
                     >
                       编辑
@@ -501,7 +489,7 @@ export function AccessPage() {
         ["Key ID", inspectedKey.id], ["前缀", inspectedKey.prefix], ["访问组", inspectedKey.access_group_id],
         ["配置状态", inspectedKey.status], ["当前显示状态", displayKeyStatus(inspectedKey, nowMs)], ["到期时间", formatExpiry(inspectedKey.expires_at_ms)],
       ]}><p className="small muted">完整密钥仅在签发时显示一次，详情不会重新显示。</p>
-        <div className="sheet-actions"><button disabled={!editable} onClick={() => { setEditKey(inspectedKey); setEditStatus(inspectedKey.status); setInspectedKey(undefined); }}>编辑 Client Key</button></div></ObjectInspector>}
+        <div className="sheet-actions"><button onClick={() => { setEditKey(inspectedKey); setInspectedKey(undefined); }}>编辑 Client Key</button></div></ObjectInspector>}
 
       {groupForm !== undefined ? (
         <Sheet
@@ -620,75 +608,7 @@ export function AccessPage() {
         </Sheet>
       ) : null}
 
-      {editKey !== undefined ? (
-        <Sheet title={`编辑客户端密钥 · ${editKey.prefix}`} onEscape={() => !updateKey.isPending&&setEditKey(undefined)}>
-          <ConfigurationTaskNotice workingId={workingId} error={updateKey.error} onReview={(version)=>{setEditKey(undefined);useVersionStore.getState().select(version);}}/>
-          <form
-            className="sheet-form"
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              const expiresRaw = String(data.get("expires_at") ?? "");
-              updateKey.mutate({
-                id: editKey.id,
-                access_group_id: String(data.get("access_group_id") ?? ""),
-                status: editStatus as ClientKeyRecord["status"],
-                expires_at_ms: editedExpiry(expiresRaw,editKey.expires_at_ms),
-              });
-            }}
-          >
-            <label>
-              访问组
-              <select name="access_group_id" defaultValue={editKey.access_group_id} required>
-                {(groups.data ?? []).map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {resourceOption(group.id, "group", group.name)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              状态
-              <select
-                name="status"
-                value={editStatus}
-                onChange={(event) => setEditStatus(event.target.value)}
-              >
-                <option value="active">启用</option>
-                <option value="disabled">停用</option>
-                <option value="revoked">吊销</option>
-              </select>
-            </label>
-            {isReactivation(editKey.status, editStatus) ? (
-              // Measured from the backend: update_client_key applies status with
-              // no transition check, and revoking RETAINS the redacted record.
-              // So this is not "re-enable an inert row" — the original secret
-              // authenticates again.
-              <p role="alert" className="reveal-warning">
-                这会让一把<strong>已吊销</strong>的 Key 重新生效 ——
-                吊销保留了密钥记录,所以当初发出去的那串密钥会<strong>再次可用</strong>。
-                如果当初是因为泄露才吊销的,请改为签发一把新的。
-              </p>
-            ) : null}
-            <label>
-              过期时间(留空 = 永不过期)
-              <input
-                name="expires_at"
-                type="datetime-local"
-                defaultValue={toLocalInput(editKey.expires_at_ms)}
-              />
-            </label>
-            <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setEditKey(undefined)}>
-                取消
-              </button>
-              <button type="submit" disabled={updateKey.isPending}>
-                保存
-              </button>
-            </div>
-          </form>
-        </Sheet>
-      ) : null}
+      {editKey ? <KeyPermissionsDialog record={editKey} onClose={()=>setEditKey(undefined)} onSaved={(version)=>{setEditKey(undefined);useVersionStore.getState().select(version);}}/> : null}
 
       {issued !== undefined ? (
         <Sheet title="Client Key 已签发 — 只显示这一次">

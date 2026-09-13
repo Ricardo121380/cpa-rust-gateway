@@ -34,6 +34,8 @@ pub const DEFAULT_EVENT_WRITER_RETRY_DELAY: Duration = Duration::from_millis(25)
 pub enum GatewayEventLogKind {
     /// One accepted request observation.
     Request,
+    /// Terminal external request observation.
+    RequestFinished,
     /// One terminal upstream attempt observation.
     Attempt,
     /// One final canonical usage observation.
@@ -46,6 +48,7 @@ impl GatewayEventLogKind {
     const fn as_sql(self) -> &'static str {
         match self {
             Self::Request => "request",
+            Self::RequestFinished => "request_finished",
             Self::Attempt => "attempt",
             Self::Usage => "usage",
             Self::Health => "health",
@@ -55,6 +58,7 @@ impl GatewayEventLogKind {
     fn from_sql(value: &str) -> StoreResult<Self> {
         match value {
             "request" => Ok(Self::Request),
+            "request_finished" => Ok(Self::RequestFinished),
             "attempt" => Ok(Self::Attempt),
             "usage" => Ok(Self::Usage),
             "health" => Ok(Self::Health),
@@ -174,6 +178,13 @@ impl EventRecord {
                 value.request_id().as_str().to_owned(),
                 Some(value.request_id().as_str().to_owned()),
                 None,
+                true,
+            ),
+            GatewayEvent::RequestFinished(value) => (
+                GatewayEventLogKind::RequestFinished,
+                value.request_id.as_str().to_owned(),
+                Some(value.request_id.as_str().to_owned()),
+                Some(value.finished_at_ms),
                 true,
             ),
             GatewayEvent::Attempt(value) => (

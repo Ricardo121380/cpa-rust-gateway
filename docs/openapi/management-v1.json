@@ -1829,6 +1829,254 @@
           }
         }
       }
+    },
+    "/admin/requests": {
+      "get": {
+        "operationId": "listRequests",
+        "description": "Snapshot-bound accepted requests. Historical missing terminal/timing evidence stays unknown. No bodies or secrets are included.",
+        "parameters": [
+          {
+            "name": "from_ms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "to_ms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "bucket_ms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 60000
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "upstream_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "credential_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "client_key_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_unknown",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded request page; summary and series are populated only by the summary operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestHistoryPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/requests/summary": {
+      "get": {
+        "operationId": "summarizeRequests",
+        "description": "Complete request-level summary and time buckets over the same event snapshot. Retries are counted separately. Success rate excludes unknown records and includes cancellations in its denominator. Percentiles use nearest rank.",
+        "parameters": [
+          {
+            "name": "from_ms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "to_ms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "bucket_ms",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 60000
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "upstream_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "credential_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "client_key_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_unknown",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded request page; summary and series are populated only by the summary operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestHistoryPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2370,6 +2618,315 @@
             "type": "integer",
             "minimum": 0,
             "description": "Matching saved entries, including models absent in the latest success."
+          }
+        }
+      },
+      "RequestHistoryRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_id",
+          "client_key_id",
+          "model",
+          "requested_model",
+          "protocol",
+          "upstream_id",
+          "endpoint_id",
+          "credential_id",
+          "error_code",
+          "started_at_ms",
+          "finished_at_ms",
+          "duration_ms",
+          "first_content_ms",
+          "streaming",
+          "attempt_count",
+          "outcome",
+          "usage",
+          "cost_microunits",
+          "cost_confidence",
+          "ledger_records"
+        ],
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "client_key_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "requested_model": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "upstream_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "endpoint_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "credential_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "error_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "started_at_ms": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "finished_at_ms": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "duration_ms": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "first_content_ms": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "streaming": {
+            "type": "boolean"
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "unknown"
+            ]
+          },
+          "usage": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": false,
+            "properties": {
+              "input_tokens": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "output_tokens": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "reasoning_tokens": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "cache_read_tokens": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "cache_creation_tokens": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "cached_tokens": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              }
+            }
+          },
+          "cost_microunits": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "cost_confidence": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "exact",
+              "partial",
+              "unknown",
+              "unpriced"
+            ]
+          },
+          "ledger_records": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "RequestHistorySummary": {
+        "type": "object",
+        "nullable": true,
+        "additionalProperties": false,
+        "required": [
+          "requests",
+          "succeeded",
+          "failed",
+          "cancelled",
+          "unknown",
+          "attempts",
+          "success_rate",
+          "average_duration_ms",
+          "average_first_content_ms",
+          "p50_duration_ms",
+          "p95_duration_ms"
+        ],
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "succeeded": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cancelled": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unknown": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "success_rate": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 1
+          },
+          "average_duration_ms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "average_first_content_ms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "p50_duration_ms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "p95_duration_ms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          }
+        }
+      },
+      "RequestHistoryBucket": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "at_ms",
+          "requests",
+          "succeeded",
+          "failed",
+          "cancelled",
+          "average_duration_ms",
+          "average_first_content_ms"
+        ],
+        "properties": {
+          "at_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "succeeded": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cancelled": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "average_duration_ms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "average_first_content_ms": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          }
+        }
+      },
+      "RequestHistoryPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "snapshot",
+          "next_cursor",
+          "items",
+          "summary",
+          "series",
+          "ledger_snapshot"
+        ],
+        "properties": {
+          "snapshot": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "next_cursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/RequestHistoryRow"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/RequestHistorySummary"
+          },
+          "series": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/RequestHistoryBucket"
+            }
+          },
+          "ledger_snapshot": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }

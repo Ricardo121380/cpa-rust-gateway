@@ -375,7 +375,14 @@ impl RuntimePublicationPreparer for RuntimePublicationController {
         let built = self
             .factory
             .build(Some(configuration), snapshot)
-            .map_err(|_| SnapshotPublicationError::RuntimePreparation)?;
+            .map_err(|error| {
+                let stage = match error {
+                    RuntimeCompositionError::Unavailable => "unavailable",
+                    RuntimeCompositionError::Stage(stage) => stage.label(),
+                };
+                tracing::warn!(stage, "runtime configuration preparation failed");
+                SnapshotPublicationError::RuntimePreparation
+            })?;
         Ok(Box::new(PreparedGeneration {
             _guard: guard,
             controller: self.clone(),

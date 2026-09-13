@@ -674,7 +674,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
     let event_queue = Arc::new(event_queue);
     let telemetry_metrics = Arc::new(PrometheusMetrics::default());
     // `gateway_event_log` is append-only by migration 0005's triggers, so serve-time retention
-    // is impossible today: the log grows by three Required rows per completed request at P12's
+    // is impossible today: the log includes Request, Attempt, Usage and RequestFinished observations at the
     // single-credential loopback concurrency. Trimming it requires a new migration plus an
     // ADR-0027 revision; until then the encrypted backup remains the only copy channel and this
     // bounded-growth risk is accepted explicitly rather than hidden.
@@ -817,10 +817,10 @@ impl RuntimeCompositionStage {
 impl fmt::Display for RuntimeCompositionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unavailable => formatter.write_str("P12 Staging runtime is unavailable"),
+            Self::Unavailable => formatter.write_str("Gateway runtime is unavailable"),
             Self::Stage(stage) => write!(
                 formatter,
-                "P12 Staging runtime is unavailable (stage={})",
+                "Gateway runtime is unavailable (stage={})",
                 stage.label()
             ),
         }
@@ -10882,8 +10882,8 @@ mod tests {
         drop(app);
 
         let reported = writer.run().await;
-        assert_eq!(reported.required_events_committed, 3);
-        assert_eq!(reported.rows_inserted, 3);
+        assert_eq!(reported.required_events_committed, 4);
+        assert_eq!(reported.rows_inserted, 4);
         assert_eq!(reported.pending_required, 0);
         let snapshot = telemetry_metrics.snapshot();
         assert_eq!(snapshot.request_events, 1);
@@ -10895,7 +10895,8 @@ mod tests {
 
         let store = SqliteEventStore::open(&database)?;
         let stored = store.list_events()?;
-        assert_eq!(stored.len(), 3);
+        assert_eq!(stored.len(), 4);
+        assert!(stored.iter().any(|event| matches!(event.event(), GatewayEvent::RequestFinished(terminal) if terminal.outcome==gateway_core::RequestOutcome::Cancelled)));
         let request_id = stored
             .iter()
             .find(|event| event.kind() == GatewayEventLogKind::Request)

@@ -474,6 +474,13 @@ fn verify_events(
                     return Err(ProbeError::CandidateSelectionFailed);
                 }
             }
+            GatewayEvent::RequestFinished(event) => {
+                if request_id.as_ref() != Some(&event.request_id)
+                    || event.outcome != gateway_core::RequestOutcome::Succeeded
+                {
+                    return Err(ProbeError::EventCorrelationFailed);
+                }
+            }
             GatewayEvent::Usage(event) => {
                 usage_events += 1;
                 if request_id.as_ref() != Some(event.request_id()) {

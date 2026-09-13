@@ -297,6 +297,8 @@ export function parseTab(raw: string | null): Tab {
 }
 
 export const LEDGER_FILTER_KEYS = [
+  "from_ms",
+  "to_ms",
   "provider_id",
   "channel_id",
   "account_id",
@@ -311,8 +313,10 @@ export type FilterKey =
   | (typeof FAILURE_FILTER_KEYS)[number];
 
 const FILTER_LABEL: Readonly<Record<FilterKey, string>> = {
-  provider_id: "Provider",
-  channel_id: "Channel",
+  from_ms: "开始时间",
+  to_ms: "结束时间",
+  provider_id: "提供商",
+  channel_id: "接口",
   account_id: "账号",
   model: "模型",
   // NOT "状态": this selects cost confidence. See COST_CONFIDENCES.

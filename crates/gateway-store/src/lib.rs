@@ -54,7 +54,10 @@ const NATIVE_ACCOUNT_IDENTITY_SCHEMA_VERSION: i64 = 25;
 const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 
 /// Most recent schema version understood by this build.
-pub const CURRENT_SCHEMA_VERSION: i64 = NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION;
+const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
+
+/// Current durable control-plane schema.
+pub const CURRENT_SCHEMA_VERSION: i64 = REQUEST_TERMINAL_SCHEMA_VERSION;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -193,6 +196,11 @@ const MIGRATIONS: &[Migration] = &[
         version: NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION,
         up: include_str!("../migrations/0026_native_account_management.up.sql"),
         down: include_str!("../migrations/0026_native_account_management.down.sql"),
+    },
+    Migration {
+        version: REQUEST_TERMINAL_SCHEMA_VERSION,
+        up: include_str!("../migrations/0027_request_terminal.up.sql"),
+        down: include_str!("../migrations/0027_request_terminal.down.sql"),
     },
 ];
 
@@ -633,7 +641,7 @@ mod tests {
         );
         assert_eq!(schema_version(&connection)?, Some(25));
         migrate(&mut connection)?;
-        assert_eq!(schema_version(&connection)?, Some(26));
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
         Ok(())
     }
 

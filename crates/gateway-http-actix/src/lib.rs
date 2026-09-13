@@ -48,6 +48,7 @@ use actix_ws::{
     CloseCode, CloseReason, Item as WebSocketItem, Message as WebSocketMessage,
     ProtocolError as WebSocketProtocolError,
 };
+mod request_observation;
 use futures_util::{Stream, StreamExt, stream};
 use gateway_auth::{AuthenticatedClient, ClientKeyAuthenticator};
 use gateway_core::{
@@ -89,6 +90,7 @@ use protocol_openai_responses::{
     SseFrame as OpenAiSseFrame, decode_compact_request, decode_request, decode_websocket_request,
     encode_compaction_response, encode_error, encode_model_list, encode_response,
 };
+use request_observation::{RequestGuard, RequestObservation};
 
 use crate::stored_response_continuity::{
     compaction_request, continuation_pin, extract_compaction_summary, replay_canonical_response,
@@ -1423,6 +1425,7 @@ async fn execute_responses_websocket_turn(
     authenticated_client: &AuthenticatedResponsesClient,
     cache: &tokio::sync::Mutex<WebSocketSessionCache>,
 ) -> Result<(), GatewayError> {
+    let request_start = (std::time::Instant::now(), system_now_ms().unwrap_or(0));
     let decoded_websocket = decode_websocket_request(body)?;
     let decoded = &decoded_websocket.response;
     if decoded.store
@@ -1450,6 +1453,11 @@ async fn execute_responses_websocket_turn(
     )
     .await
     .map_err(owned_continuity_gateway_error)?;
+    let mut usage_observer = UsageEventObserver::new(
+        request_id.clone(),
+        Arc::clone(&state.event_sink),
+        request_start,
+    );
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -1482,11 +1490,19 @@ async fn execute_responses_websocket_turn(
     );
     let canonical_request_for_session = execution.request().clone();
     execution = execution.with_client_transport(ResponsesClientTransport::WebSocket);
-    let mut source = state.executor.execute_routed(execution).await?;
+    let mut source = state
+        .executor
+        .execute_routed(execution)
+        .await
+        .inspect_err(|error| usage_observer.fail(error))?;
     let Some(first @ CanonicalEvent::ResponseStart(_)) = source.next_event().await? else {
+        usage_observer.fail(&stream_protocol_error());
         return Err(stream_protocol_error());
     };
-    let metadata = state.metadata_factory.response_metadata(&public_model)?;
+    let metadata = state
+        .metadata_factory
+        .response_metadata(&public_model)
+        .inspect_err(|error| usage_observer.fail(error))?;
     let stored_response = prepare_stored_response_write_context(
         state,
         canonical_request_for_store,
@@ -1494,8 +1510,11 @@ async fn execute_responses_websocket_turn(
         client_key_id,
         public_model.clone(),
         metadata.created_at(),
-    )?;
-    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
+    )
+    .inspect_err(|error| usage_observer.fail(error))?;
+
+    let mut guard = usage_observer.take_guard();
+    let observation = usage_observer.observation.clone();
     let stream = start_bounded_transport(
         source,
         first,
@@ -1505,7 +1524,7 @@ async fn execute_responses_websocket_turn(
         stored_response,
     )
     .await?;
-    deliver_responses_websocket_turn(
+    let result = deliver_responses_websocket_turn(
         session,
         stream,
         metadata,
@@ -1513,8 +1532,18 @@ async fn execute_responses_websocket_turn(
         public_model,
         canonical_request_for_session,
         lineage_recorder.ok_or_else(internal_error)?,
+        &observation,
     )
-    .await
+    .await;
+    match &result {
+        Ok(()) => {
+            if let Some(guard) = &mut guard {
+                guard.complete();
+            }
+        }
+        Err(error) => observation.fail(error),
+    }
+    result
 }
 
 async fn prepare_websocket_continuation(
@@ -1577,6 +1606,7 @@ async fn deliver_responses_websocket_turn(
     public_model: String,
     canonical_request: CanonicalRequest,
     lineage_recorder: Arc<ResponsesExecutionLineageRecorder>,
+    observation: &RequestObservation,
 ) -> Result<(), GatewayError> {
     let tracker = stream.control().first_semantic_event_tracker();
     let mut encoder = OpenAiResponsesSseEncoder::new(metadata);
@@ -1638,6 +1668,7 @@ async fn deliver_responses_websocket_turn(
             write_websocket_text(session, message).await?;
             if frame.is_semantic() {
                 let _delivery = tracker.mark_delivered(&event);
+                observation.delivered(&event);
             }
         }
         if completed || failed {
@@ -1672,11 +1703,13 @@ async fn send_websocket_error(
     .await
 }
 
+#[allow(clippy::too_many_lines)] // Preserve the admission-to-delivery observation sequence.
 async fn chat_completions(
     request: HttpRequest,
     state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
+    let request_start = (std::time::Instant::now(), system_now_ms().unwrap_or(0));
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(authenticated_client) => authenticated_client,
@@ -1709,6 +1742,11 @@ async fn chat_completions(
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
     let context = context.with_client_key_id(client_key_id.clone());
+    let usage_observer = UsageEventObserver::new(
+        request_id.clone(),
+        Arc::clone(&state.event_sink),
+        request_start,
+    );
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -1740,21 +1778,32 @@ async fn chat_completions(
     .with_route_snapshot(route.snapshot);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
-        Err(error) => return pre_header_chat_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_chat_error(&error);
+        }
     };
     let first = match source.next_event().await {
         Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
-        Ok(Some(_) | None) => return pre_header_chat_error(&stream_protocol_error()),
-        Err(error) => return pre_header_chat_error(&error),
+        Ok(Some(_) | None) => {
+            usage_observer.fail(&stream_protocol_error());
+            return pre_header_chat_error(&stream_protocol_error());
+        }
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_chat_error(&error);
+        }
     };
     let metadata = match state
         .metadata_factory
         .chat_metadata(&public_model, decoded.include_usage)
     {
         Ok(metadata) => metadata,
-        Err(error) => return pre_header_chat_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_chat_error(&error);
+        }
     };
-    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
 
     match decoded.mode {
         ChatResponseMode::NonStreaming => {
@@ -1773,6 +1822,7 @@ async fn responses(
     state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
+    let request_start = (std::time::Instant::now(), system_now_ms().unwrap_or(0));
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(authenticated_client) => authenticated_client,
@@ -1822,6 +1872,11 @@ async fn responses(
         Ok(continuation) => continuation,
         Err(error) => return owned_continuity_error(error),
     };
+    let usage_observer = UsageEventObserver::new(
+        request_id.clone(),
+        Arc::clone(&state.event_sink),
+        request_start,
+    );
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -1852,16 +1907,28 @@ async fn responses(
     );
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
-        Err(error) => return pre_header_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_error(&error);
+        }
     };
     let first = match source.next_event().await {
         Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
-        Ok(Some(_) | None) => return pre_header_error(&stream_protocol_error()),
-        Err(error) => return pre_header_error(&error),
+        Ok(Some(_) | None) => {
+            usage_observer.fail(&stream_protocol_error());
+            return pre_header_error(&stream_protocol_error());
+        }
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_error(&error);
+        }
     };
     let metadata = match state.metadata_factory.response_metadata(&public_model) {
         Ok(metadata) => metadata,
-        Err(error) => return pre_header_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_error(&error);
+        }
     };
     let stored_response = match prepare_stored_response_write_context(
         &state,
@@ -1872,9 +1939,11 @@ async fn responses(
         metadata.created_at(),
     ) {
         Ok(context) => context,
-        Err(error) => return pre_header_stored_response_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
     };
-    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
 
     deliver_responses(
         mode,
@@ -1934,6 +2003,7 @@ async fn compact_responses(
     state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
+    let request_start = (std::time::Instant::now(), system_now_ms().unwrap_or(0));
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(authenticated_client) => authenticated_client,
@@ -1994,6 +2064,11 @@ async fn compact_responses(
         Err(error) => return pre_header_stored_response_error(&error),
     };
     let request_id = context.request_id().clone();
+    let mut usage_observer = UsageEventObserver::new(
+        request_id.clone(),
+        Arc::clone(&state.event_sink),
+        request_start,
+    );
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -2008,14 +2083,20 @@ async fn compact_responses(
         )));
     let compact_request = match compaction_request(stored.payload()) {
         Ok(request) => request,
-        Err(error) => return pre_header_stored_response_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
     };
     let pin = match continuation_pin(
         stored.payload().lineage(),
         ResponsesContinuationKind::Compaction,
     ) {
         Ok(pin) => pin,
-        Err(error) => return pre_header_stored_response_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
     };
     let execution = ResponsesExecution::new(
         context.with_client_key_id(client_key_id.clone()),
@@ -2028,33 +2109,48 @@ async fn compact_responses(
     .with_route_snapshot(route.snapshot);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
-        Err(error) => return pre_header_stored_response_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
     };
     let canonical = match tokio::time::timeout(
         STORED_RESPONSE_COMPACTION_TOTAL_TIMEOUT,
-        collect_bounded_source(&mut source),
+        collect_bounded_source(&mut source, &mut usage_observer),
     )
     .await
     {
         Ok(Ok(canonical)) => canonical,
-        Ok(Err(error)) => return pre_header_stored_response_error(&error),
-        Err(_) => return pre_header_stored_response_error(&compaction_timeout_error()),
+        Ok(Err(error)) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
+        Err(_) => {
+            usage_observer.fail(&compaction_timeout_error());
+            return pre_header_stored_response_error(&compaction_timeout_error());
+        }
     };
-    let mut usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
-    for event in canonical.events() {
-        usage_observer.observe(event);
-    }
+
     let summary = match extract_compaction_summary(&canonical) {
         Ok(summary) => summary,
-        Err(error) => return pre_header_stored_response_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
     };
     let metadata = match state.metadata_factory.response_metadata(&public_model) {
         Ok(metadata) => metadata,
-        Err(error) => return pre_header_stored_response_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
     };
     let persisted_at_ms = match system_now_ms() {
         Ok(now_ms) => now_ms,
-        Err(error) => return pre_header_stored_response_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_stored_response_error(&error);
+        }
     };
     let Ok(compact_payload) = StoredResponseCompactionPayload::try_new(
         stored.payload().lineage().clone(),
@@ -2062,28 +2158,40 @@ async fn compact_responses(
         public_model.clone(),
         summary,
     ) else {
-        return pre_header_stored_response_error(&internal_error());
+        {
+            usage_observer.fail(&internal_error());
+            return pre_header_stored_response_error(&internal_error());
+        };
     };
     let Ok(Ok(compact_record)) = tokio::task::spawn_blocking(move || {
         repository.put_compaction_owned(&client_key_id, persisted_at_ms, &compact_payload)
     })
     .await
     else {
-        return pre_header_stored_response_error(&internal_error());
+        {
+            usage_observer.fail(&internal_error());
+            return pre_header_stored_response_error(&internal_error());
+        };
     };
     let Some(locator_suffix) = compact_record
         .compact_id()
         .strip_prefix(STORED_RESPONSE_COMPACTION_PREFIX)
     else {
-        return pre_header_stored_response_error(&internal_error());
+        {
+            usage_observer.fail(&internal_error());
+            return pre_header_stored_response_error(&internal_error());
+        };
     };
     let item_id = format!("cmp_{locator_suffix}");
     match encode_compaction_response(&canonical, metadata, &item_id, compact_record.compact_id()) {
-        Ok(body) => HttpResponse::Ok()
-            .insert_header((header::CACHE_CONTROL, "no-store"))
-            .content_type("application/json")
-            .body(body.to_string()),
-        Err(error) => pre_header_stored_response_error(&error),
+        Ok(body) => request_observation::json_response(
+            web::Bytes::from(body.to_string()),
+            usage_observer.take_guard(),
+        ),
+        Err(error) => {
+            usage_observer.fail(&error);
+            pre_header_stored_response_error(&error)
+        }
     }
 }
 
@@ -2182,11 +2290,13 @@ async fn delete_stored_response(
         )
 }
 
+#[allow(clippy::too_many_lines)] // Preserve the admission-to-delivery observation sequence.
 async fn messages(
     request: HttpRequest,
     state: CapturedResponsesState,
     payload: web::Payload,
 ) -> HttpResponse {
+    let request_start = (std::time::Instant::now(), system_now_ms().unwrap_or(0));
     let authenticated_client = match authenticate_client_key_request(&request, &state.authenticator)
     {
         Ok(authenticated_client) => authenticated_client,
@@ -2219,6 +2329,11 @@ async fn messages(
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
     let context = context.with_client_key_id(client_key_id.clone());
+    let usage_observer = UsageEventObserver::new(
+        request_id.clone(),
+        Arc::clone(&state.event_sink),
+        request_start,
+    );
     let _request_event = state
         .event_sink
         .try_emit(GatewayEvent::Request(RequestEvent::new(
@@ -2250,18 +2365,29 @@ async fn messages(
     .with_route_snapshot(route.snapshot);
     let mut source = match state.executor.execute_routed(execution).await {
         Ok(source) => source,
-        Err(error) => return pre_header_anthropic_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_anthropic_error(&error);
+        }
     };
     let first = match source.next_event().await {
         Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
-        Ok(Some(_) | None) => return pre_header_anthropic_error(&stream_protocol_error()),
-        Err(error) => return pre_header_anthropic_error(&error),
+        Ok(Some(_) | None) => {
+            usage_observer.fail(&stream_protocol_error());
+            return pre_header_anthropic_error(&stream_protocol_error());
+        }
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_anthropic_error(&error);
+        }
     };
     let metadata = match AnthropicResponseMetadata::try_new(public_model) {
         Ok(metadata) => metadata,
-        Err(error) => return pre_header_anthropic_error(&error),
+        Err(error) => {
+            usage_observer.fail(&error);
+            return pre_header_anthropic_error(&error);
+        }
     };
-    let usage_observer = UsageEventObserver::new(request_id, Arc::clone(&state.event_sink));
 
     match decoded.mode {
         AnthropicResponseMode::NonStreaming => {
@@ -2454,28 +2580,43 @@ async fn chat_non_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: ChatResponseMetadata,
-    usage_observer: UsageEventObserver,
+    mut usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
 ) -> HttpResponse {
+    let guard = usage_observer.take_guard();
+    let observation = usage_observer.observation.clone();
     let mut stream =
         match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
             Ok(stream) => stream,
-            Err(error) => return pre_header_chat_error(&error),
+            Err(error) => {
+                observation.fail(&error);
+                return pre_header_chat_error(&error);
+            }
         };
     let tracker = stream.control().first_semantic_event_tracker();
     let response = match collect_completed_response(&mut stream).await {
         Ok(response) => response,
-        Err(error) => return pre_header_chat_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_chat_error(&error);
+        }
     };
     let Some(delivery_event) = response.events().first().cloned() else {
-        return pre_header_chat_error(&internal_error());
+        {
+            observation.fail(&internal_error());
+            return pre_header_chat_error(&internal_error());
+        };
     };
     let body = match encode_chat_response(&response, metadata) {
         Ok(body) => body,
-        Err(error) => return pre_header_chat_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_chat_error(&error);
+        }
     };
-    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event);
+    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event)
+        .with_request_guard(guard);
 
     match HttpResponse::Ok()
         .content_type("application/json")
@@ -2490,11 +2631,13 @@ async fn non_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: OpenAiResponseMetadata,
-    usage_observer: UsageEventObserver,
+    mut usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
     stored_response: Option<StoredResponseWriteContext>,
 ) -> HttpResponse {
+    let guard = usage_observer.take_guard();
+    let observation = usage_observer.observation.clone();
     let mut stream = match start_bounded_transport(
         source,
         first,
@@ -2506,21 +2649,34 @@ async fn non_streaming_response(
     .await
     {
         Ok(stream) => stream,
-        Err(error) => return pre_header_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_error(&error);
+        }
     };
     let tracker = stream.control().first_semantic_event_tracker();
     let response = match collect_completed_response(&mut stream).await {
         Ok(response) => response,
-        Err(error) => return pre_header_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_error(&error);
+        }
     };
     let Some(delivery_event) = response.events().first().cloned() else {
-        return pre_header_error(&internal_error());
+        {
+            observation.fail(&internal_error());
+            return pre_header_error(&internal_error());
+        };
     };
     let body = match encode_response(&response, metadata) {
         Ok(body) => body,
-        Err(error) => return pre_header_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_error(&error);
+        }
     };
-    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event);
+    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event)
+        .with_request_guard(guard);
 
     match HttpResponse::Ok()
         .content_type("application/json")
@@ -2535,22 +2691,30 @@ async fn chat_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: ChatResponseMetadata,
-    usage_observer: UsageEventObserver,
+    mut usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
 ) -> HttpResponse {
+    let guard = usage_observer.take_guard();
+    let observation = usage_observer.observation.clone();
     let mut initial_encoder = ChatSseEncoder::new(metadata.clone());
     if let Err(error) = initial_encoder.encode_event(&first) {
-        return pre_header_chat_error(&error);
+        {
+            observation.fail(&error);
+            return pre_header_chat_error(&error);
+        };
     }
 
     let stream =
         match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
             Ok(stream) => stream,
-            Err(error) => return pre_header_chat_error(&error),
+            Err(error) => {
+                observation.fail(&error);
+                return pre_header_chat_error(&error);
+            }
         };
     let tracker = stream.control().first_semantic_event_tracker();
-    let body = ProtocolSseBody::new(stream, ChatSseEncoder::new(metadata), tracker);
+    let body = ProtocolSseBody::observed(stream, ChatSseEncoder::new(metadata), tracker, guard);
 
     match HttpResponse::Ok()
         .insert_header((header::CACHE_CONTROL, "no-cache"))
@@ -2566,28 +2730,43 @@ async fn anthropic_non_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: AnthropicResponseMetadata,
-    usage_observer: UsageEventObserver,
+    mut usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
 ) -> HttpResponse {
+    let guard = usage_observer.take_guard();
+    let observation = usage_observer.observation.clone();
     let mut stream =
         match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
             Ok(stream) => stream,
-            Err(error) => return pre_header_anthropic_error(&error),
+            Err(error) => {
+                observation.fail(&error);
+                return pre_header_anthropic_error(&error);
+            }
         };
     let tracker = stream.control().first_semantic_event_tracker();
     let response = match collect_completed_response(&mut stream).await {
         Ok(response) => response,
-        Err(error) => return pre_header_anthropic_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_anthropic_error(&error);
+        }
     };
     let Some(delivery_event) = response.events().first().cloned() else {
-        return pre_header_anthropic_error(&internal_error());
+        {
+            observation.fail(&internal_error());
+            return pre_header_anthropic_error(&internal_error());
+        };
     };
     let body = match encode_anthropic_response(&response, metadata) {
         Ok(body) => body,
-        Err(error) => return pre_header_anthropic_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_anthropic_error(&error);
+        }
     };
-    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event);
+    let body = JsonDeliveryBody::new(web::Bytes::from(body.to_string()), tracker, delivery_event)
+        .with_request_guard(guard);
 
     match HttpResponse::Ok()
         .content_type("application/json")
@@ -2602,16 +2781,21 @@ async fn streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: OpenAiResponseMetadata,
-    usage_observer: UsageEventObserver,
+    mut usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
     stored_response: Option<StoredResponseWriteContext>,
 ) -> HttpResponse {
+    let guard = usage_observer.take_guard();
+    let observation = usage_observer.observation.clone();
     // Commit no headers until the initial event is shown encodable by a fresh protocol encoder.
     // The body owns a separate encoder so the first event still travels through P1-04 transport.
     let mut initial_encoder = OpenAiResponsesSseEncoder::new(metadata.clone());
     if let Err(error) = initial_encoder.encode_event(&first) {
-        return pre_header_error(&error);
+        {
+            observation.fail(&error);
+            return pre_header_error(&error);
+        };
     }
 
     let stream = match start_bounded_transport(
@@ -2625,10 +2809,18 @@ async fn streaming_response(
     .await
     {
         Ok(stream) => stream,
-        Err(error) => return pre_header_error(&error),
+        Err(error) => {
+            observation.fail(&error);
+            return pre_header_error(&error);
+        }
     };
     let tracker = stream.control().first_semantic_event_tracker();
-    let body = ProtocolSseBody::new(stream, OpenAiResponsesSseEncoder::new(metadata), tracker);
+    let body = ProtocolSseBody::observed(
+        stream,
+        OpenAiResponsesSseEncoder::new(metadata),
+        tracker,
+        guard,
+    );
 
     match HttpResponse::Ok()
         .insert_header((header::CACHE_CONTROL, "no-cache"))
@@ -2644,24 +2836,37 @@ async fn anthropic_streaming_response(
     source: Box<dyn ResponsesEventSource>,
     first: CanonicalEvent,
     metadata: AnthropicResponseMetadata,
-    usage_observer: UsageEventObserver,
+    mut usage_observer: UsageEventObserver,
     sender: CanonicalEventSender,
     stream: CanonicalEventStream,
 ) -> HttpResponse {
+    let guard = usage_observer.take_guard();
+    let observation = usage_observer.observation.clone();
     // Mirror the Responses boundary: no success header is committed before the first canonical
     // event is proven encodable by the protocol-specific SSE encoder.
     let mut initial_encoder = AnthropicMessagesSseEncoder::new(metadata.clone());
     if let Err(error) = initial_encoder.encode_event(&first) {
-        return pre_header_anthropic_error(&error);
+        {
+            observation.fail(&error);
+            return pre_header_anthropic_error(&error);
+        };
     }
 
     let stream =
         match start_bounded_transport(source, first, sender, stream, usage_observer, None).await {
             Ok(stream) => stream,
-            Err(error) => return pre_header_anthropic_error(&error),
+            Err(error) => {
+                observation.fail(&error);
+                return pre_header_anthropic_error(&error);
+            }
         };
     let tracker = stream.control().first_semantic_event_tracker();
-    let body = ProtocolSseBody::new(stream, AnthropicMessagesSseEncoder::new(metadata), tracker);
+    let body = ProtocolSseBody::observed(
+        stream,
+        AnthropicMessagesSseEncoder::new(metadata),
+        tracker,
+        guard,
+    );
 
     match HttpResponse::Ok()
         .insert_header((header::CACHE_CONTROL, "no-cache"))
@@ -2681,7 +2886,10 @@ async fn start_bounded_transport(
     mut usage_observer: UsageEventObserver,
     stored_response: Option<StoredResponseWriteContext>,
 ) -> Result<CanonicalEventStream, GatewayError> {
-    sender.send(first.clone()).await?;
+    sender
+        .send(first.clone())
+        .await
+        .inspect_err(|error| usage_observer.fail(error))?;
     usage_observer.observe(&first);
     let cancellation = sender.cancellation();
 
@@ -2712,6 +2920,7 @@ async fn pump_source(
         Some(context) => match StoredResponseCapture::try_new(context, first) {
             Ok(capture) => Some(capture),
             Err(error) => {
+                usage_observer.fail(&error);
                 send_terminal_failure(&mut sender, error, &cancellation).await;
                 return;
             }
@@ -2735,6 +2944,7 @@ async fn pump_source(
                     && let Some(capture) = stored_capture.as_mut()
                 {
                     if let Err(error) = capture.push(event.clone()) {
+                        usage_observer.fail(&error);
                         send_terminal_failure(&mut sender, error, &cancellation).await;
                         return;
                     }
@@ -2742,6 +2952,7 @@ async fn pump_source(
                         let response = match capture.completed_response() {
                             Ok(response) => response,
                             Err(error) => {
+                                usage_observer.fail(&error);
                                 send_terminal_failure(&mut sender, error, &cancellation).await;
                                 return;
                             }
@@ -2749,6 +2960,7 @@ async fn pump_source(
                         if let Err(error) =
                             persist_completed_response(capture.context.clone(), response).await
                         {
+                            usage_observer.fail(&error);
                             send_terminal_failure(&mut sender, error, &cancellation).await;
                             return;
                         }
@@ -2758,6 +2970,7 @@ async fn pump_source(
                     if cancellation.is_cancelled() {
                         return;
                     }
+                    usage_observer.fail(&error);
                     send_terminal_failure(&mut sender, error, &cancellation).await;
                     return;
                 }
@@ -2767,6 +2980,10 @@ async fn pump_source(
                 }
             }
             Ok(None) => {
+                usage_observer.fail(&GatewayError::new(
+                    GatewayErrorCode::StreamTruncated,
+                    ErrorScope::Stream,
+                ));
                 send_terminal_failure(
                     &mut sender,
                     GatewayError::new(GatewayErrorCode::StreamTruncated, ErrorScope::Stream),
@@ -2776,6 +2993,7 @@ async fn pump_source(
                 return;
             }
             Err(error) => {
+                usage_observer.fail(&error);
                 send_terminal_failure(&mut sender, error, &cancellation).await;
                 return;
             }
@@ -2810,10 +3028,14 @@ async fn collect_completed_response(
 
 async fn collect_bounded_source(
     source: &mut Box<dyn ResponsesEventSource>,
+    observer: &mut UsageEventObserver,
 ) -> Result<CanonicalResponse, GatewayError> {
     let mut events = Vec::new();
     let mut serialized_bytes = 0_usize;
+    let mut lifecycle = gateway_core::CanonicalEventState::default();
     while let Some(event) = source.next_event().await? {
+        lifecycle.apply(&event)?;
+        observer.observe(&event);
         if events.len() >= MAX_STORED_RESPONSE_EVENTS {
             return Err(internal_error());
         }
@@ -2910,19 +3132,33 @@ struct UsageEventObserver {
     event_sink: Arc<dyn GatewayEventSink>,
     response_id: Option<ResponseId>,
     final_usage_emitted: bool,
+    observation: RequestObservation,
+    guard: Option<RequestGuard>,
 }
-
 impl UsageEventObserver {
-    fn new(request_id: RequestId, event_sink: Arc<dyn GatewayEventSink>) -> Self {
+    fn new(
+        request_id: RequestId,
+        event_sink: Arc<dyn GatewayEventSink>,
+        start: (std::time::Instant, i64),
+    ) -> Self {
+        let guard = RequestGuard::new_at(request_id.clone(), event_sink.clone(), start);
         Self {
             request_id,
             event_sink,
             response_id: None,
             final_usage_emitted: false,
+            observation: guard.observation.clone(),
+            guard: Some(guard),
         }
     }
-
+    fn take_guard(&mut self) -> Option<RequestGuard> {
+        self.guard.take()
+    }
+    fn fail(&self, error: &GatewayError) {
+        self.observation.fail(error);
+    }
     fn observe(&mut self, event: &CanonicalEvent) {
+        self.observation.observe(event);
         match event {
             CanonicalEvent::ResponseStart(start) => {
                 self.response_id = Some(start.response_id.clone());
@@ -3016,6 +3252,7 @@ impl CanonicalSseEncoder for ChatSseEncoder {
 }
 
 struct SseEncodingState<E> {
+    observation: Option<RequestObservation>,
     stream: CanonicalEventStream,
     encoder: E,
     pending: VecDeque<PendingSseChunk>,
@@ -3031,6 +3268,7 @@ struct SseEncodingState<E> {
 /// [`FirstSemanticEventTracker::mark_delivered`] is never reached for it and a transparent retry
 /// stays permitted for as long as no semantic chunk has been written.
 struct ProtocolSseBody<E> {
+    guard: Option<RequestGuard>,
     chunks: Pin<Box<dyn Stream<Item = PendingSseChunk>>>,
     tracker: FirstSemanticEventTracker,
     _encoder: std::marker::PhantomData<E>,
@@ -3040,8 +3278,18 @@ impl<E> ProtocolSseBody<E>
 where
     E: CanonicalSseEncoder + Unpin + 'static,
 {
+    #[cfg(test)]
     fn new(stream: CanonicalEventStream, encoder: E, tracker: FirstSemanticEventTracker) -> Self {
+        Self::observed(stream, encoder, tracker, None)
+    }
+    fn observed(
+        stream: CanonicalEventStream,
+        encoder: E,
+        tracker: FirstSemanticEventTracker,
+        guard: Option<RequestGuard>,
+    ) -> Self {
         let state = SseEncodingState {
+            observation: guard.as_ref().map(|guard| guard.observation.clone()),
             stream,
             encoder,
             pending: VecDeque::new(),
@@ -3051,6 +3299,7 @@ where
         let chunks = Box::pin(stream::unfold(state, next_sse_chunk));
 
         Self {
+            guard,
             chunks,
             tracker,
             _encoder: std::marker::PhantomData,
@@ -3077,10 +3326,18 @@ where
             Poll::Ready(Some(chunk)) => {
                 if let Some(event) = chunk.delivery_event.as_ref() {
                     let _first_delivery = body.tracker.mark_delivered(event);
+                    if let Some(guard) = &body.guard {
+                        guard.observation.delivered(event);
+                    }
                 }
                 Poll::Ready(Some(Ok(chunk.bytes)))
             }
-            Poll::Ready(None) => Poll::Ready(None),
+            Poll::Ready(None) => {
+                if let Some(guard) = &mut body.guard {
+                    guard.complete_if_ready();
+                }
+                Poll::Ready(None)
+            }
             Poll::Pending => Poll::Pending,
         }
     }
@@ -3098,6 +3355,9 @@ where
             return Some((chunk, state));
         }
         if state.finished {
+            if let Some(observation) = &state.observation {
+                observation.ready();
+            }
             return None;
         }
 
@@ -3134,7 +3394,7 @@ where
                     Err(_) => terminate_sse_with_failure(&mut state, stream_protocol_error()),
                 }
             }
-            Ok(None) => state.finished = true,
+            Ok(None) => terminate_sse_with_failure(&mut state, stream_protocol_error()),
             Err(error) => {
                 if state.stream.control().is_cancelled()
                     || error.code() == GatewayErrorCode::Cancelled
@@ -3192,6 +3452,9 @@ fn terminate_sse_with_failure<E>(state: &mut SseEncodingState<E>, error: Gateway
 where
     E: CanonicalSseEncoder,
 {
+    if let Some(observation) = &state.observation {
+        observation.fail(&error);
+    }
     let failure = CanonicalEvent::StreamError(StreamError { error });
     if let Ok(frames) = state.encoder.encode_event(&failure) {
         let _queue_result = queue_sse_frames(state, &failure, frames);
@@ -3202,12 +3465,17 @@ where
 /// A completed JSON response body that commits `FirstSemanticEvent` at the same Actix body handoff
 /// boundary as streaming SSE, rather than while the JSON object is assembled.
 struct JsonDeliveryBody {
+    guard: Option<RequestGuard>,
     bytes: Option<web::Bytes>,
     tracker: FirstSemanticEventTracker,
     delivery_event: CanonicalEvent,
 }
 
 impl JsonDeliveryBody {
+    fn with_request_guard(mut self, guard: Option<RequestGuard>) -> Self {
+        self.guard = guard;
+        self
+    }
     fn new(
         bytes: web::Bytes,
         tracker: FirstSemanticEventTracker,
@@ -3215,6 +3483,7 @@ impl JsonDeliveryBody {
     ) -> Self {
         Self {
             bytes: Some(bytes),
+            guard: None,
             tracker,
             delivery_event,
         }
@@ -3238,6 +3507,10 @@ impl MessageBody for JsonDeliveryBody {
         match body.bytes.take() {
             Some(bytes) => {
                 let _first_delivery = body.tracker.mark_delivered(&body.delivery_event);
+                if let Some(guard) = &mut body.guard {
+                    guard.observation.delivered_json();
+                    guard.complete();
+                }
                 Poll::Ready(Some(Ok(bytes)))
             }
             None => Poll::Ready(None),
@@ -4884,7 +5157,7 @@ mod tests {
     #[actix_web::test]
     async fn non_streaming_responses_emit_correlated_request_and_final_usage_events() -> TestResult
     {
-        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(3, 1)?)?;
         let queue = Arc::new(queue);
         let event_sink: Arc<dyn GatewayEventSink> = queue.clone();
         let state = mock_state_with_event_sink(text_events_with_final_usage()?, event_sink)?;
@@ -4924,6 +5197,16 @@ mod tests {
         assert_eq!(usage_event.usage().input_tokens, Some(3));
         assert_eq!(usage_event.usage().output_tokens, Some(5));
         assert_eq!(usage_event.usage().reasoning_tokens, Some(2));
+        let Some(GatewayEvent::RequestFinished(terminal)) = receiver.try_recv() else {
+            return Err("expected terminal request event".into());
+        };
+        assert_eq!(terminal.request_id, *request_event.request_id());
+        assert_eq!(terminal.outcome, gateway_core::RequestOutcome::Succeeded);
+        assert!(
+            terminal
+                .first_content_ms
+                .is_some_and(|first| first <= terminal.duration_ms)
+        );
         assert!(receiver.try_recv().is_none());
         assert_eq!(queue.metrics().required_queue_full, 0);
         Ok(())
@@ -4952,7 +5235,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
         let body = String::from_utf8(test::read_body(response).await.to_vec())?;
         assert!(body.contains("response.completed"));
-        assert_eq!(queue.metrics().required_queue_full, 1);
+        assert_eq!(queue.metrics().required_queue_full, 2);
         assert!(matches!(
             receiver.try_recv(),
             Some(GatewayEvent::Request(_))
@@ -5326,7 +5609,8 @@ mod tests {
         events.push(CanonicalEvent::StreamError(StreamError {
             error: GatewayError::new(GatewayErrorCode::ProviderTransient, ErrorScope::Provider),
         }));
-        let state = mock_state(events)?;
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(8, 1)?)?;
+        let state = mock_state_with_event_sink(events, Arc::new(queue))?;
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(state))
@@ -5345,6 +5629,16 @@ mod tests {
         let body = String::from_utf8(test::read_body(response).await.to_vec())?;
         assert!(body.contains("event: response.failed"));
         assert!(!body.contains("event: response.completed"));
+        let mut terminal = None;
+        while let Some(event) = receiver.try_recv() {
+            if let GatewayEvent::RequestFinished(event) = event {
+                assert!(terminal.is_none());
+                terminal = Some(event);
+            }
+        }
+        let terminal = terminal.ok_or("missing request terminal")?;
+        assert_eq!(terminal.outcome, gateway_core::RequestOutcome::Failed);
+        assert!(terminal.error_code.is_some());
         Ok(())
     }
 
@@ -5390,7 +5684,8 @@ mod tests {
             RawJson::from_json_string("true".to_owned())?,
         )?;
         delta.extensions = extensions;
-        let state = mock_state(events)?;
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(8, 1)?)?;
+        let state = mock_state_with_event_sink(events, Arc::new(queue))?;
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(state))
@@ -5410,6 +5705,17 @@ mod tests {
         assert!(body.contains("event: response.failed"));
         assert!(body.contains(r#""code":"UpstreamProtocolError""#));
         assert!(!body.contains("event: response.completed"));
+        let mut terminal = None;
+        while let Some(event) = receiver.try_recv() {
+            if let GatewayEvent::RequestFinished(event) = event {
+                assert!(terminal.is_none());
+                terminal = Some(event);
+            }
+        }
+        let terminal = terminal.ok_or("missing request terminal")?;
+        assert_eq!(terminal.outcome, gateway_core::RequestOutcome::Failed);
+        assert!(terminal.error_code.is_some());
+        assert!(terminal.first_content_ms.is_none());
         Ok(())
     }
 

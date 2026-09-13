@@ -21,7 +21,7 @@ pub struct CatalogRefreshReceipt {
     pub model_count: usize,
 }
 /// Closed error categories, never upstream response bodies.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum CatalogRefreshError {
     /// The source has no implemented catalog API.
     Unsupported,

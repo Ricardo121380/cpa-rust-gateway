@@ -2,11 +2,17 @@ import { useState, type InputHTMLAttributes } from "react";
 import "./resource-identity.css";
 import { resourceName, referenceKind, type ResourceKind } from "../utils/resourceNames";
 
+import { useResourceLabel } from "../utils/resourceLabels";
+
+function ResolvedLabel({id,kind}:Readonly<{id:string;kind:ResourceKind}>) {
+  return useResourceLabel(id,kind);
+}
+
 export function ResourceIdentity({ id, kind = "resource", name }: Readonly<{
   id: string; kind?: ResourceKind; name?: string | null;
 }>) {
   return <span className="resource-identity" data-resource-id={id}>
-    <span>{resourceName(id, kind, name)}</span>
+    <span>{name?resourceName(id,kind,name):<ResolvedLabel id={id} kind={kind}/>}</span>
   </span>;
 }
 
