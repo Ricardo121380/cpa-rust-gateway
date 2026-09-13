@@ -480,6 +480,7 @@ fn verify_events(
                     return Err(ProbeError::EventCorrelationFailed);
                 }
             }
+            GatewayEvent::RequestFinished(_) => {}
             GatewayEvent::Health(_) | GatewayEvent::Diagnostic(_) => {
                 return Err(ProbeError::UnexpectedEvent);
             }

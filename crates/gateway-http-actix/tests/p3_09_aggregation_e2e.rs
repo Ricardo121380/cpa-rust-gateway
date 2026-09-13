@@ -548,6 +548,7 @@ async fn pre_semantic_http_5xx_fails_over_to_the_second_upstream() -> TestResult
                 )
                 .into());
             }
+            GatewayEvent::RequestFinished(_) => {}
             GatewayEvent::Diagnostic(_) => {}
         }
     }
