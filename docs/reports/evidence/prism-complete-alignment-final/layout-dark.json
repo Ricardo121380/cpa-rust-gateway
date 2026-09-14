@@ -1,0 +1,465 @@
+[
+  {
+    "route": "",
+    "w": 1440,
+    "h": 900,
+    "head": "仪表盘",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "accounts",
+    "w": 1440,
+    "h": 900,
+    "head": "账号管理",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "upstreams",
+    "w": 1440,
+    "h": 900,
+    "head": "AI 提供商",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "models",
+    "w": 1440,
+    "h": 900,
+    "head": "模型管理",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "catalog",
+    "w": 1440,
+    "h": 900,
+    "head": "模型目录",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "access",
+    "w": 1440,
+    "h": 900,
+    "head": "API 密钥",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "monitoring",
+    "w": 1440,
+    "h": 900,
+    "head": "请求日志",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "usage",
+    "w": 1440,
+    "h": 900,
+    "head": "用量与费用",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "billing",
+    "w": 1440,
+    "h": 900,
+    "head": "计费与价格",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "settings",
+    "w": 1440,
+    "h": 900,
+    "head": "设置",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "runtime",
+    "w": 1440,
+    "h": 900,
+    "head": "运行诊断",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "egress",
+    "w": 1440,
+    "h": 900,
+    "head": "出口策略",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "versions",
+    "w": 1440,
+    "h": 900,
+    "head": "配置版本",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "audit",
+    "w": 1440,
+    "h": 900,
+    "head": "审计与备份",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "",
+    "w": 1280,
+    "h": 720,
+    "head": "仪表盘",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "accounts",
+    "w": 1280,
+    "h": 720,
+    "head": "账号管理",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "upstreams",
+    "w": 1280,
+    "h": 720,
+    "head": "AI 提供商",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "models",
+    "w": 1280,
+    "h": 720,
+    "head": "模型管理",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "catalog",
+    "w": 1280,
+    "h": 720,
+    "head": "模型目录",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "access",
+    "w": 1280,
+    "h": 720,
+    "head": "API 密钥",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "monitoring",
+    "w": 1280,
+    "h": 720,
+    "head": "请求日志",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "usage",
+    "w": 1280,
+    "h": 720,
+    "head": "用量与费用",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "billing",
+    "w": 1280,
+    "h": 720,
+    "head": "计费与价格",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "settings",
+    "w": 1280,
+    "h": 720,
+    "head": "设置",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "runtime",
+    "w": 1280,
+    "h": 720,
+    "head": "运行诊断",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "egress",
+    "w": 1280,
+    "h": 720,
+    "head": "出口策略",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "versions",
+    "w": 1280,
+    "h": 720,
+    "head": "配置版本",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "audit",
+    "w": 1280,
+    "h": 720,
+    "head": "审计与备份",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "",
+    "w": 390,
+    "h": 844,
+    "head": "仪表盘",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "accounts",
+    "w": 390,
+    "h": 844,
+    "head": "账号管理",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "upstreams",
+    "w": 390,
+    "h": 844,
+    "head": "AI 提供商",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "models",
+    "w": 390,
+    "h": 844,
+    "head": "模型管理",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": [
+      "打开路由",
+      "打开路由",
+      "打开路由"
+    ]
+  },
+  {
+    "route": "catalog",
+    "w": 390,
+    "h": 844,
+    "head": "模型目录",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": [
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情"
+    ]
+  },
+  {
+    "route": "access",
+    "w": 390,
+    "h": 844,
+    "head": "API 密钥",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": [
+      "详情",
+      "路由",
+      "编辑",
+      "删除",
+      "详情",
+      "路由",
+      "编辑",
+      "删除",
+      "详情",
+      "路由",
+      "编辑",
+      "删除",
+      "详情",
+      "路由",
+      "编辑",
+      "删除"
+    ]
+  },
+  {
+    "route": "monitoring",
+    "w": 390,
+    "h": 844,
+    "head": "请求日志",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "usage",
+    "w": 390,
+    "h": 844,
+    "head": "用量与费用",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "billing",
+    "w": 390,
+    "h": 844,
+    "head": "计费与价格",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "settings",
+    "w": 390,
+    "h": 844,
+    "head": "设置",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "runtime",
+    "w": 390,
+    "h": 844,
+    "head": "运行诊断",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": [
+      "未提供账号身份",
+      "未提供账号身份",
+      "未提供账号身份",
+      "未提供账号身份"
+    ]
+  },
+  {
+    "route": "egress",
+    "w": 390,
+    "h": 844,
+    "head": "出口策略",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": [
+      "详情",
+      "编辑",
+      "删除"
+    ]
+  },
+  {
+    "route": "versions",
+    "w": 390,
+    "h": 844,
+    "head": "配置版本",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": []
+  },
+  {
+    "route": "audit",
+    "w": 390,
+    "h": 844,
+    "head": "审计与备份",
+    "alerts": [],
+    "bodyOverflow": false,
+    "wide": [
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "详情",
+      "查看修改记录",
+      "查看修改记录",
+      "查看修改记录",
+      "查看修改记录",
+      "查看修改记录",
+      "查看修改记录",
+      "查看修改记录",
+      "查看修改记录"
+    ]
+  }
+]

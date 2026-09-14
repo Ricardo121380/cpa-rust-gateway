@@ -1,0 +1,14 @@
+{
+  "account_ref": "a6370161014a",
+  "runtime_observations": [
+    {
+      "auth_status": "expired",
+      "runtime_status": "expired",
+      "active_leases": 0,
+      "max_concurrency": 1,
+      "expires_at_ms": 1785955613000,
+      "quota_sync_due_at_ms": null
+    }
+  ],
+  "metadata_read_only": true
+}

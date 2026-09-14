@@ -1,0 +1,160 @@
+{
+  "inspection_revision": "5d9aa12a2149a52bfca94fc15c6dac8d7d8bf7bd",
+  "active": "production-models-20260913",
+  "metadata_only": true,
+  "production_mutations": 0,
+  "inference_requests": 0,
+  "background_renewal": false,
+  "protected_copy_rows_unchanged": true,
+  "proposed_catalog_paths": {
+    "p12-12-production-krill-chat-endpoint": "/models",
+    "p12-12-production-krill-responses-endpoint": "/models"
+  },
+  "results": [
+    {
+      "channel": "Grok Build",
+      "account_ref": "a6370161014a",
+      "endpoint_ref": "97536a5b3b69",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "error": "Busy",
+        "inference_requests": 0,
+        "metadata_only": true
+      }
+    },
+    {
+      "channel": "Grok Build",
+      "account_ref": "78f9a5c88de7",
+      "endpoint_ref": "97536a5b3b69",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "inference_requests": 0,
+        "metadata_only": true,
+        "model_count": 1,
+        "observed_at_ms": 1789405790933
+      },
+      "models": [
+        "grok-4.6"
+      ],
+      "complete_count_matches": true
+    },
+    {
+      "channel": "Grok Build",
+      "account_ref": "319bde2905a6",
+      "endpoint_ref": "97536a5b3b69",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "inference_requests": 0,
+        "metadata_only": true,
+        "model_count": 2,
+        "observed_at_ms": 1789405791247
+      },
+      "models": [
+        "grok-4.5",
+        "grok-4.6"
+      ],
+      "complete_count_matches": true
+    },
+    {
+      "channel": "Krill",
+      "account_ref": "5afbb699ec53",
+      "endpoint_ref": "1df299bd018b",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "inference_requests": 0,
+        "metadata_only": true,
+        "model_count": 33,
+        "observed_at_ms": 1789405791713
+      },
+      "models": [
+        "GLM-5.1",
+        "GLM-5.2",
+        "claude-fable-5",
+        "claude-fable-5-1",
+        "claude-haiku-4-5-20251001",
+        "claude-opus-4-6",
+        "claude-opus-4-7",
+        "claude-opus-4-8",
+        "claude-opus-5",
+        "claude-sonnet-4-6",
+        "claude-sonnet-5",
+        "codex-auto-review",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-3-flash-preview",
+        "gemini-3-pro-preview",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-pro-preview",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gpt-5.6-sol",
+        "gpt-6-astra",
+        "gpt-image-2",
+        "grok-4.5",
+        "grok-4.6",
+        "kimi-k2.6",
+        "kimi-k2.7-code",
+        "qwen3.6-plus",
+        "qwen3.7-plus"
+      ],
+      "complete_count_matches": true
+    },
+    {
+      "channel": "Krill",
+      "account_ref": "5afbb699ec53",
+      "endpoint_ref": "a93324d114b6",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "inference_requests": 0,
+        "metadata_only": true,
+        "model_count": 33,
+        "observed_at_ms": 1789405791976
+      },
+      "models": [
+        "GLM-5.1",
+        "GLM-5.2",
+        "claude-fable-5",
+        "claude-fable-5-1",
+        "claude-haiku-4-5-20251001",
+        "claude-opus-4-6",
+        "claude-opus-4-7",
+        "claude-opus-4-8",
+        "claude-opus-5",
+        "claude-sonnet-4-6",
+        "claude-sonnet-5",
+        "codex-auto-review",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-3-flash-preview",
+        "gemini-3-pro-preview",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-pro-preview",
+        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gpt-5.6-sol",
+        "gpt-6-astra",
+        "gpt-image-2",
+        "grok-4.5",
+        "grok-4.6",
+        "kimi-k2.6",
+        "kimi-k2.7-code",
+        "qwen3.6-plus",
+        "qwen3.7-plus"
+      ],
+      "complete_count_matches": true
+    }
+  ]
+}

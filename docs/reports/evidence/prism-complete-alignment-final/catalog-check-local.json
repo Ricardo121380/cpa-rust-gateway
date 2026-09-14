@@ -1,0 +1,11 @@
+{
+  "background_workers_started": false,
+  "credential_refresh_attempted": false,
+  "inference_requests": 0,
+  "metadata_only": true,
+  "model_count": 3,
+  "observed_at_ms": 1789407450866,
+  "marker_required": true,
+  "credential_rows_unchanged": true,
+  "local_mock_inference_unchanged": true
+}

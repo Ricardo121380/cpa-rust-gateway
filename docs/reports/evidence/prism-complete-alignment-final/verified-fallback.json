@@ -1,0 +1,13 @@
+{
+  "revision": "b792a9920b515436d0c745424f91157cd6274ff2",
+  "run_id": 34875023562,
+  "signature_verified": true,
+  "artifact_and_sbom_verified": true,
+  "binary_sha256": "3380f19b3cef5d1ec7dd6a8b7e10ba8a45375ef2d4d1276f8dbb43d6ec469aaf",
+  "frontend_assets": {
+    "/admin-ui/": "1121e8b70f28997fd2684e757f40e862b036e0318144d75834ef18418ea7bc19",
+    "/admin-ui/assets/main.js": "22fafe7d7f5602946d6f3629a6255e8b3dda4144f0e8b6125613750748d2eac5",
+    "/admin-ui/assets/vendor.js": "6b6ea2186c7d05e7e13e63310ea22f96e1fa0e9733a81c6436747f373199ac8f",
+    "/admin-ui/assets/index.css": "ccd4b495cf05687d82e409823a3dd7ce879257390135e073274cfb1f5b11ad5b"
+  }
+}

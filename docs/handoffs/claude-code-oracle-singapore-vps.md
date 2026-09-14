@@ -1,5 +1,22 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-15: complete alignment deployment (current)
+
+Production serves signed `e77bcb5b79a81fac1db33aec2a1912eb5c9e50fe`, schema28,
+active `production-aligned-20260915`. Six legacy aliases removed from the active configuration;
+formal provider names and Krill catalog paths applied. Original models/effective permissions,
+7 accounts,2229 events,593 ledger records and administrator store retained. Actual metadata refresh
+returned1/2 models for two Build accounts and33 per Krill interface; a third Build credential is
+expired and needs human reauthorization. No real inference, DNS/Caddy/Autoreg edits.
+
+Compatible signed fallback is `b792a9920b515436d0c745424f91157cd6274ff2`, schema28 and
+current credential-format aware. Keep latest databases/rotating credentials; do not switch to old
+schema27 binaries or restore stale databases. Network-isolated candidate/migration/fallback/candidate
+and checkpoint preservation passed. Reassess compatibility after later user configuration changes.
+Private release/backups: `/var/backups/cpa-rust-gateway/prism-complete-20260915`.
+See [final evidence and explicit human authorization checks](../reports/prism-complete-alignment-delivery-20260915.md).
+Earlier entries below are historical; this grants no unrelated remote authority.
+
 ## 2026-09-13: completed workflow batches deployed (latest)
 
 Production now serves signed8578e55, schema27. User explicitly requested this partial deployment;

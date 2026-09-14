@@ -1,0 +1,14 @@
+[
+  {
+    "role": "primary",
+    "revision": "e77bcb5b79a81fac1db33aec2a1912eb5c9e50fe",
+    "target": "x86_64-unknown-linux-gnu",
+    "signature_artifact_sbom_verified": true
+  },
+  {
+    "role": "fallback",
+    "revision": "b792a9920b515436d0c745424f91157cd6274ff2",
+    "target": "x86_64-unknown-linux-gnu",
+    "signature_artifact_sbom_verified": true
+  }
+]

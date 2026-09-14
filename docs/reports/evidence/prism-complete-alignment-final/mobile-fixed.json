@@ -1,0 +1,22 @@
+[
+  {
+    "route": "catalog",
+    "wide": []
+  },
+  {
+    "route": "access",
+    "wide": []
+  },
+  {
+    "route": "runtime",
+    "wide": []
+  },
+  {
+    "route": "egress",
+    "wide": []
+  },
+  {
+    "route": "audit",
+    "wide": []
+  }
+]
