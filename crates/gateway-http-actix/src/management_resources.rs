@@ -10451,12 +10451,7 @@ impl From<CredentialView> for CredentialResponse {
             id: value.id.as_str().to_owned(),
             upstream_id: value.upstream_id.as_str().to_owned(),
             kind: value.kind,
-            status: match value.status {
-                CredentialStatus::Active => "active",
-                CredentialStatus::Cooling
-                | CredentialStatus::Unauthorized
-                | CredentialStatus::Disabled => "disabled",
-            },
+            status: operational_account_status_response(value.status),
             revision: value.revision,
             secret_present: value.secret_present,
         }

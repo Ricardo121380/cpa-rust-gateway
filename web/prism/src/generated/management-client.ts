@@ -1478,6 +1478,16 @@ export const managementOperations = {
         "name": "cursor",
         "in": "query",
         "required": false
+      },
+      {
+        "name": "plan",
+        "in": "query",
+        "required": false
+      },
+      {
+        "name": "without_plan",
+        "in": "query",
+        "required": false
       }
     ],
     "requiresAuthentication": true,

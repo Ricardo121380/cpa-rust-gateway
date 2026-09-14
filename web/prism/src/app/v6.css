@@ -462,3 +462,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 .provider-detail .subresource-panel h3 { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .provider-scheduling { margin-top:18px; }
 .provider-scheduling > summary { cursor:pointer; color:var(--ink-2); font-size:13px; }
+
+.account-directory-toolbar > label:not(.account-search) { min-width:0; max-width:100%; }
+@media (max-width: 640px) { .account-directory-toolbar .account-search { flex-basis:100%; max-width:none; min-width:0; } }
+.account-directory-toolbar select { max-width:100%; }

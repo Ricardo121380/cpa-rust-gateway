@@ -14,6 +14,103 @@ pub struct AccountIdentity {
     /// Account username, excluding opaque IDs and machine-generated labels.
     pub username: Option<String>,
 }
+
+/// Safe display evidence from one credential; none of these fields grant access.
+#[derive(Clone, Default)]
+pub struct CredentialDisplay {
+    /// Human identity, independently observed from the credential encoding.
+    pub identity: AccountIdentity,
+    /// Observed credential mechanism; an opaque JSON envelope remains unknown.
+    pub authentication: Option<&'static str>,
+    /// Explicit plan label. Missing is not a free plan.
+    pub plan: Option<String>,
+    /// Whether the plan was declared by an import or decoded from a token claim.
+    pub plan_source: Option<&'static str>,
+}
+impl std::fmt::Debug for CredentialDisplay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CredentialDisplay(<redacted>)")
+    }
+}
+impl CredentialDisplay {
+    /// Projects only bounded, allowlisted display fields; token claims are not verified here.
+    #[must_use]
+    pub fn from_credential(bytes: &[u8]) -> Self {
+        if bytes.is_empty() || bytes.len() > 65_536 {
+            return Self::default();
+        }
+        let Ok(mut value) = serde_json::from_slice::<Value>(bytes) else {
+            return Self {
+                authentication: bytes.iter().all(u8::is_ascii_graphic).then_some("api_key"),
+                ..Self::default()
+            };
+        };
+        let mut result = Self::default();
+        result.identity.visit(&value, 0);
+        let kind = value
+            .get("kind")
+            .or_else(|| value.get("type"))
+            .and_then(Value::as_str);
+        let refresh = |v: &Value| {
+            ["refresh_token", "refreshToken"].iter().any(|k| {
+                v.get(k)
+                    .and_then(Value::as_str)
+                    .is_some_and(|s| !s.is_empty())
+            })
+        };
+        if matches!(kind, Some("codex" | "codex_oauth" | "claude_oauth"))
+            || refresh(&value)
+            || value.get("credentials").is_some_and(refresh)
+            || value.get("tokens").is_some_and(refresh)
+        {
+            result.authentication = Some("oauth");
+        }
+        for node in [&value, &value["metadata"], &value["extra"]] {
+            for key in ["plan", "plan_type", "subscription_tier"] {
+                if let Some(plan) = node.get(key).and_then(Value::as_str).and_then(plan_label) {
+                    result.plan = Some(plan);
+                    result.plan_source = Some("imported_metadata");
+                    break;
+                }
+            }
+            if result.plan.is_some() {
+                break;
+            }
+        }
+        for node in [&value, &value["tokens"], &value["credentials"]] {
+            for key in ["id_token", "access_token"] {
+                let Some(token) = node.get(key).and_then(Value::as_str) else {
+                    continue;
+                };
+                let parts = token.split('.').collect::<Vec<_>>();
+                if parts.len() != 3 || parts[1].len() > 16_384 {
+                    continue;
+                }
+                let Some(mut claims) = URL_SAFE_NO_PAD.decode(parts[1]).ok().and_then(|bytes| {
+                    serde_json::from_slice::<Value>(&zeroize::Zeroizing::new(bytes)).ok()
+                }) else {
+                    continue;
+                };
+                if let Some(plan) = claims["https://api.openai.com/auth"]["chatgpt_plan_type"]
+                    .as_str()
+                    .or_else(|| claims["chatgpt_plan_type"].as_str())
+                    .and_then(plan_label)
+                {
+                    result.plan = Some(plan);
+                    result.plan_source = Some("token_claim");
+                }
+                wipe_json(&mut claims);
+            }
+        }
+        wipe_json(&mut value);
+        result
+    }
+}
+fn plan_label(text: &str) -> Option<String> {
+    let text = text.trim();
+    (!text.is_empty() && text.len() <= 128 && !text.chars().any(char::is_control))
+        .then(|| text.to_owned())
+}
 impl std::fmt::Debug for AccountIdentity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("AccountIdentity(<redacted>)")
@@ -201,6 +298,28 @@ pub fn human_name(value: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn credential_display_distinguishes_free_unknown_and_token_claims()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let free=CredentialDisplay::from_credential(br#"{"kind":"claude_oauth","access_token":"secret-a","refresh_token":"secret-r","email":"person@example.test","plan":"free"}"#);
+        assert_eq!(free.authentication, Some("oauth"));
+        assert_eq!(free.plan.as_deref(), Some("free"));
+        assert_eq!(free.plan_source, Some("imported_metadata"));
+        let unknown = CredentialDisplay::from_credential(b"opaque-api-key");
+        assert_eq!(unknown.authentication, Some("api_key"));
+        assert!(unknown.plan.is_none());
+        let payload = URL_SAFE_NO_PAD
+            .encode(br#"{"https://api.openai.com/auth":{"chatgpt_plan_type":"pro20x"}}"#);
+        let bytes = serde_json::to_vec(
+            &serde_json::json!({"type":"codex","id_token":format!("header.{payload}.signature")}),
+        )?;
+        let token = CredentialDisplay::from_credential(&bytes);
+        assert_eq!(token.plan.as_deref(), Some("pro20x"));
+        assert_eq!(token.plan_source, Some("token_claim"));
+        assert!(!format!("{free:?}").contains("person@"));
+        Ok(())
+    }
+
     #[test]
     fn extracts_only_human_fields_and_never_opaque_subject_or_secret()
     -> Result<(), Box<dyn std::error::Error>> {

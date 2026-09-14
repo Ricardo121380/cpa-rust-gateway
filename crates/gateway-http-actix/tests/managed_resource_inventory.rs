@@ -2127,3 +2127,153 @@ async fn repeated_oauth_import_rotates_one_account_but_keeps_other_members_separ
     assert_eq!(revision, 1);
     Ok(())
 }
+
+#[actix_web::test]
+async fn account_plan_filter_keeps_unknown_separate_from_free_and_preserves_auth_state()
+-> TestResult {
+    let (file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response=test::call_service(&app,authorized(test::TestRequest::patch().uri("/admin/credentials/account-000")).insert_header(("If-Match","rev-0")).set_json(serde_json::json!({"id":"account-000","kind":"bearer","status":"active","secret":r#"{"kind":"claude_oauth","access_token":"a","refresh_token":"r","expires_at_ms":4102444800000,"email":"plan@example.test","plan":"free"}"#})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/accounts/inventory?plan=free"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let page: Value = test::read_body_json(response).await;
+    assert_eq!(page["total"], 1);
+    assert_eq!(page["plan_totals"]["free"], 1);
+    assert_eq!(page["unobserved_plan_total"], 249);
+    assert_eq!(page["items"][0]["managed"]["authentication"], "oauth");
+    assert_eq!(page["items"][0]["plan_source"], "imported_metadata");
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/accounts/inventory?without_plan=true&limit=1"),
+        )
+        .to_request(),
+    )
+    .await;
+    let page: Value = test::read_body_json(response).await;
+    assert_eq!(page["total"], 249);
+    assert!(page["items"][0]["plan"].is_null());
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/accounts/inventory?without_plan=true&plan=free"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let db = gateway_store::open(&file.0)?;
+    for status in ["unauthorized", "cooling"] {
+        db.execute("UPDATE upstream_credentials SET status=?1 WHERE config_version_id=?2 AND id='account-000'",(status,VERSION))?;
+        let response = test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/accounts/inventory?plan=free"))
+                .to_request(),
+        )
+        .await;
+        let row: Value = test::read_body_json(response).await;
+        assert_eq!(row["items"][0]["managed"]["credential"]["status"], status);
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn native_plan_observations_are_filterable_and_invalidate_old_cursors() -> TestResult {
+    use gateway_core::{
+        ProviderAccountEntitlement, ProviderAccountEntitlementConfidence as Confidence,
+        ProviderAccountEntitlementSource as Source, ProviderAccountEntitlementTier as Tier,
+    };
+    let (file, resources) = fixture(false)?;
+    let key = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        key,
+        [(key, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let pool = std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+        &file.0, secrets,
+    )?);
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            pool.clone(),
+        )?
+        .with_identity_transport(std::sync::Arc::new(SessionIdentityFixture(
+            std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        )));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources.with_native_accounts(native)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let now = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+    let secret=serde_json::json!({"kind":"grok_web_sso","account_ref":"plan-account","lineage_ref":"plan-lineage","revision":1,"expires_at_ms":now+600_000,"cookies":[{"name":"sso","value":"synthetic-plan-cookie","domain":"grok.com","path":"/","secure":true,"http_only":true}]}).to_string();
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/native-accounts/import"))
+            .set_json(serde_json::json!({"id":"native-plan","channel":"grok.web","secret":secret}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let id = pool.managed_account_page(1, "", "", None)?.items[0]
+        .id
+        .clone();
+    pool.set_account_entitlement(
+        &id,
+        ProviderAccountEntitlement::try_new(
+            Tier::GrokWebBasic,
+            Source::ImportedMetadata,
+            Confidence::Declared,
+            now + 1,
+        )?,
+    )?;
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/accounts/inventory?plan=basic"))
+            .to_request(),
+    )
+    .await;
+    let page: Value = test::read_body_json(response).await;
+    assert_eq!(page["total"], 1);
+    assert_eq!(page["items"][0]["plan"], "basic");
+    assert!(page["items"][0]["native"].as_bool().ok_or("native")?);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/accounts/inventory?limit=1")).to_request(),
+    )
+    .await;
+    let page: Value = test::read_body_json(response).await;
+    let cursor = page["next_cursor"].as_str().ok_or("cursor")?;
+    pool.set_account_entitlement(
+        &id,
+        ProviderAccountEntitlement::try_new(
+            Tier::GrokWebHeavy,
+            Source::ImportedMetadata,
+            Confidence::Declared,
+            now + 2,
+        )?,
+    )?;
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&format!(
+            "/admin/accounts/inventory?limit=1&cursor={cursor}"
+        )))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    Ok(())
+}

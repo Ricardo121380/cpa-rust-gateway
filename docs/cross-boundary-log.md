@@ -2612,3 +2612,11 @@ Autoreg edits or real-provider inference in release acceptance.
 **Why:** User-authorized full workflow alignment. Claude needs first and repeat authorization through its actual protocol; repeated OAuth imports must not manufacture duplicate accounts or merge distinct organization members.
 
 **Other side:** FYI. Claude-specific fixed URL/client/redirect/scopes, verified-state token exchange and advisory identity read; shared bounded PKCE lifecycle with draft/CAS persistence. Reauthorization preserves ID/disabled state and refuses changed observed account/email. Identical-identity normalized imports rotate one existing account, scoped to upstream/kind.25 management-inventory HTTP tests,17 Anthropic-provider tests,292 frontend tests, selected all-target/all-feature Clippy and141-operation double-build/embed gate passed. Token exchange tests are injected synthetic responses; actual Claude official authorization/browser acceptance is still pending. No production deployment or real inference.
+
+## 2026-09-14 - Codex - Account plan and authentication projection
+
+**What:** `web/prism/contracts/management-v1.json`, `web/prism/src/app/v6.css`, `web/prism/src/dev/fixtures.ts`, `web/prism/src/features/accounts/AccountList.tsx`, `web/prism/src/features/accounts/AccountsPage.tsx`, `web/prism/src/features/accounts/CredentialUpdateDialog.tsx`, `web/prism/src/features/accounts/inventory.ts`, `web/prism/src/features/accounts/useAccountDirectory.ts`, `web/prism/src/features/config-versions/configurationTask.test.ts`, `web/prism/src/features/config-versions/configurationTask.ts`, `web/prism/src/generated/management-client.ts`.
+
+**Why:** Authorized complete workflow alignment requires real plan filters and authentication states across ordinary and native accounts.
+
+**Other side:** FYI. Nullable plan/source never grants model permissions; native entitlement writes invalidate cursors atomically. OAuth/API labels derive from stored credential shape; cooling and unauthorized remain distinct from operator pause. Owned configuration reads recheck ownership after await. Store/HTTP/native regressions,293 frontend tests, selected Clippy and141-operation embed gate passed. EgoLite16 actual synthetic gateway verified free1/max20x1/unknown5/all7 filtering; empty unrelated groups hidden. Real official authorization and production deployment remain pending.

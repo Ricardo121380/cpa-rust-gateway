@@ -17,8 +17,9 @@ export async function beginConfigurationTask(description:string) {
   const version=await beginConfigurationEdit(description);
   assertOwner();
   let revision=version.revision;
-  const read=<T>(operation:ManagementOperationName,request:ManagementRequest={})=>{
-    assertOwner();return call<T>(operation,{...request,headers:{...request.headers,"X-Config-Version":version.id}});
+  const read=async<T>(operation:ManagementOperationName,request:ManagementRequest={})=>{
+    assertOwner();const value=await call<T>(operation,{...request,headers:{...request.headers,"X-Config-Version":version.id}});
+    assertOwner();return value;
   };
   const mutate=async<T>(operation:ManagementOperationName,request:ManagementRequest={})=>{
     assertOwner();

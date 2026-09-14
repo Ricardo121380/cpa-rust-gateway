@@ -1138,7 +1138,7 @@ impl ManagementMutationService {
                 .ok()
                 .and_then(|aad| store.open(&credential.encrypted_secret, &aad).ok())
                 .map(|plain| {
-                    gateway_store::account_identity::AccountIdentity::from_credential(
+                    gateway_store::account_identity::CredentialDisplay::from_credential(
                         plain.as_bytes(),
                     )
                 })

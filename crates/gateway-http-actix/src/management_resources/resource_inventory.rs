@@ -1,9 +1,8 @@
 //! Complete managed inventories, distinct from running account pools.
 use super::{
-    ConfigRevision, CredentialResponse, CredentialStatus, EndpointResponse,
-    ManagementResourceError, ManagementResourceHttpState, error_response, internal_error,
-    invalid_input, management_error, query_has_duplicate_keys, read_context, read_operations,
-    response_with_revision, service,
+    ConfigRevision, CredentialResponse, EndpointResponse, ManagementResourceError,
+    ManagementResourceHttpState, error_response, internal_error, invalid_input, management_error,
+    query_has_duplicate_keys, read_context, read_operations, response_with_revision, service,
 };
 use actix_web::{HttpRequest, HttpResponse, http::StatusCode, web};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -252,12 +251,9 @@ pub(super) fn credential_value(
         id: row.id.to_string(),
         upstream_id: row.upstream_id.to_string(),
         kind: row.kind,
-        status: match row.status {
-            CredentialStatus::Active => "active",
-            _ => "disabled",
-        },
+        status: super::operational_account_status_response(row.status),
         revision: row.revision,
         secret_present: row.secret_present,
     };
-    serde_json::json!({"credential":body,"binding_count":row.binding_count,"identity":row.identity,"category":category,"provider":provider,"connections":connections})
+    serde_json::json!({"credential":body,"binding_count":row.binding_count,"identity":row.identity,"authentication":row.authentication,"plan":row.plan,"plan_source":row.plan_source,"category":category,"provider":provider,"connections":connections})
 }

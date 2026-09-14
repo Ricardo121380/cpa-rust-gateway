@@ -8,12 +8,15 @@ export type ManagedCredential = Readonly<{
     id: string;
     upstream_id: string;
     kind: string;
-    status: "active" | "disabled" | "revoked";
+    status: "active" | "disabled" | "revoked" | "cooling" | "unauthorized";
     revision: number;
     secret_present: boolean;
   }>;
   binding_count: number;
   identity: AccountIdentity;
+  authentication?:"api_key"|"oauth"|null;
+  plan?:string|null;
+  plan_source?:string|null;
   category: Exclude<Category,"grok">;
   provider: string;
   connections: readonly {id:string; api_format:string; enabled:boolean; host:string|null}[];

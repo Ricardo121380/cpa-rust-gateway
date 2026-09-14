@@ -3,11 +3,11 @@ use super::{
     GrokAccountMetadata, GrokAccountPoolError, GrokAccountPoolStore, decode_metadata,
     validate_metadata,
 };
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 
 /// Safe page of native identities, including unbound and disabled accounts.
 pub struct GrokManagedAccountPage {
-    /// Metadata rows. Entitlements are not observed by this inventory read.
+    /// Metadata rows with existing persisted entitlement evidence; this read never contacts a provider.
     pub items: Vec<GrokAccountMetadata>,
     /// Durable native-account metadata generation.
     pub stamp: i64,
@@ -78,6 +78,10 @@ impl GrokAccountPoolStore {
             })
             .collect::<Result<Vec<_>, _>>()?;
         drop(statement);
+        for account in &mut items {
+            account.entitlement=connection.query_row("SELECT domain,tier,source,confidence,observed_at_ms FROM grok_account_entitlements WHERE account_id=?1",[&account.id],super::decode_entitlement).optional().map_err(|_|GrokAccountPoolError::InvalidPersistedState)?;
+            validate_metadata(account.clone())?;
+        }
         let current = connection
             .query_row(
                 "SELECT generation FROM native_account_inventory_generation WHERE singleton=1",

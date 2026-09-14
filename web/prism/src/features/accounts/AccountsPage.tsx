@@ -46,7 +46,8 @@ function ManagedAccounts() {
   const selectedCategory = params.get("category") ?? "";
   const selectedStatus=params.get("status")??"";
   const sort=params.get("sort")??"name";
-  const inventory=useAccountDirectory({q:search,category:selectedCategory,status:selectedStatus,sort,upstream_id:provider});
+  const plan=params.get("plan")??"";const withoutPlan=params.get("without_plan")==="true";
+  const inventory=useAccountDirectory({q:search,category:selectedCategory,status:selectedStatus,sort,upstream_id:provider,plan,without_plan:withoutPlan?"true":""});
   const native=inventory;
   const topology = useModelConnections();
   const directory=inventory.data?.pages.flatMap(p=>p.items)??[];
@@ -95,11 +96,13 @@ function ManagedAccounts() {
   const ordinaryView=(row:ManagedCredential):AccountListRow=>({
     selected:selection.has(`ordinary:${row.credential.id}`),onSelect:selecting?()=>toggle([`ordinary:${row.credential.id}`]):undefined,
     key:row.credential.id,name:accountName(row.identity,row.credential.id),source:accountSource(row.credential.id),provider:row.provider,
-    authentication:row.credential.kind==="oauth_json"?"OAuth 授权":"API / 渠道凭据",
+    authentication:row.authentication==="oauth"||row.credential.kind==="oauth_json"?"OAuth 授权":row.authentication==="api_key"?"API Key":"渠道凭据",
+    plan:row.plan,planSource:row.plan_source,
     status:<StatusBadge status={ordinaryStatus(row)==="enabled"?"active":ordinaryStatus(row)==="reauth_required"?"unauthorized":"disabled"}>{ordinaryStatus(row)==="enabled"?"已启用":ordinaryStatus(row)==="reauth_required"?"需要重新授权":"已停用"}</StatusBadge>,
     connection:<button className="account-connection-link" onClick={()=>setConnections(row)}>{row.binding_count===0?"未连接接口":[...new Set(row.connections.map((c)=>protocolName(c.api_format)))].join(" · ")||"查看连接"}<span className="entity-meta">{row.binding_count?`${row.binding_count} 个已配置连接 · 查看`:"添加连接后用于请求"}</span></button>,actions:actions(row),
   });
   const nativeView=(row:NativeAccount):AccountListRow=>({key:row.id,name:accountName(row.identity,row.import_batch_id),source:accountSource(row.import_batch_id),provider:nativeNames[row.provider],authentication:row.provider==="grok_build"?"OAuth 授权":"SSO 授权",
+    plan:directory.find(item=>item.native&&item.id===row.id)?.plan,planSource:directory.find(item=>item.native&&item.id===row.id)?.plan_source,
     selected:selection.has(`native:${row.id}`),onSelect:selecting?()=>toggle([`native:${row.id}`]):undefined,
     status:<StatusBadge status={!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"active":"unauthorized"}>{!row.enabled||row.auth_status==="disabled"?"已停用":row.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>,
     connection:<button className="account-connection-link" onClick={()=>setNativeDetail(row)}>{topology.isError?"接口读取失败":!topology.data?"读取接口…":[...new Set(nativeConnections(row.provider,topology.data.endpoints).map(c=>protocolName(c.api_format)))].join(" · ")||"未配置接口"}<span className="entity-meta">查看接口连接</span></button>,
@@ -109,7 +112,7 @@ function ManagedAccounts() {
     const first=group[0]!;if(group.length===1)return ordinaryView(first);
     const active=group.filter((row)=>ordinaryStatus(row)!=="disabled").length;
     const protocols=[...new Set(group.flatMap((row)=>row.connections.map((c)=>protocolName(c.api_format))))];
-    return {...ordinaryView(first),source:undefined,authentication:`${group.length} 份授权`,
+    return {...ordinaryView(first),plan:new Set(group.map(row=>row.plan)).size===1?first.plan:null,source:undefined,authentication:`${group.length} 份授权`,
       selected:group.every((row)=>selection.has(`ordinary:${row.credential.id}`)),onSelect:selecting?()=>toggle(group.map((row)=>`ordinary:${row.credential.id}`)):undefined,
       status:<StatusBadge status={active?"active":"disabled"}>{active} / {group.length} 份已启用</StatusBadge>,
       connection:<button className="account-connection-link" onClick={()=>setAuthorizations(group)}>{protocols.join(" · ")||"未连接接口"}<span className="entity-meta">查看各份授权的连接</span></button>,
@@ -128,6 +131,7 @@ function ManagedAccounts() {
     <div className="account-directory-toolbar">
       <label className="account-search"><span className="sr-only">搜索账号</span><input aria-label="搜索账号" placeholder="搜索邮箱、用户名、电话或渠道" value={searchInput} onChange={(e)=>setSearchInput(e.target.value)} /></label>
       <label><span className="sr-only">账号状态</span><select aria-label="账号状态" value={selectedStatus} onChange={e=>update("status",e.target.value)}><option value="">全部状态</option><option value="enabled">已启用</option><option value="disabled">已停用</option><option value="reauth_required">需要重新授权</option></select></label>
+      <label><span className="sr-only">账号套餐</span><select aria-label="账号套餐" value={withoutPlan?"none":plan?`plan:${plan}`:""} onChange={event=>{setSelection(new Set());const next=new URLSearchParams(params);next.delete("plan");next.delete("without_plan");if(event.target.value==="none")next.set("without_plan","true");else if(event.target.value.startsWith("plan:"))next.set("plan",event.target.value.slice(5));setParams(next,{replace:true});}}><option value="">全部套餐</option><option value="none">未观测套餐{inventory.data?`（${inventory.data.pages[0]?.unobserved_plan_total??0}）`:""}</option>{Object.entries(inventory.data?.pages[0]?.plan_totals??{}).map(([label,count])=><option key={label} value={`plan:${label}`}>{label}（{count}）</option>)}</select></label>
       <label><span className="sr-only">账号排序</span><select aria-label="账号排序" value={sort} onChange={e=>update("sort",e.target.value)}><option value="name">身份 A–Z</option><option value="name_desc">身份 Z–A</option><option value="provider">按渠道</option></select></label>
       <span className="entity-meta">匹配 {inventory.data?.pages[0]?.total??"…"} 份授权</span>
       {provider?<button className="secondary" onClick={()=>update("provider","")}>清除提供商筛选</button>:null}
@@ -137,8 +141,9 @@ function ManagedAccounts() {
       {accountGroups.map((group)=><button key={group.id} aria-pressed={selectedCategory===group.id} onClick={()=>update("category",group.id)}>{group.name}</button>)}
     </nav>
     {error?<div role="alert" className="empty-state">{error.message}<button onClick={()=>void refresh()}>重新读取账号</button></div>:null}
+    {inventory.isPending?<p role="status">正在读取账号…</p>:!inventory.isError&&inventory.data?.pages[0]?.total===0?<p className="empty-state">没有匹配的账号。</p>:null}
     <div className="account-directory">
-      {accountGroups.filter((group)=>!selectedCategory||selectedCategory===group.id).map((group)=>{
+      {accountGroups.filter((group)=>(!selectedCategory||selectedCategory===group.id)&&directory.some(row=>row.category===group.id)).map((group)=>{
         const ordinary=rows.filter((row)=>(row.category??"api")===group.id);
         const identities=groupManagedIdentities(ordinary);
         const grok=provider?[]:nativeRows;
@@ -147,7 +152,7 @@ function ManagedAccounts() {
         return <section className="account-group" key={group.id} aria-label={`${group.name} 账号`}>
           <header className="account-directory-head"><div><h3>{group.name}</h3><span className="entity-meta">{group.description}</span></div><span className="account-group-count">{loading?"读取中":failed?"读取失败":`${inventory.data?.pages[0]?.category_totals[group.id]??0} 份授权`}</span></header>
           {loading?<p className="account-group-empty">读取账号…</p>:failed?<p className="account-group-empty">暂时无法显示此类别</p>:group.id==="grok"?
-            (["grok_web","grok_console","grok_build"] as const).map((channel)=><section className="account-subgroup" key={channel} aria-label={nativeNames[channel]}><h4>{nativeNames[channel]}</h4><AccountList rows={grok.filter((row)=>row.provider===channel).map(nativeView)} /></section>):
+            (["grok_web","grok_console","grok_build"] as const).filter(channel=>grok.some(row=>row.provider===channel)).map((channel)=><section className="account-subgroup" key={channel} aria-label={nativeNames[channel]}><h4>{nativeNames[channel]}</h4><AccountList rows={grok.filter((row)=>row.provider===channel).map(nativeView)} /></section>):
             <AccountList rows={identities.map(groupedView)} />}
         </section>;
       })}
@@ -158,8 +163,9 @@ function ManagedAccounts() {
     {authorizations?<Sheet layout="inspector" title="关联授权" onEscape={()=>setAuthorizations(undefined)}>
       <h3>{accountName(authorizations[0]?.identity)}</h3><p>该身份有 {authorizations.length} 份授权，分别保留连接和状态。操作只影响所选授权。</p>
       <div className="account-grants">{authorizations.map((row)=><section key={row.credential.id} className="account-grant" aria-label="授权记录">
-        <div className="page-actions"><strong>{row.provider} · {row.credential.kind==="oauth_json"?"OAuth 授权":"渠道凭据"}</strong>{ordinaryView(row).status}</div>
+        <div className="page-actions"><strong>{row.provider} · {row.authentication==="oauth"||row.credential.kind==="oauth_json"?"OAuth 授权":"渠道凭据"}</strong>{ordinaryView(row).status}</div>
         <p>{row.connections.length?row.connections.map((c)=>`${protocolName(c.api_format)}${c.host?` · ${c.host}`:""}`).join(" / "):"未连接接口"}</p>
+        {row.plan?<p className="entity-meta">套餐 · {row.plan}</p>:null}
         {accountSource(row.credential.id)?<p className="entity-meta">来源 · {accountSource(row.credential.id)}</p>:null}
         <IdentityDetails entries={[["账号",row.credential.id,accountName(row.identity)],["提供商",row.credential.upstream_id,row.provider]]}/>
         {actions(row)}

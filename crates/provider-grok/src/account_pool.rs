@@ -976,9 +976,12 @@ impl GrokAccountPoolStore {
         if !valid_component(account_id, MAX_OPAQUE_ID_BYTES) {
             return Err(GrokAccountPoolError::InvalidRequest);
         }
-        let connection = self
+        let mut connection = self
             .connection
             .lock()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let connection = connection
+            .transaction()
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
         let provider = connection
             .query_row(
@@ -1025,6 +1028,10 @@ impl GrokAccountPoolStore {
                     entitlement.observed_at_ms(),
                 ],
             )
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        connection.execute("UPDATE native_account_inventory_generation SET generation=generation+1 WHERE singleton=1",[]).map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        connection
+            .commit()
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
         Ok(if existing.is_some() {
             GrokAccountEntitlementUpdateOutcome::Updated

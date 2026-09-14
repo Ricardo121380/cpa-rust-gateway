@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     StoreError, StoreResult,
-    account_identity::AccountIdentity,
+    account_identity::{AccountIdentity, CredentialDisplay},
     secret_store::{EncryptedSecret, KeyVersion},
 };
 use gateway_core::{CredentialId, EndpointId, UpstreamId};
@@ -32,7 +32,7 @@ pub struct ResourceInventoryQuery<'a> {
 
 /// Display-only decryption is confined to the bounded inventory transaction.
 pub type CredentialIdentityProjector =
-    dyn Fn(&ConfigVersionId, &CredentialConfiguration) -> AccountIdentity + Send + Sync;
+    dyn Fn(&ConfigVersionId, &CredentialConfiguration) -> CredentialDisplay + Send + Sync;
 
 /// One configured connection; no URL secret is serialized by the management adapter.
 pub struct AccountConnection {
@@ -79,6 +79,12 @@ pub struct ManagedCredential {
     pub upstream_kind: String,
     /// Explicit identity evidence, never a digest or opaque subject.
     pub identity: AccountIdentity,
+    /// Observed authentication encoding, never inferred from the provider name.
+    pub authentication: Option<&'static str>,
+    /// Explicit plan display evidence; missing remains unknown.
+    pub plan: Option<String>,
+    /// Import declaration or token claim, not a verified entitlement.
+    pub plan_source: Option<&'static str>,
     /// Bounded connection previews; `binding_count` remains the complete count.
     pub connections: Vec<AccountConnection>,
 }
@@ -252,7 +258,7 @@ impl SqliteControlPlaneRepository {
                     params![query.version.as_str(), upstream_id.as_str()],
                     |r| r.get(0),
                 )?;
-                let identity = if let Some(project) =
+                let display = if let Some(project) =
                     project.filter(|_| items.len() < usize::from(query.limit))
                 {
                     let (ciphertext,key_version) = transaction.query_row("SELECT ciphertext,key_version FROM upstream_credentials WHERE config_version_id=?1 AND id=?2",params![query.version.as_str(),id.as_str()],|r|Ok((r.get::<_,Vec<u8>>(0)?,r.get::<_,i64>(1)?)))?;
@@ -274,7 +280,7 @@ impl SqliteControlPlaneRepository {
                         },
                     )
                 } else {
-                    AccountIdentity::default()
+                    CredentialDisplay::default()
                 };
                 let connections = transaction.prepare("SELECT e.id,e.adapter_id,e.api_format,e.base_url,(e.enabled AND b.enabled) FROM endpoint_credential_bindings b JOIN upstream_endpoints e ON e.config_version_id=b.config_version_id AND e.id=b.endpoint_id WHERE b.config_version_id=?1 AND b.credential_id=?2 ORDER BY e.id LIMIT 100")?.query_map(params![query.version.as_str(),id.as_str()],|r|Ok(AccountConnection{id:r.get(0)?,adapter_id:r.get(1)?,api_format:r.get(2)?,base_url:r.get(3)?,enabled:r.get(4)?}))?.collect::<Result<Vec<_>,_>>()?;
                 items.push(ManagedCredential {
@@ -291,7 +297,10 @@ impl SqliteControlPlaneRepository {
                     secret_present: read_boolean(row, 5, "upstream_credentials")?,
                     binding_count: row.get(6)?,
                     upstream_kind,
-                    identity,
+                    identity: display.identity,
+                    authentication: display.authentication,
+                    plan: display.plan,
+                    plan_source: display.plan_source,
                     connections,
                 });
             }

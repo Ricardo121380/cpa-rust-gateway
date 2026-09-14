@@ -18,7 +18,7 @@ export function CredentialUpdateDialog({account,onClose,onSaved}:Readonly<{accou
       const task=await beginConfigurationTask("更新账号凭据");setWorkingId(task.version.id);
       const current=await task.read<ManagedCredential["credential"]>("getCredential",{path:{credential_id:account.credential.id}});
       if(current.revision!==account.credential.revision)throw new Error("账号授权已变化，请重新读取后操作。");
-      await task.mutate("updateCredential",{path:{credential_id:current.id},body:{id:current.id,kind:current.kind,status:current.status,secret:material}});
+      await task.mutate("updateCredential",{path:{credential_id:current.id},body:{id:current.id,kind:current.kind,status:current.status==="disabled"||current.status==="revoked"?"disabled":"active",secret:material}});
       material="";
       return task.finish();
     } finally {material="";}

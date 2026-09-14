@@ -15,6 +15,8 @@ struct Params {
     q: Option<String>,
     category: Option<String>,
     status: Option<String>,
+    plan: Option<String>,
+    without_plan: Option<bool>,
     upstream_id: Option<String>,
     sort: Option<String>,
     limit: Option<u16>,
@@ -90,8 +92,8 @@ pub(super) async fn list(
     // Actions describe actual existing management capabilities. Unsupported OAuth entry points
     // are not advertised as available simply because a credential contains a token.
     let mut operations=vec!["details","update_credential","enable","disable","remove","models"];
-    if (kind=="oauth_json"&&text(&value,"category")=="codex")||(claude_authorization&&text(&value,"category")=="claude"){operations.push("reauthorize")}
-    items.push(json!({"id":value["credential"]["id"],"native":false,"identity":value["identity"],"name":identity_name(&value["identity"]),"category":value["category"],"provider":value["provider"],"status":status,"operations":operations,"managed":value,"native_account":null}));
+    if (kind=="oauth_json"&&text(&value,"category")=="codex")||(claude_authorization&&text(&value,"category")=="claude"&&text(&value,"authentication")=="oauth"){operations.push("reauthorize")}
+    items.push(json!({"id":value["credential"]["id"],"native":false,"identity":value["identity"],"name":identity_name(&value["identity"]),"category":value["category"],"provider":value["provider"],"status":status,"plan":value["plan"],"plan_source":value["plan_source"],"operations":operations,"managed":value,"native_account":null}));
    }
    after=page.next_after;if items.len()>10000||(items.len()==10000&&after.is_some()){return Ok(Err("capacity"))}
  if after.is_none(){break}
@@ -108,7 +110,7 @@ pub(super) async fn list(
      let status=if !row.enabled||auth=="disabled"{"disabled"}else if auth=="reauth_required"{"reauth_required"}else{"enabled"};
      let account=json!({"id":row.id,"provider":channel,"auth_status":auth,"enabled":row.enabled,"revision":row.revision,"import_batch_id":row.import_batch_id,"identity":identity});
      let mut operations=vec!["details","update_credential","enable","disable","remove","models"];if channel=="grok_build"{operations.retain(|v|*v!="update_credential");operations.push("reauthorize")}
-     items.push(json!({"id":account["id"],"native":true,"identity":account["identity"],"name":identity_name(&account["identity"]),"category":"grok","provider":provider,"status":status,"operations":operations,"managed":null,"native_account":account}));
+     items.push(json!({"id":account["id"],"native":true,"identity":account["identity"],"name":identity_name(&account["identity"]),"category":"grok","provider":provider,"status":status,"plan":row.entitlement.map(|e|e.tier().as_str()),"plan_source":row.entitlement.map(|e|e.source().as_str()),"operations":operations,"managed":null,"native_account":account}));
     }
     if items.len()>10000{return Ok(Err("capacity"))}
  if !page.has_more{break}
@@ -119,6 +121,9 @@ pub(super) async fn list(
   if cursor.as_ref().is_some_and(|c|c.native!=native_stamp){return Ok(Err("conflict"))}
   let query=params.q.as_deref().unwrap_or("").trim().to_lowercase();
   items.retain(|r| params.category.as_deref().is_none_or(|c|text(r,"category")==c)&&params.status.as_deref().is_none_or(|s|text(r,"status")==s)&&[text(r,"provider"),text(r,"category"),text(&r["identity"],"email"),text(&r["identity"],"phone"),text(&r["identity"],"username")].join(" ").to_lowercase().contains(&query));
+  let mut plan_totals=std::collections::BTreeMap::<String,usize>::new();let mut unobserved_plan_total=0;
+  for item in &items { if let Some(plan)=item["plan"].as_str(){*plan_totals.entry(plan.to_owned()).or_default()+=1;}else{unobserved_plan_total+=1;} }
+  items.retain(|item|params.plan.as_deref().is_none_or(|plan|item["plan"].as_str()==Some(plan)) && (!params.without_plan.unwrap_or(false)||item["plan"].is_null()));
   items.sort_by(|a,b|{
    let key=|v:&Value| if params.sort.as_deref()==Some("provider"){format!("{} {}",text(v,"provider"),text(v,"name")).to_lowercase()}else{text(v,"name").to_lowercase()};
    let cmp=key(a).cmp(&key(b)).then_with(||text(a,"id").cmp(text(b,"id"))).then_with(||a["native"].as_bool().cmp(&b["native"].as_bool()));
@@ -128,7 +133,7 @@ pub(super) async fn list(
   let total=items.len();let offset=cursor.as_ref().map_or(0,|c|c.offset);if offset>total{return Ok(Err("conflict"))}
   let end=(offset+usize::from(limit)).min(total);let (revision,audit)=stamp.unwrap_or((0,0));
   let next=if end<total{serde_json::to_vec(&Cursor{version:context.version.to_string(),revision,audit,native:native_stamp,filter:params,offset:end}).ok().map(|b|URL_SAFE_NO_PAD.encode(b))}else{None};
-  Ok(Ok(json!({"config_version":context.version.to_string(),"revision":format!("rev-{revision}"),"total":total,"category_totals":counts,"items":items[offset..end],"next_cursor":next})))
+  Ok(Ok(json!({"config_version":context.version.to_string(),"revision":format!("rev-{revision}"),"total":total,"plan_totals":plan_totals,"unobserved_plan_total":unobserved_plan_total,"category_totals":counts,"items":items[offset..end],"next_cursor":next})))
  }).await;
     match result {
         Ok(Ok(value)) => HttpResponse::Ok()
@@ -172,6 +177,11 @@ fn parse(request: &HttpRequest, version: &str) -> Result<(Params, Option<Cursor>
     let limit = params.limit.unwrap_or(50);
     if !(1..=100).contains(&limit)
         || params.q.as_ref().is_some_and(|s| s.len() > 256)
+        || params
+            .plan
+            .as_ref()
+            .is_some_and(|s| s.is_empty() || s.len() > 128)
+        || (params.plan.is_some() && params.without_plan == Some(true))
         || params
             .upstream_id
             .as_ref()

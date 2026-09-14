@@ -66,3 +66,14 @@ it("a late unscoped version list cannot create a fork after a selection change",
   await expect(started).rejects.toMatchObject({silent:true});
   expect(call).toHaveBeenCalledTimes(1);
 });
+
+it("discards a late owned read after selection changes",async()=>{
+  vi.mocked(call).mockImplementation(async operation=>operation==="listConfigVersions"?[active]:draft);
+  const task=await beginConfigurationTask("Authorize");
+  let resolve!:(value:unknown)=>void;
+  vi.mocked(call).mockImplementationOnce(()=>new Promise(done=>{resolve=done;}));
+  const response=task.read("startCodexEnrollment");
+  useVersionStore.getState().select({...active,id:"different"});
+  resolve({state:"pending",authorization_url:"https://example.test/old-session"});
+  await expect(response).rejects.toMatchObject({silent:true});
+});
