@@ -55,3 +55,23 @@ credentials, historical requests or ledger rows, and makes no Provider calls.
 A changed plan or existing target stops execution; inspect an interrupted draft
 instead of replaying it. A successful local synthetic run is not production-copy
 or real-channel acceptance.
+
+
+### Exact-target catalog acceptance without background renewal
+
+`gateway catalog-check` runs the same assembled metadata discovery as `/admin/catalog/refresh`,
+but never starts listeners, inference, periodic maintenance or startup credential renewal.
+Run it only on a fresh operator-owned state copy: use SQLite backup for control/admin stores,
+copy the existing required credential files with owner-only permissions, and create
+`<copy-state>/catalog-check.marker` containing exactly `isolated-metadata-only\n`.
+Missing/symlink/nonmatching markers are rejected before opening the database.
+
+```
+gateway catalog-check --state-dir <absolute-copy-state> --credential-dir <absolute-copy-credentials> --endpoint-id <exact-endpoint> --credential-id <exact-account>
+```
+
+It writes only directory observations in the isolated copy and emits counts/closed errors, never
+credentials or inference output. A stale access token is reported, never silently renewed from a
+copied rotating grant. Re-create the copy from the live service after separately authorized renewal
+if needed. This command is for production-copy acceptance; it does not replace the production HTTP
+refresh workflow or prove official interactive authorization completed.

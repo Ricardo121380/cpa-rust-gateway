@@ -314,7 +314,7 @@ function AvailabilityMatrixCard({
                       const cell = matrix.cells.get(cellKey(endpoint, credential));
                       if (cell === undefined) {
                         return (
-                          <td key={credential} className="rt-cell">
+                          <td key={credential} className="rt-cell"><span className="rt-mobile-account"><CredentialButton id={credential}/></span>
                             <span
                               className="rt-chip"
                               data-state="none"
@@ -329,7 +329,7 @@ function AvailabilityMatrixCard({
                         );
                       }
                       return (
-                        <td key={credential} className="rt-cell">
+                        <td key={credential} className="rt-cell"><span className="rt-mobile-account"><CredentialButton id={credential}/></span>
                           <StateChip
                             meta={availabilityMeta(cell.availability)}
                             attr={stateAttr(cell.availability)}
@@ -421,7 +421,7 @@ function RecoveryCard({
           detail="没有处于 quota_blocked 或 credential_forbidden 的绑定 —— 其余五态不接受此操作。"
         />
       ) : (
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th scope="col">endpoint</th>
@@ -437,16 +437,16 @@ function RecoveryCard({
               const outcome = outcomes[key];
               return (
                 <tr key={key}>
-                  <td><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></td>
-                  <td><ResourceIdentity id={row.credential_id} kind="account" /></td>
-                  <td>
+                  <td data-label="接口"><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></td>
+                  <td data-label="账号"><ResourceIdentity id={row.credential_id} kind="account" /></td>
+                  <td data-label="当前状态">
                     <StateChip
                       meta={availabilityMeta(row.availability)}
                       attr={stateAttr(row.availability)}
                       raw={row.availability}
                     />
                   </td>
-                  <td className="row-actions">
+                  <td data-label="操作" className="row-actions">
                     <button
                       type="button"
                       className="secondary"
@@ -456,7 +456,7 @@ function RecoveryCard({
                       {pendingKey === key ? "请求中…" : "发起恢复"}
                     </button>
                   </td>
-                  <td>
+                  <td data-label="结果">
                     {outcome === undefined ? (
                       <span className="muted-3">—</span>
                     ) : outcome.ok ? (
@@ -524,7 +524,7 @@ function CatalogCard({
           detail="投影已启用,但尚无任何目录观测记录。"
         />
       ) : (
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th scope="col">endpoint</th>
@@ -542,27 +542,27 @@ function CatalogCard({
               const stage = ageStage(row.observed_at_ms, nowMs);
               return (
                 <tr key={`${row.endpoint_id} ${row.credential_id}`}>
-                  <td><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></td>
-                  <td className="mono">
+                  <td data-label="接口"><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></td>
+                  <td data-label="账号" className="mono">
                     <CredentialButton id={row.credential_id} />
                   </td>
-                  <td>
+                  <td data-label="目录状态">
                     <StateChip
                       meta={freshnessMeta(row.freshness)}
                       attr={row.freshness}
                       raw={row.freshness}
                     />
                   </td>
-                  <td className="mono">{row.snapshot_version ?? "—"} / {row.model_count ?? "—"}</td>
-                  <td>
+                  <td data-label="目录快照 / 模型数" className="mono">{row.snapshot_version ?? "—"} / {row.model_count ?? "—"}</td>
+                  <td data-label="刷新 / 最近失败">
                     <div>{row.refresh_due === undefined ? "未观测" : row.refresh_due ? "待刷新" : "未到刷新期"}</div>
                     <div>{row.last_failure_class ?? "无失败观测"} · {formatObservedAt(row.last_failure_at_ms ?? 0)}</div>
                   </td>
-                  <td className="mono">{formatAge(row.observed_at_ms, nowMs)}</td>
-                  <td className="rt-stage" data-stage={stage}>
+                  <td data-label="最近观测" className="mono">{formatAge(row.observed_at_ms, nowMs)}</td>
+                  <td data-label="阶段(按时钟)" className="rt-stage" data-stage={stage}>
                     {stage === "unobserved" ? "—" : ageStageLabel(stage)}
                   </td>
-                  <td className="mono muted">{formatObservedAt(row.observed_at_ms)}</td>
+                  <td data-label="观测时刻(UTC)" className="mono muted">{formatObservedAt(row.observed_at_ms)}</td>
                 </tr>
               );
             })}
@@ -616,7 +616,7 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
           detail="路由存在但候选集为空 —— 请求会以 route_missing_active_candidate 失败。在「公开模型」页的路由工作台里加一个候选。"
         />
       ) : (
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th scope="col">candidate</th>
@@ -628,22 +628,22 @@ function RouteExplainResult({ explain }: Readonly<{ explain: RouteExplain }>) {
           <tbody>
             {explain.candidates.map((candidate) => (
               <tr key={candidate.candidate_id}>
-                <td><ResourceIdentity id={candidate.candidate_id} kind="candidate" /></td>
-                <td>
+                <td data-label="candidate"><ResourceIdentity id={candidate.candidate_id} kind="candidate" /></td>
+                <td data-label="决策">
                   <StateChip
                     meta={decisionMeta(candidate.decision)}
                     attr={candidate.decision}
                     raw={candidate.decision}
                   />
                 </td>
-                <td>
+                <td data-label="价格证据(闭集)">
                   <StateChip
                     meta={priceEvidenceMeta(candidate.price_evidence)}
                     attr={candidate.price_evidence}
                     raw={candidate.price_evidence}
                   />
                 </td>
-                <td className="mono">
+                <td data-label="原因(闭集)" className="mono">
                   {candidate.reason === null || candidate.reason === undefined
                     ? "—"
                     : candidate.reason}
@@ -945,7 +945,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
             <span className="mono">{formatObservedAt(pools.data.observed_at_ms)}</span>
             {pools.data.next_cursor === null ? "" : " · 还有更多(本卡只读第一页)"}
           </p>
-          <table>
+          <table className="responsive-table">
             <thead>
               <tr>
                 <th scope="col">Provider / Channel / 账号</th>
@@ -964,15 +964,15 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
                   <th scope="row" className="mono rt-rowhead">
                     <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong><div className="entity-meta">{account.presentation?.provider??resourceName(account.provider_id,"upstream")} · {account.presentation?protocolName(account.presentation.api_format):resourceName(account.channel_id,"endpoint")} {account.presentation?.host}</div>
                   </th>
-                  <td className="mono">{account.account_kind}</td>
-                  <td>
+                  <td data-label="Provider / Channel / 账号" className="mono">{account.account_kind}</td>
+                  <td data-label="种类">
                     <StateChip
                       meta={authStatusMeta(account.auth_status)}
                       attr={account.auth_status}
                       raw={account.auth_status}
                     />
                   </td>
-                  <td>
+                  <td data-label="认证">
                     <StateChip
                       meta={runtimeStatusMeta(account.runtime_status)}
                       attr={account.runtime_status}
@@ -980,12 +980,12 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
                     />
                     {account.enabled ? null : <span className="rt-off">已禁用</span>}
                   </td>
-                  <td><EntitlementEvidence entitlement={account.entitlement} /></td>
-                  <td className="mono">
+                  <td data-label="运行时"><EntitlementEvidence entitlement={account.entitlement} /></td>
+                  <td data-label="权益证据" className="mono">
                     {account.active_leases} / {account.max_concurrency}
                   </td>
-                  <td className="mono">{formatDue(account.expires_at_ms, nowMs)}</td>
-                  <td className="row-actions">
+                  <td data-label="并发" className="mono">{formatDue(account.expires_at_ms, nowMs)}</td>
+                  <td data-label="过期" className="row-actions">
                     <button
                       type="button"
                       className="secondary"

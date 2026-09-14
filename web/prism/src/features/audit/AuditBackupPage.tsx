@@ -69,7 +69,7 @@ export function AuditBackupPage() {
 
       <div className="card tablewrap">
         <h3>配置生命周期审计(append-only)</h3>
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>#</th>
@@ -86,17 +86,17 @@ export function AuditBackupPage() {
               .sort((a, b) => b.id - a.id)
               .map((event) => (
                 <tr key={event.id}>
-                  <td className="mono">{event.id}</td>
-                  <td>
+                  <td data-label="#" className="mono">{event.id}</td>
+                  <td data-label="动作">
                     <StatusBadge status={ACTION_STATUS[event.action] ?? "archived"}>
                       {event.action}
                     </StatusBadge>
                   </td>
-                  <td className="mono">{event.actor}</td>
-                  <td className="mono">{formatTime(event.occurred_at_ms)}</td>
-                  <td><ResourceIdentity id={event.config_version_id} kind="config" /></td>
-                  <td>{event.replaced_config_version_id ? <ResourceIdentity id={event.replaced_config_version_id} kind="config" /> : "—"}</td>
-                  <td><button className="secondary" onClick={() => setInspected(event)}>详情</button></td>
+                  <td data-label="执行者" className="mono">{event.actor}</td>
+                  <td data-label="时间" className="mono">{formatTime(event.occurred_at_ms)}</td>
+                  <td data-label="配置版本"><ResourceIdentity id={event.config_version_id} kind="config" /></td>
+                  <td data-label="被替换版本">{event.replaced_config_version_id ? <ResourceIdentity id={event.replaced_config_version_id} kind="config" /> : "—"}</td>
+                  <td data-label="操作"><button className="secondary" onClick={() => setInspected(event)}>详情</button></td>
                 </tr>
               ))}
           </tbody>

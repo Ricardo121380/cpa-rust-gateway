@@ -73,6 +73,9 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
     match command {
         GatewayCommand::Admin(command) => execute_admin(command),
         GatewayCommand::Serve(command) => deployment::run(command).map_err(CliError::Deployment),
+        GatewayCommand::CatalogCheck(command, endpoint, credential) => {
+            deployment::check_catalog(&command, endpoint, credential).map_err(CliError::Deployment)
+        }
         GatewayCommand::AdminLogin(command) => {
             admin_login::run(&command).map_err(CliError::AdminLogin)
         }
@@ -220,6 +223,7 @@ fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
 enum GatewayCommand {
     Admin(AdminCommand),
     Serve(deployment::ServeCommand),
+    CatalogCheck(deployment::ServeCommand, String, String),
     AdminLogin(admin_login::InitCommand),
 }
 
@@ -316,6 +320,19 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
     let top_level = arguments.next().ok_or(CliError::Usage)?;
     match top_level.as_str() {
         "admin" => parse_admin_command(arguments.collect()).map(GatewayCommand::Admin),
+        "catalog-check" => {
+            let mut options = parse_options(arguments.collect())?;
+            let endpoint = options.remove("--endpoint-id").ok_or(CliError::Usage)?;
+            let credential = options.remove("--credential-id").ok_or(CliError::Usage)?;
+            let command = deployment::parse(
+                options
+                    .into_iter()
+                    .flat_map(|(key, value)| [key, value])
+                    .collect(),
+            )
+            .map_err(CliError::Deployment)?;
+            Ok(GatewayCommand::CatalogCheck(command, endpoint, credential))
+        }
         "serve" => deployment::parse(arguments.collect())
             .map(GatewayCommand::Serve)
             .map_err(CliError::Deployment),
@@ -448,6 +465,9 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 }
 
 fn print_usage() {
+    println!(
+        "Metadata acceptance: gateway catalog-check --state-dir <marked-isolated-copy> --credential-dir <absolute-dir> --endpoint-id <id> --credential-id <id> (no listeners, inference or background renewal)"
+    );
     println!(
         "Administrator bootstrap: gateway admin-login init --state-dir <absolute-dir> --password-file <new-private-file> [--username admin]"
     );

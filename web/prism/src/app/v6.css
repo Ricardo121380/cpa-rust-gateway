@@ -466,3 +466,22 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 .account-directory-toolbar > label:not(.account-search) { min-width:0; max-width:100%; }
 @media (max-width: 640px) { .account-directory-toolbar .account-search { flex-basis:100%; max-width:none; min-width:0; } }
 .account-directory-toolbar select { max-width:100%; }
+/* Advanced tables keep their real fields and actions available on narrow screens. */
+.rt-mobile-account { display:none; }
+@media(max-width:720px) {
+ .canvas .responsive-table,.canvas .responsive-table tbody { display:block; min-width:0; width:100%; }
+ .canvas .responsive-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+ .canvas .responsive-table tr { display:grid; gap:12px; min-width:0; padding:16px; margin:12px 0; border:1px solid var(--separator); border-radius:16px; background:var(--panel-tint); }
+ .canvas .responsive-table td,.canvas .responsive-table td:first-child,.canvas .responsive-table td:last-child { display:block; min-width:0; padding:0; border:0; white-space:normal; overflow-wrap:anywhere; }
+ .canvas .responsive-table td[data-label] { display:grid; grid-template-columns:76px minmax(0,1fr); gap:8px; align-items:start; }
+ .canvas .responsive-table td[data-label]::before { content:attr(data-label); font-family:var(--font-sans); font-size:12px; color:var(--ink-2); }
+ .canvas .responsive-table td[data-label="操作"] { display:flex; flex-wrap:wrap; gap:8px; }
+ .canvas .responsive-table td[data-label="操作"]::before { display:none; }
+ .canvas .responsive-table button { max-width:100%; min-height:44px; white-space:normal; }
+ .canvas .rt-matrix,.canvas .rt-matrix tbody { display:block; min-width:0; width:100%; }
+ .canvas .rt-matrix thead { display:none; }
+ .canvas .rt-matrix tr { display:grid; gap:8px; padding:12px 0; }
+ .canvas .rt-matrix :is(th,td) { display:block; position:static; min-width:0; width:auto; white-space:normal; }
+ .rt-mobile-account { display:block; margin-bottom:8px; }
+ .rt-mobile-account button { max-width:100%; white-space:normal; }
+}

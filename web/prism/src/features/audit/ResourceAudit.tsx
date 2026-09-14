@@ -79,7 +79,7 @@ export function ResourceAudit() {
           />
           {rows.length > 0 ? (
             <div className="table-scroll">
-              <table>
+              <table className="responsive-table">
                 <thead>
                   <tr>
                     <th>动作</th>
@@ -92,15 +92,15 @@ export function ResourceAudit() {
                 <tbody>
                   {rows.map((event) => (
                     <tr key={event.id}>
-                      <td className="mono">{event.action}</td>
-                      <td>
+                      <td data-label="动作" className="mono">{event.action}</td>
+                      <td data-label="资源">
                         {event.resource_kind}
                         <br />
                         <span><ResourceIdentity id={event.resource_id} kind="resource" /></span>
                       </td>
-                      <td>{event.actor}</td>
-                      <td>{new Date(event.occurred_at_ms).toLocaleString()}</td>
-                      <td>
+                      <td data-label="执行者">{event.actor}</td>
+                      <td data-label="时间">{new Date(event.occurred_at_ms).toLocaleString()}</td>
+                      <td data-label="操作">
                         <button
                           className="secondary"
                           onClick={() => setSelected(event)}

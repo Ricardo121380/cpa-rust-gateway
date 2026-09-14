@@ -181,7 +181,7 @@ export function EgressPage() {
       <ReadStatus pending={policies.isPending} error={policies.error} hasData={policies.data !== undefined} retry={() => void policies.refetch()} />
 
       <div className="card tablewrap">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>名称</th>
@@ -197,15 +197,15 @@ export function EgressPage() {
               const refs = referencingUpstreams(policy.id, upstreams.data ?? []);
               return (
                 <tr key={policy.id}>
-                  <td><ResourceIdentity id={policy.id} name={policy.name} kind="policy" /></td>
-                  <td className="mono">{policy.allowed_hosts.length} 条</td>
-                  <td className="mono">{policy.allowed_ports.join(", ")}</td>
-                  <td className="mono">
+                  <td data-label="名称"><ResourceIdentity id={policy.id} name={policy.name} kind="policy" /></td>
+                  <td data-label="主机" className="mono">{policy.allowed_hosts.length} 条</td>
+                  <td data-label="端口" className="mono">{policy.allowed_ports.join(", ")}</td>
+                  <td data-label="重定向" className="mono">
                     {policy.redirect_mode}
                     {policy.redirect_mode === "revalidate" ? ` ≤${policy.max_redirects}` : ""}
                   </td>
-                  <td className="mono">{refs.length > 0 ? refs.map((id) => resourceName(id, "upstream")).join(", ") : "—"}</td>
-                  <td className="row-actions">
+                  <td data-label="被引用" className="mono">{refs.length > 0 ? refs.map((id) => resourceName(id, "upstream")).join(", ") : "—"}</td>
+                  <td data-label="操作" className="row-actions">
                     <button className="secondary" onClick={() => setInspected(policy)}>详情</button>
                     <button
                       type="button"

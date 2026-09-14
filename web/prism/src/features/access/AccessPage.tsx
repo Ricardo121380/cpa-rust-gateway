@@ -104,7 +104,7 @@ function GroupRoutes({
           该组没有任何路由授权 —— 组内的 Client Key 现在到不了任何模型。
         </p>
       ) : (
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>路由</th>
@@ -114,8 +114,8 @@ function GroupRoutes({
           <tbody>
             {(grants.data ?? []).map((row) => (
               <tr key={row.route_id}>
-                <td><ResourceIdentity id={row.route_id} kind="route" /></td>
-                <td>
+                <td data-label="路由"><ResourceIdentity id={row.route_id} kind="route" /></td>
+                <td data-label="状态">
                   <StatusBadge status={row.enabled ? "active" : "disabled"}>
                     {row.enabled ? "enabled" : "disabled"}
                   </StatusBadge>
@@ -352,7 +352,7 @@ export function AccessPage() {
             按访问组签发
           </button>
 </div><div className="tablewrap">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>名称</th>
@@ -365,12 +365,12 @@ export function AccessPage() {
             {(groups.data ?? []).map((group) => (
               <Fragment key={group.id}>
                 <tr>
-                  <td><ResourceIdentity id={group.id} name={group.name} kind="group" /></td>
-                  <td>
+                  <td data-label="名称"><ResourceIdentity id={group.id} name={group.name} kind="group" /></td>
+                  <td data-label="状态">
                     <StatusBadge status={group.status} />
                   </td>
-                  <td className="mono">{formatLimits(group.limits) || "—"}</td>
-                  <td className="row-actions">
+                  <td data-label="限制" className="mono">{formatLimits(group.limits) || "—"}</td>
+                  <td data-label="操作" className="row-actions">
                     <button className="secondary" onClick={() => setInspectedGroup(group)}>详情</button>
                     <button
                       type="button"

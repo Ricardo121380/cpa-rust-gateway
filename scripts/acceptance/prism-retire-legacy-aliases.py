@@ -72,7 +72,8 @@ def graph(api):
               "routes": api.pages("/admin/routes"),
               "candidates": api.pages("/admin/route-candidates"),
               "aliases": api.pages("/admin/model-aliases"),
-              "groups": groups, "keys": api.request("/admin/client-keys")}
+              "groups": groups, "keys": [{k: row.get(k) for k in ("id", "access_group_id", "prefix", "status", "expires_at_ms")}
+                  for row in api.request("/admin/client-keys")]}
     result["grants"] = {g["id"]: api.request("/admin/access-groups/" +
         urllib.parse.quote(g["id"], safe="") + "/routes") for g in groups}
     return result

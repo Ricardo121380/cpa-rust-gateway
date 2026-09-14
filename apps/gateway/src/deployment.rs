@@ -194,6 +194,54 @@ pub(crate) fn run(command: ServeCommand) -> Result<(), DeploymentError> {
     actix_web::rt::System::new().block_on(run_servers(command, application))
 }
 
+/// One exact-target metadata read against an explicitly marked isolated state copy.
+/// Does not bind listeners, start maintenance or spend refresh grants; production serve is unchanged.
+pub(crate) fn check_catalog(
+    command: &ServeCommand,
+    endpoint: String,
+    credential: String,
+) -> Result<(), DeploymentError> {
+    use gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFacade;
+    let marker = command.state_directory.join("catalog-check.marker");
+    if !fs::symlink_metadata(&marker).is_ok_and(|m| m.file_type().is_file())
+        || fs::read(&marker).ok().as_deref() != Some(b"isolated-metadata-only\n")
+    {
+        return Err(DeploymentError::StateDirectoryUnavailable);
+    }
+    let endpoint = gateway_core::EndpointId::try_new(endpoint)
+        .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    let credential = gateway_core::CredentialId::try_new(credential)
+        .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    let application = build_application_state_with_refresh(command, false)?;
+    let mut repository =
+        SqliteControlPlaneRepository::open(command.state_directory.join(CONTROL_DATABASE_FILE))
+            .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
+    let active = repository
+        .list_config_versions()
+        .map_err(|_| DeploymentError::ControlPlaneUnavailable)?
+        .into_iter()
+        .find(|v| v.status == gateway_store::control_plane::ConfigVersionStatus::Active)
+        .ok_or(DeploymentError::ControlPlaneUnavailable)?;
+    let result = actix_web::rt::System::new()
+        .block_on(application.reload.refresh(active.id, endpoint, credential));
+    match result {
+        Ok(receipt) => {
+            println!(
+                "{}",
+                serde_json::json!({"metadata_only":true,"model_count":receipt.model_count,"observed_at_ms":receipt.observed_at_ms,"background_workers_started":false,"credential_refresh_attempted":false,"inference_requests":0})
+            );
+            Ok(())
+        }
+        Err(error) => {
+            println!(
+                "{}",
+                serde_json::json!({"metadata_only":true,"error":format!("{error:?}"),"background_workers_started":false,"credential_refresh_attempted":false,"inference_requests":0})
+            );
+            Err(DeploymentError::RuntimeUnavailable)
+        }
+    }
+}
+
 async fn run_servers(
     command: ServeCommand,
     application: ApplicationState,
@@ -353,8 +401,15 @@ impl ManagementFailureFeedbackFacade for DeploymentManagementUsageFacade {
 
 // Keep the serving and management compositions visibly adjacent so one database/runtime source
 // cannot be wired into a second hidden control plane.
-#[allow(clippy::too_many_lines)]
 fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, DeploymentError> {
+    build_application_state_with_refresh(command, true)
+}
+
+#[allow(clippy::too_many_lines)]
+fn build_application_state_with_refresh(
+    command: &ServeCommand,
+    startup_refresh_enabled: bool,
+) -> Result<ApplicationState, DeploymentError> {
     ensure_direct_directory(
         &command.state_directory,
         DeploymentError::StateDirectoryUnavailable,
@@ -404,25 +459,27 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
     let registry = Arc::clone(lifecycle_service.registry());
     let runtime_secret_store = SecretStore::new(runtime_key_ring);
-    let startup_refresh = credential_refresh::refresh_due_credentials_before_compile(
-        &database,
-        &runtime_secret_store,
-        command.codex_oauth_proxy.clone(),
-    )
-    .map_err(|_| DeploymentError::RuntimeUnavailable)?;
-    tracing::info!(
-        target: "credential_refresh",
-        provider = "grok_build",
-        claimed = startup_refresh.claimed,
-        succeeded = startup_refresh.succeeded,
-        backed_off = startup_refresh.backed_off,
-        reauth_required = startup_refresh.reauth_required,
-        panicked = startup_refresh.panicked,
-        codex_due = startup_refresh.codex_due,
-        codex_succeeded = startup_refresh.codex_succeeded,
-        codex_backed_off = startup_refresh.codex_backed_off,
-        "startup credential refresh pass completed"
-    );
+    if startup_refresh_enabled {
+        let startup_refresh = credential_refresh::refresh_due_credentials_before_compile(
+            &database,
+            &runtime_secret_store,
+            command.codex_oauth_proxy.clone(),
+        )
+        .map_err(|_| DeploymentError::RuntimeUnavailable)?;
+        tracing::info!(
+            target: "credential_refresh",
+            provider = "grok_build",
+            claimed = startup_refresh.claimed,
+            succeeded = startup_refresh.succeeded,
+            backed_off = startup_refresh.backed_off,
+            reauth_required = startup_refresh.reauth_required,
+            panicked = startup_refresh.panicked,
+            codex_due = startup_refresh.codex_due,
+            codex_succeeded = startup_refresh.codex_succeeded,
+            codex_backed_off = startup_refresh.codex_backed_off,
+            "startup credential refresh pass completed"
+        );
+    }
     let runtime::DataPlaneComposition {
         data,
         reload,

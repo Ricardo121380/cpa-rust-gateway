@@ -117,7 +117,7 @@ export function CatalogPage() {
           </div>
         ) : (
           <div className="tablewrap">
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>目录目标</th>
@@ -131,20 +131,20 @@ export function CatalogPage() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={`${row.endpoint_id}/${row.credential_id}`}>
-                    <td>
+                    <td data-label="目录目标">
                       <div className="entity-name"><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></div>
                       <div className="entity-meta"><ResourceIdentity id={row.credential_id} kind="account" /></div>
                     </td>
-                    <td>
+                    <td data-label="新鲜度">
                       <StatusBadge status={row.freshness}>
                         {freshnessMeta(row.freshness).label}
                       </StatusBadge>
                     </td>
-                    <td className="mono">{row.model_count ?? "—"}</td>
-                    <td className="mono">
+                    <td data-label="模型数" className="mono">{row.model_count ?? "—"}</td>
+                    <td data-label="最近成功观测" className="mono">
                       {formatObservedAt(row.observed_at_ms)}
                     </td>
-                    <td>
+                    <td data-label="刷新 / 失败">
                       <div>
                         {row.refresh_due === undefined
                           ? "未观测"
@@ -156,7 +156,7 @@ export function CatalogPage() {
                         {row.last_failure_class ?? "无失败观测"}
                       </div>
                     </td>
-                    <td>
+                    <td data-label="操作">
                       <button
                         className="secondary"
                         onClick={() => setSelected(row)}
