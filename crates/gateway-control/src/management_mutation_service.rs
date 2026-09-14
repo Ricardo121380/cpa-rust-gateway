@@ -1022,8 +1022,9 @@ impl ManagementMutationService {
     }
 
     /// Imports a normalized credential without duplicating identical material within an Upstream.
-    /// Matching imports keep account status, connections and secret revision; the graph CAS and
-    /// audit still acknowledge the operator action. A different credential is never overwritten.
+    /// Identical imports keep status and secret revision. New tokens for the same normalized
+    /// OAuth account binding and email rotate the existing record and preserve disabled status.
+    /// Connections remain attached to the stable credential; owner and identity must both match.
     /// # Errors
     /// Returns the ordinary draft, revision, encryption and audit failures.
     pub fn import_credential(
@@ -1049,6 +1050,29 @@ impl ManagementMutationService {
             let aad = credential_associated_data(config_version_id, &credential.id, &upstream_id)?;
             let material = self.secret_store.open(&credential.encrypted_secret, &aad)?;
             if material.as_bytes() != input.plaintext_secret {
+                if gateway_store::account_identity::AccountIdentity::same_oauth_account(
+                    material.as_bytes(),
+                    input.plaintext_secret,
+                ) {
+                    return self
+                        .update_credential_if_revision(
+                            actor,
+                            config_version_id,
+                            expected_revision,
+                            credential.revision,
+                            CredentialUpsert {
+                                id: credential.id,
+                                kind: input.kind.clone(),
+                                plaintext_secret: input.plaintext_secret,
+                                status: if credential.status == CredentialStatus::Disabled {
+                                    CredentialStatus::Disabled
+                                } else {
+                                    input.status
+                                },
+                            },
+                        )
+                        .map(|value| (value, false));
+                }
                 continue;
             }
             let audit = self.audit(

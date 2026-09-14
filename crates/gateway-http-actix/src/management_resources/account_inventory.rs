@@ -73,6 +73,10 @@ pub(super) async fn list(
         return internal_error();
     };
     let native = state.native_accounts.clone();
+    let claude_authorization = state
+        .claude_workflow
+        .lock()
+        .is_ok_and(|workflow| workflow.codex_enrollment_available());
     let result=read_operations(&state,move ||{
   let mut items=Vec::new();let mut after=None;let mut stamp=cursor.as_ref().map(|c|(c.revision,c.audit));
   loop {
@@ -86,7 +90,7 @@ pub(super) async fn list(
     // Actions describe actual existing management capabilities. Unsupported OAuth entry points
     // are not advertised as available simply because a credential contains a token.
     let mut operations=vec!["details","update_credential","enable","disable","remove","models"];
-    if kind=="oauth_json"&&text(&value,"category")=="codex"{operations.push("reauthorize")}
+    if (kind=="oauth_json"&&text(&value,"category")=="codex")||(claude_authorization&&text(&value,"category")=="claude"){operations.push("reauthorize")}
     items.push(json!({"id":value["credential"]["id"],"native":false,"identity":value["identity"],"name":identity_name(&value["identity"]),"category":value["category"],"provider":value["provider"],"status":status,"operations":operations,"managed":value,"native_account":null}));
    }
    after=page.next_after;if items.len()>10000||(items.len()==10000&&after.is_some()){return Ok(Err("capacity"))}

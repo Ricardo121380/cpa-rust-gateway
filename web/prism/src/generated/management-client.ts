@@ -66,6 +66,30 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "cancelClaudeEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/claude-authorization/cancel",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "cancelCodexEnrollment": {
     "method": "POST",
     "path": "/admin/upstreams/{upstream_id}/codex-authorization/cancel",
@@ -178,6 +202,30 @@ export const managementOperations = {
     "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
+  },
+  "completeClaudeEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/claude-authorization/callback",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
   },
   "completeCodexEnrollment": {
     "method": "POST",
@@ -2508,6 +2556,30 @@ export const managementOperations = {
     "bodyEncoding": "json",
     "bodyRequired": true
   },
+  "startClaudeEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/claude-authorization/start",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "startCodexEnrollment": {
     "method": "POST",
     "path": "/admin/upstreams/{upstream_id}/codex-authorization/start",
@@ -3194,6 +3266,10 @@ export class ManagementApi {
     return this.request("applyRuntimeConfiguration", request);
   }
 
+  cancelClaudeEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("cancelClaudeEnrollment", request);
+  }
+
   cancelCodexEnrollment(request: ManagementRequest = {}): Promise<Response> {
     return this.request("cancelCodexEnrollment", request);
   }
@@ -3216,6 +3292,10 @@ export class ManagementApi {
 
   compareConfigVersions(request: ManagementRequest = {}): Promise<Response> {
     return this.request("compareConfigVersions", request);
+  }
+
+  completeClaudeEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("completeClaudeEnrollment", request);
   }
 
   completeCodexEnrollment(request: ManagementRequest = {}): Promise<Response> {
@@ -3648,6 +3728,10 @@ export class ManagementApi {
 
   setRoutingPricePolicy(request: ManagementRequest = {}): Promise<Response> {
     return this.request("setRoutingPricePolicy", request);
+  }
+
+  startClaudeEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("startClaudeEnrollment", request);
   }
 
   startCodexEnrollment(request: ManagementRequest = {}): Promise<Response> {

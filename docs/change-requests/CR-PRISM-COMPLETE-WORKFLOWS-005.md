@@ -38,3 +38,19 @@ Codex enrollment only, not a claim that Claude/Kiro enrollment is implemented. E
 Codex reauthorization remains its own revision-bound operation. Browser mutation failures
 are not automatically replayed; saved drafts remain inspectable after partial connection
 or publication failure. First authorization is advertised only with an injected exchange.
+
+## Claude authorization and stable OAuth identity (2026-09-14)
+
+Add parallel Claude start/cancel/callback operations and optional `replace_existing` on
+code-authorization inputs. First authorization writes no placeholder; explicit replacement
+retains the credential ID, bindings and disabled state, checks the prior credential revision,
+and refuses a changed observed account binding/email. Shared code-authorization sessions
+use provider-specific client, redirect, scope and exchange; Claude uses the pinned reference's
+`platform.claude.com/v1/oauth/token` and advisory OAuth profile read. Responses and profile
+reads are bounded; redirects and ambient proxies are disabled. Normalized Claude material
+accepts the observed email so inventory can display it.
+
+Ordinary OAuth import now rotates the existing record only when normalized provider account
+binding AND observed email match within the same upstream and credential kind. Identical
+bytes remain idempotent. Different organization members are not merged on a shared account
+binding alone; disabled status remains disabled. This changes no model grants.

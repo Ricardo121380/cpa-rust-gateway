@@ -8,7 +8,7 @@ import { resourceName } from "../../utils/resourceNames";
 import { useSessionStore } from "../../session/sessionStore";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
-import { CodexEnrollmentDialog } from "./CodexEnrollmentDialog";
+import { AuthorizationCodeDialog } from "./AuthorizationCodeDialog";
 import { GrokDeviceWizard } from "./GrokDeviceWizard";
 import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
 import { useManagedInventory } from "./inventory";
@@ -117,7 +117,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     setRows(items.map(({id,label})=>({id,label,status:"待导入"})));
     create.mutate({provider:String(form.get("provider")??""),endpoint:String(form.get("endpoint")??""),items});
   };
-  if(oauth&&channelId==="codex")return <CodexEnrollmentDialog providerId={selectedProvider} providerName={resourceName(selectedProvider,"upstream",matches.find(row=>row.id===selectedProvider)?.name)} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
+  if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} providerId={selectedProvider} providerName={resourceName(selectedProvider,"upstream",matches.find(row=>row.id===selectedProvider)?.name)} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth)return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   return <Sheet title="添加账号" onEscape={close}>
     {completed?<>

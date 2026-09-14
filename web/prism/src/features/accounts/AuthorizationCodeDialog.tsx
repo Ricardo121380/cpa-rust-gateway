@@ -10,9 +10,12 @@ import {parseOAuthCallback,safeExternalUrl} from "../upstreams/model";
 type Session={credential_id:string;state:string;authorization_url?:string|null;expires_at_ms?:number|null};
 type Enrollment={task:Awaited<ReturnType<typeof beginConfigurationTask>>;id:string};
 
-export function CodexEnrollmentDialog({providerId,providerName,endpointId,onClose,onComplete}:Readonly<{
-  providerId:string;providerName:string;endpointId:string;onClose:()=>void;onComplete:(notice?:string)=>void;
+export function AuthorizationCodeDialog({providerId,providerName,endpointId,onClose,onComplete,channel="codex",credentialId}:Readonly<{
+  providerId:string;providerName:string;endpointId:string;onClose:()=>void;onComplete:(notice?:string)=>void;channel?:"codex"|"claude";credentialId?:string;
 }>) {
+  const label=channel==="claude"?"Claude":"Codex";
+  const providerLabel=channel==="claude"?"Claude":"OpenAI";
+  const operations=channel==="claude"?{start:"startClaudeEnrollment",complete:"completeClaudeEnrollment",cancel:"cancelClaudeEnrollment"} as const:{start:"startCodexEnrollment",complete:"completeCodexEnrollment",cancel:"cancelCodexEnrollment"} as const;
   const current=useRef<Enrollment|undefined>(undefined);
   const [session,setSession]=useState<Session>();
   const [callback,setCallback]=useState("");
@@ -20,15 +23,15 @@ export function CodexEnrollmentDialog({providerId,providerName,endpointId,onClos
   const [workingId,setWorkingId]=useState<string>();
   const [completed,setCompleted]=useState<ConfigVersionSummary>();
   const start=useMutation({mutationFn:async()=>{
-    const task=await beginConfigurationTask("授权 Codex 账号");
-    const id=`codex-${crypto.randomUUID()}`;current.current={task,id};setWorkingId(task.version.id);
-    return task.read<Session>("startCodexEnrollment",{path:{upstream_id:providerId},body:{id},headers:{"If-Match":task.version.revision}});
+    const task=await beginConfigurationTask(`授权 ${label} 账号`);
+    const id=credentialId??`${channel}-${crypto.randomUUID()}`;current.current={task,id};setWorkingId(task.version.id);
+    return task.read<Session>(operations.start,{path:{upstream_id:providerId},body:{id,replace_existing:!!credentialId},headers:{"If-Match":task.version.revision}});
   },onSuccess:setSession});
   const complete=useMutation({gcTime:0,mutationFn:async()=>{
     const enrollment=current.current;if(!enrollment)throw new Error("请先开始授权。");
     const parsed=parseOAuthCallback(callback);if(!parsed.ok)throw new Error(parsed.reason);
     const {task,id}=enrollment;task.assertOwner();
-    const account=await task.mutate<{id:string}>("completeCodexEnrollment",{path:{upstream_id:providerId},body:{id,callback:parsed.input}});
+    const account=await task.mutate<{id:string}>(operations.complete,{path:{upstream_id:providerId},body:{id,replace_existing:!!credentialId,callback:parsed.input}});
     setCallback("");
     if(endpointId){
       const bindings=await task.read<{credential_id:string}[]>("listEndpointCredentialBindings",{path:{endpoint_id:endpointId}});
@@ -38,18 +41,18 @@ export function CodexEnrollmentDialog({providerId,providerName,endpointId,onClos
   },onSuccess:setCompleted});
   const cancel=useMutation({mutationFn:async()=>{
     const enrollment=current.current;
-    if(enrollment)await enrollment.task.read("cancelCodexEnrollment",{path:{upstream_id:providerId},body:{id:enrollment.id},headers:{"If-Match":enrollment.task.version.revision}});
+    if(enrollment)await enrollment.task.read(operations.cancel,{path:{upstream_id:providerId},body:{id:enrollment.id,replace_existing:!!credentialId},headers:{"If-Match":enrollment.task.version.revision}});
   },onSuccess:()=>{setCallback("");onClose();}});
   const busy=start.isPending||complete.isPending||cancel.isPending;
-  const close=()=>{if(busy)return;if(completed){useVersionStore.getState().select(completed);onComplete("Codex 账号授权已保存。");}else if(complete.isError)onClose();else cancel.mutate();};
+  const close=()=>{if(busy)return;if(completed){useVersionStore.getState().select(completed);onComplete(`${label} 账号授权已保存。`);}else if(complete.isError)onClose();else cancel.mutate();};
   const authorizeUrl=safeExternalUrl(session?.authorization_url);
-  return <Sheet title="授权 Codex 账号" onEscape={close}>
+  return <Sheet title={`${credentialId?"重新授权":"授权"} ${label} 账号`} onEscape={close}>
     <p>{providerName}</p>
     {completed?<p role="status">账号授权已保存{endpointId?"并连接接口":""}。</p>:!session?<>
-      <p>登录 OpenAI 账号后，将浏览器跳转的完整回调地址粘贴回来。</p>
+      <p>登录 {providerLabel} 账号后，将浏览器跳转的完整回调地址粘贴回来。</p>
       <button disabled={busy||start.isError} onClick={()=>start.mutate()}>开始授权</button>
     </>:session.state==="pending"&&authorizeUrl?<>
-      <p><a href={authorizeUrl} target="_blank" rel="noreferrer noopener">打开 OpenAI 授权页</a></p>
+      <p><a href={authorizeUrl} target="_blank" rel="noreferrer noopener">打开 {providerLabel} 授权页</a></p>
       <div className="sheet-form"><label>回调地址<textarea rows={3} aria-label="回调地址" value={callback} maxLength={20480} autoComplete="off" spellCheck={false} disabled={busy||complete.isError} onChange={event=>{setCallback(event.target.value);setInputError(undefined);}}/></label></div>
       <p className="muted">授权后，本机回调页可能打不开；复制地址栏中的完整地址即可。</p>
       {inputError?<p role="alert">{inputError}</p>:null}

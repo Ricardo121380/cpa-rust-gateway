@@ -14,7 +14,7 @@ use crate::AnthropicMessagesAuthorization;
 use crate::account_entitlement::claude_entitlement_from_imported_plan;
 
 /// Fixed token endpoint used by the pinned Claude OAuth reference.
-pub const CLAUDE_OAUTH_TOKEN_URL: &str = "https://api.anthropic.com/v1/oauth/token";
+pub const CLAUDE_OAUTH_TOKEN_URL: &str = "https://platform.claude.com/v1/oauth/token";
 /// Fixed public client identity used by the pinned Claude OAuth reference.
 pub const CLAUDE_OAUTH_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const MAX_CREDENTIAL_BYTES: usize = 64 * 1024;
@@ -273,6 +273,8 @@ struct ClaudeOAuthDocument {
     account_id: Option<String>,
     #[serde(default, alias = "plan_type", alias = "subscription_tier")]
     plan: Option<String>,
+    #[serde(default, rename = "email")]
+    _email: Option<String>,
 }
 
 #[derive(Deserialize)]

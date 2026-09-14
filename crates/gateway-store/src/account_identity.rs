@@ -34,6 +34,14 @@ impl AccountIdentity {
         }
         result
     }
+    /// Matches normalized OAuth account binding AND observed email for operator imports.
+    /// This is deduplication evidence only; it never grants authentication or model access.
+    #[must_use]
+    pub fn same_oauth_account(left: &[u8], right: &[u8]) -> bool {
+        let first = oauth_match_key(left);
+        first.is_some() && first == oauth_match_key(right)
+    }
+
     /// Extracts display fields from a JWT payload without using its claims for authorization.
     #[must_use]
     pub fn from_token(token: &str) -> Self {
@@ -109,6 +117,31 @@ impl AccountIdentity {
         }
     }
 }
+fn oauth_match_key(bytes: &[u8]) -> Option<(String, String)> {
+    if bytes.len() > 65_536 {
+        return None;
+    }
+    let mut value: Value = serde_json::from_slice(bytes).ok()?;
+    let normalized = value
+        .get("kind")
+        .and_then(Value::as_str)
+        .is_some_and(|kind| ["codex_oauth", "claude_oauth"].contains(&kind))
+        || value.get("type").and_then(Value::as_str) == Some("codex");
+    let id = value
+        .get("account_id")
+        .and_then(Value::as_str)
+        .filter(|id| !id.is_empty() && id.len() <= 256 && !id.chars().any(char::is_control))
+        .map(str::to_owned);
+    let mut identity = AccountIdentity::default();
+    identity.visit(&value, 0);
+    wipe_json(&mut value);
+    if normalized {
+        id.zip(identity.email)
+    } else {
+        None
+    }
+}
+
 fn wipe_json(value: &mut Value) {
     match value {
         Value::String(text) => text.zeroize(),

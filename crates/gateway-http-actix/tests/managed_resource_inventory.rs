@@ -1967,3 +1967,163 @@ async fn first_codex_authorization_creates_only_after_callback_and_rejects_repla
     assert_eq!(count()?, 251);
     Ok(())
 }
+
+struct SyntheticClaudeExchange(usize);
+impl gateway_http_actix::management_resources::ManagementCodexOAuthExchange
+    for SyntheticClaudeExchange
+{
+    fn exchange(
+        &mut self,
+        _: &CredentialId,
+        _: zeroize::Zeroizing<String>,
+        _: zeroize::Zeroizing<Vec<u8>>,
+    ) -> Option<zeroize::Zeroizing<Vec<u8>>> {
+        self.0 += 1;
+        Some(zeroize::Zeroizing::new(serde_json::to_vec(&serde_json::json!({"kind":"claude_oauth","access_token":format!("synthetic-claude-{}",self.0),"refresh_token":"synthetic-refresh","expires_at_ms":4_102_444_800_000_i64,"account_id":if self.0<3{"claude-account"}else{"wrong-account"},"email":"claude@example.test"})).ok()?))
+    }
+}
+
+#[actix_web::test]
+async fn claude_enrollment_and_reauthorization_keep_one_identity_and_reject_wrong_account()
+-> TestResult {
+    use gateway_http_actix::management_resources::CodexOAuthManagementWorkflow;
+    let (file, state) = fixture(false)?;
+    let state = state.with_claude_workflow(Box::new(CodexOAuthManagementWorkflow::with_exchange(
+        Box::new(SyntheticClaudeExchange(0)),
+    )));
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='claude' WHERE config_version_id=?1 AND id='owner-a'",
+        [VERSION],
+    )?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    for (round, revision, replace, expected) in [
+        (0, "rev-0", false, StatusCode::CREATED),
+        (1, "rev-1", true, StatusCode::OK),
+        (2, "rev-2", true, StatusCode::BAD_REQUEST),
+    ] {
+        let response = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::post()
+                    .uri("/admin/upstreams/owner-a/claude-authorization/start"),
+            )
+            .insert_header(("If-Match", revision))
+            .set_json(serde_json::json!({"id":"claude-enrolled","replace_existing":replace}))
+            .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+        let started: Value = test::read_body_json(response).await;
+        let url = url::Url::parse(started["authorization_url"].as_str().ok_or("URL")?)?;
+        let state = url
+            .query_pairs()
+            .find(|(k, _)| k == "state")
+            .ok_or("state")?
+            .1
+            .into_owned();
+        let response=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/claude-authorization/callback")).insert_header(("If-Match",revision)).set_json(serde_json::json!({"id":"claude-enrolled","replace_existing":replace,"callback":{"state":state,"code":"synthetic-code"}})).to_request()).await;
+        assert_eq!(response.status(), expected, "round {round}");
+        if round < 2 {
+            let body: Value = test::read_body_json(response).await;
+            assert_eq!(body["id"], "claude-enrolled");
+            assert_eq!(body["revision"], round);
+            assert!(!body.to_string().contains("synthetic-refresh"));
+        }
+        let count: i64 = db.query_row(
+            "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1",
+            [VERSION],
+            |row| row.get(0),
+        )?;
+        assert_eq!(count, 251);
+    }
+    let revision:i64=db.query_row("SELECT revision FROM upstream_credentials WHERE config_version_id=?1 AND id='claude-enrolled'",[VERSION],|row|row.get(0))?;
+    assert_eq!(
+        revision, 1,
+        "wrong account must not replace the stored authorization"
+    );
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/accounts/inventory?q=claude%40example.test"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["total"], 1);
+    assert_eq!(body["items"][0]["identity"]["email"], "claude@example.test");
+    assert!(
+        body["items"][0]["operations"]
+            .as_array()
+            .ok_or("operations")?
+            .contains(&serde_json::json!("reauthorize"))
+    );
+    Ok(())
+}
+
+#[actix_web::test]
+async fn repeated_oauth_import_rotates_one_account_but_keeps_other_members_separate() -> TestResult
+{
+    let (file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    for (index, id, email, expected, retained) in [
+        (
+            0,
+            "first-import",
+            "first@example.test",
+            StatusCode::CREATED,
+            "first-import",
+        ),
+        (
+            1,
+            "repeat-import",
+            "first@example.test",
+            StatusCode::OK,
+            "first-import",
+        ),
+        (
+            2,
+            "other-member",
+            "second@example.test",
+            StatusCode::CREATED,
+            "other-member",
+        ),
+    ] {
+        let secret=serde_json::json!({"kind":"codex_oauth","access_token":format!("synthetic-token-{index}"),"refresh_token":format!("synthetic-refresh-{index}"),"expires_at_ms":4_102_444_800_000_i64,"account_id":"shared-workspace","email":email}).to_string();
+        let response = test::call_service(
+            &app,
+            authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
+                .insert_header(("If-Match", format!("rev-{index}")))
+                .set_json(serde_json::json!({"id":id,"channel":"codex","secret":secret}))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), expected);
+        let body: Value = test::read_body_json(response).await;
+        assert_eq!(body["id"], retained);
+    }
+    let db = gateway_store::open(&file.0)?;
+    let count: i64 = db.query_row(
+        "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1",
+        [VERSION],
+        |row| row.get(0),
+    )?;
+    assert_eq!(count, 252);
+    let revision:i64=db.query_row("SELECT revision FROM upstream_credentials WHERE config_version_id=?1 AND id='first-import'",[VERSION],|row|row.get(0))?;
+    assert_eq!(revision, 1);
+    Ok(())
+}

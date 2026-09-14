@@ -466,7 +466,12 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
     .with_failure_feedback(Box::new(DeploymentManagementUsageFacade::new(
         database.clone(),
     )))
-    .with_provider_account_pools(provider_account_pools);
+    .with_provider_account_pools(provider_account_pools)
+    .with_claude_workflow(
+        gateway_http_actix::management_resources::claude_authorization::workflow(
+            UpstreamProxy::Direct,
+        ),
+    );
     let native_accounts =
         provider_grok::GrokAccountPoolStore::try_open(&database, runtime_secret_store.clone())
             .map_err(|_| DeploymentError::RuntimeUnavailable)?;

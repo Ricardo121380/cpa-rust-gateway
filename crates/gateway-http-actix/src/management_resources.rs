@@ -8,6 +8,7 @@ mod account_channels;
 mod account_inventory;
 mod catalog_inventory;
 pub mod catalog_refresh;
+pub mod claude_authorization;
 mod codex_enrollment;
 mod configuration_diff;
 mod configuration_edit;
@@ -126,6 +127,7 @@ pub struct ManagementResourceHttpState {
         std::sync::Arc<gateway_control::billing_processing::BillingProcessingMonitor>,
     service: Mutex<ManagementMutationService>,
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
+    claude_workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     channel_pin: Mutex<Box<dyn ManagementChannelPinFacade>>,
     usage: std::sync::Arc<dyn ManagementUsageFacade>,
@@ -390,6 +392,7 @@ impl ManagementResourceHttpState {
             billing_processing: std::sync::Arc::default(),
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
+            claude_workflow: Mutex::new(Box::new(RejectingManagementEndpointWorkflow::new())),
             runtime: Mutex::new(runtime),
             channel_pin: Mutex::new(Box::new(RejectingManagementChannelPinFacade::new())),
             usage: usage.into(),
@@ -402,6 +405,13 @@ impl ManagementResourceHttpState {
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
+    }
+
+    /// Installs the separately configured Claude authorization-code workflow.
+    #[must_use]
+    pub fn with_claude_workflow(mut self, workflow: Box<dyn ManagementEndpointWorkflow>) -> Self {
+        self.claude_workflow = Mutex::new(workflow);
+        self
     }
 
     /// Attaches this binary's safe build information; does not read environment secrets.
@@ -1951,6 +1961,17 @@ pub trait ManagementCodexOAuthExchange: Send {
         code_verifier: Zeroizing<Vec<u8>>,
     ) -> Option<Zeroizing<Vec<u8>>>;
 
+    /// Exchanges a code with the already verified OAuth state when the provider requires it.
+    fn exchange_with_state(
+        &mut self,
+        credential_id: &CredentialId,
+        code: Zeroizing<String>,
+        verifier: Zeroizing<Vec<u8>>,
+        _state: &[u8],
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        self.exchange(credential_id, code, verifier)
+    }
+
     /// Refreshes an already imported OAuth envelope and returns a normalized replacement.
     fn refresh(
         &mut self,
@@ -1990,6 +2011,7 @@ fn codex_oauth_http_client(
 ) -> Result<reqwest::blocking::Client, CodexOAuthTransportError> {
     let mut builder = reqwest::blocking::Client::builder()
         .timeout(CODEX_OAUTH_HTTP_TIMEOUT)
+        .redirect(reqwest::redirect::Policy::none())
         .user_agent(CODEX_OAUTH_USER_AGENT)
         // OAuth must not inherit an operator's ambient HTTP(S)_PROXY.  If a proxy is desired it
         // is supplied explicitly through the validated local-DNS SOCKS5 process option below.
@@ -2150,6 +2172,7 @@ pub struct CodexOAuthManagementWorkflow {
     oauth: BTreeMap<CredentialId, CodexOAuthSession>,
     exchange: Box<dyn ManagementCodexOAuthExchange>,
     enrollment_available: bool,
+    authorization_url_builder: fn(&CodexOAuthSession) -> String,
 }
 
 impl CodexOAuthManagementWorkflow {
@@ -2160,6 +2183,7 @@ impl CodexOAuthManagementWorkflow {
             oauth: BTreeMap::new(),
             exchange: Box::new(RejectingManagementCodexOAuthExchange),
             enrollment_available: false,
+            authorization_url_builder: authorization_url,
         }
     }
 
@@ -2170,7 +2194,13 @@ impl CodexOAuthManagementWorkflow {
             oauth: BTreeMap::new(),
             exchange,
             enrollment_available: true,
+            authorization_url_builder: authorization_url,
         }
+    }
+
+    pub(super) fn with_url_builder(mut self, builder: fn(&CodexOAuthSession) -> String) -> Self {
+        self.authorization_url_builder = builder;
+        self
     }
 
     fn now_ms() -> i64 {
@@ -2253,7 +2283,7 @@ impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
                 return ManagementCredentialOAuthOperation {
                     state: ManagementCredentialOAuthState::Pending,
                     expires_at_ms: Some(view.expires_at_ms),
-                    authorization_url: Some(authorization_url(session)),
+                    authorization_url: Some((self.authorization_url_builder)(session)),
                     failure_class: None,
                 };
             }
@@ -2262,7 +2292,7 @@ impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
         match result {
             Ok(mut session) => {
                 let view = session.view(now);
-                let authorization = authorization_url(&session);
+                let authorization = (self.authorization_url_builder)(&session);
                 self.oauth.insert(credential_id.clone(), session);
                 ManagementCredentialOAuthOperation {
                     state: ManagementCredentialOAuthState::Pending,
@@ -2346,9 +2376,9 @@ impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
                     .into_bytes(),
             )
         };
-        let envelope = self
-            .exchange
-            .exchange(credential_id, authorization_code, verifier);
+        let envelope =
+            self.exchange
+                .exchange_with_state(credential_id, authorization_code, verifier, state);
         if envelope.is_none() {
             if let Some(session) = self.oauth.get_mut(credential_id) {
                 let _ = session.fail(now, "token_exchange_failed");
@@ -2628,6 +2658,18 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
             web::post().to(native_accounts::import),
         )
         .route("/account-channels", web::get().to(account_channels::list))
+        .route(
+            "/upstreams/{upstream_id}/claude-authorization/start",
+            web::post().to(codex_enrollment::start_claude),
+        )
+        .route(
+            "/upstreams/{upstream_id}/claude-authorization/cancel",
+            web::post().to(codex_enrollment::cancel_claude),
+        )
+        .route(
+            "/upstreams/{upstream_id}/claude-authorization/callback",
+            web::post().to(codex_enrollment::complete_claude),
+        )
         .route(
             "/upstreams/{upstream_id}/codex-authorization/start",
             web::post().to(codex_enrollment::start),

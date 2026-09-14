@@ -971,6 +971,11 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128
+                  },
+                  "replace_existing": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Explicitly reauthorize the same owned credential instead of creating one."
                   }
                 }
               }
@@ -1020,6 +1025,11 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128
+                  },
+                  "replace_existing": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Explicitly reauthorize the same owned credential instead of creating one."
                   }
                 }
               }
@@ -1095,6 +1105,230 @@
                         "format": "uri"
                       }
                     }
+                  },
+                  "replace_existing": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Explicitly reauthorize the same owned credential instead of creating one."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "200": {
+            "description": "Authorized credential saved; identical credential material may reuse an existing credential",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Credential"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Authorized credential saved; identical credential material may reuse an existing credential",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Credential"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/upstreams/{upstream_id}/claude-authorization/start": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/UpstreamId"
+        },
+        {
+          "$ref": "#/components/parameters/IfMatch"
+        }
+      ],
+      "post": {
+        "tags": [
+          "upstreams"
+        ],
+        "operationId": "startClaudeEnrollment",
+        "description": "Revision-bound Claude first authorization or explicit reauthorization in an owned draft; provider secrets remain on the server.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "replace_existing": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Explicitly reauthorize the same owned credential instead of creating one."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "202": {
+            "$ref": "#/components/responses/OAuthOperation"
+          }
+        }
+      }
+    },
+    "/admin/upstreams/{upstream_id}/claude-authorization/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/UpstreamId"
+        },
+        {
+          "$ref": "#/components/parameters/IfMatch"
+        }
+      ],
+      "post": {
+        "tags": [
+          "upstreams"
+        ],
+        "operationId": "cancelClaudeEnrollment",
+        "description": "Revision-bound Claude first authorization or explicit reauthorization in an owned draft; provider secrets remain on the server.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "replace_existing": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Explicitly reauthorize the same owned credential instead of creating one."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/Error"
+          },
+          "204": {
+            "description": "Transient authorization cancelled; no account created"
+          }
+        }
+      }
+    },
+    "/admin/upstreams/{upstream_id}/claude-authorization/callback": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ConfigVersion"
+        },
+        {
+          "$ref": "#/components/parameters/UpstreamId"
+        },
+        {
+          "$ref": "#/components/parameters/IfMatch"
+        }
+      ],
+      "post": {
+        "tags": [
+          "upstreams"
+        ],
+        "operationId": "completeClaudeEnrollment",
+        "description": "Revision-bound Claude first authorization or explicit reauthorization in an owned draft; provider secrets remain on the server.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "callback"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "callback": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [],
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512
+                      },
+                      "code": {
+                        "type": "string",
+                        "maxLength": 16384
+                      },
+                      "error": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "callback_url": {
+                        "type": "string",
+                        "maxLength": 20480,
+                        "format": "uri"
+                      }
+                    }
+                  },
+                  "replace_existing": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Explicitly reauthorize the same owned credential instead of creating one."
                   }
                 }
               }
