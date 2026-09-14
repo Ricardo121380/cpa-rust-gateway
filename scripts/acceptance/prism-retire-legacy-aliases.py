@@ -69,6 +69,7 @@ def graph(api):
     groups = api.request("/admin/access-groups")
     result = {"models": api.request("/admin/public-models"),
               "upstreams": api.request("/admin/upstreams"),
+              "endpoints": api.pages("/admin/endpoints"),
               "routes": api.pages("/admin/routes"),
               "candidates": api.pages("/admin/route-candidates"),
               "aliases": api.pages("/admin/model-aliases"),
@@ -99,9 +100,12 @@ def inspect(api):
     return active, before, selected
 
 
-def run(api, expected=None, target=None, upstream_names=None):
+def run(api, expected=None, target=None, upstream_names=None, catalog_paths=None):
     active, before, selected = inspect(api)
     upstream_names = upstream_names or {}
+    catalog_paths = catalog_paths or {}
+    if not set(catalog_paths).issubset({e["id"] for e in before["endpoints"]}) or any(not isinstance(p, str) or not p.startswith("/") or p.startswith("//") or "?" in p or "#" in p for p in catalog_paths.values()):
+        raise RuntimeError("invalid reviewed endpoint catalog paths")
     if not set(upstream_names).issubset({u["id"] for u in before["upstreams"]}):
         raise RuntimeError("unknown upstream in reviewed name mapping")
     if any(not isinstance(n, str) or not n.strip() or len(n) > 128 for n in upstream_names.values()):
@@ -109,7 +113,7 @@ def run(api, expected=None, target=None, upstream_names=None):
     changes = [{"id": u["id"], "from": u["name"], "to": upstream_names[u["id"]]}
                for u in before["upstreams"] if u["id"] in upstream_names and u["name"] != upstream_names[u["id"]]]
     plan = {"source": active["id"], "revision": active["revision"],
-            "fingerprint": digest(before), "remove": sorted(LEGACY), "upstream_names": changes, "provider_calls": 0}
+            "fingerprint": digest(before), "remove": sorted(LEGACY), "upstream_names": changes, "catalog_paths": catalog_paths, "provider_calls": 0}
     if expected is None:
         return plan
     if plan != expected or not target:
@@ -123,11 +127,17 @@ def run(api, expected=None, target=None, upstream_names=None):
         if upstream["id"] in upstream_names and upstream["name"] != upstream_names[upstream["id"]]:
             api.request("/admin/upstreams/" + urllib.parse.quote(upstream["id"], safe=""), "PATCH",
                         {**upstream, "name": upstream_names[upstream["id"]]})
+    for endpoint in before["endpoints"]:
+        if endpoint["id"] in catalog_paths and endpoint.get("models_path") != catalog_paths[endpoint["id"]]:
+            fields = {key: endpoint[key] for key in ("id", "adapter_id", "api_format", "base_url", "inference_path", "models_path", "transport", "enabled")}
+            fields["models_path"] = catalog_paths[endpoint["id"]]
+            api.request("/admin/endpoints/" + urllib.parse.quote(endpoint["id"], safe=""), "PATCH", fields)
     for alias in selected:
         api.request("/admin/public-models/" + urllib.parse.quote(alias["public_model_id"], safe="") +
                     "/aliases", "DELETE", {"alias": alias["alias"]})
     expected_graph = {**before, "aliases": [a for a in before["aliases"] if a["alias"] not in LEGACY]}
     expected_graph["upstreams"] = [{**u, "name": upstream_names.get(u["id"], u["name"])} for u in before["upstreams"]]
+    expected_graph["endpoints"] = [{**e, "models_path": catalog_paths.get(e["id"], e.get("models_path"))} for e in before["endpoints"]]
     if graph(api) != expected_graph:
         raise RuntimeError("draft changed beyond approved aliases; not publishing")
     valid = api.request("/admin/config-versions/" + target + "/validate", "POST", {})
@@ -152,10 +162,12 @@ if __name__ == "__main__":
     parser.add_argument("--apply-plan")
     parser.add_argument("--target")
     parser.add_argument("--upstream-names", help="Reviewed JSON object of exact upstream IDs to formal names")
+    parser.add_argument("--catalog-paths", help="Reviewed exact endpoint ID to models path mapping")
     args = parser.parse_args()
     expected = json.loads(Path(args.apply_plan).read_text()) if args.apply_plan else None
     names = json.loads(Path(args.upstream_names).read_text()) if args.upstream_names else None
-    result = run(Management(args.base, args.origin, args.credential_dir), expected, args.target, names)
+    paths = json.loads(Path(args.catalog_paths).read_text()) if args.catalog_paths else None
+    result = run(Management(args.base, args.origin, args.credential_dir), expected, args.target, names, paths)
     descriptor = os.open(args.receipt, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(descriptor, "w") as output:
         json.dump(result, output, indent=2)

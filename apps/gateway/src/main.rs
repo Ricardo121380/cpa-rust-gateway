@@ -324,6 +324,12 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
             let mut options = parse_options(arguments.collect())?;
             let endpoint = options.remove("--endpoint-id").ok_or(CliError::Usage)?;
             let credential = options.remove("--credential-id").ok_or(CliError::Usage)?;
+            options
+                .entry("--data-listen".into())
+                .or_insert_with(|| "127.0.0.1:18180".into());
+            options
+                .entry("--management-listen".into())
+                .or_insert_with(|| "127.0.0.1:18181".into());
             let command = deployment::parse(
                 options
                     .into_iter()

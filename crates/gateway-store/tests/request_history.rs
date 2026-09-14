@@ -19,6 +19,7 @@ impl Drop for File {
     }
 }
 #[test]
+#[allow(clippy::too_many_lines)] // One persisted scenario brackets indexed activity, snapshots and unknown history.
 fn request_counts_snapshot_percentiles_and_unknown_history_are_distinct()
 -> Result<(), Box<dyn Error>> {
     let file = File(std::env::temp_dir().join(format!(

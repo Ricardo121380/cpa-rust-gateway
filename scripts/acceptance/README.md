@@ -75,3 +75,5 @@ credentials or inference output. A stale access token is reported, never silentl
 copied rotating grant. Re-create the copy from the live service after separately authorized renewal
 if needed. This command is for production-copy acceptance; it does not replace the production HTTP
 refresh workflow or prove official interactive authorization completed.
+
+Alias retirement also accepts `--catalog-paths <reviewed-json>` for exact endpoint IDs and model-list paths. These paths join the static graph fingerprint and expected readback; normal request timestamps do not invalidate the reviewed configuration plan. Infer no path from a provider name: verify the base path and its documented model-list endpoint first.
