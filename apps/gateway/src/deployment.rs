@@ -467,6 +467,9 @@ fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, D
         database.clone(),
     )))
     .with_provider_account_pools(provider_account_pools)
+    .with_kiro_workflow(
+        gateway_http_actix::management_resources::kiro_device::KiroDeviceWorkflow::production(),
+    )
     .with_claude_workflow(
         gateway_http_actix::management_resources::claude_authorization::workflow(
             UpstreamProxy::Direct,

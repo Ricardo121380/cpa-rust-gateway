@@ -37,6 +37,41 @@ pub struct RequestHistoryPage {
 }
 
 impl ResourceInventoryReader {
+    /// Latest observed start time of a completed request for each logical key ID.
+    /// Old records without terminal timestamps and currently in-flight requests stay unknown.
+    /// This is not a credential-secret-specific last-use claim: IDs survive configuration forks.
+    /// # Errors
+    /// Rejects unbounded key sets, malformed IDs and inaccessible persisted observations.
+    pub fn client_key_activity(
+        &self,
+        keys: &[String],
+    ) -> StoreResult<std::collections::BTreeMap<String, i64>> {
+        if keys.len() > 10_000 || keys.iter().any(|key| key.is_empty() || key.len() > 128) {
+            return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        let mut repository = self.repository()?;
+        let tx = repository.connection.transaction()?;
+        let encoded =
+            serde_json::to_string(keys).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+        let mut statement = tx.prepare("SELECT k.value, MAX(json_extract(t.payload_json,'$.request_finished.started_at_ms'))
+          FROM json_each(?1) k
+          JOIN gateway_event_log r INDEXED BY gateway_request_client_key ON json_extract(r.payload_json,'$.request.client_key_id')=k.value
+          JOIN gateway_event_log t ON t.request_id=r.request_id AND t.event_type='request_finished'
+          WHERE r.event_type='request' AND json_valid(r.payload_json) AND json_valid(t.payload_json)
+          GROUP BY k.value")?;
+        let rows = statement.query_map([encoded], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<i64>>(1)?))
+        })?;
+        let mut result = std::collections::BTreeMap::new();
+        for row in rows {
+            let (key, timestamp) = row?;
+            if let Some(timestamp) = timestamp.filter(|v| *v >= 0) {
+                result.insert(key, timestamp);
+            }
+        }
+        Ok(result)
+    }
+
     /// Reads real accepted request records and separately correlated final/attempt/usage evidence.
     /// # Errors
     /// Rejects invalid ranges, bounds and inaccessible or malformed persisted observations.

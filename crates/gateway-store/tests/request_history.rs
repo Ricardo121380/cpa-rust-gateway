@@ -60,6 +60,9 @@ fn request_counts_snapshot_percentiles_and_unknown_history_are_distinct()
         request("second")?,
         terminal("second", 300, RequestOutcome::Failed)?,
     ])?;
+    let activity = reader.client_key_activity(&["key".into(), "unused".into()])?;
+    assert_eq!(activity.get("key"), Some(&120_000));
+    assert!(!activity.contains_key("unused"));
     let query = RequestHistoryQuery {
         from_ms: Some(120_000),
         to_ms: Some(122_000),

@@ -26,7 +26,7 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
   const context=useVersionStore(s=>s.context);const queryClient=useQueryClient();
   const [workingId,setWorkingId]=useState<string>();
   const [selected,setSelected]=useState<ReadonlySet<string>>();
-  const [name,setName]=useState<string>();const [dirty,setDirty]=useState(false);const [confirmLeave,setConfirmLeave]=useState(false);
+  const [name,setName]=useState<string>();const [dirty,setDirty]=useState(false);
   const source=useQuery({queryKey:["key-permissions",context?.configVersionId,context?.revision,record.id],enabled:!!context,queryFn:async()=>{
     const [groups,models,grants,routes]=await Promise.all([
       call<AccessGroupRecord[]>("listAccessGroups",{},{versionScoped:true}),
@@ -61,7 +61,7 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
     await task.mutate("updateClientKey",{path:{client_key_id:record.id},body:{id:record.id,access_group_id:target,status:input.status,expires_at_ms:editedExpiry(input.expiry,record.expires_at_ms)}});
     return task.finish();
   },onSuccess:version=>{void queryClient.invalidateQueries({queryKey:["client-keys"]});void queryClient.invalidateQueries({queryKey:["access-groups"]});onSaved(version);}});
-  const close=()=>{if(save.isPending)return;if(dirty&&!save.data)setConfirmLeave(true);else onClose();};
+  const close=()=>{if(!save.isPending)onClose();};
   const submit=(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();const data=new FormData(event.currentTarget);save.mutate({status:String(data.get("status")) as ClientKeyRecord["status"],expiry:String(data.get("expiry")??"")});};
   return <Sheet title="编辑 API 密钥" onEscape={close}>
     {source.isError?<p role="alert">{asAppError(source.error).message}<button onClick={()=>void source.refetch()}>重新读取</button></p>:null}
@@ -81,6 +81,5 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
       <div className="sheet-actions"><button type="button" className="secondary" disabled={save.isPending} onClick={close}>取消</button><button disabled={!dirty||save.isPending||workingId!==undefined}>保存并应用</button></div>
     </form>:null}
     <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={onSaved}/>
-    {confirmLeave?<div role="alert"><p>放弃未保存的修改？</p><button className="secondary" onClick={()=>setConfirmLeave(false)}>继续编辑</button><button onClick={onClose}>放弃修改</button></div>:null}
   </Sheet>;
 }

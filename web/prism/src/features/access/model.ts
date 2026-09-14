@@ -5,6 +5,7 @@ export type ClientKeyRecord = Readonly<{
   id: string;
   access_group_id: string;
   prefix: string;
+  last_request_at_ms?: number | null;
   status: "active" | "disabled" | "revoked";
   expires_at_ms?: number | null;
 }>;

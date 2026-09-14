@@ -14,7 +14,9 @@ mod configuration_diff;
 mod configuration_edit;
 mod credential_status;
 mod grok_device;
+pub mod kiro_device;
 pub mod native_accounts;
+mod price_source;
 mod request_history;
 mod resource_inventory;
 
@@ -128,6 +130,7 @@ pub struct ManagementResourceHttpState {
     service: Mutex<ManagementMutationService>,
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     claude_workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
+    kiro_workflow: Option<std::sync::Arc<Mutex<kiro_device::KiroDeviceWorkflow>>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     channel_pin: Mutex<Box<dyn ManagementChannelPinFacade>>,
     usage: std::sync::Arc<dyn ManagementUsageFacade>,
@@ -393,6 +396,7 @@ impl ManagementResourceHttpState {
             service: Mutex::new(service),
             workflow: Mutex::new(workflow),
             claude_workflow: Mutex::new(Box::new(RejectingManagementEndpointWorkflow::new())),
+            kiro_workflow: None,
             runtime: Mutex::new(runtime),
             channel_pin: Mutex::new(Box::new(RejectingManagementChannelPinFacade::new())),
             usage: usage.into(),
@@ -405,6 +409,13 @@ impl ManagementResourceHttpState {
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
             runtime_clock,
         }
+    }
+
+    /// Installs the bounded AWS Kiro device authorization workflow.
+    #[must_use]
+    pub fn with_kiro_workflow(mut self, workflow: kiro_device::KiroDeviceWorkflow) -> Self {
+        self.kiro_workflow = Some(std::sync::Arc::new(Mutex::new(workflow)));
+        self
     }
 
     /// Installs the separately configured Claude authorization-code workflow.
@@ -2703,6 +2714,7 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
 }
 
 fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
+    configure_kiro_routes(config);
     configure_inventory_resource_routes(config);
     config
         .route(
@@ -2928,6 +2940,10 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_billing_resource_routes(config: &mut web::ServiceConfig) {
     config
+        .route(
+            "/billing/price-source/refresh",
+            web::post().to(price_source::refresh),
+        )
         .route("/billing/catalogs", web::get().to(list_billing_catalogs))
         .route("/billing/catalogs", web::post().to(import_billing_catalog))
         .route(
@@ -3522,6 +3538,7 @@ struct AccessGroupRouteResponse {
 
 #[derive(Serialize)]
 struct ClientKeyResponse {
+    last_request_at_ms: Option<i64>,
     id: String,
     access_group_id: String,
     prefix: String,
@@ -8009,18 +8026,55 @@ async fn list_client_keys(
         Ok(context) => context,
         Err(response) => return response,
     };
-    let mut service = match service(&state) {
-        Ok(service) => service,
+    let (value, reader) = {
+        let mut service = match service(&state) {
+            Ok(service) => service,
+            Err(response) => return response,
+        };
+        let value = match service.list_client_keys(&context.version) {
+            Ok(value) => value,
+            Err(error) => return management_error(error),
+        };
+        (value, service.repository_mut().resource_inventory_reader())
+    };
+    let ids = value
+        .value()
+        .iter()
+        .map(|key| key.id.as_str().to_owned())
+        .collect::<Vec<_>>();
+    let activity = if let Some(reader) = reader {
+        match read_operations(&state, move || Ok(reader.client_key_activity(&ids))).await {
+            Ok(Ok(value)) => value,
+            _ => return internal_error(),
+        }
+    } else {
+        std::collections::BTreeMap::new()
+    };
+    // The resource list and its revision must still belong to the same configuration read.
+    let current = match service(&state) {
+        Ok(mut service) => service.list_client_keys(&context.version),
         Err(response) => return response,
     };
-    match service.list_client_keys(&context.version) {
-        Ok(value) => revisioned_json(StatusCode::OK, value, |keys| {
-            keys.into_iter()
-                .map(ClientKeyResponse::from)
-                .collect::<Vec<_>>()
-        }),
-        Err(error) => management_error(error),
+    match current {
+        Ok(current) if current.revision() == value.revision() => {}
+        Ok(_) => {
+            return error_response(
+                StatusCode::CONFLICT,
+                "management_revision_conflict",
+                "配置已改变，请重新读取",
+            );
+        }
+        Err(error) => return management_error(error),
     }
+    revisioned_json(StatusCode::OK, value, |keys| {
+        keys.into_iter()
+            .map(|key| {
+                let mut response = ClientKeyResponse::from(key);
+                response.last_request_at_ms = activity.get(&response.id).copied();
+                response
+            })
+            .collect::<Vec<_>>()
+    })
 }
 
 async fn issue_client_key(
@@ -9452,6 +9506,7 @@ impl From<AccessGroupRouteConfiguration> for AccessGroupRouteResponse {
 impl From<ClientKeyView> for ClientKeyResponse {
     fn from(value: ClientKeyView) -> Self {
         Self {
+            last_request_at_ms: None,
             id: value.id.as_str().to_owned(),
             access_group_id: value.access_group_id.as_str().to_owned(),
             prefix: value.prefix,
@@ -10543,6 +10598,22 @@ impl CredentialOAuthResponse {
 fn json_array<T: DeserializeOwned>(value: &str) -> T {
     serde_json::from_str(value)
         .unwrap_or_else(|_| unreachable!("validated storage JSON must decode"))
+}
+
+fn configure_kiro_routes(config: &mut web::ServiceConfig) {
+    config
+        .route(
+            "/upstreams/{upstream_id}/kiro-authorization/start",
+            web::post().to(kiro_device::start),
+        )
+        .route(
+            "/upstreams/{upstream_id}/kiro-authorization/poll",
+            web::post().to(kiro_device::poll),
+        )
+        .route(
+            "/upstreams/{upstream_id}/kiro-authorization/cancel",
+            web::post().to(kiro_device::cancel),
+        );
 }
 
 #[cfg(test)]

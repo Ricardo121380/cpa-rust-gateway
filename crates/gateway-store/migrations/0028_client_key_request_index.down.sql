@@ -1,0 +1,1 @@
+DROP INDEX gateway_request_client_key;

@@ -133,6 +133,30 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "cancelKiroEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/kiro-authorization/cancel",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "cancelNativeAccountAuthorization": {
     "method": "DELETE",
     "path": "/admin/native-account-authorizations/{session_id}",
@@ -2314,6 +2338,30 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "pollKiroEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/kiro-authorization/poll",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "pollNativeAccountAuthorization": {
     "method": "POST",
     "path": "/admin/native-account-authorizations/{session_id}/poll",
@@ -2435,6 +2483,14 @@ export const managementOperations = {
         "required": true
       }
     ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
+  "refreshPriceSource": {
+    "method": "POST",
+    "path": "/admin/billing/price-source/refresh",
+    "parameters": [],
     "requiresAuthentication": true,
     "bodyEncoding": "json",
     "bodyRequired": true
@@ -2632,6 +2688,30 @@ export const managementOperations = {
     "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
+  },
+  "startKiroEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/kiro-authorization/start",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
   },
   "startNativeAccountAuthorization": {
     "method": "POST",
@@ -3288,6 +3368,10 @@ export class ManagementApi {
     return this.request("cancelCredentialOAuth", request);
   }
 
+  cancelKiroEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("cancelKiroEnrollment", request);
+  }
+
   cancelNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {
     return this.request("cancelNativeAccountAuthorization", request);
   }
@@ -3680,6 +3764,10 @@ export class ManagementApi {
     return this.request("logoutAdministrator", request);
   }
 
+  pollKiroEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("pollKiroEnrollment", request);
+  }
+
   pollNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {
     return this.request("pollNativeAccountAuthorization", request);
   }
@@ -3710,6 +3798,10 @@ export class ManagementApi {
 
   refreshNativeAccountIdentity(request: ManagementRequest = {}): Promise<Response> {
     return this.request("refreshNativeAccountIdentity", request);
+  }
+
+  refreshPriceSource(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("refreshPriceSource", request);
   }
 
   replaceNativeAccountCredential(request: ManagementRequest = {}): Promise<Response> {
@@ -3750,6 +3842,10 @@ export class ManagementApi {
 
   startCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("startCredentialOAuth", request);
+  }
+
+  startKiroEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("startKiroEnrollment", request);
   }
 
   startNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {

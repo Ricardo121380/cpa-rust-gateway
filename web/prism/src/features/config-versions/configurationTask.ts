@@ -25,7 +25,8 @@ export async function beginConfigurationTask(description:string) {
     assertOwner();
     const result=await callRevisioned<T>(operation,{...request,headers:{...request.headers,"X-Config-Version":version.id,"If-Match":revision}});
     assertOwner();
-    if(BigInt(result.revision.slice(4))<=BigInt(revision.slice(4)))throw new Error("修改结果的版本未推进，请重读核对。");
+    const pendingDevice=operation==="pollKiroEnrollment"&&(result.value as {state?:string}|null)?.state==="pending";
+    if(BigInt(result.revision.slice(4))<BigInt(revision.slice(4))||(!pendingDevice&&result.revision===revision))throw new Error("修改结果的版本未推进，请重读核对。");
     revision=result.revision;
     return result.value;
   };

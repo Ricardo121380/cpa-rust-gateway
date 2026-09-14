@@ -6,8 +6,9 @@
 // explicit, understood action. Focus moves into the sheet on open, Tab is
 // trapped inside it, and focus returns to the opener on close. Escape closes
 // only when `onEscape` is provided.
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useBlocker } from "react-router-dom";
 import { useSessionStore } from "../session/sessionStore";
 
 const FOCUSABLE =
@@ -48,15 +49,32 @@ export function Sheet({
   children,
   onEscape,
   layout = "form",
+  guardUnsaved = true,
 }: Readonly<{
   title: string;
   children: ReactNode;
   onEscape?: (() => void) | undefined;
   layout?: "form" | "inspector";
+  guardUnsaved?: boolean;
 }>) {
   const scrimRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
+  const dirtyRef = useRef(false);
+  const hasUnsaved = useCallback(() => guardUnsaved && dirtyRef.current && !!panelRef.current?.querySelector("form"), [guardUnsaved]);
+  const confirmLeave = useCallback(() => !hasUnsaved() || window.confirm("放弃未保存的修改？"), [hasUnsaved]);
+  const close = useCallback(() => { if (confirmLeave()) onEscape?.(); }, [confirmLeave, onEscape]);
+  const blocker = useBlocker(hasUnsaved);
+  useEffect(() => {
+    if (blocker.state === "blocked") { if (confirmLeave()) blocker.proceed(); else blocker.reset(); }
+  }, [blocker, confirmLeave]);
+
+  useEffect(() => {
+    const handler = (event: BeforeUnloadEvent) => { if (hasUnsaved()) { event.preventDefault(); event.returnValue = ""; } };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasUnsaved]);
+
 
   useEffect(() => {
     const scrim = scrimRef.current;
@@ -102,12 +120,12 @@ export function Sheet({
     }
     const handler = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
-        onEscape();
+        close();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onEscape]);
+  }, [onEscape, close]);
 
   /** aria-modal alone does not stop Tab from walking into the page behind. */
   const trapTab = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -144,9 +162,19 @@ export function Sheet({
         tabIndex={-1}
         ref={panelRef}
         onKeyDown={trapTab}
+        onInputCapture={() => { dirtyRef.current = true; }}
+        onChangeCapture={() => { dirtyRef.current = true; }}
+        onClickCapture={event => {
+          const target = event.target instanceof Element ? event.target.closest("button,a") : null;
+          if (!target || target.getAttribute("aria-label") === "关闭面板") return;
+          const leaving = target.tagName === "BUTTON" && /^(取消|关闭)$/.test(target.textContent?.trim() ?? "")
+            || target.tagName === "A" && /^(#|\/)/.test(target.getAttribute("href") ?? "");
+          if (leaving && !confirmLeave()) { event.preventDefault(); event.stopPropagation(); }
+          else if (!leaving && target.tagName === "BUTTON" && target.closest("form")) dirtyRef.current = true;
+        }}
       >
         <div className="sheet-panel">
-          <header className="sheet-heading"><h3>{title}</h3>{onEscape === undefined ? null : <button type="button" className="secondary" aria-label="关闭面板" onClick={onEscape}>×</button>}</header>
+          <header className="sheet-heading"><h3>{title}</h3>{onEscape === undefined ? null : <button type="button" className="secondary" aria-label="关闭面板" onClick={close}>×</button>}</header>
           {children}
         </div>
       </div>

@@ -77,3 +77,12 @@ it("discards a late owned read after selection changes",async()=>{
   resolve({state:"pending",authorization_url:"https://example.test/old-session"});
   await expect(response).rejects.toMatchObject({silent:true});
 });
+
+it("only pending device polls may retain the revision; completion must advance",async()=>{
+ vi.mocked(call).mockImplementation(async op=>op==="listConfigVersions"?[active]:draft);
+ const task=await beginConfigurationTask("Kiro auth");
+ vi.mocked(callRevisioned).mockResolvedValue({value:{state:"pending"},revision:"rev-0"});
+ await expect(task.mutate("pollKiroEnrollment")).resolves.toEqual({state:"pending"});
+ vi.mocked(callRevisioned).mockResolvedValue({value:{state:"completed"},revision:"rev-0"});
+ await expect(task.mutate("pollKiroEnrollment")).rejects.toThrow("未推进");
+});

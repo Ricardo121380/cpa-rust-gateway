@@ -106,3 +106,10 @@
  .canvas .bill-catalogs .bill-table .row-actions { display:flex; flex-wrap:wrap; gap:8px; }
  .bill-catalogs .row-actions button { min-height:44px; }
 }
+.price-editor { display:grid; gap:16px; min-width:0; }
+.price-entry { min-width:0; margin:0; border:1px solid var(--separator); border-radius:14px; padding:16px; display:grid; gap:14px; }
+.price-entry legend { max-width:100%; overflow-wrap:anywhere; font-weight:600; }
+.price-entry-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.price-entry label { min-width:0; }
+.price-entry :is(input,select) { width:100%; min-width:0; }
+@media(max-width:640px) { .price-entry-fields { grid-template-columns:1fr; } }

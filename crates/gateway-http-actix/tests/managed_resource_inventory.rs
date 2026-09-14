@@ -2277,3 +2277,105 @@ async fn native_plan_observations_are_filterable_and_invalidate_old_cursors() ->
     assert_eq!(response.status(), StatusCode::CONFLICT);
     Ok(())
 }
+
+#[actix_web::test]
+async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_exchange() -> TestResult
+{
+    use gateway_http_actix::management_resources::kiro_device::KiroDeviceWorkflow;
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='kiro' WHERE id='owner-a' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    let workflow = KiroDeviceWorkflow::with_transport(Box::new(|url, body| {
+        if url.ends_with("/client/register") {
+            return Ok(
+                serde_json::json!({"clientId":"synthetic-client","clientSecret":"synthetic-secret"}),
+            );
+        }
+        if url.ends_with("/device_authorization") {
+            return Ok(
+                serde_json::json!({"deviceCode":"synthetic-device","userCode":"ABCD-EFGH","verificationUri":"https://view.awsapps.com/start/#/device","expiresIn":300,"interval":5}),
+            );
+        }
+        if url.ends_with("/token") && body["deviceCode"] == "synthetic-device" {
+            return Ok(
+                serde_json::json!({"accessToken":"synthetic-access","refreshToken":"synthetic-refresh","expiresIn":3600}),
+            );
+        }
+        Err(())
+    }));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state.with_kiro_workflow(workflow)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let start = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/start"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(serde_json::json!({"id":"new-kiro"}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(start.status(), StatusCode::OK);
+    let body: Value = test::read_body_json(start).await;
+    assert!(!body.to_string().contains("synthetic-secret"));
+    let session = body["session_id"].as_str().ok_or("session")?;
+    let count: i64 = db.query_row(
+        "SELECT COUNT(*) FROM upstream_credentials WHERE id='new-kiro'",
+        [],
+        |r| r.get(0),
+    )?;
+    assert_eq!(count, 0);
+    let payload = serde_json::json!({"id":"new-kiro","session_id":session});
+    let early = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(&payload)
+        .to_request(),
+    )
+    .await;
+    let early: Value = test::read_body_json(early).await;
+    assert_eq!(early["state"], "pending");
+    tokio::time::sleep(std::time::Duration::from_millis(5100)).await;
+    let done = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(&payload)
+        .to_request(),
+    )
+    .await;
+    assert_eq!(done.status(), StatusCode::CREATED);
+    let done: Value = test::read_body_json(done).await;
+    assert_eq!(done["credential_id"], "new-kiro");
+    let replay = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(&payload)
+        .to_request(),
+    )
+    .await;
+    assert_eq!(replay.status(), StatusCode::CONFLICT);
+    let count: i64 = db.query_row(
+        "SELECT COUNT(*) FROM upstream_credentials WHERE id='new-kiro'",
+        [],
+        |r| r.get(0),
+    )?;
+    assert_eq!(count, 1);
+    Ok(())
+}

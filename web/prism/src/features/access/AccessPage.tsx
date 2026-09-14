@@ -432,6 +432,7 @@ export function AccessPage() {
               <th>密钥标识</th>
               <th>状态</th>
               <th>过期</th>
+              <th>最近请求</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -446,6 +447,7 @@ export function AccessPage() {
                     <StatusBadge status={status}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[status]}</StatusBadge>
                   </td>
                   <td data-label="有效期" className="mono">{formatExpiry(record.expires_at_ms)}</td>
+                  <td data-label="最近请求"><a href={`#/monitoring?tab=requests&client_key_id=${encodeURIComponent(record.id)}&from_ms=${Math.max(0,(record.last_request_at_ms??Date.now())-3600000)}&to_ms=${Date.now()}`} title="已持久化终态请求的开始时间；未观测不代表从未使用">{record.last_request_at_ms == null ? "未观测" : new Date(record.last_request_at_ms).toLocaleString()}</a></td>
                   <td className="row-actions">
                     <button className="secondary" onClick={() => setInspectedKey(record)}>详情</button>
                     <button

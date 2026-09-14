@@ -83,7 +83,8 @@ pub(super) async fn list(state: web::Data<ManagementResourceHttpState>) -> HttpR
             // This catalog describes NEW account enrollment; legacy Codex reauth is separate.
             authorization_available: (id == "grok.build" && state.native_accounts.is_some())
                 || (id == "codex" && codex_authorization)
-                || (id == "claude" && claude_authorization),
+                || (id == "claude" && claude_authorization)
+                || (id == "kiro" && state.kiro_workflow.is_some()),
             upstream_kinds: upstream_kinds(id),
         },
     );

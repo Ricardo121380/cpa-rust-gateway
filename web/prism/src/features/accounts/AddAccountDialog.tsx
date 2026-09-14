@@ -1,3 +1,4 @@
+import { KiroDeviceDialog } from "./KiroDeviceDialog";
 import { useMutation, useQuery, isCancelledError, CancelledError } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -117,6 +118,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     setRows(items.map(({id,label})=>({id,label,status:"待导入"})));
     create.mutate({provider:String(form.get("provider")??""),endpoint:String(form.get("endpoint")??""),items});
   };
+  if(oauth&&channelId==="kiro")return <KiroDeviceDialog providerId={selectedProvider} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} providerId={selectedProvider} providerName={resourceName(selectedProvider,"upstream",matches.find(row=>row.id===selectedProvider)?.name)} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth)return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   return <Sheet title="添加账号" onEscape={close}>

@@ -57,7 +57,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = REQUEST_TERMINAL_SCHEMA_VERSION;
+pub const CURRENT_SCHEMA_VERSION: i64 = 28;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -201,6 +201,11 @@ const MIGRATIONS: &[Migration] = &[
         version: REQUEST_TERMINAL_SCHEMA_VERSION,
         up: include_str!("../migrations/0027_request_terminal.up.sql"),
         down: include_str!("../migrations/0027_request_terminal.down.sql"),
+    },
+    Migration {
+        version: 28,
+        up: include_str!("../migrations/0028_client_key_request_index.up.sql"),
+        down: include_str!("../migrations/0028_client_key_request_index.down.sql"),
     },
 ];
 

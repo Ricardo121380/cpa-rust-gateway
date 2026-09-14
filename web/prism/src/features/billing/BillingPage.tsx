@@ -1,3 +1,4 @@
+import { PriceEntriesEditor } from "./PriceEntriesEditor";
 import {beginConfigurationTask} from "../config-versions/configurationTask";
 import {ConfigurationTaskNotice} from "../config-versions/ConfigurationTaskNotice";
 import { resourceName } from "../../utils/resourceNames";
@@ -35,7 +36,6 @@ import {
   isEffective,
   isPolicyUnset,
   MAX_CATALOGS,
-  MAX_ENTRIES,
   parseCatalogEntries,
   RATE_FIELDS,
   rateLabel,
@@ -318,21 +318,7 @@ function ImportSheet({
             ))}
           </select>
         </label>
-        <label>
-          条目(JSON 数组,1–{MAX_ENTRIES} 条)
-          <textarea
-            name="entries"
-            className="mono bill-entries"
-            rows={12}
-            required
-            defaultValue={initial?.entries ?? ""}
-            placeholder={`[\n  {\n    "provider_id": "prov-a",\n    "channel_id": "ch-a",\n    "model": "minimax-m3",\n    "input_microunits_per_million": 1500000,\n    "output_microunits_per_million": 6000000,\n    "reasoning_microunits_per_million": 0,\n    "cache_read_microunits_per_million": 0,\n    "cache_creation_microunits_per_million": 0,\n    "cached_microunits_per_million": 0\n  }\n]`}
-          />
-          <small>
-            六个费率字段单位是 <strong>microunits / 百万 token</strong>,必须是 ≥ 0 的整数。
-            契约没有声明币种,本页不做任何折算。
-          </small>
-        </label>
+        <PriceEntriesEditor initial={initial?.entries} disabled={pending}/>
         <div className="sheet-actions">
           <button type="button" className="secondary" disabled={pending} onClick={onCancel}>
             取消
