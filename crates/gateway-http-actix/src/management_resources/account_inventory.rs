@@ -75,6 +75,7 @@ pub(super) async fn list(
         return internal_error();
     };
     let native = state.native_accounts.clone();
+    let kiro_authorization = state.kiro_workflow.is_some();
     let claude_authorization = state
         .claude_workflow
         .lock()
@@ -92,7 +93,7 @@ pub(super) async fn list(
     // Actions describe actual existing management capabilities. Unsupported OAuth entry points
     // are not advertised as available simply because a credential contains a token.
     let mut operations=vec!["details","update_credential","enable","disable","remove","models"];
-    if (kind=="oauth_json"&&text(&value,"category")=="codex")||(claude_authorization&&text(&value,"category")=="claude"&&text(&value,"authentication")=="oauth"){operations.push("reauthorize")}
+    if (kind=="oauth_json"&&text(&value,"category")=="codex")||(claude_authorization&&text(&value,"category")=="claude"&&text(&value,"authentication")=="oauth")||(kiro_authorization&&text(&value,"category")=="kiro"&&text(&value,"authentication")=="oauth"){operations.push("reauthorize")}
     items.push(json!({"id":value["credential"]["id"],"native":false,"identity":value["identity"],"name":identity_name(&value["identity"]),"category":value["category"],"provider":value["provider"],"status":status,"plan":value["plan"],"plan_source":value["plan_source"],"operations":operations,"managed":value,"native_account":null}));
    }
    after=page.next_after;if items.len()>10000||(items.len()==10000&&after.is_some()){return Ok(Err("capacity"))}

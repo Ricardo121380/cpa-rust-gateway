@@ -167,7 +167,7 @@ export function Sheet({
         onClickCapture={event => {
           const target = event.target instanceof Element ? event.target.closest("button,a") : null;
           if (!target || target.getAttribute("aria-label") === "关闭面板") return;
-          const leaving = target.tagName === "BUTTON" && /^(取消|关闭)$/.test(target.textContent?.trim() ?? "")
+          const leaving = target.tagName === "BUTTON" && /^(取消|关闭|返回)$/.test(target.textContent?.trim() ?? "")
             || target.tagName === "A" && /^(#|\/)/.test(target.getAttribute("href") ?? "");
           if (leaving && !confirmLeave()) { event.preventDefault(); event.stopPropagation(); }
           else if (!leaving && target.tagName === "BUTTON" && target.closest("form")) dirtyRef.current = true;

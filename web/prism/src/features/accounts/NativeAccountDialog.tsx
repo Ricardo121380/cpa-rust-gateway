@@ -1,3 +1,4 @@
+import { AccountEvidenceTabs } from "./AccountEvidenceTabs";
 import { useModelConnections } from "../models/useModelConnections";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
@@ -50,7 +51,7 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
   return <Sheet title={title} layout={mode==="details"?"inspector":"form"} onEscape={()=>!busy&&onClose()}>
     <h3>{accountName(account.identity)??"未提供账号身份"}</h3>
     <p>{names[account.provider]}</p>
-    {saved&&!saved.runtime_applied?<div role="alert"><p>修改已保存，运行配置暂未应用。新请求已暂停。</p><button disabled={busy} onClick={()=>apply.mutate()}>应用运行配置</button></div>:mode==="details"?<>
+    {saved&&!saved.runtime_applied?<div role="alert"><p>修改已保存，运行配置暂未应用。新请求已暂停。</p><button disabled={busy} onClick={()=>apply.mutate()}>应用运行配置</button></div>:mode==="details"?<AccountEvidenceTabs accountId={account.id} onNavigate={onClose} overview={<><StatusBadge status={account.enabled?account.auth_status:"disabled"}>{!account.enabled?"已停用":account.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge><p>{connections.length?`已关联 ${connections.length} 个接口`:"尚未连接接口"}</p></>} configuration={<>
       <StatusBadge status={account.enabled?account.auth_status:"disabled"}>{!account.enabled?"已停用":account.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>
       <div className="sheet-actions">
         <button onClick={()=>account.provider==="grok_build"?onAuthorize():select("credential")}>{account.provider==="grok_build"?"重新授权":"更新凭据"}</button>
@@ -63,7 +64,7 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
         {history.isPending?<p>读取中…</p>:history.isError?<p role="alert">{asAppError(history.error).message}</p>:!history.data?.length?<p className="muted">暂无维护记录</p>:<ul className="account-connections">{history.data.map((entry)=><li key={entry.id}><span>{actions[entry.action]??"账号操作"}</span><time>{new Date(entry.occurred_at_ms).toLocaleString()}</time></li>)}</ul>}
       </details>
       <IdentityDetails entries={[["账号",account.id,accountName(account.identity)??"未提供账号身份"]]}/>
-    </>:<form className="sheet-form" onSubmit={submit} autoComplete="off">
+    </>}/>:<form className="sheet-form" onSubmit={submit} autoComplete="off">
       {mode==="credential"?<>
         <label>SSO 凭据<textarea ref={secret} required maxLength={65536} spellCheck={false} autoComplete="off" className="credential-input"/></label>
         <label>选择凭据文件<input type="file" accept=".json,.txt,application/json,text/plain" disabled={busy} onChange={async(event)=>{

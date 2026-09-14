@@ -78,7 +78,7 @@ fn same_observed_account(old: &[u8], new: &[u8]) -> bool {
             == gateway_store::account_identity::AccountIdentity::from_credential(new).email
 }
 
-fn persist(
+pub(super) fn persist(
     service: &mut ManagementMutationService,
     actor: &ManagementActor,
     context: &WriteContext,

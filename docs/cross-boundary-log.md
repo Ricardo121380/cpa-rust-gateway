@@ -2636,3 +2636,11 @@ Autoreg edits or real-provider inference in release acceptance.
 **Why:** Full-size EgoLite acceptance found advanced-table actions outside the mobile viewport. Production-copy metadata verification must not race live refresh grants.
 
 **Other side:** FYI. Static field labels and responsive rows preserve the same desktop data; mobile runtime matrix repeats its real account controls per cell. EgoLite16 captured all14 routes at1440×900,1280×720,390×844 in light/dark; corrected catalog/access/runtime/egress/audit actions have no horizontal overflow. Browser screenshots and receipts are under output/prism-final-qa-20260915.145-operation double-build/embed gate and gateway checks passed. New marked-copy-only catalog-check uses the same runtime discovery without listeners/maintenance/startup renewal; actual local two-page three-model read passed with unchanged credential rows and zero inference. Alias migration fingerprints now exclude observational last-request timestamps. Production migration/deployment and real upstream metadata are still pending.
+
+## 2026-09-15 - Codex - Unified account inspector and Kiro reauthorization
+
+**What:** `web/prism/contracts/management-v1.json`, `web/prism/src/app/v6.css`, `web/prism/src/components/Sheet.tsx`, `web/prism/src/features/accounts/AccountsPage.tsx`, `web/prism/src/features/accounts/AccountEvidenceTabs.tsx`, `web/prism/src/features/accounts/KiroDeviceDialog.tsx`, `web/prism/src/features/accounts/NativeAccountDialog.tsx`, `web/prism/src/features/upstreams/CredentialSheet.tsx`. Authoritative Kiro input adds optional replacement flag.
+
+**Why:** Authorized completion of account overview/quota/configuration/models/diagnostics and repeat authorization.
+
+**Other side:** FYI. Same existing account projection/runtime/catalog APIs; unknown balance remains unknown. Device replacement binds observed credential revision, preserves disabled status and interface bindings, and rejects stale completion. Generated contract synchronized. Expanded injected-exchange HTTP regression and workspace Clippy passed;296 frontend tests and145-operation embedded/double-build checks passed. EgoLite16 actual local gateway verified five inspector tabs and existing-account Kiro entry; no real official login completion or inference claimed. Production release still pending.

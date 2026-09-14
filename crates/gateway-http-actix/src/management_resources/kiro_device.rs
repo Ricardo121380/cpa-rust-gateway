@@ -126,6 +126,8 @@ fn start_url_valid(value: &str) -> bool {
 #[serde(deny_unknown_fields)]
 struct Input {
     id: String,
+    #[serde(default)]
+    replace_existing: bool,
     session_id: Option<String>,
     region: Option<String>,
     start_url: Option<String>,
@@ -142,7 +144,8 @@ fn admit(
     context: &WriteContext,
     owner: &UpstreamId,
     id: &CredentialId,
-) -> Result<(), HttpResponse> {
+    replace_existing: bool,
+) -> Result<Option<CredentialView>, HttpResponse> {
     let mut service = service(state)?;
     let version = service
         .repository_mut()
@@ -163,8 +166,15 @@ fn admit(
         return Err(invalid_input());
     }
     match service.get_credential(&context.version, id) {
-        Err(ManagementResourceError::ResourceNotFound) => Ok(()),
-        Ok(_) => Err(conflict()),
+        Err(ManagementResourceError::ResourceNotFound) if !replace_existing => Ok(None),
+        Ok(value)
+            if replace_existing
+                && value.value().upstream_id == *owner
+                && value.value().kind == "bearer" =>
+        {
+            Ok(Some(value.value().clone()))
+        }
+        Ok(_) | Err(ManagementResourceError::ResourceNotFound) => Err(conflict()),
         Err(e) => Err(management_error(e)),
     }
 }
@@ -224,9 +234,10 @@ async fn handle(
     ) else {
         return invalid_input();
     };
-    if let Err(r) = admit(&state, &context, &owner, &id) {
-        return r;
-    }
+    let previous = match admit(&state, &context, &owner, &id, input.replace_existing) {
+        Ok(value) => value,
+        Err(r) => return r,
+    };
     let region = input.region.as_deref().unwrap_or("us-east-1");
     let start_url = input
         .start_url
@@ -243,7 +254,8 @@ async fn handle(
         context.revision.as_i64(),
         owner.as_str(),
         id.as_str(),
-        actor.as_str()
+        actor.as_str(),
+        previous.as_ref().map(|value| value.revision)
     ])
     .to_string();
     let region = region.to_owned();
@@ -304,7 +316,8 @@ async fn handle(
                 })();wipe(&mut response);workflow.sessions.remove(&session_id);
                 let Ok(material)=material else{return Ok(Err(()));};
                 let mut service=worker.service.lock().map_err(|_|ManagementOperationsError::SourceUnavailable)?;
-                let result=service.import_credential(&actor,&context.version,context.revision,owner,CredentialUpsert{id,kind:"bearer".into(),plaintext_secret:&material,status:CredentialStatus::Active});
+                let status=if previous.as_ref().is_some_and(|v|v.status==CredentialStatus::Disabled){CredentialStatus::Disabled}else{CredentialStatus::Active};
+                let result=super::codex_enrollment::persist(&mut service,&actor,&context,owner,CredentialUpsert{id,kind:"bearer".into(),plaintext_secret:&material,status},previous);
                 Ok(Ok(Outcome::Saved(result)))
             }
         }
@@ -314,8 +327,12 @@ async fn handle(
             .insert_header(("Cache-Control", "no-store"))
             .insert_header((header::ETAG, format!("\"{}\"", revision.as_token())))
             .json(value),
-        Ok(Ok(Outcome::Saved(Ok((value, _))))) => revisioned_json(
-            StatusCode::CREATED,
+        Ok(Ok(Outcome::Saved(Ok((value, created))))) => revisioned_json(
+            if created {
+                StatusCode::CREATED
+            } else {
+                StatusCode::OK
+            },
             value,
             |credential| serde_json::json!({"state":"completed","credential_id":credential.id.as_str()}),
         ),

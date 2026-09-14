@@ -485,3 +485,8 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
  .rt-mobile-account { display:block; margin-bottom:8px; }
  .rt-mobile-account button { max-width:100%; white-space:normal; }
 }
+.account-evidence { min-width:0; }
+.account-evidence .workspace-navigation { margin-top:18px; gap:2px; }
+.account-evidence .workspace-navigation button { padding:8px 11px; }
+.account-evidence-card { padding:14px 0; border-bottom:1px solid var(--separator); overflow-wrap:anywhere; }
+.account-evidence-card .page-actions { gap:12px; margin-top:12px; }

@@ -2279,6 +2279,7 @@ async fn native_plan_observations_are_filterable_and_invalidate_old_cursors() ->
 }
 
 #[actix_web::test]
+#[allow(clippy::too_many_lines)] // One fixture verifies enrollment, replacement and stale-session rejection.
 async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_exchange() -> TestResult
 {
     use gateway_http_actix::management_resources::kiro_device::KiroDeviceWorkflow;
@@ -2377,5 +2378,74 @@ async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_excha
         |r| r.get(0),
     )?;
     assert_eq!(count, 1);
+    let credential_revision: i64 = db.query_row(
+        "SELECT revision FROM upstream_credentials WHERE config_version_id=?1 AND id='new-kiro'",
+        [VERSION],
+        |r| r.get(0),
+    )?;
+    let disabled = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri("/admin/credentials/new-kiro/status"))
+            .insert_header(("If-Match", "rev-1"))
+            .set_json(
+                serde_json::json!({"status":"disabled","credential_revision":credential_revision}),
+            )
+            .to_request(),
+    )
+    .await;
+    assert_eq!(disabled.status(), StatusCode::OK);
+    let binding=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/endpoints/endpoint-owner-a/credential-bindings")).insert_header(("If-Match","rev-2")).set_json(serde_json::json!({"credential_id":"new-kiro","enabled":true,"priority":7,"weight":3,"concurrency":2})).to_request()).await;
+    assert_eq!(binding.status(), StatusCode::CREATED);
+    let repeated = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/start"),
+        )
+        .insert_header(("If-Match", "rev-3"))
+        .set_json(serde_json::json!({"id":"new-kiro","replace_existing":true}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(repeated.status(), StatusCode::OK);
+    let repeated: Value = test::read_body_json(repeated).await;
+    tokio::time::sleep(std::time::Duration::from_millis(5100)).await;
+    let replaced=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll")).insert_header(("If-Match","rev-3")).set_json(serde_json::json!({"id":"new-kiro","replace_existing":true,"session_id":repeated["session_id"]})).to_request()).await;
+    assert_eq!(replaced.status(), StatusCode::OK);
+    let replaced: Value = test::read_body_json(replaced).await;
+    assert_eq!(replaced["state"], "completed");
+    let account:(i64,String)=db.query_row("SELECT count(*),status FROM upstream_credentials WHERE config_version_id=?1 AND id='new-kiro'",[VERSION],|r|Ok((r.get(0)?,r.get(1)?)))?;
+    assert_eq!(account, (1, "disabled".into()));
+    let retained:i64=db.query_row("SELECT count(*) FROM endpoint_credential_bindings WHERE config_version_id=?1 AND credential_id='new-kiro' AND priority=7 AND weight=3 AND concurrency=2",[VERSION],|r|r.get(0))?;
+    assert_eq!(retained, 1);
+    let pending = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/start"),
+        )
+        .insert_header(("If-Match", "rev-4"))
+        .set_json(serde_json::json!({"id":"new-kiro","replace_existing":true}))
+        .to_request(),
+    )
+    .await;
+    let pending: Value = test::read_body_json(pending).await;
+    let credential_revision: i64 = db.query_row(
+        "SELECT revision FROM upstream_credentials WHERE config_version_id=?1 AND id='new-kiro'",
+        [VERSION],
+        |r| r.get(0),
+    )?;
+    let changed = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri("/admin/credentials/new-kiro/status"))
+            .insert_header(("If-Match", "rev-4"))
+            .set_json(
+                serde_json::json!({"status":"active","credential_revision":credential_revision}),
+            )
+            .to_request(),
+    )
+    .await;
+    assert_eq!(changed.status(), StatusCode::OK);
+    let stale=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll")).insert_header(("If-Match","rev-5")).set_json(serde_json::json!({"id":"new-kiro","replace_existing":true,"session_id":pending["session_id"]})).to_request()).await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+
     Ok(())
 }

@@ -1,7 +1,9 @@
+import { AccountEvidenceTabs } from "../accounts/AccountEvidenceTabs";
+import { useVersionStore } from "../config-versions/versionStore";
 import { ResourceIdentity, IdentityDetails } from "../../components/ResourceIdentity";
 // Shared account inspector for complete inventory and runtime projections.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
@@ -40,15 +42,19 @@ export function CredentialSheet({
   credentialId,
   accountName,
   providerName,
+  plan,
   onClose,
-}: Readonly<{ credentialId: string; accountName?: string; providerName?: string; onClose: () => void }>) {
+}: Readonly<{ credentialId: string; accountName?: string; providerName?: string; plan?:string|null; onClose: () => void }>) {
   const queryClient = useQueryClient();
+  const scope=useVersionStore(s=>s.context?.configVersionId);
   const [oauthOpen, setOauthOpen] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [rotated, setRotated] = useState<number | undefined>();
+  useEffect(()=>{setRotated(undefined);setError(undefined);setOauthOpen(false);},[scope,credentialId]);
 
   const credential = useQuery({
-    queryKey: ["credential", credentialId],
+    queryKey: ["credential", scope, credentialId],
+    enabled:!!scope,
     queryFn: () =>
       call<Credential>(
         "getCredential",
@@ -58,7 +64,8 @@ export function CredentialSheet({
   });
 
   const metadata = useQuery({
-    queryKey: ["credential-metadata", credentialId],
+    queryKey: ["credential-metadata", scope, credentialId],
+    enabled:!!scope,
     queryFn: () =>
       call<CredentialMetadata>(
         "getCredentialMetadata",
@@ -78,8 +85,8 @@ export function CredentialSheet({
     onSuccess: (operation) => {
       setError(undefined);
       setRotated(operation.revision);
-      void queryClient.invalidateQueries({ queryKey: ["credential", credentialId] });
-      void queryClient.invalidateQueries({ queryKey: ["credential-metadata", credentialId] });
+      void queryClient.invalidateQueries({ queryKey: ["credential", scope, credentialId] });
+      void queryClient.invalidateQueries({ queryKey: ["credential-metadata", scope, credentialId] });
     },
     onError: (cause) => setError(asAppError(cause).message),
   });
@@ -100,6 +107,8 @@ export function CredentialSheet({
   return (
     <Sheet title="账号详情" layout="inspector" onEscape={onClose}>
       <h3>{accountName ?? meta?.email ?? "未提供账号身份"}</h3>
+      {credential.isError?<p role="alert">{asAppError(credential.error).message}</p>:null}
+      <AccountEvidenceTabs accountId={credentialId} onNavigate={onClose} overview={<dl className="fact-grid"><dt>渠道</dt><dd>{providerName??"未观测"}</dd><dt>状态</dt><dd>{row?<StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>:"读取中"}</dd><dt>套餐</dt><dd>{plan??meta?.plan??"未观测"}</dd><dt>授权资料</dt><dd>{row?.secret_present?"已保存":"未观测"}</dd></dl>} configuration={<>
       <IdentityDetails entries={[["账号", credentialId, accountName ?? meta?.email ?? "未提供账号身份"], ...(row ? [["提供商", row.upstream_id, providerName] as const] : [])]} />
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">
@@ -127,7 +136,7 @@ export function CredentialSheet({
             <tr>
               <td>状态</td>
               <td>
-                <StatusBadge status={row.status} />
+                <StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>
               </td>
             </tr>
             <tr>
@@ -151,11 +160,11 @@ export function CredentialSheet({
       <h4>元数据</h4>
       {metadata.isError ? (
         <p className="muted small">
-          网关未提供该凭据的元数据(<span className="mono">getCredentialMetadata</span> 不可用)。
+          该渠道暂未返回账号元数据。
         </p>
       ) : present.length === 0 ? (
         <p className="muted small">
-          网关没有记录平台、账号、套餐或配额 —— 这些字段在契约里全部可空。
+          尚无账号、套餐或额度观测。
         </p>
       ) : (
         <table>
@@ -196,6 +205,7 @@ export function CredentialSheet({
           关闭
         </button>
       </div>
+      </>}/>
     </Sheet>
   );
 }
