@@ -45,7 +45,7 @@ context.
   key, or result filter now preserves an exact `from_ms`/`to_ms` range from a
   dashboard link. Selecting a new range preset intentionally replaces it, and
   the request bucket size now follows the actual resolved time span. A
-  non-preset deep link is labelled as its current exact range until an operator
+  exact deep link is labelled as its current exact range until an operator
   intentionally selects a relative preset.
 - Added a real filtered-empty recovery state for Providers and distinguish a
   failed topology read from a pending one in both Providers and Models. The
@@ -53,8 +53,9 @@ context.
   transient read-capacity rejection.
 - Applied the same bounded retry policy to safe request-filter, ledger, and
   failure reads. The shared client also serializes management GETs to respect
-  the gateway's bounded blocking-read worker. Writes and conflict responses
-  are still never replayed.
+  the gateway's bounded blocking-read worker, with a transport deadline and
+  cancellation-aware queue admission. Writes and conflict responses are still
+  never replayed.
 
 ## Verification
 

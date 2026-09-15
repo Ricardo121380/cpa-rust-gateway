@@ -8,11 +8,11 @@ describe("requestSearchAfterFilter", () => {
       from_ms: "1700000000000",
       to_ms: "1700086400000",
     });
-    const next = requestSearchAfterFilter(current, [["hours", "24"], ["model", "grok-4.5"]]);
+    const next = requestSearchAfterFilter(current, [["hours", "custom"], ["model", "grok-4.5"]]);
 
     expect(Object.fromEntries(next)).toEqual({
       tab: "requests",
-      hours: "24",
+      hours: "custom",
       model: "grok-4.5",
       from_ms: "1700000000000",
       to_ms: "1700086400000",
@@ -43,10 +43,11 @@ describe("requestSearchAfterFilter", () => {
     });
   });
 
-  it("shows the matching preset for a deep-linked seven-day range", () => {
+  it("labels an exact seven-day link as historical rather than a moving preset", () => {
     const range = new URLSearchParams({ from_ms: "1000", to_ms: String(1000 + 168 * 3_600_000) });
-    expect(selectedRequestPreset(range)).toBe(168);
-    expect(requestSearchAfterFilter(range, [["hours", "168"], ["outcome", "failed"]]).get("from_ms")).toBe("1000");
+    expect(selectedRequestPreset(range)).toBe("custom");
+    expect(requestSearchAfterFilter(range, [["hours", "custom"], ["outcome", "failed"]]).get("from_ms")).toBe("1000");
+    expect(requestSearchAfterFilter(range, [["hours", "24"], ["outcome", "failed"]]).has("from_ms")).toBe(false);
   });
 
   it("labels a non-preset exact range and lets any selected preset replace it", () => {
@@ -54,5 +55,15 @@ describe("requestSearchAfterFilter", () => {
     expect(selectedRequestPreset(range)).toBe("custom");
     expect(requestSearchAfterFilter(range, [["hours", "custom"], ["outcome", "failed"]]).get("to_ms")).toBe(String(1000 + 36 * 3_600_000));
     expect(requestSearchAfterFilter(range, [["hours", "24"], ["outcome", "failed"]]).has("from_ms")).toBe(false);
+  });
+
+  it("keeps historical bounds custom even with a matching hours parameter", () => {
+    const range = new URLSearchParams({ from_ms: "1000", to_ms: String(1000 + 24 * 3_600_000), hours: "24", outcome: "failed" });
+    expect(selectedRequestPreset(range)).toBe("custom");
+    const retained = requestSearchAfterFilter(range, [["hours", "custom"], ["outcome", "failed"]]);
+    expect(retained.get("from_ms")).toBe("1000");
+    const replaced = requestSearchAfterFilter(range, [["hours", "24"], ["outcome", "failed"]]);
+    expect(replaced.has("from_ms")).toBe(false);
+    expect(replaced.get("outcome")).toBe("failed");
   });
 });

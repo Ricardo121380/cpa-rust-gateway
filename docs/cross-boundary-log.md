@@ -2664,3 +2664,11 @@ Signed e77bcb5/schema28 is live on existing Oracle CPAR. Exact-revision formal g
 **Why:** The user explicitly authorized deployment after the reviewed daily-workspace alignment implementation and local gateway/EgoLite acceptance.
 
 **Other side:** FYI. The service switched from `e77bcb5` to `7988bff`, reached loopback health in 910 ms, and retained the prior schema28 binary for rollback. Existing administrator, accounts, active configuration, requests and ledger remain in place. Public administrator-login and all four embedded assets/CSP read back successfully. No production Provider request, data cleanup, DNS/Caddy/firewall, Autoreg, credential, alias, or configuration mutation occurred.
+
+## 2026-09-15 - Codex - Prism bounded read recovery hardening
+
+**What:** `web/prism/src/api/{client.ts,client.ownership.test.ts}`, `web/prism/src/features/monitoring/{RequestHistory.tsx,RequestHistory.test.ts}`, and `docs/reports/prism-c2c-alignment-20260915.md`.
+
+**Why:** ChatGPT review and the owned local gateway exposed two correctness edges in the workspace-alignment batch: historical exact intervals were presented as moving presets, and a stalled management GET could retain the shared read slot indefinitely.
+
+**Other side:** FYI. Exact `from_ms`/`to_ms` links now always show a historical-range option until an operator selects a relative preset; filtering preserves the range and selecting any preset replaces it. The bounded management-read scheduler gives active reads a deadline and lets queued work cancel without dispatch. Writes remain outside the queue; conflicts and writes are never replayed.307 frontend tests, type/build/double-build checks and embedded UI Rust regressions passed. No contract, provider, credential, production data, DNS/Caddy, Autoreg, or external request behavior changed in this commit.

@@ -34,13 +34,12 @@ function presetHours(value: string | null): (typeof RANGE_PRESETS)[number] {
     : 24;
 }
 export function selectedRequestPreset(params: URLSearchParams): RangePreset {
-  if (params.get("hours") === "custom") return "custom";
-  if (params.has("hours")) return presetHours(params.get("hours"));
   const from = Number(params.get("from_ms"));
   const to = Number(params.get("to_ms"));
-  if (!params.has("from_ms") || !params.has("to_ms") || !Number.isFinite(from) || !Number.isFinite(to) || to < from) return 24;
-  const span = to - from;
-  return RANGE_PRESETS.find((hours) => Math.abs(span - hours * 3_600_000) <= 60_000) ?? "custom";
+  // Bounds name an immutable past observation, even when their duration is
+  // exactly 24 hours or 7 days. They must not masquerade as a moving preset.
+  if (params.has("from_ms") && params.has("to_ms") && Number.isFinite(from) && Number.isFinite(to) && to >= from) return "custom";
+  return presetHours(params.get("hours"));
 }
 export function requestRange(params:URLSearchParams,anchor:number,hours=presetHours(params.get("hours"))) {
   const from=Number(params.get("from_ms")),to=Number(params.get("to_ms"));

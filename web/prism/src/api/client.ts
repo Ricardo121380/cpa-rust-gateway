@@ -41,17 +41,41 @@ useSessionStore.subscribe((state, previous) => {
 // selectors, topology), so serialize only those reads here rather than turning
 // temporary capacity rejection into false error cards. Writes never enter this
 // queue and retain their normal revision/uncertain-outcome behavior.
+const MANAGEMENT_READ_TIMEOUT_MS = 10_000;
 let managementReadTail: Promise<void> = Promise.resolve();
-async function serialManagementRead<T>(run: () => Promise<T>): Promise<T> {
+
+function waitForReadTurn(previous: Promise<void>, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.reject(new CancelledError({ silent: true }));
+  return new Promise((resolve, reject) => {
+    const cancel = () => {
+      signal.removeEventListener("abort", cancel);
+      reject(new CancelledError({ silent: true }));
+    };
+    signal.addEventListener("abort", cancel, { once: true });
+    void previous.then(() => {
+      signal.removeEventListener("abort", cancel);
+      resolve();
+    });
+  });
+}
+
+export async function serialManagementRead<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  signal: AbortSignal,
+  timeoutMs = MANAGEMENT_READ_TIMEOUT_MS,
+): Promise<T> {
   let release: (() => void) | undefined;
   const gate = new Promise<void>((resolve) => { release = resolve; });
   const previous = managementReadTail;
   managementReadTail = gate;
-  await previous;
+  let admitted = false;
   try {
-    return await run();
+    await waitForReadTurn(previous, signal);
+    admitted = true;
+    return await run(AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]));
   } finally {
-    release?.();
+    if (admitted) release?.();
+    else void previous.finally(() => release?.());
   }
 }
 
@@ -145,16 +169,18 @@ async function send<T>(
 
   let response: Response;
   try {
-    const dispatch = () => {
+    const requestSignal = request.signal === undefined
+      ? sessionRequests.signal
+      : AbortSignal.any([request.signal, sessionRequests.signal]);
+    const dispatch = (signal = requestSignal) => {
       assertOwner();
       return api.request(operation, {
         ...request, headers,
-        signal: request.signal === undefined ? sessionRequests.signal
-          : AbortSignal.any([request.signal, sessionRequests.signal]),
+        signal,
       });
     };
     response = managementOperations[operation].method === "GET"
-      ? await serialManagementRead(dispatch)
+      ? await serialManagementRead(dispatch, requestSignal)
       : await dispatch();
   } catch (cause) {
     assertOwner();

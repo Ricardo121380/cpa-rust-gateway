@@ -3,7 +3,7 @@ import { CancelledError } from "@tanstack/react-query";
 import { useSessionStore, readCsrfToken, readManagementKey } from "../session/sessionStore";
 import { useVersionStore } from "../features/config-versions/versionStore";
 import { queryClient } from "./queryClient";
-import { call, callText } from "./client";
+import { call, callText, serialManagementRead } from "./client";
 
 const transport = vi.hoisted(() => vi.fn<typeof fetch>());
 vi.mock("../dev/fixtures", () => ({ fixtureFetch: transport }));
@@ -28,6 +28,35 @@ beforeEach(() => {
 });
 
 describe("request ownership through the generated transport", () => {
+  it("releases a stalled read after its deadline so the next read can proceed", async () => {
+    const controller = new AbortController();
+    const stalled = serialManagementRead(
+      (signal) => new Promise<never>((_, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true })),
+      controller.signal,
+      10,
+    );
+    const stalledRejection = expect(stalled).rejects.toBeDefined();
+    const following = serialManagementRead(async () => "next", new AbortController().signal, 10);
+
+    await stalledRejection;
+    await expect(following).resolves.toBe("next");
+  });
+
+  it("settles a cancelled queued read without dispatching it", async () => {
+    const controller = new AbortController();
+    const active = serialManagementRead(
+      (signal) => new Promise<never>((_, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true })),
+      controller.signal,
+      20,
+    );
+    const queuedController = new AbortController();
+    const queued = serialManagementRead(async () => "never", queuedController.signal, 20);
+    queuedController.abort();
+
+    await expect(queued).rejects.toBeInstanceOf(CancelledError);
+    await expect(active).rejects.toBeDefined();
+  });
+
   it("serializes concurrent management GETs before the bounded reader", async () => {
     const finishFirst = pending();
     const first = scopedRead();
