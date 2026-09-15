@@ -30,6 +30,10 @@
 - [G4 阶段门禁报告](g4-gate-report.md)
 - [G9 Grok Web 阶段门禁报告](g9-gate-report.md)
 
+## 最新交付
+
+- [CPAR 渠道账号接入交付](cpar-channel-onboarding-delivery-20260916.md)
+
 ## 已完成任务
 
 - [P1-01 Request context and errors report](p1-01-request-context-errors.md)
