@@ -108,9 +108,13 @@ fn secret_input<'de, D: serde::Deserializer<'de>>(
 
 fn upstream_kinds(channel: &str) -> Vec<&'static str> {
     match channel {
-        "codex" => vec!["codex", "chatgpt", "openai-compatible"],
-        "claude" => vec!["claude", "anthropic-compatible"],
-        "kimi" => vec!["kimi", "openai-compatible", "anthropic-compatible"],
+        // Account onboarding must not treat protocol compatibility as channel
+        // ownership.  In particular, accepting an arbitrary OpenAI-compatible
+        // upstream here made a Kimi import appear to belong to Codex or a relay.
+        // API-key setup has its own explicit channel entries below.
+        "codex" => vec!["codex", "chatgpt"],
+        "claude" => vec!["claude"],
+        "kimi" => vec!["kimi"],
         "openai-compatible" => vec!["openai-compatible"],
         "anthropic-compatible" => vec!["anthropic-compatible"],
         "grok.official" => vec!["grok.official"],
@@ -250,7 +254,15 @@ pub(super) async fn import(
 
 #[cfg(test)]
 mod tests {
-    use super::normalize;
+    use super::{normalize, upstream_kinds};
+
+    #[test]
+    fn named_account_channels_do_not_borrow_compatible_relays() {
+        assert_eq!(upstream_kinds("codex"), ["codex", "chatgpt"]);
+        assert_eq!(upstream_kinds("claude"), ["claude"]);
+        assert_eq!(upstream_kinds("kimi"), ["kimi"]);
+    }
+
     #[test]
     fn channel_material_is_validated_before_storage() {
         for channel in ["openai-compatible", "anthropic-compatible", "grok.official"] {

@@ -1,7 +1,6 @@
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
 import { useMutation, useQuery, isCancelledError, CancelledError } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
@@ -21,6 +20,7 @@ type Result=Readonly<{id:string;label:string;status:string;error?:string}>;
 type Imported=Readonly<{created:number;unchanged:number;runtime_applied?:boolean;identity_state?:string}>;
 const formats:Record<string,string>={api_key:"API Key / Token",cpa_sub2api_json:"CPA / Sub2API / Codex 凭据 JSON",claude_json:"Claude 凭据 JSON 或 API Key",kiro_json_or_key:"Kiro 凭据 JSON 或 ksk_ Key",grok_build_json:"Grok Build 凭据 JSON",sso:"SSO 凭据"};
 const MAX_FILES=20;
+const API_CHANNELS=new Set(["openai-compatible","anthropic-compatible","grok.official"]);
 
 export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void}>) {
   const [channelId,setChannelId]=useState("openai-compatible");
@@ -47,7 +47,12 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     queryFn:()=>call<readonly {id:string;name:string;kind:string}[]>("listUpstreams",{},{versionScoped:true})});
   const channel=channels.data?.find((row)=>row.id===channelId);
   const matches=providers.data?.filter((provider)=>channel?.upstream_kinds.includes(provider.kind))??[];
-  const selectedProvider=matches.find((row)=>row.id===providerId)?.id??matches[0]?.id??"";
+  // Named account channels are owned by their channel, not by every relay that
+  // happens to understand the same wire protocol.  Never pick the first row:
+  // that silently attached Kimi credentials to Codex/Krill installations.
+  const selectedProvider=matches.find((row)=>row.id===providerId)?.id??(matches.length===1?matches[0]?.id??"":"");
+  const isApiChannel=API_CHANNELS.has(channelId);
+  const requiresConfiguredTarget=!native&&!isApiChannel;
   const endpoints=useManagedInventory("endpoints",selectedProvider,"",!native&&!!selectedProvider);
   const connections=endpoints.data?.pages.flatMap((page)=>page.items)??[];
   const selectedEndpoint=endpointId??(connections.length===1?connections[0]!.id:"");
@@ -128,8 +133,8 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:<>
       <label>渠道<select aria-label="渠道" value={channelId} disabled={busy} onChange={(event)=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(event.target.value);}}>{channels.data?.map((entry)=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
       {channel?.authorization_available?<button type="button" disabled={busy||(!native&&!selectedProvider)} onClick={()=>{resetInput();setOauth(true);}}>授权登录</button>:null}
-      {!native&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!!context&&providers.isPending?<p>读取提供商…</p>:!native&&!matches.length?<p><Link to={`/upstreams?add=provider&channel=${encodeURIComponent(channelId)}`} onClick={onClose}>添加 AI 提供商</Link>后，即可导入这类账号。</p>:channel?.import_available?<form className="sheet-form" onSubmit={submit} autoComplete="off">
-        {!native?<><label>提供商<select name="provider" value={selectedProvider} onChange={(event)=>{setProviderId(event.target.value);setEndpointId(null);}} disabled={busy} required>{matches.map((provider)=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>
+      {!native&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!!context&&providers.isPending?<p>读取渠道配置…</p>:requiresConfiguredTarget&&!matches.length?<p role="alert">此渠道尚未配置专用接入。账号授权不会借用其他渠道或兼容中转。</p>:requiresConfiguredTarget&&matches.length>1?<p role="alert">此渠道有多个专用接入，请在 AI 提供商中整理渠道配置后再授权。为避免错误绑定，面板不会自动选择其中一个。</p>:channel?.import_available?<form className="sheet-form" onSubmit={submit} autoComplete="off">
+        {!native&&isApiChannel?<><label>服务<select name="provider" value={selectedProvider} onChange={(event)=>{setProviderId(event.target.value);setEndpointId(null);}} disabled={busy} required><option value="">选择已配置服务</option>{matches.map((provider)=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>
           <label>接口连接<select name="endpoint" value={selectedEndpoint} onChange={(event)=>setEndpointId(event.target.value)} disabled={busy||endpoints.isFetching}><option value="">稍后连接</option>{connections.map((endpoint)=><option key={endpoint.id} value={endpoint.id}>{protocolName(endpoint.api_format)} · {new URL(endpoint.base_url).host}{endpoint.enabled?"":" · 已停用"}</option>)}</select></label>
           {endpoints.isError?<p role="alert">{asAppError(endpoints.error).message}。可以先保存账号，稍后连接接口。</p>:null}
           {endpoints.hasNextPage?<button type="button" className="secondary" disabled={busy||endpoints.isFetching} onClick={()=>void endpoints.fetchNextPage()}>加载更多接口</button>:null}

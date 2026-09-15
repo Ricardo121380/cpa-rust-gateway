@@ -2680,3 +2680,11 @@ Signed e77bcb5/schema28 is live on existing Oracle CPAR. Exact-revision formal g
 **Why:** The user explicitly authorized deployment after the final ChatGPT review corrections for truthful historical request ranges and a deadline/cancellation-safe management-read scheduler.
 
 **Other side:** FYI. The service switched from `7988bff` to `0ff3b82`, reached loopback health before the 12-second rollback deadline, and retains `7988bff` as its immediate schema28-compatible rollback. Existing administrator, accounts, active configuration, requests and ledger remain in place. Public administrator-login and all four embedded assets/CSP read back successfully through EgoLite. No production Provider request, data cleanup, DNS/Caddy/firewall, Autoreg, credential, alias, or configuration mutation occurred.
+
+## 2026-09-15 - Codex - Channel-owned account targeting
+
+**What:** `crates/gateway-http-actix/src/management_resources/account_channels.rs` and `web/prism/src/features/accounts/AddAccountDialog.tsx` stop named account channels from borrowing generic compatible upstreams and stop the ordinary account flow from silently selecting the first matching Provider or Endpoint.
+
+**Why:** A Kimi onboarding flow showed Codex/Krill and their connections because protocol compatibility was incorrectly treated as account-channel ownership. That made an authorization/import capable of attaching credentials to an unrelated service.
+
+**Other side:** FYI. Codex, Claude, and Kimi now require an exact channel-owned upstream; only the explicit API-key branches show service and connection controls. Named channel onboarding fails visibly for zero or multiple dedicated targets until the shared target-preparation and Kimi authorization work lands. No credential, model access, Provider request, or production state changed in this batch.
