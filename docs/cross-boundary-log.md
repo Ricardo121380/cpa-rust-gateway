@@ -2720,3 +2720,11 @@ Signed e77bcb5/schema28 is live on existing Oracle CPAR. Exact-revision formal g
 **Why:** The ordinary account and catalog workflows still inferred an operator choice from a singleton or first inventory row. Kimi Coding also accepted a validated OAuth export server-side but incorrectly hid its import entry.
 
 **Other side:** FYI. API-key setup now requires an explicit service choice even with one configured service. Catalog browsing requires an explicit endpoint and account, preserves explicit deep links, and cannot switch to another resource when a current selection disappears. Kimi Coding now presents both device authorization and strictly validated OAuth JSON import; its import prepares the exact Kimi target inside one revisioned draft and does not bind an observed endpoint. `importChannelAccount` declares both distinct Kimi modes (`kimi-api`, `kimi-coding`), and a contract regression prevents this UI/backend capability drift. 39 Prism test files/320 tests, targeted and complete managed-resource HTTP coverage, format/Clippy, contract/embed gates and the double-build SPA gate passed. EgoLite verified the current embedded React application at 1440×900 and 390×844 without a Provider or Endpoint selector for Codex, Claude, Kimi or Kiro; no official authorization or Provider inference was requested.
+
+## 2026-09-16 - Codex - Remove implicit provider-card endpoint selection
+
+**What:** `web/prism/src/features/upstreams/{UpstreamsPage.tsx,model.ts,model.test.ts}`.
+
+**Why:** The provider card’s “开放模型” link embedded the first observed endpoint in its URL. A multi-protocol upstream could therefore enter the model workflow with an unchosen Responses, Chat Completions or Messages endpoint.
+
+**Other side:** FYI. The link now enters the model workspace without `from_endpoint`; the explicit endpoint selector owns that choice. A unit regression guards the neutral URL, relevant Prism tests/build passed, and a source search confirms no first-item account/catalog/endpoint selection remains.

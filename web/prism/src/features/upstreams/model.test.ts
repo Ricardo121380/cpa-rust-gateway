@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  manualModelConnectPath,
   oauthPollIntervalMs,
   oauthStateBadge,
   parseOAuthCallback,
   safeExternalUrl,
 } from "./model";
+
+describe("manualModelConnectPath", () => {
+  it("does not infer an endpoint from a provider card", () => {
+    expect(manualModelConnectPath()).toBe("/models?add=model");
+    expect(manualModelConnectPath()).not.toContain("from_endpoint");
+  });
+});
 
 describe("oauthPollIntervalMs", () => {
   it("polls only while pending", () => {
