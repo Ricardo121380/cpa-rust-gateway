@@ -62,8 +62,9 @@ context.
 An isolated real local gateway and owned loopback TLS provider mock were used;
 no production state or real Provider inference was touched.
 
-- Focused Vitest regression: navigation plus the two exact-range preservation
-  cases passed.
+- All 307 Vitest tests passed, including historical exact-range preservation,
+  preset replacement, stalled-read deadline, queued cancellation, and write
+  no-replay regressions.
 - Type check and production Vite build passed. The embedded output remains the
   required four files: `index.html`, `assets/main.js`, `assets/vendor.js`, and
   `assets/index.css`.
