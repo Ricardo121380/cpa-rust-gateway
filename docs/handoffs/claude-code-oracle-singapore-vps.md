@@ -1,5 +1,17 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-15: daily-workspace alignment deployment (current)
+
+Production now serves signed `7988bffd60d4c40cfa45c7cee39126b7d441043b`,
+schema28, on the existing Oracle CPAR service and domain. The ARM64 artifact,
+manifest, SBOM, and Sigstore bundle were verified before staging; cutover from
+`e77bcb5` reached health in 910 ms. Existing administrator, accounts, active
+configuration, requests and ledger records were retained. `e77bcb5` remains
+installed as the compatible schema28 rollback target. Public EgoLite verified
+only the administrator login and embedded/CSP assets. No DNS, Caddy, Autoreg,
+credential, provider, alias, or real Provider request changed. See
+[production receipt](../reports/prism-c2c-alignment-production-20260915.md).
+
 ## 2026-09-15: complete alignment deployment (current)
 
 Production serves signed `e77bcb5b79a81fac1db33aec2a1912eb5c9e50fe`, schema28,

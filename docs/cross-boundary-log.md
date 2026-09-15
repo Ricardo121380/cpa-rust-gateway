@@ -2656,3 +2656,11 @@ Signed e77bcb5/schema28 is live on existing Oracle CPAR. Exact-revision formal g
 **Why:** User-authorized joint frontend ownership and CPAMP/CLIProxyAPI/Management Center workflow alignment. Daily management needs clear account authorization/import, compact provider and model workspaces, truthful request observation, and a coherent Apple Liquid Glass data plane without surfacing internal configuration revisions in normal navigation.
 
 **Other side:** FYI. Configuration bootstrap remains presentation-free on success and gives a retryable warning on failure, so version-scoped account/provider/model/key reads retain their active context without indefinite loading. Bounded management GETs are serialized; read-capacity rejections retry only for reads, while writes and conflicts never replay. The request filter preserves dashboard deep-link ranges unless an operator selects a new preset. No management contract, generated client, secret handling, external provider behavior, production state, DNS/Caddy, or Autoreg configuration changed. Local real-gateway/owned-loopback acceptance and EgoLite desktop/mobile checks are recorded in the report; signed release and public manual acceptance remain next.
+
+## 2026-09-15 - Codex - Prism daily-workspace alignment release
+
+**What:** Signed revision `7988bffd60d4c40cfa45c7cee39126b7d441043b` was built in GitHub Actions run `34946952551`, verified as native ARM64, installed into the existing Oracle CPAR release directory, and atomically selected by the service. Deployment evidence is in `docs/reports/prism-c2c-alignment-production-20260915.md`.
+
+**Why:** The user explicitly authorized deployment after the reviewed daily-workspace alignment implementation and local gateway/EgoLite acceptance.
+
+**Other side:** FYI. The service switched from `e77bcb5` to `7988bff`, reached loopback health in 910 ms, and retained the prior schema28 binary for rollback. Existing administrator, accounts, active configuration, requests and ledger remain in place. Public administrator-login and all four embedded assets/CSP read back successfully. No production Provider request, data cleanup, DNS/Caddy/firewall, Autoreg, credential, alias, or configuration mutation occurred.
