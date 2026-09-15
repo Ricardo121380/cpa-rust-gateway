@@ -81,9 +81,18 @@ no production state or real Provider inference was touched.
   time range, and Accounts, Providers, Models, and Settings all had coherent
   navigation and no page-level horizontal overflow at the mobile breakpoint.
 
-## Follow-up
+## Independent source review
 
-This report covers the implementation batch and local acceptance. The next
-step is the existing signed release gate and deployment to the approved Oracle
-CPAR service, followed by a human check of the public administrator login and
-the revised daily workspaces.
+ChatGPT reviewed revision `0ff3b82e715ce750f05a7116b444f375edfd60dd` in C2C
+task `c2c_dd83` and approved it with no blocking findings. That review confirms
+the exact-range and bounded-read scheduler behavior in source; it explicitly
+does not substitute for the test, artifact-signature, or production evidence
+recorded here and in the production receipt.
+
+## Current deployment
+
+The signed ARM64 artifact is running on the approved Oracle CPAR service.
+The public administrator login and four embedded assets were read back through
+EgoLite without entering a production credential. See the
+[production receipt](prism-c2c-alignment-production-20260915.md) for the
+revision, signed-artifact identity, rollback target, and production boundaries.
