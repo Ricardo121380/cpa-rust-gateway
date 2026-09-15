@@ -505,6 +505,7 @@ export function AccountRuntimePanel() {
           credentialId={credential}
           accountName={accountName(loaded.find((row)=>row.account_id===credential)?.presentation?.identity)}
           providerName={loaded.find((row)=>row.account_id===credential)?.presentation?.provider}
+          category={loaded.find((row)=>row.account_id===credential)?.presentation?.category==="codex"?"codex":loaded.find((row)=>row.account_id===credential)?.presentation?.category==="kimi"?"kimi":undefined}
           onClose={() => setCredential(undefined)}
         />
       )}

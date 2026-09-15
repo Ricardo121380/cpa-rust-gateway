@@ -78,6 +78,29 @@ fn candidate_mutation_contract_preserves_revision_and_existing_dto() -> TestResu
 }
 
 #[test]
+fn channel_import_contract_includes_only_supported_kimi_credential_modes() -> TestResult {
+    let document = document()?;
+    let body = &document["paths"]["/admin/upstreams/{upstream_id}/account-import"]["post"]["requestBody"]
+        ["content"]["application/json"]["schema"];
+    assert_eq!(body["additionalProperties"], false);
+    assert_eq!(
+        body["properties"]["channel"]["enum"],
+        serde_json::json!([
+            "openai-compatible",
+            "anthropic-compatible",
+            "codex",
+            "claude",
+            "grok.official",
+            "kiro",
+            "kimi-api",
+            "kimi-coding"
+        ])
+    );
+    assert_eq!(body["properties"]["secret"]["writeOnly"], true);
+    Ok(())
+}
+
+#[test]
 fn management_contract_has_no_dangling_local_references() -> TestResult {
     let document = document()?;
     validate_references(&document, &document)?;

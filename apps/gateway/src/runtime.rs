@@ -455,6 +455,12 @@ const P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION: &str = "openai.responses.max_outpu
 /// This stays in the P12 runtime instead of changing the generic OpenAI-compatible provider:
 /// other Providers retain their existing three-header contract.
 const P12_KRILL_COMPATIBILITY_USER_AGENT: &str = "codex_cli_rs/0.139.0";
+/// Kimi Coding device OAuth is a distinct provider protocol. Keep its identity separate from
+/// both the historic Codex bridge and generic OpenAI-compatible API-key traffic.
+const KIMI_OAUTH_USER_AGENT: &str = "cpa-rust-gateway/kimi-oauth";
+const KIMI_OAUTH_PLATFORM: &str = "CPAR";
+const KIMI_OAUTH_DEVICE_NAME: &str = "CPAR Gateway";
+const KIMI_OAUTH_DEVICE_MODEL: &str = "gateway";
 /// Lifetime of one operator-driven recovery ticket; begin and complete happen in one call.
 const P12_OPERATOR_RECOVERY_TTL_MS: i64 = 30_000;
 /// Short read-model lifetime: long enough for bounded cursor pagination, short enough that
@@ -4433,6 +4439,7 @@ impl EndpointAttemptDriver {
             .url()
             .starts_with("https://chatgpt.com/backend-api/codex/")
             && credential.has_account_binding();
+        let kimi_device_id = credential.kimi_device_id();
         let mut outbound = match projected {
             ProjectedProtocolRequest::NativeExact => OpenAiResponsesRequestBuilder::build_native(
                 endpoint,
@@ -4474,7 +4481,7 @@ impl EndpointAttemptDriver {
                 .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
             if is_codex_oauth {
                 let request =
-                    p12_transport_request(&outbound, admitted, true, credential.account_id())
+                    p12_transport_request(&outbound, admitted, true, credential.account_id(), None)
                         .map_err(AttemptFailure::NonRetryable)?;
                 match self
                     .send_codex_admitted_request(
@@ -4503,7 +4510,7 @@ impl EndpointAttemptDriver {
                 }
             } else {
                 let request =
-                    p12_transport_request(&outbound, admitted, false, credential.account_id())
+                    p12_transport_request(&outbound, admitted, false, None, kimi_device_id)
                         .map_err(AttemptFailure::NonRetryable)?;
                 break self
                     .send_admitted_request(
@@ -5316,6 +5323,7 @@ fn p12_transport_request(
     admitted: AdmittedEgressTarget,
     codex_oauth: bool,
     account_id: Option<&str>,
+    kimi_device_id: Option<&str>,
 ) -> Result<UpstreamHttpRequest, GatewayError> {
     if admitted.request_url() != outbound.target().as_url() {
         return Err(egress_rejected_error());
@@ -5342,6 +5350,8 @@ fn p12_transport_request(
             "user-agent".to_owned(),
             if codex_oauth {
                 P12_CODEX_OAUTH_USER_AGENT.to_owned()
+            } else if kimi_device_id.is_some() {
+                KIMI_OAUTH_USER_AGENT.to_owned()
             } else {
                 P12_KRILL_COMPATIBILITY_USER_AGENT.to_owned()
             },
@@ -5359,6 +5369,21 @@ fn p12_transport_request(
             P12_CODEX_OAUTH_ORIGINATOR.to_owned(),
         ));
         headers.push(("version".to_owned(), P12_CODEX_OAUTH_VERSION.to_owned()));
+    }
+    if let Some(device_id) = kimi_device_id {
+        if device_id.trim().is_empty() {
+            return Err(credential_unavailable_error());
+        }
+        headers.push(("x-msh-platform".to_owned(), KIMI_OAUTH_PLATFORM.to_owned()));
+        headers.push((
+            "x-msh-device-name".to_owned(),
+            KIMI_OAUTH_DEVICE_NAME.to_owned(),
+        ));
+        headers.push((
+            "x-msh-device-model".to_owned(),
+            KIMI_OAUTH_DEVICE_MODEL.to_owned(),
+        ));
+        headers.push(("x-msh-device-id".to_owned(), device_id.to_owned()));
     }
     UpstreamHttpRequest::try_new(
         admitted,
@@ -8040,10 +8065,10 @@ mod tests {
         FiniteEventSource, GROK_BUILD_RESPONSES_BASE_URL, GROK_BUILD_RESPONSES_PATH,
         GROK_CONSOLE_RESPONSES_BASE_URL, GROK_CONSOLE_RESPONSES_PATH, GROK_OFFICIAL_API_BASE_URL,
         GROK_OFFICIAL_RESPONSES_PATH, GROK_WEB_CANARY_PATH, GROK_WEB_PRODUCTION_BASE_URL,
-        MAX_SSE_FRAME_BYTES, MAX_SSE_IDENTIFIER_BYTES, MAX_SSE_PROGRESS_FREE_FRAMES,
-        MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES, OpenAiSseDecoder, OpenAiSseEventSource,
-        P12_BOOTSTRAP_TIMEOUT_MILLISECONDS, P12_CONNECT_TIMEOUT,
-        P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
+        KIMI_OAUTH_PLATFORM, KIMI_OAUTH_USER_AGENT, MAX_SSE_FRAME_BYTES, MAX_SSE_IDENTIFIER_BYTES,
+        MAX_SSE_PROGRESS_FREE_FRAMES, MAX_SSE_TOOL_CALLS, MAX_UPSTREAM_RESPONSE_BYTES,
+        OpenAiSseDecoder, OpenAiSseEventSource, P12_BOOTSTRAP_TIMEOUT_MILLISECONDS,
+        P12_CONNECT_TIMEOUT, P12_KRILL_COMPATIBILITY_USER_AGENT, P12_MAX_ROUTE_ATTEMPTS,
         P12_MAX_TOTAL_BINDING_CONCURRENCY, P12_NON_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
@@ -11105,7 +11130,7 @@ mod tests {
         let policy = p12_transport_test_policy()?;
         let admitted = policy.admit_url(outbound.url(), &StaticPublicResolver)?;
 
-        let request = p12_transport_request(&outbound, admitted, false, None)?;
+        let request = p12_transport_request(&outbound, admitted, false, None, None)?;
         assert_eq!(request.method(), UpstreamHttpMethod::Post);
         assert_eq!(request.body(), outbound.body());
         assert_eq!(
@@ -11120,10 +11145,64 @@ mod tests {
             &StaticPublicResolver,
         )?;
         assert_eq!(
-            p12_transport_request(&outbound, mismatched, false, None)
+            p12_transport_request(&outbound, mismatched, false, None, None)
                 .err()
                 .map(|error| error.code()),
             Some(GatewayErrorCode::EgressRejected)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn kimi_oauth_responses_request_uses_only_kimi_device_headers() -> Result<(), Box<dyn Error>> {
+        let decoded = decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-canonical.json"
+        ))?;
+        let endpoint =
+            OpenAiResponsesEndpoint::try_new("https://api.kimi.com/coding", "/v1/responses")?;
+        let credential = OpenAiResponsesApiKey::try_new("kimi-test-bearer")?;
+        let outbound = OpenAiResponsesRequestBuilder::build(
+            &endpoint,
+            &credential,
+            "kimi-test-model",
+            &decoded.request,
+            decoded.mode,
+        )?;
+        let policy = EgressPolicy::try_new(EgressPolicyInput {
+            id: EgressPolicyId::try_new("kimi-transport-test-policy")?,
+            name: "Kimi transport test policy".to_owned(),
+            allowed_schemes: BTreeSet::from([EgressScheme::Https]),
+            allowed_hosts: BTreeSet::from([EgressHost::try_new("api.kimi.com")?]),
+            allowed_ports: BTreeSet::from([443]),
+            allowed_cidrs: BTreeSet::new(),
+            redirect_policy: RedirectPolicy::Deny,
+        })?;
+        let admitted = policy.admit_url(outbound.url(), &StaticPublicResolver)?;
+        let request = p12_transport_request(
+            &outbound,
+            admitted,
+            false,
+            None,
+            Some("kimi-device-for-test"),
+        )?;
+        assert_eq!(
+            request
+                .header("x-msh-platform")
+                .and_then(|value| value.to_str().ok()),
+            Some(KIMI_OAUTH_PLATFORM)
+        );
+        assert_eq!(
+            request
+                .header("x-msh-device-id")
+                .and_then(|value| value.to_str().ok()),
+            Some("kimi-device-for-test")
+        );
+        assert!(request.header("chatgpt-account-id").is_none());
+        assert_eq!(
+            request
+                .header("user-agent")
+                .and_then(|value| value.to_str().ok()),
+            Some(KIMI_OAUTH_USER_AGENT)
         );
         Ok(())
     }

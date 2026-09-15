@@ -14,6 +14,7 @@ mod configuration_diff;
 mod configuration_edit;
 mod credential_status;
 mod grok_device;
+pub mod kimi_device;
 pub mod kiro_device;
 pub mod native_accounts;
 mod price_source;
@@ -131,6 +132,7 @@ pub struct ManagementResourceHttpState {
     workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     claude_workflow: Mutex<Box<dyn ManagementEndpointWorkflow>>,
     kiro_workflow: Option<std::sync::Arc<Mutex<kiro_device::KiroDeviceWorkflow>>>,
+    kimi_workflow: Option<std::sync::Arc<Mutex<kimi_device::KimiDeviceWorkflow>>>,
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     channel_pin: Mutex<Box<dyn ManagementChannelPinFacade>>,
     usage: std::sync::Arc<dyn ManagementUsageFacade>,
@@ -397,6 +399,7 @@ impl ManagementResourceHttpState {
             workflow: Mutex::new(workflow),
             claude_workflow: Mutex::new(Box::new(RejectingManagementEndpointWorkflow::new())),
             kiro_workflow: None,
+            kimi_workflow: None,
             runtime: Mutex::new(runtime),
             channel_pin: Mutex::new(Box::new(RejectingManagementChannelPinFacade::new())),
             usage: usage.into(),
@@ -415,6 +418,13 @@ impl ManagementResourceHttpState {
     #[must_use]
     pub fn with_kiro_workflow(mut self, workflow: kiro_device::KiroDeviceWorkflow) -> Self {
         self.kiro_workflow = Some(std::sync::Arc::new(Mutex::new(workflow)));
+        self
+    }
+
+    /// Installs the bounded fixed-origin Kimi Coding device authorization workflow.
+    #[must_use]
+    pub fn with_kimi_workflow(mut self, workflow: kimi_device::KimiDeviceWorkflow) -> Self {
+        self.kimi_workflow = Some(std::sync::Arc::new(Mutex::new(workflow)));
         self
     }
 
@@ -2625,6 +2635,7 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
         );
 }
 
+#[allow(clippy::too_many_lines)]
 fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route(
@@ -2669,6 +2680,22 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
             web::post().to(native_accounts::import),
         )
         .route("/account-channels", web::get().to(account_channels::list))
+        .route(
+            "/account-channels/codex/prepare-target",
+            web::post().to(account_channels::prepare_codex_target),
+        )
+        .route(
+            "/account-channels/claude/prepare-target",
+            web::post().to(account_channels::prepare_claude_target),
+        )
+        .route(
+            "/account-channels/kimi/prepare-target",
+            web::post().to(account_channels::prepare_kimi_target),
+        )
+        .route(
+            "/account-channels/kiro/prepare-target",
+            web::post().to(account_channels::prepare_kiro_target),
+        )
         .route(
             "/upstreams/{upstream_id}/claude-authorization/start",
             web::post().to(codex_enrollment::start_claude),
@@ -2715,6 +2742,7 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
 
 fn configure_routing_resource_routes(config: &mut web::ServiceConfig) {
     configure_kiro_routes(config);
+    configure_kimi_routes(config);
     configure_inventory_resource_routes(config);
     config
         .route(
@@ -6239,6 +6267,30 @@ fn credential_oauth_scope(
     .map_err(|_| internal_error())
 }
 
+fn is_codex_oauth_owner(
+    service: &mut ManagementMutationService,
+    version: &ConfigVersionId,
+    credential: &Revisioned<CredentialView>,
+) -> Result<bool, ManagementResourceError> {
+    if credential.value().kind != "oauth_json" {
+        return Ok(false);
+    }
+    let upstream = service.get_upstream(version, &credential.value().upstream_id)?;
+    if !matches!(
+        upstream.value().kind.as_str(),
+        "codex" | "chatgpt" | "openai-compatible"
+    ) {
+        return Ok(false);
+    }
+    // The storage kind is shared by Kimi and Codex. Inspect the sealed material locally before
+    // starting any OpenAI OAuth workflow, so a Kimi envelope never becomes a Codex renewal.
+    let plaintext = service.open_credential_for_export(version, &credential.value().id)?;
+    Ok(matches!(
+        OpenAiCompatibleRuntimeCredential::import_compatible(plaintext.as_bytes(), 0),
+        Ok(OpenAiCompatibleRuntimeCredential::CodexOAuth(_))
+    ))
+}
+
 async fn start_credential_oauth(
     request: HttpRequest,
     path: web::Path<String>,
@@ -6259,6 +6311,13 @@ async fn start_credential_oauth(
         Ok(current) => current,
         Err(response) => return response,
     };
+    match service(&state).and_then(|mut service| {
+        is_codex_oauth_owner(&mut service, &context.version, &current).map_err(management_error)
+    }) {
+        Ok(true) => {}
+        Ok(false) => return invalid_input(),
+        Err(response) => return response,
+    }
     let workflow_id =
         match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
             Ok(id) => id,
@@ -6291,6 +6350,13 @@ async fn get_credential_oauth_status(
         Ok(current) => current,
         Err(response) => return response,
     };
+    match service(&state).and_then(|mut service| {
+        is_codex_oauth_owner(&mut service, &context.version, &current).map_err(management_error)
+    }) {
+        Ok(true) => {}
+        Ok(false) => return invalid_input(),
+        Err(response) => return response,
+    }
     let workflow_id =
         match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
             Ok(id) => id,
@@ -6337,6 +6403,13 @@ async fn cancel_credential_oauth(
         Ok(current) => current,
         Err(response) => return response,
     };
+    match service(&state).and_then(|mut service| {
+        is_codex_oauth_owner(&mut service, &context.version, &current).map_err(management_error)
+    }) {
+        Ok(true) => {}
+        Ok(false) => return invalid_input(),
+        Err(response) => return response,
+    }
     let workflow_id =
         match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
             Ok(id) => id,
@@ -6387,6 +6460,13 @@ async fn complete_credential_oauth(
         Ok(current) => current,
         Err(response) => return response,
     };
+    match service(&state).and_then(|mut service| {
+        is_codex_oauth_owner(&mut service, &context.version, &current).map_err(management_error)
+    }) {
+        Ok(true) => {}
+        Ok(false) => return invalid_input(),
+        Err(response) => return response,
+    }
     let workflow_id =
         match credential_oauth_scope(&context.version, &credential_id, current.value().revision) {
             Ok(id) => id,
@@ -6503,7 +6583,10 @@ fn refresh_credential_oauth_claimed(
             Ok(current) => current,
             Err(error) => return management_error(error),
         };
-        if current.value().kind != "oauth_json" {
+        if !matches!(
+            is_codex_oauth_owner(&mut service, &context.version, &current),
+            Ok(true)
+        ) {
             return invalid_input();
         }
         if current.value().status != CredentialStatus::Active {
@@ -10613,6 +10696,22 @@ fn configure_kiro_routes(config: &mut web::ServiceConfig) {
         .route(
             "/upstreams/{upstream_id}/kiro-authorization/cancel",
             web::post().to(kiro_device::cancel),
+        );
+}
+
+fn configure_kimi_routes(config: &mut web::ServiceConfig) {
+    config
+        .route(
+            "/upstreams/{upstream_id}/kimi-authorization/start",
+            web::post().to(kimi_device::start),
+        )
+        .route(
+            "/upstreams/{upstream_id}/kimi-authorization/poll",
+            web::post().to(kimi_device::poll),
+        )
+        .route(
+            "/upstreams/{upstream_id}/kimi-authorization/cancel",
+            web::post().to(kimi_device::cancel),
         );
 }
 

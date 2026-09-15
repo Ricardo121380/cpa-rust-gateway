@@ -1,4 +1,5 @@
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
+import { KimiDeviceDialog } from "./KimiDeviceDialog";
 import {useAccountDirectory} from "./useAccountDirectory";
 import { useModelConnections } from "../models/useModelConnections";
 import { useQueryClient } from "@tanstack/react-query";
@@ -62,6 +63,7 @@ function ManagedAccounts() {
   const [oauth, setOauth] = useState<string>();
   const [claudeOauth,setClaudeOauth] = useState<ManagedCredential>();
   const [kiroOauth,setKiroOauth] = useState<ManagedCredential>();
+  const [kimiOauth,setKimiOauth] = useState<ManagedCredential>();
   const [more, setMore] = useState<ManagedCredential>();
   const [updating,setUpdating]=useState<ManagedCredential>();
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
@@ -89,7 +91,7 @@ function ManagedAccounts() {
   const error = inventory.isError ? asAppError(inventory.error) : undefined;
   const actions = (row: ManagedCredential) => <div className="page-actions">
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setDetail(row.credential.id);}}>详情</button>
-              {directory.find(item=>item.id===row.credential.id&&!item.native)?.operations.includes("reauthorize") ? <button className="secondary" onClick={() => {setAuthorizations(undefined);if(row.category==="claude")setClaudeOauth(row);else if(row.category==="kiro")setKiroOauth(row);else setOauth(row.credential.id);}}>重新授权</button> : null}
+              {directory.find(item=>item.id===row.credential.id&&!item.native)?.operations.includes("reauthorize") ? <button className="secondary" onClick={() => {setAuthorizations(undefined);if(row.category==="claude")setClaudeOauth(row);else if(row.category==="kiro")setKiroOauth(row);else if(row.category==="kimi")setKimiOauth(row);else setOauth(row.credential.id);}}>重新授权</button> : null}
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setMore(row);}}>更多</button>
             </div>;
   const nativeNames={grok_web:"Grok Web",grok_console:"Grok Console",grok_build:"Grok Build"};
@@ -183,8 +185,9 @@ function ManagedAccounts() {
     {nativeDetail?<NativeAccountDialog account={nativeDetail} onClose={()=>setNativeDetail(undefined)} onAuthorize={()=>{setNativeOauth(nativeDetail);setNativeDetail(undefined);}} onChanged={(notice)=>{setNativeDetail(undefined);setNotice(notice);void refresh();void client.resetQueries({queryKey:["accounts"]});}}/>:null}
     {nativeOauth?<GrokDeviceWizard name={accountName(nativeOauth.identity,nativeOauth.import_batch_id)??"Grok Build 账号"} target={{account_id:nativeOauth.id,revision:nativeOauth.revision}} onClose={()=>{setNativeOauth(undefined);void refresh();}} />:null}
     {["account", "api-key"].includes(params.get("add") ?? "") ? <AddAccountDialog onClose={() => update("add", "")} onCreated={(notice) => {update("add", ""); setNotice(notice??"账号已保存。"); void refresh();}} /> : null}
-    {detail ? <CredentialSheet plan={rows.find(row=>row.credential.id===detail)?.plan} credentialId={detail} accountName={accountName(rows.find((row)=>row.credential.id===detail)?.identity)} providerName={rows.find((row)=>row.credential.id===detail)?.provider} onClose={() => {setDetail(undefined); void refresh();}} /> : null}
+    {detail ? <CredentialSheet plan={rows.find(row=>row.credential.id===detail)?.plan} credentialId={detail} accountName={accountName(rows.find((row)=>row.credential.id===detail)?.identity)} providerName={rows.find((row)=>row.credential.id===detail)?.provider} category={rows.find((row)=>row.credential.id===detail)?.category==="codex"?"codex":rows.find((row)=>row.credential.id===detail)?.category==="kimi"?"kimi":undefined} onClose={() => {setDetail(undefined); void refresh();}} /> : null}
     {kiroOauth?<KiroDeviceDialog credentialId={kiroOauth.credential.id} providerId={kiroOauth.credential.upstream_id} endpointId="" onClose={()=>setKiroOauth(undefined)} onComplete={notice=>{setKiroOauth(undefined);setNotice(notice);void refresh();}}/>:null}
+    {kimiOauth?<KimiDeviceDialog credentialId={kimiOauth.credential.id} providerId={kimiOauth.credential.upstream_id} onClose={()=>setKimiOauth(undefined)} onComplete={notice=>{setKimiOauth(undefined);setNotice(notice);void refresh();}}/>:null}
     {claudeOauth?<AuthorizationCodeDialog channel="claude" credentialId={claudeOauth.credential.id} providerId={claudeOauth.credential.upstream_id} providerName={accountName(claudeOauth.identity)??"Claude"} endpointId="" onClose={()=>setClaudeOauth(undefined)} onComplete={notice=>{setClaudeOauth(undefined);setNotice(notice);void refresh();}}/>:null}
     {oauth ? <OAuthWizard credentialId={oauth} accountName={accountName(rows.find((row)=>row.credential.id===oauth)?.identity)} onClose={() => {setOauth(undefined); void refresh();}} /> : null}
     {more?<Sheet title="账号操作" onEscape={()=>setMore(undefined)}><h3>{accountName(more.identity)??more.provider}</h3><div className="sheet-actions"><button onClick={()=>{setUpdating(more);setMore(undefined);}}>更新凭据</button><button className="secondary" onClick={()=>startAction(more,more.credential.status==="disabled"?"enable":"disable")}>{more.credential.status==="disabled"?"启用":"停用"}账号</button><button className="danger" onClick={()=>startAction(more,"remove")}>移除授权</button></div></Sheet>:null}

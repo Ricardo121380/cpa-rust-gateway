@@ -110,6 +110,10 @@ fn region_valid(region: &str) -> bool {
             | "ca-central-1"
     )
 }
+fn region_from_canonical_owner(owner: &str) -> Option<&str> {
+    let region = owner.strip_prefix("kiro-")?;
+    region_valid(region).then_some(region)
+}
 fn start_url_valid(value: &str) -> bool {
     url::Url::parse(value).is_ok_and(|u| {
         u.scheme() == "https"
@@ -238,7 +242,18 @@ async fn handle(
         Ok(value) => value,
         Err(r) => return r,
     };
-    let region = input.region.as_deref().unwrap_or("us-east-1");
+    // Reauthorization inherits a canonical target's established region unless an operator
+    // explicitly supplies the advanced region input. A default UI value must not move accounts.
+    let region = input
+        .region
+        .as_deref()
+        .or_else(|| {
+            input
+                .replace_existing
+                .then(|| region_from_canonical_owner(owner.as_str()))
+                .flatten()
+        })
+        .unwrap_or("us-east-1");
     let start_url = input
         .start_url
         .as_deref()
@@ -307,6 +322,18 @@ async fn handle(
                     if matches!(error,"slow_down"|"SlowDownException"){session.interval=(session.interval+5000).min(60000);session.next_poll=clock+session.interval;}
                     let interval=session.interval;wipe(&mut response);return Ok(Ok(Outcome::State(serde_json::json!({"state":"pending","interval_ms":interval}))));
                 }
+                if matches!(error,"access_denied"|"AccessDeniedException") {
+                    wipe(&mut response);workflow.sessions.remove(&session_id);
+                    return Ok(Ok(Outcome::State(serde_json::json!({"state":"denied"}))));
+                }
+                if matches!(error,"expired_token"|"ExpiredTokenException") {
+                    wipe(&mut response);workflow.sessions.remove(&session_id);
+                    return Ok(Ok(Outcome::State(serde_json::json!({"state":"expired"}))));
+                }
+                if !error.is_empty() {
+                    wipe(&mut response);workflow.sessions.remove(&session_id);
+                    return Ok(Ok(Outcome::State(serde_json::json!({"state":"failed"}))));
+                }
                 let material:Result<Zeroizing<Vec<u8>>,()>=(||{
                     let access=token(&response,"accessToken")?;let refresh=token(&response,"refreshToken")?;
                     let expires=response["expiresIn"].as_i64().filter(|v|(1..=86400).contains(v)).ok_or(())?;
@@ -314,7 +341,7 @@ async fn handle(
                     let bytes=Zeroizing::new(serde_json::to_vec(&envelope).map_err(|_|())?);wipe(&mut envelope);
                     provider_kiro::credential::KiroCredential::import_runtime_secret(&bytes,clock).map_err(|_|())?;Ok(bytes)
                 })();wipe(&mut response);workflow.sessions.remove(&session_id);
-                let Ok(material)=material else{return Ok(Err(()));};
+                let Ok(material)=material else{return Ok(Ok(Outcome::State(serde_json::json!({"state":"failed"}))));};
                 let mut service=worker.service.lock().map_err(|_|ManagementOperationsError::SourceUnavailable)?;
                 let status=if previous.as_ref().is_some_and(|v|v.status==CredentialStatus::Disabled){CredentialStatus::Disabled}else{CredentialStatus::Active};
                 let result=super::codex_enrollment::persist(&mut service,&actor,&context,owner,CredentialUpsert{id,kind:"bearer".into(),plaintext_secret:&material,status},previous);

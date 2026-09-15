@@ -1,4 +1,5 @@
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
+import { KimiDeviceDialog } from "./KimiDeviceDialog";
 import { useMutation, useQuery, isCancelledError, CancelledError } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { call } from "../../api/client";
@@ -14,13 +15,59 @@ import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
 import { useManagedInventory } from "./inventory";
 import { protocolName } from "./presentation";
 
-type Channel=Readonly<{id:string;name:string;credential_format:string;import_available:boolean;authorization_available:boolean;upstream_kinds:readonly string[]}>;
+type Channel=Readonly<{id:string;name:string;credential_format:string;import_available:boolean;authorization_flow:string;authorization_available:boolean;upstream_kinds:readonly string[]}>;
 type Material=Readonly<{id:string;label:string;secret:string}>;
 type Result=Readonly<{id:string;label:string;status:string;error?:string}>;
 type Imported=Readonly<{created:number;unchanged:number;runtime_applied?:boolean;identity_state?:string}>;
-const formats:Record<string,string>={api_key:"API Key / Token",cpa_sub2api_json:"CPA / Sub2API / Codex 凭据 JSON",claude_json:"Claude 凭据 JSON 或 API Key",kiro_json_or_key:"Kiro 凭据 JSON 或 ksk_ Key",grok_build_json:"Grok Build 凭据 JSON",sso:"SSO 凭据"};
+const formats:Record<string,string>={api_key:"API Key / Token",cpa_sub2api_json:"CPA / Sub2API / Codex 凭据 JSON",claude_json:"Claude 凭据 JSON 或 API Key",kiro_json_or_key:"Kiro 凭据 JSON 或 ksk_ Key",kimi_oauth:"Kimi OAuth 凭据 JSON",grok_build_json:"Grok Build 凭据 JSON",sso:"SSO 凭据"};
 const MAX_FILES=20;
-const API_CHANNELS=new Set(["openai-compatible","anthropic-compatible","grok.official"]);
+const API_CHANNELS=new Set(["openai-compatible","anthropic-compatible","grok.official","kimi-api"]);
+const CHANNEL_OWNED_AUTHORIZATION=new Set(["codex","claude","kimi-coding","kiro"]);
+const CHANNEL_OWNED_IMPORT=new Set(["codex","claude","kimi-coding","kiro"]);
+
+/** Keeps target ownership in the coordinator instead of a hidden or absent form control. */
+export function importTargetForChannel(isNative:boolean,isApi:boolean,selectedProvider:string,formProvider:FormDataEntryValue|null):string {
+  if(isNative)return "";
+  return isApi?String(formProvider??""):selectedProvider;
+}
+
+/** Only an explicit API-setup choice can bind immediately during import. */
+export function importEndpointForChannel(isApi:boolean,formEndpoint:FormDataEntryValue|null):string {
+  return isApi?String(formEndpoint??""):"";
+}
+
+/** API services are selected by the operator; a singleton inventory is not a default choice. */
+export function selectedAccountProvider(providerId:string,providers:readonly {id:string}[]):string {
+  return providers.some((provider)=>provider.id===providerId)?providerId:"";
+}
+
+/** Reads only the non-secret regional selector from transient Kiro JSON import material. */
+export function kiroImportRegion(items:readonly Material[]):string {
+  const regions=new Set<string>();
+  for(const item of items){
+    try {const value=JSON.parse(item.secret) as {auth_region?:unknown};if(typeof value.auth_region==="string"&&value.auth_region)regions.add(value.auth_region);}
+    catch { /* The server remains the authority for malformed or raw key material. */ }
+  }
+  if(regions.size>1)throw new Error("一次导入的 Kiro 授权包含多个地区，请按地区分别导入。");
+  return [...regions][0]??"us-east-1";
+}
+
+/** Ordinary imports resolve their owner server-side in the same revisioned task. */
+export function preparedImportOperation(channel:string):"prepareCodexAccountTarget"|"prepareClaudeAccountTarget"|"prepareKimiAccountTarget"|"prepareKiroAccountTarget"|undefined {
+  if(channel==="codex")return "prepareCodexAccountTarget";
+  if(channel==="claude")return "prepareClaudeAccountTarget";
+  if(channel==="kimi-coding")return "prepareKimiAccountTarget";
+  if(channel==="kiro")return "prepareKiroAccountTarget";
+  return undefined;
+}
+
+/** Codex and Claude preparation have no request body; only Kiro owns a region input. */
+export function preparedImportRequest(
+  operation:ReturnType<typeof preparedImportOperation>,
+  kiroRegion:string|undefined,
+) {
+  return operation==="prepareKiroAccountTarget"?{body:{region:kiroRegion??"us-east-1"}}:undefined;
+}
 
 export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void}>) {
   const [channelId,setChannelId]=useState("openai-compatible");
@@ -43,25 +90,34 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   const context=useVersionStore((state)=>state.context);
   const native=["grok.build","grok.console","grok.web"].includes(channelId);
   const channels=useQuery({queryKey:["account-channels"],queryFn:()=>call<readonly Channel[]>("listAccountChannels")});
-  const providers=useQuery({queryKey:["account-providers",context?.configVersionId],enabled:!!context&&!native,
+  // Channel-owned device flows prepare their own canonical target only after the operator starts.
+  // They never need to enumerate arbitrary Providers just to render the chooser.
+  const providers=useQuery({queryKey:["account-providers",context?.configVersionId],enabled:!!context&&!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId),
     queryFn:()=>call<readonly {id:string;name:string;kind:string}[]>("listUpstreams",{},{versionScoped:true})});
   const channel=channels.data?.find((row)=>row.id===channelId);
   const matches=providers.data?.filter((provider)=>channel?.upstream_kinds.includes(provider.kind))??[];
   // Named account channels are owned by their channel, not by every relay that
   // happens to understand the same wire protocol.  Never pick the first row:
   // that silently attached Kimi credentials to Codex/Krill installations.
-  const selectedProvider=matches.find((row)=>row.id===providerId)?.id??(matches.length===1?matches[0]?.id??"":"");
+  // Even an API-key setup must name its service explicitly.  A singleton list is
+  // still an internal inventory result, not an operator's routing decision.
+  const selectedProvider=selectedAccountProvider(providerId,matches);
   const isApiChannel=API_CHANNELS.has(channelId);
   const requiresConfiguredTarget=!native&&!isApiChannel;
   const endpoints=useManagedInventory("endpoints",selectedProvider,"",!native&&!!selectedProvider);
   const connections=endpoints.data?.pages.flatMap((page)=>page.items)??[];
-  const selectedEndpoint=endpointId??(connections.length===1?connections[0]!.id:"");
-  const create=useMutation({gcTime:0,mutationFn:async({provider,endpoint,items}:{provider:string;endpoint:string;items:Material[]})=>{
+  // An endpoint is an advanced routing decision. Built-in account journeys must never bind an
+  // account merely because the browser happened to observe one compatible connection.
+  const selectedEndpoint=endpointId??"";
+  const create=useMutation({gcTime:0,mutationFn:async({provider,endpoint,items,kiroRegion}:{provider:string;endpoint:string;items:Material[];kiroRegion?:string})=>{
     const owner=useVersionStore.getState().selectionGeneration;
     const session=useSessionStore.getState().generation;
     const assertOwner=()=>{if(owner!==useVersionStore.getState().selectionGeneration||session!==useSessionStore.getState().generation)throw new CancelledError({silent:true});};
     const task=native?undefined:await beginConfigurationTask("导入账号");
     if(task)setWorkingId(task.version.id);
+    let targetProvider=provider;
+    const preparation=preparedImportOperation(channelId);
+    if(task&&preparation)targetProvider=(await task.mutate<{upstream_id:string}>(preparation,preparedImportRequest(preparation,kiroRegion))).upstream_id;
     const results:Result[]=items.map(({id,label})=>({id,label,status:"未执行"}));
     let saved=0;let canApply=true;
     for(const [index,item] of items.entries()) {
@@ -75,7 +131,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
           saved+=result.created;
           if(result.runtime_applied===false){setNeedsApply(true);canApply=false;setRows([...results]);break;}
         } else {
-          const imported=await task!.mutate<{id:string}>("importChannelAccount",{path:{upstream_id:provider},body});
+          const imported=await task!.mutate<{id:string}>("importChannelAccount",{path:{upstream_id:targetProvider},body});
           accountSaved=true;saved+=1;
           if(endpoint){
             const bindings=await task!.read<{credential_id:string}[]>("listEndpointCredentialBindings",{path:{endpoint_id:endpoint}});
@@ -119,21 +175,28 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     const form=new FormData(event.currentTarget);
     const items=inputMode==="files"?materials.current:[{id:`import-${crypto.randomUUID()}`,label:"粘贴的凭据",secret:secret.current?.value??""}];
     if(!items.length||items.some((item)=>!item.secret.trim()||new TextEncoder().encode(item.secret).length>65536)){setError("每份凭据须非空且不超过 64 KiB。");return;}
+    const provider=importTargetForChannel(native,isApiChannel,selectedProvider,form.get("provider"));
+    const endpoint=importEndpointForChannel(isApiChannel,form.get("endpoint"));
+    if(!native&&!provider&&!CHANNEL_OWNED_IMPORT.has(channelId)){setError("该渠道没有唯一的专用接入，未开始导入。");return;}
+    let kiroRegion:string|undefined;
+    try {if(channelId==="kiro")kiroRegion=kiroImportRegion(items);} catch(cause) {setError(asAppError(cause).message);return;}
     materials.current=[];if(secret.current)secret.current.value="";setError(undefined);submitting.current=true;
     setRows(items.map(({id,label})=>({id,label,status:"待导入"})));
-    create.mutate({provider:String(form.get("provider")??""),endpoint:String(form.get("endpoint")??""),items});
+    create.mutate({provider,endpoint,items,kiroRegion});
   };
-  if(oauth&&channelId==="kiro")return <KiroDeviceDialog providerId={selectedProvider} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
-  if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} providerId={selectedProvider} providerName={resourceName(selectedProvider,"upstream",matches.find(row=>row.id===selectedProvider)?.name)} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
-  if(oauth)return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
+  if(oauth&&channelId==="kiro")return <KiroDeviceDialog onClose={()=>setOauth(false)} onComplete={onCreated}/>;
+  if(oauth&&channelId==="kimi-coding")return <KimiDeviceDialog onClose={()=>setOauth(false)} onComplete={onCreated}/>;
+  if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
+  if(oauth&&channelId==="grok.build")return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
+  if(oauth)return <Sheet title="暂不支持的授权方式" onEscape={()=>setOauth(false)}><p role="alert">该渠道没有可用的授权流程。为避免把账号接到错误渠道，面板未执行任何操作。</p><div className="sheet-actions"><button onClick={()=>setOauth(false)}>返回</button></div></Sheet>;
   return <Sheet title="授权或导入账号" onEscape={close}>
     {completed?<>
       <h3>导入结果</h3>
       {needsApply?<RuntimeApplyNotice onApplied={()=>setNeedsApply(false)}/>:null}
     </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:<>
       <label>渠道<select aria-label="渠道" value={channelId} disabled={busy} onChange={(event)=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(event.target.value);}}>{channels.data?.map((entry)=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
-      {channel?.authorization_available?<button type="button" disabled={busy||(!native&&!selectedProvider)} onClick={()=>{resetInput();setOauth(true);}}>授权登录</button>:null}
-      {!native&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!!context&&providers.isPending?<p>读取渠道配置…</p>:requiresConfiguredTarget&&!matches.length?<p role="alert">此渠道尚未配置专用接入。账号授权不会借用其他渠道或兼容中转。</p>:requiresConfiguredTarget&&matches.length>1?<p role="alert">此渠道有多个专用接入，请在 AI 提供商中整理渠道配置后再授权。为避免错误绑定，面板不会自动选择其中一个。</p>:channel?.import_available?<form className="sheet-form" onSubmit={submit} autoComplete="off">
+      {channel?.authorization_available?<button type="button" disabled={busy||(!native&&!selectedProvider&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId))} onClick={()=>{resetInput();setOauth(true);}}>授权登录</button>:null}
+      {!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!!context&&providers.isPending?<p>读取渠道配置…</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!matches.length?<p role="alert">此渠道尚未配置专用接入。账号授权不会借用其他渠道或兼容中转。</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&matches.length>1?<p role="alert">此渠道有多个专用接入，请在 AI 提供商中整理渠道配置后再授权。为避免错误绑定，面板不会自动选择其中一个。</p>:channel?.import_available?<form className="sheet-form" onSubmit={submit} autoComplete="off">
         {!native&&isApiChannel?<><label>服务<select name="provider" value={selectedProvider} onChange={(event)=>{setProviderId(event.target.value);setEndpointId(null);}} disabled={busy} required><option value="">选择已配置服务</option>{matches.map((provider)=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>
           <label>接口连接<select name="endpoint" value={selectedEndpoint} onChange={(event)=>setEndpointId(event.target.value)} disabled={busy||endpoints.isFetching}><option value="">稍后连接</option>{connections.map((endpoint)=><option key={endpoint.id} value={endpoint.id}>{protocolName(endpoint.api_format)} · {new URL(endpoint.base_url).host}{endpoint.enabled?"":" · 已停用"}</option>)}</select></label>
           {endpoints.isError?<p role="alert">{asAppError(endpoints.error).message}。可以先保存账号，稍后连接接口。</p>:null}

@@ -25,8 +25,10 @@ export async function beginConfigurationTask(description:string) {
     assertOwner();
     const result=await callRevisioned<T>(operation,{...request,headers:{...request.headers,"X-Config-Version":version.id,"If-Match":revision}});
     assertOwner();
-    const pendingDevice=operation==="pollKiroEnrollment"&&(result.value as {state?:string}|null)?.state==="pending";
-    if(BigInt(result.revision.slice(4))<BigInt(revision.slice(4))||(!pendingDevice&&result.revision===revision))throw new Error("修改结果的版本未推进，请重读核对。");
+    const deviceState=(result.value as {state?:string}|null)?.state;
+    const unchangedDevice=(operation==="pollKiroEnrollment"&&["pending","denied","expired","failed","cancelled"].includes(deviceState??""))
+      ||(operation==="pollKimiEnrollment"&&["pending","denied","expired","failed","cancelled"].includes(deviceState??""));
+    if(BigInt(result.revision.slice(4))<BigInt(revision.slice(4))||(!unchangedDevice&&result.revision===revision))throw new Error("修改结果的版本未推进，请重读核对。");
     revision=result.revision;
     return result.value;
   };
@@ -51,5 +53,5 @@ export async function beginConfigurationTask(description:string) {
     // applied resources after selection; an unrelated read failure must not turn it into a retry.
     return {...version,revision,status:"active"};
   };
-  return {version,autoApply,assertOwner,read,mutate,finish};
+  return {version,autoApply,assertOwner,read,mutate,finish,revision:()=>revision};
 }

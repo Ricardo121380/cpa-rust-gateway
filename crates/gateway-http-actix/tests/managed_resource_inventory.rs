@@ -332,9 +332,27 @@ fn fixture(active: bool) -> Result<(Database, ManagementResourceHttpState), Box<
     )
 }
 
+fn fixture_with_valid_codex(
+    active: bool,
+) -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> {
+    fixture_with_workflow_inner(
+        active,
+        Box::new(gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::new()),
+        true,
+    )
+}
+
 fn fixture_with_workflow(
     active: bool,
     workflow: Box<dyn gateway_http_actix::management_resources::ManagementEndpointWorkflow>,
+) -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> {
+    fixture_with_workflow_inner(active, workflow, false)
+}
+
+fn fixture_with_workflow_inner(
+    active: bool,
+    workflow: Box<dyn gateway_http_actix::management_resources::ManagementEndpointWorkflow>,
+    valid_first_codex: bool,
 ) -> Result<(Database, ManagementResourceHttpState), Box<dyn Error>> {
     let name = format!(
         "prism-inventory-{}-{}-{}.sqlite3",
@@ -383,11 +401,23 @@ fn fixture_with_workflow(
         let id = CredentialId::try_new(format!("account-{index:03}"))?;
         let upstream_id = UpstreamId::try_new(if index % 2 == 0 { "owner-a" } else { "owner-b" })?;
         let aad = credential_associated_data(&version, &id, &upstream_id)?;
+        let initial_secret: &[u8] = if valid_first_codex && index == 0 {
+            br#"{"kind":"codex_oauth","access_token":"inventory-access","refresh_token":"inventory-refresh","expires_at_ms":4102444800000,"account_id":"inventory-account","email":"owner@example.test"}"#
+        } else if index == 0 {
+            br#"{"email":"owner@example.test","access_token":"inventory-secret-must-not-leak","sub":"opaque-subject"}"#
+        } else {
+            b"inventory-secret-must-not-leak"
+        };
         configuration.credentials.push(CredentialConfiguration {
             id,
             upstream_id,
-            kind: "bearer".to_owned(),
-            encrypted_secret: store.seal(if index==0 {br#"{"email":"owner@example.test","access_token":"inventory-secret-must-not-leak","sub":"opaque-subject"}"#} else {b"inventory-secret-must-not-leak"}, &aad)?,
+            kind: if valid_first_codex && index == 0 {
+                "oauth_json"
+            } else {
+                "bearer"
+            }
+            .to_owned(),
+            encrypted_secret: store.seal(initial_secret, &aad)?,
             status: if index % 2 == 0 {
                 CredentialStatus::Active
             } else {
@@ -641,7 +671,7 @@ async fn unbound_inventory_is_complete_filtered_bounded_and_secret_free() -> Tes
 
 #[actix_web::test]
 async fn inventory_cursor_rejects_filter_changes_and_same_revision_audit_changes() -> TestResult {
-    let (_file, state) = fixture(false)?;
+    let (_file, state) = fixture_with_valid_codex(false)?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -818,7 +848,7 @@ async fn active_fork_returns_a_complete_draft_without_secret_material() -> TestR
 
 #[actix_web::test]
 async fn forked_credentials_have_independent_oauth_sessions() -> TestResult {
-    let (_file, state) = fixture(true)?;
+    let (_file, state) = fixture_with_valid_codex(true)?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -939,7 +969,12 @@ async fn status_update_keeps_ciphertext_and_rejects_stale_account_revision() -> 
 
 #[actix_web::test]
 async fn channel_import_is_scoped_validated_and_visible_before_binding() -> TestResult {
-    let (_file, state) = fixture(false)?;
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='codex' WHERE config_version_id=?1 AND id='owner-a'",
+        [VERSION],
+    )?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -954,7 +989,14 @@ async fn channel_import_is_scoped_validated_and_visible_before_binding() -> Test
     .await;
     assert_eq!(response.status(), StatusCode::OK);
     let channels: Value = test::read_body_json(response).await;
-    assert_eq!(channels.as_array().ok_or("channels")?.len(), 10);
+    assert_eq!(channels.as_array().ok_or("channels")?.len(), 11);
+    let kimi = channels
+        .as_array()
+        .ok_or("channels")?
+        .iter()
+        .find(|channel| channel["id"] == "kimi-coding")
+        .ok_or("Kimi Coding channel")?;
+    assert_eq!(kimi["import_available"], true);
     let response = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
         .insert_header(("If-Match", "rev-0"))
         .set_json(serde_json::json!({"id":"imported-codex", "channel":"codex", "secret":r#"{"kind":"codex_oauth","access_token":"synthetic-import-access","refresh_token":"synthetic-import-refresh","expires_at_ms":4102444800000,"account_id":"synthetic-account"}"#})).to_request()).await;
@@ -986,7 +1028,12 @@ async fn channel_import_is_scoped_validated_and_visible_before_binding() -> Test
 
 #[actix_web::test]
 async fn repeated_channel_import_retains_disabled_account_and_connections() -> TestResult {
-    let (_file, state) = fixture(false)?;
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='kimi' WHERE config_version_id=?1 AND id='owner-a'",
+        [VERSION],
+    )?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -1003,7 +1050,7 @@ async fn repeated_channel_import_retains_disabled_account_and_connections() -> T
             &app,
             authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
                 .insert_header(("If-Match", format!("rev-{revision}")))
-                .set_json(serde_json::json!({"id":id,"channel":"kimi","secret":material}))
+                .set_json(serde_json::json!({"id":id,"channel":"kimi-api","secret":material}))
                 .to_request(),
         )
         .await;
@@ -1146,6 +1193,7 @@ async fn native_build_import_captures_id_token_identity_and_lists_compact_creden
 {
     use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
     let (file, resources) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -1172,7 +1220,6 @@ async fn native_build_import_captures_id_token_identity_and_lists_compact_creden
     );
     assert!(!std::str::from_utf8(&bytes)?.contains("fixture-refresh"));
     assert!(!std::str::from_utf8(&bytes)?.contains("header."));
-    let db = gateway_store::open(&file.0)?;
     let ciphertext: Vec<u8> = db.query_row(
         "SELECT credential_ciphertext FROM grok_accounts",
         [],
@@ -1788,6 +1835,15 @@ async fn credential_replacement_invalidates_old_browser_authorization() -> TestR
             .configure(configure_management_resources),
     )
     .await;
+    let valid = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri("/admin/credentials/account-000"))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(serde_json::json!({"id":"account-000","kind":"oauth_json","status":"active","secret":"{\"kind\":\"codex_oauth\",\"access_token\":\"synthetic-access\",\"refresh_token\":\"synthetic-refresh\",\"expires_at_ms\":4102444800000,\"account_id\":\"legacy-account\"}"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(valid.status(), StatusCode::OK);
     let start = "/admin/credentials/account-000/oauth/start";
     let response = test::call_service(
         &app,
@@ -1808,8 +1864,8 @@ async fn credential_replacement_invalidates_old_browser_authorization() -> TestR
         .1
         .into_owned();
     let response = test::call_service(&app, authorized(test::TestRequest::patch().uri("/admin/credentials/account-000"))
-        .insert_header(("If-Match", "rev-0"))
-        .set_json(serde_json::json!({"id":"account-000","kind":"bearer","status":"active","secret":"new-synthetic-authorization"})).to_request()).await;
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(serde_json::json!({"id":"account-000","kind":"oauth_json","status":"active","secret":"{\"kind\":\"codex_oauth\",\"access_token\":\"new-synthetic-access\",\"refresh_token\":\"new-synthetic-refresh\",\"expires_at_ms\":4102444800000,\"account_id\":\"legacy-account\"}"})).to_request()).await;
     assert_eq!(response.status(), StatusCode::OK);
     let response = test::call_service(
         &app,
@@ -1866,6 +1922,11 @@ async fn first_codex_authorization_creates_only_after_callback_and_rejects_repla
             ),
         ),
     )?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='codex' WHERE config_version_id=?1 AND id='owner-a'",
+        [VERSION],
+    )?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -1891,7 +1952,6 @@ async fn first_codex_authorization_creates_only_after_callback_and_rejects_repla
         .ok_or("state")?
         .1
         .into_owned();
-    let db = gateway_store::open(&file.0)?;
     let count = || {
         db.query_row(
             "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1",
@@ -1916,7 +1976,7 @@ async fn first_codex_authorization_creates_only_after_callback_and_rejects_repla
         .to_request(),
     )
     .await;
-    assert_eq!(response.status(), StatusCode::CONFLICT);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     assert_eq!(count()?, 250);
     let callback_path = "/admin/upstreams/owner-a/codex-authorization/callback";
     let response = test::call_service(
@@ -2070,9 +2130,94 @@ async fn claude_enrollment_and_reauthorization_keep_one_identity_and_reject_wron
 }
 
 #[actix_web::test]
+async fn legacy_claude_oauth_reauthorization_keeps_its_compatible_owner() -> TestResult {
+    use gateway_http_actix::management_resources::CodexOAuthManagementWorkflow;
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='anthropic-compatible' WHERE config_version_id=?1 AND id='owner-b'",
+        [VERSION],
+    )?;
+    let state = state.with_claude_workflow(Box::new(CodexOAuthManagementWorkflow::with_exchange(
+        Box::new(SyntheticClaudeExchange(0)),
+    )));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let stored = test::call_service(
+        &app,
+        authorized(test::TestRequest::patch().uri("/admin/credentials/account-001"))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(serde_json::json!({"id":"account-001","kind":"bearer","status":"active","secret":"{\"kind\":\"claude_oauth\",\"access_token\":\"legacy-access\",\"refresh_token\":\"legacy-refresh\",\"expires_at_ms\":4102444800000,\"account_id\":\"claude-account\"}"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(stored.status(), StatusCode::OK);
+    let stored_kind: String = db.query_row(
+        "SELECT kind FROM upstream_credentials WHERE config_version_id=?1 AND id='account-001'",
+        [VERSION],
+        |row| row.get(0),
+    )?;
+    assert_eq!(stored_kind, "bearer");
+    assert!(matches!(
+        provider_anthropic_compatible::ClaudeRuntimeCredential::import_at(
+            br#"{"kind":"claude_oauth","access_token":"legacy-access","refresh_token":"legacy-refresh","expires_at_ms":4102444800000,"account_id":"claude-account"}"#,
+            0,
+        ),
+        Ok(provider_anthropic_compatible::ClaudeRuntimeCredential::OAuth(_))
+    ));
+    let start = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-b/claude-authorization/start"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(serde_json::json!({"id":"account-001","replace_existing":true}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(start.status(), StatusCode::ACCEPTED);
+    let start: Value = test::read_body_json(start).await;
+    let authorization_url = url::Url::parse(start["authorization_url"].as_str().ok_or("URL")?)?;
+    let state = authorization_url
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .ok_or("state")?
+        .1
+        .into_owned();
+    let completed = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-b/claude-authorization/callback"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(serde_json::json!({"id":"account-001","replace_existing":true,"callback":{"state":state,"code":"synthetic-code"}}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(completed.status(), StatusCode::OK);
+    let retained: (String, String, i64) = db.query_row(
+        "SELECT upstream_id,status,revision FROM upstream_credentials WHERE config_version_id=?1 AND id='account-001'",
+        [VERSION],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+    assert_eq!(retained, ("owner-b".to_owned(), "active".to_owned(), 2));
+    Ok(())
+}
+
+#[actix_web::test]
 async fn repeated_oauth_import_rotates_one_account_but_keeps_other_members_separate() -> TestResult
 {
     let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='codex' WHERE config_version_id=?1 AND id='owner-a'",
+        [VERSION],
+    )?;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -2116,7 +2261,6 @@ async fn repeated_oauth_import_rotates_one_account_but_keeps_other_members_separ
         let body: Value = test::read_body_json(response).await;
         assert_eq!(body["id"], retained);
     }
-    let db = gateway_store::open(&file.0)?;
     let count: i64 = db.query_row(
         "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1",
         [VERSION],
@@ -2447,5 +2591,678 @@ async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_excha
     let stale=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll")).insert_header(("If-Match","rev-5")).set_json(serde_json::json!({"id":"new-kiro","replace_existing":true,"session_id":pending["session_id"]})).to_request()).await;
     assert_eq!(stale.status(), StatusCode::CONFLICT);
 
+    Ok(())
+}
+
+#[actix_web::test]
+async fn kiro_device_denial_is_terminal_and_never_creates_an_account() -> TestResult {
+    use gateway_http_actix::management_resources::kiro_device::KiroDeviceWorkflow;
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='kiro' WHERE id='owner-a' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    let workflow = KiroDeviceWorkflow::with_transport(Box::new(|url, _body| {
+        if url.ends_with("/client/register") {
+            return Ok(
+                serde_json::json!({"clientId":"synthetic-client","clientSecret":"synthetic-secret"}),
+            );
+        }
+        if url.ends_with("/device_authorization") {
+            return Ok(
+                serde_json::json!({"deviceCode":"synthetic-device","userCode":"ABCD-EFGH","verificationUri":"https://view.awsapps.com/start/#/device","expiresIn":300,"interval":5}),
+            );
+        }
+        if url.ends_with("/token") {
+            return Ok(serde_json::json!({"error":"access_denied"}));
+        }
+        Err(())
+    }));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state.with_kiro_workflow(workflow)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let start = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/start"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(serde_json::json!({"id":"denied-kiro"}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(start.status(), StatusCode::OK);
+    let start: Value = test::read_body_json(start).await;
+    tokio::time::sleep(std::time::Duration::from_millis(5100)).await;
+    let denied = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(serde_json::json!({"id":"denied-kiro","session_id":start["session_id"]}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(denied.status(), StatusCode::OK);
+    let denied: Value = test::read_body_json(denied).await;
+    assert_eq!(denied["state"], "denied");
+    let count: i64 = db.query_row(
+        "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1 AND id='denied-kiro'",
+        [VERSION],
+        |row| row.get(0),
+    )?;
+    assert_eq!(count, 0);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn kiro_target_preparation_is_region_owned_and_uses_the_fixed_runtime_shape() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let prepared = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kiro/prepare-target"))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(serde_json::json!({"region":"ap-southeast-1"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(prepared.status(), StatusCode::OK);
+    let prepared: Value = test::read_body_json(prepared).await;
+    assert_eq!(prepared["upstream_id"], "kiro-ap-southeast-1");
+    assert_eq!(prepared["endpoint_id"], "kiro-ap-southeast-1-messages");
+    let endpoint: (String, String, String, String, Option<String>) = db.query_row(
+        "SELECT adapter_id,api_format,base_url,inference_path,models_path FROM upstream_endpoints WHERE config_version_id=?1 AND id='kiro-ap-southeast-1-messages'",
+        [VERSION],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+    )?;
+    assert_eq!(
+        endpoint,
+        (
+            "kiro.messages".to_owned(),
+            "anthropic/messages".to_owned(),
+            "https://runtime.ap-southeast-1.kiro.dev".to_owned(),
+            "/".to_owned(),
+            None,
+        )
+    );
+    let repeat = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kiro/prepare-target"))
+            .insert_header(("If-Match", "rev-3"))
+            .set_json(serde_json::json!({"region":"ap-southeast-1"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(repeat.status(), StatusCode::OK);
+    let repeat: Value = test::read_body_json(repeat).await;
+    assert_eq!(repeat["prepared"], false);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn kiro_import_uses_its_prepared_region_target_without_an_endpoint_binding() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let prepared = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kiro/prepare-target"))
+            .insert_header(("If-Match", "rev-0"))
+            .set_json(serde_json::json!({"region":"ap-southeast-1"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(prepared.status(), StatusCode::OK);
+    let imported = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/kiro-ap-southeast-1/account-import"),
+        )
+        .insert_header(("If-Match", "rev-3"))
+        .set_json(
+            serde_json::json!({"id":"imported-kiro","channel":"kiro","secret":"ksk_synthetic-key"}),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(imported.status(), StatusCode::CREATED);
+    let binding_count: i64 = db.query_row(
+        "SELECT COUNT(*) FROM endpoint_credential_bindings WHERE config_version_id=?1 AND credential_id='imported-kiro'",
+        [VERSION],
+        |row| row.get(0),
+    )?;
+    assert_eq!(binding_count, 0);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn codex_and_claude_targets_are_prepared_without_borrowing_compatible_upstreams() -> TestResult
+{
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    for (path, revision, upstream, endpoint) in [
+        (
+            "/admin/account-channels/codex/prepare-target",
+            "rev-0",
+            "codex",
+            "codex-responses",
+        ),
+        (
+            "/admin/account-channels/claude/prepare-target",
+            "rev-3",
+            "claude",
+            "claude-messages",
+        ),
+    ] {
+        let response = test::call_service(
+            &app,
+            authorized(test::TestRequest::post().uri(path))
+                .insert_header(("If-Match", revision))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let response: Value = test::read_body_json(response).await;
+        assert_eq!(response["upstream_id"], upstream);
+        assert_eq!(response["endpoint_id"], endpoint);
+        assert_eq!(response["prepared"], true);
+    }
+    let codex: (String, String, String) = db.query_row(
+        "SELECT adapter_id,base_url,inference_path FROM upstream_endpoints WHERE config_version_id=?1 AND id='codex-responses'",
+        [VERSION],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+    assert_eq!(
+        codex,
+        (
+            "openai-compatible.responses".to_owned(),
+            "https://chatgpt.com/backend-api/codex".to_owned(),
+            "/responses".to_owned(),
+        )
+    );
+    let claude: (String, String, String) = db.query_row(
+        "SELECT adapter_id,base_url,inference_path FROM upstream_endpoints WHERE config_version_id=?1 AND id='claude-messages'",
+        [VERSION],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+    assert_eq!(
+        claude,
+        (
+            "anthropic-compatible.messages".to_owned(),
+            "https://api.anthropic.com/v1".to_owned(),
+            "/messages".to_owned(),
+        )
+    );
+    Ok(())
+}
+
+#[actix_web::test]
+async fn named_channel_imports_use_prepared_targets_without_bindings() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let codex_target = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/codex/prepare-target"))
+            .insert_header(("If-Match", "rev-0"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(codex_target.status(), StatusCode::OK);
+    let codex = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/upstreams/codex/account-import"))
+            .insert_header(("If-Match", "rev-3"))
+            .set_json(serde_json::json!({"id":"imported-codex","channel":"codex","secret":"{\"kind\":\"codex_oauth\",\"access_token\":\"synthetic-access\",\"refresh_token\":\"synthetic-refresh\",\"expires_at_ms\":4102444800000,\"account_id\":\"synthetic-account\"}"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(codex.status(), StatusCode::CREATED);
+    let claude_target = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/claude/prepare-target"))
+            .insert_header(("If-Match", "rev-4"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(claude_target.status(), StatusCode::OK);
+    let claude = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/upstreams/claude/account-import"))
+            .insert_header(("If-Match", "rev-7"))
+            .set_json(serde_json::json!({"id":"imported-claude","channel":"claude","secret":"{\"kind\":\"claude_oauth\",\"access_token\":\"synthetic-access\",\"refresh_token\":\"synthetic-refresh\",\"expires_at_ms\":4102444800000,\"account_id\":\"synthetic-account\"}"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(claude.status(), StatusCode::CREATED);
+    let kimi_target = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kimi/prepare-target"))
+            .insert_header(("If-Match", "rev-8"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(kimi_target.status(), StatusCode::OK);
+    let kimi = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/upstreams/kimi-coding/account-import"))
+            .insert_header(("If-Match", "rev-11"))
+            .set_json(serde_json::json!({"id":"imported-kimi","channel":"kimi-coding","secret":"{\"kind\":\"kimi_oauth\",\"access_token\":\"synthetic-access\",\"refresh_token\":\"synthetic-refresh\",\"expires_at_ms\":4102444800000,\"device_id\":\"synthetic-device\"}"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(kimi.status(), StatusCode::CREATED);
+    for credential in ["imported-codex", "imported-claude", "imported-kimi"] {
+        let bindings: i64 = db.query_row(
+            "SELECT COUNT(*) FROM endpoint_credential_bindings WHERE config_version_id=?1 AND credential_id=?2",
+            (VERSION, credential),
+            |row| row.get(0),
+        )?;
+        assert_eq!(bindings, 0, "{credential}");
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn kimi_device_malformed_token_is_terminal_and_never_creates_an_account() -> TestResult {
+    use gateway_http_actix::management_resources::kimi_device::{
+        KimiDeviceHttpResponse, KimiDeviceWorkflow,
+    };
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='kimi-coding' WHERE id='owner-a' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    let workflow = KimiDeviceWorkflow::with_transport(Box::new(|url, _form, _device_id| {
+        if url == "https://auth.kimi.com/api/oauth/device_authorization" {
+            return Ok(KimiDeviceHttpResponse::new(
+                200,
+                serde_json::json!({
+                    "device_code":"synthetic-kimi-device",
+                    "user_code":"KIMI-1234",
+                    "verification_uri":"https://auth.kimi.com/device",
+                    "expires_in":300,
+                    "interval":5,
+                }),
+            ));
+        }
+        if url == "https://auth.kimi.com/api/oauth/token" {
+            return Ok(KimiDeviceHttpResponse::new(
+                200,
+                serde_json::json!({"access_token":"incomplete-response"}),
+            ));
+        }
+        Err(())
+    }));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state.with_kimi_workflow(workflow)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let start = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/start"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(serde_json::json!({"id":"malformed-kimi"}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(start.status(), StatusCode::OK);
+    let start: Value = test::read_body_json(start).await;
+    tokio::time::sleep(std::time::Duration::from_millis(5100)).await;
+    let failed = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(serde_json::json!({"id":"malformed-kimi","session_id":start["session_id"]}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(failed.status(), StatusCode::OK);
+    let failed: Value = test::read_body_json(failed).await;
+    assert_eq!(failed["state"], "failed");
+    let count: i64 = db.query_row(
+        "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1 AND id='malformed-kimi'",
+        [VERSION],
+        |row| row.get(0),
+    )?;
+    assert_eq!(count, 0);
+    let replay = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(serde_json::json!({"id":"malformed-kimi","session_id":start["session_id"]}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(replay.status(), StatusCode::CONFLICT);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn kimi_device_enrollment_is_channel_bound_and_persists_only_after_success() -> TestResult {
+    use gateway_http_actix::management_resources::kimi_device::{
+        KimiDeviceHttpResponse, KimiDeviceWorkflow,
+    };
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='kimi-coding' WHERE id='owner-a' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    let polls = Arc::new(AtomicUsize::new(0));
+    let workflow =
+        KimiDeviceWorkflow::with_transport(Box::new({
+            let polls = Arc::clone(&polls);
+            move |url, form, _device_id| {
+                if url == "https://auth.kimi.com/api/oauth/device_authorization" {
+                    assert!(form.contains("client_id="));
+                    return Ok(KimiDeviceHttpResponse::new(
+                        200,
+                        serde_json::json!({
+                            "device_code":"synthetic-kimi-device",
+                            "user_code":"KIMI-1234",
+                            "verification_uri":"https://auth.kimi.com/device",
+                            "expires_in":300,
+                            "interval":5,
+                        }),
+                    ));
+                }
+                if url == "https://auth.kimi.com/api/oauth/token" {
+                    assert!(form.contains(
+                        "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code"
+                    ));
+                    return match polls.fetch_add(1, Ordering::SeqCst) {
+                        0 => Ok(KimiDeviceHttpResponse::new(
+                            400,
+                            serde_json::json!({"error":"authorization_pending"}),
+                        )),
+                        _ => Ok(KimiDeviceHttpResponse::new(
+                            200,
+                            serde_json::json!({
+                                "access_token":"synthetic-kimi-access",
+                                "refresh_token":"synthetic-kimi-refresh",
+                                "expires_in":3600,
+                            }),
+                        )),
+                    };
+                }
+                Err(())
+            }
+        }));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state.with_kimi_workflow(workflow)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let start = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/start"),
+        )
+        .insert_header(("If-Match", "rev-0"))
+        .set_json(serde_json::json!({"id":"new-kimi"}))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(start.status(), StatusCode::OK);
+    let start: Value = test::read_body_json(start).await;
+    assert_eq!(start["state"], "pending");
+    assert!(!start.to_string().contains("synthetic-kimi-device"));
+    let count: i64 = db.query_row(
+        "SELECT COUNT(*) FROM upstream_credentials WHERE id='new-kimi'",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(count, 0);
+    let body = serde_json::json!({"id":"new-kimi","session_id":start["session_id"]});
+    let early = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(&body)
+        .to_request(),
+    )
+    .await;
+    let early: Value = test::read_body_json(early).await;
+    assert_eq!(early["state"], "pending");
+    assert_eq!(polls.load(Ordering::SeqCst), 0);
+    tokio::time::sleep(std::time::Duration::from_millis(5100)).await;
+    let pending = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(&body)
+        .to_request(),
+    )
+    .await;
+    let pending: Value = test::read_body_json(pending).await;
+    assert_eq!(pending["state"], "pending");
+    tokio::time::sleep(std::time::Duration::from_millis(5100)).await;
+    let complete = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-1"))
+        .set_json(&body)
+        .to_request(),
+    )
+    .await;
+    assert_eq!(complete.status(), StatusCode::CREATED);
+    let complete: Value = test::read_body_json(complete).await;
+    assert_eq!(complete["state"], "completed");
+    assert_eq!(complete["credential_id"], "new-kimi");
+    let mut inventory_path = "/admin/accounts/inventory?category=kimi&limit=100".to_owned();
+    let mut inventory_items = Vec::new();
+    loop {
+        let inventory = test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&inventory_path)).to_request(),
+        )
+        .await;
+        assert_eq!(inventory.status(), StatusCode::OK);
+        let inventory: Value = test::read_body_json(inventory).await;
+        inventory_items.extend(
+            inventory["items"]
+                .as_array()
+                .ok_or("account inventory items")?
+                .iter()
+                .cloned(),
+        );
+        let Some(cursor) = inventory["next_cursor"].as_str() else {
+            break;
+        };
+        inventory_path =
+            format!("/admin/accounts/inventory?category=kimi&limit=100&cursor={cursor}");
+    }
+    let kimi = inventory_items
+        .iter()
+        .find(|item| item["id"] == "new-kimi")
+        .ok_or("Kimi account inventory")?;
+    assert_eq!(kimi["category"], "kimi");
+    assert!(
+        kimi["operations"]
+            .as_array()
+            .ok_or("operations")?
+            .contains(&serde_json::json!("reauthorize"))
+    );
+    let replay = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post().uri("/admin/upstreams/owner-a/kimi-authorization/poll"),
+        )
+        .insert_header(("If-Match", "rev-2"))
+        .set_json(&body)
+        .to_request(),
+    )
+    .await;
+    assert_eq!(replay.status(), StatusCode::CONFLICT);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn kimi_target_preparation_keeps_existing_api_upstream_separate() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='kimi' WHERE id='owner-a' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let prepared = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kimi/prepare-target"))
+            .insert_header(("If-Match", "rev-0"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(prepared.status(), StatusCode::OK);
+    assert_eq!(
+        prepared
+            .headers()
+            .get("ETag")
+            .and_then(|value| value.to_str().ok()),
+        Some("\"rev-3\"")
+    );
+    let prepared: Value = test::read_body_json(prepared).await;
+    assert_eq!(prepared["upstream_id"], "kimi-coding");
+    assert_eq!(prepared["endpoint_id"], "kimi-coding-responses");
+    assert!(prepared["prepared"].as_bool().unwrap_or(false));
+    let original_kind: String = db.query_row(
+        "SELECT kind FROM upstreams WHERE config_version_id=?1 AND id='owner-a'",
+        [VERSION],
+        |row| row.get(0),
+    )?;
+    assert_eq!(original_kind, "kimi");
+    let coding: (String, String, String) = db.query_row(
+        "SELECT u.kind,e.base_url,e.models_path FROM upstreams u JOIN upstream_endpoints e ON e.config_version_id=u.config_version_id AND e.upstream_id=u.id WHERE u.config_version_id=?1 AND u.id='kimi-coding'",
+        [VERSION],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+    assert_eq!(
+        coding,
+        (
+            "kimi-coding".to_owned(),
+            "https://api.kimi.com/coding".to_owned(),
+            "/v1/models".to_owned()
+        )
+    );
+    let resolved = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kimi/prepare-target"))
+            .insert_header(("If-Match", "rev-3"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(resolved.status(), StatusCode::OK);
+    assert_eq!(
+        resolved
+            .headers()
+            .get("ETag")
+            .and_then(|value| value.to_str().ok()),
+        Some("\"rev-4\"")
+    );
+    let resolved: Value = test::read_body_json(resolved).await;
+    assert!(!resolved["prepared"].as_bool().unwrap_or(true));
+    Ok(())
+}
+
+#[actix_web::test]
+async fn legacy_codex_oauth_endpoints_reject_kimi_credentials_without_mutation() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='kimi-coding' WHERE id='owner-a' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    db.execute(
+        "UPDATE upstream_credentials SET kind='oauth_json' WHERE id='account-000' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    let before: (i64, String) = db.query_row(
+        "SELECT revision,status FROM upstream_credentials WHERE id='account-000' AND config_version_id=?1",
+        [VERSION],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/credentials/account-000/oauth/start"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let after: (i64, String) = db.query_row(
+        "SELECT revision,status FROM upstream_credentials WHERE id='account-000' AND config_version_id=?1",
+        [VERSION],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+    assert_eq!(after, before);
     Ok(())
 }

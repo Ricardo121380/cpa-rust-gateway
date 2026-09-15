@@ -1,7 +1,8 @@
 //! Metadata-only reads share the serving generation's credential and egress boundaries.
 use super::{
     BTreeMap, BTreeSet, CredentialId, CredentialLease, EndpointId, ErrorScope, GatewayError,
-    GatewayErrorCode, ModelCatalogTarget, OpenAiCompatibleRuntimeCredential, Ordering,
+    GatewayErrorCode, KIMI_OAUTH_DEVICE_MODEL, KIMI_OAUTH_DEVICE_NAME, KIMI_OAUTH_PLATFORM,
+    KIMI_OAUTH_USER_AGENT, ModelCatalogTarget, OpenAiCompatibleRuntimeCredential, Ordering,
     RuntimeCatalogTarget, RuntimeModelCatalogWorker, catalog_failure_class, system_now_ms_runtime,
 };
 use gateway_http_actix::management_resources::catalog_refresh::{
@@ -76,6 +77,7 @@ impl RuntimeModelCatalogWorker {
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     pub(super) async fn discover_compatible(
         &self,
         target: &RuntimeCatalogTarget,
@@ -114,6 +116,22 @@ impl RuntimeModelCatalogWorker {
                     credential.bearer_at(now).map_err(|_| invalid())?
                 ),
             ));
+            if let Some(device_id) = credential.kimi_device_id() {
+                if device_id.trim().is_empty() {
+                    return Err(invalid());
+                }
+                headers.push(("user-agent".to_owned(), KIMI_OAUTH_USER_AGENT.to_owned()));
+                headers.push(("x-msh-platform".to_owned(), KIMI_OAUTH_PLATFORM.to_owned()));
+                headers.push((
+                    "x-msh-device-name".to_owned(),
+                    KIMI_OAUTH_DEVICE_NAME.to_owned(),
+                ));
+                headers.push((
+                    "x-msh-device-model".to_owned(),
+                    KIMI_OAUTH_DEVICE_MODEL.to_owned(),
+                ));
+                headers.push(("x-msh-device-id".to_owned(), device_id.to_owned()));
+            }
         }
         let mut models = BTreeMap::new();
         let mut after: Option<String> = None;

@@ -679,6 +679,8 @@ const nativeFixtureAccounts: NativeFixtureAccount[] = [];
 let nativeFixtureGeneration=0;
 const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:{email:string|null;phone:string|null;username:string|null}|null;identity_state:string};name:string;target?:{account_id:string;revision:number}}>();
 const approvedNativeSessions=new Set<string>();
+const kimiDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
+const kiroDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 /** Simulates the provider's consent, not a management API or automatic successful poll. */
 export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
 
@@ -1482,13 +1484,57 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         ["anthropic-compatible", "Anthropic 兼容 / 中转", "api_key", true, "none", ["anthropic-compatible"]],
         ["codex", "Codex / ChatGPT", "cpa_sub2api_json", true, "authorization_code", ["codex", "chatgpt", "openai-compatible"]],
         ["claude", "Claude", "claude_json", true, "authorization_code", ["claude", "anthropic-compatible"]],
-        ["kimi", "Kimi", "api_key", true, "none", ["kimi", "openai-compatible", "anthropic-compatible"]],
+        ["kimi-coding", "Kimi Coding", "kimi_oauth", true, "device_code", ["kimi-coding"]],
+        ["kimi-api", "Kimi API", "api_key", true, "none", ["kimi"]],
         ["grok.official", "Grok Official", "api_key", true, "none", ["grok.official"]],
         ["grok.build", "Grok Build", "grok_build_json", true, "device_code", ["grok.build"]],
         ["grok.console", "Grok Console", "sso", true, "none", ["grok.console"]],
         ["grok.web", "Grok Web", "sso", true, "none", ["grok.web"]],
         ["kiro", "Kiro", "kiro_json_or_key", true, "device_code", ["kiro"]],
-      ].map(([id,name,credential_format,import_available,authorization_flow,upstream_kinds]) => ({id,name,credential_format,import_available,authorization_flow,upstream_kinds,authorization_available:id==="grok.build"})));
+      ].map(([id,name,credential_format,import_available,authorization_flow,upstream_kinds]) => ({id,name,credential_format,import_available,authorization_flow,upstream_kinds,authorization_available:id==="grok.build"||id==="kimi-coding"||id==="kiro"})));
+    }
+
+    if(route === "POST /admin/account-channels/kimi/prepare-target") {
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
+      const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.kind==="kimi-coding");
+      if(!upstream){upstream={id:"kimi-coding",name:"Kimi Coding",kind:"kimi-coding",enabled:true,tags:["kimi","coding"],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
+      const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.upstream_id===upstream.id&&row.api_format==="openai/responses");
+      if(!endpoint){endpoint={id:"kimi-coding-responses",upstream_id:upstream.id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.kimi.com/coding",inference_path:"/v1/responses",models_path:"/v1/models",transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
+    }
+    if(route === "POST /admin/account-channels/kiro/prepare-target") {
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
+      const input=JSON.parse(bodyText??"{}") as {region?:string};const region=input.region??"us-east-1";
+      const upstreamId=`kiro-${region}`;const endpointId=`${upstreamId}-messages`;
+      const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.id===upstreamId);
+      if(!upstream){upstream={id:upstreamId,name:"Kiro",kind:"kiro",enabled:true,tags:["kiro",region],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
+      const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.id===endpointId);
+      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:"kiro.messages",api_format:"anthropic/messages",base_url:`https://runtime.${region}.kiro.dev`,inference_path:"/",models_path:null,transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
+    }
+    const kimiDevice=/^POST \/admin\/upstreams\/([^/]+)\/kimi-authorization\/(start|poll|cancel)$/u.exec(route);
+    if(kimiDevice){
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
+      const input=JSON.parse(bodyText??"{}") as {id:string;session_id?:string;replace_existing?:boolean};const action=kimiDevice[2];
+      if(action==="start"){const session_id=crypto.randomUUID();kimiDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kimiDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});version.revision+=1;return json(200,{state:"pending",session_id,user_code:"KIMI-TEST",verification_uri:"https://auth.kimi.com/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
+      const entry=input.session_id?kimiDeviceSessions.get(input.session_id):undefined;if(!entry||entry.id!==input.id)return errorResponse(409,"management_kimi_authorization_conflict","授权已结束");
+      if(action==="cancel"){kimiDeviceSessions.delete(input.session_id!);return json(200,{state:"cancelled"},revisionToken(version));}
+      entry.polls+=1;if(entry.polls===1)return json(200,{state:"pending",interval_ms:1000},revisionToken(version));
+      const rows=state.credentials.get(version.id)??[];if(!rows.some((row)=>row.id===entry.id))rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"oauth_json",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kimiDeviceSessions.delete(input.session_id!);version.revision+=1;return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
+    }
+    const kiroDevice=/^POST \/admin\/upstreams\/([^/]+)\/kiro-authorization\/(start|poll|cancel)$/u.exec(route);
+    if(kiroDevice){
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
+      const input=JSON.parse(bodyText??"{}") as {id:string;session_id?:string;replace_existing?:boolean};const action=kiroDevice[2];
+      if(action==="start"){const session_id=crypto.randomUUID();kiroDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kiroDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});return json(200,{state:"pending",session_id,user_code:"KIRO-TEST",verification_uri:"https://view.awsapps.com/start/#/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
+      const entry=input.session_id?kiroDeviceSessions.get(input.session_id):undefined;if(!entry||entry.id!==input.id)return errorResponse(409,"management_kiro_authorization_conflict","授权已结束");
+      if(action==="cancel"){kiroDeviceSessions.delete(input.session_id!);return json(200,{state:"cancelled"},revisionToken(version));}
+      entry.polls+=1;if(entry.polls===1)return json(200,{state:"pending",interval_ms:1000},revisionToken(version));
+      const rows=state.credentials.get(version.id)??[];if(!rows.some((row)=>row.id===entry.id))rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"bearer",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kiroDeviceSessions.delete(input.session_id!);version.revision+=1;return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
     }
 
     const credCreate = /^POST \/admin\/upstreams\/([^/]+)\/(?:credentials|account-import)$/u.exec(route);
@@ -1502,8 +1548,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         return errorResponse(400, "invalid_management_request", "secret is required");
       }
       if (route.endsWith("/account-import")) {
-        if (!["openai-compatible", "anthropic-compatible", "codex", "claude", "kimi", "grok.official", "kiro"].includes(body.channel ?? "")) return errorResponse(400, "invalid_management_request", "Unsupported import");
-        body.kind = body.channel === "codex" ? "oauth_json" : "bearer";
+        if (!["openai-compatible", "anthropic-compatible", "codex", "claude", "kimi-api", "kimi-coding", "grok.official", "kiro"].includes(body.channel ?? "")) return errorResponse(400, "invalid_management_request", "Unsupported import");
+        body.kind = body.channel === "codex" || body.channel === "kimi-coding" ? "oauth_json" : "bearer";
         body.status = "active";
       }
       const rows = state.credentials.get(version.id) ?? [];

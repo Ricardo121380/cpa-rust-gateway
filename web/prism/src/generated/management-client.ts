@@ -133,6 +133,30 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "cancelKimiEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/kimi-authorization/cancel",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "cancelKiroEnrollment": {
     "method": "POST",
     "path": "/admin/upstreams/{upstream_id}/kiro-authorization/cancel",
@@ -2338,6 +2362,30 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "pollKimiEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/kimi-authorization/poll",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
+  },
   "pollKiroEnrollment": {
     "method": "POST",
     "path": "/admin/upstreams/{upstream_id}/kiro-authorization/poll",
@@ -2375,6 +2423,82 @@ export const managementOperations = {
     "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
+  },
+  "prepareClaudeAccountTarget": {
+    "method": "POST",
+    "path": "/admin/account-channels/claude/prepare-target",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "prepareCodexAccountTarget": {
+    "method": "POST",
+    "path": "/admin/account-channels/codex/prepare-target",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "prepareKimiAccountTarget": {
+    "method": "POST",
+    "path": "/admin/account-channels/kimi/prepare-target",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "prepareKiroAccountTarget": {
+    "method": "POST",
+    "path": "/admin/account-channels/kiro/prepare-target",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
   },
   "previewBackup": {
     "method": "POST",
@@ -2688,6 +2812,30 @@ export const managementOperations = {
     "requiresAuthentication": true,
     "bodyEncoding": "none",
     "bodyRequired": false
+  },
+  "startKimiEnrollment": {
+    "method": "POST",
+    "path": "/admin/upstreams/{upstream_id}/kimi-authorization/start",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "If-Match",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "json",
+    "bodyRequired": true
   },
   "startKiroEnrollment": {
     "method": "POST",
@@ -3368,6 +3516,10 @@ export class ManagementApi {
     return this.request("cancelCredentialOAuth", request);
   }
 
+  cancelKimiEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("cancelKimiEnrollment", request);
+  }
+
   cancelKiroEnrollment(request: ManagementRequest = {}): Promise<Response> {
     return this.request("cancelKiroEnrollment", request);
   }
@@ -3764,12 +3916,32 @@ export class ManagementApi {
     return this.request("logoutAdministrator", request);
   }
 
+  pollKimiEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("pollKimiEnrollment", request);
+  }
+
   pollKiroEnrollment(request: ManagementRequest = {}): Promise<Response> {
     return this.request("pollKiroEnrollment", request);
   }
 
   pollNativeAccountAuthorization(request: ManagementRequest = {}): Promise<Response> {
     return this.request("pollNativeAccountAuthorization", request);
+  }
+
+  prepareClaudeAccountTarget(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("prepareClaudeAccountTarget", request);
+  }
+
+  prepareCodexAccountTarget(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("prepareCodexAccountTarget", request);
+  }
+
+  prepareKimiAccountTarget(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("prepareKimiAccountTarget", request);
+  }
+
+  prepareKiroAccountTarget(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("prepareKiroAccountTarget", request);
   }
 
   previewBackup(request: ManagementRequest = {}): Promise<Response> {
@@ -3842,6 +4014,10 @@ export class ManagementApi {
 
   startCredentialOAuth(request: ManagementRequest = {}): Promise<Response> {
     return this.request("startCredentialOAuth", request);
+  }
+
+  startKimiEnrollment(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("startKimiEnrollment", request);
   }
 
   startKiroEnrollment(request: ManagementRequest = {}): Promise<Response> {

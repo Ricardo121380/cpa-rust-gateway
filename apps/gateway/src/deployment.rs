@@ -527,6 +527,9 @@ fn build_application_state_with_refresh(
     .with_kiro_workflow(
         gateway_http_actix::management_resources::kiro_device::KiroDeviceWorkflow::production(),
     )
+    .with_kimi_workflow(
+        gateway_http_actix::management_resources::kimi_device::KimiDeviceWorkflow::production(),
+    )
     .with_claude_workflow(
         gateway_http_actix::management_resources::claude_authorization::workflow(
             UpstreamProxy::Direct,

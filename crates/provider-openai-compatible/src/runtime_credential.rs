@@ -22,6 +22,10 @@ use crate::account_entitlement::{
 pub const CODEX_OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 /// Fixed Codex token endpoint. A caller must still pass it through DNS-pinned egress admission.
 pub const CODEX_OAUTH_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
+/// Fixed Kimi Coding device-flow client identity and token endpoint.
+pub const KIMI_OAUTH_CLIENT_ID: &str = "17e5f671-d194-4dfb-9706-5516cb48c098";
+/// Fixed Kimi Coding OAuth token endpoint used only through DNS-pinned egress admission.
+pub const KIMI_OAUTH_TOKEN_URL: &str = "https://auth.kimi.com/api/oauth/token";
 const MAX_CREDENTIAL_BYTES: usize = 64 * 1024;
 
 /// A credential accepted by the OpenAI-compatible runtime.
@@ -31,6 +35,8 @@ pub enum OpenAiCompatibleRuntimeCredential {
     ApiKey(Zeroizing<String>),
     /// Codex OAuth material with an explicit expiry and refresh token.
     CodexOAuth(CodexOAuthCredential),
+    /// Kimi Coding OAuth material obtained through the RFC 8628 device flow.
+    KimiOAuth(KimiOAuthCredential),
 }
 
 /// Opaque Codex OAuth state. Its fields are intentionally inaccessible outside this module.
@@ -45,6 +51,16 @@ pub struct CodexOAuthCredential {
     client_id: Option<String>,
     last_refresh: Option<String>,
     metadata: CodexCredentialMetadata,
+}
+
+/// Opaque Kimi device authorization state.  The device identifier is required
+/// by Kimi Coding's request headers but is never exposed through management
+/// read models or debug output.
+pub struct KimiOAuthCredential {
+    access_token: Zeroizing<String>,
+    refresh_token: Zeroizing<String>,
+    expires_at_ms: i64,
+    device_id: Zeroizing<String>,
 }
 
 /// Non-secret management metadata extracted from an explicitly imported envelope.
@@ -81,6 +97,13 @@ impl fmt::Debug for CodexCredentialMetadata {
 /// A value-owning refresh request that can only be sent by an explicitly composed refresh worker.
 pub struct CodexOAuthRefreshRequest {
     refresh_token: Zeroizing<String>,
+}
+
+/// Value-owning Kimi refresh handoff.  The request is intentionally separate
+/// from Codex OAuth because its fixed client identity and device headers differ.
+pub struct KimiOAuthRefreshRequest {
+    refresh_token: Zeroizing<String>,
+    device_id: Zeroizing<String>,
 }
 
 /// Explicit credential export shapes supported by the management API.
@@ -202,6 +225,29 @@ impl CodexOAuthRefreshRequest {
     }
 }
 
+impl KimiOAuthRefreshRequest {
+    /// Returns Kimi Coding's fixed refresh endpoint.
+    #[must_use]
+    pub const fn token_url() -> &'static str {
+        KIMI_OAUTH_TOKEN_URL
+    }
+
+    /// Encodes the fixed Kimi refresh grant without exposing credential values.
+    #[must_use]
+    pub fn form_body(&self) -> Zeroizing<String> {
+        Zeroizing::new(format!(
+            "client_id={KIMI_OAUTH_CLIENT_ID}&grant_type=refresh_token&refresh_token={}",
+            percent_encode(self.refresh_token.as_bytes())
+        ))
+    }
+
+    /// The request-scoped Kimi device header value.
+    #[must_use]
+    pub fn device_id(&self) -> &str {
+        self.device_id.as_str()
+    }
+}
+
 impl fmt::Debug for CodexOAuthRefreshRequest {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -213,7 +259,7 @@ impl fmt::Debug for CodexOAuthRefreshRequest {
 }
 
 impl OpenAiCompatibleRuntimeCredential {
-    /// Imports either an opaque API key or a strict tagged Codex OAuth JSON document.
+    /// Imports either an opaque API key or a strict tagged OAuth JSON document.
     ///
     /// # Errors
     ///
@@ -237,6 +283,30 @@ impl OpenAiCompatibleRuntimeCredential {
             return Ok(Self::ApiKey(Zeroizing::new(value)));
         }
         reject_duplicate_json_names(trimmed)?;
+        let document: Value =
+            serde_json::from_slice(trimmed).map_err(|_| OpenAiRuntimeCredentialError::Invalid)?;
+        let kind = document
+            .get("kind")
+            .and_then(Value::as_str)
+            .ok_or(OpenAiRuntimeCredentialError::Invalid)?;
+        if kind == "kimi_oauth" {
+            let document: KimiOAuthDocument = serde_json::from_slice(trimmed)
+                .map_err(|_| OpenAiRuntimeCredentialError::Invalid)?;
+            if document.kind != "kimi_oauth"
+                || document.access_token.trim().is_empty()
+                || document.refresh_token.trim().is_empty()
+                || document.device_id.trim().is_empty()
+                || document.expires_at_ms <= 0
+            {
+                return Err(OpenAiRuntimeCredentialError::Invalid);
+            }
+            return Ok(Self::KimiOAuth(KimiOAuthCredential {
+                access_token: Zeroizing::new(document.access_token),
+                refresh_token: Zeroizing::new(document.refresh_token),
+                expires_at_ms: document.expires_at_ms,
+                device_id: Zeroizing::new(document.device_id),
+            }));
+        }
         let document: CodexOAuthDocument =
             serde_json::from_slice(trimmed).map_err(|_| OpenAiRuntimeCredentialError::Invalid)?;
         if document.kind != "codex_oauth"
@@ -502,7 +572,10 @@ impl OpenAiCompatibleRuntimeCredential {
             Self::CodexOAuth(value) if now_ms < value.expires_at_ms => {
                 Ok(value.access_token.as_str())
             }
-            Self::CodexOAuth(_) => Err(GatewayError::new(
+            Self::KimiOAuth(value) if now_ms < value.expires_at_ms => {
+                Ok(value.access_token.as_str())
+            }
+            Self::CodexOAuth(_) | Self::KimiOAuth(_) => Err(GatewayError::new(
                 GatewayErrorCode::CredentialUnauthorized,
                 ErrorScope::Credential,
             )),
@@ -515,6 +588,7 @@ impl OpenAiCompatibleRuntimeCredential {
         match self {
             Self::ApiKey(_) => None,
             Self::CodexOAuth(value) => Some(value.expires_at_ms),
+            Self::KimiOAuth(value) => Some(value.expires_at_ms),
         }
     }
 
@@ -527,11 +601,92 @@ impl OpenAiCompatibleRuntimeCredential {
         &self,
     ) -> Result<CodexOAuthRefreshRequest, OpenAiRuntimeCredentialError> {
         match self {
-            Self::ApiKey(_) => Err(OpenAiRuntimeCredentialError::NotRefreshable),
+            Self::ApiKey(_) | Self::KimiOAuth(_) => {
+                Err(OpenAiRuntimeCredentialError::NotRefreshable)
+            }
             Self::CodexOAuth(value) => Ok(CodexOAuthRefreshRequest {
                 refresh_token: Zeroizing::new(value.refresh_token.to_string()),
             }),
         }
+    }
+
+    /// Builds a refresh handoff only for Kimi device OAuth material.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free error when this is not a Kimi device credential.
+    pub fn kimi_refresh_request(
+        &self,
+    ) -> Result<KimiOAuthRefreshRequest, OpenAiRuntimeCredentialError> {
+        match self {
+            Self::KimiOAuth(value) => Ok(KimiOAuthRefreshRequest {
+                refresh_token: Zeroizing::new(value.refresh_token.to_string()),
+                device_id: Zeroizing::new(value.device_id.to_string()),
+            }),
+            Self::ApiKey(_) | Self::CodexOAuth(_) => {
+                Err(OpenAiRuntimeCredentialError::NotRefreshable)
+            }
+        }
+    }
+
+    /// Applies a Kimi token-refresh response without accepting a different credential family.
+    ///
+    /// Kimi returns a flat OAuth response. A refresh token is optional on successful rotation;
+    /// when omitted, the existing one stays encrypted in the same credential envelope.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free error for malformed, duplicate-key, empty, non-expiring, or
+    /// non-Kimi responses.
+    pub fn apply_kimi_refresh_response(
+        &mut self,
+        input: &[u8],
+        now_ms: i64,
+    ) -> Result<(), OpenAiRuntimeCredentialError> {
+        reject_duplicate_json_names(input)?;
+        let response: Value =
+            serde_json::from_slice(input).map_err(|_| OpenAiRuntimeCredentialError::Invalid)?;
+        let root = response
+            .as_object()
+            .ok_or(OpenAiRuntimeCredentialError::Invalid)?;
+        let access_token = string_field(root, "access_token")?;
+        let rotated_refresh = optional_response_string(root, "refresh_token")?;
+        let expires_at_ms = refresh_expiry_ms(root, now_ms)?;
+        let Self::KimiOAuth(current) = self else {
+            return Err(OpenAiRuntimeCredentialError::NotRefreshable);
+        };
+        current.access_token.zeroize();
+        current.access_token = Zeroizing::new(access_token);
+        if let Some(next_refresh) = rotated_refresh {
+            current.refresh_token.zeroize();
+            current.refresh_token = Zeroizing::new(next_refresh);
+        }
+        current.expires_at_ms = expires_at_ms;
+        Ok(())
+    }
+
+    /// Serializes Kimi device OAuth material only for the encrypted persistence boundary.
+    /// The returned buffer must never cross a management read response or browser boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns a value-free error when this is not Kimi device OAuth material or serialization
+    /// fails.
+    pub fn export_kimi_oauth_json(
+        &self,
+    ) -> Result<Zeroizing<Vec<u8>>, OpenAiRuntimeCredentialError> {
+        let Self::KimiOAuth(value) = self else {
+            return Err(OpenAiRuntimeCredentialError::NotRefreshable);
+        };
+        serde_json::to_vec(&json!({
+            "kind": "kimi_oauth",
+            "access_token": value.access_token.as_str(),
+            "refresh_token": value.refresh_token.as_str(),
+            "expires_at_ms": value.expires_at_ms,
+            "device_id": value.device_id.as_str(),
+        }))
+        .map(Zeroizing::new)
+        .map_err(|_| OpenAiRuntimeCredentialError::Invalid)
     }
 
     /// Applies one strict successful token response, retaining the prior refresh token when the
@@ -655,7 +810,17 @@ impl OpenAiCompatibleRuntimeCredential {
     pub fn account_id(&self) -> Option<&str> {
         match self {
             Self::CodexOAuth(value) => value.account_id.as_deref().map(String::as_str),
-            Self::ApiKey(_) => None,
+            Self::ApiKey(_) | Self::KimiOAuth(_) => None,
+        }
+    }
+
+    /// Returns the device identifier only for Kimi Coding's fixed request
+    /// headers.  Callers must treat it as credential material.
+    #[must_use]
+    pub fn kimi_device_id(&self) -> Option<&str> {
+        match self {
+            Self::KimiOAuth(value) => Some(value.device_id.as_str()),
+            Self::ApiKey(_) | Self::CodexOAuth(_) => None,
         }
     }
 
@@ -664,7 +829,7 @@ impl OpenAiCompatibleRuntimeCredential {
     pub fn metadata(&self) -> Option<&CodexCredentialMetadata> {
         match self {
             Self::CodexOAuth(value) => Some(&value.metadata),
-            Self::ApiKey(_) => None,
+            Self::ApiKey(_) | Self::KimiOAuth(_) => None,
         }
     }
 
@@ -1067,6 +1232,13 @@ impl fmt::Debug for OpenAiCompatibleRuntimeCredential {
                 .field("expires_at_ms", &value.expires_at_ms)
                 .field("account_id_present", &value.account_id.is_some())
                 .finish(),
+            Self::KimiOAuth(value) => formatter
+                .debug_struct("OpenAiCompatibleRuntimeCredential::KimiOAuth")
+                .field("access_token", &"[REDACTED]")
+                .field("refresh_token", &"[REDACTED]")
+                .field("device_id", &"[REDACTED]")
+                .field("expires_at_ms", &value.expires_at_ms)
+                .finish(),
         }
     }
 }
@@ -1079,6 +1251,16 @@ struct CodexOAuthDocument {
     refresh_token: String,
     expires_at_ms: i64,
     account_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct KimiOAuthDocument {
+    kind: String,
+    access_token: String,
+    refresh_token: String,
+    expires_at_ms: i64,
+    device_id: String,
 }
 
 /// Secret-free credential import or refresh failure.
@@ -1198,6 +1380,43 @@ impl<'de> de::Visitor<'de> for DuplicateFreeVisitor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn kimi_device_credential_is_secret_safe_and_expiry_bound() -> Result<(), Box<dyn Error>> {
+        let credential = OpenAiCompatibleRuntimeCredential::import(
+            br#"{"kind":"kimi_oauth","access_token":"kimi-access-secret","refresh_token":"kimi-refresh-secret","expires_at_ms":2000,"device_id":"kimi-device-secret"}"#,
+        )?;
+        assert_eq!(credential.bearer_at(1_999)?, "kimi-access-secret");
+        assert_eq!(credential.kimi_device_id(), Some("kimi-device-secret"));
+        assert!(credential.bearer_at(2_000).is_err());
+        assert!(!format!("{credential:?}").contains("kimi-access-secret"));
+        assert!(!format!("{credential:?}").contains("kimi-refresh-secret"));
+        assert!(!format!("{credential:?}").contains("kimi-device-secret"));
+        Ok(())
+    }
+
+    #[test]
+    fn kimi_refresh_keeps_device_and_unrotated_refresh_secret() -> Result<(), Box<dyn Error>> {
+        let mut credential = OpenAiCompatibleRuntimeCredential::import(
+            br#"{"kind":"kimi_oauth","access_token":"old-access","refresh_token":"old-refresh","expires_at_ms":2000,"device_id":"device-1"}"#,
+        )?;
+        credential.apply_kimi_refresh_response(
+            br#"{"access_token":"new-access","expires_in":60}"#,
+            1_000,
+        )?;
+        assert_eq!(credential.bearer_at(60_999)?, "new-access");
+        assert!(credential.bearer_at(61_000).is_err());
+        let exported = credential.export_kimi_oauth_json()?;
+        let exported = std::str::from_utf8(exported.as_slice())?;
+        assert!(exported.contains("old-refresh"));
+        assert!(exported.contains("device-1"));
+        assert!(
+            credential
+                .apply_kimi_refresh_response(br#"{"access_token":"no-expiry"}"#, 1_000)
+                .is_err()
+        );
+        Ok(())
+    }
 
     #[test]
     fn api_key_and_oauth_are_strict_and_debug_is_redacted() -> Result<(), Box<dyn Error>> {

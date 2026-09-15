@@ -3,6 +3,8 @@
 use super::*;
 use gateway_control::management_service::ManagementActor;
 use gateway_store::control_plane::ConfigVersionStatus;
+use provider_anthropic_compatible::ClaudeRuntimeCredential;
+use provider_openai_compatible::OpenAiCompatibleRuntimeCredential;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -55,6 +57,28 @@ fn channel_workflow(
 struct Admission {
     session: CredentialId,
     previous: Option<CredentialView>,
+}
+
+fn validated_legacy_owner(
+    service: &mut ManagementMutationService,
+    version: &ConfigVersionId,
+    owner: &UpstreamId,
+    credential: &CredentialView,
+    channel: Channel,
+) -> Result<bool, ManagementResourceError> {
+    let upstream = service.get_upstream(version, owner)?;
+    let plaintext = service.open_credential_for_export(version, &credential.id)?;
+    match (channel, upstream.value().kind.as_str()) {
+        (Channel::Codex, "openai-compatible") => Ok(matches!(
+            OpenAiCompatibleRuntimeCredential::import_compatible(plaintext.as_bytes(), 0),
+            Ok(OpenAiCompatibleRuntimeCredential::CodexOAuth(_))
+        )),
+        (Channel::Claude, "anthropic-compatible") => Ok(matches!(
+            ClaudeRuntimeCredential::import_at(plaintext.as_bytes(), 0),
+            Ok(ClaudeRuntimeCredential::OAuth(_))
+        )),
+        _ => Ok(false),
+    }
 }
 
 fn same_observed_account(old: &[u8], new: &[u8]) -> bool {
@@ -138,16 +162,6 @@ fn admit(
     {
         return Err(conflict());
     }
-    let upstream = service
-        .get_upstream(&context.version, owner)
-        .map_err(management_error)?;
-    let allowed: &[&str] = match channel {
-        Channel::Codex => &["codex", "chatgpt", "openai-compatible"],
-        Channel::Claude => &["claude", "anthropic-compatible"],
-    };
-    if !allowed.contains(&upstream.value().kind.as_str()) {
-        return Err(invalid_input());
-    }
     let previous = match service.get_credential(&context.version, id) {
         Err(ManagementResourceError::ResourceNotFound) if !replace_existing => None,
         Ok(value)
@@ -160,6 +174,23 @@ fn admit(
         Ok(_) | Err(ManagementResourceError::ResourceNotFound) => return Err(conflict()),
         Err(e) => return Err(management_error(e)),
     };
+    let upstream = service
+        .get_upstream(&context.version, owner)
+        .map_err(management_error)?;
+    let allowed: &[&str] = match channel {
+        Channel::Codex => &["codex", "chatgpt"],
+        Channel::Claude => &["claude"],
+    };
+    let legacy = match previous.as_ref() {
+        Some(credential) => {
+            validated_legacy_owner(&mut service, &context.version, owner, credential, channel)
+                .map_err(management_error)?
+        }
+        None => false,
+    };
+    if !allowed.contains(&upstream.value().kind.as_str()) && !legacy {
+        return Err(invalid_input());
+    }
     let mut hash = sha2::Sha256::new();
     hash.update(match channel {
         Channel::Codex => b"cpar-codex-first-authorization".as_slice(),

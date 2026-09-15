@@ -24,7 +24,7 @@ pub fn ordinary_channel<'a>(
     upstream: &str,
     connections: impl IntoIterator<Item = (&'a str, Option<&'a str>)>,
 ) -> (&'static str, &'static str) {
-    let mut kimi = ["kimi", "moonshot"].contains(&upstream);
+    let mut kimi = ["kimi", "kimi-coding", "moonshot"].contains(&upstream);
     let mut kiro = upstream == "kiro";
     let mut claude = ["claude", "anthropic-compatible"].contains(&upstream);
     for (adapter, host) in connections {

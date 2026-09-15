@@ -42,7 +42,8 @@ use provider_grok::{
     GrokBuildOAuthTransportError, MAX_GROK_BUILD_OAUTH_HTTP_RESPONSE_BYTES,
 };
 use provider_openai_compatible::{
-    CODEX_RESPONSES_BASE_URL, CODEX_RESPONSES_PATH, OpenAiCompatibleRuntimeCredential,
+    CODEX_RESPONSES_BASE_URL, CODEX_RESPONSES_PATH, KIMI_OAUTH_TOKEN_URL,
+    OpenAiCompatibleRuntimeCredential,
 };
 use zeroize::Zeroizing;
 
@@ -56,6 +57,7 @@ const CODEX_REFRESH_SKEW_MS: i64 = 8 * 60 * 1_000;
 const CODEX_REFRESH_INITIAL_BACKOFF_MS: i64 = 60 * 1_000;
 const CODEX_REFRESH_MAX_BACKOFF_MS: i64 = 60 * 60 * 1_000;
 const CODEX_RESPONSES_ADAPTER_ID: &str = "openai-compatible.responses";
+const KIMI_REFRESH_MAX_RESPONSE_BYTES: u64 = 64 * 1024;
 
 /// A redacted result from one runtime refresh pass.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -69,6 +71,9 @@ pub(crate) struct RuntimeCredentialRefreshSummary {
     pub(crate) codex_due: usize,
     pub(crate) codex_succeeded: usize,
     pub(crate) codex_backed_off: usize,
+    pub(crate) kimi_due: usize,
+    pub(crate) kimi_succeeded: usize,
+    pub(crate) kimi_backed_off: usize,
 }
 
 impl RuntimeCredentialRefreshSummary {
@@ -76,6 +81,7 @@ impl RuntimeCredentialRefreshSummary {
         summary: GrokAccountWorkerRunSummary,
         runtime_replaced: usize,
         codex: CodexRefreshSummary,
+        kimi: CodexRefreshSummary,
     ) -> Self {
         Self {
             claimed: summary.claimed,
@@ -87,6 +93,9 @@ impl RuntimeCredentialRefreshSummary {
             codex_due: codex.due,
             codex_succeeded: codex.succeeded,
             codex_backed_off: codex.backed_off,
+            kimi_due: kimi.due,
+            kimi_succeeded: kimi.succeeded,
+            kimi_backed_off: kimi.backed_off,
         }
     }
 }
@@ -115,6 +124,7 @@ pub(crate) fn refresh_due_credentials_before_compile(
         return Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
             empty_grok_summary(),
             0,
+            CodexRefreshSummary::default(),
             CodexRefreshSummary::default(),
         ));
     };
@@ -146,8 +156,19 @@ pub(crate) fn refresh_due_credentials_before_compile(
         observed_at_ms,
         None,
     )?;
+    let kimi = refresh_kimi_credentials(
+        database,
+        secret_store,
+        &scope.config_version_id,
+        &scope.kimi_credential_ids,
+        None,
+        None,
+        None,
+        observed_at_ms,
+        None,
+    )?;
     Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
-        summary, 0, codex,
+        summary, 0, codex, kimi,
     ))
 }
 
@@ -168,6 +189,8 @@ pub(crate) struct RuntimeCredentialRefreshWorker {
     config_version_id: ConfigVersionId,
     codex_credential_ids: BTreeSet<CredentialId>,
     codex_backoff: Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>,
+    kimi_credential_ids: BTreeSet<CredentialId>,
+    kimi_backoff: Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>,
 }
 
 impl RuntimeCredentialRefreshWorker {
@@ -181,9 +204,13 @@ impl RuntimeCredentialRefreshWorker {
         codex_proxy: UpstreamProxy,
         config_version_id: ConfigVersionId,
     ) -> Result<Option<Self>, GrokAccountWorkerError> {
-        let codex_credential_ids =
-            refresh_scope_for_configuration(database, &config_version_id)?.codex_credential_ids;
-        if build_endpoints.is_empty() && codex_credential_ids.is_empty() {
+        let scope = refresh_scope_for_configuration(database, &config_version_id)?;
+        let codex_credential_ids = scope.codex_credential_ids;
+        let kimi_credential_ids = scope.kimi_credential_ids;
+        if build_endpoints.is_empty()
+            && codex_credential_ids.is_empty()
+            && kimi_credential_ids.is_empty()
+        {
             return Ok(None);
         }
         let store = GrokAccountPoolStore::try_open(database, secret_store.clone())
@@ -201,6 +228,8 @@ impl RuntimeCredentialRefreshWorker {
             config_version_id,
             codex_credential_ids,
             codex_backoff: Mutex::new(BTreeMap::new()),
+            kimi_credential_ids,
+            kimi_backoff: Mutex::new(BTreeMap::new()),
         }))
     }
 
@@ -236,6 +265,9 @@ impl RuntimeCredentialRefreshWorker {
                     codex_due = summary.codex_due,
                     codex_succeeded = summary.codex_succeeded,
                     codex_backed_off = summary.codex_backed_off,
+                    kimi_due = summary.kimi_due,
+                    kimi_succeeded = summary.kimi_succeeded,
+                    kimi_backed_off = summary.kimi_backed_off,
                     "credential refresh pass completed"
                 );
             } else {
@@ -258,6 +290,7 @@ impl RuntimeCredentialRefreshWorker {
                     return Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
                         empty_grok_summary(),
                         0,
+                        CodexRefreshSummary::default(),
                         CodexRefreshSummary::default(),
                     ));
                 }
@@ -292,10 +325,23 @@ impl RuntimeCredentialRefreshWorker {
             self.generation_guard.as_ref(),
         )?;
         runtime_replaced = runtime_replaced.saturating_add(codex.runtime_replaced);
+        let kimi = refresh_kimi_credentials(
+            &self.database,
+            &self.secret_store,
+            &self.config_version_id,
+            &self.kimi_credential_ids,
+            Some(self.pools.as_ref()),
+            Some(self.runtime_health.as_ref()),
+            Some(&self.kimi_backoff),
+            observed_at_ms,
+            self.generation_guard.as_ref(),
+        )?;
+        runtime_replaced = runtime_replaced.saturating_add(kimi.runtime_replaced);
         Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
             summary,
             runtime_replaced,
             codex,
+            kimi,
         ))
     }
 
@@ -382,6 +428,7 @@ struct RefreshScope {
     config_version_id: ConfigVersionId,
     has_build: bool,
     codex_credential_ids: BTreeSet<CredentialId>,
+    kimi_credential_ids: BTreeSet<CredentialId>,
 }
 
 fn active_refresh_scope(database: &Path) -> Result<Option<RefreshScope>, GrokAccountWorkerError> {
@@ -441,10 +488,49 @@ fn refresh_scope(configuration: &ControlPlaneConfiguration) -> RefreshScope {
         })
         .map(|credential| credential.id.clone())
         .collect();
+    let kimi_upstreams = configuration
+        .upstreams
+        .iter()
+        .filter(|upstream| upstream.kind == "kimi-coding")
+        .map(|upstream| &upstream.id)
+        .collect::<BTreeSet<_>>();
+    let kimi_endpoints = configuration
+        .endpoints
+        .iter()
+        .filter(|endpoint| {
+            endpoint.enabled
+                && kimi_upstreams.contains(&endpoint.upstream_id)
+                && endpoint.adapter_id == CODEX_RESPONSES_ADAPTER_ID
+                && endpoint.base_url.trim_end_matches('/') == "https://api.kimi.com/coding"
+                && endpoint.inference_path == "/v1/responses"
+        })
+        .map(|endpoint| (&endpoint.id, &endpoint.upstream_id))
+        .collect::<BTreeSet<_>>();
+    let kimi_bound_credentials = configuration
+        .endpoint_credential_bindings
+        .iter()
+        .filter(|binding| {
+            binding.enabled
+                && kimi_endpoints.contains(&(&binding.endpoint_id, &binding.upstream_id))
+        })
+        .map(|binding| &binding.credential_id)
+        .collect::<BTreeSet<_>>();
+    let kimi_credential_ids = configuration
+        .credentials
+        .iter()
+        .filter(|credential| {
+            credential.kind == "oauth_json"
+                && credential.status == CredentialStatus::Active
+                && kimi_upstreams.contains(&credential.upstream_id)
+                && kimi_bound_credentials.contains(&credential.id)
+        })
+        .map(|credential| credential.id.clone())
+        .collect();
     RefreshScope {
         config_version_id: configuration.version.id.clone(),
         has_build,
         codex_credential_ids,
+        kimi_credential_ids,
     }
 }
 
@@ -574,6 +660,170 @@ fn refresh_codex_credentials(
                 )?);
     }
     Ok(summary)
+}
+
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+fn refresh_kimi_credentials(
+    database: &Path,
+    secret_store: &SecretStore,
+    config_version_id: &ConfigVersionId,
+    kimi_credential_ids: &BTreeSet<CredentialId>,
+    pools: Option<&EndpointCredentialPools>,
+    runtime_health: Option<&RuntimeHealthRegistry>,
+    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
+    observed_at_ms: i64,
+    generation_guard: Option<&(
+        Arc<tokio::sync::Mutex<()>>,
+        Arc<std::sync::atomic::AtomicBool>,
+    )>,
+) -> Result<CodexRefreshSummary, GrokAccountWorkerError> {
+    let mut repository = SqliteControlPlaneRepository::open(database)
+        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
+    let Some(configuration) = repository
+        .load_configuration(config_version_id)
+        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?
+    else {
+        return Ok(CodexRefreshSummary::default());
+    };
+    let config_revision = ConfigRevision::try_new(configuration.version.revision)
+        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+    let actor = ManagementActor::try_new("runtime-credential-refresh")
+        .map_err(|_| GrokAccountWorkerError::InvalidRequest)?;
+    let mutation_repository = SqliteControlPlaneRepository::open(database)
+        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
+    let mut mutation_service =
+        ManagementMutationService::new(mutation_repository, secret_store.clone());
+    let refresh_cutoff = observed_at_ms
+        .checked_add(CODEX_REFRESH_SKEW_MS)
+        .ok_or(GrokAccountWorkerError::InvalidRequest)?;
+    let mut summary = CodexRefreshSummary::default();
+
+    for credential in configuration
+        .credentials
+        .iter()
+        .filter(|credential| kimi_credential_ids.contains(&credential.id))
+    {
+        let _guard = match generation_guard {
+            Some((gate, active)) => {
+                let guard = gate.blocking_lock();
+                if !active.load(std::sync::atomic::Ordering::Acquire) {
+                    return Ok(summary);
+                }
+                Some(guard)
+            }
+            None => None,
+        };
+        let (mut runtime_bytes, mut runtime_credential, mut runtime_revision) =
+            open_codex_runtime_credential(
+                &configuration,
+                credential,
+                secret_store,
+                observed_at_ms,
+            )?;
+        if !matches!(
+            runtime_credential,
+            OpenAiCompatibleRuntimeCredential::KimiOAuth(_)
+        ) {
+            return Err(GrokAccountWorkerError::InvalidPersistedState);
+        }
+        if runtime_credential
+            .expires_at_ms()
+            .is_some_and(|expires_at_ms| expires_at_ms <= refresh_cutoff)
+        {
+            summary.due += 1;
+            if codex_refresh_is_deferred(backoff, &credential.id, observed_at_ms)? {
+                summary.backed_off += 1;
+                continue;
+            }
+            let Ok(refreshed) = refresh_kimi_credential(&mut runtime_credential, observed_at_ms)
+            else {
+                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
+                summary.backed_off += 1;
+                continue;
+            };
+            if mutation_service
+                .persist_oauth_credential_if_revision(
+                    &actor,
+                    &configuration.version.id,
+                    config_revision,
+                    credential.id.clone(),
+                    credential.revision,
+                    refreshed.as_slice(),
+                )
+                .is_err()
+            {
+                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
+                summary.backed_off += 1;
+                continue;
+            }
+            clear_codex_refresh_backoff(backoff, &credential.id)?;
+            runtime_revision = runtime_revision
+                .checked_add(1)
+                .ok_or(GrokAccountWorkerError::InvalidPersistedState)?;
+            runtime_bytes = refreshed;
+            summary.succeeded += 1;
+        }
+        summary.runtime_replaced =
+            summary
+                .runtime_replaced
+                .saturating_add(sync_codex_runtime_material(
+                    &configuration,
+                    &credential.id,
+                    runtime_bytes.as_slice(),
+                    &runtime_credential,
+                    runtime_revision,
+                    pools,
+                    runtime_health,
+                    observed_at_ms,
+                )?);
+    }
+    Ok(summary)
+}
+
+fn refresh_kimi_credential(
+    credential: &mut OpenAiCompatibleRuntimeCredential,
+    observed_at_ms: i64,
+) -> Result<Zeroizing<Vec<u8>>, ()> {
+    let request = credential.kimi_refresh_request().map_err(|_| ())?;
+    let body = request.form_body();
+    let client = reqwest::blocking::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(OAUTH_CONNECT_TIMEOUT)
+        .timeout(OAUTH_REQUEST_TIMEOUT)
+        .build()
+        .map_err(|_| ())?;
+    let response = client
+        .post(KIMI_OAUTH_TOKEN_URL)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header("Accept", "application/json")
+        .header("User-Agent", "cpa-rust-gateway/kimi-oauth")
+        .header("X-Msh-Platform", "CPAR")
+        .header("X-Msh-Device-Name", "CPAR Gateway")
+        .header("X-Msh-Device-Model", "gateway")
+        .header("X-Msh-Device-Id", request.device_id())
+        .body(body.as_bytes().to_vec())
+        .send()
+        .map_err(|_| ())?;
+    if !response.status().is_success()
+        || response
+            .content_length()
+            .is_some_and(|length| length > KIMI_REFRESH_MAX_RESPONSE_BYTES)
+    {
+        return Err(());
+    }
+    let mut response_body = Zeroizing::new(Vec::new());
+    response
+        .take(KIMI_REFRESH_MAX_RESPONSE_BYTES + 1)
+        .read_to_end(&mut response_body)
+        .map_err(|_| ())?;
+    if u64::try_from(response_body.len()).unwrap_or(u64::MAX) > KIMI_REFRESH_MAX_RESPONSE_BYTES {
+        return Err(());
+    }
+    credential
+        .apply_kimi_refresh_response(response_body.as_slice(), observed_at_ms)
+        .map_err(|_| ())?;
+    credential.export_kimi_oauth_json().map_err(|_| ())
 }
 
 fn open_codex_runtime_credential(
@@ -951,6 +1201,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn refresh_scope_uses_exact_channel_binding_not_the_oauth_storage_label() -> TestResult {
         let mut configuration = ControlPlaneConfiguration::new(ConfigVersion {
             id: ConfigVersionId::try_new("refresh-scope-config")?,
@@ -962,13 +1213,23 @@ mod tests {
         });
         let codex_upstream = UpstreamId::try_new("codex-upstream")?;
         let generic_upstream = UpstreamId::try_new("generic-upstream")?;
+        let kimi_upstream = UpstreamId::try_new("kimi-upstream")?;
         configuration.upstreams.extend([
             upstream(codex_upstream.clone(), "codex"),
             upstream(generic_upstream.clone(), "generic"),
+            UpstreamConfiguration {
+                id: kimi_upstream.clone(),
+                name: "Kimi Coding".to_owned(),
+                kind: "kimi-coding".to_owned(),
+                enabled: true,
+                tags_json: "[]".to_owned(),
+                egress_policy_id: None,
+            },
         ]);
         let codex_endpoint = EndpointId::try_new("codex-endpoint")?;
         let generic_endpoint = EndpointId::try_new("generic-endpoint")?;
         let build_endpoint = EndpointId::try_new("build-endpoint")?;
+        let kimi_endpoint = EndpointId::try_new("kimi-endpoint")?;
         configuration.endpoints.extend([
             endpoint(
                 codex_endpoint.clone(),
@@ -991,12 +1252,24 @@ mod tests {
                 "https://cli-chat-proxy.grok.com/v1",
                 true,
             ),
+            EndpointConfiguration {
+                id: kimi_endpoint.clone(),
+                upstream_id: kimi_upstream.clone(),
+                adapter_id: CODEX_RESPONSES_ADAPTER_ID.to_owned(),
+                api_format: "openai/responses".to_owned(),
+                base_url: "https://api.kimi.com/coding".to_owned(),
+                inference_path: "/v1/responses".to_owned(),
+                models_path: Some("/v1/models".to_owned()),
+                transport: EndpointTransport::Http,
+                enabled: true,
+            },
         ]);
 
         let secret_store = secret_store()?;
         let codex_credential = CredentialId::try_new("codex-oauth")?;
         let generic_oauth = CredentialId::try_new("generic-oauth")?;
         let unbound_oauth = CredentialId::try_new("unbound-oauth")?;
+        let kimi_oauth = CredentialId::try_new("kimi-oauth")?;
         configuration.credentials.extend([
             credential(
                 &configuration,
@@ -1019,6 +1292,13 @@ mod tests {
                 codex_upstream.clone(),
                 "oauth_json",
             )?,
+            credential(
+                &configuration,
+                &secret_store,
+                kimi_oauth.clone(),
+                kimi_upstream.clone(),
+                "oauth_json",
+            )?,
         ]);
         configuration.endpoint_credential_bindings.extend([
             binding(
@@ -1028,12 +1308,15 @@ mod tests {
                 true,
             ),
             binding(generic_endpoint, generic_oauth, generic_upstream, true),
+            binding(kimi_endpoint, kimi_oauth.clone(), kimi_upstream, true),
         ]);
 
         let scope = refresh_scope(&configuration);
         assert!(scope.has_build);
         assert_eq!(scope.codex_credential_ids.len(), 1);
         assert!(scope.codex_credential_ids.contains(&codex_credential));
+        assert_eq!(scope.kimi_credential_ids.len(), 1);
+        assert!(scope.kimi_credential_ids.contains(&kimi_oauth));
         Ok(())
     }
 

@@ -33,6 +33,7 @@ pub use openai_responses::{
 pub use runtime_credential::{
     CODEX_OAUTH_CLIENT_ID, CODEX_OAUTH_TOKEN_URL, CodexCredentialExportFormat,
     CodexCredentialMetadata, CodexOAuthRefreshRequest, CodexOAuthRevisionedCredential,
+    KIMI_OAUTH_CLIENT_ID, KIMI_OAUTH_TOKEN_URL, KimiOAuthRefreshRequest,
     OpenAiCompatibleRuntimeCredential, OpenAiRuntimeCredentialError,
 };
 pub use runtime_failure::{
