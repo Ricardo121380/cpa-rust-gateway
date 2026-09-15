@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { call } from "../../api/client";
+import { shouldRetryManagementRead } from "../../api/errors";
 import type { ManagementOperationName } from "../../generated/management-client";
 import type { ManagedEndpoint } from "../accounts/inventory";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -16,12 +17,26 @@ async function pages<T>(operation:ManagementOperationName) {
   return {items,revision};
 }
 
+/**
+ * The management service deliberately bounds blocking reads. Sequence the
+ * three independent resource enumerations so opening a provider/model page
+ * cannot consume that bound itself. A capacity rejection is a safe read retry;
+ * a revision mismatch still stops and asks the operator to refresh.
+ */
+export async function readModelConnections() {
+  const routes=await pages<RouteListItem>("listRoutes");
+  const candidates=await pages<CandidateRecord>("listRouteCandidates");
+  const endpoints=await pages<ManagedEndpoint>("listManagedEndpoints");
+  if(new Set([routes.revision,candidates.revision,endpoints.revision]).size!==1)throw new Error("连接配置已变化，请刷新后重读。");
+  return {routes:routes.items,candidates:candidates.items,endpoints:endpoints.items};
+}
+
 /** Complete configuration topology, separate from catalog contents and runtime availability. */
 export function useModelConnections() {
   const scope=useVersionStore(s=>s.context?.configVersionId);
-  return useQuery({queryKey:["model-connections",scope],enabled:!!scope,retry:false,queryFn:async()=>{
-    const [routes,candidates,endpoints]=await Promise.all([pages<RouteListItem>("listRoutes"),pages<CandidateRecord>("listRouteCandidates"),pages<ManagedEndpoint>("listManagedEndpoints")]);
-    if(new Set([routes.revision,candidates.revision,endpoints.revision]).size!==1)throw new Error("连接配置已变化，请刷新后重读。");
-    return {routes:routes.items,candidates:candidates.items,endpoints:endpoints.items};
-  }});
+  return useQuery({queryKey:["model-connections",scope],enabled:!!scope,
+    retry:shouldRetryManagementRead,
+    retryDelay:(attempt)=>250*(attempt+1),
+    queryFn:readModelConnections,
+  });
 }

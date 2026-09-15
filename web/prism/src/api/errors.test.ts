@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyStatus, isRuntimeConflict, type AppError } from "./errors";
+import { classifyStatus, isRuntimeConflict, shouldRetryManagementRead, type AppError } from "./errors";
 
 function conflict(code: string): AppError {
   return { kind: "conflict", code, message: "", status: 409 };
@@ -52,5 +52,15 @@ describe("isRuntimeConflict", () => {
         status: 503,
       }),
     ).toBe(false);
+  });
+});
+
+describe("shouldRetryManagementRead", () => {
+  const unavailable = { kind: "unavailable", code: "management_operations_busy", message: "busy", status: 503 } as const;
+  it("retries only bounded unavailable reads", () => {
+    expect(shouldRetryManagementRead(0, unavailable)).toBe(true);
+    expect(shouldRetryManagementRead(2, unavailable)).toBe(true);
+    expect(shouldRetryManagementRead(3, unavailable)).toBe(false);
+    expect(shouldRetryManagementRead(0, { ...unavailable, kind: "conflict" })).toBe(false);
   });
 });

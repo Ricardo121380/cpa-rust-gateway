@@ -105,3 +105,8 @@ export function asAppError(error: unknown): AppError {
     status: undefined,
   };
 }
+
+/** A capacity rejection happens before a management read begins. */
+export function shouldRetryManagementRead(failures: number, error: unknown): boolean {
+  return asAppError(error).kind === "unavailable" && failures < 3;
+}

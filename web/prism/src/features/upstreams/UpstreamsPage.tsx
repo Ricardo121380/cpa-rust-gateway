@@ -109,6 +109,17 @@ export function UpstreamsPage() {
     enabled: scope !== undefined,
   });
 
+  const normalizedFilter = filter.trim().toLowerCase();
+  const filteredUpstreams = (upstreams.data ?? []).filter((upstream) => {
+    if (kindFilter && upstream.kind !== kindFilter) return false;
+    const endpoints = topology.data?.endpoints.filter((endpoint) => endpoint.upstream_id === upstream.id) ?? [];
+    const endpointIds = new Set(endpoints.map((endpoint) => endpoint.id));
+    const models = [...new Set(topology.data?.candidates.filter((candidate) => endpointIds.has(candidate.endpoint_id)).map((candidate) => candidate.upstream_model) ?? [])];
+    const name = resourceName(upstream.id, "upstream", upstream.name);
+    return !normalizedFilter || [name, upstream.kind, ...models, ...endpoints.map((endpoint) => endpoint.base_url)]
+      .join(" ").toLowerCase().includes(normalizedFilter);
+  });
+
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["upstreams", scope] });
 
   const save = useMutation({
@@ -193,16 +204,15 @@ export function UpstreamsPage() {
       <div className="data-toolbar"><input type="search" aria-label="搜索提供商或模型" placeholder="搜索提供商、地址或模型 ID" value={filter} onChange={e=>setFilter(e.target.value)}/><select aria-label="渠道类型" value={kindFilter} onChange={e=>setKindFilter(e.target.value)}><option value="">全部渠道</option>{[...new Set(upstreams.data?.map(p=>p.kind)??[])].map(kind=><option key={kind} value={kind}>{providerKindLabel(kind)}</option>)}</select></div>
       <ReadStatus pending={false} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
       <div className={`provider-workspace${expanded?" has-detail":""}`}><div className="provider-list">
-        {(upstreams.data??[]).filter(p=>!kindFilter||p.kind===kindFilter).map(upstream=>{
+        {filteredUpstreams.map(upstream=>{
           const endpoints=topology.data?.endpoints.filter(e=>e.upstream_id===upstream.id)??[];
           const endpointIds=new Set(endpoints.map(e=>e.id));
           const models=[...new Set(topology.data?.candidates.filter(c=>endpointIds.has(c.endpoint_id)).map(c=>c.upstream_model)??[])];
           const name=resourceName(upstream.id,"upstream",upstream.name);
-          if(![name,upstream.kind,...models,...endpoints.map(e=>e.base_url)].join(" ").toLowerCase().includes(filter.toLowerCase()))return null;
           return <article className="provider-card" key={upstream.id}>
             <header><div><span className="provider-kind">{providerKindLabel(upstream.kind)}</span><h3>{name}</h3></div><StatusBadge status={upstream.enabled?"active":"disabled"}>{upstream.enabled?"已启用":"已停用"}</StatusBadge></header>
-            <div className="provider-connections">{!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div>
-            <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={`/models?add=model${endpoints[0]?`&from_endpoint=${encodeURIComponent(endpoints[0].id)}`:""}`}>开放模型</Link></div>
+            <div className="provider-connections">{topology.isError?"连接读取失败":!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div>
+            <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={`/models?add=model${endpoints[0]?`&from_endpoint=${encodeURIComponent(endpoints[0].id)}`:""}`}>开放模型</Link></div>
             <footer><div className="row-actions">
               <button className="secondary" onClick={()=>setExpanded(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
               <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);setDraft(toDraft(upstream));}}>编辑</button>
@@ -210,7 +220,7 @@ export function UpstreamsPage() {
             </div></footer>
           </article>;
         })}
-        {!scope||upstreams.data?.length===0?<div className="empty-state">添加提供商，设置接口地址并连接账号。</div>:null}
+        {!scope?<div className="empty-state">选择配置版本后管理提供商。</div>:upstreams.data?.length===0?<div className="empty-state">添加提供商，设置接口地址并连接账号。</div>:filteredUpstreams.length===0?<div className="empty-state">没有符合筛选条件的提供商。<button className="secondary" onClick={()=>{setFilter("");setKindFilter("");}}>清除筛选</button></div>:null}
       </div>
 
       {expanded?<aside className="provider-detail" aria-label="提供商接口与账号"><header><h3>{resourceName(expanded,"upstream",upstreams.data?.find(row=>row.id===expanded)?.name)}</h3><button className="secondary" onClick={()=>setExpanded(undefined)}>关闭</button></header><SubresourcePanel upstreamId={expanded}/></aside>:null}

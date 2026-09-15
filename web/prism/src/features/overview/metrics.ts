@@ -2,10 +2,10 @@
 // honestly show.
 //
 // What this plane IS: process-lifetime cumulative counters, reset on restart.
-// What it is NOT: G3 analytics. There is no time bucket, no per-model or
-// per-key dimension, no latency quantile — the renderer deliberately adds "no
-// request-scoped or target-scoped label". Anything that needs a time window
-// stays behind the G3 gap; do not synthesise it from these.
+// What it is NOT: request analytics. There is no time bucket, no per-model or
+// per-key dimension, no latency quantile in this process-lifetime plane.
+// Request-terminal summaries provide those in a separate snapshot; never
+// synthesise them from these counters.
 import { parsePrometheus, pick } from "../../api/prometheus";
 /** The token families the Prometheus exposition carries. Lived in
  *  api/proposed-types until that module went with the analytics shape it

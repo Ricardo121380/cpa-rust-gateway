@@ -123,7 +123,7 @@ function ManagedAccounts() {
   return <section className="accounts-page">
     <header className="page-head"><div><h2>账号管理</h2><p>按渠道管理身份、授权与接口连接</p></div>
       <div className="page-actions">
-        <button onClick={() => update("add", "account")}>添加账号</button>
+        <button onClick={() => update("add", "account")}>授权 / 导入账号</button>
         <button className="secondary" aria-pressed={selecting} onClick={()=>{setSelecting(!selecting);setSelection(new Set());}}>{selecting?"结束选择":"批量管理"}</button>
         <button className="secondary" onClick={() => void refresh()}>刷新账号</button>
       </div>

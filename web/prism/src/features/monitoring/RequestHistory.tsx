@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, useEffect, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { asAppError, shouldRetryManagementRead } from "../../api/errors";
 import { Sheet } from "../../components/Sheet";
 import { ResourcePicker } from "../../components/ResourcePicker";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
@@ -24,11 +24,60 @@ const outcomeLabel={succeeded:"成功",failed:"失败",cancelled:"已取消",unk
 const milliseconds=(value:number|null|undefined)=>value==null?"—":`${Math.round(value).toLocaleString()} ms`;
 const time=(value:number|null)=>value===null?"时间未观测":new Date(value).toLocaleString();
 const FILTERS=["model","upstream_id","credential_id","client_key_id","outcome"] as const;
+const RANGE_PRESETS = [24, 168, 720] as const;
+type RangePreset = (typeof RANGE_PRESETS)[number] | "custom";
 function queryFilters(params:URLSearchParams) {return Object.fromEntries(FILTERS.flatMap(key=>params.get(key)?[[key,params.get(key)!]]:[]));}
-function rangeQuery(params:URLSearchParams,anchor:number,hours:number) {
+function presetHours(value: string | null): (typeof RANGE_PRESETS)[number] {
+  const parsed = Number(value);
+  return RANGE_PRESETS.includes(parsed as (typeof RANGE_PRESETS)[number])
+    ? parsed as (typeof RANGE_PRESETS)[number]
+    : 24;
+}
+export function selectedRequestPreset(params: URLSearchParams): RangePreset {
+  if (params.get("hours") === "custom") return "custom";
+  if (params.has("hours")) return presetHours(params.get("hours"));
+  const from = Number(params.get("from_ms"));
+  const to = Number(params.get("to_ms"));
+  if (!params.has("from_ms") || !params.has("to_ms") || !Number.isFinite(from) || !Number.isFinite(to) || to < from) return 24;
+  const span = to - from;
+  return RANGE_PRESETS.find((hours) => Math.abs(span - hours * 3_600_000) <= 60_000) ?? "custom";
+}
+export function requestRange(params:URLSearchParams,anchor:number,hours=presetHours(params.get("hours"))) {
   const from=Number(params.get("from_ms")),to=Number(params.get("to_ms"));
-  return {from_ms:params.has("from_ms")&&Number.isFinite(from)&&from>=0?from:anchor-hours*3_600_000,
-    to_ms:params.has("to_ms")&&Number.isFinite(to)&&to>=0?to:anchor,bucket_ms:hours>24?86_400_000:3_600_000};
+  const explicit=params.has("from_ms")&&params.has("to_ms")&&Number.isFinite(from)&&Number.isFinite(to)&&from>=0&&to>=from;
+  const from_ms=explicit?from:anchor-hours*3_600_000;
+  const to_ms=explicit?to:anchor;
+  return {from_ms,to_ms,bucket_ms:to_ms-from_ms>24*3_600_000?86_400_000:3_600_000};
+}
+
+/**
+ * A request-summary card can deep-link an exact observed range. Applying an
+ * additional filter must not quietly turn that link back into "last 24h".
+ * Choosing a different range preset is an intentional replacement, so it is
+ * the one case that drops the explicit endpoints.
+ */
+export function requestSearchAfterFilter(
+  params: URLSearchParams,
+  entries: Iterable<readonly [string, FormDataEntryValue]>,
+): URLSearchParams {
+  const currentPreset = selectedRequestPreset(params);
+  const next = new URLSearchParams({ tab: "requests" });
+  let requestedHours = String(currentPreset);
+  for (const [key, value] of entries) {
+    const text = String(value);
+    if (!text) continue;
+    next.set(key, text);
+    if (key === "hours") requestedHours = text;
+  }
+
+  const from = params.get("from_ms");
+  const to = params.get("to_ms");
+  const exactRange = from !== null && to !== null && Number.isFinite(Number(from)) && Number.isFinite(Number(to));
+  if (exactRange && from !== null && to !== null && requestedHours === String(currentPreset)) {
+    next.set("from_ms", from);
+    next.set("to_ms", to);
+  }
+  return next;
 }
 
 function Trend({series:observed,from,to,bucket}:Readonly<{series:readonly Bucket[];from:number;to:number;bucket:number}>) {
@@ -55,7 +104,7 @@ export function RequestOverview({onRangeChange}:Readonly<{onRangeChange?:(range:
   const [hours,setHours]=useState(24),[anchor,setAnchor]=useState(Date.now());
   const range={from_ms:anchor-hours*3_600_000,to_ms:anchor,bucket_ms:hours>24?86_400_000:3_600_000};
   useEffect(()=>{onRangeChange?.({from_ms:range.from_ms,to_ms:range.to_ms});},[onRangeChange,range.from_ms,range.to_ms]);
-  const query=useQuery({queryKey:["request-summary",range],queryFn:()=>call<Page>("summarizeRequests",{query:{...range,limit:1}}),retry:false});
+  const query=useQuery({queryKey:["request-summary",range],queryFn:()=>call<Page>("summarizeRequests",{query:{...range,limit:1}}),retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1)});
   const link=`/monitoring?tab=requests&from_ms=${range.from_ms}&to_ms=${range.to_ms}`;
   return <section className="request-overview"><div className="data-toolbar"><h3>请求概览</h3><select aria-label="请求时间范围" value={hours} onChange={event=>{setHours(Number(event.target.value));setAnchor(Date.now());}}><option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select><button className="secondary" onClick={()=>setAnchor(Date.now())}>刷新</button></div>
     {query.isError?<p role="alert">{asAppError(query.error).message}</p>:query.data?.summary?<><Metrics data={query.data.summary} link={link}/><Trend series={query.data.series} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms}/><Link to={link}>查看此范围请求</Link></>:<p role="status">读取请求统计…</p>}
@@ -72,16 +121,16 @@ function RequestDetail({row,onClose}:Readonly<{row:RequestRow;onClose:()=>void}>
 }
 export function RequestHistoryPanel() {
   const [params,setParams]=useSearchParams();const [anchor,setAnchor]=useState(Date.now());
-  const hours=Number(params.get("hours"))||24;const range=rangeQuery(params,anchor,hours);const filters=queryFilters(params);
+  const preset=selectedRequestPreset(params);const hours=typeof preset==="number"?preset:24;const range=requestRange(params,anchor,hours);const filters=queryFilters(params);
   const query={...range,...filters,include_unknown:params.get("include_unknown")==="true",limit:50};
-  const requests=useInfiniteQuery({queryKey:["requests",query],initialPageParam:undefined as string|undefined,queryFn:({pageParam})=>call<Page>("summarizeRequests",{query:{...query,...(pageParam?{cursor:pageParam}:{})}}),getNextPageParam:page=>page.next_cursor??undefined,retry:false});
+  const requests=useInfiniteQuery({queryKey:["requests",query],initialPageParam:undefined as string|undefined,queryFn:({pageParam})=>call<Page>("summarizeRequests",{query:{...query,...(pageParam?{cursor:pageParam}:{})}}),getNextPageParam:page=>page.next_cursor??undefined,retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1)});
   const summary=requests.data?.pages[0];
   const [detail,setDetail]=useState<RequestRow>();
   const rows=requests.data?.pages.flatMap(page=>page.items)??[];
-  function apply(event:FormEvent<HTMLFormElement>) {event.preventDefault();const data=new FormData(event.currentTarget);const next=new URLSearchParams({tab:"requests"});for(const [key,value] of data)if(String(value))next.set(key,String(value));setAnchor(Date.now());setParams(next);}
+  function apply(event:FormEvent<HTMLFormElement>) {event.preventDefault();const data=new FormData(event.currentTarget);setAnchor(Date.now());setParams(requestSearchAfterFilter(params,data.entries()));}
   const link=`/monitoring?${new URLSearchParams({...Object.fromEntries(params),tab:"requests",from_ms:String(range.from_ms),to_ms:String(range.to_ms)})}`;
   return <section className="request-history"><form className="request-filters" key={params.toString()} onSubmit={apply}>
-    <label>时间<select name="hours" defaultValue={hours}><option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select></label>
+    <label>时间<select name="hours" defaultValue={preset}>{preset==="custom"?<option value="custom" disabled>当前链接范围</option>:null}<option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select></label>
     <label>模型<input name="model" defaultValue={params.get("model")??""} placeholder="原始模型 ID"/></label>
     <label>渠道<ResourcePicker kind="upstream" name="upstream_id" defaultValue={params.get("upstream_id")??""}/></label>
     <label>账号<ResourcePicker kind="account" runtime name="credential_id" defaultValue={params.get("credential_id")??""}/></label>

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { call, callText } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { asAppError, shouldRetryManagementRead } from "../../api/errors";
 import {
   exactShare,
   formatPercent,
@@ -207,21 +207,27 @@ function LiveCountersSection() {
  *     one-page approximation here would contradict it. So this links there
  *     instead of showing a partial sum that looks authoritative.
  *
- * Request timing is supplied separately by persisted terminal observations.
+ * Persisted request terminals now provide a separate, snapshot-consistent
+ * request view with timing and percentiles. The overview links there instead
+ * of mixing those observations with process-lifetime counters.
  */
 function BillingGlance({range}:Readonly<{range:{from_ms:number;to_ms:number}}>) {
   const billing = useQuery({
     // Not version-scoped, like the monitoring ledger it summarises.
     queryKey: ["overview-billing",range],
     queryFn: () => call<BillingResponse>("listOperationalBilling", { query: { ...range,limit: 1 } }),
-    retry: false,
+    // The bounded management reader can reject a concurrent dashboard read.
+    // This is safe to retry because it is a snapshot read, never a mutation.
+    retry: shouldRetryManagementRead,
+    retryDelay: (attempt) => 250 * (attempt + 1),
     refetchInterval: 60_000,
   });
 
   if (billing.isError) {
     return (
       <div className="card empty-state" data-kind="error" data-gap="top">
-        <p>{asAppError(billing.error).message}</p>
+        <p>{asAppError(billing.error).kind === "unavailable" ? "费用概览暂时无法读取。" : asAppError(billing.error).message}</p>
+        <button type="button" className="secondary" onClick={() => void billing.refetch()}>重新读取</button>
       </div>
     );
   }
@@ -265,7 +271,7 @@ function AnalyticsPointers() {
     <div className="card" data-gap="top">
       <h3>继续查看</h3>
       <div className="overview-shortcuts"><Link to="/accounts">账号池 →</Link><Link to="/catalog">模型目录 →</Link><Link to="/usage">前往用量分析 →</Link><Link to="/monitoring?tab=failures">在失败归因中查看 →</Link></div>
-      <details className="reading-notes"><summary>分析范围</summary><p>计数器为累计值；当前没有服务端时间桶，也没有请求延迟分布。用量页提供所选时间窗的聚合，并说明观测范围是否完整。</p></details>
+      <details className="reading-notes"><summary>分析范围</summary><p>计数器为进程累计值；请求日志提供独立的时间桶、终态和延迟观测。用量页提供所选时间窗的聚合，并说明观测范围是否完整。</p></details>
     </div>
   );
 }

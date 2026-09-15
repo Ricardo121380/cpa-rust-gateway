@@ -7,7 +7,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { asAppError, shouldRetryManagementRead } from "../../api/errors";
 import { editedExpiry, toLocalInput } from "../access/model";
 import { Sheet } from "../../components/Sheet";
 import { useMessages } from "../../i18n/messages";
@@ -132,7 +132,8 @@ function AttemptsSheet({
     queryKey: ["request-attempts", requestId],
     queryFn: () =>
       call<readonly AttemptRow[]>("listRequestAttempts", { path: { request_id: requestId } }),
-    retry: false,
+    retry: shouldRetryManagementRead,
+    retryDelay: (attempt) => 250 * (attempt + 1),
   });
 
   return (
@@ -211,7 +212,8 @@ function LedgerPanel({
         },
       }),
     getNextPageParam: (last) => last.next_cursor,
-    retry: false,
+    retry: shouldRetryManagementRead,
+    retryDelay: (attempt) => 250 * (attempt + 1),
   });
 
   if (ledger.isError) {

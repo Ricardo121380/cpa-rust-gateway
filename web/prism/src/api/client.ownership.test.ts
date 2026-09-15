@@ -28,6 +28,21 @@ beforeEach(() => {
 });
 
 describe("request ownership through the generated transport", () => {
+  it("serializes concurrent management GETs before the bounded reader", async () => {
+    const finishFirst = pending();
+    const first = scopedRead();
+    const finishSecond = pending();
+    const second = scopedRead();
+    await vi.waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
+
+    finishFirst(200, "rev-8");
+    await first;
+    await vi.waitFor(() => expect(transport).toHaveBeenCalledTimes(2));
+    finishSecond(200, "rev-9");
+    await second;
+    expect(useVersionStore.getState().context?.revision).toBe("rev-9");
+  });
+
   it("rejects a late response after A → B or A → B → A", async () => {
     for (const backToA of [false, true]) {
       select("a");
@@ -41,15 +56,16 @@ describe("request ownership through the generated transport", () => {
     }
   });
 
-  it("keeps same-version revisions monotonic when reads finish out of order", async () => {
+  it("keeps same-version revisions monotonic across serialized reads", async () => {
     const finishOlder = pending();
     const older = scopedRead();
     const finishNewer = pending();
     const newer = scopedRead();
-    finishNewer(200, "rev-12");
-    await newer;
     finishOlder(200, "rev-9");
     await older;
+    await vi.waitFor(() => expect(transport).toHaveBeenCalledTimes(2));
+    finishNewer(200, "rev-12");
+    await newer;
     expect(useVersionStore.getState().context?.revision).toBe("rev-12");
   });
 

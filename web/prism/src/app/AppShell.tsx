@@ -2,7 +2,7 @@
 // V6 keeps a shared frosted workspace beneath the three refractive chrome panes.
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Navigate, Outlet, useLocation, Link } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
 import { call } from "../api/client";
 import { GlassSurface } from "../components/glass/GlassSurface";
 import { PrismLens } from "../components/glass/PrismLens";
@@ -16,10 +16,13 @@ import { DraftDock } from "./DraftDock";
 import { NAV_GROUPS, NAV_ITEMS, primaryRoute, workspacePages } from "./navigation";
 import { resolvedTheme, useThemeStore } from "./themeStore";
 
-function ConfigurationContext() {
-  const context = useVersionStore((s) => s.context);
+/**
+ * Resource pages are version-scoped, so the active configuration still needs
+ * to be selected before they issue their reads. This is intentionally not
+ * visual chrome: daily work should not be framed around an internal revision.
+ */
+function ConfigurationBootstrap() {
   const selectInitialActive = useVersionStore((s) => s.selectInitialActive);
-  const t = useMessages();
   const versions = useQuery({
     queryKey: ["config-versions"],
     queryFn: () => call<ConfigVersionSummary[]>("listConfigVersions"),
@@ -27,19 +30,15 @@ function ConfigurationContext() {
   });
 
   useEffect(() => {
-    // The session clears this query cache. A late list never overrides an
-    // explicit draft/history selection, and a draft is never selected by default.
     if (versions.data !== undefined) selectInitialActive(versions.data);
-  }, [versions.data, selectInitialActive]);
+  }, [selectInitialActive, versions.data]);
 
-  const label = context?.status === "active" ? t.version.publishedContext
-    : context?.status === "draft" ? t.version.draftContext
-    : context?.status === "archived" ? t.version.historyContext
-    : versions.isError ? t.version.contextError : t.version.noPublished;
-  return <Link className="configuration-context" to="/versions" data-status={context?.status}
-    data-context-version={context?.configVersionId} aria-label={t.version.manageContext}>
-    <span className="context-dot" aria-hidden="true" />{label}
-  </Link>;
+  if (!versions.isError) return null;
+  return <div className="workspace-context" data-status="error" role="alert">
+    <strong>无法读取配置上下文。</strong>
+    <span>资源暂不可用；重新读取后会恢复当前活动配置。</span>
+    <button type="button" className="secondary" onClick={() => void versions.refetch()}>重新读取</button>
+  </div>;
 }
 
 export function AppShell() {
@@ -57,7 +56,7 @@ export function AppShell() {
   const setChoice = useThemeStore((s) => s.setChoice);
   const currentGroup = NAV_GROUPS.find((group) => group.items.some((item) => item.to === primaryRoute(pathname)));
   const currentPage = NAV_ITEMS.find((item) => item.to === pathname);
-  const pages = primaryRoute(pathname)==="/settings" ? (pathname==="/settings"?[]:NAV_ITEMS.filter(item=>item.to==="/settings"||item.to===pathname)) : workspacePages(pathname);
+  const pages = workspacePages(pathname);
   const canvasRef = useRef<HTMLElement>(null);
 
   // The canvas — not the window — is the scroll container now (content slides
@@ -118,8 +117,6 @@ export function AppShell() {
             {currentGroup === undefined ? null : <span>{t.navigation[currentGroup.label]} / </span>}
             <strong>{currentPage === undefined ? "Prism" : t.nav[currentPage.key]}</strong>
           </div>
-          <ConfigurationContext />
-          <Link className="chrome-action" to="/settings?focus=search" aria-label={t.navigation.search}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg></Link>
           <button className="chrome-action secondary" aria-label={t.navigation.theme}
             onClick={() => setChoice(resolvedTheme(choice) === "dark" ? "light" : "dark")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none" /></svg></button>
         </GlassSurface>
@@ -156,6 +153,15 @@ export function AppShell() {
 
       <main className="canvas" ref={canvasRef}>
         <div className="workspace">
+          <ConfigurationBootstrap />
+          {context?.status === "active" || context === undefined ? null : (
+            <div className="workspace-context" data-status={context.status} role="status">
+              {context.status === "archived"
+                ? "正在查看历史配置：资源为只读，无法保存或发布修改。"
+                : "正在编辑草稿：未发布的修改不会影响当前服务。"}
+              <Link to="/versions">查看配置上下文</Link>
+            </div>
+          )}
           {pages.length > 1 ? <nav className="workspace-navigation" aria-label="工作区页面">
             {pages.map((item) => <NavLink key={item.to} to={item.to} end>{item.to==="/models"?"已接入模型":item.to==="/catalog"?"上游模型":t.nav[item.key]}</NavLink>)}
           </nav> : null}

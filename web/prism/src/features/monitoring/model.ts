@@ -1,9 +1,9 @@
 // 请求监控 — pure model over two INDEPENDENT contract sources.
 //
-// This replaces a model written for the PROPOSED G3 analytics shape, whose
-// request stream carried latency, an outcome enum and a per-request error. None
-// of those exist in the delivered contract, so the page they fed could not be
-// rewired — it had to be redesigned. What actually exists:
+// This keeps billing and failure attribution distinct. Request-terminal
+// observations are a third contract source and carry the request outcome,
+// timing and retry count; they must not be inferred from either stream.
+// What actually exists:
 //
 //   GET /admin/operations/billing
 //     One row per BILLED request: ids, six token counts, cost, and a cost
@@ -13,20 +13,23 @@
 //     One row per ATTRIBUTED FAILED ATTEMPT: error code / scope / retry
 //     decision. No latency, no cost, no tokens. IS version-scoped.
 //
+//   GET /admin/requests and GET /admin/requests/summary
+//     Persisted external request terminals, scoped by an immutable snapshot.
+//     They provide the time buckets, outcome and observed duration metrics for
+//     request analysis. NOT version-scoped.
+//
 //   GET /admin/requests/{request_id}/attempts
 //     The per-attempt trail for one request. A bare array — no cursor, no
 //     paging, no time filter. NOT version-scoped.
 //
 // Three consequences the UI must carry rather than paper over:
 //
-//   1. THERE IS NO LATENCY ANYWHERE. No P50/P95 is derivable. The old page
-//      showed both.
-//   2. THE TWO STREAMS ARE NOT TWO HALVES OF ONE TOTAL. The ledger holds
+//   1. THE BILLING AND FAILURE STREAMS ARE NOT TWO HALVES OF ONE TOTAL. The ledger holds
 //      requests that produced a usage record; the failure stream holds attempts
 //      attributed to an account. A request can appear in both, in neither, or
 //      many times in the second. A "success rate" computed from them would be
 //      a fabrication.
-//   3. THEY DISAGREE ON SCOPE. Failures require X-Config-Version; the ledger
+//   2. THEY DISAGREE ON SCOPE. Failures require X-Config-Version; the ledger
 //      forbids it. Selecting a version in the top bar changes ONE panel.
 //
 // Nothing here touches the DOM, the clock or the network.

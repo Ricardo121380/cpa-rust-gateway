@@ -82,10 +82,7 @@
 .topbar { border-radius: 16px; padding-inline: 14px; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 9px; min-width: 208px; font-size: 17px; font-weight: 650; }
 .top-context { font-size: 13px; }
-.configuration-context { margin-left: auto; display: flex; align-items: center; gap: 7px; padding: 6px 12px; border: 1px solid var(--separator); border-radius: 20px; color: var(--ink); background: var(--panel-tint); font-size: 12px; text-decoration: none; white-space: nowrap; }
-.context-dot { display: inline-block; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--status-good); }
-.configuration-context:not([data-status="active"]) .context-dot { background: var(--ink-2); }
-.configuration-context[data-status="draft"] .context-dot { background: var(--status-warn); }
+.top-context { margin-right: auto; }
 .rail { top: calc(88px + var(--conflict-block)); bottom: 14px; padding: 12px 10px; border-radius: 18px; }
 .rail-label { font-size: 11px; padding-left: 13px; }
 .rail a { padding: 7px 11px; border-radius: 10px; min-height: 36px; }
@@ -155,7 +152,9 @@
 .configuration-lineage summary { cursor: pointer; }
 .configuration-lineage p { margin-bottom: 0; }
 .unlock-card { border: 1px solid var(--panel-shine); }
-/* K3's section rhythm replaces the nested grid of identical bordered cards. */
+/* The chrome can stay airy, but operational data needs a readable material of
+   its own.  The former "section rhythm" override stripped every centre panel
+   to bare rules, which made the shell look like a different application. */
 .ambient {
   background-image:
     radial-gradient(ellipse 64% 52% at 4% -6%, color-mix(in srgb, var(--amb-1) 12%, transparent), transparent 75%),
@@ -167,25 +166,24 @@
 .topbar .chrome-action svg { width: 17px; height: 17px; }
 .topbar .chrome-action:hover { background: var(--panel-tint); }
 .canvas :is(.card, .data-panel, .rt-card) {
-  background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--separator) 92%, var(--panel-shine));
+  border-radius: 16px;
+  background: linear-gradient(145deg, var(--panel-shine), var(--panel-tint) 28%, transparent 145%);
+  box-shadow: inset 0 1px 0 var(--panel-shine), 0 12px 28px -24px var(--panel-shadow);
 }
-.shell .canvas .card { border-top: 1px solid var(--separator); padding: 22px 0; }
-.canvas .card:first-child { border-top: 0; }
-.canvas .tablewrap { background: transparent; border: 0; border-radius: 0; box-shadow: none; }
-.canvas .data-toolbar { padding: 0 0 16px; border-bottom: 0; }
+.canvas :is(.card, .data-panel, .rt-card) :is(.card, .data-panel, .rt-card) {
+  background: color-mix(in srgb, var(--panel-tint) 75%, transparent);
+}
+.shell .canvas .card { padding: 20px 22px; }
+.canvas .data-toolbar { padding: 0 0 16px; }
 .canvas .data-footer { padding: 14px 0; }
-.canvas .stat-row {
-  border: 0; border-block: 1px solid var(--separator); border-radius: 0;
-  background: transparent; box-shadow: none; margin-block: 20px 24px; padding-block: 20px;
-}
-.shell .canvas .stat-tile { padding: 0 22px; border-top: 0; }
-.shell .canvas .stat-tile:first-child { padding-left: 0; }
-.canvas th { background: transparent; padding: 10px 12px; border-bottom-color: var(--separator); }
+.canvas .stat-row { margin-block: 20px 24px; padding: 0; }
+.shell .canvas .stat-tile { padding: 20px 22px; }
+.canvas th { padding: 11px 12px; border-bottom-color: var(--separator); }
 .canvas td { padding: 15px 12px; }
-.canvas :is(th, td):first-child { padding-left: 4px; }
-.canvas :is(th, td):last-child { padding-right: 4px; }
-.canvas .data-panel--padded { border-block: 1px solid var(--separator); margin-block: 20px; }
-.canvas .data-panel--padded + .data-panel--padded { border-top: 0; }
+.canvas :is(th, td):first-child { padding-left: 18px; }
+.canvas :is(th, td):last-child { padding-right: 18px; }
+.canvas .data-panel--padded { margin-block: 20px; }
 .canvas :is(.data-panel, .rt-card) h3 { font-size: 16px; font-weight: 600; }
 .canvas table :is(.row-actions button.secondary, td > button.secondary) {
   border-color: transparent; background: transparent; color: var(--tint); padding-inline: 9px;
@@ -328,6 +326,12 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 .workspace-navigation :is(a, button):focus-visible { outline:2px solid var(--tint); outline-offset:2px; }
 
 .workspace-navigation button { background:transparent; border:0; box-shadow:none; min-height:40px; }
+.workspace-context { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0 0 18px; padding:11px 14px; border:1px solid var(--separator); border-radius:12px; background:color-mix(in srgb, var(--panel-tint) 78%, transparent); color:var(--ink-2); font-size:13px; }
+.workspace-context[data-status="draft"] { border-color:color-mix(in srgb, var(--status-warn) 42%, var(--separator)); }
+.workspace-context[data-status="archived"] { border-color:color-mix(in srgb, var(--status-critical) 30%, var(--separator)); }
+.workspace-context[data-status="error"] { border-color:color-mix(in srgb, var(--status-warn) 48%, var(--separator)); }
+.workspace-context a { color:var(--tint); font-weight:600; }
+.workspace-context button { margin-left:auto; }
 
 /* Account directory: the same rows and material for every channel, including native Grok. */
 .account-directory-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin:24px 0 16px; }

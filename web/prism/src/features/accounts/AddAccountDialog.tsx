@@ -121,7 +121,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   if(oauth&&channelId==="kiro")return <KiroDeviceDialog providerId={selectedProvider} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} providerId={selectedProvider} providerName={resourceName(selectedProvider,"upstream",matches.find(row=>row.id===selectedProvider)?.name)} endpointId={selectedEndpoint} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth)return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
-  return <Sheet title="添加账号" onEscape={close}>
+  return <Sheet title="授权或导入账号" onEscape={close}>
     {completed?<>
       <h3>导入结果</h3>
       {needsApply?<RuntimeApplyNotice onApplied={()=>setNeedsApply(false)}/>:null}
@@ -147,7 +147,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
           } catch {if(owner===readerGeneration.current)setError("无法读取文件，请重新选择。");}
           finally {if(owner===readerGeneration.current)setReading(false);}
         }}/></label>}
-        <div className="sheet-actions"><button type="button" className="secondary" disabled={busy} onClick={close}>取消</button><button disabled={busy||(inputMode==="files"&&!materials.current.length)}>添加账号</button></div>
+        <div className="sheet-actions"><button type="button" className="secondary" disabled={busy} onClick={close}>取消</button><button disabled={busy||(inputMode==="files"&&!materials.current.length)}>导入账号</button></div>
       </form>:<p>此渠道暂不可从面板接入。</p>}
     </>}
     {rows.length?<div className="tablewrap"><table><thead><tr><th>来源</th><th>结果</th></tr></thead><tbody>{rows.map((row)=><tr key={row.id}><td>{row.label}</td><td>{row.status}{row.error?<span className="entity-meta">{row.error}</span>:null}</td></tr>)}</tbody></table></div>:null}

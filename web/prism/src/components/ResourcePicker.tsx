@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../api/client";
-import { asAppError } from "../api/errors";
+import { asAppError, shouldRetryManagementRead } from "../api/errors";
 import { useVersionStore } from "../features/config-versions/versionStore";
 import { accountName, protocolName } from "../features/accounts/presentation";
 import type { ManagedCredential, ManagedEndpoint } from "../features/accounts/inventory";
@@ -25,7 +25,7 @@ export function ResourcePicker({kind,name,value,defaultValue="",onChange,require
   const useReference=()=>{const next=reference.trim();if(next){select(next);setReference("");setManual(false);}};
   const query=useInfiniteQuery({
     queryKey:["resource-picker",scope,kind,runtime],initialPageParam:undefined as string|undefined,
-    enabled:scope!==undefined,retry:false,
+    enabled:scope!==undefined,retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1),
     queryFn:({pageParam})=>call<{items:Item[];next_cursor?:string|null}|Item[]>(runtime?"listProviderAccountPools":operations[kind],{query:["upstream","group","key"].includes(kind)?{}:{limit:100,...(pageParam?{cursor:pageParam}:{})}},{versionScoped:!runtime}),
     getNextPageParam:page=>Array.isArray(page)?undefined:page.next_cursor??undefined,
   });

@@ -36,6 +36,25 @@ useSessionStore.subscribe((state, previous) => {
   }
 });
 
+// The management service uses a deliberately bounded blocking-read worker.
+// A dashboard commonly starts several independent GETs at once (summary,
+// selectors, topology), so serialize only those reads here rather than turning
+// temporary capacity rejection into false error cards. Writes never enter this
+// queue and retain their normal revision/uncertain-outcome behavior.
+let managementReadTail: Promise<void> = Promise.resolve();
+async function serialManagementRead<T>(run: () => Promise<T>): Promise<T> {
+  let release: (() => void) | undefined;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const previous = managementReadTail;
+  managementReadTail = gate;
+  await previous;
+  try {
+    return await run();
+  } finally {
+    release?.();
+  }
+}
+
 type CallOptions = Readonly<{
   versionScoped?: boolean; // adds X-Config-Version from the version context
   mutating?: boolean; // adds If-Match and expects an ETag advance
@@ -126,11 +145,17 @@ async function send<T>(
 
   let response: Response;
   try {
-    response = await api.request(operation, {
-      ...request, headers,
-      signal: request.signal === undefined ? sessionRequests.signal
-        : AbortSignal.any([request.signal, sessionRequests.signal]),
-    });
+    const dispatch = () => {
+      assertOwner();
+      return api.request(operation, {
+        ...request, headers,
+        signal: request.signal === undefined ? sessionRequests.signal
+          : AbortSignal.any([request.signal, sessionRequests.signal]),
+      });
+    };
+    response = managementOperations[operation].method === "GET"
+      ? await serialManagementRead(dispatch)
+      : await dispatch();
   } catch (cause) {
     assertOwner();
     throw networkError(cause);
