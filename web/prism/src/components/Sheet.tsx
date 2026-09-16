@@ -9,7 +9,6 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useBlocker } from "react-router-dom";
-import { setBusySheetHistoryGuard } from "./modalNavigationGuard";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]),' +
@@ -109,13 +108,6 @@ export function Sheet({
     if (busy) { blocker.reset(); return; }
     requestClose("route");
   }, [blocker, blocker.state, busy, requestClose]);
-
-  // The global listener is installed before HashRouter. Register this Sheet's
-  // exact URL only while an irreversible write/reveal is in flight.
-  useEffect(() => {
-    setBusySheetHistoryGuard(busy);
-    return () => setBusySheetHistoryGuard(false);
-  }, [busy]);
 
   useEffect(() => {
     if (discardReason !== undefined) keepEditingRef.current?.focus();

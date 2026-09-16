@@ -123,6 +123,22 @@ visible; it never requires horizontal scroll or an off-screen close affordance.
   defer heavyweight inspectors or data visualizations only where a measured
   bundle cost justifies it. Do not split the fixed four-file build.
 
+## Router-owned history admission
+
+Sheet navigation protection is owned by React Router's `useBlocker`. A Sheet
+does not write browser history, replace a HashRouter entry, or stop `popstate`
+events. On a protected browser Back or Forward, the router restores the actual
+indexed entry and keeps its own location state synchronized before the Sheet
+offers either a discard choice or, for an irreversible write, resumes the busy
+receipt view. This preserves intervening entries and the forward branch.
+
+The regression uses three router-created entries around the API-key workspace,
+holds the issuing request, and observes each departure plus compensating POP
+for multi-step Back and Forward. After the receipt is complete it also verifies
+Back → Keep editing and Back → Discard on a new dirty form. Test helpers may
+not use raw document navigation to manufacture a history entry because such an
+entry has no router index and cannot establish this invariant.
+
 ## Scope ledger
 
 The shared Sheet currently services account authorization and maintenance,
@@ -145,7 +161,7 @@ new contract before this refinement is considered complete.
 | `accounts/NativeAccountDialog.tsx` | form / inspector | Native identity, SSO replacement and runtime apply | Migrated: guarded Back continuation, stable inspector/form/receipt footer | Native E2E pending. |
 | `accounts/AccountRuntimePanel.tsx` | inspector / confirm | Runtime action state | Inspector description migrated | Runtime E2E pending. |
 | `accounts/AccountsPage.tsx` | inspector / action menu | Account maintenance transitions | Inspector/action chooser migrated | Account E2E pending. |
-| `access/IssueKeyDialog.tsx` | form / reveal receipt | One-time Client Key; busy blocks close and route admission | Migrated: stable Create/Cancel footer switches to Copy/Done receipt footer | `modal-daily.spec.ts`, including held issuance/Back receipt regression. |
+| `access/IssueKeyDialog.tsx` | form / reveal receipt | One-time Client Key; busy blocks close and router-owned route admission | Migrated: stable Create/Cancel footer switches to Copy/Done receipt footer | `modal-daily.spec.ts`, including held multi-step Back/Forward, post-receipt dirty Back and receipt regression. |
 | `access/KeyPermissionsDialog.tsx` | form | Model grants and expiry; controlled dirty state covers button-only edits | Migrated: stable Save/Cancel footer | Permission/dirty daily E2E pending. |
 | `access/AccessPage.tsx` | form / confirm / reveal receipt | Client keys and group routing | Revocation confirmation migrated; legacy subflows pending | Access-key E2E pending. |
 | `upstreams/ProviderDialog.tsx` | form | Optional credential material; explicit close and busy state | Migrated: stable form-associated footer | `modal-daily.spec.ts`. |

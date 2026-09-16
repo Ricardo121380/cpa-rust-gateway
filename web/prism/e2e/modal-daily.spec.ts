@@ -11,6 +11,38 @@ async function expectFooterForm(
   await expect(footer.getByRole("button", { name: action })).toHaveAttribute("form", formId);
 }
 
+/**
+ * Exercise the browser's real indexed history rather than changing a hash by
+ * hand. React Router must observe the departure and its own compensating POP
+ * before the held write is released; otherwise this test can pass before a
+ * navigation has actually been processed.
+ */
+async function expectBusyHistoryRoundTrip(page: import("@playwright/test").Page, delta: number) {
+  return page.evaluate(async (historyDelta) => {
+    const protectedHref = location.href;
+    const protectedState = structuredClone(history.state);
+    return new Promise<{ events: number; state: unknown }>((resolve, reject) => {
+      let leftProtectedEntry = false;
+      let events = 0;
+      const timeout = window.setTimeout(() => {
+        window.removeEventListener("popstate", observe);
+        reject(new Error(`history.go(${historyDelta}) did not leave and restore the protected entry`));
+      }, 2_000);
+      function observe() {
+        events += 1;
+        if (location.href !== protectedHref) leftProtectedEntry = true;
+        if (leftProtectedEntry && location.href === protectedHref) {
+          window.clearTimeout(timeout);
+          window.removeEventListener("popstate", observe);
+          resolve({ events, state: structuredClone(history.state) });
+        }
+      }
+      window.addEventListener("popstate", observe);
+      history.go(historyDelta);
+    });
+  }, delta);
+}
+
 test("daily forms keep their submit actions in stable, native form-associated footers", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
@@ -45,7 +77,7 @@ test("daily forms keep their submit actions in stable, native form-associated fo
   await expect(key.locator("#issue-key-form")).toBeVisible();
 });
 
-test("a Back attempt during key issuance cannot consume the one-time receipt", async ({ page }) => {
+test("busy and dirty sheets preserve indexed Back and Forward history", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
   await page.evaluate(async () => {
@@ -62,7 +94,16 @@ test("a Back attempt during key issuance cannot consume the one-time receipt", a
     fixture.holdFixtureOperationForTest("POST /admin/client-keys");
   });
 
+  // Build real HashRouter entries on both sides of Access. The protected
+  // entry is deliberately in the middle of the stack so both multi-step Back
+  // and multi-step Forward exercise React Router's POP restoration.
+  await navigate(page, "账号池");
   await navigate(page, "访问控制");
+  await navigate(page, "模型与路由");
+  await navigate(page, "上游");
+  await page.evaluate(() => history.go(-2));
+  await expect(page).toHaveURL(/#\/access$/u);
+
   await page.getByRole("button", { name: "创建客户端密钥" }).click();
   const sheet = page.getByRole("dialog", { name: "创建 API 密钥" });
   await sheet.getByLabel("名称").fill("pending receipt");
@@ -74,11 +115,17 @@ test("a Back attempt during key issuance cannot consume the one-time receipt", a
     return fixture.fixtureOperationCallsForTest("POST /admin/client-keys");
   })).toBe(1);
   await expect(sheet.getByRole("button", { name: "关闭面板" })).toBeDisabled();
-  // Let the busy-history guard commit on the next animation frame before
-  // exercising browser Back.
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
   await page.keyboard.press("Escape");
-  await page.evaluate(() => history.back());
+  const sourceState = await page.evaluate(() => structuredClone(history.state));
+  const rejectedBack = await expectBusyHistoryRoundTrip(page, -2);
+  expect(rejectedBack.events).toBeGreaterThanOrEqual(2);
+  expect(rejectedBack.state).toEqual(sourceState);
+  await expect(page).toHaveURL(/#\/access$/u);
+  await expect(sheet).toBeVisible();
+
+  const rejectedForward = await expectBusyHistoryRoundTrip(page, 2);
+  expect(rejectedForward.events).toBeGreaterThanOrEqual(2);
+  expect(rejectedForward.state).toEqual(sourceState);
   await expect(page).toHaveURL(/#\/access$/u);
   await expect(sheet).toBeVisible();
 
@@ -90,8 +137,32 @@ test("a Back attempt during key issuance cannot consume the one-time receipt", a
   await expect(page).toHaveURL(/#\/access$/u);
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await page.getByRole("dialog", { name: "API 密钥已生成" }).getByRole("button", { name: "完成" }).click();
+  await expect.poll(async () => page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    return fixture.fixtureOperationCallsForTest("POST /admin/client-keys");
+  })).toBe(1);
+
+  // Completion removes the busy guard. Navigate away, return through the real
+  // browser history, then prove a regular dirty form can Keep editing or
+  // Discard after a blocked Back without a reload or route/screen mismatch.
+  await navigate(page, "账号池");
+  await expect(page).toHaveURL(/#\/accounts$/u);
   await page.evaluate(() => history.back());
-  await expect(page).toHaveURL(/#\/$/u);
-  await page.evaluate(() => history.forward());
   await expect(page).toHaveURL(/#\/access$/u);
+  await page.getByRole("button", { name: "创建客户端密钥" }).click();
+  const dirtySheet = page.getByRole("dialog", { name: "创建 API 密钥" });
+  await dirtySheet.getByLabel("名称").fill("keep or discard");
+
+  await page.evaluate(() => history.back());
+  const discard = page.getByRole("alertdialog", { name: "放弃未保存的修改？" });
+  await expect(discard).toBeVisible();
+  await discard.getByRole("button", { name: "继续编辑" }).click();
+  await expect(page).toHaveURL(/#\/access$/u);
+  await expect(dirtySheet).toBeVisible();
+
+  await page.evaluate(() => history.back());
+  await expect(discard).toBeVisible();
+  await discard.getByRole("button", { name: "放弃修改" }).click();
+  await expect(page).toHaveURL(/#\/accounts$/u);
+  await expect(dirtySheet).toHaveCount(0);
 });

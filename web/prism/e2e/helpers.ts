@@ -40,15 +40,28 @@ export async function navigate(page: Page, label: string): Promise<void> {
 }
 
 export async function selectVersion(page: Page, id: string): Promise<void> {
-  const previousHash = new URL(page.url()).hash;
+  const previousPath = new URL(page.url()).hash.slice(1) || "/";
   await navigate(page, "配置版本");
   const row = page.locator(`[data-version-id="${id}"]`);
   const button = row.getByRole("button", { name: /^(正在查看|编辑草稿|查看历史|查看已发布配置)$/u });
   await expect(button).toBeVisible();
   if (await button.isEnabled()) await button.click();
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version", id);
-  if (previousHash !== "#/versions") await page.goto(`/${previousHash}`);
+  // Keep the browser's entries under HashRouter ownership. A raw `page.goto`
+  // recreates the document with an unindexed history entry, which means a
+  // realistic Back/Forward test cannot exercise React Router's POP blocker.
+  if (previousPath !== "/versions") {
+    const destination = Object.entries(destinationsForTest).find(([, path]) => path === previousPath);
+    if (destination === undefined) throw new Error(`No rail destination for ${previousPath}`);
+    await navigate(page, destination[0]);
+  }
 }
+
+const destinationsForTest: Readonly<Record<string, string>> = {
+  "总览": "/", "账号池": "/accounts", "上游": "/upstreams", "模型与路由": "/models", "访问控制": "/access",
+  "请求与失败": "/monitoring", "用量分析": "/usage", "模型目录": "/catalog", "计费与价格": "/billing",
+  "配置版本": "/versions", "审计与备份": "/audit", "运行诊断": "/runtime", "出口策略": "/egress",
+};
 
 export async function selectDraft(page: Page): Promise<void> {
   await selectVersion(page, "draft-2026-08");
