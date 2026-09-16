@@ -18,8 +18,7 @@ export function ObjectInspector({
   onClose: () => void;
 }>) {
   return (
-    <Sheet title={title} layout="inspector" onEscape={onClose}>
-      <p className="scope-row">{referenceText(scope)}</p>
+    <Sheet title={title} description={referenceText(scope)} layout="inspector" onEscape={onClose}>
       <dl className="fact-grid">
         {facts.map(([label, value]) => (
           <div key={label}>

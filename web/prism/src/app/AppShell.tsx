@@ -151,7 +151,7 @@ export function AppShell() {
         ))}
       </GlassSurface>
 
-      <main className="canvas" ref={canvasRef}>
+      <main className="canvas" ref={canvasRef} data-context-version={context?.configVersionId} data-context-status={context?.status}>
         <div className="workspace">
           <ConfigurationBootstrap />
           {context?.status === "active" || context === undefined ? null : (

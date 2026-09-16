@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { OAuthWizard } from "./OAuthWizard";
 import { KimiDeviceDialog } from "../accounts/KimiDeviceDialog";
@@ -113,7 +113,7 @@ export function CredentialSheet({
   const authenticationLabel=isKimiOAuth?"Kimi Coding 授权":isCodexOAuth?"Codex / ChatGPT 授权":row?.kind==="bearer"?"API Key / Token":"已保存渠道凭据";
 
   return (
-    <Sheet title="账号详情" layout="inspector" onEscape={onClose}>
+    <Sheet title="账号详情" description="查看账号身份、授权状态、套餐与维护操作；内部关联信息按需展开。" layout="inspector" onEscape={onClose} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
       <h3>{accountName ?? meta?.email ?? "未提供账号身份"}</h3>
       {credential.isError?<p role="alert">{asAppError(credential.error).message}</p>:null}
       <AccountEvidenceTabs accountId={credentialId} onNavigate={onClose} overview={<dl className="fact-grid"><dt>渠道</dt><dd>{providerName??"未观测"}</dd><dt>状态</dt><dd>{row?<StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>:"读取中"}</dd><dt>套餐</dt><dd>{plan??meta?.plan??"未观测"}</dd><dt>授权资料</dt><dd>{row?.secret_present?"已保存":"未观测"}</dd></dl>} configuration={<>
@@ -208,9 +208,6 @@ export function CredentialSheet({
           </>
         ) : null}
         {isKimiOAuth ? <button type="button" className="secondary" onClick={() => setOauthOpen(true)}>重新授权</button> : null}
-        <button type="button" onClick={onClose}>
-          关闭
-        </button>
       </div>
       </>}/>
     </Sheet>

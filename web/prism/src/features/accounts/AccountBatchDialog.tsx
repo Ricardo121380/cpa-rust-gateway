@@ -2,7 +2,7 @@ import { useMutation, isCancelledError, CancelledError } from "@tanstack/react-q
 import { useState } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { useSessionStore } from "../../session/sessionStore";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
@@ -61,13 +61,12 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
   const review=useMutation({mutationFn:()=>call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}}),onSuccess:(version)=>onCompleted("请核对已保存的账号修改。",version)});
   const busy=change.isPending||review.isPending;
   const close=()=>{if(busy)return;if(completed)onCompleted(needsApply?"账号修改已保存，运行配置暂未应用。":"账号操作已处理，请查看各项结果。",version);else onClose();};
-  return <Sheet title={`${labels[action]} ${targets.length} 份授权`} onEscape={close}>
+  return <Sheet title={`${labels[action]} ${targets.length} 份授权`} description={action==="remove"?"历史请求与费用保留；选中的授权和连接将被移除。":"仅改变所选授权的启停状态，不改变其他渠道。"} layout="confirm" tone={action==="remove"?"danger":"default"} onEscape={close} busy={busy} footer={<><SheetDismissButton className="secondary" disabled={busy}>{completed?"完成":"取消"}</SheetDismissButton>{!completed?<button disabled={busy} onClick={()=>change.mutate()}>确认{labels[action]}</button>:null}</>}>
     {action==="remove"?<p>移除选中的授权及其连接，历史请求与费用保留。</p>:<p>仅更改下列授权的启停状态。</p>}
     <div className="tablewrap"><table><thead><tr><th>账号</th><th>渠道</th><th>结果</th></tr></thead><tbody>{targets.map((target,index)=><tr key={`${target.native}:${target.id}`}><td>{target.name}</td><td>{target.provider}</td><td>{results[index]}</td></tr>)}</tbody></table></div>
     {needsApply?<RuntimeApplyNotice onApplied={()=>{setNeedsApply(false);setResults((items)=>items.map((value,index)=>targets[index]?.native&&value==="已保存，待应用"?"已应用":value));}}/>:null}
     {error?<p role="alert">{error}</p>:null}
     {review.isError?<p role="alert">{asAppError(review.error).message}</p>:null}
     {completed&&workingId&&!version?<button className="secondary" disabled={busy} onClick={()=>review.mutate()}>查看待应用的修改</button>:null}
-    <div className="sheet-actions"><button className="secondary" disabled={busy} onClick={close}>{completed?"完成":"取消"}</button>{!completed?<button disabled={busy} onClick={()=>change.mutate()}>确认{labels[action]}</button>:null}</div>
   </Sheet>;
 }

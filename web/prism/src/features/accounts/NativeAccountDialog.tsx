@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { IdentityDetails } from "../../components/ResourceIdentity";
 import { accountName, nativeConnections, protocolName } from "./presentation";
@@ -18,6 +18,7 @@ const actions: Record<string,string> = {enabled:"启用账号",disabled:"停用�
 export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Readonly<{
   account:NativeAccount;onClose:()=>void;onChanged:(notice:string)=>void;onAuthorize:()=>void;
 }>) {
+  const formId="native-account-maintenance-form";
   const topology=useModelConnections();
   const connections=nativeConnections(account.provider,topology.data?.endpoints??[]);
   const [mode,setMode]=useState<"details"|"credential"|"status"|"remove">("details");
@@ -27,6 +28,7 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
   const history=useQuery({queryKey:["native-account-audit",account.id],queryFn:()=>call<Event[]>("listNativeAccountAudit",{path:{account_id:account.id}})});
   const finish=(receipt:NativeReceipt)=>{
     setSaved(receipt);
+    setMode("details");
     if(receipt.runtime_applied) onChanged(receipt.removed?"授权已移除。":receipt.identity_state==="unavailable"?"凭据已更新，渠道暂未返回身份。":"账号修改已应用。");
   };
   const change=useMutation({gcTime:0,mutationFn:async(material?:string)=>{
@@ -47,8 +49,9 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
     if(secret.current)secret.current.value="";
     change.mutate(material);
   };
-  const title=mode==="credential"?"更新 SSO 凭据":mode==="remove"?"移除授权":mode==="status"?account.enabled?"停用账号":"启用账号":"账号详情";
-  return <Sheet title={title} layout={mode==="details"?"inspector":"form"} onEscape={()=>!busy&&onClose()}>
+  const title=saved&&!saved.runtime_applied?"账号修改已保存":mode==="credential"?"更新 SSO 凭据":mode==="remove"?"移除授权":mode==="status"?account.enabled?"停用账号":"启用账号":"账号详情";
+  const footer=saved&&!saved.runtime_applied?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:mode==="details"?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy} onDismiss={()=>select("details")}>返回</SheetDismissButton><button type="submit" form={formId} className={mode==="remove"?"danger":undefined} disabled={busy}>{mode==="credential"?"保存并应用":"确认"}</button></>;
+  return <Sheet title={title} description={mode==="details"?"查看账号身份、连接、运行证据和维护操作。":mode==="credential"?"替换当前账号的 SSO 凭据；身份与接口连接会保留。":"确认这项账号维护操作及其影响。"} layout={mode==="details"?"inspector":mode==="remove"||saved&&!saved.runtime_applied?"confirm":"form"} tone={mode==="remove"?"danger":"default"} onEscape={()=>!busy&&onClose()} busy={busy} footer={footer}>
     <h3>{accountName(account.identity)??"未提供账号身份"}</h3>
     <p>{names[account.provider]}</p>
     {saved&&!saved.runtime_applied?<div role="alert"><p>修改已保存，运行配置暂未应用。新请求已暂停。</p><button disabled={busy} onClick={()=>apply.mutate()}>应用运行配置</button></div>:mode==="details"?<AccountEvidenceTabs accountId={account.id} onNavigate={onClose} overview={<><StatusBadge status={account.enabled?account.auth_status:"disabled"}>{!account.enabled?"已停用":account.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge><p>{connections.length?`已关联 ${connections.length} 个接口`:"尚未连接接口"}</p></>} configuration={<>
@@ -64,17 +67,16 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
         {history.isPending?<p>读取中…</p>:history.isError?<p role="alert">{asAppError(history.error).message}</p>:!history.data?.length?<p className="muted">暂无维护记录</p>:<ul className="account-connections">{history.data.map((entry)=><li key={entry.id}><span>{actions[entry.action]??"账号操作"}</span><time>{new Date(entry.occurred_at_ms).toLocaleString()}</time></li>)}</ul>}
       </details>
       <IdentityDetails entries={[["账号",account.id,accountName(account.identity)??"未提供账号身份"]]}/>
-    </>}/>:<form className="sheet-form" onSubmit={submit} autoComplete="off">
+    </>}/>:<form id={formId} className="sheet-form" onSubmit={submit} autoComplete="off">
       {mode==="credential"?<>
         <label>SSO 凭据<textarea ref={secret} required maxLength={65536} spellCheck={false} autoComplete="off" className="credential-input"/></label>
         <label>选择凭据文件<input type="file" accept=".json,.txt,application/json,text/plain" disabled={busy} onChange={async(event)=>{
           const file=event.currentTarget.files?.[0];event.currentTarget.value="";
           if(!file)return;if(file.size>65536){setError("凭据文件不能超过 64 KiB");return;}
           const target=secret.current;
-          try{const value=await file.text();if(target&&target===secret.current)target.value=value;}catch{setError("无法读取文件。");}
+          try{const value=await file.text();if(target&&target===secret.current){target.value=value;target.dispatchEvent(new Event("input",{bubbles:true}));}}catch{setError("无法读取文件。");}
         }}/></label>
       </>:<p>{mode==="remove"?"移除此授权，历史请求和费用保留。":account.enabled?"停用后，新请求不再选择此账号。":"启用此账号；认证和额度仍按渠道实际状态判断。"}</p>}
-      <div className="sheet-actions"><button type="button" className="secondary" disabled={busy} onClick={()=>select("details")}>返回</button><button disabled={busy}>{mode==="credential"?"保存并应用":"确认"}</button></div>
     </form>}
     {error?<p role="alert">{error}</p>:null}
   </Sheet>;

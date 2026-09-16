@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import type { ConfigVersionSummary } from "../config-versions/versionStore";
@@ -8,6 +8,7 @@ import { connectModel } from "../models/connectModel";
 import { CONNECTION_PRESETS, providerAddress } from "./connectionPresets";
 
 export function ProviderDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSaved:(version:ConfigVersionSummary)=>void}>) {
+  const formId="provider-setup-form";
   const [presetId,setPresetId]=useState<string>("responses");
   const preset=CONNECTION_PRESETS.find((row)=>row.id===presetId)!;
   const [name,setName]=useState("");
@@ -44,7 +45,7 @@ export function ProviderDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
     } finally {material="";}
   },onSuccess:onSaved});
   const submit=(event:FormEvent)=>{event.preventDefault();if(submitted.current)return;submitted.current=true;save.mutate();};
-  return <Sheet title="添加提供商" onEscape={()=>!save.isPending&&onClose()}><form className="sheet-form" onSubmit={submit}>
+  return <Sheet title="添加 AI 提供商" description="配置服务地址与协议；账号授权与凭据维护在账号管理中完成。" onEscape={()=>!save.isPending&&onClose()} busy={save.isPending} footer={<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={submitted.current}>{save.isPending?"正在保存…":"保存并应用"}</button></>}><form id={formId} className="sheet-form" onSubmit={submit}>
     <label>名称<input required maxLength={256} value={name} onChange={(event)=>setName(event.target.value)} placeholder="例如：我的 OpenAI" disabled={submitted.current}/></label>
     <label>渠道<select value={presetId} onChange={(event)=>changePreset(event.target.value)} disabled={submitted.current}>{CONNECTION_PRESETS.map((row)=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
     <label>接口地址<input type="url" required value={base} onChange={(event)=>setBase(event.target.value)} readOnly={preset.fixed} disabled={submitted.current}/></label>
@@ -53,6 +54,5 @@ export function ProviderDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
     <label>开放模型（可选）<textarea rows={3} value={models} onChange={(event)=>setModels(event.target.value)} placeholder="每行一个真实模型 ID" disabled={submitted.current}/></label>
     {models.trim()?<label className="check-row"><input type="checkbox" checked={manual} onChange={(event)=>setManual(event.target.checked)} disabled={submitted.current}/>手动配置这些模型，不依赖自动目录；已确认账号可使用</label>:null}
     <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={onSaved}/>
-    <div className="sheet-actions"><button type="button" className="secondary" disabled={save.isPending} onClick={onClose}>取消</button><button type="submit" disabled={submitted.current}>{save.isPending?"正在保存…":"保存并应用"}</button></div>
   </form></Sheet>;
 }

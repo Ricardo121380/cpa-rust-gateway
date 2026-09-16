@@ -10,8 +10,8 @@ test("starting an edit copies the active graph without asking for credentials ag
   await page.getByRole("button", { name: "完成", exact: true }).click();
   await navigate(page, "配置版本");
   await page.getByRole("button", { name: "编辑当前配置", exact: true }).click();
-  await expect(page.locator(".configuration-context")).toHaveAttribute("data-status", "draft");
-  await expect(page.locator(".configuration-context")).toHaveAttribute("data-context-version", /^edit-/u);
+  await expect(page.locator("main.canvas")).toHaveAttribute("data-context-status", "draft");
+  await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version", /^edit-/u);
   await navigate(page, "上游");
   const row = page.locator("tr", {hasText: "relay-a"}).first();
   await expect(row).toBeVisible();

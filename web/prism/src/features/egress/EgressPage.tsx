@@ -9,7 +9,7 @@ import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -85,6 +85,9 @@ export function EgressPage() {
   const editable = context?.status === "draft";
   const scope = context?.configVersionId;
   const [draft, setDraft] = useState<DraftPolicy | undefined>();
+  // Native fields are observed by Sheet's input/change capture. Chips are
+  // button-driven, however, so they need an explicit dirty signal as well.
+  const [draftDirty, setDraftDirty] = useState(false);
   const [inspected, setInspected] = useState<EgressPolicy>();
   const [confirmDelete, setConfirmDelete] = useState<EgressPolicy | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
@@ -142,6 +145,11 @@ export function EgressPage() {
     }
   }
 
+  function beginDraft(next: DraftPolicy) {
+    setDraftDirty(false);
+    setDraft(next);
+  }
+
   if (scope === undefined) {
     return (
       <section>
@@ -162,7 +170,7 @@ export function EgressPage() {
             type="button"
             disabled={!editable}
             title={editable ? undefined : t.version.readOnly}
-            onClick={() => setDraft(emptyDraft())}
+            onClick={() => beginDraft(emptyDraft())}
           >
             新建出口策略
           </button>
@@ -211,7 +219,7 @@ export function EgressPage() {
                       type="button"
                       className="secondary"
                       disabled={!editable}
-                      onClick={() => setDraft(toDraft(policy))}
+                      onClick={() => beginDraft(toDraft(policy))}
                     >
                       编辑
                     </button>
@@ -244,12 +252,15 @@ export function EgressPage() {
         ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
         ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],
         ["重定向上限", inspected.max_redirects], ["引用上游", referencingUpstreams(inspected.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join(" · ") || "无"],
-      ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑策略</button></div></ObjectInspector>}
+      ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { beginDraft(toDraft(inspected)); setInspected(undefined); }}>编辑策略</button></div></ObjectInspector>}
 
       {draft !== undefined ? (
         <Sheet
           title={draft.isNew ? "新建出口策略" : `编辑 ${resourceName(draft.id,"policy",draft.name)}`}
+          description="限制上游允许访问的目标；变更会在当前草稿版本中保存。"
           onEscape={() => setDraft(undefined)}
+          busy={save.isPending}
+          isDirty={draftDirty}
         >
           <form className="sheet-form" onSubmit={onSubmit}>
             {draft.isNew ? (
@@ -277,7 +288,7 @@ export function EgressPage() {
               允许主机(精确域名,回车添加)
               <ChipsInput
                 value={draft.hosts}
-                onChange={(hosts) => setDraft({ ...draft, hosts })}
+                onChange={(hosts) => { setDraftDirty(true); setDraft({ ...draft, hosts }); }}
                 placeholder="relay.example.com"
                 validate={validateHostEntry}
               />
@@ -286,7 +297,7 @@ export function EgressPage() {
               允许端口
               <ChipsInput
                 value={draft.ports}
-                onChange={(ports) => setDraft({ ...draft, ports })}
+                onChange={(ports) => { setDraftDirty(true); setDraft({ ...draft, ports }); }}
                 placeholder="443"
                 validate={validatePortEntry}
               />
@@ -295,7 +306,7 @@ export function EgressPage() {
               允许 CIDR(可空)
               <ChipsInput
                 value={draft.cidrs}
-                onChange={(cidrs) => setDraft({ ...draft, cidrs })}
+                onChange={(cidrs) => { setDraftDirty(true); setDraft({ ...draft, cidrs }); }}
                 placeholder="203.0.113.0/24"
               />
             </label>
@@ -330,9 +341,9 @@ export function EgressPage() {
               />
             </label>
             <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setDraft(undefined)}>
+              <SheetDismissButton className="secondary">
                 取消
-              </button>
+              </SheetDismissButton>
               <button type="submit" disabled={save.isPending || draft.hosts.length === 0}>
                 保存
               </button>
@@ -342,7 +353,7 @@ export function EgressPage() {
       ) : null}
 
       {confirmDelete !== undefined ? (
-        <Sheet title="确认删除" onEscape={() => setConfirmDelete(undefined)}>
+        <Sheet title="删除出口策略" description="此操作会解除关联上游的出口策略；不会删除上游本身。" layout="confirm" tone="danger" onEscape={() => setConfirmDelete(undefined)} busy={remove.isPending}>
           <p>
             删除 <span className="mono">{resourceName(confirmDelete.id,"policy",confirmDelete.name)}</span> 后,引用它的上游的
             egress_policy_id 将被清空(不会级联删除上游)。
@@ -353,9 +364,9 @@ export function EgressPage() {
             </p>
           ) : null}
           <div className="sheet-actions">
-            <button type="button" className="secondary" onClick={() => setConfirmDelete(undefined)}>
+            <SheetDismissButton className="secondary" disabled={remove.isPending}>
               取消
-            </button>
+            </SheetDismissButton>
             <button
               type="button"
               className="danger"

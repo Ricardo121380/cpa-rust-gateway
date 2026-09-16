@@ -1,6 +1,6 @@
 import {useMutation} from "@tanstack/react-query";
 import {useRef,useState} from "react";
-import {Sheet} from "../../components/Sheet";
+import {Sheet,SheetDismissButton} from "../../components/Sheet";
 import {asAppError} from "../../api/errors";
 import {beginConfigurationTask} from "../config-versions/configurationTask";
 import {ConfigurationTaskNotice} from "../config-versions/ConfigurationTaskNotice";
@@ -54,8 +54,8 @@ export function AuthorizationCodeDialog({providerId,providerName,endpointId,onCl
   const busy=start.isPending||complete.isPending||cancel.isPending;
   const close=()=>{if(busy)return;if(completed){useVersionStore.getState().select(completed);onComplete(`${label} 账号授权已保存。`);}else if(complete.isError)onClose();else cancel.mutate();};
   const authorizeUrl=safeExternalUrl(session?.authorization_url);
-  return <Sheet title={`${credentialId?"重新授权":"授权"} ${label} 账号`} onEscape={close}>
-    <p>{providerName??label}</p>
+  return <Sheet title={`${credentialId?"重新授权":"授权"} ${label} 账号`} description={credentialId?"为当前账号更新授权，不会新建连接或改变已配置的接口。":"在官方页面完成登录后，粘贴浏览器带回的完整回调地址。"} onEscape={close} busy={busy}>
+    {providerName&&providerName!==label?<p className="muted">{providerName}</p>:null}
     {completed?<p role="status">账号授权已保存{current.current?.endpointId?"并连接接口":""}。</p>:!session?<>
       <p>登录 {providerLabel} 账号后，将浏览器跳转的完整回调地址粘贴回来。</p>
       <button disabled={busy||start.isError} onClick={()=>start.mutate()}>开始授权</button>
@@ -68,6 +68,6 @@ export function AuthorizationCodeDialog({providerId,providerName,endpointId,onCl
     </>:<p role="alert">未能启动授权，请关闭后重新开始。</p>}
     <ConfigurationTaskNotice workingId={workingId} error={start.error??complete.error} onReview={version=>{useVersionStore.getState().select(version);onComplete("请核对已保存的账号修改。");}}/>
     {cancel.isError?<p role="alert">{asAppError(cancel.error).message}</p>:null}
-    <div className="sheet-actions"><button className="secondary" disabled={busy} onClick={close}>{completed?"完成":complete.isError?"关闭":"取消"}</button></div>
+    <div className="sheet-actions"><SheetDismissButton className="secondary" disabled={busy}>{completed?"完成":complete.isError?"关闭":"取消"}</SheetDismissButton></div>
   </Sheet>;
 }

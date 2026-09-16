@@ -523,6 +523,11 @@ const state = {
   ] as AuditRow[],
 };
 
+// The fixture server is one Vite module shared by every browser page. Keep a
+// deep baseline so E2E can begin each scenario from the same state instead of
+// letting one test's draft publication or imported account leak into another.
+const initialFixtureState = structuredClone(state);
+
 function revisionToken(version: VersionRow): string {
   return `rev-${version.revision}`;
 }
@@ -681,6 +686,74 @@ const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;
 const approvedNativeSessions=new Set<string>();
 const kimiDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const kiroDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
+type FixtureOperationControl = { held: boolean; calls: number; waiters: Set<() => void> };
+const fixtureOperationControls = new Map<string, FixtureOperationControl>();
+
+function releaseFixtureControl(control: FixtureOperationControl): void {
+  control.held = false;
+  for (const release of control.waiters) release();
+  control.waiters.clear();
+}
+
+async function waitForFixtureOperation(route: string): Promise<void> {
+  const control = fixtureOperationControls.get(route);
+  if (control === undefined) return;
+  control.calls += 1;
+  if (!control.held) return;
+  await new Promise<void>((resolve) => control.waiters.add(resolve));
+}
+
+/** Holds one sanitized method/path at the fetch seam; request bodies are never retained. */
+export function holdFixtureOperationForTest(route: string): void {
+  const current = fixtureOperationControls.get(route);
+  if (current !== undefined) {
+    current.held = true;
+    current.calls = 0;
+    return;
+  }
+  fixtureOperationControls.set(route, { held: true, calls: 0, waiters: new Set() });
+}
+
+export function releaseFixtureOperationForTest(route: string): void {
+  const control = fixtureOperationControls.get(route);
+  if (control !== undefined) releaseFixtureControl(control);
+}
+
+export function fixtureOperationCallsForTest(route: string): number {
+  return fixtureOperationControls.get(route)?.calls ?? 0;
+}
+
+/** Test-only reset for the fixture backend. Production builds never import it. */
+export function resetFixturesForTest(): void {
+  const target = state as Record<string, unknown>;
+  const baseline = initialFixtureState as Record<string, unknown>;
+  for (const [key, original] of Object.entries(baseline)) {
+    const current = target[key];
+    if (current instanceof Map && original instanceof Map) {
+      current.clear();
+      for (const [entryKey, entryValue] of original) current.set(entryKey, structuredClone(entryValue));
+    } else if (Array.isArray(current) && Array.isArray(original)) {
+      current.splice(0, current.length, ...structuredClone(original));
+    } else {
+      target[key] = structuredClone(original);
+    }
+  }
+  scrapes = 0;
+  inventorySequence = 0;
+  lifecycleSequence = 0;
+  editOrigins.clear();
+  fixtureSessions.clear();
+  fixturePassword = "Prism-demo-2026";
+  fixtureSequence = 0;
+  nativeFixtureAccounts.splice(0);
+  nativeFixtureGeneration = 0;
+  nativeDeviceSessions.clear();
+  approvedNativeSessions.clear();
+  kimiDeviceSessions.clear();
+  kiroDeviceSessions.clear();
+  for (const control of fixtureOperationControls.values()) releaseFixtureControl(control);
+  fixtureOperationControls.clear();
+}
 /** Simulates the provider's consent, not a management API or automatic successful poll. */
 export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
 
@@ -696,6 +769,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
   const route = `${method} ${url.pathname}`;
 
   const respond = async (): Promise<Response> => {
+    await waitForFixtureOperation(route);
     if (route === "POST /admin/auth/login") {
       const body = JSON.parse(bodyText ?? "{}") as { username: string; password: string };
       if (body.username !== "admin" || body.password !== fixturePassword) return errorResponse(401, "management_login_invalid_credentials", "Username or password is incorrect");

@@ -3,7 +3,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
@@ -11,6 +11,7 @@ import type { PublicModel, RoutingPage, RouteListItem } from "../models/model";
 import type { IssuedClientKey } from "./model";
 
 export function IssueKeyDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSaved:(version:ConfigVersionSummary)=>void}>) {
+  const formId="issue-key-form";
   const scope=useVersionStore((state)=>state.context?.configVersionId);
   const models=useQuery({queryKey:["public-models",scope],queryFn:()=>call<PublicModel[]>("listPublicModels",{},{versionScoped:true}),enabled:!!scope});
   const [name,setName]=useState("");
@@ -43,14 +44,13 @@ export function IssueKeyDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
   }});
   const submit=(event:FormEvent)=>{event.preventDefault();if(submitted.current)return;submitted.current=true;save.mutate();};
   const close=()=>{if(save.isPending)return;setIssued(undefined);if(save.data)onSaved(save.data);else onClose();};
-  return <Sheet title={issued?"客户端密钥":"创建客户端密钥"} onEscape={close}>
-    {issued?<><p role="status">{save.isPending?"密钥已生成，正在应用配置…":save.data?.status==="active"?"已生效，可以连接客户端。":"密钥已生成，配置尚未应用。"}</p><code className="reveal-key mono">{issued.key}</code><p className="muted">完整密钥只显示这一次，请妥善保存。</p><button className="secondary" onClick={()=>void navigator.clipboard.writeText(issued.key).then(()=>{setCopied(true);setCopyError(false);},()=>setCopyError(true))}>{copied?"已复制":"复制密钥"}</button>{copyError?<p role="alert">无法访问剪贴板，请手动复制。</p>:null}<div className="sheet-actions"><button disabled={save.isPending} onClick={close}>完成</button></div></>:<form className="sheet-form" onSubmit={submit}>
+  return <Sheet title={issued?"API 密钥已生成":"创建 API 密钥"} description={issued?"完整密钥只在此处显示一次。保存后将无法再次查看。":"选择可调用的已开放模型，并设置密钥有效期。"} onEscape={close} busy={save.isPending} footer={issued?<><button type="button" className="secondary" onClick={()=>void navigator.clipboard.writeText(issued.key).then(()=>{setCopied(true);setCopyError(false);},()=>setCopyError(true))}>{copied?"已复制":"复制密钥"}</button><SheetDismissButton disabled={save.isPending}>完成</SheetDismissButton></>:<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={!chosen.size||submitted.current}>创建并应用</button></>}>
+    {issued?<><p role="status">{save.isPending?"密钥已生成，正在应用配置…":save.data?.status==="active"?"已生效，可以连接客户端。":"密钥已生成，配置尚未应用。"}</p><code className="reveal-key mono">{issued.key}</code><p className="muted">请现在复制并安全保存完整密钥。</p>{copyError?<p role="alert">无法访问剪贴板，请手动复制。</p>:null}</>:<form id={formId} className="sheet-form" onSubmit={submit}>
       <label>名称<input required maxLength={256} value={name} disabled={submitted.current} onChange={(event)=>setName(event.target.value)} placeholder="例如：我的客户端"/></label>
       <label>有效期<select value={days} onChange={(event)=>setDays(event.target.value)} disabled={submitted.current}><option value="30">30 天</option><option value="90">90 天</option><option value="365">1 年</option><option value="0">不过期</option></select></label>
       <fieldset disabled={submitted.current}><legend>允许使用的模型 · 已选 {chosen.size}</legend><div className="data-toolbar"><button type="button" className="secondary" onClick={()=>setChosen(new Set(models.data?.filter(model=>model.status==="active").map(model=>model.id)??[]))}>全选当前已开放模型</button><button type="button" className="secondary" onClick={()=>setChosen(new Set())}>清空选择</button></div>{models.data?.filter((model)=>model.status==="active").map((model)=><label className="check-row" key={model.id}><input type="checkbox" checked={chosen.has(model.id)} onChange={()=>setChosen((current)=>{const next=new Set(current);if(next.has(model.id))next.delete(model.id);else next.add(model.id);return next;})}/>{model.model_name}</label>)}</fieldset>
       {models.isError?<p role="alert">{asAppError(models.error).message}</p>:null}
       {!models.data?.some((model)=>model.status==="active")?<Link to="/models?add=model" onClick={onClose}>先开放模型</Link>:null}
-      <div className="sheet-actions"><button type="button" className="secondary" disabled={save.isPending} onClick={onClose}>取消</button><button type="submit" disabled={!chosen.size||submitted.current}>创建并应用</button></div>
     </form>}
     <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{setIssued(undefined);onSaved(version);}}/>
   </Sheet>;

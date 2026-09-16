@@ -402,7 +402,6 @@ textarea {
   --dur: 0ms;
   --dur-anneal: 0ms;
   --sheet-in: 0ms;
-  --sheet-out: 0ms;
 }
 html[data-transparency="reduce"] .glass,
 html[data-transparency="reduce"][data-lens="on"] .glass[data-pane],
@@ -420,12 +419,6 @@ html[data-contrast="more"] .glass::before,
 html[data-contrast="more"] .glass::after {
   display: none;
 }
-html[data-transparency="reduce"] .sheet-backdrop[data-modal="scrim"],
-html[data-contrast="more"] .sheet-backdrop[data-modal="scrim"] {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
 @media (max-height: 820px) and (min-width: 821px) {
   .rail {
     padding: 9px;

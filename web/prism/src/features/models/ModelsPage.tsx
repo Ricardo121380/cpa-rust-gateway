@@ -12,7 +12,7 @@ import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/
 import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
@@ -326,7 +326,9 @@ export function ModelsPage() {
       {draft !== undefined ? (
         <Sheet
           title={draft.isNew ? "新建公开模型" : `编辑 ${draft.model_name}`}
+          description="客户端请求使用精确模型 ID；显示名只影响管理端阅读。"
           onEscape={() => !save.isPending&&setDraft(undefined)}
+          busy={save.isPending}
         >
           <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{setDraft(undefined);useVersionStore.getState().select(version);}}/>
           <form className="sheet-form" onSubmit={onSaveSubmit}>
@@ -396,9 +398,9 @@ export function ModelsPage() {
               ))}
             </fieldset>
             <div className="sheet-actions">
-              <button type="button" className="secondary" disabled={save.isPending} onClick={() => setDraft(undefined)}>
+              <SheetDismissButton className="secondary" disabled={save.isPending}>
                 取消
-              </button>
+              </SheetDismissButton>
               <button type="submit" disabled={save.isPending}>
                 保存
               </button>
@@ -408,7 +410,7 @@ export function ModelsPage() {
       ) : null}
 
       {aliasTarget !== undefined ? (
-        <Sheet title={`模型别名 · ${aliasTarget.model_name}`} onEscape={() => !aliasBusy&&setAliasTarget(undefined)}>
+        <Sheet title={`模型别名 · ${aliasTarget.model_name}`} description="别名只为兼容现有客户端；不会改写上游返回的原始模型 ID。" onEscape={() => !aliasBusy&&setAliasTarget(undefined)} busy={aliasBusy}>
           <AliasList model={aliasTarget} onRemoved={(version)=>{setAliasTarget(undefined);void queryClient.resetQueries({queryKey:["routing-inventory"]});useVersionStore.getState().select(version);}}/>
           <ConfigurationTaskNotice workingId={workingId} error={addAlias.error} onReview={(version)=>{setAliasTarget(undefined);useVersionStore.getState().select(version);}}/>
           <form
@@ -424,9 +426,9 @@ export function ModelsPage() {
               <input name="alias" className="mono" required maxLength={256} />
             </label>
             <div className="sheet-actions">
-              <button type="button" className="secondary" disabled={aliasBusy} onClick={() => setAliasTarget(undefined)}>
+              <SheetDismissButton className="secondary" disabled={aliasBusy}>
                 取消
-              </button>
+              </SheetDismissButton>
               <button type="submit" disabled={aliasBusy}>
                 创建
               </button>
@@ -436,7 +438,7 @@ export function ModelsPage() {
       ) : null}
 
       {routeTarget !== undefined ? (
-        <Sheet title={`为 ${routeTarget.model_name} 创建路由(1:1)`} onEscape={() => setRouteTarget(undefined)}>
+        <Sheet title={`为 ${routeTarget.model_name} 创建路由(1:1)`} description="路由定义重试和启动预算；候选连接在下一步单独配置。" onEscape={() => setRouteTarget(undefined)} busy={createRoute.isPending}>
           <form
             className="sheet-form"
             onSubmit={(event) => {
@@ -479,9 +481,9 @@ export function ModelsPage() {
               />
             </label>
             <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setRouteTarget(undefined)}>
+              <SheetDismissButton className="secondary" disabled={createRoute.isPending}>
                 取消
-              </button>
+              </SheetDismissButton>
               <button type="submit" disabled={createRoute.isPending}>
                 创建
               </button>
@@ -491,16 +493,16 @@ export function ModelsPage() {
       ) : null}
 
       {confirmDelete !== undefined ? (
-        <Sheet title="确认删除" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)}>
+        <Sheet title="删除公开模型" description="别名、路由和候选会一并移除，客户端将无法继续解析该模型名称。" layout="confirm" tone="danger" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)} busy={remove.isPending}>
           <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={(version)=>{setConfirmDelete(undefined);useVersionStore.getState().select(version);}}/>
           <p className="reveal-warning">
             删除公开模型 <span className="mono">{confirmDelete.model_name}</span>
             将级联删除其全部别名与路由(含候选),客户端将无法再解析该模型名。
           </p>
           <div className="sheet-actions">
-            <button type="button" className="secondary" disabled={remove.isPending} onClick={() => setConfirmDelete(undefined)}>
+            <SheetDismissButton className="secondary" disabled={remove.isPending}>
               取消
-            </button>
+            </SheetDismissButton>
             <button
               type="button"
               className="danger"

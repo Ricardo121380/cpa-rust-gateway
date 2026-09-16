@@ -6,68 +6,133 @@
 // explicit, understood action. Focus moves into the sheet on open, Tab is
 // trapped inside it, and focus returns to the opener on close. Escape closes
 // only when `onEscape` is provided.
-import { useCallback, useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useBlocker } from "react-router-dom";
-import { useSessionStore } from "../session/sessionStore";
+import { setBusySheetHistoryGuard } from "./modalNavigationGuard";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]),' +
   ' textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** longest exit animation in modal.css (190ms) + slack for a dropped frame */
-const EXIT_FALLBACK_MS = 700;
-
 let openSheets = 0;
 
-/** Exit motion for an element React has already unmounted.
- *  React has no exit hook and every call site closes by flipping its own state,
- *  so the only way to animate the way out without touching eight pages is to
- *  re-adopt the detached scrim, play `sheet-out` on it and drop it. The ghost is
- *  inert, aria-hidden and one z-index below the live layer, so if the next sheet
- *  opens in the same tick (issue -> reveal) the two crossfade instead of
- *  fighting. */
-function playExit(scrim: HTMLElement): void {
-  // Exit animation retains a detached DOM tree briefly. Secret values must not outlive close.
-  for (const node of scrim.querySelectorAll(".reveal-key")) node.textContent = "";
-  for (const input of scrim.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[type=password], textarea")) input.value = "";
-  scrim.classList.add("sheet-ghost");
-  scrim.setAttribute("aria-hidden", "true");
-  scrim.setAttribute("inert", "");
-  document.body.append(scrim);
-  const drop = (): void => scrim.remove();
-  scrim.addEventListener("animationend", (event) => {
-    if (event.target === scrim) {
-      drop();
-    }
-  });
-  window.setTimeout(drop, EXIT_FALLBACK_MS);
+type SheetCloseReason = "close" | "escape" | "route";
+type SheetLayout = "form" | "confirm" | "inspector";
+type SheetTone = "default" | "danger" | "success";
+
+const SheetDismissContext = createContext<((afterDismiss?: () => void) => void) | undefined>(undefined);
+
+function isLegacyDismissTarget(target: Element): target is HTMLButtonElement | HTMLAnchorElement {
+  if (target instanceof HTMLButtonElement) return /^(取消|关闭|返回)$/.test(target.textContent?.trim() ?? "");
+  return target instanceof HTMLAnchorElement && /^(#|\/)/.test(target.getAttribute("href") ?? "");
+}
+
+/**
+ * A close-like action inside a Sheet. `onDismiss` is for an in-dialog back
+ * transition (for example, a credential editor returning to its inspector):
+ * it runs only after the user has accepted the same discard decision used by
+ * Cancel, Escape and the header close button.
+ */
+export function SheetDismissButton({ children, type = "button", onClick, onDismiss, ...props }: Readonly<ButtonHTMLAttributes<HTMLButtonElement> & { onDismiss?: () => void }>) {
+  const requestClose = useContext(SheetDismissContext);
+  return <button {...props} type={type} data-sheet-dismiss="true" onClick={(event) => { onClick?.(event); if (!event.defaultPrevented) requestClose?.(onDismiss); }}>{children}</button>;
 }
 
 export function Sheet({
   title,
+  description,
   children,
+  footer,
   onEscape,
   layout = "form",
+  tone = "default",
+  busy = false,
+  isDirty = false,
   guardUnsaved = true,
 }: Readonly<{
   title: string;
+  description?: ReactNode;
   children: ReactNode;
+  footer?: ReactNode;
   onEscape?: (() => void) | undefined;
-  layout?: "form" | "inspector";
+  layout?: SheetLayout;
+  tone?: SheetTone;
+  busy?: boolean;
+  isDirty?: boolean;
   guardUnsaved?: boolean;
 }>) {
-  const scrimRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
+  const keepEditingRef = useRef<HTMLButtonElement>(null);
+  const discardFocusRef = useRef<HTMLElement | null>(null);
+  const lastContentFocusRef = useRef<HTMLElement | null>(null);
+  const deferredDismissRef = useRef<(() => void) | undefined>(undefined);
   const dirtyRef = useRef(false);
-  const hasUnsaved = useCallback(() => guardUnsaved && dirtyRef.current && !!panelRef.current?.querySelector("form"), [guardUnsaved]);
-  const confirmLeave = useCallback(() => !hasUnsaved() || window.confirm("放弃未保存的修改？"), [hasUnsaved]);
-  const close = useCallback(() => { if (confirmLeave()) onEscape?.(); }, [confirmLeave, onEscape]);
-  const blocker = useBlocker(hasUnsaved);
+  const [discardReason, setDiscardReason] = useState<SheetCloseReason>();
+  const titleId = useId();
+  const descriptionId = useId();
+  const hasUnsaved = useCallback(() => guardUnsaved && (dirtyRef.current || isDirty) && !!panelRef.current?.querySelector("form"), [guardUnsaved, isDirty]);
+  // A pending irreversible write/reveal also blocks route admission. It is not
+  // merely an unsaved form: the receipt may replace that form before the write
+  // returns, and a queued Back navigation must never consume a one-time value.
+  const shouldBlockRoute = useCallback(() => busy || hasUnsaved(), [busy, hasUnsaved]);
+  const blocker = useBlocker(shouldBlockRoute);
+  const finishClose = useCallback((reason: SheetCloseReason) => {
+    const deferred = deferredDismissRef.current;
+    deferredDismissRef.current = undefined;
+    dirtyRef.current = false;
+    setDiscardReason(undefined);
+    if (reason === "route" && blocker.state === "blocked") blocker.proceed();
+    else if (deferred !== undefined) queueMicrotask(deferred);
+    else onEscape?.();
+  }, [blocker, onEscape]);
+  const requestClose = useCallback((reason: SheetCloseReason = "close", afterDismiss?: () => void) => {
+    if (busy) return;
+    if (hasUnsaved()) {
+      deferredDismissRef.current = afterDismiss;
+      const active = document.activeElement;
+      discardFocusRef.current = lastContentFocusRef.current?.isConnected
+        ? lastContentFocusRef.current
+        : active instanceof HTMLElement && panelRef.current?.contains(active) ? active : null;
+      setDiscardReason(reason);
+      return;
+    }
+    deferredDismissRef.current = afterDismiss;
+    finishClose(reason);
+  }, [busy, finishClose, hasUnsaved]);
+
   useEffect(() => {
-    if (blocker.state === "blocked") { if (confirmLeave()) blocker.proceed(); else blocker.reset(); }
-  }, [blocker, confirmLeave]);
+    if (blocker.state !== "blocked") return;
+    // A route attempt while an irreversible write/reveal is pending must not
+    // become a latent navigation that fires after the durable receipt appears.
+    if (busy) { blocker.reset(); return; }
+    requestClose("route");
+  }, [blocker, blocker.state, busy, requestClose]);
+
+  // The global listener is installed before HashRouter. Register this Sheet's
+  // exact URL only while an irreversible write/reveal is in flight.
+  useEffect(() => {
+    setBusySheetHistoryGuard(busy);
+    return () => setBusySheetHistoryGuard(false);
+  }, [busy]);
+
+  useEffect(() => {
+    if (discardReason !== undefined) keepEditingRef.current?.focus();
+  }, [discardReason]);
+
+  // A durable mutation/reveal must never remain obscured by a stale discard
+  // prompt created in the narrow interval before React observed `busy`.
+  useEffect(() => {
+    if (busy && discardReason !== undefined) setDiscardReason(undefined);
+  }, [busy, discardReason]);
+
+  const cancelDiscard = useCallback(() => {
+    if (blocker.state === "blocked") blocker.reset();
+    deferredDismissRef.current = undefined;
+    setDiscardReason(undefined);
+    queueMicrotask(() => (discardFocusRef.current?.isConnected ? discardFocusRef.current : panelRef.current)?.focus());
+  }, [blocker]);
 
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => { if (hasUnsaved()) { event.preventDefault(); event.returnValue = ""; } };
@@ -77,8 +142,6 @@ export function Sheet({
 
 
   useEffect(() => {
-    const scrim = scrimRef.current;
-    const sessionGeneration = useSessionStore.getState().generation;
     // StrictMode reruns the effect after focus has entered the panel. Preserve
     // the original opener instead of replacing it with the panel's first button.
     openerRef.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -86,6 +149,8 @@ export function Sheet({
     (panelRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? panelRef.current)?.focus();
 
     openSheets += 1;
+    document.documentElement.classList.add("has-sheet");
+    document.getElementById("app")?.setAttribute("inert", "");
     if (import.meta.env.DEV && openSheets > 1) {
       console.error(
         `modal budget exceeded: ${openSheets} scrims mounted (max 1 — a scrim is` +
@@ -95,19 +160,14 @@ export function Sheet({
 
     return () => {
       openSheets -= 1;
-      // Deferred by one microtask so a real unmount (node already detached) can
-      // be told apart from StrictMode's simulated remount (node kept, effect
-      // re-run) — otherwise every sheet would spawn a ghost the moment it opened
-      // in development.
       queueMicrotask(() => {
-        if (scrim === null || scrim.isConnected) {
-          return;
+        if (openSheets === 0) {
+          document.documentElement.classList.remove("has-sheet");
+          document.getElementById("app")?.removeAttribute("inert");
         }
-        // A lock must not reattach a reveal-once secret as an exit-animation
-        // ghost. Animate only inside the same still-unlocked session.
-        const session = useSessionStore.getState();
-        if (session.unlocked && session.generation === sessionGeneration) playExit(scrim);
-        if (opener !== null && opener.isConnected) {
+        // A replacement dialog owns focus. Never revive secret-bearing DOM just
+        // to animate an exit, and only return focus when no dialog replaced it.
+        if (openSheets === 0 && !document.querySelector('[role="dialog"]') && opener !== null && opener.isConnected) {
           opener.focus();
         }
       });
@@ -120,24 +180,29 @@ export function Sheet({
     }
     const handler = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
-        close();
+        if (discardReason !== undefined) cancelDiscard();
+        else requestClose("escape");
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onEscape, close]);
+  }, [cancelDiscard, discardReason, onEscape, requestClose]);
 
   /** aria-modal alone does not stop Tab from walking into the page behind. */
   const trapTab = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (event.key !== "Tab" || panelRef.current === null) {
       return;
     }
-    const items = [...panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
-      (el) => el.getClientRects().length > 0,
+    const focusRoot = discardReason === undefined ? panelRef.current : panelRef.current.querySelector<HTMLElement>(".sheet-discard");
+    if (focusRoot === null) return;
+    const items = [...focusRoot.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+      (el) => el.getClientRects().length > 0 && !el.closest("[inert], [aria-hidden=\"true\"]"),
     );
     const first = items.at(0);
     const last = items.at(-1);
     if (first === undefined || last === undefined) {
+      event.preventDefault();
+      panelRef.current.focus();
       return;
     }
     const active = document.activeElement;
@@ -154,28 +219,37 @@ export function Sheet({
   // canvas now carries the scroll-edge mask + its own scroll container — both
   // would clip a fixed modal painted inside its subtree.
   return createPortal(
-    <div className="sheet-backdrop" data-modal="scrim" data-layout={layout} role="presentation" ref={scrimRef}>
+    <div className="sheet-backdrop" data-modal="scrim" data-layout={layout} data-tone={tone} role="presentation">
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={titleId}
+        aria-describedby={description === undefined ? undefined : descriptionId}
         tabIndex={-1}
         ref={panelRef}
         onKeyDown={trapTab}
+        onClickCapture={event => {
+          // Compatibility for legacy callers. New flows use SheetDismissButton;
+          // this path defers the original handler until discard is accepted.
+          const target = event.target instanceof Element ? event.target.closest("button,a") : null;
+          if (target === null || target.closest("[data-sheet-dismiss], .sheet-discard") || !isLegacyDismissTarget(target)) return;
+          if (busy) { event.preventDefault(); event.stopPropagation(); return; }
+          if (!hasUnsaved()) return;
+          event.preventDefault();
+          event.stopPropagation();
+          requestClose("close", () => target.click());
+        }}
+        onFocusCapture={event => {
+          const target = event.target;
+          if (target instanceof HTMLElement && !target.closest("[data-sheet-dismiss], .sheet-close")) lastContentFocusRef.current = target;
+        }}
         onInputCapture={() => { dirtyRef.current = true; }}
         onChangeCapture={() => { dirtyRef.current = true; }}
-        onClickCapture={event => {
-          const target = event.target instanceof Element ? event.target.closest("button,a") : null;
-          if (!target || target.getAttribute("aria-label") === "关闭面板") return;
-          const leaving = target.tagName === "BUTTON" && /^(取消|关闭|返回)$/.test(target.textContent?.trim() ?? "")
-            || target.tagName === "A" && /^(#|\/)/.test(target.getAttribute("href") ?? "");
-          if (leaving && !confirmLeave()) { event.preventDefault(); event.stopPropagation(); }
-          else if (!leaving && target.tagName === "BUTTON" && target.closest("form")) dirtyRef.current = true;
-        }}
       >
         <div className="sheet-panel">
-          <header className="sheet-heading"><h3>{title}</h3>{onEscape === undefined ? null : <button type="button" className="secondary" aria-label="关闭面板" onClick={close}>×</button>}</header>
-          {children}
+          <header className="sheet-heading" inert={discardReason !== undefined} aria-hidden={discardReason !== undefined}><div><h2 id={titleId}>{title}</h2>{description === undefined ? null : <p id={descriptionId} className="sheet-description">{description}</p>}</div>{onEscape === undefined ? null : <button type="button" className="secondary sheet-close" aria-label="关闭面板" disabled={busy} onClick={() => requestClose("close")}>×</button>}</header>
+          <SheetDismissContext.Provider value={(afterDismiss) => requestClose("close", afterDismiss)}><div className="sheet-body" inert={discardReason !== undefined} aria-hidden={discardReason !== undefined}>{children}</div>{footer === undefined ? null : <footer className="sheet-footer" inert={discardReason !== undefined} aria-hidden={discardReason !== undefined}>{footer}</footer>}</SheetDismissContext.Provider>
+          {discardReason === undefined ? null : <section className="sheet-discard" role="alertdialog" aria-labelledby={`${titleId}-discard`} aria-describedby={`${descriptionId}-discard`}><h3 id={`${titleId}-discard`}>放弃未保存的修改？</h3><p id={`${descriptionId}-discard`} className="muted">继续关闭将放弃本次输入。</p><div className="sheet-actions"><button ref={keepEditingRef} type="button" className="secondary" onClick={cancelDiscard}>继续编辑</button><button type="button" className={tone === "danger" ? "danger" : undefined} onClick={() => finishClose(discardReason)}>放弃修改</button></div></section>}
         </div>
       </div>
     </div>,

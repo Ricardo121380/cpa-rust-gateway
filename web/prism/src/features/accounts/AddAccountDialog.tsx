@@ -4,7 +4,7 @@ import { useMutation, useQuery, isCancelledError, CancelledError } from "@tansta
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { resourceName } from "../../utils/resourceNames";
 import { useSessionStore } from "../../session/sessionStore";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
@@ -70,6 +70,7 @@ export function preparedImportRequest(
 }
 
 export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void}>) {
+  const formId="account-import-form";
   const [channelId,setChannelId]=useState("openai-compatible");
   const [inputMode,setInputMode]=useState<"paste"|"files">("paste");
   const [oauth,setOauth]=useState(false);
@@ -109,6 +110,12 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   // An endpoint is an advanced routing decision. Built-in account journeys must never bind an
   // account merely because the browser happened to observe one compatible connection.
   const selectedEndpoint=endpointId??"";
+  const importFormAvailable=channel?.import_available===true
+    && !channels.isPending
+    && !channels.isError
+    && !(!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&providers.isError)
+    && !(!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!!context&&providers.isPending)
+    && !(requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&(matches.length===0||matches.length>1));
   const create=useMutation({gcTime:0,mutationFn:async({provider,endpoint,items,kiroRegion}:{provider:string;endpoint:string;items:Material[];kiroRegion?:string})=>{
     const owner=useVersionStore.getState().selectionGeneration;
     const session=useSessionStore.getState().generation;
@@ -188,15 +195,15 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   if(oauth&&channelId==="kimi-coding")return <KimiDeviceDialog onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth&&channelId==="grok.build")return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
-  if(oauth)return <Sheet title="暂不支持的授权方式" onEscape={()=>setOauth(false)}><p role="alert">该渠道没有可用的授权流程。为避免把账号接到错误渠道，面板未执行任何操作。</p><div className="sheet-actions"><button onClick={()=>setOauth(false)}>返回</button></div></Sheet>;
-  return <Sheet title="授权或导入账号" onEscape={close}>
+  if(oauth)return <Sheet title="暂不支持的授权方式" layout="confirm" description="该渠道没有可用的授权流程，面板没有执行任何操作。" onEscape={()=>setOauth(false)}><p role="alert">请返回并选择支持的渠道接入方式。</p><div className="sheet-actions"><SheetDismissButton>返回</SheetDismissButton></div></Sheet>;
+  return <Sheet title="授权或导入账号" description={completed?"查看本次保存结果，并在需要时继续应用配置。":"先选择渠道，再使用该渠道支持的授权或导入方式。"} onEscape={close} busy={busy} footer={completed?<SheetDismissButton disabled={busy}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="submit" form={formId} disabled={!importFormAvailable||busy||(inputMode==="files"&&!materials.current.length)}>导入账号</button></>}>
     {completed?<>
       <h3>导入结果</h3>
       {needsApply?<RuntimeApplyNotice onApplied={()=>setNeedsApply(false)}/>:null}
     </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:<>
       <label>渠道<select aria-label="渠道" value={channelId} disabled={busy} onChange={(event)=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(event.target.value);}}>{channels.data?.map((entry)=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
       {channel?.authorization_available?<button type="button" disabled={busy||(!native&&!selectedProvider&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId))} onClick={()=>{resetInput();setOauth(true);}}>授权登录</button>:null}
-      {!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!!context&&providers.isPending?<p>读取渠道配置…</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!matches.length?<p role="alert">此渠道尚未配置专用接入。账号授权不会借用其他渠道或兼容中转。</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&matches.length>1?<p role="alert">此渠道有多个专用接入，请在 AI 提供商中整理渠道配置后再授权。为避免错误绑定，面板不会自动选择其中一个。</p>:channel?.import_available?<form className="sheet-form" onSubmit={submit} autoComplete="off">
+      {!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!!context&&providers.isPending?<p>读取渠道配置…</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!matches.length?<p role="alert">此渠道尚未配置专用接入。账号授权不会借用其他渠道或兼容中转。</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&matches.length>1?<p role="alert">此渠道有多个专用接入，请在 AI 提供商中整理渠道配置后再授权。为避免错误绑定，面板不会自动选择其中一个。</p>:channel?.import_available?<form id={formId} className="sheet-form" onSubmit={submit} autoComplete="off">
         {!native&&isApiChannel?<><label>服务<select name="provider" value={selectedProvider} onChange={(event)=>{setProviderId(event.target.value);setEndpointId(null);}} disabled={busy} required><option value="">选择已配置服务</option>{matches.map((provider)=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>
           <label>接口连接<select name="endpoint" value={selectedEndpoint} onChange={(event)=>setEndpointId(event.target.value)} disabled={busy||endpoints.isFetching}><option value="">稍后连接</option>{connections.map((endpoint)=><option key={endpoint.id} value={endpoint.id}>{protocolName(endpoint.api_format)} · {new URL(endpoint.base_url).host}{endpoint.enabled?"":" · 已停用"}</option>)}</select></label>
           {endpoints.isError?<p role="alert">{asAppError(endpoints.error).message}。可以先保存账号，稍后连接接口。</p>:null}
@@ -215,13 +222,11 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
           } catch {if(owner===readerGeneration.current)setError("无法读取文件，请重新选择。");}
           finally {if(owner===readerGeneration.current)setReading(false);}
         }}/></label>}
-        <div className="sheet-actions"><button type="button" className="secondary" disabled={busy} onClick={close}>取消</button><button disabled={busy||(inputMode==="files"&&!materials.current.length)}>导入账号</button></div>
       </form>:<p>此渠道暂不可从面板接入。</p>}
     </>}
     {rows.length?<div className="tablewrap"><table><thead><tr><th>来源</th><th>结果</th></tr></thead><tbody>{rows.map((row)=><tr key={row.id}><td>{row.label}</td><td>{row.status}{row.error?<span className="entity-meta">{row.error}</span>:null}</td></tr>)}</tbody></table></div>:null}
     {error?<p role="alert">{error}</p>:null}
     {workingId&&completed&&!finishedVersion?<button className="secondary" disabled={busy} onClick={()=>review.mutate()}>查看待应用的修改</button>:null}
     {review.isError?<p role="alert">{asAppError(review.error).message}</p>:null}
-    {completed?<div className="sheet-actions"><button disabled={busy} onClick={close}>完成</button></div>:null}
   </Sheet>;
 }

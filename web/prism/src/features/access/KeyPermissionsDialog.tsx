@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
@@ -23,6 +23,7 @@ async function readRoutes(read:<T>(operation:"listRoutes",request:{query:{limit:
 const fingerprint=(grants:readonly Grant[])=>JSON.stringify([...grants].sort((a,b)=>a.route_id.localeCompare(b.route_id)).map(g=>[g.route_id,g.enabled]));
 
 export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:ClientKeyRecord;onClose:()=>void;onSaved:(version:ConfigVersionSummary)=>void}>) {
+  const formId="key-permissions-form";
   const context=useVersionStore(s=>s.context);const queryClient=useQueryClient();
   const [workingId,setWorkingId]=useState<string>();
   const [selected,setSelected]=useState<ReadonlySet<string>>();
@@ -63,10 +64,10 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
   },onSuccess:version=>{void queryClient.invalidateQueries({queryKey:["client-keys"]});void queryClient.invalidateQueries({queryKey:["access-groups"]});onSaved(version);}});
   const close=()=>{if(!save.isPending)onClose();};
   const submit=(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();const data=new FormData(event.currentTarget);save.mutate({status:String(data.get("status")) as ClientKeyRecord["status"],expiry:String(data.get("expiry")??"")});};
-  return <Sheet title="编辑 API 密钥" onEscape={close}>
+  return <Sheet title="编辑 API 密钥" description="修改名称、状态、有效期和允许调用的模型。" onEscape={close} busy={save.isPending} isDirty={dirty} footer={source.data?<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={!dirty||save.isPending||workingId!==undefined}>保存并应用</button></>:undefined}>
     {source.isError?<p role="alert">{asAppError(source.error).message}<button onClick={()=>void source.refetch()}>重新读取</button></p>:null}
     {source.isPending?<p role="status">正在读取模型权限…</p>:null}
-    {source.data?<form className="sheet-form" onSubmit={submit} onChange={()=>setDirty(true)}>
+    {source.data?<form id={formId} className="sheet-form" onSubmit={submit} onChange={()=>setDirty(true)}>
       <fieldset disabled={save.isPending||workingId!==undefined}>
         <label>名称<input required maxLength={128} value={name??source.data.group.name} onChange={e=>setName(e.target.value)}/></label>
         <label>状态<select name="status" defaultValue={record.status}><option value="active" disabled={record.status==="revoked"}>启用</option><option value="disabled" disabled={record.status==="revoked"}>停用</option><option value="revoked">吊销</option></select></label>
@@ -78,7 +79,6 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
         </fieldset>
         {chosen.size===0?<p role="status">此密钥将无法调用任何模型。</p>:null}
       </fieldset>
-      <div className="sheet-actions"><button type="button" className="secondary" disabled={save.isPending} onClick={close}>取消</button><button disabled={!dirty||save.isPending||workingId!==undefined}>保存并应用</button></div>
     </form>:null}
     <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={onSaved}/>
   </Sheet>;

@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
@@ -139,7 +139,7 @@ export function KimiDeviceDialog({
     expired: "授权已过期",
     failed: "授权未完成",
   };
-  return <Sheet title={credentialId ? "重新授权 Kimi 账号" : "授权 Kimi 账号"} onEscape={close}>
+  return <Sheet title={credentialId ? "重新授权 Kimi 账号" : "授权 Kimi 账号"} description={credentialId ? "仅更新这个已有账号的授权；当前连接会保留。" : "开始后在 Kimi 官方页面完成设备授权，面板会自动核对结果。"} onEscape={close} busy={busy}>
     {completed ? <p role="status">Kimi 账号已保存。</p> : !session ? <>
       <p>将打开 Kimi 官方设备授权。完成登录后，此窗口会自动保存授权。</p>
       <button disabled={busy || start.isError} onClick={() => start.mutate()}>开始授权</button>
@@ -162,9 +162,9 @@ export function KimiDeviceDialog({
     />
     {cancel.isError ? <p role="alert">{asAppError(cancel.error).message}</p> : null}
     <div className="sheet-actions">
-      <button className="secondary" disabled={busy} onClick={close}>
+      <SheetDismissButton className="secondary" disabled={busy}>
         {completed ? "完成" : pending ? "取消授权" : "关闭"}
-      </button>
+      </SheetDismissButton>
     </div>
   </Sheet>;
 }

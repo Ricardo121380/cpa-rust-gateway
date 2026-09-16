@@ -11,8 +11,15 @@ async function openAccess(page: import("@playwright/test").Page): Promise<void> 
   await navigate(page, "访问控制");
 }
 
+async function openAdvancedGroups(page: import("@playwright/test").Page): Promise<void> {
+  const advanced = page.locator(".access-page details", { hasText: "高级访问组" });
+  await advanced.locator("summary").click();
+  await expect(advanced.getByRole("button", { name: "新建访问组" })).toBeVisible();
+}
+
 test("a group can be created, edited and deleted", async ({ page }) => {
   await openAccess(page);
+  await openAdvancedGroups(page);
 
   await page.getByRole("button", { name: "新建访问组" }).click();
   const create = page.getByRole("dialog");
@@ -45,6 +52,7 @@ test("a group can be created, edited and deleted", async ({ page }) => {
 
 test("limits are judged before they reach the gateway", async ({ page }) => {
   await openAccess(page);
+  await openAdvancedGroups(page);
   await page.getByRole("button", { name: "新建访问组" }).click();
   const create = page.getByRole("dialog");
   await create.getByLabel("访问组标识").fill("team-bad");
@@ -60,15 +68,20 @@ test("limits are judged before they reach the gateway", async ({ page }) => {
 test("route grants are listed per group and can be added", async ({ page }) => {
   await openAccess(page);
   await navigate(page, "模型与路由");
-  await page.getByRole("button", { name: "新建公开模型" }).click();
+  const advancedModels = page.locator("details.models-advanced");
+  await advancedModels.locator("summary").click();
+  await advancedModels.getByRole("button", { name: "高级模型配置" }).click();
   const model = page.getByRole("dialog");
   await model.getByLabel("模型 ID").fill("pm-grant");
   await model.getByLabel("模型名", { exact: false }).fill("model-grant");
   await model.getByRole("button", { name: "保存" }).click();
-  await page.locator("tr", { hasText: "model-grant" }).first().getByRole("button", { name: "建路由" }).click();
+  const modelRow = page.locator("tr", { hasText: "model-grant" }).first();
+  await modelRow.locator("details.row-menu summary").click();
+  await modelRow.getByRole("button", { name: "配置路由" }).click();
   await page.getByRole("dialog").getByLabel("路由 ID").fill("rt-e2e");
   await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
   await navigate(page, "访问控制");
+  await openAdvancedGroups(page);
 
 
   const row = page.locator('tr:has([data-resource-id="team-default"])').first();
@@ -87,6 +100,7 @@ test("route grants are listed per group and can be added", async ({ page }) => {
 
 test("a group with no grant says the keys under it reach nothing", async ({ page }) => {
   await openAccess(page);
+  await openAdvancedGroups(page);
   // team-batch exists with no grants seeded
   await page.locator('tr:has([data-resource-id="team-batch"])').first().getByRole("button", { name: "路由" }).click();
   await expect(page.locator(".group-routes")).toContainText("到不了任何模型");
@@ -97,5 +111,6 @@ test("group editing is refused on a published version", async ({ page }) => {
   await navigate(page, "访问控制");
   // v-2026-07 is active, not a draft
   await selectVersion(page, "v-2026-07");
+  await openAdvancedGroups(page);
   await expect(page.getByRole("button", { name: "新建访问组" })).toBeDisabled();
 });

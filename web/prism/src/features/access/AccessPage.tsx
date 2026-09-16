@@ -12,7 +12,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
@@ -634,22 +634,9 @@ export function AccessPage() {
       ) : null}
 
       {confirmRevoke !== undefined ? (
-        <Sheet title="确认吊销" onEscape={() => !revoke.isPending&&setConfirmRevoke(undefined)}>
+        <Sheet title="吊销 API 密钥" description="吊销后该密钥不能再发起请求；历史记录仍会保留。" layout="confirm" tone="danger" onEscape={() => !revoke.isPending&&setConfirmRevoke(undefined)} busy={revoke.isPending} footer={<><SheetDismissButton className="secondary" disabled={revoke.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={revoke.isPending} onClick={() => revoke.mutate(confirmRevoke)}>确认吊销</button></>}>
           <ConfigurationTaskNotice workingId={workingId} error={revoke.error} onReview={(version)=>{setConfirmRevoke(undefined);useVersionStore.getState().select(version);}}/>
           <p>吊销 {keys.data?.find((row)=>row.id===confirmRevoke)?.prefix}。应用后，该密钥不能再发起请求，历史记录保留。</p>
-          <div className="sheet-actions">
-            <button type="button" className="secondary" onClick={() => setConfirmRevoke(undefined)}>
-              取消
-            </button>
-            <button
-              type="button"
-              className="danger"
-              disabled={revoke.isPending}
-              onClick={() => revoke.mutate(confirmRevoke)}
-            >
-              确认吊销
-            </button>
-          </div>
         </Sheet>
       ) : null}
     </section>

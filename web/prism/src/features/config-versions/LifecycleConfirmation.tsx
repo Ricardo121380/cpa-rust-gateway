@@ -2,7 +2,7 @@ import { resourceName } from "../../utils/resourceNames";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../../api/client";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ReadStatus } from "../../components/ReadStatus";
 import { useVersionStore, type ConfigVersionSummary } from "./versionStore";
 
@@ -67,6 +67,9 @@ export function LifecycleConfirmation({
     <Sheet
       title={mode === "publish" ? "确认发布" : "确认回滚"}
       onEscape={pending ? () => {} : onCancel}
+      busy={pending}
+      layout="confirm"
+      tone={mode === "rollback" ? "danger" : "default"}
     >
       <ReadStatus
         pending={query.isPending}
@@ -96,9 +99,9 @@ export function LifecycleConfirmation({
       ) : null}
       {error ? <p role="alert">{error}</p> : null}
       <div className="sheet-actions">
-        <button className="secondary" disabled={pending} onClick={onCancel}>
+        <SheetDismissButton className="secondary" disabled={pending}>
           取消
-        </button>
+        </SheetDismissButton>
         <button
           disabled={
             pending ||

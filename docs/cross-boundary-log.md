@@ -2728,3 +2728,11 @@ Signed e77bcb5/schema28 is live on existing Oracle CPAR. Exact-revision formal g
 **Why:** The provider card’s “开放模型” link embedded the first observed endpoint in its URL. A multi-protocol upstream could therefore enter the model workflow with an unchosen Responses, Chat Completions or Messages endpoint.
 
 **Other side:** FYI. The link now enters the model workspace without `from_endpoint`; the explicit endpoint selector owns that choice. A unit regression guards the neutral URL, relevant Prism tests/build passed, and a source search confirms no first-item account/catalog/endpoint selection remains.
+
+## 2026-09-16 - Codex - Prism shared Sheet and daily account workflow refinement
+
+**What:** `web/prism/src/{components/Sheet.tsx,components/modalNavigationGuard.ts,components/ChipsInput.tsx,design/{tokens.css,modal.css},app/{app.css,v4.css},dev/fixtures.ts}`, daily account/access/model/provider/egress Sheet callers, and their browser regressions.
+
+**Why:** The management console had visually inconsistent sheets, unstable form actions, browser-confirm discard prompts, focus escape, and a HashRouter Back path that could hide a one-time key receipt during its pending write. Account maintenance also used direct inner “Back” transitions that could lose replacement material.
+
+**Other side:** FYI. The shared Sheet now owns the portal-safe frame, semantic modal tokens, focus isolation, in-panel discard choice, busy route protection and stable footer. Daily forms retain their existing generated-client request, revision, secret-cleanup, channel-owner and one-time-receipt behavior while placing submit controls in form-associated footers. The fixture test control stores method/path counts only; it never records request material. Current evidence: type check, 39 unit files/321 tests, four-file production build, SPA gate, and six serial daily modal/native E2E cases. C2C reviews are recorded in task `c2c_f3d9`; broader editor migration, full E2E recovery, real gateway/EgoLite acceptance and deployment remain pending.

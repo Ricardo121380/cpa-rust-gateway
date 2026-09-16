@@ -4,7 +4,7 @@ import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import type {AccountIdentity} from "./presentation";
 import {accountName} from "./presentation";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { safeExternalUrl } from "../upstreams/model";
 import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
 type View = Readonly<{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:AccountIdentity|null;identity_state:string;runtime_applied?:boolean|null}>;
@@ -23,7 +23,7 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
   const labels:Record<string,string>={pending:"等待 Grok 授权",complete:"授权已保存",denied:"授权被拒绝",expired:"授权已过期",cancelled:"已取消授权",failed:"授权通信失败",persistence_conflict:"账号身份或版本冲突，凭据未被覆盖"};
   const error=start.error??poll.error??cancel.error;
   const href=safeExternalUrl(view?.verification_uri);
-  return <Sheet title={target?"Grok 重新授权":"添加 Grok 授权账号"} onEscape={start.isPending||cancel.isPending?undefined:close}>
+  return <Sheet title={target?"Grok 重新授权":"添加 Grok 授权账号"} description={target?"仅更新选中账号的官方授权，不改变其他账号或连接。":"在 Grok 官方页面输入设备验证码；保存后会读取授权身份。"} onEscape={close} busy={start.isPending||cancel.isPending}>
     {target&&name?<p>{name}</p>:null}
     {!view?<button disabled={start.isPending} onClick={()=>start.mutate()}>开始 Grok 授权</button>:<>
       <p role="status" data-native-session-id={view.session_id}>{labels[view.state]??view.state}</p>
@@ -39,6 +39,6 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
       </>:null}
     </>}
     {error?<p role="alert">{asAppError(error).message}</p>:null}
-    <div className="sheet-actions"><button className="secondary" disabled={start.isPending||cancel.isPending} onClick={close}>{view?.state==="pending"?"取消授权":"关闭"}</button></div>
+    <div className="sheet-actions"><SheetDismissButton className="secondary" disabled={start.isPending||cancel.isPending}>{view?.state==="pending"?"取消授权":"关闭"}</SheetDismissButton></div>
   </Sheet>;
 }

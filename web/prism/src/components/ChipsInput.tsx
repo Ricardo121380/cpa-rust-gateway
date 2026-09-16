@@ -59,6 +59,7 @@ export function ChipsInput({
             type="button"
             className={mono ? "chip mono" : "chip"}
             title="点击移除"
+            aria-label={`移除 ${formatLabel(entry)}`}
             onClick={() => onChange(value.filter((candidate) => candidate !== entry))}
           >
             {formatLabel(entry)} ×

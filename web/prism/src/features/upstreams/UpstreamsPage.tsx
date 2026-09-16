@@ -9,7 +9,7 @@ import { useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
@@ -87,6 +87,9 @@ export function UpstreamsPage() {
   const editable = context?.status === "draft";
   const scope = context?.configVersionId;
   const [draft, setDraft] = useState<DraftUpstream | undefined>();
+  // ChipsInput changes are committed by buttons, so they bypass the form's
+  // native input/change events. Track them as real unsaved edits.
+  const [draftDirty, setDraftDirty] = useState(false);
   const [inspected, setInspected] = useState<Upstream>();
   const [confirmDelete, setConfirmDelete] = useState<Upstream | undefined>();
   const [searchParams,setSearchParams] = useSearchParams();
@@ -177,6 +180,11 @@ export function UpstreamsPage() {
     }
   }
 
+  function beginDraft(next: DraftUpstream) {
+    setDraftDirty(false);
+    setDraft(next);
+  }
+
   return (
     <section>
       <header className="page-head">
@@ -216,7 +224,7 @@ export function UpstreamsPage() {
             <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={manualModelConnectPath()}>开放模型</Link></div>
             <footer><div className="row-actions">
               <button className="secondary" onClick={()=>setExpanded(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
-              <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);setDraft(toDraft(upstream));}}>编辑</button>
+              <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);beginDraft(toDraft(upstream));}}>编辑</button>
               <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>setInspected(upstream)}>详情</button><button className="danger" onClick={()=>{remove.reset();setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);}}>移除提供商</button></div></details>
             </div></footer>
           </article>;
@@ -235,11 +243,11 @@ export function UpstreamsPage() {
       ]}>
         <p className="small muted">配置启用不代表实时认证、quota 或调度可用。</p>
         <div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspected.id); setInspected(undefined); }}>查看端点与凭据</button>
-          <button onClick={() => { setDraft(toDraft(inspected)); setInspected(undefined); }}>编辑提供商</button></div>
+          <button onClick={() => { beginDraft(toDraft(inspected)); setInspected(undefined); }}>编辑提供商</button></div>
       </ObjectInspector>}
 
       {draft !== undefined ? (
-        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${resourceName(draft.id,"upstream",draft.name)}`} onEscape={() => !save.isPending&&setDraft(undefined)}>
+        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${resourceName(draft.id,"upstream",draft.name)}`} description="维护服务名称、渠道类型与出口策略；账号授权和接口连接在各自工作区完成。" onEscape={() => !save.isPending&&setDraft(undefined)} busy={save.isPending} isDirty={draftDirty}>
           <form className="sheet-form" onSubmit={onSubmit}>
             <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{setDraft(undefined);useVersionStore.getState().select(version);}}/>
             {draft.isNew ? (
@@ -291,7 +299,7 @@ export function UpstreamsPage() {
               标签
               <ChipsInput
                 value={draft.tags}
-                onChange={(tags) => setDraft({ ...draft, tags })}
+                onChange={(tags) => { setDraftDirty(true); setDraft({ ...draft, tags }); }}
                 formatLabel={referenceText}
                 placeholder="回车添加"
               />
@@ -311,9 +319,9 @@ export function UpstreamsPage() {
               </select>
             </label>
             <div className="sheet-actions">
-              <button type="button" className="secondary" disabled={save.isPending} onClick={() => setDraft(undefined)}>
+              <SheetDismissButton className="secondary" disabled={save.isPending}>
                 取消
-              </button>
+              </SheetDismissButton>
               <button type="submit" disabled={save.isPending}>
                 {editable?"保存到草稿":"保存并应用"}
               </button>
@@ -323,7 +331,7 @@ export function UpstreamsPage() {
       ) : null}
 
       {confirmDelete !== undefined ? (
-        <Sheet title="移除提供商" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)}>
+        <Sheet title="移除提供商" description="历史请求和费用会保留；没有其他候选的关联模型会被停用。" layout="confirm" tone="danger" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)} busy={remove.isPending}>
           <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={(version)=>{setConfirmDelete(undefined);useVersionStore.getState().select(version);}}/>
           <p className="reveal-warning">
             移除 <strong>{resourceName(confirmDelete.id,"upstream",confirmDelete.name)}</strong>
@@ -331,9 +339,9 @@ export function UpstreamsPage() {
             不再有启用候选的关联模型会同时停用，历史请求和费用保留。
           </p>
           <div className="sheet-actions">
-            <button type="button" className="secondary" disabled={remove.isPending} onClick={() => setConfirmDelete(undefined)}>
+            <SheetDismissButton className="secondary" disabled={remove.isPending}>
               取消
-            </button>
+            </SheetDismissButton>
             <button
               type="button"
               className="danger"

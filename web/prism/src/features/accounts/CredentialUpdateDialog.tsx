@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import type { ConfigVersionSummary } from "../config-versions/versionStore";
@@ -8,6 +8,7 @@ import type { ManagedCredential } from "./inventory";
 import { accountName } from "./presentation";
 
 export function CredentialUpdateDialog({account,onClose,onSaved}:Readonly<{account:ManagedCredential;onClose:()=>void;onSaved:(version:ConfigVersionSummary)=>void}>) {
+  const formId="credential-update-form";
   const secret=useRef<HTMLTextAreaElement>(null);
   const submitted=useRef(false);
   const [workingId,setWorkingId]=useState<string>();
@@ -24,10 +25,9 @@ export function CredentialUpdateDialog({account,onClose,onSaved}:Readonly<{accou
     } finally {material="";}
   },onSuccess:onSaved});
   const submit=(event:FormEvent)=>{event.preventDefault();if(submitted.current)return;submitted.current=true;save.mutate();};
-  return <Sheet title="更新凭据" onEscape={()=>!save.isPending&&onClose()}><h3>{accountName(account.identity)??account.provider}</h3><form className="sheet-form" onSubmit={submit}>
+  return <Sheet title="更新账号凭据" description={`${accountName(account.identity)??account.provider} 的连接与启停状态会被保留。`} onEscape={()=>!save.isPending&&onClose()} busy={save.isPending} footer={<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={submitted.current}>{save.isPending?"正在保存…":"保存并应用"}</button></>}><form id={formId} className="sheet-form" onSubmit={submit}>
     <label>新的 API Key 或完整授权文件<textarea ref={secret} required rows={5} maxLength={65536} autoComplete="off" spellCheck={false} disabled={submitted.current}/></label>
     <p className="muted">保留账号当前的启停状态与接口连接。</p>
     <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={onSaved}/>
-    <div className="sheet-actions"><button type="button" className="secondary" disabled={save.isPending} onClick={onClose}>取消</button><button type="submit" disabled={submitted.current}>{save.isPending?"正在保存…":"保存并应用"}</button></div>
   </form></Sheet>;
 }

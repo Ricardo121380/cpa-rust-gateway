@@ -30,6 +30,18 @@
      4.70:1); in dark mode they cannot — see the dark block. */
   --tint-fill: #0071e3;
 
+  /* Modal semantics. A Sheet is a solid operational surface inside one
+     restrained veil; it belongs to the glass shell without turning fields and
+     facts into a second frosted dashboard. These values intentionally resolve
+     against the active light/dark surface tokens. */
+  --modal-veil: color-mix(in srgb, var(--canvas) 38%, rgb(10 17 28 / 72%));
+  --modal-surface: color-mix(in srgb, var(--surface) 96%, var(--canvas));
+  --modal-surface-raised: color-mix(in srgb, var(--surface) 88%, var(--surface-2));
+  --modal-border: color-mix(in srgb, var(--separator) 84%, var(--panel-shine, #fff));
+  --modal-shadow: 0 22px 52px -26px rgb(14 23 36 / 42%), 0 40px 96px -48px rgb(14 23 36 / 46%);
+  --focus-ring: color-mix(in srgb, var(--tint) 76%, white);
+  --focus-ring-offset: color-mix(in srgb, var(--modal-surface) 92%, var(--canvas));
+
   /* status pool — badges only, never chart series */
   --status-good: #248a3d;
   --status-warn: #b7791f;

@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { IdentityDetails } from "../../components/ResourceIdentity";
 import {accountName,protocolName} from "../accounts/presentation";
 import {
@@ -29,7 +29,11 @@ export function PoolActionSheet({
   return (
     <Sheet
       title={isCooldown ? "冷却这个账号" : "为这个账号请求恢复"}
+      description={isCooldown ? "让当前账号连接在指定时间内退出调度，其他同渠道账号不受影响。" : "只登记恢复意图；是否重新放行仍由运行时和上游决定。"}
+      layout="confirm"
+      tone={isCooldown ? "danger" : "default"}
       onEscape={onCancel}
+      busy={pending}
     >
       <p className="reveal-warning">
         <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong>
@@ -90,9 +94,9 @@ export function PoolActionSheet({
           <small>只想影响某一个上游模型时填写;留空表示整个账号。</small>
         </label>
         <div className="sheet-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
+          <SheetDismissButton className="secondary" disabled={pending}>
             取消
-          </button>
+          </SheetDismissButton>
           <button
             type="submit"
             className={isCooldown ? "danger" : undefined}

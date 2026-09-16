@@ -5,6 +5,16 @@ export const FIXTURE_KEY = `mgmt_${"a".repeat(40)}`;
 export const FIXTURE_CSRF = `csrf_${"b".repeat(40)}`;
 
 export async function unlock(page: Page): Promise<void> {
+  // The development fixture backend is intentionally stateful so an individual
+  // flow can observe its own writes. Reset it at the test boundary before the
+  // first login, which makes the full suite deterministic as well.
+  await page.goto("/");
+  await page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    fixture.resetFixturesForTest();
+    localStorage.clear();
+    sessionStorage.clear();
+  });
   await page.goto("/#/unlock");
   await page.getByLabel("账号", { exact: true }).fill("admin");
   await page.getByLabel("密码", { exact: true }).fill(FIXTURE_PASSWORD);
@@ -36,7 +46,7 @@ export async function selectVersion(page: Page, id: string): Promise<void> {
   const button = row.getByRole("button", { name: /^(正在查看|编辑草稿|查看历史|查看已发布配置)$/u });
   await expect(button).toBeVisible();
   if (await button.isEnabled()) await button.click();
-  await expect(page.locator(".configuration-context")).toHaveAttribute("data-context-version", id);
+  await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version", id);
   if (previousHash !== "#/versions") await page.goto(`/${previousHash}`);
 }
 
@@ -47,7 +57,7 @@ export async function selectDraft(page: Page): Promise<void> {
 
 /** Simulate a gateway with drafts but no published configuration. */
 export async function clearVersionForTest(page: Page): Promise<void> {
-  await expect(page.locator(".configuration-context")).toHaveAttribute("data-context-version", "v-2026-07");
+  await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version", "v-2026-07");
   await page.evaluate(async () => {
     const clientPath = "/src/generated/management-client.ts";
     const { ManagementApi } = await import(clientPath);
@@ -62,5 +72,5 @@ export async function clearVersionForTest(page: Page): Promise<void> {
     const { useVersionStore } = await import(modulePath);
     useVersionStore.getState().reset();
   });
-  await expect(page.locator(".configuration-context")).not.toHaveAttribute("data-context-version");
+  await expect(page.locator("main.canvas")).not.toHaveAttribute("data-context-version");
 }

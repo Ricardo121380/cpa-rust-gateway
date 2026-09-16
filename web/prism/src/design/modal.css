@@ -1,116 +1,330 @@
-/* V4 modal layer: solid forms and inspectors above one softly dimmed scrim.
-   Glass remains reserved for navigation; Sheet owns focus and exit cleanup. */
+/* Prism's one overlay system. Chrome may use lens glass; dialog content stays
+   solid and readable. Header/body/footer are intentionally owned here rather
+   than split between this file and app.css. */
 :root {
-  --sheet-in: 200ms;
-  --sheet-out: 160ms;
+  --sheet-in: 180ms;
 }
+
+html.has-sheet,
+html.has-sheet body {
+  overscroll-behavior: none;
+}
+
 .sheet-backdrop[data-modal="scrim"] {
   position: fixed;
   inset: 0;
   z-index: 100;
   display: grid;
   place-items: center;
-  padding: 24px;
-  background: #1015222e;
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  animation: scrim-in var(--sheet-in) var(--ease) both;
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background: var(--modal-veil);
+  -webkit-backdrop-filter: blur(4px) saturate(112%);
+  backdrop-filter: blur(4px) saturate(112%);
+  animation: sheet-veil-in var(--sheet-in) var(--ease) both;
 }
-.sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost)
-  ~ .sheet-backdrop[data-modal="scrim"]:not(.sheet-ghost) {
+
+.sheet-backdrop[data-modal="scrim"]
+  ~ .sheet-backdrop[data-modal="scrim"] {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
-@keyframes scrim-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+
+@keyframes sheet-veil-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-@keyframes scrim-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+
+.sheet-backdrop > [role="dialog"] {
+  width: min(520px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  min-height: 0;
 }
-.sheet-backdrop[data-modal="scrim"].sheet-ghost {
-  z-index: 99;
-  pointer-events: none;
-  animation: scrim-out var(--sheet-out) var(--ease) both;
-}
-.sheet-backdrop .sheet-panel {
-  width: min(600px, calc(100vw - 32px));
-  padding: 22px;
-  background: var(--surface);
+
+.sheet-panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  max-height: inherit;
+  overflow: hidden;
   color: var(--ink);
-  border: 1px solid var(--separator);
-  border-radius: 20px;
-  box-shadow: 0 24px 80px #00000026;
-  overflow-y: auto;
+  background: linear-gradient(155deg, var(--modal-surface-raised), var(--modal-surface) 42%, var(--modal-surface));
+  border: 1px solid var(--modal-border);
+  border-radius: 22px;
+  box-shadow: var(--modal-shadow), inset 0 1px 0 var(--panel-shine, rgb(255 255 255 / 68%));
+  animation: sheet-panel-in var(--sheet-in) var(--ease) both;
 }
+
+@keyframes sheet-panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .sheet-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex: none;
+  gap: 16px;
+  padding: 22px 22px 0;
 }
-.sheet-panel .sheet-heading h3 {
+
+.sheet-heading > div { min-width: 0; }
+
+.sheet-heading h2 {
   margin: 0;
-  min-width: 0;
-  flex: 1;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -.018em;
+  line-height: 26px;
   overflow-wrap: anywhere;
 }
-.sheet-heading button {
-  min-width: 28px;
-  flex: none;
-  padding: 2px 7px;
-  font-size: 19px;
+
+.sheet-description {
+  max-width: 54ch;
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 20px;
 }
+
+.sheet-close {
+  display: grid;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.sheet-body {
+  min-height: 0;
+  padding: 18px 22px 22px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 16px;
+}
+
+.sheet-body > :first-child { margin-top: 0; }
+.sheet-body > :last-child { margin-bottom: 0; }
+
+.sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 72px;
+  padding: 14px 22px max(18px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--modal-border);
+  background: color-mix(in srgb, var(--modal-surface-raised) 92%, transparent);
+}
+
+.sheet-footer > .sheet-actions,
+.sheet-footer .sheet-actions {
+  width: 100%;
+  margin: 0;
+}
+
+.sheet-footer > button,
+.sheet-footer > a {
+  min-height: 44px;
+}
+
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.sheet-form label,
+.sheet-form legend {
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 18px;
+}
+
+.sheet-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.sheet-form fieldset {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--modal-border);
+  border-radius: 14px;
+}
+
+.sheet-form legend { padding-inline: 4px; }
+
+.sheet-form :is(input, select, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--ink);
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--modal-surface));
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.sheet-form textarea { min-height: 96px; resize: vertical; }
+.sheet-form :is(input, select, textarea):disabled { opacity: .62; }
+
+.sheet-panel :is(button, input, select, textarea, summary, a):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.sheet-panel :is(button, input, select, textarea):user-invalid {
+  border-color: var(--status-critical);
+}
+
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.sheet-actions > button,
+.sheet-actions > a {
+  min-height: 44px;
+}
+
+.reveal-warning {
+  margin: 0 0 12px;
+  color: var(--status-serious);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.reveal-key {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid var(--modal-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 82%, var(--modal-surface));
+  color: var(--ink);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.sheet-form > .sheet-actions:last-child {
+  position: sticky;
+  bottom: -22px;
+  z-index: 1;
+  margin: 2px -2px -22px;
+  padding: 16px 2px 22px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--modal-surface) 0%, transparent), var(--modal-surface) 28%);
+}
+
+.sheet-panel :is(.action-error, .field-error) {
+  margin: 0;
+}
+
+.sheet-discard {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border: 1px solid var(--modal-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--modal-surface-raised) 96%, var(--canvas));
+  box-shadow: 0 16px 36px -20px var(--panel-shadow, rgb(14 23 36 / 42%));
+}
+
+.sheet-discard > h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 24px;
+}
+.sheet-discard > p { margin: 6px 0 0; }
+.sheet-discard > .muted { margin-top: 4px; }
+.sheet-discard .sheet-actions { margin-top: 18px; }
+
+.sheet-backdrop[data-layout="confirm"] > [role="dialog"] { width: min(460px, calc(100vw - 48px)); }
+
 .sheet-backdrop[data-layout="inspector"] {
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-  padding: 88px 16px 16px;
-}
-.sheet-backdrop[data-layout="inspector"] > [role="dialog"] {
-  width: min(520px, calc(100vw - 32px));
-}
-.sheet-backdrop[data-layout="inspector"] .sheet-panel {
-  width: 100%;
-  height: 100%;
-  max-height: none;
-  border-radius: 18px;
-}
-.sheet-form .sheet-actions {
-  background: var(--surface);
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) 16px;
 }
 
+.sheet-backdrop[data-layout="inspector"] > [role="dialog"] {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+}
+
+.sheet-backdrop[data-layout="inspector"] .sheet-panel {
+  height: 100%;
+  border-radius: 20px;
+}
+
+.sheet-backdrop[data-tone="danger"] .sheet-heading h2 { color: var(--status-critical); }
+
 @media (max-width: 560px) {
-  .sheet-backdrop[data-layout] {
+  .sheet-backdrop[data-modal="scrim"] {
+    place-items: end center;
     padding: 12px;
   }
-  .sheet-backdrop[data-layout] > [role="dialog"] {
+  .sheet-backdrop > [role="dialog"],
+  .sheet-backdrop[data-layout="confirm"] > [role="dialog"],
+  .sheet-backdrop[data-layout="inspector"] > [role="dialog"] {
     width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
   }
-  .sheet-backdrop .sheet-panel {
-    padding: 18px;
+  .sheet-backdrop[data-layout="inspector"] {
+    padding: 12px;
   }
+  .sheet-panel,
+  .sheet-backdrop[data-layout="inspector"] .sheet-panel { border-radius: 18px; }
+  .sheet-heading { padding: 18px 18px 0; }
+  .sheet-body { padding: 16px 18px 18px; }
+  .sheet-footer { min-height: 76px; padding: 12px 18px max(14px, env(safe-area-inset-bottom)); }
+  .sheet-footer > button,
+  .sheet-footer > a { flex: 1 1 132px; }
+  .sheet-discard { right: 12px; bottom: 12px; left: 12px; }
+  .sheet-actions > button,
+  .sheet-actions > a { flex: 1 1 132px; }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --sheet-in: 0ms;
-    --sheet-out: 0ms;
-  }
+  :root { --sheet-in: 0ms; }
+  .sheet-panel { animation: none; }
 }
+
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .sheet-backdrop[data-modal="scrim"] {
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
+  .sheet-panel { background: var(--modal-surface); }
+}
+
+html[data-transparency="reduce"] .sheet-backdrop[data-modal="scrim"],
+html[data-contrast="more"] .sheet-backdrop[data-modal="scrim"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }

@@ -356,6 +356,7 @@ export function AccountRuntimePanel() {
       {selected === undefined ? null : (
         <Sheet
           title={runtimeName(selected)}
+          description="查看这个账号连接的实时认证、调度和权益证据；未观测不等于不可用。"
           layout="inspector"
           onEscape={() => setSelected(undefined)}
         >
