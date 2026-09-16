@@ -1,6 +1,6 @@
 # Prism Modal and Workspace Refinement
 
-Status: proposal for C2C review
+Status: active implementation; shared Sheet and channel-authorization lifecycle checkpoint approved by C2C task `c2c_5477` (iteration 7). Legacy OAuth renewal and the remaining ledger rows are still pending.
 
 ## Product frame
 
@@ -152,10 +152,10 @@ new contract before this refinement is considered complete.
 | `components/ObjectInspector.tsx` | inspector | Close only; allowlisted facts | Migrated: description and inspector frame | Inspector E2E pending final pass. |
 | `app/DraftDock.tsx` | confirm / receipt | Publish and validation results | Compatibility adapter; migration pending | Receipt E2E pending. |
 | `accounts/AddAccountDialog.tsx` | form / receipt | Imported secret and channel selection; explicit guarded close and cleanup | Migrated: stable form-associated footer and receipt action | `modal-foundation.spec.ts`; `modal-daily.spec.ts`. |
-| `accounts/AuthorizationCodeDialog.tsx` | form / device-progress / receipt | OAuth callback and cancellation task | Description/busy migration; footer pending | Channel E2E pending. |
-| `accounts/KimiDeviceDialog.tsx` | device-progress / receipt | Device challenge, polling and cancellation | Description/busy migration; footer pending | Channel E2E pending. |
-| `accounts/KiroDeviceDialog.tsx` | device-progress / form / receipt | Device challenge, polling and advanced organization values | Description/busy migration; footer pending | Channel E2E pending. |
-| `accounts/GrokDeviceWizard.tsx` | device-progress / receipt | Device challenge, native identity and cancellation | Description/busy migration; footer pending | Channel E2E pending. |
+| `accounts/AuthorizationCodeDialog.tsx` | callback form / receipt | Channel task and cancellation complete before an accepted dismissal | Migrated: stable phase-specific footer, transient callback form and inline validation | Callback lifecycle E2E pending. |
+| `accounts/KimiDeviceDialog.tsx` | device-progress / receipt | Device challenge, polling and cancellation | Migrated: stable footer; challenge stays visible during polling; cancellation precedes dismissal; an uncertain terminal poll exposes only a local exit | `channel-authorization.spec.ts` Kimi held/cancel/unresolved/Back cases. |
+| `accounts/KiroDeviceDialog.tsx` | device-progress / form / receipt | Device challenge, polling and cancellation; optional organization values | Migrated: stable footer; native options form; cancellation precedes dismissal; an uncertain terminal poll exposes only a local exit | `channel-authorization.spec.ts` Kiro held/cancel/unresolved cases. |
+| `accounts/GrokDeviceWizard.tsx` | device-progress / receipt | Native device identity and runtime receipt | Migrated: stable footer and cancel-before-dismiss | `native-accounts.spec.ts`; lifecycle race coverage pending. |
 | `accounts/CredentialUpdateDialog.tsx` | form | Replacement credential material; explicit guarded close and busy state | Migrated: stable form-associated footer | Daily form E2E pending. |
 | `accounts/AccountBatchDialog.tsx` | confirm / receipt | Destructive removal and per-item result | Confirm footer migrated | Batch E2E pending. |
 | `accounts/NativeAccountDialog.tsx` | form / inspector | Native identity, SSO replacement and runtime apply | Migrated: guarded Back continuation, stable inspector/form/receipt footer | Native E2E pending. |
@@ -168,7 +168,7 @@ new contract before this refinement is considered complete.
 | `upstreams/UpstreamsPage.tsx` | form / confirm | Provider tags and configuration revision | Chip dirty and confirmation migration; footer pending | Provider E2E pending. |
 | `upstreams/SubresourcePanel.tsx` | form / inspector / confirm | Endpoint and binding configuration | Compatibility adapter | Connection/routing E2E pending. |
 | `upstreams/CredentialSheet.tsx` | inspector | Account identity and maintenance actions | Migrated: compact purpose header and stable Close footer | Daily inspector E2E pending. |
-| `upstreams/OAuthWizard.tsx` | device-progress | OAuth state | Compatibility adapter | Renewal E2E pending. |
+| `upstreams/OAuthWizard.tsx` | callback authorization | Legacy credential OAuth status and terminal cleanup | Compatibility adapter; scheduled for callback lifecycle checkpoint | Renewal E2E pending. |
 | `models/ConnectModelDialog.tsx` | form | Exact model ID and endpoint selection; explicit close and busy state | Migrated: stable form-associated footer | `modal-daily.spec.ts`. |
 | `models/ModelConnectionsDialog.tsx` | inspector | Model source connection facts | Compatibility adapter | Model E2E pending. |
 | `models/ModelsPage.tsx` | form / confirm | Aliases, route setup and destructive remove | Description/confirmation migration partial | Model E2E pending. |

@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { asAppError } from "../../api/errors";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
@@ -50,6 +49,8 @@ export function KimiDeviceDialog({
   const [session, setSession] = useState<Session>();
   const [workingId, setWorkingId] = useState<string>();
   const [completed, setCompleted] = useState<ConfigVersionSummary>();
+  const [completionError, setCompletionError] = useState<unknown>();
+  const [unresolvedResult, setUnresolvedResult] = useState(false);
   const mergeSession = (next: Session) => setSession((current) => mergeKimiDeviceSession(current, next));
   const start = useMutation({
     mutationFn: async () => {
@@ -82,10 +83,18 @@ export function KimiDeviceDialog({
         },
       });
       if (result.state !== "completed" || !result.credential_id) return result;
-      setCompleted(await enrollment.task.finish());
+      try {
+        setCompleted(await enrollment.task.finish());
+      } catch (error) {
+        // The terminal poll already persisted the credential. Keep that
+        // receipt terminal and offer configuration recovery; retrying poll
+        // would replay a consuming provider operation.
+        setCompletionError(error);
+      }
       return result;
     },
     onSuccess: mergeSession,
+    onError: () => setUnresolvedResult(true),
   });
   const cancel = useMutation({
     mutationFn: async () => {
@@ -101,12 +110,13 @@ export function KimiDeviceDialog({
         },
       });
     },
-    onSuccess: onClose,
   });
   const busy = start.isPending || poll.isPending || cancel.isPending;
-  const pending = session?.state === "pending" && !poll.isError && !poll.isPending;
+  const awaitingConsent = session?.state === "pending" && completed === undefined && completionError === undefined && !unresolvedResult;
+  const pollInFlight = poll.isPending;
+  const canSchedulePoll = awaitingConsent && !pollInFlight && !poll.isError;
   useEffect(() => {
-    if (!pending || !session?.session_id || completed) return;
+    if (!canSchedulePoll || !session?.session_id) return;
     const generation = ++pollingGeneration.current;
     const timer = window.setTimeout(() => {
       if (generation === pollingGeneration.current) poll.mutate();
@@ -115,17 +125,21 @@ export function KimiDeviceDialog({
       pollingGeneration.current += 1;
       window.clearTimeout(timer);
     };
-  }, [completed, pending, poll.mutate, session?.interval_ms, session?.session_id]);
+  }, [canSchedulePoll, poll.mutate, session?.interval_ms, session?.session_id]);
+  const dismissAuthorization = async () => {
+    pollingGeneration.current += 1;
+    if (completed !== undefined || completionError !== undefined || unresolvedResult || !awaitingConsent) return true;
+    try { await cancel.mutateAsync(); return true; } catch { return false; }
+  };
   const close = () => {
     pollingGeneration.current += 1;
-    if (busy) return;
     if (completed) {
       useVersionStore.getState().select(completed);
       onComplete("Kimi 账号授权已保存。");
       return;
     }
-    if (pending) {
-      cancel.mutate();
+    if (completionError !== undefined) {
+      onComplete("Kimi 账号授权已保存，配置尚未应用，请核对待应用的修改。");
       return;
     }
     onClose();
@@ -139,13 +153,13 @@ export function KimiDeviceDialog({
     expired: "授权已过期",
     failed: "授权未完成",
   };
-  return <Sheet title={credentialId ? "重新授权 Kimi 账号" : "授权 Kimi 账号"} description={credentialId ? "仅更新这个已有账号的授权；当前连接会保留。" : "开始后在 Kimi 官方页面完成设备授权，面板会自动核对结果。"} onEscape={close} busy={busy}>
+  const footer = completed ? <SheetDismissButton disabled={busy}>完成</SheetDismissButton> : !session ? <><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" disabled={busy || start.isError} onClick={() => start.mutate()}>开始授权</button></> : unresolvedResult ? <SheetDismissButton disabled={busy}>关闭并标记结果未确认</SheetDismissButton> : awaitingConsent ? <SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton> : <SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
+  return <Sheet title={credentialId ? "重新授权 Kimi 账号" : "授权 Kimi 账号"} description={credentialId ? "仅更新这个已有账号的授权；当前连接会保留。" : "开始后在 Kimi 官方页面完成设备授权，面板会自动核对结果。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={awaitingConsent} footer={footer}>
     {completed ? <p role="status">Kimi 账号已保存。</p> : !session ? <>
       <p>将打开 Kimi 官方设备授权。完成登录后，此窗口会自动保存授权。</p>
-      <button disabled={busy || start.isError} onClick={() => start.mutate()}>开始授权</button>
     </> : <>
-      <p role="status">{status[session.state]}</p>
-      {pending ? <>
+      <p role={unresolvedResult ? "alert" : "status"}>{unresolvedResult ? "授权结果暂时无法确认；不会重复提交授权请求。请稍后在账号管理中核对。" : pollInFlight && awaitingConsent ? "正在检查 Kimi 授权…" : status[session.state]}</p>
+      {awaitingConsent ? <>
         <p>在 Kimi 官方页面输入此验证码：</p>
         <strong className="mono">{session.user_code}</strong>
         {url ? <p><a className="button" href={url} target="_blank" rel="noopener noreferrer">打开 Kimi 授权页</a></p> : null}
@@ -154,17 +168,11 @@ export function KimiDeviceDialog({
     </>}
     <ConfigurationTaskNotice
       workingId={workingId}
-      error={start.error ?? poll.error}
+      error={completionError ?? start.error ?? poll.error ?? cancel.error}
       onReview={(version) => {
         useVersionStore.getState().select(version);
         onComplete("请核对已保存的 Kimi 授权修改。");
       }}
     />
-    {cancel.isError ? <p role="alert">{asAppError(cancel.error).message}</p> : null}
-    <div className="sheet-actions">
-      <SheetDismissButton className="secondary" disabled={busy}>
-        {completed ? "完成" : pending ? "取消授权" : "关闭"}
-      </SheetDismissButton>
-    </div>
   </Sheet>;
 }

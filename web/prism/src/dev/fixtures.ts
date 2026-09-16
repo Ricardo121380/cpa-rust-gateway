@@ -686,6 +686,7 @@ const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;
 const approvedNativeSessions=new Set<string>();
 const kimiDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const kiroDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
+const unresolvedDevicePolls = new Set<"kimi-coding" | "kiro">();
 type FixtureOperationControl = { held: boolean; calls: number; waiters: Set<() => void> };
 const fixtureOperationControls = new Map<string, FixtureOperationControl>();
 
@@ -751,11 +752,14 @@ export function resetFixturesForTest(): void {
   approvedNativeSessions.clear();
   kimiDeviceSessions.clear();
   kiroDeviceSessions.clear();
+  unresolvedDevicePolls.clear();
   for (const control of fixtureOperationControls.values()) releaseFixtureControl(control);
   fixtureOperationControls.clear();
 }
 /** Simulates the provider's consent, not a management API or automatic successful poll. */
 export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
+/** Simulates a provider transport uncertainty after the server drops its session. */
+export function failNextDevicePollForTest(channel:"kimi-coding"|"kiro"):void { unresolvedDevicePolls.add(channel); }
 
 export const fixtureFetch: typeof fetch = (input, init) => {
   // No `new Request(...)`: Node's Request rejects relative URLs, and the
@@ -1596,6 +1600,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if(action==="start"){const session_id=crypto.randomUUID();kimiDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kimiDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});version.revision+=1;return json(200,{state:"pending",session_id,user_code:"KIMI-TEST",verification_uri:"https://auth.kimi.com/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
       const entry=input.session_id?kimiDeviceSessions.get(input.session_id):undefined;if(!entry||entry.id!==input.id)return errorResponse(409,"management_kimi_authorization_conflict","授权已结束");
       if(action==="cancel"){kimiDeviceSessions.delete(input.session_id!);return json(200,{state:"cancelled"},revisionToken(version));}
+      if(unresolvedDevicePolls.delete("kimi-coding")){kimiDeviceSessions.delete(input.session_id!);return errorResponse(503,"management_kimi_authorization_unresolved","授权结果暂时无法确认");}
       entry.polls+=1;if(entry.polls===1)return json(200,{state:"pending",interval_ms:1000},revisionToken(version));
       const rows=state.credentials.get(version.id)??[];if(!rows.some((row)=>row.id===entry.id))rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"oauth_json",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kimiDeviceSessions.delete(input.session_id!);version.revision+=1;return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
     }
@@ -1607,6 +1612,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if(action==="start"){const session_id=crypto.randomUUID();kiroDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kiroDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});return json(200,{state:"pending",session_id,user_code:"KIRO-TEST",verification_uri:"https://view.awsapps.com/start/#/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
       const entry=input.session_id?kiroDeviceSessions.get(input.session_id):undefined;if(!entry||entry.id!==input.id)return errorResponse(409,"management_kiro_authorization_conflict","授权已结束");
       if(action==="cancel"){kiroDeviceSessions.delete(input.session_id!);return json(200,{state:"cancelled"},revisionToken(version));}
+      if(unresolvedDevicePolls.delete("kiro")){kiroDeviceSessions.delete(input.session_id!);return errorResponse(503,"management_kiro_authorization_unresolved","授权结果暂时无法确认");}
       entry.polls+=1;if(entry.polls===1)return json(200,{state:"pending",interval_ms:1000},revisionToken(version));
       const rows=state.credentials.get(version.id)??[];if(!rows.some((row)=>row.id===entry.id))rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"bearer",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kiroDeviceSessions.delete(input.session_id!);version.revision+=1;return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
     }

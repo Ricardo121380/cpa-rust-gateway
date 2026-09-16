@@ -19,13 +19,20 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
   const start=useMutation({mutationFn:()=>call<View>("startNativeAccountAuthorization",{body:{...(name?{name}:{}),...(target?{target}:{})}}),onSuccess:setSession});
   const cancel=useMutation({mutationFn:()=>call<View>("cancelNativeAccountAuthorization",{path:{session_id:session!.session_id}}),onSuccess:(value)=>client.setQueryData(key,value)});
   const view=poll.data??session;
-  const close=()=>{if(view?.state==="pending") cancel.mutate();else{void client.resetQueries({queryKey:["native-accounts"]});if(view?.state==="complete")onComplete?.();onClose();}};
+  const dismissAuthorization=async()=>{
+    if(view?.state!=="pending")return true;
+    await client.cancelQueries({queryKey:key});
+    try {return (await cancel.mutateAsync()).state!=="complete";} catch {return false;}
+  };
+  const close=()=>{void client.resetQueries({queryKey:["native-accounts"]});if(view?.state==="complete")onComplete?.();onClose();};
   const labels:Record<string,string>={pending:"等待 Grok 授权",complete:"授权已保存",denied:"授权被拒绝",expired:"授权已过期",cancelled:"已取消授权",failed:"授权通信失败",persistence_conflict:"账号身份或版本冲突，凭据未被覆盖"};
   const error=start.error??poll.error??cancel.error;
   const href=safeExternalUrl(view?.verification_uri);
-  return <Sheet title={target?"Grok 重新授权":"添加 Grok 授权账号"} description={target?"仅更新选中账号的官方授权，不改变其他账号或连接。":"在 Grok 官方页面输入设备验证码；保存后会读取授权身份。"} onEscape={close} busy={start.isPending||cancel.isPending}>
+  const busy=start.isPending||cancel.isPending;
+  const footer=!view?<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" disabled={busy||start.isError} onClick={()=>start.mutate()}>开始 Grok 授权</button></>:view.state==="pending"?<SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton>:<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
+  return <Sheet title={target?"Grok 重新授权":"添加 Grok 授权账号"} description={target?"仅更新选中账号的官方授权，不改变其他账号或连接。":"在 Grok 官方页面输入设备验证码；保存后会读取授权身份。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={view?.state==="pending"} footer={footer}>
     {target&&name?<p>{name}</p>:null}
-    {!view?<button disabled={start.isPending} onClick={()=>start.mutate()}>开始 Grok 授权</button>:<>
+    {!view?<p>开始后在 Grok 官方页面完成授权；此窗口会保留验证码并读取身份。</p>:<>
       <p role="status" data-native-session-id={view.session_id}>{labels[view.state]??view.state}</p>
       {view.state==="pending"?<>
         <p>在 Grok 授权页面输入此验证码：</p><p className="mono">{view.user_code}</p>
@@ -39,6 +46,5 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
       </>:null}
     </>}
     {error?<p role="alert">{asAppError(error).message}</p>:null}
-    <div className="sheet-actions"><SheetDismissButton className="secondary" disabled={start.isPending||cancel.isPending}>{view?.state==="pending"?"取消授权":"关闭"}</SheetDismissButton></div>
   </Sheet>;
 }
