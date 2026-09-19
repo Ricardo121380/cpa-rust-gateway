@@ -51,7 +51,7 @@ export async function selectVersion(page: Page, id: string): Promise<void> {
   // recreates the document with an unindexed history entry, which means a
   // realistic Back/Forward test cannot exercise React Router's POP blocker.
   if (previousPath !== "/versions") {
-    const destination = Object.entries(destinationsForTest).find(([, path]) => path === previousPath);
+    const destination = Object.entries(destinationsForTest).find(([, path]) => path === previousPath.split("?")[0]);
     if (destination === undefined) throw new Error(`No rail destination for ${previousPath}`);
     await navigate(page, destination[0]);
   }

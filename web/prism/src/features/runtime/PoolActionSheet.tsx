@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { IdentityDetails } from "../../components/ResourceIdentity";
 import {accountName,protocolName} from "../accounts/presentation";
@@ -16,6 +16,7 @@ export function PoolActionSheet({
   pending,
   onCancel,
   onInvalid,
+  error,
   onSubmit,
 }: Readonly<{
   account: PoolAccount;
@@ -23,9 +24,12 @@ export function PoolActionSheet({
   pending: boolean;
   onCancel: () => void;
   onInvalid: (message: string) => void;
+  error?: string;
   onSubmit: (body: Readonly<Record<string, unknown>>) => void;
 }>) {
   const isCooldown = action === "cool_down";
+  const formId = useId();
+  const [validation, setValidation] = useState<string>();
   return (
     <Sheet
       title={isCooldown ? "冷却这个账号" : "为这个账号请求恢复"}
@@ -34,6 +38,7 @@ export function PoolActionSheet({
       tone={isCooldown ? "danger" : "default"}
       onEscape={onCancel}
       busy={pending}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} className={isCooldown ? "danger" : undefined} disabled={pending}>{isCooldown ? "确认冷却" : "确认请求恢复"}</button></>}
     >
       <p className="reveal-warning">
         <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong>
@@ -46,6 +51,7 @@ export function PoolActionSheet({
       </p>
       <IdentityDetails entries={[["账号",account.account_id,accountName(account.presentation?.identity)??"未提供账号身份"],["提供商",account.provider_id,account.presentation?.provider],["接口",account.channel_id,account.presentation?protocolName(account.presentation.api_format):undefined]]} />
       <form
+        id={formId}
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
@@ -63,9 +69,9 @@ export function PoolActionSheet({
           if (isCooldown) {
             const ms = Number(data.get("cooldown_ms"));
             if (!validCooldown(ms)) {
-              onInvalid(
-                `冷却时长越界:契约要求 ${COOLDOWN_MIN_MS}–${COOLDOWN_MAX_MS} 毫秒(1 秒–24 小时)。`,
-              );
+              const message=`冷却时长越界:契约要求 ${COOLDOWN_MIN_MS}–${COOLDOWN_MAX_MS} 毫秒(1 秒–24 小时)。`;
+              setValidation(message);
+              onInvalid(message);
               return;
             }
             body["cooldown_ms"] = ms;
@@ -93,18 +99,8 @@ export function PoolActionSheet({
           <input name="upstream_model" className="mono" maxLength={256} />
           <small>只想影响某一个上游模型时填写;留空表示整个账号。</small>
         </label>
-        <div className="sheet-actions">
-          <SheetDismissButton className="secondary" disabled={pending}>
-            取消
-          </SheetDismissButton>
-          <button
-            type="submit"
-            className={isCooldown ? "danger" : undefined}
-            disabled={pending}
-          >
-            {isCooldown ? "确认冷却" : "确认请求恢复"}
-          </button>
-        </div>
+        {validation?<p role="alert" className="action-error">{validation}</p>:null}
+        {error===undefined?null:<p role="alert" className="action-error">{error}</p>}
       </form>
     </Sheet>
   );

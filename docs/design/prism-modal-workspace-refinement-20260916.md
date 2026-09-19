@@ -1,6 +1,6 @@
 # Prism Modal and Workspace Refinement
 
-Status: active implementation; shared Sheet and channel-authorization lifecycle checkpoint approved by C2C task `c2c_5477` (iteration 7). Legacy OAuth renewal and the remaining ledger rows are still pending.
+Status: active implementation. Shared Sheet/channel authorization (`c2c_5477`), legacy OAuth renewal (`c2c_8a4d`), Provider workspace (`c2c_b63f`), and account maintenance (`c2c_a74e`) have approved checkpoints. The remaining ledger rows and final whole-application acceptance are still pending.
 
 ## Product frame
 
@@ -156,11 +156,11 @@ new contract before this refinement is considered complete.
 | `accounts/KimiDeviceDialog.tsx` | device-progress / receipt | Device challenge, polling and cancellation | Migrated: stable footer; challenge stays visible during polling; cancellation precedes dismissal; an uncertain terminal poll exposes only a local exit | `channel-authorization.spec.ts` Kimi held/cancel/unresolved/Back cases. |
 | `accounts/KiroDeviceDialog.tsx` | device-progress / form / receipt | Device challenge, polling and cancellation; optional organization values | Migrated: stable footer; native options form; cancellation precedes dismissal; an uncertain terminal poll exposes only a local exit | `channel-authorization.spec.ts` Kiro held/cancel/unresolved cases. |
 | `accounts/GrokDeviceWizard.tsx` | device-progress / receipt | Native device identity and runtime receipt | Migrated: stable footer and cancel-before-dismiss | `native-accounts.spec.ts`; lifecycle race coverage pending. |
-| `accounts/CredentialUpdateDialog.tsx` | form | Replacement credential material; explicit guarded close and busy state | Migrated: stable form-associated footer | Daily form E2E pending. |
-| `accounts/AccountBatchDialog.tsx` | confirm / receipt | Destructive removal and per-item result | Confirm footer migrated | Batch E2E pending. |
+| `accounts/CredentialUpdateDialog.tsx` | form / receipt | Replacement material, exact owner/status admission, explicit recovery state and non-replayable receipt | Migrated: stable form footer; unsupported operational status requires a supported explicit choice | `account-actions.spec.ts` replacement, owner-race and read-only-status cases; C2C `c2c_a74e` iteration 6. |
+| `accounts/AccountBatchDialog.tsx` | confirm / receipt | Destructive removal, exact captured ordinary/native targets and per-item result | Migrated: stable confirm footer and structured partial outcomes | `account-actions.spec.ts`, `managed-accounts.spec.ts`; real local gateway one-account disable/readback; C2C `c2c_a74e` iteration 6. |
 | `accounts/NativeAccountDialog.tsx` | form / inspector | Native identity, SSO replacement and runtime apply | Migrated: guarded Back continuation, stable inspector/form/receipt footer | Native E2E pending. |
-| `accounts/AccountRuntimePanel.tsx` | inspector / confirm | Runtime action state | Inspector description migrated | Runtime E2E pending. |
-| `accounts/AccountsPage.tsx` | inspector / action menu | Account maintenance transitions | Inspector/action chooser migrated | Account E2E pending. |
+| `accounts/AccountRuntimePanel.tsx` | inspector / confirm / receipt | Runtime action state and exact ordinary/native maintenance admission | Migrated: captured runtime target, authority-specific resolution, stable owned editor and explicit uncertain result | `account-actions.spec.ts`, `resource-names.spec.ts` including pagination, error/retry, owner and held-write races; C2C `c2c_a74e` iteration 6. |
+| `accounts/AccountsPage.tsx` | inspector / action menu | Account maintenance transitions | Migrated: inspector/action chooser and exact batch owner snapshot | `managed-accounts.spec.ts`, `account-actions.spec.ts`; C2C `c2c_a74e` iteration 6. |
 | `access/IssueKeyDialog.tsx` | form / reveal receipt | One-time Client Key; busy blocks close and router-owned route admission | Migrated: stable Create/Cancel footer switches to Copy/Done receipt footer | `modal-daily.spec.ts`, including held multi-step Back/Forward, post-receipt dirty Back and receipt regression. |
 | `access/KeyPermissionsDialog.tsx` | form | Model grants and expiry; controlled dirty state covers button-only edits | Migrated: stable Save/Cancel footer | Permission/dirty daily E2E pending. |
 | `access/AccessPage.tsx` | form / confirm / reveal receipt | Client keys and group routing | Revocation confirmation migrated; legacy subflows pending | Access-key E2E pending. |
@@ -177,7 +177,7 @@ new contract before this refinement is considered complete.
 | `billing/BillingPage.tsx` | form / confirm / receipt | Price catalog import | Compatibility adapter | Billing E2E pending. |
 | `egress/EgressPage.tsx` | form / confirm / inspector | Host, port and CIDR policy | Chip dirty and confirmations migrated; footer pending | `modal-foundation.spec.ts`. |
 | `egress/CompatibleProxyPanel.tsx` | form / confirm | Sealed proxy endpoints | Compatibility adapter | Egress E2E pending. |
-| `runtime/PoolActionSheet.tsx` | confirm | Scheduler action | Description/confirm migration partial | Runtime action E2E pending. |
+| `runtime/PoolActionSheet.tsx` | confirm | Scheduler action | Migrated: stable footer, field-local validation and target-bound result | `account-actions.spec.ts`; C2C `c2c_a74e` iteration 6. |
 | `monitoring/MonitoringPage.tsx` | inspector | Request attempt evidence | Compatibility adapter | Monitoring E2E pending. |
 | `monitoring/RequestHistory.tsx` | inspector | Request evidence and usage | Compatibility adapter | Monitoring E2E pending. |
 | `config-versions/LifecycleConfirmation.tsx` | confirm | Publish/rollback target and revision | Confirm/danger migration | Lifecycle E2E pending. |
@@ -189,6 +189,28 @@ Back and internal-link triggers routed through the shared discard policy while
 the listed callers are converted. It may be removed only after every remaining
 row is marked migrated and the targeted browser suite demonstrates the same
 behavior.
+
+## 2026-09-19 - Account maintenance checkpoint
+
+The account batch preserves one selected ordinary/native authorization per exact
+namespace and ID. Ordinary writes verify the captured Provider owner before
+both preflight and draft mutation; native actions require an exact paginated
+inventory match. Per-item outcomes distinguish skipped, rejected, saved draft,
+saved but unapplied, applied, unexecuted and unconfirmed. Credential replacement
+checks owner, kind, revision and observed status before writing, and requires an
+explicit active/disabled decision for operational read-only statuses.
+
+Runtime details verify an ordinary credential and its endpoint binding or a
+native account by exact provider/ID before opening maintenance. Once admitted,
+the editor holds its original account and revision; a background observation
+cannot invert its action or discard a dirty/held form. Failed cached rereads
+show an error and require an explicit fresh resolution. Chromium covered these
+boundaries in 31 serial account cases; 42 unit files/340 tests, type check,
+double-build SPA gate, management SPA gate, and three embedded UI Rust tests
+passed. C2C `c2c_a74e` approved the full batch at iteration 6. An isolated
+real gateway with loopback mock completed a one-account disable, active
+application and UI readback. Official channel login, whole-app responsive
+acceptance and production deployment are outside this checkpoint.
 
 ## 2026-09-19 - Provider workspace checkpoint
 

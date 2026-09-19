@@ -1,18 +1,21 @@
 import { IdentityDetails } from "../../components/ResourceIdentity";
 import {accountName, accountGroups, protocolName} from "./presentation";
 import {
+  isCancelledError,
   useInfiniteQuery,
   useMutation,
   useQueryClient,
+  useQuery,
 } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
+import { useSessionStore } from "../../session/sessionStore";
 import { EntitlementEvidence } from "../runtime/EntitlementEvidence";
 import {
   authStatusMeta,
@@ -23,6 +26,9 @@ import {
 } from "../runtime/model";
 import { CredentialSheet } from "../upstreams/CredentialSheet";
 import { PoolActionSheet } from "../runtime/PoolActionSheet";
+import { NativeAccountDialog } from "./NativeAccountDialog";
+import { GrokDeviceWizard } from "./GrokDeviceWizard";
+import type { NativeAccount } from "./NativeAccounts";
 import {
   receiptMeta,
   type PoolAction,
@@ -32,21 +38,30 @@ import {
 const runtimeName=(row:PoolAccount)=>accountName(row.presentation?.identity)??"未提供账号身份";
 const runtimeProvider=(row:PoolAccount)=>row.presentation?.provider??({grok_build_oauth:"Grok Build",grok_console_sso:"Grok Console",grok_web_sso:"Grok Web",oauth_json:"Codex"}[row.account_kind]??"API");
 const runtimeConnection=(row:PoolAccount)=>row.presentation?`${protocolName(row.presentation.api_format)}${row.presentation.host?` · ${row.presentation.host}`:""}`:"连接信息未提供";
+type RuntimeSelection=Readonly<{account:PoolAccount;snapshotId:string|undefined;observedAt:number|undefined}>;
+type RuntimeActionTarget=RuntimeSelection&Readonly<{action:PoolAction;upstreamModel?:string}>;
+type RuntimeActionReceipt=Readonly<{target:RuntimeActionTarget;kind:"received";value:ActionReceipt}|{target:RuntimeActionTarget;kind:"unconfirmed";message:string}>;
+type CredentialMaintenance=Readonly<{kind:"native";account:NativeAccount}|{kind:"ordinary";credentialId:string;account:PoolAccount}>;
+const nativeProviderForKind=(kind:string):NativeAccount["provider"]|undefined=>({grok_build_oauth:"grok_build",grok_console_sso:"grok_console",grok_web_sso:"grok_web"}[kind] as NativeAccount["provider"]|undefined);
 
 export function AccountRuntimePanel() {
   const t = useMessages();
   const queryClient = useQueryClient();
-  const scope = useVersionStore((s) => s.context?.configVersionId);
+  const context = useVersionStore((s) => s.context);
+  const sessionGeneration = useSessionStore((s) => s.generation);
+  const scope = context?.configVersionId;
   const [params, setParams] = useSearchParams();
-  const [selected, setSelected] = useState<PoolAccount>();
+  const [selected, setSelected] = useState<RuntimeSelection>();
   const [tab, setTab] = useState("runtime");
-  const [credential, setCredential] = useState<string>();
-  const [target, setTarget] = useState<{
-    account: PoolAccount;
-    action: PoolAction;
-  }>();
-  const [receipt, setReceipt] = useState<ActionReceipt>();
+  const [credential, setCredential] = useState<RuntimeSelection>();
+  const [nativeResolution, setNativeResolution] = useState(0);
+  const [ordinaryResolution, setOrdinaryResolution] = useState(0);
+  const [maintenance, setMaintenance] = useState<CredentialMaintenance>();
+  const [nativeOauth, setNativeOauth] = useState<NativeAccount>();
+  const [target, setTarget] = useState<RuntimeActionTarget>();
+  const [receipt, setReceipt] = useState<RuntimeActionReceipt>();
   const [actionError, setActionError] = useState<string>();
+  const [targetError, setTargetError] = useState<string>();
   const provider = params.get("provider") ?? "";
   const auth = params.get("auth") ?? "";
   const runtime = params.get("runtime") ?? "";
@@ -54,25 +69,31 @@ export function AccountRuntimePanel() {
   const category=params.get("category")??"";
   const key = ["accounts", provider, auth, runtime];
   const act = useMutation({
-    mutationFn: (body: Readonly<Record<string, unknown>>) =>
+    mutationFn: ({body}: {target:RuntimeActionTarget;body:Readonly<Record<string, unknown>>}) =>
       call<ActionReceipt>(
         "applyProviderAccountPoolAction",
         { body },
         { versionScoped: true },
-      ),
-    onSuccess: (result) => {
+    ),
+    onSuccess: (result, input) => {
       setTarget(undefined);
-      setReceipt(result);
+      setReceipt({target:{...input.target,upstreamModel:typeof input.body.upstream_model==="string"?input.body.upstream_model:undefined},kind:"received",value:result});
       void queryClient.resetQueries({ queryKey: ["accounts"] });
       void queryClient.invalidateQueries({ queryKey: ["provider-pools"] });
     },
-    onError: (cause) => {
+    onError: (cause, input) => {
+      if(isCancelledError(cause))return;
       const error = asAppError(cause);
-      setTarget(undefined);
       if (error.kind === "conflict") {
+        setTarget(undefined);
         void queryClient.resetQueries({ queryKey: ["accounts"] });
         setActionError("目标快照已改变，已重新读取。请重新选取账号后再操作。");
-      } else setActionError(`${error.code} · ${error.message}`);
+      } else if(error.kind === "invalid_request") setTargetError(`${error.code} · ${error.message}`);
+      else {
+        setTarget(undefined);
+        setReceipt({target:{...input.target,upstreamModel:typeof input.body.upstream_model==="string"?input.body.upstream_model:undefined},kind:"unconfirmed",message:`操作请求的结果未确认：${error.message}。已重新读取运行状态；请不要重复提交本次操作。`});
+        void queryClient.resetQueries({ queryKey: ["accounts"] });
+      }
     },
   });
   const pools = useInfiniteQuery({
@@ -91,6 +112,51 @@ export function AccountRuntimePanel() {
     getNextPageParam: (last) => last.next_cursor ?? undefined,
     retry: false,
   });
+  const selectedNativeProvider=credential===undefined?undefined:nativeProviderForKind(credential.account.account_kind);
+  const ordinaryCredential=useQuery({
+    queryKey:["runtime-credential-resolution",sessionGeneration,ordinaryResolution,scope,context?.revision,credential?.account.provider_id,credential?.account.channel_id,credential?.account.account_id],
+    enabled:credential!==undefined&&selectedNativeProvider===undefined&&scope!==undefined,
+    retry:false,
+    queryFn:async()=>{
+      const target=credential!;
+      const value=await call<{id:string;upstream_id:string}>("getCredential",{path:{credential_id:target.account.account_id}},{versionScoped:true});
+      if(value.id!==target.account.account_id||value.upstream_id!==target.account.provider_id)throw new Error("当前配置中的凭据不属于所选运行时提供商。");
+      const bindings=await call<readonly {credential_id:string}[]>("listEndpointCredentialBindings",{path:{endpoint_id:target.account.channel_id}},{versionScoped:true});
+      if(!bindings.some((binding)=>binding.credential_id===target.account.account_id))throw new Error("当前配置未将该凭据绑定到所选接口。");
+      return value;
+    },
+  });
+  const nativeInventory=useInfiniteQuery({
+    queryKey:["runtime-native-resolution",sessionGeneration,nativeResolution,credential?.account.account_id,selectedNativeProvider],
+    enabled:credential!==undefined&&selectedNativeProvider!==undefined,
+    retry:false,
+    initialPageParam:undefined as string|undefined,
+    queryFn:({pageParam})=>call<{items:readonly NativeAccount[];next_cursor:string|null}>("listNativeAccounts",{query:{limit:100,...(pageParam?{cursor:pageParam}:{})}}),
+    getNextPageParam:(page)=>page.next_cursor??undefined,
+  });
+  const nativeMatch=(nativeInventory.data?.pages.flatMap((page)=>page.items)??[])
+    .find((row)=>credential!==undefined&&selectedNativeProvider!==undefined&&row.id===credential.account.account_id&&row.provider===selectedNativeProvider);
+  const resolvingCredential=credential!==undefined&&(selectedNativeProvider===undefined?ordinaryCredential.isPending||ordinaryCredential.isFetching:nativeInventory.isPending||nativeInventory.isFetching||(!nativeInventory.isError&&nativeInventory.hasNextPage));
+  useEffect(()=>{
+    if(credential===undefined||selectedNativeProvider===undefined||nativeInventory.isPending||nativeInventory.isFetchingNextPage||nativeInventory.isError||!nativeInventory.hasNextPage)return;
+    // Native inventory is the only supported source for native account ID and
+    // provider resolution. Consume its cursor before declaring absence: a
+    // human identity filter must never decide an opaque account target.
+    void nativeInventory.fetchNextPage();
+  },[credential,nativeInventory.fetchNextPage,nativeInventory.hasNextPage,nativeInventory.isError,nativeInventory.isFetchingNextPage,nativeInventory.isPending,selectedNativeProvider]);
+  useEffect(()=>{
+    if(credential===undefined||resolvingCredential)return;
+    if(selectedNativeProvider!==undefined){
+      if(nativeInventory.isError||nativeMatch===undefined)return;
+      setMaintenance({kind:"native",account:nativeMatch});
+    }else{
+      if(ordinaryCredential.isError||ordinaryCredential.data===undefined)return;
+      setMaintenance({kind:"ordinary",credentialId:ordinaryCredential.data.id,account:credential.account});
+    }
+    // The resolved object becomes the operator-owned editor target. Later
+    // inventory refreshes must not replace its revision or unmount its form.
+    setCredential(undefined);
+  },[credential,nativeMatch,nativeInventory.isError,ordinaryCredential.data,ordinaryCredential.isError,resolvingCredential,selectedNativeProvider]);
   const loaded = pools.data?.pages.flatMap((page) => page.items) ?? [];
   const rows = loaded.filter((row) => (!category||row.presentation?.category===category) &&
     [runtimeName(row),runtimeProvider(row),runtimeConnection(row),row.account_id,row.channel_id].join(" ").toLocaleLowerCase().includes(query.toLocaleLowerCase()));
@@ -107,7 +173,8 @@ export function AccountRuntimePanel() {
     setParams(next, { replace: true });
   };
   const open = (row: PoolAccount) => {
-    setSelected(row);
+    const page=pools.data?.pages.find((candidate)=>candidate.items.includes(row));
+    setSelected({account:row,snapshotId:page?.snapshot_id,observedAt:page?.observed_at_ms});
     setTab("runtime");
   };
   const observed = pools.data?.pages[0]?.observed_at_ms;
@@ -145,8 +212,8 @@ export function AccountRuntimePanel() {
       )}
       {receipt === undefined ? null : (
         <p className="action-notice" role="status">
-          {receiptMeta(receipt.state).label} ·{" "}
-          {receiptMeta(receipt.state).detail}
+          {runtimeName(receipt.target.account)} · {runtimeConnection(receipt.target.account)} · {receipt.target.action === "cool_down" ? "冷却" : "请求恢复"}{receipt.target.upstreamModel?` · ${receipt.target.upstreamModel}`:""} · {receipt.kind==="received"?`${receiptMeta(receipt.value.state).label} · ${receiptMeta(receipt.value.state).detail}`:receipt.message}
+          {receipt.kind==="unconfirmed"?<button className="secondary" onClick={()=>void queryClient.resetQueries({queryKey:key,exact:true})}>重新读取运行状态</button>:null}
           <button className="secondary" onClick={() => setReceipt(undefined)}>
             知道了
           </button>
@@ -355,16 +422,17 @@ export function AccountRuntimePanel() {
       </div>
       {selected === undefined ? null : (
         <Sheet
-          title={runtimeName(selected)}
+          title={runtimeName(selected.account)}
           description="查看这个账号连接的实时认证、调度和权益证据；未观测不等于不可用。"
           layout="inspector"
           onEscape={() => setSelected(undefined)}
+          footer={<SheetDismissButton>关闭</SheetDismissButton>}
         >
           <p className="entity-meta">
-            {runtimeProvider(selected)} · {runtimeConnection(selected)} ·{" "}
-            {formatObservedAt(observed ?? 0)}
+            {runtimeProvider(selected.account)} · {runtimeConnection(selected.account)} ·{" "}
+            {selected.observedAt===undefined?"观测时间未提供":formatObservedAt(selected.observedAt)}
           </p>
-          <IdentityDetails entries={[["账号", selected.account_id, runtimeName(selected)], ["提供商", selected.provider_id, runtimeProvider(selected)], ["接口", selected.channel_id, runtimeConnection(selected)]]} />
+          <IdentityDetails entries={[["账号", selected.account.account_id, runtimeName(selected.account)], ["提供商", selected.account.provider_id, runtimeProvider(selected.account)], ["接口", selected.account.channel_id, runtimeConnection(selected.account)]]} />
           <div className="detail-tabs">
             {[
               ["runtime", "运行状态"],
@@ -383,31 +451,31 @@ export function AccountRuntimePanel() {
           {tab === "runtime" ? (
             <dl className="fact-grid">
               {[
-                ["认证", authStatusMeta(selected.auth_status).label],
-                ["调度", runtimeStatusMeta(selected.runtime_status).label],
-                ["启用", selected.enabled ? "已启用" : "已停用"],
+                ["认证", authStatusMeta(selected.account.auth_status).label],
+                ["调度", runtimeStatusMeta(selected.account.runtime_status).label],
+                ["启用", selected.account.enabled ? "已启用" : "已停用"],
                 [
                   "并发 / 上限",
-                  `${selected.active_leases} / ${selected.max_concurrency}`,
+                  `${selected.account.active_leases} / ${selected.account.max_concurrency}`,
                 ],
-                ["优先级 / 权重", `${selected.priority} / ${selected.weight}`],
+                ["优先级 / 权重", `${selected.account.priority} / ${selected.account.weight}`],
                 [
                   "认证到期",
-                  selected.expires_at_ms === null
+                  selected.account.expires_at_ms === null
                     ? "未观测 / 不适用"
-                    : formatObservedAt(selected.expires_at_ms),
+                    : formatObservedAt(selected.account.expires_at_ms),
                 ],
                 [
                   "续期时间",
-                  selected.refresh_due_at_ms === null
+                  selected.account.refresh_due_at_ms === null
                     ? "未观测 / 不适用"
-                    : formatObservedAt(selected.refresh_due_at_ms),
+                    : formatObservedAt(selected.account.refresh_due_at_ms),
                 ],
                 [
                   "Quota 同步",
-                  selected.quota_sync_due_at_ms === null
+                  selected.account.quota_sync_due_at_ms === null
                     ? "未观测 / 不适用"
-                    : formatObservedAt(selected.quota_sync_due_at_ms),
+                    : formatObservedAt(selected.account.quota_sync_due_at_ms),
                 ],
               ].map(([label, value]) => (
                 <div key={label}>
@@ -419,7 +487,7 @@ export function AccountRuntimePanel() {
           ) : tab === "entitlement" ? (
             <>
               <EntitlementEvidence
-                entitlement={selected.entitlement}
+                entitlement={selected.account.entitlement}
                 expanded
               />
               <p className="small muted">
@@ -435,7 +503,7 @@ export function AccountRuntimePanel() {
                 className="secondary"
                 disabled={scope === undefined}
                 onClick={() => {
-                  setCredential(selected.account_id);
+                  setCredential(selected);
                   setSelected(undefined);
                 }}
               >
@@ -446,17 +514,17 @@ export function AccountRuntimePanel() {
               ) : null}
               <div className="detail-links">
                 <Link
-                  to={`/catalog?q=${encodeURIComponent(selected.account_id)}`}
+                  to={`/catalog?q=${encodeURIComponent(selected.account.account_id)}`}
                 >
                   目录证据
                 </Link>
                 <Link
-                  to={`/monitoring?tab=failures&account_id=${encodeURIComponent(selected.account_id)}&provider_id=${encodeURIComponent(selected.provider_id)}&channel_id=${encodeURIComponent(selected.channel_id)}`}
+                  to={`/monitoring?tab=failures&account_id=${encodeURIComponent(selected.account.account_id)}&provider_id=${encodeURIComponent(selected.account.provider_id)}&channel_id=${encodeURIComponent(selected.account.channel_id)}`}
                 >
                   失败记录
                 </Link>
                 <Link
-                  to={`/runtime?account_id=${encodeURIComponent(selected.account_id)}`}
+                  to={`/runtime?account_id=${encodeURIComponent(selected.account.account_id)}`}
                 >
                   运行诊断与恢复
                 </Link>
@@ -472,9 +540,10 @@ export function AccountRuntimePanel() {
                     className="secondary"
                     disabled={scope === undefined}
                     onClick={() => {
-                      setTarget({ account: selected, action });
+                      setTarget({...selected,action});
                       setSelected(undefined);
                       setActionError(undefined);
+                      setTargetError(undefined);
                       setReceipt(undefined);
                     }}
                   >
@@ -496,20 +565,18 @@ export function AccountRuntimePanel() {
           account={target.account}
           action={target.action}
           pending={act.isPending}
-          onCancel={() => setTarget(undefined)}
-          onInvalid={setActionError}
-          onSubmit={(body) => act.mutate(body)}
+          onCancel={() => {setTarget(undefined);setTargetError(undefined);}}
+          onInvalid={setTargetError}
+          error={targetError}
+          onSubmit={(body) => {setTargetError(undefined);act.mutate({target,body});}}
         />
       )}
       {credential === undefined ? null : (
-        <CredentialSheet
-          credentialId={credential}
-          accountName={accountName(loaded.find((row)=>row.account_id===credential)?.presentation?.identity)}
-          providerName={loaded.find((row)=>row.account_id===credential)?.presentation?.provider}
-          category={loaded.find((row)=>row.account_id===credential)?.presentation?.category==="codex"?"codex":loaded.find((row)=>row.account_id===credential)?.presentation?.category==="kimi"?"kimi":undefined}
-          onClose={() => setCredential(undefined)}
-        />
+        resolvingCredential||(selectedNativeProvider!==undefined&&!nativeInventory.isError&&nativeMatch!==undefined)||(selectedNativeProvider===undefined&&!ordinaryCredential.isError&&ordinaryCredential.data!==undefined)?<Sheet title="读取凭据配置" description="正在按选中的账号连接核对配置。" layout="confirm" onEscape={()=>setCredential(undefined)} footer={<SheetDismissButton>取消</SheetDismissButton>}><p>正在读取配置…</p></Sheet>:
+        <Sheet title="未建立精确凭据映射" description="此运行时连接没有匹配的当前配置凭据，不能按账号 ID 猜测打开其他授权。" layout="confirm" onEscape={()=>setCredential(undefined)} footer={<><SheetDismissButton className="secondary">关闭</SheetDismissButton>{selectedNativeProvider!==undefined&&nativeInventory.isError?<button onClick={()=>setNativeResolution((value)=>value+1)}>重新读取原生账号</button>:selectedNativeProvider===undefined&&ordinaryCredential.isError?<button onClick={()=>setOrdinaryResolution((value)=>value+1)}>重新读取凭据配置</button>:null}</>}><IdentityDetails entries={[["账号",credential.account.account_id,runtimeName(credential.account)],["提供商",credential.account.provider_id,runtimeProvider(credential.account)],["接口",credential.account.channel_id,runtimeConnection(credential.account)]]}/>{selectedNativeProvider===undefined&&ordinaryCredential.isError?<p role="alert">{asAppError(ordinaryCredential.error).message}</p>:selectedNativeProvider!==undefined&&nativeInventory.isError?<p role="alert">{asAppError(nativeInventory.error).message}</p>:<p className="muted">请在账号管理中核对该连接的授权与接口绑定。</p>}</Sheet>
       )}
+      {maintenance?.kind==="native"?<NativeAccountDialog account={maintenance.account} onClose={()=>setMaintenance(undefined)} onAuthorize={()=>{setNativeOauth(maintenance.account);setMaintenance(undefined);}} onChanged={(notice)=>{setMaintenance(undefined);setActionError(notice);void queryClient.resetQueries({queryKey:["accounts"]});}}/>:maintenance?.kind==="ordinary"?<CredentialSheet credentialId={maintenance.credentialId} accountName={runtimeName(maintenance.account)} providerName={runtimeProvider(maintenance.account)} category={maintenance.account.presentation?.category==="codex"?"codex":maintenance.account.presentation?.category==="kimi"?"kimi":undefined} onClose={()=>setMaintenance(undefined)}/>:null}
+      {nativeOauth===undefined?null:<GrokDeviceWizard name={accountName(nativeOauth.identity)??"Grok Build 账号"} target={{account_id:nativeOauth.id,revision:nativeOauth.revision}} onClose={()=>{setNativeOauth(undefined);void queryClient.resetQueries({queryKey:["accounts"]});}}/>}
     </section>
   );
 }

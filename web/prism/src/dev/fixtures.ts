@@ -1629,6 +1629,19 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if(!endpoint){endpoint={id:"kimi-coding-responses",upstream_id:upstream.id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.kimi.com/coding",inference_path:"/v1/responses",models_path:"/v1/models",transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
       version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
     }
+    const preparedNamedChannel=/^POST \/admin\/account-channels\/(codex|claude)\/prepare-target$/u.exec(route);
+    if(preparedNamedChannel){
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
+      const channel=preparedNamedChannel[1]!;
+      const upstreamId=`${channel}-managed`;
+      const endpointId=channel==="codex"?`${upstreamId}-responses`:`${upstreamId}-messages`;
+      const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.id===upstreamId);
+      if(!upstream){upstream={id:upstreamId,name:channel==="codex"?"Codex / ChatGPT":"Claude",kind:channel,enabled:true,tags:[channel],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
+      const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.id===endpointId);
+      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:channel==="codex"?"openai-compatible.responses":"anthropic.messages",api_format:channel==="codex"?"openai/responses":"anthropic/messages",base_url:channel==="codex"?"https://chatgpt.com/backend-api":"https://api.anthropic.com",inference_path:"/",models_path:null,transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
+    }
     if(route === "POST /admin/account-channels/kiro/prepare-target") {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
@@ -2269,10 +2282,21 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
       const body = JSON.parse(bodyText ?? "{}") as {
+        provider_id: string;
+        channel_id: string;
         account_id: string;
         action: string;
+        upstream_model?: string;
         cooldown_ms?: number;
       };
+      const knownTarget = [
+        ["relay-a", "ep-relay-a-responses", "cred-relay-key"],
+        ["grok-build-pool", "ep-grok-build", "cred-grok-oauth"],
+        ["grok-build-pool", "ep-grok-build", "cred-grok-old"],
+      ].some(([provider, channel, account]) => provider === body.provider_id && channel === body.channel_id && account === body.account_id);
+      if (!knownTarget || (body.upstream_model !== undefined && body.upstream_model !== "grok-4")) {
+        return errorResponse(409, "management_provider_account_action_target_changed", "stale action target");
+      }
       // A stale target is a 409, and the card must re-read rather than retry
       // blind. `cred-grok-old` stands in for "the snapshot moved under you".
       if (body.account_id === "cred-grok-old") {

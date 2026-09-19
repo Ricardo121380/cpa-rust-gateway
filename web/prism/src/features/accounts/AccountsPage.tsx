@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { IdentityDetails } from "../../components/ResourceIdentity";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -23,6 +23,7 @@ import { AccountRuntimePanel } from "./AccountRuntimePanel";
 import { AccountBatchDialog, type AccountAction, type AccountTarget } from "./AccountBatchDialog";
 import { CredentialUpdateDialog } from "./CredentialUpdateDialog";
 import { groupManagedIdentities, type ManagedCredential } from "./inventory";
+import { accountActionTargetKey, freezeAccountActionTargets } from "./accountActionModel";
 
 export function AccountsPage() {
   const [params, setParams] = useSearchParams();
@@ -68,9 +69,9 @@ function ManagedAccounts() {
   const [updating,setUpdating]=useState<ManagedCredential>();
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [selecting, setSelecting] = useState(false);
-  const [batch, setBatch] = useState<{targets:AccountTarget[];action:AccountAction}>();
+  const [batch, setBatch] = useState<{targets:readonly AccountTarget[];action:AccountAction}>();
   const [notice, setNotice] = useState<string>();
-  const refresh = () => Promise.all(["account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.resetQueries({queryKey:[key]})));
+  const refresh = () => Promise.all(["account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.invalidateQueries({queryKey:[key]})));
   const update = (name: string, value: string) => {
     if (["q", "provider", "category", "status", "sort"].includes(name)) setSelection(new Set());
     const next = new URLSearchParams(params);
@@ -78,8 +79,8 @@ function ManagedAccounts() {
     setParams(next, {replace: true});
   };
   const ordinaryStatus=(row:ManagedCredential)=>directory.find(item=>!item.native&&item.id===row.credential.id)?.status??"disabled";
-  const ordinaryTarget=(row:ManagedCredential):AccountTarget=>({id:row.credential.id,native:false,name:accountName(row.identity)??"未提供账号身份",provider:row.provider,enabled:ordinaryStatus(row)!=="disabled",revision:row.credential.revision});
-  const targetKey=(target:AccountTarget)=>`${target.native?"native":"ordinary"}:${target.id}`;
+  const ordinaryTarget=(row:ManagedCredential):AccountTarget=>({id:row.credential.id,native:false,upstreamId:row.credential.upstream_id,name:accountName(row.identity)??"未提供账号身份",provider:row.provider,enabled:ordinaryStatus(row)!=="disabled",revision:row.credential.revision});
+  const targetKey=accountActionTargetKey;
   const toggle=(keys:string[])=>setSelection((current)=>{
     const next=new Set(current);
     if(keys.every((key)=>next.has(key)))keys.forEach((key)=>next.delete(key));
@@ -95,8 +96,8 @@ function ManagedAccounts() {
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setMore(row);}}>更多</button>
             </div>;
   const nativeNames={grok_web:"Grok Web",grok_console:"Grok Console",grok_build:"Grok Build"};
-  const nativeTarget=(row:NativeAccount):AccountTarget=>({id:row.id,native:true,name:accountName(row.identity)??"未提供账号身份",provider:nativeNames[row.provider],enabled:row.enabled,revision:row.revision});
-  const selectedTargets=[...rows.map(ordinaryTarget),...nativeRows.map(nativeTarget)].filter((target)=>selection.has(targetKey(target)));
+  const nativeTarget=(row:NativeAccount):AccountTarget=>({id:row.id,native:true,nativeProvider:row.provider,name:accountName(row.identity)??"未提供账号身份",provider:nativeNames[row.provider],enabled:row.enabled,revision:row.revision});
+  const selectedTargets=freezeAccountActionTargets([...rows.map(ordinaryTarget),...nativeRows.map(nativeTarget)].filter((target)=>selection.has(targetKey(target))));
   const ordinaryView=(row:ManagedCredential):AccountListRow=>({
     selected:selection.has(`ordinary:${row.credential.id}`),onSelect:selecting?()=>toggle([`ordinary:${row.credential.id}`]):undefined,
     key:row.credential.id,name:accountName(row.identity,row.credential.id),source:accountSource(row.credential.id),provider:row.provider,
@@ -164,7 +165,7 @@ function ManagedAccounts() {
     <div className="data-footer account-directory-footer"><span>已显示 {directory.length} / {inventory.data?.pages[0]?.total??"…"} 份匹配授权</span><div className="page-actions">
       {inventory.hasNextPage?<button className="secondary" disabled={inventory.isFetchingNextPage||inventory.isError} onClick={()=>void inventory.fetchNextPage()}>加载更多账号</button>:null}
     </div></div>
-    {authorizations?<Sheet layout="inspector" title="关联授权" description="同一身份可以保留多份独立授权；操作只影响明确选择的一份。" onEscape={()=>setAuthorizations(undefined)}>
+    {authorizations?<Sheet layout="inspector" title="关联授权" description="同一身份可以保留多份独立授权；操作只影响明确选择的一份。" onEscape={()=>setAuthorizations(undefined)} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
       <h3>{accountName(authorizations[0]?.identity)}</h3><p>该身份有 {authorizations.length} 份授权，分别保留连接和状态。操作只影响所选授权。</p>
       <div className="account-grants">{authorizations.map((row)=><section key={row.credential.id} className="account-grant" aria-label="授权记录">
         <div className="page-actions"><strong>{row.provider} · {row.authentication==="oauth"||row.credential.kind==="oauth_json"?"OAuth 授权":"渠道凭据"}</strong>{ordinaryView(row).status}</div>
@@ -175,7 +176,7 @@ function ManagedAccounts() {
         {actions(row)}
       </section>)}</div>
     </Sheet>:null}
-    {connections?<Sheet layout="inspector" title="接口连接" description="接口定义请求协议与地址；账号池只决定该账号何时参与调度。" onEscape={()=>setConnections(undefined)}>
+    {connections?<Sheet layout="inspector" title="接口连接" description="接口定义请求协议与地址；账号池只决定该账号何时参与调度。" onEscape={()=>setConnections(undefined)} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
       <p>{accountName(connections.identity,connections.credential.id)??"未提供账号身份"}</p>
       <p className="muted">网关通过这些接口使用该账号。不同接口可以支持不同请求格式；配置已启用不代表当前正在使用。</p>
       {connections.binding_count===0?<p>尚未连接到接口，暂不用于请求。</p>:<ul className="account-connections">{connections.connections.map((connection)=><li key={connection.id}><strong>{protocolName(connection.api_format)}</strong><span>{connection.host??"未提供主机信息"}</span><StatusBadge status={connection.enabled?"active":"disabled"}>{connection.enabled?"配置已启用":"配置已停用"}</StatusBadge></li>)}</ul>}
@@ -190,7 +191,7 @@ function ManagedAccounts() {
     {kimiOauth?<KimiDeviceDialog credentialId={kimiOauth.credential.id} providerId={kimiOauth.credential.upstream_id} onClose={()=>setKimiOauth(undefined)} onComplete={notice=>{setKimiOauth(undefined);setNotice(notice);void refresh();}}/>:null}
     {claudeOauth?<AuthorizationCodeDialog channel="claude" credentialId={claudeOauth.credential.id} providerId={claudeOauth.credential.upstream_id} providerName={accountName(claudeOauth.identity)??"Claude"} endpointId="" onClose={()=>setClaudeOauth(undefined)} onComplete={notice=>{setClaudeOauth(undefined);setNotice(notice);void refresh();}}/>:null}
     {oauth ? <OAuthWizard credentialId={oauth} accountName={accountName(rows.find((row)=>row.credential.id===oauth)?.identity)} onClose={() => {setOauth(undefined); void refresh();}} /> : null}
-    {more?<Sheet title="账号操作" description="选择一项维护动作；授权、运行状态和删除会在后续步骤明确确认。" layout="confirm" onEscape={()=>setMore(undefined)}><h3>{accountName(more.identity)??more.provider}</h3><div className="sheet-actions"><button onClick={()=>{setUpdating(more);setMore(undefined);}}>更新凭据</button><button className="secondary" onClick={()=>startAction(more,more.credential.status==="disabled"?"enable":"disable")}>{more.credential.status==="disabled"?"启用":"停用"}账号</button><button className="danger" onClick={()=>startAction(more,"remove")}>移除授权</button></div></Sheet>:null}
+    {more?<Sheet title="账号操作" description="选择一项维护动作；授权、运行状态和删除会在后续步骤明确确认。" layout="confirm" onEscape={()=>setMore(undefined)} footer={<SheetDismissButton className="secondary">取消</SheetDismissButton>}><h3>{accountName(more.identity)??more.provider}</h3><div className="sheet-actions"><button onClick={()=>{setUpdating(more);setMore(undefined);}}>更新凭据</button><button className="secondary" onClick={()=>startAction(more,more.credential.status==="disabled"?"enable":"disable")}>{more.credential.status==="disabled"?"启用":"停用"}账号</button><button className="danger" onClick={()=>startAction(more,"remove")}>移除授权</button></div></Sheet>:null}
     {updating?<CredentialUpdateDialog account={updating} onClose={()=>setUpdating(undefined)} onSaved={(version)=>{setUpdating(undefined);void refresh();useVersionStore.getState().select(version);}}/>:null}
     {batch?<AccountBatchDialog targets={batch.targets} action={batch.action} onClose={()=>setBatch(undefined)} onCompleted={(message,version)=>{setBatch(undefined);setSelection(new Set());setNotice(message);void refresh();if(version)useVersionStore.getState().select(version);}}/>:null}
   </section>;
