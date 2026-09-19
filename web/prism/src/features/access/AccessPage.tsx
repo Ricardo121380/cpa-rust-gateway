@@ -1,7 +1,7 @@
 import "./access.css";
 import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
-import { resourceName, resourceOption } from "../../utils/resourceNames";
+import { resourceName } from "../../utils/resourceNames";
 import { useRoutingPages } from "../models/useRoutingPages";
 import type { RouteListItem } from "../models/model";
 import { ReadStatus } from "../../components/ReadStatus";
@@ -17,10 +17,10 @@ import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
-import { beginConfigurationTask } from "../config-versions/configurationTask";
-import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { runModelTask, type ModelTaskReceipt } from "../models/modelTask";
 import { KeyPermissionsDialog } from "./KeyPermissionsDialog";
 import { IssueKeyDialog } from "./IssueKeyDialog";
+import { GroupKeyDialog } from "./GroupKeyDialog";
 import {
   displayKeyStatus,
   formatExpiry,
@@ -28,7 +28,6 @@ import {
   parseLimits,
   type AccessGroupRecord,
   type ClientKeyRecord,
-  type IssuedClientKey,
 } from "./model";
 
 type AccessGroupRoute = Readonly<{
@@ -36,6 +35,7 @@ type AccessGroupRoute = Readonly<{
   route_id: string;
   enabled: boolean;
 }>;
+type RevokeTarget=Readonly<{record:ClientKeyRecord;source:Readonly<{id:string;revision:string}>}>;
 
 function GroupRoutes({
   groupId,
@@ -48,7 +48,7 @@ function GroupRoutes({
   const [adding, setAdding] = useState(false);
 
   const grants = useQuery({
-    queryKey: ["group-routes", scope, groupId],
+    queryKey: ["group-routes", scope, context?.revision, groupId],
     queryFn: () =>
       call<AccessGroupRoute[]>(
         "listAccessGroupRoutes",
@@ -166,17 +166,15 @@ function GroupRoutes({
 
 export function AccessPage() {
   const [creating,setCreating]=useState(false);
-  const [workingId,setWorkingId]=useState<string>();
   const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const editable = context?.status === "draft";
   const [issuing, setIssuing] = useState(false);
-  const [issued, setIssued] = useState<IssuedClientKey | undefined>();
   const [editKey, setEditKey] = useState<ClientKeyRecord | undefined>();
-  const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
-  const [confirmRevoke, setConfirmRevoke] = useState<string | undefined>();
+  const [confirmRevoke, setConfirmRevoke] = useState<RevokeTarget>();
+  const [revokeReceipt,setRevokeReceipt]=useState<ModelTaskReceipt>();
   // undefined = closed; null = creating; record = editing that group
   const [groupForm, setGroupForm] = useState<AccessGroupRecord | null | undefined>();
   const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<string | undefined>();
@@ -187,43 +185,23 @@ export function AccessPage() {
   const scope = context?.configVersionId;
 
   const groups = useQuery({
-    queryKey: ["access-groups", scope],
+    queryKey: ["access-groups", scope, context?.revision],
     queryFn: () => call<AccessGroupRecord[]>("listAccessGroups", {}, { versionScoped: true }),
     enabled: scope !== undefined,
   });
 
   const keys = useQuery({
-    queryKey: ["client-keys", scope],
+    queryKey: ["client-keys", scope, context?.revision],
     queryFn: () => call<ClientKeyRecord[]>("listClientKeys", {}, { versionScoped: true }),
     enabled: scope !== undefined,
   });
 
-  const issue = useMutation({
-    gcTime: 0, // never cache a response carrying the one-time key
-    mutationFn: (input: {
-      id: string;
-      access_group_id: string;
-      status: "active";
-      expires_at_ms: number | null;
-    }) =>
-      call<IssuedClientKey>(
-        "issueClientKey",
-        { body: input },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: (record) => {
-      setIssuing(false);
-      setIssued(record);
-      setCopied(false);
-      void queryClient.invalidateQueries({ queryKey: ["client-keys", scope] });
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  const revoke=useMutation({mutationFn:async(id:string)=>{
-    const task=await beginConfigurationTask("吊销客户端密钥");setWorkingId(task.version.id);
-    await task.mutate("revokeClientKey",{path:{client_key_id:id}});return task.finish();
-  },onSuccess:(version)=>{setConfirmRevoke(undefined);void queryClient.invalidateQueries({queryKey:["client-keys"]});useVersionStore.getState().select(version);},onError:(error)=>setActionError(asAppError(error).message)});
+  const revoke=useMutation({mutationFn:async(target:NonNullable<typeof confirmRevoke>)=>runModelTask("吊销客户端密钥",async task=>{
+    const keys=await task.read<ClientKeyRecord[]>("listClientKeys");
+    const current=keys.find(key=>key.id===target.record.id);
+    if(!current||current.access_group_id!==target.record.access_group_id||current.status!==target.record.status||(current.expires_at_ms??null)!==(target.record.expires_at_ms??null))throw new Error("密钥已变化，请重新打开后核对。");
+    await task.mutate("revokeClientKey",{path:{client_key_id:target.record.id}});
+  },{expectedSource:target.source,probeUnchanged:true}),onSuccess:({receipt})=>setRevokeReceipt(receipt),onError:(error)=>setActionError(asAppError(error).message)});
 
   // PATCH takes the whole AccessGroupInput, not a partial — editing is a
   // full replacement, so the form is seeded with the current record.
@@ -292,22 +270,14 @@ export function AccessPage() {
     });
   }
 
-  function onIssueSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const expiresRaw = String(data.get("expires_at") ?? "");
-    issue.mutate({
-      id: String(data.get("id") ?? ""),
-      access_group_id: String(data.get("access_group_id") ?? ""),
-      status: "active",
-      expires_at_ms: expiresRaw === "" ? null : new Date(expiresRaw).getTime(),
-    });
-  }
-
-  function closeReveal() {
-    issue.reset();
-    setIssued(undefined); // the key is gone for good — by design
-    setCopied(false);
+  function finishRevoke(){
+    const receipt=revokeReceipt;
+    setConfirmRevoke(undefined);
+    setRevokeReceipt(undefined);
+    if(receipt&&receipt.kind!=="unchanged"){
+      void queryClient.invalidateQueries({queryKey:["client-keys"]});
+      useVersionStore.getState().select(receipt.workingVersion);
+    }
   }
 
   const nowMs = Date.now();
@@ -454,7 +424,7 @@ export function AccessPage() {
                       type="button"
                       className="secondary"
                       onClick={() => {
-                        setActionError(undefined);setWorkingId(undefined);
+                        setActionError(undefined);
                         setEditKey(record);
                       }}
                     >
@@ -464,7 +434,7 @@ export function AccessPage() {
                       <button
                         type="button"
                         className="danger"
-                        onClick={() => {revoke.reset();setActionError(undefined);setWorkingId(undefined);setConfirmRevoke(record.id);}}
+                        onClick={() => {if(!context)return;revoke.reset();setRevokeReceipt(undefined);setActionError(undefined);setConfirmRevoke({record,source:{id:context.configVersionId,revision:context.revision}});}}
                       >
                         吊销
                       </button>
@@ -577,66 +547,14 @@ export function AccessPage() {
         </Sheet>
       ) : null}
 
-      {issuing ? (
-        <Sheet title="签发 Client Key" onEscape={() => setIssuing(false)}>
-          <form className="sheet-form" onSubmit={onIssueSubmit}>
-            <label>
-              Key ID
-              <input name="id" className="mono" required maxLength={128} />
-            </label>
-            <label>
-              访问组
-              <select name="access_group_id" required>
-                {(groups.data ?? []).map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {resourceOption(group.id, "group", group.name)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              过期时间(可空 = 永不过期)
-              <input name="expires_at" type="datetime-local" />
-            </label>
-            <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setIssuing(false)}>
-                取消
-              </button>
-              <button type="submit" disabled={issue.isPending}>
-                签发
-              </button>
-            </div>
-          </form>
-        </Sheet>
-      ) : null}
+      {issuing?<GroupKeyDialog groups={groups.data??[]} onClose={()=>setIssuing(false)} onSettled={()=>{setIssuing(false);void queryClient.invalidateQueries({queryKey:["client-keys",scope]});}}/>:null}
 
       {editKey ? <KeyPermissionsDialog record={editKey} onClose={()=>setEditKey(undefined)} onSaved={(version)=>{setEditKey(undefined);useVersionStore.getState().select(version);}}/> : null}
 
-      {issued !== undefined ? (
-        <Sheet title="Client Key 已签发 — 只显示这一次">
-          <p className="reveal-warning">关闭此窗口后,完整密钥将永远无法再次查看。</p>
-          <code className="reveal-key mono">{issued.key}</code>
-          <div className="sheet-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => {
-                void navigator.clipboard.writeText(issued.key).then(() => setCopied(true));
-              }}
-            >
-              {copied ? "已复制 ✓" : "复制"}
-            </button>
-            <button type="button" onClick={closeReveal}>
-              我已保存,关闭
-            </button>
-          </div>
-        </Sheet>
-      ) : null}
-
       {confirmRevoke !== undefined ? (
-        <Sheet title="吊销 API 密钥" description="吊销后该密钥不能再发起请求；历史记录仍会保留。" layout="confirm" tone="danger" onEscape={() => !revoke.isPending&&setConfirmRevoke(undefined)} busy={revoke.isPending} footer={<><SheetDismissButton className="secondary" disabled={revoke.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={revoke.isPending} onClick={() => revoke.mutate(confirmRevoke)}>确认吊销</button></>}>
-          <ConfigurationTaskNotice workingId={workingId} error={revoke.error} onReview={(version)=>{setConfirmRevoke(undefined);useVersionStore.getState().select(version);}}/>
-          <p>吊销 {keys.data?.find((row)=>row.id===confirmRevoke)?.prefix}。应用后，该密钥不能再发起请求，历史记录保留。</p>
+        <Sheet title={revokeReceipt?"密钥吊销结果":"吊销 API 密钥"} description={revokeReceipt?"请核对保存与应用状态。":"吊销后该密钥不能再发起请求；历史记录仍会保留。"} layout="confirm" tone={revokeReceipt?"default":"danger"} onEscape={() => !revoke.isPending&&(revokeReceipt?finishRevoke():setConfirmRevoke(undefined))} busy={revoke.isPending} footer={revokeReceipt?<SheetDismissButton onDismiss={finishRevoke}>{revokeReceipt.kind==="saved_applied"?"完成":"核对配置"}</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={revoke.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={revoke.isPending} onClick={() => revoke.mutate(confirmRevoke)}>确认吊销</button></>}>
+          {revokeReceipt?<div role="status"><p>{revokeReceipt.message}</p><p>已确认保存 {revokeReceipt.acknowledgedWrites} 步。</p></div>:<p>吊销 {confirmRevoke.record.prefix}。应用后，该密钥不能再发起请求，历史记录保留。</p>}
+          {revoke.isError?<p role="alert">{asAppError(revoke.error).message}</p>:null}
         </Sheet>
       ) : null}
     </section>

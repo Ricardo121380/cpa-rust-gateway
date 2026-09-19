@@ -5,9 +5,11 @@ test("an auth denial clears the live UI, polling cache and reveal-once state", a
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "访问控制");
-  await page.getByRole("button", { name: "签发 Client Key" }).click();
+  await page.locator("details",{hasText:"高级访问组"}).getByText("高级访问组",{exact:true}).click();
+  await page.getByRole("button", { name: "按访问组签发" }).click();
   await page.getByRole("dialog").getByLabel("Key ID").fill("session-expiry-test");
-  await page.getByRole("dialog").getByRole("button", { name: "签发", exact: true }).click();
+  await page.getByRole("dialog").getByRole("combobox",{name:"访问组"}).selectOption("team-default");
+  await page.getByRole("dialog").getByRole("button", { name: "签发到草稿" }).click();
   await expect(page.locator(".reveal-key")).toBeVisible();
 
   // A single synthetic server rejection through the actual API boundary.
@@ -47,7 +49,7 @@ test("changing versions closes a form authored for the previous version", async 
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "访问控制");
-  await page.getByRole("button", { name: "签发 Client Key" }).click();
+  await page.getByRole("button", { name: "创建客户端密钥" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   // The modal intentionally blocks the picker; simulate a context update from
   // another application action, rather than bypassing modal pointer trapping.
@@ -57,5 +59,5 @@ test("changing versions closes a form authored for the previous version", async 
     useVersionStore.getState().select({ id: "v-2026-07", status: "active", revision: "rev-1", created_at_ms: 0, description: "" });
   });
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "签发 Client Key" })).toBeDisabled();
+  await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version","v-2026-07");
 });

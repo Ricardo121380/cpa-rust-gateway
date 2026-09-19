@@ -21,11 +21,12 @@ test("overview shows the real planes and deep-links into failure attribution", a
   // are gone with it. What remains is the counters plane (real, from the
   // Prometheus exposition) plus the billing summary, which is one request and
   // covers the whole ledger window.
-  await expect(page.getByText("网关实时计数")).toBeVisible();
+  await page.getByText("进程计数与运行事件", { exact: true }).click();
   await page.getByText("事件、Token 与观测管道", { exact: true }).click();
+  await expect(page.getByText("网关实时计数")).toBeVisible();
   await expect(page.locator(".token-mix rect").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "计价可信度" })).toBeVisible();
-  await expect(page.getByText("覆盖整个账本窗口")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "费用概览" })).toBeVisible();
+  await expect(page.getByText("与请求概览使用同一时间范围；账本可能稍后完成处理。")).toBeVisible();
 
   // The old link carried ?status=failed. Monitoring has no request outcome to
   // filter on and its `status` means cost confidence, so "recent failures"
@@ -45,7 +46,7 @@ test("draft dock publishes: anneal sheet, then version reads as active", async (
   await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("已发布");
   await page.getByRole("button", { name: "完成" }).click();
-  await expect(page.locator(".topbar")).toContainText("已发布配置");
+  await expect(page.locator("main.canvas")).toHaveAttribute("data-context-status","active");
   await expect(page.locator(".dock")).toHaveCount(0);
 });
 
@@ -57,7 +58,7 @@ test("versions workspace creates a draft and validates it", async ({ page }) => 
   await dialog.getByLabel("版本 ID").fill("draft-e2e");
   await dialog.getByLabel(/描述/u).fill("e2e 草稿");
   await dialog.getByRole("button", { name: "创建" }).click();
-  await expect(page.locator("tbody")).toContainText("draft-e2e");
+  await expect(page.locator('tr[data-version-id="draft-e2e"]')).toContainText("e2e 草稿");
 
   await page
     .locator('tr[data-version-id="draft-e2e"]')

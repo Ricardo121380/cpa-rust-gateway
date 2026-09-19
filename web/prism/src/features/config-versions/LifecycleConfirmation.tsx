@@ -25,7 +25,7 @@ export function LifecycleConfirmation({
   pending: boolean;
   error?: string | undefined;
   onCancel: () => void;
-  onConfirm: (expectedActive: string, lifecycleEvent: string) => void;
+  onConfirm: (expectedActive: string, lifecycleEvent: string, revision: string) => void;
 }>) {
   const context = useVersionStore((state) => state.context);
   const [revision] = useState(context?.revision);
@@ -63,6 +63,7 @@ export function LifecycleConfirmation({
     (mode === "publish"
       ? known?.status === "draft"
       : active?.id === id && Boolean(target));
+  const commit=()=>onConfirm(JSON.stringify(active?.id??null),String(Math.max(0,...(query.data?.audit??[]).filter(event=>["config_published","config_rolled_back"].includes(event.action)).map(event=>event.id))),revision??"");
   return (
     <Sheet
       title={mode === "publish" ? "确认发布" : "确认回滚"}
@@ -70,6 +71,7 @@ export function LifecycleConfirmation({
       busy={pending}
       layout="confirm"
       tone={mode === "rollback" ? "danger" : "default"}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="button" disabled={pending||query.isFetching||query.isError||Boolean(error)||!query.data||!valid} onClick={commit}>{mode==="publish"?"确认发布":"确认回滚"}</button></>}
     >
       <ReadStatus
         pending={query.isPending}
@@ -98,40 +100,6 @@ export function LifecycleConfirmation({
         <p role="alert">版本已变化或没有可用目标，请关闭后重新选择并核对。</p>
       ) : null}
       {error ? <p role="alert">{error}</p> : null}
-      <div className="sheet-actions">
-        <SheetDismissButton className="secondary" disabled={pending}>
-          取消
-        </SheetDismissButton>
-        <button
-          disabled={
-            pending ||
-            query.isFetching ||
-            query.isError ||
-            Boolean(error) ||
-            !query.data ||
-            !valid
-          }
-          onClick={() =>
-            onConfirm(
-              JSON.stringify(active?.id ?? null),
-              String(
-                Math.max(
-                  0,
-                  ...(query.data?.audit ?? [])
-                    .filter((event) =>
-                      ["config_published", "config_rolled_back"].includes(
-                        event.action,
-                      ),
-                    )
-                    .map((event) => event.id),
-                ),
-              ),
-            )
-          }
-        >
-          {mode === "publish" ? "确认发布" : "确认回滚"}
-        </button>
-      </div>
     </Sheet>
   );
 }

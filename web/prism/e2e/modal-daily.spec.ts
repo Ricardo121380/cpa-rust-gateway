@@ -136,7 +136,7 @@ test("busy and dirty sheets preserve indexed Back and Forward history", async ({
   await expect(page.getByRole("dialog", { name: "API 密钥已生成" }).locator(".reveal-key")).toBeVisible();
   await expect(page).toHaveURL(/#\/access$/u);
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
-  await page.getByRole("dialog", { name: "API 密钥已生成" }).getByRole("button", { name: "完成" }).click();
+  await page.getByRole("dialog", { name: "API 密钥已生成" }).getByRole("button", { name: "核对配置并清除密钥" }).click();
   await expect.poll(async () => page.evaluate(async () => {
     const fixture = await import("/src/dev/fixtures.ts");
     return fixture.fixtureOperationCallsForTest("POST /admin/client-keys");

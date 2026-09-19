@@ -150,7 +150,7 @@ new contract before this refinement is considered complete.
 | Caller | Intended variant | Dismissal / transaction compatibility | Layout migration | Acceptance evidence |
 | --- | --- | --- | --- | --- |
 | `components/ObjectInspector.tsx` | inspector | Close only; allowlisted facts | Migrated: description and inspector frame | Inspector E2E pending final pass. |
-| `app/DraftDock.tsx` | confirm / receipt | Publish and validation results | Compatibility adapter; migration pending | Receipt E2E pending. |
+| `app/DraftDock.tsx` | confirm / receipt | One owned validation panel; publish acknowledgement before reread; no replay after lost response | Migrated: single loading/result frame and stable footer | `draft-publication-lifecycle.spec.ts` success, failure, lost-response and reread cases; C2C `c2c_2f8c` iteration 5. |
 | `accounts/AddAccountDialog.tsx` | form / receipt | Imported secret and channel selection; explicit guarded close and cleanup | Migrated: stable form-associated footer and receipt action | `modal-foundation.spec.ts`; `modal-daily.spec.ts`. |
 | `accounts/AuthorizationCodeDialog.tsx` | callback form / receipt | Channel task and cancellation complete before an accepted dismissal | Migrated: stable phase-specific footer, transient callback form and inline validation | Callback lifecycle E2E pending. |
 | `accounts/KimiDeviceDialog.tsx` | device-progress / receipt | Device challenge, polling and cancellation | Migrated: stable footer; challenge stays visible during polling; cancellation precedes dismissal; an uncertain terminal poll exposes only a local exit | `channel-authorization.spec.ts` Kimi held/cancel/unresolved/Back cases. |
@@ -161,9 +161,9 @@ new contract before this refinement is considered complete.
 | `accounts/NativeAccountDialog.tsx` | form / inspector | Native identity, SSO replacement and runtime apply | Migrated: guarded Back continuation, stable inspector/form/receipt footer | Native E2E pending. |
 | `accounts/AccountRuntimePanel.tsx` | inspector / confirm / receipt | Runtime action state and exact ordinary/native maintenance admission | Migrated: captured runtime target, authority-specific resolution, stable owned editor and explicit uncertain result | `account-actions.spec.ts`, `resource-names.spec.ts` including pagination, error/retry, owner and held-write races; C2C `c2c_a74e` iteration 6. |
 | `accounts/AccountsPage.tsx` | inspector / action menu | Account maintenance transitions | Migrated: inspector/action chooser and exact batch owner snapshot | `managed-accounts.spec.ts`, `account-actions.spec.ts`; C2C `c2c_a74e` iteration 6. |
-| `access/IssueKeyDialog.tsx` | form / reveal receipt | One-time Client Key; busy blocks close and router-owned route admission | Migrated: stable Create/Cancel footer switches to Copy/Done receipt footer | `modal-daily.spec.ts`, including held multi-step Back/Forward, post-receipt dirty Back and receipt regression. |
-| `access/KeyPermissionsDialog.tsx` | form | Model grants and expiry; controlled dirty state covers button-only edits | Migrated: stable Save/Cancel footer | Permission/dirty daily E2E pending. |
-| `access/AccessPage.tsx` | form / confirm / reveal receipt | Client keys and group routing | Revocation confirmation migrated; legacy subflows pending | Access-key E2E pending. |
+| `access/IssueKeyDialog.tsx` | form / reveal receipt | One-time Client Key; stage-aware issuance and redacted lost-response reconciliation | Migrated: stable Create/Cancel then Copy/Done footer; secret clears on exit/session change | `modal-daily.spec.ts`, `key-access-lifecycle.spec.ts`; local mock accepted an allowed model and rejected a forbidden model. |
+| `access/KeyPermissionsDialog.tsx` | form / receipt | Captured key/group/grants, private replacement group and button-only dirty state | Migrated: stable Save/Cancel footer and non-replayable outcome | `key-access-lifecycle.spec.ts` sibling isolation, partial move and preflight; local gateway applied edit/readback. |
+| `access/AccessPage.tsx` / `GroupKeyDialog.tsx` | form / confirm / reveal receipt | Client keys, revocation and explicit-group draft signing | Daily signing/revocation migrated; advanced signing has owner-bound recovery and one-time reveal; legacy group routing remains | `key-access-lifecycle.spec.ts` including cancellation, replacement session, recovery GET and revocation; C2C `c2c_2f8c` iteration 5. |
 | `upstreams/ProviderDialog.tsx` | form | Optional credential material; explicit close and busy state | Migrated: stable form-associated footer | `modal-daily.spec.ts`. |
 | `upstreams/UpstreamsPage.tsx` | form / confirm | Provider tags and configuration revision | Chip dirty and confirmation migration; footer pending | Provider E2E pending. |
 | `upstreams/SubresourcePanel.tsx` | form / inspector / confirm / receipt | Endpoint, account and binding configuration | Provider workspace checkpoint migrated: human-readable endpoint/account rows; channel-owned normal account entry; one active sheet/receipt action; semantic binding reconciliation; scheduling and raw credentials deliberately advanced | `subresource-crud.spec.ts` covers draft, active and uncertain application receipts, create/edit/delete, explicit connection, bounded scheduling values and unbound credential retention. |
@@ -180,7 +180,7 @@ new contract before this refinement is considered complete.
 | `runtime/PoolActionSheet.tsx` | confirm | Scheduler action | Migrated: stable footer, field-local validation and target-bound result | `account-actions.spec.ts`; C2C `c2c_a74e` iteration 6. |
 | `monitoring/MonitoringPage.tsx` | inspector | Request attempt evidence | Compatibility adapter | Monitoring E2E pending. |
 | `monitoring/RequestHistory.tsx` | inspector | Request evidence and usage | Compatibility adapter | Monitoring E2E pending. |
-| `config-versions/LifecycleConfirmation.tsx` | confirm | Publish/rollback target and revision | Confirm/danger migration | Lifecycle E2E pending. |
+| `config-versions/LifecycleConfirmation.tsx` | confirm | Publish/rollback target and captured revision | Migrated: confirm action in shared footer | `draft-publication-lifecycle.spec.ts` publication CAS/reread/lost-response paths; C2C `c2c_2f8c` iteration 5. |
 | `config-versions/ConfigurationDiff.tsx` | inspector | Configuration diff | Compatibility adapter | Diff E2E pending. |
 | `config-versions/VersionsPage.tsx` | form / receipt | Draft lifecycle and revision | Compatibility adapter | Lifecycle E2E pending. |
 
@@ -307,3 +307,37 @@ connection left the configuration-version count at 4→4. EgoLite checked the
 request or production state was changed. C2C `c2c_2f8c` approved the complete
 model/catalog checkpoint at iteration 3. Key/access and remaining workspaces
 are outside this checkpoint and remain active Goal work.
+
+## 2026-09-20 - Key, access, and draft publication checkpoint
+
+Daily key editing now captures the selected key, access group, grants, routes,
+configuration revision and selection before any write. A changed key receives
+a private replacement group, leaving siblings and disabled grants intact.
+Grant submissions contain only the input schema's `route_id` and `enabled`;
+the fixture rejects response-only fields. A missing active route fails before
+group creation. Issuance and permission changes count acknowledged stages,
+retain partial or uncertain receipts, and never replay a write after response
+loss. Daily and advanced signing keep the one-time secret in transient reveal
+state; a lost response is reconciled through a redacted record, with no
+recoverable secret implied. Advanced signing names an explicit draft group,
+propagates owner cancellation, and refuses recovery under a replacement
+configuration or session. Revocation verifies the exact non-secret key record
+before writing and retains an application receipt.
+
+Draft validation owns a single loading Sheet from the accepted click until its
+result or failure. Another editor cannot open over it. Publication captures
+revision, expected active version and lifecycle event, then records an
+acknowledged response before rereading the activity list. A failed reread
+preserves the publication receipt; a lost publish response becomes a review
+state without an automatic second write.
+
+Current evidence: 43 unit files / 347 tests; 15 serial key/access/publication
+Chromium cases, plus the earlier 22-case related run; type check, double-build
+SPA and 152-operation/four-file management gate; three embedded UI Rust tests.
+An isolated real gateway applied a key permission change, then a synthetic
+restricted key returned 200 for an allowed model and 404 for a forbidden one
+through a loopback mock. The latest embedded build and 390px key editor were
+rechecked in EgoLite. No real Provider or production state was changed. C2C
+`c2c_2f8c` approved the complete checkpoint at iteration 5. Group routing,
+remaining advanced workspaces, whole-app acceptance and deployment remain
+active Goal work.
