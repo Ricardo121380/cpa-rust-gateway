@@ -60,6 +60,8 @@ export function oauthFailureLabel(failure: OAuthFailureClass): string {
 // The contract caps callback_url at 20480 and state at 512.
 const MAX_CALLBACK_URL = 20480;
 const MAX_STATE = 512;
+const MAX_CODE = 16384;
+const MAX_ERROR = 256;
 
 /**
  * A server-supplied string becomes an href here, so the scheme is checked:
@@ -135,6 +137,12 @@ export function parseOAuthCallback(raw: string): ParsedCallback {
       ok: false,
       reason: "地址里既没有 code 也没有 error —— 授权可能没有完成。",
     };
+  }
+  if (code.length > MAX_CODE) {
+    return { ok: false, reason: "授权码超出契约允许的长度(16384 字符)。" };
+  }
+  if (error.length > MAX_ERROR) {
+    return { ok: false, reason: "授权错误说明超出契约允许的长度(256 字符)。" };
   }
 
   return {

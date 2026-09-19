@@ -72,6 +72,8 @@ describe("parseOAuthCallback", () => {
   it("refuses lengths the contract would reject, rather than earning a 400", () => {
     expect(parseOAuthCallback(`http://x/cb?code=a&state=${"s".repeat(513)}`).ok).toBe(false);
     expect(parseOAuthCallback(`http://x/cb?code=${"a".repeat(20481)}&state=s`).ok).toBe(false);
+    expect(parseOAuthCallback(`?code=${"a".repeat(16385)}&state=s`).ok).toBe(false);
+    expect(parseOAuthCallback(`?error=${"a".repeat(257)}&state=s`).ok).toBe(false);
   });
 });
 

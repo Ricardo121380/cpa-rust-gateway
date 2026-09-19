@@ -687,6 +687,10 @@ const approvedNativeSessions=new Set<string>();
 const kimiDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const kiroDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const unresolvedDevicePolls = new Set<"kimi-coding" | "kiro">();
+let credentialOAuthStatusFailures = 0;
+let loseCredentialOAuthCompletionResponse = false;
+let credentialReadFailures = 0;
+let retainPendingCredentialOAuthOnCancel = false;
 type FixtureOperationControl = { held: boolean; calls: number; waiters: Set<() => void> };
 const fixtureOperationControls = new Map<string, FixtureOperationControl>();
 
@@ -713,6 +717,11 @@ export function holdFixtureOperationForTest(route: string): void {
     return;
   }
   fixtureOperationControls.set(route, { held: true, calls: 0, waiters: new Set() });
+}
+
+/** Counts one sanitized method/path without delaying its response. */
+export function trackFixtureOperationForTest(route: string): void {
+  fixtureOperationControls.set(route, { held: false, calls: 0, waiters: new Set() });
 }
 
 export function releaseFixtureOperationForTest(route: string): void {
@@ -753,6 +762,10 @@ export function resetFixturesForTest(): void {
   kimiDeviceSessions.clear();
   kiroDeviceSessions.clear();
   unresolvedDevicePolls.clear();
+  credentialOAuthStatusFailures = 0;
+  loseCredentialOAuthCompletionResponse = false;
+  credentialReadFailures = 0;
+  retainPendingCredentialOAuthOnCancel = false;
   for (const control of fixtureOperationControls.values()) releaseFixtureControl(control);
   fixtureOperationControls.clear();
 }
@@ -760,6 +773,26 @@ export function resetFixturesForTest(): void {
 export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
 /** Simulates a provider transport uncertainty after the server drops its session. */
 export function failNextDevicePollForTest(channel:"kimi-coding"|"kiro"):void { unresolvedDevicePolls.add(channel); }
+/** Simulates a transient status-read transport failure without retaining request material. */
+export function failNextCredentialOAuthStatusForTest(): void { credentialOAuthStatusFailures += 1; }
+/** Simulates persistence succeeding while the callback response is lost. */
+export function loseNextCredentialOAuthCompletionResponseForTest(): void { loseCredentialOAuthCompletionResponse = true; }
+/** Simulates one redacted credential reread failing after an acknowledged callback. */
+export function failNextCredentialReadForTest(): void { credentialReadFailures += 1; }
+/** Simulates an acknowledged cancel racing a completion claim that is still pending. */
+export function retainPendingCredentialOAuthOnCancelForTest(): void { retainPendingCredentialOAuthOnCancel = true; }
+/** Simulates a process restart that drops only transient credential OAuth state. */
+export function dropCredentialOAuthSessionForTest(credentialId = "cred-codex-oauth"): void {
+  for (const key of state.oauthOps.keys()) if (key.endsWith(`:${credentialId}`)) state.oauthOps.delete(key);
+}
+/** Produces a known terminal status for cache-isolation regression coverage. */
+export function forceCredentialOAuthTerminalForTest(credentialId: string, stateName: "complete" | "expired"): void {
+  for (const [key, operation] of state.oauthOps) {
+    if (!key.endsWith(`:${credentialId}`)) continue;
+    operation.state = stateName;
+    operation.failure_class = stateName === "expired" ? "session_missing" : undefined;
+  }
+}
 
 export const fixtureFetch: typeof fetch = (input, init) => {
   // No `new Request(...)`: Node's Request rejects relative URLs, and the
@@ -2693,6 +2726,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (credGet !== null) {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
+      if (credentialReadFailures > 0) {
+        credentialReadFailures -= 1;
+        return errorResponse(503, "management_fixture_credential_unavailable", "Credential details are temporarily unavailable");
+      }
       const id = decodeURIComponent(credGet[1] ?? "");
       const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
       if (row === undefined) {
@@ -2744,6 +2781,15 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
       const id = decodeURIComponent(oauthStart[1] ?? "");
+      const existing = state.oauthOps.get(`${version.id}:${id}`);
+      if (existing?.state === "pending") {
+        return json(202, {
+          credential_id: id,
+          state: existing.state,
+          expires_at_ms: existing.expires_at_ms,
+          authorization_url: existing.authorization_url,
+        });
+      }
       const authState = `st-${hashString(`${version.id}:${id}`).toString(16)}`;
       const op: OAuthOp = {
         state: "pending",
@@ -2768,8 +2814,16 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
       const id = decodeURIComponent(oauthStatus[1] ?? "");
+      if (credentialOAuthStatusFailures > 0) {
+        credentialOAuthStatusFailures -= 1;
+        return errorResponse(503, "management_fixture_status_unavailable", "Credential authorization status is temporarily unavailable");
+      }
       const op = state.oauthOps.get(`${version.id}:${id}`);
       if (op === undefined) {
+        const credential = (state.credentials.get(version.id) ?? []).find((row) => row.id === id);
+        if (credential?.kind === "oauth_json" && credential.status === "active") {
+          return json(200, { credential_id: id, state: "complete" });
+        }
         return errorResponse(409, "management_lifecycle_conflict", "no oauth operation for credential");
       }
       // Deliberately does NOT auto-complete. The old fixture flipped to
@@ -2781,7 +2835,6 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         credential_id: id,
         state: op.state,
         expires_at_ms: op.expires_at_ms,
-        authorization_url: op.authorization_url,
         ...(op.failure_class === undefined ? {} : { failure_class: op.failure_class }),
       });
     }
@@ -2796,8 +2849,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       }
       const body = JSON.parse(bodyText ?? "{}") as { state?: string; code?: string; error?: string };
       if (body.state !== op.authState) {
-        op.state = "failed";
-        op.failure_class = "state_mismatch";
+        // The rejected callback belongs to another browser flow. It must not
+        // consume the valid pending operation that this wizard owns.
+        // This string envelope is the production legacy OAuth response shape.
+        return json(409, { error: "oauth_callback_rejected", credential_id: id });
       } else if (body.error !== undefined) {
         op.state = "failed";
         op.failure_class = "provider_rejected";
@@ -2809,6 +2864,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           row.kind = "oauth_json";
           row.revision += 1;
           inventorySequence += 1;
+        }
+        if (loseCredentialOAuthCompletionResponse) {
+          loseCredentialOAuthCompletionResponse = false;
+          return errorResponse(503, "management_fixture_callback_unavailable", "Authorization was accepted but its response is unavailable");
         }
       }
       return json(202, {
@@ -2825,8 +2884,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const id = decodeURIComponent(oauthCancel[1] ?? "");
       const op = state.oauthOps.get(`${version.id}:${id}`);
       if (op !== undefined && op.state === "pending") {
-        op.state = "cancelled";
-        inventorySequence += 1;
+        if (retainPendingCredentialOAuthOnCancel) {
+          retainPendingCredentialOAuthOnCancel = false;
+        } else {
+          op.state = "cancelled";
+          inventorySequence += 1;
+        }
       }
       return new Response(null, { status: 204 });
     }

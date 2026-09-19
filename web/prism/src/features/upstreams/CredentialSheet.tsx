@@ -96,7 +96,7 @@ export function CredentialSheet({
   const row = credential.data;
   // `oauth_json` is storage shape, not a provider identity. Only the account inventory's
   // server-projected category may select a channel-specific reauthorization flow.
-  const isKimiOAuth = row?.kind === "oauth_json" && category === "kimi";
+  const isKimiOAuth = row?.kind === "oauth_json" && (category === "kimi" || metadata.data?.platform === "kimi");
   if (oauthOpen && isKimiOAuth) {
     return <KimiDeviceDialog credentialId={credentialId} providerId={row?.upstream_id} onClose={() => setOauthOpen(false)} onComplete={() => setOauthOpen(false)} />;
   }
@@ -109,7 +109,11 @@ export function CredentialSheet({
     (field) => field.value !== null && field.value !== "",
   );
   // Unknown context fails closed: it must never send a Kimi or foreign OAuth envelope to Codex.
-  const isCodexOAuth = row?.kind === "oauth_json" && category === "codex";
+  // The account directory is the preferred source of category. Provider and
+  // runtime inspectors can open the same credential without that projection,
+  // so use only the server-returned platform metadata as a narrow fallback.
+  // Storage kind alone remains insufficient: Kimi uses oauth_json too.
+  const isCodexOAuth = row?.kind === "oauth_json" && (category === "codex" || meta?.platform === "codex");
   const authenticationLabel=isKimiOAuth?"Kimi Coding 授权":isCodexOAuth?"Codex / ChatGPT 授权":row?.kind==="bearer"?"API Key / Token":"已保存渠道凭据";
 
   return (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyStatus, isRuntimeConflict, shouldRetryManagementRead, type AppError } from "./errors";
+import { classifyStatus, isRuntimeConflict, shouldRetryManagementRead, toAppError, type AppError } from "./errors";
 
 function conflict(code: string): AppError {
   return { kind: "conflict", code, message: "", status: 409 };
@@ -9,6 +9,15 @@ describe("classifyStatus", () => {
   it("separates a dead session from an ordinary 404", () => {
     expect(classifyStatus(404, "management_access_denied")).toBe("session_invalid");
     expect(classifyStatus(404, "management_resource_not_found")).toBe("unknown");
+  });
+});
+
+describe("toAppError", () => {
+  it("normalizes the legacy OAuth string error envelope", async () => {
+    await expect(toAppError(new Response(JSON.stringify({ error: "oauth_callback_rejected" }), { status: 409 }))).resolves.toMatchObject({
+      kind: "conflict",
+      code: "oauth_callback_rejected",
+    });
   });
 });
 

@@ -18,7 +18,7 @@ export type AppError = Readonly<{
   status: number | undefined;
 }>;
 
-type ErrorEnvelope = Readonly<{ error?: { code?: string; message?: string } }>;
+type ErrorEnvelope = Readonly<{ error?: { code?: string; message?: string } | string }>;
 
 export function classifyStatus(status: number, code: string): AppErrorKind {
   if (status === 404 && code === "management_access_denied") {
@@ -41,8 +41,15 @@ export async function toAppError(response: Response): Promise<AppError> {
   let message = "";
   try {
     const parsed = (await response.json()) as ErrorEnvelope;
-    code = parsed.error?.code ?? code;
-    message = parsed.error?.message ?? message;
+    if (typeof parsed.error === "string") {
+      // A small set of legacy management OAuth handlers predates the nested
+      // error envelope but is still authoritative. Preserve its closed code
+      // so callers can reconcile status instead of assuming a transport loss.
+      code = parsed.error;
+    } else {
+      code = parsed.error?.code ?? code;
+      message = parsed.error?.message ?? message;
+    }
   } catch {
     // non-JSON body: keep defaults
   }
