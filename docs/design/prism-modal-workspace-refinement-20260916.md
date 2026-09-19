@@ -1,6 +1,6 @@
 # Prism Modal and Workspace Refinement
 
-Status: active implementation. Shared Sheet/channel authorization (`c2c_5477`), legacy OAuth renewal (`c2c_8a4d`), Provider workspace (`c2c_b63f`), and account maintenance (`c2c_a74e`) have approved checkpoints. The remaining ledger rows and final whole-application acceptance are still pending.
+Status: active implementation. Shared Sheet/channel authorization (`c2c_5477`), legacy OAuth renewal (`c2c_8a4d`), Provider workspace (`c2c_b63f`), account maintenance (`c2c_a74e`), and model/catalog lifecycle (`c2c_2f8c`, iteration 3) have approved checkpoints. Key/access, the remaining ledger rows, and final whole-application acceptance are still pending.
 
 ## Product frame
 
@@ -169,11 +169,11 @@ new contract before this refinement is considered complete.
 | `upstreams/SubresourcePanel.tsx` | form / inspector / confirm / receipt | Endpoint, account and binding configuration | Provider workspace checkpoint migrated: human-readable endpoint/account rows; channel-owned normal account entry; one active sheet/receipt action; semantic binding reconciliation; scheduling and raw credentials deliberately advanced | `subresource-crud.spec.ts` covers draft, active and uncertain application receipts, create/edit/delete, explicit connection, bounded scheduling values and unbound credential retention. |
 | `upstreams/CredentialSheet.tsx` | inspector | Account identity and maintenance actions | Migrated: compact purpose header and stable Close footer | Daily inspector E2E pending. |
 | `upstreams/OAuthWizard.tsx` | callback authorization / receipt | Existing Codex credential renewal, callback and cancellation | Migrated: mount-safe attempt identity, native callback form/footer, server-first cancellation, acknowledged receipt and explicit unknown-result recovery | `credential-oauth.spec.ts` covers compact status, local validation, production-envelope rejection/reconciliation, completion/reread failure, cache isolation, lost response, cancellation uncertainty/pending status, durable fallback and Back; C2C `c2c_8a4d` approved iteration 4. |
-| `models/ConnectModelDialog.tsx` | form | Exact model ID and endpoint selection; explicit close and busy state | Migrated: stable form-associated footer | `modal-daily.spec.ts`. |
-| `models/ModelConnectionsDialog.tsx` | inspector | Model source connection facts | Compatibility adapter | Model E2E pending. |
+| `models/ConnectModelDialog.tsx` | form / receipt | Exact model ID and endpoint selection; explicit close and busy state | Migrated: stable form footer, pre-fork no-op probe, exact source and staged receipt | `modal-daily.spec.ts`, `model-catalog-lifecycle.spec.ts`; C2C `c2c_2f8c` iteration 3. |
+| `models/ModelConnectionsDialog.tsx` | inspector / form / confirm / receipt | One captured source and last-enabled consequence | Migrated: one owned action, frozen fields during writes, structural preflight, stage-aware result | `model-catalog-lifecycle.spec.ts`; local embedded gateway source edit/readback; C2C `c2c_2f8c` iteration 3. |
 | `models/ModelsPage.tsx` | form / confirm | Aliases, route setup and destructive remove | Description/confirmation migration partial | Model E2E pending. |
 | `models/RouteWorkbench.tsx` | form / confirm | Candidates, aliases and routing revision | Compatibility adapter | Routing E2E pending. |
-| `catalog/CatalogPage.tsx` | form / inspector | Directory refresh/open model choice | Compatibility adapter | Catalog E2E pending. |
+| `catalog/CatalogPage.tsx` / `UpstreamModelBrowser.tsx` | inspector / confirm / receipt | Exact directory target and model choice | Daily connection migrated: frozen evidence, bounded continuation, target-bound refresh and source revalidation; other diagnostics retain their existing view | `model-catalog-lifecycle.spec.ts`; local embedded gateway catalog activation; C2C `c2c_2f8c` iteration 3. |
 | `billing/BillingPage.tsx` | form / confirm / receipt | Price catalog import | Compatibility adapter | Billing E2E pending. |
 | `egress/EgressPage.tsx` | form / confirm / inspector | Host, port and CIDR policy | Chip dirty and confirmations migrated; footer pending | `modal-foundation.spec.ts`. |
 | `egress/CompatibleProxyPanel.tsx` | form / confirm | Sealed proxy endpoints | Compatibility adapter | Egress E2E pending. |
@@ -272,3 +272,38 @@ endpoint/account and advanced credential maintenance, draft writes, active
 automatic application, resource/publish response loss, missing revision
 receipts, structural deletion preconditions, exact delete confirmation,
 Provider-bound receipts and channel-owned account onboarding.
+
+## 2026-09-20 - Model and catalog lifecycle checkpoint
+
+The daily model inspector now owns one source edit or removal at a time. It
+captures the exact public model, route candidate, sibling enabled state, and
+source label before confirmation. An actual last enabled source is disclosed
+before its removal or disablement also disables the public model; editing or
+removing an already disabled source has no hidden model-status side effect.
+Enabled, priority, and weight cannot change after an accepted Save, including
+while publication is pending. A safe rejection before any resource write
+restores editing; partial and uncertain writes instead retain a review-only
+receipt. Model creation, route, candidate, and alias stages are counted rather
+than presented as one atomic mutation. Active no-op connections are verified
+against the source revision before any working draft is created.
+
+Catalog connection requires an explicit endpoint and directory account. The
+confirmation freezes its configuration revision, endpoint fields, directory
+snapshot and observation time, and 1–20 exact model IDs. The selected account
+supplies directory evidence; the configured runtime pool remains independent.
+Pagination is explicit and bounded. A failed cursor blocks further selection
+until the operator rereads, while each loaded page must share the same source
+revision and snapshot. The admitted task rechecks its endpoint and catalog
+evidence before the first model write. Refresh results remain bound to their
+original endpoint/account and do not trigger a write replay.
+
+Current checkpoint evidence: type check; 43 unit files / 347 tests; 24 serial
+Chromium model/catalog/route cases and 56 related modal/account/Provider/channel
+cases; double-build, four-file management SPA and three embedded UI Rust tests.
+An isolated embedded gateway with a loopback mock applied a source weight 1→2,
+read back 2, added two exact catalog models, and showed an active duplicate
+connection left the configuration-version count at 4→4. EgoLite checked the
+390px source inspector/editor with no document overflow. No real Provider
+request or production state was changed. C2C `c2c_2f8c` approved the complete
+model/catalog checkpoint at iteration 3. Key/access and remaining workspaces
+are outside this checkpoint and remain active Goal work.

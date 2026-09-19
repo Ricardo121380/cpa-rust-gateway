@@ -6,16 +6,19 @@ import { beginConfigurationEdit } from "./beginEdit";
 import { useVersionStore, type ConfigVersionSummary } from "./versionStore";
 
 /** A bounded user task edits one draft; intermediate writes never unmount its form or move scope. */
-export async function beginConfigurationTask(description:string) {
+export async function beginConfigurationTask(description:string, expectedSource?:Readonly<{id:string;revision:string}>) {
   const session=useSessionStore.getState().generation;
   const owner=useVersionStore.getState();
   if(owner.context?.status==="archived")throw new Error("当前查看的是历史配置，请返回当前配置后修改。");
+  if(expectedSource&&(owner.context?.configVersionId!==expectedSource.id||owner.context.revision!==expectedSource.revision))throw new Error("当前配置已变化，请重新核对后操作。");
   const autoApply=owner.context?.status!=="draft";
   const assertOwner=()=>{
     if(useSessionStore.getState().generation!==session||useVersionStore.getState().selectionGeneration!==owner.selectionGeneration)throw new CancelledError({silent:true});
   };
   const version=await beginConfigurationEdit(description);
   assertOwner();
+  if(expectedSource&&owner.context?.status==="draft"&&(version.id!==expectedSource.id||version.revision!==expectedSource.revision))throw new Error("草稿已变化，请重新核对后操作。");
+  if(expectedSource&&owner.context?.status==="active"&&version.parent_id!==expectedSource.id)throw new Error("已发布配置已变化，请重新核对后操作。");
   let revision=version.revision;
   const read=async<T>(operation:ManagementOperationName,request:ManagementRequest={})=>{
     assertOwner();const value=await call<T>(operation,{...request,headers:{...request.headers,"X-Config-Version":version.id}});

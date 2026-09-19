@@ -33,8 +33,9 @@ export async function readModelConnections() {
 
 /** Complete configuration topology, separate from catalog contents and runtime availability. */
 export function useModelConnections() {
-  const scope=useVersionStore(s=>s.context?.configVersionId);
-  return useQuery({queryKey:["model-connections",scope],enabled:!!scope,
+  const context=useVersionStore(s=>s.context);
+  const scope=context?.configVersionId;
+  return useQuery({queryKey:["model-connections",scope,context?.revision],enabled:!!scope,
     retry:shouldRetryManagementRead,
     retryDelay:(attempt)=>250*(attempt+1),
     queryFn:readModelConnections,

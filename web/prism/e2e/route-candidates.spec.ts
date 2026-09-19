@@ -19,6 +19,7 @@ async function openModels(page: import("@playwright/test").Page): Promise<void> 
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "模型与路由");
+  await page.getByText("高级路由、候选与别名", {exact:true}).click();
   await expect(page.locator(".route-workbench")).toBeVisible();
 }
 
@@ -26,17 +27,15 @@ async function makeRoute(
   page: import("@playwright/test").Page,
   routeId: string,
 ): Promise<void> {
-  await page.getByRole("button", { name: "新建公开模型" }).click();
+  await page.getByRole("button", { name: "高级模型配置" }).click();
   const model = page.getByRole("dialog");
   await model.getByLabel("模型 ID").fill(`pm-${routeId}`);
   await model.getByLabel("模型名", { exact: false }).fill(`m-${routeId}`);
   await model.getByRole("button", { name: "保存" }).click();
 
-  await page
-    .locator("tr", { hasText: `m-${routeId}` })
-    .first()
-    .getByRole("button", { name: "建路由" })
-    .click();
+  const row=page.locator(".models-inventory tbody tr", { hasText: `m-${routeId}` }).first();
+  await row.locator(".row-menu summary").click();
+  await row.getByRole("button", { name: "配置路由" }).click();
   const routeSheet = page.getByRole("dialog");
   await routeSheet.getByLabel("路由 ID").fill(routeId);
   await routeSheet.getByRole("button", { name: "创建" }).click();
@@ -72,7 +71,7 @@ test("a new route fails validation until a candidate is added", async ({ page })
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("exact 模型 ID");
   await sheet.getByLabel("候选标识").fill("cand-e2e");
-  await sheet.getByLabel("接口连接", { exact: true }).selectOption("ep-relay-a-responses");
+  await sheet.getByRole("combobox", { name: "接口连接", exact: true }).selectOption("ep-relay-a-responses");
   await sheet.getByLabel("上游模型名称", { exact: true }).fill("relay-x");
   await sheet.getByRole("button", { name: "创建候选" }).click();
 
@@ -118,7 +117,7 @@ test("capability_override rejects a non-boolean instead of coercing it", async (
 
   const sheet = page.getByRole("dialog");
   await sheet.getByLabel("候选标识").fill("cand-cap");
-  await sheet.getByLabel("接口连接", { exact: true }).selectOption("ep-relay-a-responses");
+  await sheet.getByRole("combobox", { name: "接口连接", exact: true }).selectOption("ep-relay-a-responses");
   await sheet.getByLabel("上游模型名称", { exact: true }).fill("relay-x");
   await sheet.getByLabel("capability_override", { exact: false }).fill("vision=1");
   await sheet.getByRole("button", { name: "创建候选" }).click();
@@ -141,7 +140,7 @@ test("explain on a draft says the snapshot is missing, not that the panel is unw
   await selectDraft(page);
   await resourceChoices(page,{routes:["rt-minimax","rt-multi-provider"],upstreams:["prov-a"]});
   await navigate(page, "运行诊断");
-  await page.getByRole("form", { name: "路由解释" }).getByLabel("路由", { exact: true }).selectOption("rt-minimax");
+  await page.getByRole("form", { name: "路由解释" }).getByRole("combobox", { name: "route_id" }).selectOption("rt-minimax");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -156,7 +155,7 @@ test("route explain shows price evidence and the catalog it came from", async ({
   await resourceChoices(page,{routes:["rt-minimax","rt-multi-provider"],upstreams:["prov-a"]});
   await navigate(page, "运行诊断");
 
-  await page.getByRole("form", { name: "路由解释" }).getByLabel("路由", { exact: true }).selectOption("rt-minimax");
+  await page.getByRole("form", { name: "路由解释" }).getByRole("combobox", { name: "route_id" }).selectOption("rt-minimax");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -176,7 +175,7 @@ test("a multi-Provider route asks for a Provider instead of failing generically"
   await resourceChoices(page,{routes:["rt-minimax","rt-multi-provider"],upstreams:["prov-a"]});
   await navigate(page, "运行诊断");
 
-  await page.getByRole("form", { name: "路由解释" }).getByLabel("路由", { exact: true }).selectOption("rt-multi-provider");
+  await page.getByRole("form", { name: "路由解释" }).getByRole("combobox", { name: "route_id" }).selectOption("rt-multi-provider");
   await page.getByLabel("请求模型").fill("minimax-m3");
   await page.getByRole("button", { name: "解释" }).click();
 
@@ -225,6 +224,7 @@ test("legacy route policies expose safe details without the unsupported route re
     };
   });
   await navigate(page, "模型与路由");
+  await page.getByText("高级路由、候选与别名", { exact: true }).click();
   const inventory = page.getByRole("region", { name: "完整配置资源" });
   for (const policy of ["round_robin", "priority_failover"]) {
     await inventory.locator("tr", { hasText: `legacy-${policy}` }).getByRole("button", { name: "打开路由" }).click();

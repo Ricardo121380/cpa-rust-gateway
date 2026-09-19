@@ -109,13 +109,14 @@ export function ModelsPage() {
   const [workingId,setWorkingId]=useState<string>();
 
   const models = useQuery({
-    queryKey: ["public-models", scope],
+    queryKey: ["public-models", scope, context?.revision],
     queryFn: () => call<PublicModel[]>("listPublicModels", {}, { versionScoped: true }),
     enabled: scope !== undefined,
   });
 
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ["public-models", scope] });
+    void queryClient.resetQueries({ queryKey: ["public-models"] });
+    void queryClient.resetQueries({ queryKey: ["model-connections"] });
     void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
   };
 
@@ -128,8 +129,8 @@ export function ModelsPage() {
     },
     onSuccess: (version) => {
       setDraft(undefined);
-      invalidate();
       useVersionStore.getState().select(version);
+      invalidate();
     },
     onError: (error) => setActionError(asAppError(error).message),
   });
@@ -141,8 +142,8 @@ export function ModelsPage() {
     },
     onSuccess: (version) => {
       setConfirmDelete(undefined);
-      invalidate();
       useVersionStore.getState().select(version);
+      invalidate();
     },
     onError: (error) => setActionError(asAppError(error).message),
   });
@@ -157,8 +158,8 @@ export function ModelsPage() {
     onSuccess: ({created,version}) => {
       setAliasTarget(undefined);
       setNotice(`别名 ${created.alias} 已创建，可在配置资源中查看。`);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
       useVersionStore.getState().select(version);
+      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
     },
     onError: (error) => setActionError(asAppError(error).message),
   });
@@ -215,7 +216,7 @@ export function ModelsPage() {
 
         </div>
       </header>
-      {connecting?<ConnectModelDialog targetModelId={connectionSeed?.targetModelId} endpointSeed={search.get("from_endpoint")??undefined} seed={connectionSeed??modelSeed} onClose={closeConnecting} onSaved={(version)=>{closeConnecting();invalidate();useVersionStore.getState().select(version);}}/>:null}
+      {connecting?<ConnectModelDialog targetModelId={connectionSeed?.targetModelId} endpointSeed={search.get("from_endpoint")??undefined} seed={connectionSeed??modelSeed} onClose={closeConnecting} onSaved={(version)=>{closeConnecting();useVersionStore.getState().select(version);invalidate();}}/>:null}
 
       {modelSeed !== undefined ? (
         <section className="data-panel data-panel--padded" aria-label="待用于草稿的模型">
@@ -314,7 +315,7 @@ export function ModelsPage() {
             高级模型配置
           </button><RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
 
-      {connectionTarget?<ModelConnectionsDialog model={connectionTarget} onClose={()=>setConnectionTarget(undefined)} onSaved={version=>{setConnectionTarget(undefined);invalidate();useVersionStore.getState().select(version);}} onAdd={()=>{const route=topology.data?.routes.find(r=>r.public_model_id===connectionTarget.id);const source=topology.data?.candidates.find(c=>c.route_id===route?.id);setConnectionSeed({model:source?.upstream_model??connectionTarget.model_name,endpoint:"",targetModelId:connectionTarget.id});setConnectionTarget(undefined);setConnecting(true);}}/>:null}
+      {connectionTarget?<ModelConnectionsDialog model={connectionTarget} onClose={()=>setConnectionTarget(undefined)} onSaved={version=>{setConnectionTarget(undefined);useVersionStore.getState().select(version);invalidate();}} onAdd={()=>{const route=topology.data?.routes.find(r=>r.public_model_id===connectionTarget.id);const mappings=[...new Set(topology.data?.candidates.filter(c=>c.route_id===route?.id).map(c=>c.upstream_model)??[])];if(mappings.length>1){setNotice("该模型已有多种上游映射，请在高级路由配置中选择具体路径。");return;}setConnectionSeed({model:mappings[0]??connectionTarget.model_name,endpoint:"",targetModelId:connectionTarget.id});setConnectionTarget(undefined);setConnecting(true);}}/>:null}
       {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
         ["配置 ID", inspected.id], ["模型名称", inspected.model_name], ["配置状态", inspected.status],
         ["声明能力", enabledCapabilities(inspected.capabilities).join(" · ") || "未声明"],

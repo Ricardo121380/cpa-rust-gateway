@@ -40,6 +40,13 @@ it("does not silently publish other changes in an explicitly selected draft",asy
   expect(call).toHaveBeenCalledTimes(1);
 });
 
+it("rejects a newer selected draft before adopting it for a frozen catalog action",async()=>{
+  useVersionStore.getState().select(draft);
+  vi.mocked(call).mockResolvedValue([active,{...draft,revision:"rev-1"}]);
+  await expect(beginConfigurationTask("Connect catalog model",{id:draft.id,revision:draft.revision})).rejects.toThrow("草稿已变化");
+  expect(callRevisioned).not.toHaveBeenCalled();
+});
+
 it("does not apply an action from a historical view to a different active configuration",async()=>{
   useVersionStore.getState().select({...active,status:"archived"});
   await expect(beginConfigurationTask("Edit old account")).rejects.toThrow("历史配置");

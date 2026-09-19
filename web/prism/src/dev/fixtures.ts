@@ -1309,6 +1309,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       version.revision += 1;
       return json(201, row, revisionToken(version));
     }
+    const modelRead = /^GET \/admin\/public-models\/([^/]+)$/u.exec(route);
+    if (modelRead !== null) {
+      const version = versionByHeader(headers);
+      if (version instanceof Response) return version;
+      const row = (state.models.get(version.id) ?? []).find((item) => item.id === decodeURIComponent(modelRead[1] ?? ""));
+      return row === undefined ? errorResponse(404, "management_resource_not_found", "public model not found") : json(200, row, revisionToken(version));
+    }
     const modelItem = /^(PATCH|DELETE) \/admin\/public-models\/([^/]+)$/u.exec(route);
     if (modelItem !== null) {
       const version = versionByHeader(headers);

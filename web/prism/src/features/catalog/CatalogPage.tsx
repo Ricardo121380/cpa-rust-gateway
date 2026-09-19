@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -189,7 +189,9 @@ export function CatalogPage() {
         <Sheet
           layout="inspector"
           title="目录目标"
+          description="此处显示所选接口与账号的上游目录观测，不代表客户端已获模型权限。"
           onEscape={() => setSelected(undefined)}
+          footer={<SheetDismissButton>关闭</SheetDismissButton>}
         >
           <div className="entity-name"><ResourceIdentity id={selected.endpoint_id} kind="endpoint" /></div>
           <p className="entity-meta"><ResourceIdentity id={selected.credential_id} kind="account" /></p>
