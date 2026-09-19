@@ -691,6 +691,8 @@ let credentialOAuthStatusFailures = 0;
 let loseCredentialOAuthCompletionResponse = false;
 let credentialReadFailures = 0;
 let retainPendingCredentialOAuthOnCancel = false;
+let partialOperationalPool = false;
+let operationalPoolFailures = 0;
 type FixtureOperationControl = { held: boolean; calls: number; waiters: Set<() => void> };
 const fixtureOperationControls = new Map<string, FixtureOperationControl>();
 
@@ -766,6 +768,8 @@ export function resetFixturesForTest(): void {
   loseCredentialOAuthCompletionResponse = false;
   credentialReadFailures = 0;
   retainPendingCredentialOAuthOnCancel = false;
+  partialOperationalPool = false;
+  operationalPoolFailures = 0;
   for (const control of fixtureOperationControls.values()) releaseFixtureControl(control);
   fixtureOperationControls.clear();
 }
@@ -779,6 +783,10 @@ export function failNextCredentialOAuthStatusForTest(): void { credentialOAuthSt
 export function loseNextCredentialOAuthCompletionResponseForTest(): void { loseCredentialOAuthCompletionResponse = true; }
 /** Simulates one redacted credential reread failing after an acknowledged callback. */
 export function failNextCredentialReadForTest(): void { credentialReadFailures += 1; }
+/** Simulates a runtime observation read failure without changing saved bindings. */
+export function failNextOperationalPoolForTest(): void { operationalPoolFailures += 1; }
+/** Simulates a first runtime page that does not include one saved endpoint binding. */
+export function usePartialOperationalPoolForTest(): void { partialOperationalPool = true; }
 /** Simulates an acknowledged cancel racing a completion claim that is still pending. */
 export function retainPendingCredentialOAuthOnCancelForTest(): void { retainPendingCredentialOAuthOnCancel = true; }
 /** Simulates a process restart that drops only transient credential OAuth state. */
@@ -874,6 +882,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       items.sort((a, b) => a.resource_kind.localeCompare(b.resource_kind) || a.resource_key.localeCompare(b.resource_key));
       const next = offset + limit;
       return json(200, { base: { id: base.id, revision: revisionToken(base) }, target: { id: target.id, revision: revisionToken(target) }, items: items.slice(offset, next), next_cursor: next < items.length ? encodeURIComponent(JSON.stringify({ base: base.id, target: target.id, revisions: [base.revision, target.revision], offset: next })) : null });
+    }
+
+    const getVersion = /^GET \/admin\/config-versions\/([^/]+)$/u.exec(route);
+    if (getVersion !== null) {
+      const version = state.versions.find((row) => row.id === decodeURIComponent(getVersion[1] ?? ""));
+      if (version === undefined) return errorResponse(404, "management_resource_not_found", "Version not found");
+      return json(200, { ...version, revision: revisionToken(version) }, revisionToken(version));
     }
 
     if (route === "GET /admin/config-versions") {
@@ -1528,7 +1543,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           (state.bindings.get(version.id) ?? []).filter((b) => b.endpoint_id !== id),
         );
         version.revision += 1;
-        return new Response(null, { status: 204 });
+        return new Response(null, { status: 204, headers: new Headers({ ETag: `"${revisionToken(version)}"` }) });
       }
       const body = JSON.parse(bodyText ?? "{}") as EndpointRow;
       rows[index] = { ...body, id, upstream_id: rows[index]?.upstream_id ?? "" };
@@ -1704,7 +1719,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           (state.bindings.get(version.id) ?? []).filter((b) => b.credential_id !== id),
         );
         version.revision += 1;
-        return new Response(null, { status: 204 });
+        return new Response(null, { status: 204, headers: new Headers({ ETag: `"${revisionToken(version)}"` }) });
       }
       const body = JSON.parse(bodyText ?? "{}") as { kind: string; secret?: string; status: CredentialRow["status"] };
       if (body.secret === undefined || body.secret.length === 0) {
@@ -1744,6 +1759,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (route === "GET /admin/operations/account-pools") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
+      if (operationalPoolFailures > 0) {
+        operationalPoolFailures -= 1;
+        return errorResponse(503, "management_fixture_runtime_unavailable", "Runtime account observation is temporarily unavailable");
+      }
       const providerFilter = url.searchParams.get("provider_id");
       const channelFilter = url.searchParams.get("channel_id");
       const statusFilter = url.searchParams.get("account_status");
@@ -1804,11 +1823,14 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           (row) => enabledFilter === null || row.configured_enabled === (enabledFilter === "true"),
         );
 
+      const firstPage = partialOperationalPool
+        ? items.filter((item) => item.channel_id !== "ep-relay-a-responses")
+        : items;
       return json(200, {
         config_version_id: version.id,
         revision: version.revision,
-        items,
-        next_cursor: null,
+        items: firstPage,
+        next_cursor: partialOperationalPool ? "fixture-next-runtime-page" : null,
       });
     }
 

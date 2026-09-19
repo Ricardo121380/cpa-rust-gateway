@@ -17,6 +17,7 @@ import { useVersionStore } from "../config-versions/versionStore";
 import type { EgressPolicy } from "../egress/model";
 import { SubresourcePanel } from "./SubresourcePanel";
 import { ProviderDialog } from "./ProviderDialog";
+import { AddAccountDialog } from "../accounts/AddAccountDialog";
 import { beginConfigurationTask } from "../config-versions/configurationTask";
 import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
 import { manualModelConnectPath } from "./model";
@@ -96,11 +97,22 @@ export function UpstreamsPage() {
   const [expanded, setExpanded] = useState<string | undefined>(searchParams.get("upstream_id") ?? undefined);
   const [actionError, setActionError] = useState<string | undefined>();
   const [adding,setAdding]=useState(searchParams.get("add")==="provider");
+  const [addingAccount, setAddingAccount] = useState(false);
+  const [providerActionActive, setProviderActionActive] = useState(false);
   const closeAdding=()=>{setAdding(false);const next=new URLSearchParams(searchParams);next.delete("add");setSearchParams(next,{replace:true});};
   const [workingId,setWorkingId]=useState<string>();
   const topology=useModelConnections();
   const [filter,setFilter]=useState("");
   const [kindFilter,setKindFilter]=useState("");
+
+  const selectProviderWorkspace = (id: string | undefined) => {
+    if (providerActionActive && id !== expanded) return;
+    setExpanded(id);
+    const next = new URLSearchParams(searchParams);
+    if (id === undefined) next.delete("upstream_id");
+    else next.set("upstream_id", id);
+    setSearchParams(next, { replace: true });
+  };
 
   const upstreams = useQuery({
     queryKey: ["upstreams", scope],
@@ -223,7 +235,7 @@ export function UpstreamsPage() {
             <div className="provider-connections">{topology.isError?"连接读取失败":!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div>
             <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={manualModelConnectPath()}>开放模型</Link></div>
             <footer><div className="row-actions">
-              <button className="secondary" onClick={()=>setExpanded(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
+              <button className="secondary" disabled={providerActionActive && expanded !== upstream.id} title={providerActionActive && expanded !== upstream.id ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
               <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);beginDraft(toDraft(upstream));}}>编辑</button>
               <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>setInspected(upstream)}>详情</button><button className="danger" onClick={()=>{remove.reset();setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);}}>移除提供商</button></div></details>
             </div></footer>
@@ -232,17 +244,18 @@ export function UpstreamsPage() {
         {!scope?<div className="empty-state">选择配置版本后管理提供商。</div>:upstreams.data?.length===0?<div className="empty-state">添加提供商，设置接口地址并连接账号。</div>:filteredUpstreams.length===0?<div className="empty-state">没有符合筛选条件的提供商。<button className="secondary" onClick={()=>{setFilter("");setKindFilter("");}}>清除筛选</button></div>:null}
       </div>
 
-      {expanded?<aside className="provider-detail" aria-label="提供商接口与账号"><header><h3>{resourceName(expanded,"upstream",upstreams.data?.find(row=>row.id===expanded)?.name)}</h3><button className="secondary" onClick={()=>setExpanded(undefined)}>关闭</button></header><SubresourcePanel upstreamId={expanded}/></aside>:null}
+      {expanded?<aside className="provider-detail" aria-label="提供商接口与账号"><header><h3>{resourceName(expanded,"upstream",upstreams.data?.find(row=>row.id===expanded)?.name)}</h3><button className="secondary" disabled={providerActionActive} title={providerActionActive ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(undefined)}>关闭</button></header><SubresourcePanel key={expanded} upstreamId={expanded} onAddAccount={() => setAddingAccount(true)} onActionActiveChange={setProviderActionActive}/></aside>:null}
       </div>
 
       {adding?<ProviderDialog onClose={closeAdding} onSaved={(version)=>{closeAdding();invalidate();useVersionStore.getState().select(version);}}/>:null}
+      {addingAccount ? <AddAccountDialog onClose={() => setAddingAccount(false)} onCreated={() => { setAddingAccount(false); void queryClient.resetQueries({ queryKey: ["managed-inventory"] }); void queryClient.invalidateQueries({ queryKey: ["account-pools"] }); }} /> : null}
 
       {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "upstream", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
         ["上游 ID", inspected.id], ["Provider 家族", inspected.kind], ["配置启用", inspected.enabled ? "已启用" : "已停用"],
         ["出口策略", inspected.egress_policy_id], ["标签", inspected.tags.join(" · ") || "—"],
       ]}>
         <p className="small muted">配置启用不代表实时认证、quota 或调度可用。</p>
-        <div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspected.id); setInspected(undefined); }}>查看端点与凭据</button>
+        <div className="sheet-actions"><button className="secondary" onClick={() => { selectProviderWorkspace(inspected.id); setInspected(undefined); }}>查看端点与凭据</button>
           <button onClick={() => { beginDraft(toDraft(inspected)); setInspected(undefined); }}>编辑提供商</button></div>
       </ObjectInspector>}
 

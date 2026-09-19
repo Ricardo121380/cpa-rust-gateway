@@ -9,7 +9,7 @@ async function openLegacyRenewal(page: Page) {
   await selectDraft(page);
   await navigate(page, "上游");
   await page.locator("article", { hasText: "中转站 A" }).getByRole("button", { name: "接口与账号" }).click();
-  await page.locator('tr:has([data-resource-id="cred-codex-oauth"])').getByRole("button", { name: "详情" }).click();
+  await page.locator('[data-resource-id="cred-codex-oauth"]').first().getByRole("button", { name: "详情" }).click();
   const detail = page.getByRole("dialog", { name: "账号详情" });
   await detail.getByRole("button", { name: "配置" }).click();
   await detail.getByRole("button", { name: "重新授权" }).click();

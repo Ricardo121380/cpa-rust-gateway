@@ -166,7 +166,7 @@ new contract before this refinement is considered complete.
 | `access/AccessPage.tsx` | form / confirm / reveal receipt | Client keys and group routing | Revocation confirmation migrated; legacy subflows pending | Access-key E2E pending. |
 | `upstreams/ProviderDialog.tsx` | form | Optional credential material; explicit close and busy state | Migrated: stable form-associated footer | `modal-daily.spec.ts`. |
 | `upstreams/UpstreamsPage.tsx` | form / confirm | Provider tags and configuration revision | Chip dirty and confirmation migration; footer pending | Provider E2E pending. |
-| `upstreams/SubresourcePanel.tsx` | form / inspector / confirm | Endpoint and binding configuration | Compatibility adapter | Connection/routing E2E pending. |
+| `upstreams/SubresourcePanel.tsx` | form / inspector / confirm / receipt | Endpoint, account and binding configuration | Provider workspace checkpoint migrated: human-readable endpoint/account rows; channel-owned normal account entry; one active sheet/receipt action; semantic binding reconciliation; scheduling and raw credentials deliberately advanced | `subresource-crud.spec.ts` covers draft, active and uncertain application receipts, create/edit/delete, explicit connection, bounded scheduling values and unbound credential retention. |
 | `upstreams/CredentialSheet.tsx` | inspector | Account identity and maintenance actions | Migrated: compact purpose header and stable Close footer | Daily inspector E2E pending. |
 | `upstreams/OAuthWizard.tsx` | callback authorization / receipt | Existing Codex credential renewal, callback and cancellation | Migrated: mount-safe attempt identity, native callback form/footer, server-first cancellation, acknowledged receipt and explicit unknown-result recovery | `credential-oauth.spec.ts` covers compact status, local validation, production-envelope rejection/reconciliation, completion/reread failure, cache isolation, lost response, cancellation uncertainty/pending status, durable fallback and Back; C2C `c2c_8a4d` approved iteration 4. |
 | `models/ConnectModelDialog.tsx` | form | Exact model ID and endpoint selection; explicit close and busy state | Migrated: stable form-associated footer | `modal-daily.spec.ts`. |
@@ -189,3 +189,64 @@ Back and internal-link triggers routed through the shared discard policy while
 the listed callers are converted. It may be removed only after every remaining
 row is marked migrated and the targeted browser suite demonstrates the same
 behavior.
+
+## 2026-09-19 - Provider workspace checkpoint
+
+The provider detail is a deep-linkable workspace: selecting “接口与账号” stores
+the Provider selection in the route so a successful configuration revision does
+not close the administrator's current workspace. Normal endpoint and account
+views are labelled rows that show protocol, host, account identity, access
+method and status. The runtime binding matrix stays behind “高级调度配置”
+because priority, weight and concurrency are operational policy rather than an
+ordinary account action.
+
+Endpoint editing now uses the shared Sheet's title, purpose, scrollable body
+and form-associated footer. The model-list path and enable switch are progressive
+disclosure. Connecting an account similarly starts with an explicit interface
+and account selection, then exposes constrained priority, weight and concurrency
+only under “调度设置”. Binding reconciliation is an inspector rather than a
+normal flow: it states the mismatch without exposing an internal table as the
+default page. Mobile turns its advanced matrices into labelled cards instead of
+requiring horizontal scrolling.
+
+After every endpoint, credential, binding or deletion write, the workspace
+holds a non-secret receipt before changing its selected configuration or
+reloading scoped inventories. The explicit Done/Review continuation adopts the
+returned working version once, then refreshes. This prevents a remount from
+hiding a durable outcome and keeps a fresh read within the correct revision
+ownership boundary. The fixture's endpoint and credential 204 responses now
+include the same revision receipt required by the actual task boundary.
+
+### Transaction and account-action refinement
+
+The provider panel owns one discriminated active action at a time: an
+inspector, one form, binding reconciliation, a destructive confirmation or a
+receipt. Normal “添加账号” leaves the provider workspace for the channel-owned
+authorization/import chooser; raw material is available only from the explicit
+“高级凭据维护” disclosure. This keeps ordinary OAuth and API-key flows from
+asking an administrator to construct a Provider binding while preserving a
+bounded maintenance path for an unbound imported credential.
+
+Every endpoint, raw credential, binding and deletion mutation now has a
+transaction receipt. A selected draft says it was saved but not applied. A
+write begun from an active configuration automatically forks, validates and
+publishes; a returned active version is an applied receipt. If a resource
+response is lost or lacks its revision receipt, it becomes unconfirmed without
+publication or replay. If publication fails after an acknowledged write, the
+client reads the exact working version once, under the original task owner, and
+reports saved-but-not-applied, durable-but-response-lost or unconfirmed. A
+recovered active result must carry the same acknowledged revision; later
+contents are never attributed to the initiating action. The fixture implements
+the same single-version read declared by the management contract so the
+uncertain-result branch exercises the real client operation rather than a
+test-only substitute.
+
+Only one active Provider action can exist at a time. While it is open, the
+originating Provider workspace cannot be closed or switched; keyed panels also
+prevent a retained receipt from being relabelled if the route changes. The
+current serial Chromium evidence has 19 Provider workspace cases: runtime
+observation failure and partial results, 1280/1440/390 pane fit, ordinary
+endpoint/account and advanced credential maintenance, draft writes, active
+automatic application, resource/publish response loss, missing revision
+receipts, structural deletion preconditions, exact delete confirmation,
+Provider-bound receipts and channel-owned account onboarding.

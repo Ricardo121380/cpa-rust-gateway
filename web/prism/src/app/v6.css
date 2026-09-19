@@ -438,7 +438,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 .provider-workspace.has-detail .provider-card { grid-template-columns:1fr; gap:10px; }
 .provider-workspace.has-detail .provider-models { display:flex; flex-wrap:wrap; gap:12px; }
 .provider-workspace.has-detail .provider-card .row-actions { justify-content:flex-start; }
-.provider-detail { min-width:0; border:1px solid var(--separator); border-radius:16px; padding:20px; background:var(--panel-tint); }
+.provider-detail { container-type:inline-size; min-width:0; border:1px solid var(--separator); border-radius:16px; padding:20px; background:var(--panel-tint); }
 .provider-detail > header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
 .provider-detail > header h3 { margin:0; font-size:17px; overflow-wrap:anywhere; }
 .provider-detail .tablewrap { overflow:auto; }
@@ -457,15 +457,26 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
   .provider-detail { padding:16px; }
 }
 
-.provider-detail :is(table,tbody) { display:block; width:100%; min-width:0; }
-.provider-detail thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
-.provider-detail tbody tr { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; padding:14px 0; border-bottom:1px solid var(--separator); }
-.provider-detail tbody td { display:block; min-width:0; border:0; padding:0; white-space:normal; overflow-wrap:anywhere; }
-.provider-detail tbody td:first-child { grid-column:1 / -1; font-weight:600; }
-.provider-detail tbody td.row-actions { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px; }
 .provider-detail .subresource-panel h3 { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.provider-detail .subresource-panel { overflow-x:hidden; }
 .provider-scheduling { margin-top:18px; }
 .provider-scheduling > summary { cursor:pointer; color:var(--ink-2); font-size:13px; }
+.provider-scheduling-table { max-width:100%; }
+.subresource-list { display:grid; gap:8px; margin:8px 0 14px; }
+.subresource-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; align-items:start; padding:14px; border:1px solid var(--separator); border-radius:14px; background:var(--surface); min-width:0; }
+.subresource-identity { display:grid; gap:3px; min-width:0; }
+.subresource-identity strong { overflow-wrap:anywhere; }
+.subresource-label,.subresource-facts dt,.subresource-action-label { color:var(--ink-2); font-size:12px; }
+.subresource-meta { color:var(--ink-2); font-size:13px; overflow-wrap:anywhere; }
+.subresource-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; }
+.subresource-facts div { display:grid; gap:3px; min-width:0; }
+.subresource-facts dd { margin:0; min-width:0; overflow-wrap:anywhere; }
+.subresource-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
+.subresource-row > .subresource-actions { grid-column:1 / -1; }
+.subresource-actions .subresource-action-label { flex-basis:100%; }
+@container (max-width:480px) { .subresource-row { grid-template-columns:1fr; } }
+@media(max-width:900px) { .subresource-row { grid-template-columns:1fr; } }
+@media(max-width:720px) { .subresource-row { padding:14px; } .subresource-actions button,.subresource-actions a { min-height:44px; } }
 
 .account-directory-toolbar > label:not(.account-search) { min-width:0; max-width:100%; }
 @media (max-width: 640px) { .account-directory-toolbar .account-search { flex-basis:100%; max-width:none; min-width:0; } }
@@ -473,15 +484,15 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 /* Advanced tables keep their real fields and actions available on narrow screens. */
 .rt-mobile-account { display:none; }
 @media(max-width:720px) {
- .canvas .responsive-table,.canvas .responsive-table tbody { display:block; min-width:0; width:100%; }
- .canvas .responsive-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
- .canvas .responsive-table tr { display:grid; gap:12px; min-width:0; padding:16px; margin:12px 0; border:1px solid var(--separator); border-radius:16px; background:var(--panel-tint); }
- .canvas .responsive-table td,.canvas .responsive-table td:first-child,.canvas .responsive-table td:last-child { display:block; min-width:0; padding:0; border:0; white-space:normal; overflow-wrap:anywhere; }
- .canvas .responsive-table td[data-label] { display:grid; grid-template-columns:76px minmax(0,1fr); gap:8px; align-items:start; }
- .canvas .responsive-table td[data-label]::before { content:attr(data-label); font-family:var(--font-sans); font-size:12px; color:var(--ink-2); }
- .canvas .responsive-table td[data-label="操作"] { display:flex; flex-wrap:wrap; gap:8px; }
- .canvas .responsive-table td[data-label="操作"]::before { display:none; }
- .canvas .responsive-table button { max-width:100%; min-height:44px; white-space:normal; }
+.canvas .responsive-table,.canvas .responsive-table tbody,.sheet-panel .responsive-table,.sheet-panel .responsive-table tbody { display:block; min-width:0; width:100%; }
+.canvas .responsive-table thead,.sheet-panel .responsive-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.canvas .responsive-table tr,.sheet-panel .responsive-table tr { display:grid; gap:12px; min-width:0; padding:16px; margin:12px 0; border:1px solid var(--separator); border-radius:16px; background:var(--panel-tint); }
+.canvas .responsive-table td,.canvas .responsive-table td:first-child,.canvas .responsive-table td:last-child,.sheet-panel .responsive-table td,.sheet-panel .responsive-table td:first-child,.sheet-panel .responsive-table td:last-child { display:block; min-width:0; padding:0; border:0; white-space:normal; overflow-wrap:anywhere; }
+.canvas .responsive-table td[data-label],.sheet-panel .responsive-table td[data-label] { display:grid; grid-template-columns:76px minmax(0,1fr); gap:8px; align-items:start; }
+.canvas .responsive-table td[data-label]::before,.sheet-panel .responsive-table td[data-label]::before { content:attr(data-label); font-family:var(--font-sans); font-size:12px; color:var(--ink-2); }
+.canvas .responsive-table td[data-label="操作"],.sheet-panel .responsive-table td[data-label="操作"] { display:flex; flex-wrap:wrap; gap:8px; }
+.canvas .responsive-table td[data-label="操作"]::before,.sheet-panel .responsive-table td[data-label="操作"]::before { display:none; }
+.canvas .responsive-table button,.sheet-panel .responsive-table button { max-width:100%; min-height:44px; white-space:normal; }
  .canvas .rt-matrix,.canvas .rt-matrix tbody { display:block; min-width:0; width:100%; }
  .canvas .rt-matrix thead { display:none; }
  .canvas .rt-matrix tr { display:grid; gap:8px; padding:12px 0; }

@@ -13,11 +13,10 @@ test("starting an edit copies the active graph without asking for credentials ag
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-status", "draft");
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version", /^edit-/u);
   await navigate(page, "上游");
-  const row = page.locator("tr", {hasText: "relay-a"}).first();
-  await expect(row).toBeVisible();
-  await row.getByRole("button", {name:"子资源", exact:true}).click();
-  await expect(page.locator(".subresource-panel")).toContainText("cred-relay-key");
-  await expect(page.locator(".subresource-panel")).toContainText("cred-codex-oauth");
-  await expect(page.locator(".subresource-panel")).toContainText("ep-relay-a-responses");
+  const provider = page.locator("article", {hasText: "中转站 A"});
+  await expect(provider).toBeVisible();
+  await provider.getByRole("button", {name:"接口与账号", exact:true}).click();
+  await expect(page.locator(".subresource-panel")).toContainText("Responses");
+  await expect(page.locator(".subresource-panel")).toContainText("alex@example.test");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });

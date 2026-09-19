@@ -167,6 +167,22 @@ html.has-sheet body {
 
 .sheet-form legend { padding-inline: 4px; }
 
+.sheet-advanced {
+  display: grid;
+  gap: 12px;
+  padding-top: 2px;
+  border-top: 1px solid var(--modal-border);
+}
+
+.sheet-advanced > summary {
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.sheet-advanced[open] > summary { color: var(--ink); }
+
 .sheet-form :is(input, select, textarea) {
   box-sizing: border-box;
   width: 100%;
