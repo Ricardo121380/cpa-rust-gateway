@@ -35,7 +35,7 @@ test("the node form refuses a bad proxy address before sending anything", async 
 
   const nodeSection = page.locator(".cp-section", { hasText: "代理节点" });
   await nodeSection.getByRole("button", { name: "新建" }).click();
-  const sheet = page.getByRole("dialog");
+  const sheet = page.locator(".inline-workspace");
   await sheet.getByLabel("资源", { exact: true }).fill("node-new");
   await sheet.getByLabel("upstream").selectOption("relay-a");
   await sheet.getByLabel("名称").fill("测试节点");
@@ -50,6 +50,7 @@ test("the node form refuses a bad proxy address before sending anything", async 
   // are injected through options.fetch, so no request reaches the network layer
   // for Playwright to observe. The absence of the row is the observable fact.)
   await sheet.getByRole("button", { name: "取消" }).click();
+  await page.getByRole("dialog",{name:"放弃未保存的修改？"}).getByRole("button",{name:"放弃修改"}).click();
   await expect(nodeSection.locator('tr:has([data-resource-id="node-new"])')).toHaveCount(0);
 });
 
@@ -60,13 +61,14 @@ test("editing a node keeps the sealed address when the field is left blank", asy
   // so an unscoped row match finds two rows.
   const nodeSection = page.locator(".cp-section", { hasText: "代理节点" });
   await nodeSection.locator('tr:has([data-resource-id="node-eu-1"])').getByRole("button", { name: "编辑" }).click();
-  const sheet = page.getByRole("dialog");
+  const sheet = page.locator(".inline-workspace");
   // The OPPOSITE of the account sheet, which demands the secret again. The
   // contract says omitted or null preserves the sealed endpoint.
   await expect(sheet).toContainText("留空表示保留现有地址");
   await expect(sheet.getByLabel("proxy_endpoint")).toHaveValue("");
   await sheet.getByLabel("名称").fill("法兰克福 1 改名");
   await sheet.getByRole("button", { name: "保存" }).click();
+  await page.getByRole("region",{name:"兼容出口修改结果"}).getByRole("button",{name:"完成"}).click();
 
   // The save SUCCEEDING is the proof that proxy_endpoint was omitted rather
   // than sent blank: the fixture validates any present endpoint the way the
@@ -83,7 +85,7 @@ test("the target id switches namespace with the target kind", async ({ page }) =
     .locator(".cp-section", { hasText: "兼容出口绑定" })
     .getByRole("button", { name: "新建" })
     .click();
-  const sheet = page.getByRole("dialog");
+  const sheet = page.locator(".inline-workspace");
 
   // direct carries no id at all — the backend rejects direct + any id.
   await expect(sheet).toContainText("直连不带目标 id");
@@ -131,6 +133,7 @@ test("an unreferenced pool deletes, and the panel reflects it", async ({ page })
   const sheet = page.getByRole("dialog");
   await expect(sheet).not.toContainText("仍被引用");
   await sheet.getByRole("button", { name: "确认删除" }).click();
+  await page.getByRole("region",{name:"兼容出口修改结果"}).getByRole("button",{name:"完成"}).click();
 
   await expect(page.locator(".cp-section", { hasText: "代理池" }).locator('tr:has([data-resource-id="pool-empty"])')).toHaveCount(0);
 });
@@ -157,6 +160,6 @@ test("ids render in their own case, because ids are case-sensitive", async ({ pa
     .locator('tr:has([data-resource-id="node-eu-1"])')
     .locator("th");
   await expect(head).toContainText("法兰克福 1");
-  await expect(head.locator(".resource-original-id")).toHaveText("node-eu-1");
+  await expect(head.locator(".resource-identity")).toHaveAttribute("data-resource-id","node-eu-1");
   await expect(head).toHaveCSS("text-transform", "none");
 });

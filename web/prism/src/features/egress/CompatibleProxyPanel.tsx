@@ -19,11 +19,16 @@ import { ResourceIdentity } from "../../components/ResourceIdentity";
 //     nodes has no rows, and a freshly created pool is exactly that pool; a
 //     row-level "add node" would make the thing you just created unreachable.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, useRef, useEffect, type FormEvent, type ReactNode } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
-import { useVersionStore } from "../config-versions/versionStore";
+import { InlineWorkspace } from "../../components/InlineWorkspace";
+import { useOperationBoundary } from "../../components/OperationBoundary";
+import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { useSessionStore } from "../../session/sessionStore";
+import { Sheet,SheetDismissButton } from "../../components/Sheet";
+import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import {
   ATTEMPTS_MAX,
   ATTEMPTS_MIN,
@@ -115,22 +120,30 @@ function Section({
   );
 }
 
+function ProxyEditor({title,formId,label,pending,locked,onCancel,children}:Readonly<{title:string;formId:string;label:string;pending:boolean;locked:boolean;onCancel:()=>void;children:ReactNode}>){
+ const [dirty,setDirty]=useState(false);const admission=useOperationBoundary();
+ return <InlineWorkspace title={title} dirty={dirty} busy={pending} onClose={onCancel} footer={<><button type="button" className="secondary" disabled={pending} onClick={()=>admission.request(onCancel)}>取消</button><button type="submit" form={formId} disabled={locked}>{label}</button></>}><div onChange={()=>setDirty(true)}><fieldset disabled={locked}>{children}</fieldset></div></InlineWorkspace>;
+}
+
 function PoolSheet({
   existing,
   upstreams,
   pending,
+  locked,
   onCancel,
   onSubmit,
 }: Readonly<{
   existing: ProxyPool | undefined;
   upstreams: readonly UpstreamOption[];
   pending: boolean;
+  locked: boolean;
   onCancel: () => void;
   onSubmit: (body: Record<string, unknown>, path: Record<string, string> | undefined) => void;
 }>) {
   return (
-    <Sheet title={existing === undefined ? "新建代理池" : `编辑代理池 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel} busy={pending}>
+    <ProxyEditor title={existing === undefined ? "新建代理池" : `编辑代理池 · ${resourceOption(existing.id,"resource",existing.name)}`} onCancel={onCancel} pending={pending} locked={locked} formId="proxy-pool-form" label={existing===undefined?"创建":"保存"}>
       <form
+        id="proxy-pool-form"
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
@@ -173,7 +186,7 @@ function PoolSheet({
         </label>
         <label>
           名称
-          <input name="name" required maxLength={256} defaultValue={existing ? resourceOption(existing.id,"resource",existing.name) : ""} />
+          <input name="name" required maxLength={256} defaultValue={existing?.name ?? ""} />
         </label>
         <label className="checkline">
           <input type="checkbox" name="enabled" defaultChecked={existing?.enabled ?? true} />
@@ -182,16 +195,8 @@ function PoolSheet({
         <p className="stat-sub">
           池本身不带任何代理地址 —— 地址只存在于池下的节点上,并且落库即被封存。
         </p>
-        <div className="sheet-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
-            取消
-          </button>
-          <button type="submit" disabled={pending}>
-            {existing === undefined ? "创建" : "保存"}
-          </button>
-        </div>
       </form>
-    </Sheet>
+    </ProxyEditor>
   );
 }
 
@@ -200,6 +205,7 @@ function NodeSheet({
   upstreams,
   pools,
   pending,
+  locked,
   onCancel,
   onSubmit,
 }: Readonly<{
@@ -207,6 +213,7 @@ function NodeSheet({
   upstreams: readonly UpstreamOption[];
   pools: readonly ProxyPool[];
   pending: boolean;
+  locked: boolean;
   onCancel: () => void;
   onSubmit: (body: Record<string, unknown>, path: Record<string, string> | undefined) => void;
 }>) {
@@ -214,8 +221,9 @@ function NodeSheet({
   const creating = existing === undefined;
 
   return (
-    <Sheet title={creating ? "新建代理节点" : `编辑代理节点 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel} busy={pending}>
+    <ProxyEditor title={creating ? "新建代理节点" : `编辑代理节点 · ${resourceOption(existing.id,"resource",existing.name)}`} onCancel={onCancel} pending={pending} locked={locked} formId="proxy-node-form" label={existing===undefined?"创建":"保存"}>
       <form
+        id="proxy-node-form"
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
@@ -233,6 +241,7 @@ function NodeSheet({
           }
           setEndpointError(undefined);
           const poolId = String(data.get("pool_id") ?? "");
+          const field=event.currentTarget.elements.namedItem("proxy_endpoint");if(field instanceof HTMLInputElement)field.value="";
           onSubmit(
             {
               id: String(data.get("id") ?? "").trim(),
@@ -285,7 +294,7 @@ function NodeSheet({
         </label>
         <label>
           名称
-          <input name="name" required maxLength={256} defaultValue={existing ? resourceOption(existing.id,"resource",existing.name) : ""} />
+          <input name="name" required maxLength={256} defaultValue={existing?.name ?? ""} />
         </label>
         <label>
           proxy_endpoint
@@ -347,16 +356,8 @@ function NodeSheet({
           <input type="checkbox" name="enabled" defaultChecked={existing?.enabled ?? true} />
           启用
         </label>
-        <div className="sheet-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
-            取消
-          </button>
-          <button type="submit" disabled={pending}>
-            {creating ? "创建" : "保存"}
-          </button>
-        </div>
       </form>
-    </Sheet>
+    </ProxyEditor>
   );
 }
 
@@ -365,6 +366,7 @@ function BindingSheet({
   pools,
   nodes,
   pending,
+  locked,
   onCancel,
   onSubmit,
 }: Readonly<{
@@ -372,6 +374,7 @@ function BindingSheet({
   pools: readonly ProxyPool[];
   nodes: readonly ProxyNode[];
   pending: boolean;
+  locked: boolean;
   onCancel: () => void;
   onSubmit: (body: Record<string, unknown>, path: Record<string, string> | undefined) => void;
 }>) {
@@ -381,14 +384,15 @@ function BindingSheet({
   const options = source === "node" ? nodes : source === "pool" ? pools : [];
 
   return (
-    <Sheet
+    <ProxyEditor
       title={
         creating ? "新建兼容出口绑定" : `编辑绑定 · ${resourceOption(existing.endpoint_id,"endpoint")} / ${resourceOption(existing.credential_id,"account")}`
       }
-      onEscape={onCancel}
-      busy={pending}
+      onCancel={onCancel}
+      pending={pending} locked={locked} formId="proxy-binding-form" label={existing===undefined?"创建":"保存"}
     >
       <form
+        id="proxy-binding-form"
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
@@ -423,8 +427,7 @@ function BindingSheet({
           </label>
         </div>
         <p className="stat-sub">
-          绑定的主键是 <strong>(endpoint, credential) 这一对</strong>,不是单个 id,所以编辑时两者都
-          不可改 —— 改成另一对等于另一条绑定。契约里没有枚举端点与凭据的操作,因此这里是手输。
+          每条绑定关联一个接口和一个账号。编辑时保留这对关联；需要更换时创建新的绑定。
         </p>
         <label>
           target_kind
@@ -489,16 +492,8 @@ function BindingSheet({
             defaultValue={existing?.pre_submit_max_attempts ?? 1}
           />
         </label>
-        <div className="sheet-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
-            取消
-          </button>
-          <button type="submit" disabled={pending}>
-            {creating ? "创建" : "保存"}
-          </button>
-        </div>
       </form>
-    </Sheet>
+    </ProxyEditor>
   );
 }
 
@@ -510,6 +505,13 @@ export function CompatibleProxyPanel({
   const scope = context?.configVersionId;
   const editable = context?.status === "draft";
   const [draft, setDraft] = useState<Draft | undefined>();
+  const admission=useOperationBoundary();const submitted=useRef(false),live=useRef(true);
+  const [owner]=useState(()=>({session:useSessionStore.getState().generation,selection:useVersionStore.getState().selectionGeneration}));
+  useEffect(()=>{live.current=true;return()=>{live.current=false;};},[]);
+  const owned=()=>live.current&&owner.session===useSessionStore.getState().generation&&owner.selection===useVersionStore.getState().selectionGeneration;
+  const [source,setSource]=useState<{id:string;revision:string}>();
+  const [workingId,setWorkingId]=useState<string>(),[receipt,setReceipt]=useState<ConfigVersionSummary>();
+
   const [doomed, setDoomed] = useState<Doomed | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
 
@@ -536,33 +538,21 @@ export function CompatibleProxyPanel({
     }
   };
 
-  const save = useMutation({
-    mutationFn: ({ entity, body, path }: SaveInput) =>
-      path === undefined
-        ? call<unknown>(OPS[entity].create, { body }, { versionScoped: true, mutating: true })
-        : call<unknown>(
-            OPS[entity].update,
-            { path, body },
-            { versionScoped: true, mutating: true },
-          ),
-    onSuccess: () => {
-      setDraft(undefined);
-      setActionError(undefined);
-      invalidate();
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  const remove = useMutation({
-    mutationFn: ({ entity, path }: Readonly<{ entity: Entity; path: Record<string, string> }>) =>
-      call<undefined>(OPS[entity].remove, { path }, { versionScoped: true, mutating: true }),
-    onSuccess: () => {
-      setDoomed(undefined);
-      setActionError(undefined);
-      invalidate();
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
+  const prepared=()=>{submitted.current=false;setReceipt(undefined);setWorkingId(undefined);setActionError(undefined);setSource(context?{id:context.configVersionId,revision:context.revision}:undefined);save.reset();remove.reset();};
+  const beginDraft=(value:Draft)=>admission.request(()=>{prepared();setDoomed(undefined);setDraft(value);});
+  const beginDelete=(value:Doomed)=>admission.request(()=>{prepared();setDraft(undefined);setDoomed(value);});
+  const close=()=>{setDraft(undefined);setDoomed(undefined);setReceipt(undefined);};
+  const saved=(version:ConfigVersionSummary)=>{if(owned()){useVersionStore.getState().rememberPending(version);if(context?.configVersionId===version.id)useVersionStore.getState().advanceFromEtag(version.revision);setReceipt(version);invalidate();}};
+  const review=(version:ConfigVersionSummary)=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().select(version);}};
+  const save=useMutation({gcTime:0,mutationFn:async({entity,body,path}:SaveInput)=>{
+    try{const task=await beginConfigurationTask("维护兼容出口",source,"deferred");setWorkingId(task.version.id);useVersionStore.getState().rememberPending(task.version);
+    await task.mutate(path===undefined?OPS[entity].create:OPS[entity].update,{body,...(path?{path}:{})});return task.finish();}
+    finally{delete body.proxy_endpoint;}
+  },onSuccess:saved,onError:error=>{if(owned())setActionError(asAppError(error).message);}});
+  const remove=useMutation({mutationFn:async({entity,path}:Readonly<{entity:Entity;path:Record<string,string>}>)=>{
+    const task=await beginConfigurationTask("删除兼容出口资源",source,"deferred");setWorkingId(task.version.id);useVersionStore.getState().rememberPending(task.version);await task.mutate(OPS[entity].remove,{path});return task.finish();
+  },onSuccess:saved,onError:error=>{if(owned())setActionError(asAppError(error).message);}});
+  const submit=(input:SaveInput)=>{if(submitted.current)return;submitted.current=true;save.mutate(input);};
 
   const poolRows = pools.data ?? [];
   const nodeRows = nodes.data ?? [];
@@ -598,11 +588,59 @@ export function CompatibleProxyPanel({
       ) : null}
       {loading ? <p className="cp-empty">读取中…</p> : null}
 
+      {!receipt&&draft?.kind === "pool" ? (
+        <PoolSheet
+          existing={draft.existing}
+          upstreams={upstreams}
+          pending={save.isPending}
+          locked={submitted.current}
+          onCancel={() => setDraft(undefined)}
+          onSubmit={(body, path) => submit({ entity: "pool", body, path })}
+        />
+      ) : null}
+      {!receipt&&draft?.kind === "node" ? (
+        <NodeSheet
+          existing={draft.existing}
+          upstreams={upstreams}
+          pools={poolRows}
+          pending={save.isPending}
+          locked={submitted.current}
+          onCancel={() => setDraft(undefined)}
+          onSubmit={(body, path) => submit({ entity: "node", body, path })}
+        />
+      ) : null}
+      {!receipt&&draft?.kind === "binding" ? (
+        <BindingSheet
+          existing={draft.existing}
+          pools={poolRows}
+          nodes={nodeRows}
+          pending={save.isPending}
+          locked={submitted.current}
+          onCancel={() => setDraft(undefined)}
+          onSubmit={(body, path) => submit({ entity: "binding", body, path })}
+        />
+      ) : null}
+
+      {receipt?<InlineWorkspace title="兼容出口修改结果" busy={false} dirty={false} onClose={close} footer={<button onClick={close}>完成</button>}><p role="status">修改已保存到草稿，尚未应用。</p></InlineWorkspace>:null}
+      <ConfigurationTaskNotice workingId={workingId} error={save.error??remove.error} onReview={review}/>
+      {!receipt&&doomed !== undefined ? (
+        <Sheet title={`删除 ${doomed.label}`} onEscape={close} busy={remove.isPending} footer={<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={submitted.current||doomed.blockers.length>0} onClick={()=>{if(!submitted.current){submitted.current=true;remove.mutate({entity:doomed.entity,path:doomed.path});}}}>确认删除</button></>}>
+          <p>删除后不可撤销(可以回滚整个配置版本)。</p>
+          {doomed.blockers.length > 0 ? (
+            // The backend refuses to delete a referenced pool or node and there
+            // is no cascade. Both lists are already here, so the refusal is
+            // predicted rather than delivered as a failed request.
+            <p role="alert" className="reveal-warning">
+              仍被引用,后端会拒绝这次删除:{doomed.blockers.map(referenceText).join("、")}。先解除这些引用。
+            </p>
+          ) : null}
+        </Sheet>
+      ):null}
       <Section
         title="代理池"
         help="一个池是一组可互换的出口节点。池本身不持有任何地址。"
         editable={editable === true}
-        onCreate={() => setDraft({ kind: "pool", existing: undefined })}
+        onCreate={() => beginDraft({ kind: "pool", existing: undefined })}
       >
         {poolRows.length === 0 ? (
           <p className="cp-empty">还没有代理池。</p>
@@ -633,7 +671,7 @@ export function CompatibleProxyPanel({
                       type="button"
                       className="secondary"
                       disabled={editable !== true}
-                      onClick={() => setDraft({ kind: "pool", existing: pool })}
+                      onClick={() => beginDraft({ kind: "pool", existing: pool })}
                     >
                       编辑
                     </button>
@@ -642,7 +680,7 @@ export function CompatibleProxyPanel({
                       className="secondary"
                       disabled={editable !== true}
                       onClick={() =>
-                        setDoomed({
+                        beginDelete({
                           entity: "pool",
                           label: `代理池 ${resourceOption(pool.id,"resource",pool.name)}`,
                           path: { pool_id: pool.id },
@@ -669,7 +707,7 @@ export function CompatibleProxyPanel({
           </>
         }
         editable={editable === true}
-        onCreate={() => setDraft({ kind: "node", existing: undefined })}
+        onCreate={() => beginDraft({ kind: "node", existing: undefined })}
       >
         {nodeRows.length === 0 && poolRows.length === 0 ? (
           <p className="cp-empty">还没有代理节点。</p>
@@ -714,7 +752,7 @@ export function CompatibleProxyPanel({
                             type="button"
                             className="secondary"
                             disabled={editable !== true}
-                            onClick={() => setDraft({ kind: "node", existing: node })}
+                            onClick={() => beginDraft({ kind: "node", existing: node })}
                           >
                             编辑
                           </button>
@@ -723,7 +761,7 @@ export function CompatibleProxyPanel({
                             className="secondary"
                             disabled={editable !== true}
                             onClick={() =>
-                              setDoomed({
+                              beginDelete({
                                 entity: "node",
                                 label: `代理节点 ${resourceOption(node.id,"resource",node.name)}`,
                                 path: { node_id: node.id },
@@ -748,7 +786,7 @@ export function CompatibleProxyPanel({
         title="兼容出口绑定"
         help="把一对 (endpoint, credential) 绑到直连、某个固定节点,或某个池。"
         editable={editable === true}
-        onCreate={() => setDraft({ kind: "binding", existing: undefined })}
+        onCreate={() => beginDraft({ kind: "binding", existing: undefined })}
       >
         {bindingRows.length === 0 ? (
           <p className="cp-empty">还没有兼容出口绑定。</p>
@@ -784,7 +822,7 @@ export function CompatibleProxyPanel({
                       type="button"
                       className="secondary"
                       disabled={editable !== true}
-                      onClick={() => setDraft({ kind: "binding", existing: binding })}
+                      onClick={() => beginDraft({ kind: "binding", existing: binding })}
                     >
                       编辑
                     </button>
@@ -793,7 +831,7 @@ export function CompatibleProxyPanel({
                       className="secondary"
                       disabled={editable !== true}
                       onClick={() =>
-                        setDoomed({
+                        beginDelete({
                           entity: "binding",
                           label: `绑定 ${resourceOption(binding.endpoint_id,"endpoint")} / ${resourceOption(binding.credential_id,"account")}`,
                           path: {
@@ -814,62 +852,7 @@ export function CompatibleProxyPanel({
         )}
       </Section>
 
-      {draft?.kind === "pool" ? (
-        <PoolSheet
-          existing={draft.existing}
-          upstreams={upstreams}
-          pending={save.isPending}
-          onCancel={() => setDraft(undefined)}
-          onSubmit={(body, path) => save.mutate({ entity: "pool", body, path })}
-        />
-      ) : null}
-      {draft?.kind === "node" ? (
-        <NodeSheet
-          existing={draft.existing}
-          upstreams={upstreams}
-          pools={poolRows}
-          pending={save.isPending}
-          onCancel={() => setDraft(undefined)}
-          onSubmit={(body, path) => save.mutate({ entity: "node", body, path })}
-        />
-      ) : null}
-      {draft?.kind === "binding" ? (
-        <BindingSheet
-          existing={draft.existing}
-          pools={poolRows}
-          nodes={nodeRows}
-          pending={save.isPending}
-          onCancel={() => setDraft(undefined)}
-          onSubmit={(body, path) => save.mutate({ entity: "binding", body, path })}
-        />
-      ) : null}
 
-      {doomed === undefined ? null : (
-        <Sheet title={`删除 ${doomed.label}`} onEscape={() => setDoomed(undefined)} busy={remove.isPending}>
-          <p>删除后不可撤销(可以回滚整个配置版本)。</p>
-          {doomed.blockers.length > 0 ? (
-            // The backend refuses to delete a referenced pool or node and there
-            // is no cascade. Both lists are already here, so the refusal is
-            // predicted rather than delivered as a failed request.
-            <p role="alert" className="reveal-warning">
-              仍被引用,后端会拒绝这次删除:{doomed.blockers.map(referenceText).join("、")}。先解除这些引用。
-            </p>
-          ) : null}
-          <div className="sheet-actions">
-            <button type="button" className="secondary" onClick={() => setDoomed(undefined)}>
-              取消
-            </button>
-            <button
-              type="button"
-              className="danger"
-              disabled={remove.isPending}
-              onClick={() => remove.mutate({ entity: doomed.entity, path: doomed.path })}
-            >
-              确认删除
-            </button>
-          </div>
-        </Sheet>
-      )}
     </div>
   );
 }

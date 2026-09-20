@@ -2854,3 +2854,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Advanced group CRUD and route grants had scrolling actions and discarded write receipts. They now retain captured source/target ownership, save into the pending draft, prevent uncertain write replay and preserve explicit historical-limit decisions. Grant receipts survive parent-list refresh; explicit recovery restarts cancelled inventory reads. Removing a consumed resume query now retires its reopened adoption dialog.
 
 **Other side:** FYI. 12 access/modal and 4 pending-configuration browser cases, TypeScript and 390 units passed. Actual embedded gateway/EgoLite created a synthetic group and granted its local route, read both receipts and verified the grant with context still draft. This is not whole-app acceptance; real deletion/limit preservation were covered by fixtures only. No production state, API contract, real Provider inference or C2C changed. Egress lifecycle migration and whole visual rollout remain pending.
+
+## 2026-09-21 - Codex - inline egress maintenance
+
+**What:** `web/prism/src/features/egress/{EgressPage,CompatibleProxyPanel}.tsx`, compatible-proxy/modal/egress-workspace browser regressions and remaining-plan status.
+
+**Why:** Long policy/pool/node/binding forms used modal bodies with scrolling actions and lost outcomes after writes. They now use one page-contained operation owner, captured source revision, deferred pending-draft completion and non-replayable recovery. Destructive confirmation keeps fixed actions and rejects known referenced pool/node targets. Policy edits preserve original allowed schemes and stored names; proxy endpoint input is cleared on accepted submit and removed from the retained mutation body when the task settles.
+
+**Other side:** FYI. 14 focused browser cases, TypeScript, 390 units, deterministic four-file/SPA gates and gateway build passed. EgoLite on a disposable real gateway edited policy, created pool/node/binding and reread saved-not-applied outcomes. The node read model only reported configured/sealed. Node editor structural checks at 1440/1280/390 widths showed one inline editor, zero dialogs and no document overflow. No actual proxy connection, Provider inference, production mutation or C2C. Whole-app visual/accessibility acceptance and final release remain open.

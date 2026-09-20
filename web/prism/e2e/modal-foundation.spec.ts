@@ -52,7 +52,7 @@ test("proxy deletion cannot hide its pending write with cancel or Escape", async
   })).toBe(1);
   await expect(sheet.getByRole("button", { name: "关闭面板" })).toBeDisabled();
   await page.keyboard.press("Escape");
-  await sheet.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(sheet.getByRole("button", { name: "取消", exact: true })).toBeDisabled();
   await expect(sheet).toBeVisible();
   await page.evaluate(async () => {
     const fixture = await import("/src/dev/fixtures.ts");
@@ -102,15 +102,15 @@ test("chip edits are protected before an egress policy or provider can close", a
   await navigate(page, "出口策略");
   const policyRow = page.locator("tr", { hasText: "仅中转站" });
   await policyRow.getByRole("button", { name: "编辑", exact: true }).click();
-  const policySheet = page.getByRole("dialog", { name: /编辑 仅中转站/ });
+  const policySheet = page.getByRole("region", { name: /编辑 仅中转站/ });
   await expect(policySheet).toBeVisible();
   await policySheet.getByRole("button", { name: "移除 relay-a.example.com" }).click();
-  await policySheet.getByRole("button", { name: "关闭面板" }).click();
-  await expect(page.getByRole("alertdialog", { name: "放弃未保存的修改？" })).toBeVisible();
-  await page.getByRole("alertdialog").getByRole("button", { name: "继续编辑" }).click();
+  await policySheet.getByRole("button", { name: "关闭编辑" }).click();
+  await expect(page.getByRole("dialog", { name: "放弃未保存的修改？" })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "继续编辑" }).click();
   await expect(policySheet.getByRole("button", { name: "移除 relay-a.example.com" })).toHaveCount(0);
   await policySheet.getByRole("button", { name: "取消", exact: true }).click();
-  await page.getByRole("alertdialog").getByRole("button", { name: "放弃修改" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "放弃修改" }).click();
 
   await navigate(page, "上游");
   const provider = page.locator(".provider-card", { hasText: "中转站 A" });

@@ -5,14 +5,19 @@ import { ReadStatus } from "../../components/ReadStatus";
 // PATCH is full-replacement (C11) — the edit sheet always loads and submits
 // the complete EgressPolicyInput.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
+import { InlineWorkspace } from "../../components/InlineWorkspace";
+import { useOperationBoundary } from "../../components/OperationBoundary";
+import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { useSessionStore } from "../../session/sessionStore";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { useMessages } from "../../i18n/messages";
-import { useVersionStore } from "../config-versions/versionStore";
+import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import { CompatibleProxyPanel } from "./CompatibleProxyPanel";
 import { ProviderEgressCard } from "../runtime/RuntimePage";
 import { useNowTick } from "../../utils/useNowTick";
@@ -28,6 +33,8 @@ import {
 type UpstreamSummary = Readonly<{ id: string; egress_policy_id?: string | null }>;
 
 type DraftPolicy = {
+  original?:EgressPolicy;
+  source?:{id:string;revision:string};
   id: string;
   name: string;
   hosts: string[];
@@ -53,8 +60,9 @@ function emptyDraft(): DraftPolicy {
 
 function toDraft(policy: EgressPolicy): DraftPolicy {
   return {
+    original:policy,
     id: policy.id,
-    name: resourceName(policy.id,"policy",policy.name),
+    name: policy.name,
     hosts: [...policy.allowed_hosts],
     ports: policy.allowed_ports.map(String),
     cidrs: [...policy.allowed_cidrs],
@@ -68,7 +76,7 @@ function toInput(draft: DraftPolicy) {
   return {
     id: draft.id,
     name: draft.name,
-    allowed_schemes: ["https"],
+    allowed_schemes: draft.original?.allowed_schemes ?? ["https"],
     allowed_hosts: draft.hosts,
     allowed_ports: draft.ports.map(Number),
     allowed_cidrs: draft.cidrs,
@@ -78,6 +86,13 @@ function toInput(draft: DraftPolicy) {
 }
 
 export function EgressPage() {
+  const admission=useOperationBoundary();
+  const submitted=useRef(false),live=useRef(true);
+  const [owner]=useState(()=>({session:useSessionStore.getState().generation,selection:useVersionStore.getState().selectionGeneration}));
+  useEffect(()=>{live.current=true;return()=>{live.current=false;};},[]);
+  const owned=()=>live.current&&owner.session===useSessionStore.getState().generation&&owner.selection===useVersionStore.getState().selectionGeneration;
+  const [workingId,setWorkingId]=useState<string>(),[receipt,setReceipt]=useState<ConfigVersionSummary>();
+  const [deleteSource,setDeleteSource]=useState<{id:string;revision:string}>();
   const nowMs = useNowTick(60_000);
   const t = useMessages();
   const queryClient = useQueryClient();
@@ -109,45 +124,35 @@ export function EgressPage() {
   };
 
   const save = useMutation({
-    mutationFn: (input: DraftPolicy) =>
-      input.isNew
-        ? call<EgressPolicy>("createEgressPolicy", { body: toInput(input) }, { versionScoped: true, mutating: true })
-        : call<EgressPolicy>(
-            "updateEgressPolicy",
-            { path: { egress_policy_id: input.id }, body: toInput(input) },
-            { versionScoped: true, mutating: true },
-          ),
-    onSuccess: () => {
-      setDraft(undefined);
-      invalidate();
+    mutationFn: async (input:DraftPolicy)=>{
+      const task=await beginConfigurationTask("维护出口策略",input.source,"deferred");setWorkingId(task.version.id);useVersionStore.getState().rememberPending(task.version);
+      if(input.original){const current=(await task.read<EgressPolicy[]>("listEgressPolicies")).find(row=>row.id===input.id);if(!current||JSON.stringify(toInput(toDraft(current)))!==JSON.stringify(toInput(toDraft(input.original))))throw new Error("策略已变化，请重新打开后核对。");}
+      await task.mutate(input.isNew?"createEgressPolicy":"updateEgressPolicy",{...(input.isNew?{}:{path:{egress_policy_id:input.id}}),body:toInput(input)});
+      return task.finish();
     },
-    onError: (error) => setActionError(asAppError(error).message),
+    onSuccess:version=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().advanceFromEtag(version.revision);setReceipt(version);invalidate();}},
+    onError:error=>{if(owned())setActionError(asAppError(error).message);},
   });
-
-  const remove = useMutation({
-    mutationFn: (id: string) =>
-      call<undefined>(
-        "deleteEgressPolicy",
-        { path: { egress_policy_id: id } },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setConfirmDelete(undefined);
-      invalidate();
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
+  const remove=useMutation({mutationFn:async(id:string)=>{
+    const task=await beginConfigurationTask("删除出口策略",deleteSource,"deferred");setWorkingId(task.version.id);useVersionStore.getState().rememberPending(task.version);
+    const current=(await task.read<EgressPolicy[]>("listEgressPolicies")).find(row=>row.id===id);
+    if(!current||!confirmDelete||JSON.stringify(toInput(toDraft(current)))!==JSON.stringify(toInput(toDraft(confirmDelete))))throw new Error("策略已变化，请重新核对删除目标。");
+    await task.mutate("deleteEgressPolicy",{path:{egress_policy_id:id}});return task.finish();
+  },onSuccess:version=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().advanceFromEtag(version.revision);setReceipt(version);invalidate();}},onError:error=>{if(owned())setActionError(asAppError(error).message);}});
+  const close=()=>{setDraft(undefined);setConfirmDelete(undefined);setReceipt(undefined);};
+  const review=(version:ConfigVersionSummary)=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().select(version);}};
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (draft !== undefined) {
-      save.mutate(draft);
+    if (draft !== undefined&&!submitted.current) {
+      submitted.current=true;save.mutate(draft);
     }
   }
 
   function beginDraft(next: DraftPolicy) {
+    admission.request(()=>{submitted.current=false;setReceipt(undefined);setWorkingId(undefined);setActionError(undefined);save.reset();
     setDraftDirty(false);
-    setDraft(next);
+    setDraft({...next,source:context?{id:context.configVersionId,revision:context.revision}:undefined});});
   }
 
   if (scope === undefined) {
@@ -186,83 +191,16 @@ export function EgressPage() {
         </p>
       ) : null}
 
-      <ReadStatus pending={policies.isPending} error={policies.error} hasData={policies.data !== undefined} retry={() => void policies.refetch()} />
-
-      <div className="card tablewrap">
-        <table className="responsive-table">
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>主机</th>
-              <th>端口</th>
-              <th>重定向</th>
-              <th>被引用</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(policies.data ?? []).map((policy) => {
-              const refs = referencingUpstreams(policy.id, upstreams.data ?? []);
-              return (
-                <tr key={policy.id}>
-                  <td data-label="名称"><ResourceIdentity id={policy.id} name={policy.name} kind="policy" /></td>
-                  <td data-label="主机" className="mono">{policy.allowed_hosts.length} 条</td>
-                  <td data-label="端口" className="mono">{policy.allowed_ports.join(", ")}</td>
-                  <td data-label="重定向" className="mono">
-                    {policy.redirect_mode}
-                    {policy.redirect_mode === "revalidate" ? ` ≤${policy.max_redirects}` : ""}
-                  </td>
-                  <td data-label="被引用" className="mono">{refs.length > 0 ? refs.map((id) => resourceName(id, "upstream")).join(", ") : "—"}</td>
-                  <td data-label="操作" className="row-actions">
-                    <button className="secondary" onClick={() => setInspected(policy)}>详情</button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={!editable}
-                      onClick={() => beginDraft(toDraft(policy))}
-                    >
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      disabled={!editable}
-                      onClick={() => setConfirmDelete(policy)}
-                    >
-                      删除
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {policies.data?.length === 0 ? (
-          <div className="empty-state" data-kind="empty">
-            <p>{t.state.empty}</p>
-          </div>
-        ) : null}
-      </div>
-
-      <CompatibleProxyPanel upstreams={upstreams.data ?? []} />
-      <ProviderEgressCard scope={scope} nowMs={nowMs} />
-
-      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "policy", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
-        ["策略 ID", inspected.id], ["允许协议", inspected.allowed_schemes.join(" · ")],
-        ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
-        ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],
-        ["重定向上限", inspected.max_redirects], ["引用上游", referencingUpstreams(inspected.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join(" · ") || "无"],
-      ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { beginDraft(toDraft(inspected)); setInspected(undefined); }}>编辑策略</button></div></ObjectInspector>}
-
       {draft !== undefined ? (
-        <Sheet
-          title={draft.isNew ? "新建出口策略" : `编辑 ${resourceName(draft.id,"policy",draft.name)}`}
+        <InlineWorkspace
+          title={receipt?"出口策略修改结果":draft.isNew ? "新建出口策略" : `编辑 ${resourceName(draft.id,"policy",draft.name)}`}
           description="限制上游允许访问的目标；变更会在当前草稿版本中保存。"
-          onEscape={() => setDraft(undefined)}
+          onClose={close}
           busy={save.isPending}
-          isDirty={draftDirty}
+          dirty={!receipt&&draftDirty}
+          footer={receipt?<button onClick={close}>完成</button>:<><button type="button" className="secondary" disabled={save.isPending} onClick={()=>admission.request(close)}>取消</button><button type="submit" form="egress-policy-form" disabled={submitted.current||draft.hosts.length===0}>保存</button></>}
         >
-          <form className="sheet-form" onSubmit={onSubmit}>
+          {receipt?<p role="status">策略已保存到草稿，尚未应用。</p>:<><ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={review}/><form id="egress-policy-form" className="sheet-form" onChange={()=>setDraftDirty(true)} onSubmit={onSubmit}><fieldset disabled={submitted.current}>
             {draft.isNew ? (
               <label>
                 策略 ID
@@ -340,20 +278,83 @@ export function EgressPage() {
                 }
               />
             </label>
-            <div className="sheet-actions">
-              <SheetDismissButton className="secondary">
-                取消
-              </SheetDismissButton>
-              <button type="submit" disabled={save.isPending || draft.hosts.length === 0}>
-                保存
-              </button>
-            </div>
-          </form>
-        </Sheet>
+            </fieldset>
+          </form></>}
+        </InlineWorkspace>
       ) : null}
 
+      <ReadStatus pending={policies.isPending} error={policies.error} hasData={policies.data !== undefined} retry={() => void policies.refetch()} />
+
+      <div className="card tablewrap">
+        <table className="responsive-table">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>主机</th>
+              <th>端口</th>
+              <th>重定向</th>
+              <th>被引用</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(policies.data ?? []).map((policy) => {
+              const refs = referencingUpstreams(policy.id, upstreams.data ?? []);
+              return (
+                <tr key={policy.id}>
+                  <td data-label="名称"><ResourceIdentity id={policy.id} name={policy.name} kind="policy" /></td>
+                  <td data-label="主机" className="mono">{policy.allowed_hosts.length} 条</td>
+                  <td data-label="端口" className="mono">{policy.allowed_ports.join(", ")}</td>
+                  <td data-label="重定向" className="mono">
+                    {policy.redirect_mode}
+                    {policy.redirect_mode === "revalidate" ? ` ≤${policy.max_redirects}` : ""}
+                  </td>
+                  <td data-label="被引用" className="mono">{refs.length > 0 ? refs.map((id) => resourceName(id, "upstream")).join(", ") : "—"}</td>
+                  <td data-label="操作" className="row-actions">
+                    <button className="secondary" onClick={() => admission.request(()=>setInspected(policy))}>详情</button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!editable}
+                      onClick={() => beginDraft(toDraft(policy))}
+                    >
+                      编辑
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={!editable}
+                      onClick={() => admission.request(()=>{submitted.current=false;setReceipt(undefined);setWorkingId(undefined);remove.reset();setDeleteSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setConfirmDelete(policy);})}
+                    >
+                      删除
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {policies.data?.length === 0 ? (
+          <div className="empty-state" data-kind="empty">
+            <p>{t.state.empty}</p>
+          </div>
+        ) : null}
+      </div>
+
+      <CompatibleProxyPanel upstreams={upstreams.data ?? []} />
+      <ProviderEgressCard scope={scope} nowMs={nowMs} />
+
+      {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "policy", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
+        ["策略 ID", inspected.id], ["允许协议", inspected.allowed_schemes.join(" · ")],
+        ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
+        ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],
+        ["重定向上限", inspected.max_redirects], ["引用上游", referencingUpstreams(inspected.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join(" · ") || "无"],
+      ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { beginDraft(toDraft(inspected)); setInspected(undefined); }}>编辑策略</button></div></ObjectInspector>}
+
       {confirmDelete !== undefined ? (
-        <Sheet title="删除出口策略" description="此操作会解除关联上游的出口策略；不会删除上游本身。" layout="confirm" tone="danger" onEscape={() => setConfirmDelete(undefined)} busy={remove.isPending}>
+        <Sheet title={receipt?"出口策略删除结果":"删除出口策略"} description="此操作会解除关联上游的出口策略；不会删除上游本身。" layout="confirm" tone="danger" onEscape={() => setConfirmDelete(undefined)} busy={remove.isPending} footer={receipt?<SheetDismissButton onDismiss={close}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={submitted.current} onClick={()=>{if(!submitted.current){submitted.current=true;remove.mutate(confirmDelete.id);}}}>确认删除</button></>}>
+          {receipt?<p role="status">删除已保存到草稿，尚未应用。</p>:null}
+          <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={review}/>
           <p>
             删除 <span className="mono">{resourceName(confirmDelete.id,"policy",confirmDelete.name)}</span> 后,引用它的上游的
             egress_policy_id 将被清空(不会级联删除上游)。
@@ -363,19 +364,6 @@ export function EgressPage() {
               当前被引用:{referencingUpstreams(confirmDelete.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join("、")}
             </p>
           ) : null}
-          <div className="sheet-actions">
-            <SheetDismissButton className="secondary" disabled={remove.isPending}>
-              取消
-            </SheetDismissButton>
-            <button
-              type="button"
-              className="danger"
-              disabled={remove.isPending}
-              onClick={() => remove.mutate(confirmDelete.id)}
-            >
-              确认删除
-            </button>
-          </div>
         </Sheet>
       ) : null}
     </section>
