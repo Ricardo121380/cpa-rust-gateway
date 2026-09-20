@@ -142,10 +142,3 @@
 .price-entry label { min-width:0; }
 .price-entry :is(input,select) { width:100%; min-width:0; }
 @media(max-width:640px) { .price-entry-fields { grid-template-columns:1fr; } }
-
-.inline-workspace { margin-block: 16px; border-block: 1px solid var(--separator); }
-.inline-workspace > .page-head { padding-block: 16px; align-items: start; }
-.inline-workspace-body { min-width: 0; }
-.inline-workspace-footer { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; padding: 16px; background: var(--surface); border-top: 1px solid var(--separator); z-index: 1; }
-.inline-workspace-footer button { min-height: 44px; }
-@media (max-width: 600px) { .inline-workspace-footer { position: static; padding-inline: 0; } .inline-workspace-footer button { flex: 1; } }

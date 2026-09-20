@@ -7,6 +7,7 @@ import "./design/modal.css";
 import "./app/app.css";
 import "./app/v4.css";
 import "./app/v6.css";
+import "./design/workspace.css";
 
 const container = document.getElementById("app");
 if (container === null) {
