@@ -58,3 +58,14 @@ The configuration lifecycle host, inline pending review, explicit draft adoption
 ### Direct local integration verification
 
 Fresh current-code verification: TypeScript and 390 unit tests passed; 5 publication lifecycle cases, 1 concurrent diff pagination/restart case and 10 inline ownership/pending/edit cases passed. Four-file deterministic build / SPA gate and 3 embedded gateway Rust tests passed. Comparison restart was corrected to refresh revision metadata; draft adoption rejects a mismatched returned identity. These are fixture and embedded-asset checks, not real-gateway lifecycle acceptance. Remaining advanced editors, visual rollout, real-gateway acceptance and deployment remain open.
+
+## Real local configuration lifecycle acceptance
+
+Functional base: `26521c2`, followed by the shell-owned adoption-navigation correction in this batch. Browser: EgoLite TaskSpace 2, embedded UI at loopback management port 55747; disposable synthetic state only.
+
+- Created a copy of the active graph through the actual frontend, explicitly adopted it, read the complete diff and validated it. Configuration publication returned a durable acknowledgement and the subsequent read confirmed the target active.
+- UI rollback named the actual audit predecessor, acknowledged rollback and restored `qa-billing-key-grant-20260920` as active. No Provider inference was sent.
+- Direct management negative test on another isolated draft submitted an outdated lifecycle event: HTTP 409; active configuration and draft revision remained unchanged. Local machine-readable evidence: `/tmp/prism-real-lifecycle-cas.json`.
+- The first UI run exposed lost navigation after successful adoption: changing selection remounts the outlet, retiring its navigation owner. The stable lifecycle host now schedules navigation after the old dialog unmounts and checks the selected target. The regression explicitly requires the inline review to appear. Four creation/adoption browser cases passed after correction.
+- Rebuilt and restarted the owned local preview; EgoLite confirmed successful adoption automatically opens `#/versions?review=<exact draft>` with zero remaining dialogs. At 1440×900, 1280×720 and 390×844 the inline review exists and document width does not overflow. This is structural responsiveness evidence, not full visual/accessibility acceptance.
+- TypeScript, deterministic four-file build and gateway compilation passed during this batch. No production state changed. Remaining provider/access/egress editor migration, K3 high visual adaptation and final whole-app acceptance remain open.

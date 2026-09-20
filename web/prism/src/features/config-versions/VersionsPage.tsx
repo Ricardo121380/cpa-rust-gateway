@@ -31,7 +31,7 @@ export function VersionsPage(){
  const adopt=(version:ConfigVersionSummary)=>admission.request(()=>setDialog({kind:"adopt",id:version.id}));
  const selected=(version:ConfigVersionSummary)=>{
   setDialog(undefined);void client.invalidateQueries({queryKey:["config-versions"]});
-  if(version.status==="draft")setParams({review:version.id});else setParams({});
+  lifecycle.openSelected(version);
  };
  const begin=()=>admission.request(()=>{
   if(pending){setDialog({kind:"adopt",id:pending.id});return;}

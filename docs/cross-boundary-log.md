@@ -2830,3 +2830,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** The confirmed remaining plan requires one explicit review/validate/apply workflow, accurate durable versus uncertain results, and explicit draft adoption without revision regression or automatic write replay. Retrying comparison now refreshes version metadata before comparing again.
 
 **Other side:** FYI. This is a local implementation checkpoint, not full-plan acceptance or deployment. Current evidence: 390 frontend units, 5 publication lifecycle and 1 stale-pagination browser cases, 10 pending/billing/edit integration cases, double-build/four-file management gate and 3 embedded Rust tests. Real-gateway lifecycle acceptance, remaining editors and final visual QA are still pending. This turn intentionally does not use Codex with ChatGPT per the user's explicit instruction. No API contract, production state or real Provider inference changed.
+
+## 2026-09-20 - Codex - real-gateway draft adoption navigation
+
+**What:** `web/prism/src/features/config-versions/{ConfigurationLifecycleHost,VersionsPage}.tsx` and `web/prism/e2e/configuration-edit.spec.ts`.
+
+**Why:** Actual gateway/EgoLite acceptance found that successful draft adoption remounted the outlet before its navigation completed. The stable shell lifecycle host now owns post-adoption navigation after the dialog retires, with a selected-target check.
+
+**Other side:** FYI. Four focused browser cases and TypeScript passed; rebuilt local embedded UI confirmed automatic inline review after adoption, actual publication/rollback and stale lifecycle 409 protection. Three viewport structural checks found no horizontal overflow. Full visual/accessibility acceptance and remaining editor migrations are not complete. No C2C, production mutation or Provider inference.

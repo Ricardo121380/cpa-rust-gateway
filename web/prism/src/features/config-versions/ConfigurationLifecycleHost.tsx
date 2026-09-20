@@ -1,5 +1,6 @@
 import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from "react";
 import {isCancelledError,useQueryClient} from "@tanstack/react-query";
+import {useNavigate} from "react-router-dom";
 import {asAppError} from "../../api/errors";
 import {Sheet,SheetDismissButton} from "../../components/Sheet";
 import {ResourceIdentity} from "../../components/ResourceIdentity";
@@ -15,13 +16,15 @@ type Panel=
  |{kind:"writing";attempt:Attempt;prepared:PreparedLifecycle}
  |{kind:"failed";attempt:Attempt;message:string}
  |{kind:"receipt";attempt:Attempt;receipt:LifecycleReceipt;observation?:LifecycleObservation;readError?:string;reading:boolean};
-type API=Readonly<{active:boolean;start:(source:ConfigVersionSummary,mode:LifecycleMode,options?:{inline?:boolean;validateOnly?:boolean;proof?:ReviewProof})=>void}>;
+type API=Readonly<{active:boolean;openSelected:(version:ConfigVersionSummary)=>void;start:(source:ConfigVersionSummary,mode:LifecycleMode,options?:{inline?:boolean;validateOnly?:boolean;proof?:ReviewProof})=>void}>;
 const Context=createContext<API | undefined>(undefined);
 export function useConfigurationLifecycle(){const value=useContext(Context);if(!value)throw new Error("Configuration lifecycle host missing");return value;}
 
 /** The shell owns exactly one lifecycle attempt, independent of outlet remounts. */
 export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
- const admission=useOperationBoundary();const queries=useQueryClient();
+ const admission=useOperationBoundary();const queries=useQueryClient();const navigate=useNavigate();
+ const [selectedDestination,setSelectedDestination]=useState<ConfigVersionSummary>();
+ useEffect(()=>{if(selectedDestination){if(useVersionStore.getState().context?.configVersionId===selectedDestination.id)void navigate(selectedDestination.status==="draft"?`/versions?review=${encodeURIComponent(selectedDestination.id)}`:"/versions");setSelectedDestination(undefined);}},[selectedDestination,navigate]);
  const [panel,setPanel]=useState<Panel>();const current=useRef<Attempt | undefined>(undefined);
  const [entryError,setEntryError]=useState<string>();
  const alive=(attempt:Attempt)=>current.current===attempt&&isLifecycleOwner(attempt.owner);
@@ -64,7 +67,7 @@ export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
  };
  const busy=panel?.kind==="preparing"||panel?.kind==="writing"||panel?.kind==="receipt"&&panel.reading;
  const title=panel?.kind==="preparing"?"正在校验配置":panel?.kind==="writing"?"正在应用配置":panel?.kind==="failed"?"配置操作未完成":panel?.kind==="receipt"?"配置操作结果":panel?.attempt.validateOnly?"验证结果":panel?.attempt.mode==="rollback"?"确认回滚":"确认应用配置";
- return <Context.Provider value={{active:panel!==undefined,start}}>{children}
+ return <Context.Provider value={{active:panel!==undefined,start,openSelected:setSelectedDestination}}>{children}
   {entryError?<div role="alert" className="conflict-bar">{entryError}<button type="button" onClick={()=>setEntryError(undefined)}>关闭</button></div>:null}
   {panel?<Sheet navigationOwned={panel.attempt.inline} title={title} layout={panel.kind==="prepared"&&!panel.attempt.validateOnly?"confirm":"inspector"} tone={panel.attempt.mode==="rollback"?"danger":"default"} busy={busy} onEscape={finish} guardUnsaved={false}
    footer={panel.kind==="prepared"&&!panel.attempt.validateOnly?<><SheetDismissButton className="secondary" onDismiss={close}>取消</SheetDismissButton><button type="button" className={panel.attempt.mode==="rollback"?"danger":undefined} onClick={()=>commit(panel.prepared,panel.attempt)}>{panel.attempt.mode==="rollback"?"确认回滚":"确认应用"}</button></>:panel.kind==="receipt"?<><button type="button" className="secondary" disabled={busy} onClick={()=>observe(panel.attempt,panel.receipt)}>核对服务端状态</button><SheetDismissButton disabled={busy} onDismiss={finish}>{panel.receipt.kind==="acknowledged"?"完成":"返回核对"}</SheetDismissButton></>:<SheetDismissButton disabled={busy} onDismiss={close}>{busy?"处理中…":"关闭"}</SheetDismissButton>}>

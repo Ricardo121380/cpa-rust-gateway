@@ -13,6 +13,7 @@ test("starting an edit copies the active graph without asking for credentials ag
   await page.getByRole("button", { name: "编辑当前配置", exact: true }).click();
   await page.getByRole("dialog",{name:"编辑当前配置"}).getByRole("button",{name:"创建草稿",exact:true}).click();
   await page.getByRole("dialog",{name:"草稿创建结果"}).getByRole("button",{name:"接续草稿",exact:true}).click();
+  await expect(page.getByRole("region",{name:"待应用变更",exact:true})).toBeVisible();
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-status", "draft");
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version", /^edit-/u);
   await navigate(page, "上游");
