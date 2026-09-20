@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   enabledCapabilities,
+  capabilityOverrideNeedsJson,
   formatCapabilityOverride,
   parseCapabilityOverride,
+  parseCapabilityOverrideJson,
   routeErrorLabel,
   toggleCapability,
   validCandidateParams,
@@ -93,6 +95,15 @@ describe("parseCapabilityOverride", () => {
     // The contract restricts the VALUE type, not the key set. A checkbox grid
     // over our own capability list would have refused this.
     expect(parseCapabilityOverride("some_future_capability=true").ok).toBe(true);
+  });
+
+  it("uses a lossless editor for accepted keys that compact text would reinterpret", () => {
+    const override = { "vision=false tools": true, "a=b": false, plain: false };
+    expect(capabilityOverrideNeedsJson(override)).toBe(true);
+    expect(parseCapabilityOverrideJson(JSON.stringify(override))).toEqual({ ok: true, override });
+    expect(capabilityOverrideNeedsJson({ vision: false, tools: true })).toBe(false);
+    expect(parseCapabilityOverrideJson('{"key with spaces": false}')).toEqual({ok:true,override:{"key with spaces":false}});
+    expect(parseCapabilityOverrideJson('{"key": "false"}').ok).toBe(false);
   });
 });
 

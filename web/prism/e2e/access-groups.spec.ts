@@ -75,11 +75,13 @@ test("route grants are listed per group and can be added", async ({ page }) => {
   await model.getByLabel("模型 ID").fill("pm-grant");
   await model.getByLabel("模型名", { exact: false }).fill("model-grant");
   await model.getByRole("button", { name: "保存" }).click();
+  await page.getByRole("dialog",{name:"模型配置结果"}).getByRole("button",{name:"完成"}).click();
   const modelRow = page.locator("tr", { hasText: "model-grant" }).first();
   await modelRow.locator("details.row-menu summary").click();
   await modelRow.getByRole("button", { name: "配置路由" }).click();
-  await page.getByRole("dialog").getByLabel("路由 ID").fill("rt-e2e");
-  await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
+  await page.getByRole("dialog").getByLabel("路由标识").fill("rt-e2e");
+  await page.getByRole("dialog").getByRole("button", { name: "创建路由" }).click();
+  await page.getByRole("dialog",{name:"路由配置结果"}).getByRole("button",{name:"继续配置候选"}).click();
   await navigate(page, "访问控制");
   await openAdvancedGroups(page);
 
@@ -93,7 +95,7 @@ test("route grants are listed per group and can be added", async ({ page }) => {
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("包含未绑定草稿路由");
   await expect(sheet.locator('select[name="route_id"] option[value="rt-e2e"]')).toHaveCount(1);
-  await sheet.getByLabel("路由", {exact:true}).selectOption("rt-e2e");
+  await sheet.getByRole("combobox", {name:"路由"}).selectOption("rt-e2e");
   await sheet.getByRole("button", { name: "授权" }).click();
   await expect(page.locator('.group-routes [data-resource-id="rt-e2e"]')).toBeVisible();
 });
@@ -104,6 +106,65 @@ test("a group with no grant says the keys under it reach nothing", async ({ page
   // team-batch exists with no grants seeded
   await page.locator('tr:has([data-resource-id="team-batch"])').first().getByRole("button", { name: "路由" }).click();
   await expect(page.locator(".group-routes")).toContainText("到不了任何模型");
+});
+
+test("route grant recovery restarts a failed first page",async({page})=>{
+  await openAccess(page);
+  await page.evaluate(async()=>{const {call}=await import("/src/api/client.ts");await call("createRoute",{path:{public_model_id:"pm-minimax"},body:{id:"rt-recovery",policy:"smooth_weighted_round_robin",max_attempts:3,bootstrap_timeout_ms:30000}},{versionScoped:true,mutating:true});});
+  await openAdvancedGroups(page);
+  await page.locator('tr:has([data-resource-id="team-default"])').first().getByRole("button",{name:"路由"}).click();
+  await page.evaluate(async()=>{
+    const {ManagementApi}=await import("/src/generated/management-client.ts");
+    const original=ManagementApi.prototype.request;
+    Reflect.set(globalThis,"__routeGrantReads",0);
+    ManagementApi.prototype.request=async function(this:unknown,operation:string,request:unknown){
+      if(operation==="listRoutes"){
+        const reads=Number(Reflect.get(globalThis,"__routeGrantReads"))+1;
+        Reflect.set(globalThis,"__routeGrantReads",reads);
+        if(reads===1)throw new Error("synthetic first route page failure");
+      }
+      return original.call(this,operation,request);
+    };
+  });
+  await page.locator(".group-routes").getByRole("button",{name:"授权路由"}).click();
+  const sheet=page.getByRole("dialog",{name:/授权路由/u});
+  await expect(sheet.getByRole("alert")).toContainText("synthetic first route page failure");
+  await sheet.getByRole("button",{name:"重新读取路由"}).click();
+  await expect(sheet.getByRole("alert")).toHaveCount(0);
+  await expect(sheet.getByRole("combobox",{name:"路由"}).locator('option[value="rt-recovery"]')).toHaveCount(1);
+  expect(await page.evaluate(()=>Number(Reflect.get(globalThis,"__routeGrantReads")))).toBe(2);
+});
+
+test("route grant recovery discards a rejected continuation cursor",async({page})=>{
+  await openAccess(page);
+  await page.evaluate(async()=>{const {call}=await import("/src/api/client.ts");await call("createRoute",{path:{public_model_id:"pm-minimax"},body:{id:"rt-recovery",policy:"smooth_weighted_round_robin",max_attempts:3,bootstrap_timeout_ms:30000}},{versionScoped:true,mutating:true});});
+  await openAdvancedGroups(page);
+  await page.locator('tr:has([data-resource-id="team-default"])').first().getByRole("button",{name:"路由"}).click();
+  await page.evaluate(async()=>{
+    const {ManagementApi}=await import("/src/generated/management-client.ts");
+    const original=ManagementApi.prototype.request;
+    Reflect.set(globalThis,"__routeGrantFirstReads",0);
+    Reflect.set(globalThis,"__routeGrantCursorReads",0);
+    ManagementApi.prototype.request=async function(this:unknown,operation:string,request:unknown){
+      if(operation!=="listRoutes")return original.call(this,operation,request);
+      const cursor=(request as {query?:{cursor?:string}}).query?.cursor;
+      if(cursor){Reflect.set(globalThis,"__routeGrantCursorReads",Number(Reflect.get(globalThis,"__routeGrantCursorReads"))+1);throw new Error("synthetic rejected cursor");}
+      const reads=Number(Reflect.get(globalThis,"__routeGrantFirstReads"))+1;
+      Reflect.set(globalThis,"__routeGrantFirstReads",reads);
+      const response=await original.call(this,operation,request);
+      if(reads!==1)return response;
+      const page=await response.clone().json() as Record<string,unknown>;
+      return new Response(JSON.stringify({...page,next_cursor:"synthetic-cursor"}),{status:response.status,headers:response.headers});
+    };
+  });
+  await page.locator(".group-routes").getByRole("button",{name:"授权路由"}).click();
+  const sheet=page.getByRole("dialog",{name:/授权路由/u});
+  await sheet.getByRole("button",{name:"加载更多路由"}).click();
+  await expect(sheet.getByRole("alert")).toContainText("synthetic rejected cursor");
+  await sheet.getByRole("button",{name:"重新读取路由"}).click();
+  await expect(sheet.getByRole("alert")).toHaveCount(0);
+  await expect(sheet.getByRole("combobox",{name:"路由"}).locator('option[value="rt-recovery"]')).toHaveCount(1);
+  expect(await page.evaluate(()=>({first:Number(Reflect.get(globalThis,"__routeGrantFirstReads")),cursor:Number(Reflect.get(globalThis,"__routeGrantCursorReads"))}))).toEqual({first:2,cursor:1});
 });
 
 test("group editing is refused on a published version", async ({ page }) => {

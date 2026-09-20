@@ -1331,6 +1331,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       }
       version.revision += 1;
       if (modelItem[1] === "DELETE") {
+        const routeIds=new Set((state.routes.get(version.id)??[]).filter(row=>row.public_model_id===id).map(row=>row.id));
+        state.aliases.set(version.id,(state.aliases.get(version.id)??[]).filter(row=>row.public_model_id!==id));
+        state.routes.set(version.id,(state.routes.get(version.id)??[]).filter(row=>row.public_model_id!==id));
+        state.routeCandidates.set(version.id,(state.routeCandidates.get(version.id)??[]).filter(row=>!routeIds.has(row.route_id)));
+        for(const [key,rows] of state.groupRoutes){
+          if(key.startsWith(`${version.id}:`))state.groupRoutes.set(key,rows.filter(row=>!routeIds.has(row.route_id)));
+        }
         list.splice(index, 1);
         return new Response(null, {
           status: 204,
@@ -1346,6 +1353,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const rejected=requireDraftAndMatch(version,headers);if(rejected)return rejected;
       const body=JSON.parse(bodyText??"{}") as {alias:string};const modelId=decodeURIComponent(aliasDelete[1]??"");
+      if(Object.keys(body).length!==1||typeof body.alias!=="string"||!body.alias.trim())return errorResponse(400,"management_invalid_input","invalid alias input");
       const rows=state.aliases.get(version.id)??[];const index=rows.findIndex(a=>a.alias===body.alias&&a.public_model_id===modelId);
       if(index<0)return errorResponse(404,"management_resource_not_found","alias not found");
       rows.splice(index,1);version.revision+=1;return json(204,undefined,revisionToken(version));
@@ -1359,6 +1367,9 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const modelId = decodeURIComponent(aliasCreate[1] ?? "");
       const body = JSON.parse(bodyText ?? "{}") as { alias: string };
       const models = state.models.get(version.id) ?? [];
+      if(!models.some(row=>row.id===modelId))return errorResponse(404,"management_resource_not_found","public model not found");
+      if(Object.keys(body).length!==1||typeof body.alias!=="string"||!body.alias.trim())return errorResponse(400,"management_invalid_input","invalid alias input");
+      if((state.aliases.get(version.id)??[]).some(row=>row.alias===body.alias))return errorResponse(409,"management_lifecycle_conflict","alias already exists");
       if (models.some((row) => row.model_name === body.alias)) {
         return errorResponse(409, "management_lifecycle_conflict", "alias conflicts with an active model name");
       }
@@ -1377,10 +1388,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (rejected !== undefined) return rejected;
       const modelId = decodeURIComponent(routeCreate[1] ?? "");
       const routes = state.routes.get(version.id) ?? state.routes.set(version.id, []).get(version.id) ?? [];
+      if(!(state.models.get(version.id)??[]).some(row=>row.id===modelId))return errorResponse(404,"management_resource_not_found","public model not found");
       if (routes.some((row) => row.public_model_id === modelId)) {
         return errorResponse(409, "management_lifecycle_conflict", "model already has a route (1:1)");
       }
       const body = JSON.parse(bodyText ?? "{}") as Omit<RouteRow, "public_model_id">;
+      if(Object.keys(body).some(key=>!["id","policy","max_attempts","bootstrap_timeout_ms"].includes(key))||body.policy!=="smooth_weighted_round_robin")return errorResponse(400,"management_invalid_input","invalid route input");
+      if(routes.some(row=>row.id===body.id))return errorResponse(409,"management_lifecycle_conflict","route id already exists");
       const created: RouteRow = {
         id: body.id,
         public_model_id: modelId,
@@ -1416,6 +1430,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         state.routeCandidates.set(version.id, []).get(version.id) ??
         [];
       const body = JSON.parse(bodyText ?? "{}") as Omit<CandidateRow, "route_id">;
+      if(Object.keys(body).some(key=>!["id","endpoint_id","upstream_model","credential_scope","transform_mode","enabled","priority","weight","capability_override"].includes(key)))return errorResponse(400,"management_invalid_input","invalid candidate input");
       if (rows.some((row) => row.id === body.id)) {
         return errorResponse(409, "management_lifecycle_conflict", "candidate id already exists");
       }
@@ -1441,7 +1456,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         return new Response(null, {status: 204, headers: {ETag: `"${revisionToken(version)}"`}});
       }
       const body = JSON.parse(bodyText ?? "{}") as Omit<CandidateRow, "route_id">;
-      if (body.id !== id) return errorResponse(400, "management_invalid_input", "candidate id mismatch");
+      if (body.id !== id||Object.keys(body).some(key=>!["id","endpoint_id","upstream_model","credential_scope","transform_mode","enabled","priority","weight","capability_override"].includes(key))) return errorResponse(400, "management_invalid_input", "candidate body mismatch");
       const updated: CandidateRow = {...body, route_id: routeId};
       rows[index] = updated; version.revision += 1;
       return json(200, updated, revisionToken(version));
@@ -1497,6 +1512,9 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           version.id,
           candidates.filter((row) => row.route_id !== routeId),
         );
+        for(const [key,rows] of state.groupRoutes){
+          if(key.startsWith(`${version.id}:`))state.groupRoutes.set(key,rows.filter(row=>row.route_id!==routeId));
+        }
         version.revision += 1;
         return new Response(null, {
           status: 204,
@@ -1504,6 +1522,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         });
       }
       const body = JSON.parse(bodyText ?? "{}") as Omit<RouteRow, "public_model_id">;
+      if(body.id!==routeId||Object.keys(body).some(key=>!["id","policy","max_attempts","bootstrap_timeout_ms"].includes(key)))return errorResponse(400,"management_invalid_input","route body mismatch");
       const updated: RouteRow = { ...body, public_model_id: current.public_model_id };
       routes[index] = updated;
       version.revision += 1;

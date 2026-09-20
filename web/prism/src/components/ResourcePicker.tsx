@@ -16,7 +16,8 @@ export const resourceFilterKinds:Readonly<Record<string,Kind|undefined>>={provid
 export function ResourcePicker({kind,name,value,defaultValue="",onChange,required=false,disabled=false,runtime=false,allowCustom=false}:Readonly<{
   kind:Kind;name?:string;value?:string;defaultValue?:string;onChange?:(value:string)=>void;required?:boolean;disabled?:boolean;runtime?:boolean;allowCustom?:boolean;
 }>) {
-  const scope=useVersionStore(s=>s.context?.configVersionId);
+  const context=useVersionStore(s=>s.context);
+  const scope=context?.configVersionId;
   const [local,setLocal]=useState(defaultValue);
   const [manual,setManual]=useState(false);
   const [reference,setReference]=useState("");
@@ -24,7 +25,7 @@ export function ResourcePicker({kind,name,value,defaultValue="",onChange,require
   const select=(next:string)=>{setLocal(next);onChange?.(next);};
   const useReference=()=>{const next=reference.trim();if(next){select(next);setReference("");setManual(false);}};
   const query=useInfiniteQuery({
-    queryKey:["resource-picker",scope,kind,runtime],initialPageParam:undefined as string|undefined,
+    queryKey:["resource-picker",scope,context?.revision,kind,runtime],initialPageParam:undefined as string|undefined,
     enabled:scope!==undefined,retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1),
     queryFn:({pageParam})=>call<{items:Item[];next_cursor?:string|null}|Item[]>(runtime?"listProviderAccountPools":operations[kind],{query:["upstream","group","key"].includes(kind)?{}:{limit:100,...(pageParam?{cursor:pageParam}:{})}},{versionScoped:!runtime}),
     getNextPageParam:page=>Array.isArray(page)?undefined:page.next_cursor??undefined,

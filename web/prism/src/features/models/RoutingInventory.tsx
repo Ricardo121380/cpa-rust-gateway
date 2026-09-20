@@ -3,7 +3,7 @@ import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ObjectInspector } from "../../components/ObjectInspector";
-import { useRoutingPages } from "./useRoutingPages";
+import { routingInventoryKey, useRoutingPages } from "./useRoutingPages";
 import { asAppError } from "../../api/errors";
 import { useVersionStore } from "../config-versions/versionStore";
 import type { RouteListItem, CandidateRecord, AliasRecord } from "./model";
@@ -27,11 +27,12 @@ export function RoutingInventory({
   onEdit: (candidate: CandidateRecord) => void;
   onDelete: (candidate: CandidateRecord) => void;
 }>) {
-  const scope = useVersionStore((state) => state.context?.configVersionId);
+  const context = useVersionStore((state) => state.context);
+  const scope = context?.configVersionId;
   const [operation, setOperation] = useState<Operation>("listRoutes");
   const [legacy, setLegacy] = useState<RouteListItem>();
   const client = useQueryClient();
-  const key = ["routing-inventory", scope, operation];
+  const key = routingInventoryKey(scope,context?.revision,operation);
   const query = useRoutingPages<Item>(operation);
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   return (
@@ -40,7 +41,7 @@ export function RoutingInventory({
         <h3>配置资源</h3>
         <button
           className="secondary"
-          onClick={() => void client.resetQueries({ queryKey: key })}
+          onClick={() => void client.resetQueries({ queryKey: key, exact:true })}
         >
           重新读取
         </button>

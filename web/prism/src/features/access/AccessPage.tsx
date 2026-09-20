@@ -2,7 +2,7 @@ import "./access.css";
 import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
-import { useRoutingPages } from "../models/useRoutingPages";
+import { routingInventoryKey, useRoutingPages } from "../models/useRoutingPages";
 import type { RouteListItem } from "../models/model";
 import { ReadStatus } from "../../components/ReadStatus";
 // Access control: groups + client keys. Signature safety flow lives here —
@@ -141,7 +141,7 @@ function GroupRoutes({
             </p>
             {suggestions.isError ? <p role="alert">{asAppError(suggestions.error).message}。请重新读取路由列表。</p> : null}
             <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => void queryClient.resetQueries({ queryKey: ["routing-inventory", scope, "listRoutes"] })}>重新读取路由</button>
+              <button type="button" className="secondary" onClick={() => void queryClient.resetQueries({ queryKey: routingInventoryKey(scope,context?.revision,"listRoutes"), exact:true })}>重新读取路由</button>
               {suggestions.hasNextPage ? <button type="button" className="secondary" disabled={suggestions.isFetching || suggestions.isError}
                 onClick={() => void suggestions.fetchNextPage()}>加载更多路由</button> : null}
             </div>

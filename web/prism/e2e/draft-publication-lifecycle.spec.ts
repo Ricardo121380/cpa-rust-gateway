@@ -54,6 +54,28 @@ test("failed validation retires its loading modal and leaves the workspace usabl
   await expect(page.getByRole("dialog",{name:"创建 API 密钥"})).toBeVisible();
 });
 
+test("a draft forked from an older active version cannot be submitted as current",async({page})=>{
+  await unlock(page);
+  await selectDraft(page);
+  await page.evaluate(async()=>{
+    const {ManagementApi}=await import("/src/generated/management-client.ts");
+    const original=ManagementApi.prototype.request;
+    Reflect.set(globalThis,"__staleParentPublishCalls",0);
+    ManagementApi.prototype.request=async function(this:unknown,operation:string,request:unknown){
+      if(operation==="publishConfigVersion")Reflect.set(globalThis,"__staleParentPublishCalls",Number(Reflect.get(globalThis,"__staleParentPublishCalls"))+1);
+      const response=await original.call(this,operation,request);
+      if(operation!=="listConfigVersions"||!response.ok)return response;
+      const versions=await response.clone().json() as {id:string;status:string;parent_id?:string|null}[];
+      return new Response(JSON.stringify(versions.map(version=>version.status==="draft"?{...version,parent_id:"older-active-version"}:version)),{status:response.status,headers:response.headers});
+    };
+  });
+  await page.locator(".dock").getByRole("button",{name:"发布",exact:true}).click();
+  const confirm=page.getByRole("dialog",{name:"确认发布"});
+  await expect(confirm.getByRole("alert")).toContainText("较早的已发布配置");
+  await expect(confirm.getByRole("button",{name:"确认发布"})).toBeDisabled();
+  expect(await page.evaluate(()=>Number(Reflect.get(globalThis,"__staleParentPublishCalls")))).toBe(0);
+});
+
 test("an acknowledged publication survives a failed reread and is not replayed",async({page})=>{
   await unlock(page);
   await selectDraft(page);

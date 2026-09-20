@@ -1,5 +1,4 @@
-import {AliasList} from "./AliasList";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useModelConnections } from "./useModelConnections";
 import { ModelConnectionsDialog } from "./ModelConnectionsDialog";
 import { protocolName } from "../accounts/presentation";
@@ -8,73 +7,32 @@ import { useSearchParams } from "react-router-dom";
 import { ReadStatus } from "../../components/ReadStatus";
 // Public models: client-visible model names + capabilities + 1:1 route.
 // Complete route/candidate/alias enumeration lives in RouteWorkbench.
-import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { flushSync } from "react-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
 import { useVersionStore } from "../config-versions/versionStore";
 import { ConnectModelDialog } from "./ConnectModelDialog";
-import { beginConfigurationTask } from "../config-versions/configurationTask";
-import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { ModelEditorDialog } from "./ModelEditorDialog";
+import { ModelDeleteDialog } from "./ModelDeleteDialog";
+import { ModelAliasDialog } from "./ModelAliasDialog";
+import { RouteCreateDialog } from "./RouteCreateDialog";
+import { captureModelActionOwner, isModelActionOwner, type DraftRoutingOwner } from "./advancedRoutingTask";
+import type { ConfigVersionSummary } from "../config-versions/versionStore";
+import type { ModelTaskReceipt } from "./modelTask";
 import "./models.css";
 import { RouteWorkbench } from "./RouteWorkbench";
 import {
   enabledCapabilities,
-  ROUTE_POLICY,
-  SEMANTIC_CAPABILITIES,
-  toggleCapability,
-  validRouteParams,
   type PublicModel,
 } from "./model";
 
-type DraftModel = {
-  original?: PublicModel;
-  id: string;
-  model_name: string;
-  status: "active" | "disabled";
-  display_name: string;
-  capabilities: Record<string, boolean>;
-  isNew: boolean;
-};
-
-function emptyDraft(): DraftModel {
-  return {
-    id: "",
-    model_name: "",
-    status: "active",
-    display_name: "",
-    capabilities: { streaming: true },
-    isNew: true,
-  };
-}
-
-function toDraft(model: PublicModel): DraftModel {
-  return {
-    original:model,
-    id: model.id,
-    model_name: model.model_name,
-    status: model.status,
-    display_name: model.display_name,
-    capabilities: { ...model.capabilities },
-    isNew: false,
-  };
-}
-
-function toInput(draft: DraftModel) {
-  return {
-    id: draft.id,
-    model_name: draft.model_name,
-    status: draft.status,
-    display_name: draft.display_name,
-    capabilities: draft.capabilities,
-  };
-}
-
 export function ModelsPage() {
+  const navigate=useNavigate();
   const [search, setSearch] = useSearchParams();
   const sourceModel = search.get("from_model") ?? "";
   const sourceEndpoint = search.get("from_endpoint") ?? "";
@@ -90,23 +48,21 @@ export function ModelsPage() {
   const context = useVersionStore((s) => s.context);
   const editable = context?.status === "draft";
   const scope = context?.configVersionId;
-  const [draft, setDraft] = useState<DraftModel | undefined>();
+  const [modelEditor,setModelEditor]=useState<{initial?:PublicModel;owner:DraftRoutingOwner}>();
   const [inspected, setInspected] = useState<PublicModel>();
   const [connectionTarget,setConnectionTarget]=useState<PublicModel>();
   const [searchText,setSearchText]=useState("");
   const [connectionSeed,setConnectionSeed]=useState<{model:string;endpoint:string;alias?:string;targetModelId?:string}>();
   const topology=useModelConnections();
   const providers=useQuery({queryKey:["upstreams",scope],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});
-  const [confirmDelete, setConfirmDelete] = useState<PublicModel | undefined>();
-  const aliasBusy=useIsMutating({mutationKey:["model-alias-write"]})>0;
-  const [aliasTarget, setAliasTarget] = useState<PublicModel | undefined>();
-  const [routeTarget, setRouteTarget] = useState<PublicModel | undefined>();
+  const [confirmDelete, setConfirmDelete] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
+  const [aliasTarget, setAliasTarget] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
+  const [routeTarget, setRouteTarget] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
   const [createdRouteId, setCreatedRouteId] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | undefined>();
   const [connecting,setConnecting]=useState(search.get("add")==="model");
   const closeConnecting=()=>{setConnecting(false);const next=new URLSearchParams(search);next.delete("add");setSearch(next,{replace:true});};
   const [actionError, setActionError] = useState<string | undefined>();
-  const [workingId,setWorkingId]=useState<string>();
 
   const models = useQuery({
     queryKey: ["public-models", scope, context?.revision],
@@ -120,92 +76,43 @@ export function ModelsPage() {
     void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
   };
 
-  const save = useMutation({
-    mutationFn: async (input: DraftModel) => {
-      const task=await beginConfigurationTask("编辑模型");setWorkingId(task.version.id);
-      if(input.original&&JSON.stringify(await task.read<PublicModel>("getPublicModel",{path:{public_model_id:input.id}}))!==JSON.stringify(input.original))throw new Error("模型已被修改，请重新读取后编辑。");
-      await task.mutate(input.isNew?"createPublicModel":"updatePublicModel",{...(input.isNew?{}:{path:{public_model_id:input.id}}),body:toInput(input)});
-      return task.finish();
-    },
-    onSuccess: (version) => {
-      setDraft(undefined);
-      useVersionStore.getState().select(version);
-      invalidate();
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const task=await beginConfigurationTask("移除模型");setWorkingId(task.version.id);
-      await task.mutate("deletePublicModel",{path:{public_model_id:id}});return task.finish();
-    },
-    onSuccess: (version) => {
-      setConfirmDelete(undefined);
-      useVersionStore.getState().select(version);
-      invalidate();
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  const addAlias = useMutation({
-    mutationKey:["model-alias-write"],
-    mutationFn: async (input: { modelId: string; alias: string }) => {
-      const task=await beginConfigurationTask("添加模型别名");setWorkingId(task.version.id);
-      const created=await task.mutate<{alias:string}>("createModelAlias",{path:{public_model_id:input.modelId},body:{alias:input.alias}});
-      return {created,version:await task.finish()};
-    },
-    onSuccess: ({created,version}) => {
-      setAliasTarget(undefined);
-      setNotice(`别名 ${created.alias} 已创建，可在配置资源中查看。`);
-      useVersionStore.getState().select(version);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  const createRoute = useMutation({
-    mutationFn: (input: {
-      modelId: string;
-      id: string;
-      max_attempts: number;
-      bootstrap_timeout_ms: number;
-    }) =>
-      call<{ id: string }>(
-        "createRoute",
-        {
-          path: { public_model_id: input.modelId },
-          body: {
-            id: input.id,
-            policy: ROUTE_POLICY,
-            max_attempts: input.max_attempts,
-            bootstrap_timeout_ms: input.bootstrap_timeout_ms,
-          },
-        },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: (created) => {
-      setRouteTarget(undefined);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      // A route with no candidate FAILS validation
-      // (management_mutation_service.rs:2074 route_missing_active_candidate),
-      // so creating one is only half a step. Hand the id straight to the
-      // workbench rather than leaving the draft in a state the operator has to
-      // discover from a failed publish.
-      setCreatedRouteId(created.id);
-      setNotice(
-        `路由 ${resourceName(created.id,"route")} 已创建,但它还没有候选 —— 现在校验会报 route_missing_active_candidate,发布会被挡。下方「路由工作台」里加一个候选即可。`,
-      );
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  function onSaveSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (draft !== undefined) {
-      save.mutate(draft);
+  const openModelEditor=(initial?:PublicModel)=>{
+    try{setModelEditor({initial,owner:captureModelActionOwner()});setActionError(undefined);}
+    catch(cause){setActionError(asAppError(cause).message);}
+  };
+  const openModelDelete=(model:PublicModel)=>{
+    try{setConfirmDelete({model,owner:captureModelActionOwner()});setActionError(undefined);}
+    catch(cause){setActionError(asAppError(cause).message);}
+  };
+  const openModelAliases=(model:PublicModel)=>{
+    try{setAliasTarget({model,owner:captureModelActionOwner()});setActionError(undefined);}
+    catch(cause){setActionError(asAppError(cause).message);}
+  };
+  const openRouteCreate=(model:PublicModel)=>{
+    try{const owner=captureModelActionOwner();if(context?.status!=="draft")throw new Error("请先选择草稿后配置路由。");setRouteTarget({model,owner});setActionError(undefined);}
+    catch(cause){setActionError(asAppError(cause).message);}
+  };
+  const settleModelReceipt=(receipt:ModelTaskReceipt)=>{
+    if(receipt.kind==="unconfirmed")return;
+    if(receipt.kind!=="unchanged"){
+      const store=useVersionStore.getState();
+      if(store.context?.configVersionId===receipt.workingVersion.id&&store.context.status===receipt.workingVersion.status)store.advanceFromEtag(receipt.workingVersion.revision);
+      else store.select(receipt.workingVersion);
     }
-  }
+    invalidate();
+  };
+  const reviewModelReceipt=async(receipt:ModelTaskReceipt,owner:DraftRoutingOwner,close:()=>void)=>{
+    if(!isModelActionOwner(owner))throw new Error("当前会话或配置已变化，请重新登录后核对工作配置。");
+    const version=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:receipt.workingVersion.id}});
+    if(!isModelActionOwner(owner))throw new Error("当前会话或配置已变化，请重新登录后核对工作配置。");
+    if(version.id!==receipt.workingVersion.id)throw new Error("重读返回的配置与本次工作配置不一致。");
+    // Retire the busy Sheet's navigation blocker before moving to the exact draft.
+    flushSync(close);
+    useVersionStore.getState().select(version);
+    invalidate();
+    navigate("/versions");
+  };
+  const finishModelEditor=(receipt:ModelTaskReceipt)=>{setModelEditor(undefined);settleModelReceipt(receipt);};
 
   return (
     <section className="models-page">
@@ -289,10 +196,10 @@ export function ModelsPage() {
                 <td data-label="状态"><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
                 <td className="row-actions"><button className="secondary" onClick={()=>setConnectionTarget(model)}>管理连接</button><button className="secondary" onClick={()=>setInspected(model)}>详情</button>
                   <details className="row-menu"><summary>更多</summary><div>
-                    <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setDraft(toDraft(model));}}>编辑模型</button>
-                    <button className="secondary" onClick={()=>{addAlias.reset();setWorkingId(undefined);setAliasTarget(model);}}>管理别名</button>
-                    {editable?<button className="secondary" onClick={()=>setRouteTarget(model)}>配置路由</button>:null}
-                    <button className="danger" onClick={()=>{remove.reset();setWorkingId(undefined);setConfirmDelete(model);}}>删除模型</button>
+                    <button className="secondary" onClick={()=>openModelEditor(model)}>编辑模型</button>
+                    <button className="secondary" onClick={()=>openModelAliases(model)}>管理别名</button>
+                    {editable?<button className="secondary" onClick={()=>openRouteCreate(model)}>配置路由</button>:null}
+                    <button className="danger" onClick={()=>openModelDelete(model)}>删除模型</button>
                   </div></details>
                 </td>
               </tr>;
@@ -310,7 +217,7 @@ export function ModelsPage() {
             type="button"
             disabled={!editable}
             title={editable ? undefined : t.version.readOnly}
-            onClick={() => setDraft(emptyDraft())}
+            onClick={() => openModelEditor()}
           >
             高级模型配置
           </button><RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
@@ -321,200 +228,16 @@ export function ModelsPage() {
         ["声明能力", enabledCapabilities(inspected.capabilities).join(" · ") || "未声明"],
       ]}>
         <p className="small muted">这是版本配置中的公开模型；客户端实际可见性还取决于 serving 配置和访问授权。</p>
-        <div className="sheet-actions"><button onClick={() => {save.reset();setWorkingId(undefined);setDraft(toDraft(inspected));setInspected(undefined);}}>编辑模型</button></div>
+        <div className="sheet-actions"><button onClick={() => {openModelEditor(inspected);setInspected(undefined);}}>编辑模型</button></div>
       </ObjectInspector>}
 
-      {draft !== undefined ? (
-        <Sheet
-          title={draft.isNew ? "新建公开模型" : `编辑 ${draft.model_name}`}
-          description="客户端请求使用精确模型 ID；显示名只影响管理端阅读。"
-          onEscape={() => !save.isPending&&setDraft(undefined)}
-          busy={save.isPending}
-        >
-          <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{setDraft(undefined);useVersionStore.getState().select(version);}}/>
-          <form className="sheet-form" onSubmit={onSaveSubmit}>
-            {draft.isNew ? (
-              <label>
-                模型 ID
-                <input
-                  className="mono"
-                  required
-                  maxLength={128}
-                  value={draft.id}
-                  onChange={(event) => setDraft({ ...draft, id: event.target.value })}
-                />
-              </label>
-            ) : null}
-            <label>
-              模型名(客户端请求用,版本内唯一)
-              <input
-                className="mono"
-                required
-                maxLength={256}
-                value={draft.model_name}
-                onChange={(event) => setDraft({ ...draft, model_name: event.target.value })}
-              />
-            </label>
-            <label>
-              显示名
-              <input
-                maxLength={256}
-                value={draft.display_name}
-                onChange={(event) => setDraft({ ...draft, display_name: event.target.value })}
-              />
-            </label>
-            <label className="toggle-row">
-              <input
-                type="checkbox"
-                checked={draft.status === "active"}
-                onChange={(event) =>
-                  setDraft({ ...draft, status: event.target.checked ? "active" : "disabled" })
-                }
-              />
-              启用(active)
-            </label>
-            <fieldset className="capability-set">
-              <legend>必需能力(候选端点缺任一能力将被准入拒绝)</legend>
-              {SEMANTIC_CAPABILITIES.map((capability) => (
-                <label key={capability} className="toggle-row">
-                  <input
-                    type="checkbox"
-                    checked={draft.capabilities[capability] === true}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        capabilities: toggleCapability(
-                          draft.capabilities,
-                          capability,
-                          event.target.checked,
-                        ),
-                      })
-                    }
-                  />
-                  <span className="mono">{capability}</span>
-                  {capability === "parallel_tools" ? (
-                    <small>(隐含 tools)</small>
-                  ) : null}
-                </label>
-              ))}
-            </fieldset>
-            <div className="sheet-actions">
-              <SheetDismissButton className="secondary" disabled={save.isPending}>
-                取消
-              </SheetDismissButton>
-              <button type="submit" disabled={save.isPending}>
-                保存
-              </button>
-            </div>
-          </form>
-        </Sheet>
-      ) : null}
+      {modelEditor ? <ModelEditorDialog key={`${modelEditor.owner.selection}:${modelEditor.initial?.id??"new"}`} initial={modelEditor.initial} owner={modelEditor.owner} onClose={()=>setModelEditor(undefined)} onDone={finishModelEditor} onReview={receipt=>reviewModelReceipt(receipt,modelEditor.owner,()=>setModelEditor(undefined))}/> : null}
 
-      {aliasTarget !== undefined ? (
-        <Sheet title={`模型别名 · ${aliasTarget.model_name}`} description="别名只为兼容现有客户端；不会改写上游返回的原始模型 ID。" onEscape={() => !aliasBusy&&setAliasTarget(undefined)} busy={aliasBusy}>
-          <AliasList model={aliasTarget} onRemoved={(version)=>{setAliasTarget(undefined);void queryClient.resetQueries({queryKey:["routing-inventory"]});useVersionStore.getState().select(version);}}/>
-          <ConfigurationTaskNotice workingId={workingId} error={addAlias.error} onReview={(version)=>{setAliasTarget(undefined);useVersionStore.getState().select(version);}}/>
-          <form
-            className="sheet-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const alias = String(new FormData(event.currentTarget).get("alias") ?? "");
-              addAlias.mutate({ modelId: aliasTarget.id, alias });
-            }}
-          >
-            <label>
-              别名(不得与任何活动模型名冲突)
-              <input name="alias" className="mono" required maxLength={256} />
-            </label>
-            <div className="sheet-actions">
-              <SheetDismissButton className="secondary" disabled={aliasBusy}>
-                取消
-              </SheetDismissButton>
-              <button type="submit" disabled={aliasBusy}>
-                创建
-              </button>
-            </div>
-          </form>
-        </Sheet>
-      ) : null}
+      {aliasTarget?<ModelAliasDialog key={`${aliasTarget.owner.selection}:${aliasTarget.model.id}`} model={aliasTarget.model} owner={aliasTarget.owner} onClose={()=>setAliasTarget(undefined)} onDone={receipt=>{setAliasTarget(undefined);settleModelReceipt(receipt);void queryClient.resetQueries({queryKey:["routing-inventory"]});}} onReview={receipt=>reviewModelReceipt(receipt,aliasTarget.owner,()=>setAliasTarget(undefined))}/>:null}
 
-      {routeTarget !== undefined ? (
-        <Sheet title={`为 ${routeTarget.model_name} 创建路由(1:1)`} description="路由定义重试和启动预算；候选连接在下一步单独配置。" onEscape={() => setRouteTarget(undefined)} busy={createRoute.isPending}>
-          <form
-            className="sheet-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              const maxAttempts = Number(data.get("max_attempts") ?? 3);
-              const bootstrapTimeoutMs = Number(data.get("bootstrap_timeout_ms") ?? 30000);
-              if (!validRouteParams(maxAttempts, bootstrapTimeoutMs)) {
-                setActionError("路由参数越界:max_attempts 1-16,bootstrap_timeout_ms 1-120000");
-                return;
-              }
-              createRoute.mutate({
-                modelId: routeTarget.id,
-                id: String(data.get("id") ?? ""),
-                max_attempts: maxAttempts,
-                bootstrap_timeout_ms: bootstrapTimeoutMs,
-              });
-            }}
-          >
-            <label>
-              路由 ID
-              <input name="id" className="mono" required maxLength={128} />
-            </label>
-            <label>
-              调度策略(契约当前唯一值)
-              <input className="mono" value={ROUTE_POLICY} disabled />
-            </label>
-            <label>
-              max_attempts(1-16;透明重试仅发生在首字节抵达客户端前)
-              <input name="max_attempts" type="number" min={1} max={16} defaultValue={3} />
-            </label>
-            <label>
-              bootstrap_timeout_ms(1-120000;全部透明重试共享的累计预算)
-              <input
-                name="bootstrap_timeout_ms"
-                type="number"
-                min={1}
-                max={120000}
-                defaultValue={30000}
-              />
-            </label>
-            <div className="sheet-actions">
-              <SheetDismissButton className="secondary" disabled={createRoute.isPending}>
-                取消
-              </SheetDismissButton>
-              <button type="submit" disabled={createRoute.isPending}>
-                创建
-              </button>
-            </div>
-          </form>
-        </Sheet>
-      ) : null}
+      {routeTarget?<RouteCreateDialog key={`${routeTarget.owner.selection}:${routeTarget.model.id}`} model={routeTarget.model} owner={routeTarget.owner} onClose={()=>setRouteTarget(undefined)} onDone={({receipt,routeId})=>{setRouteTarget(undefined);if(routeId)setCreatedRouteId(routeId);settleModelReceipt(receipt);if(routeId)setNotice("路由已保存；请在下方路由工作台添加候选后再校验和发布。");}} onReview={receipt=>reviewModelReceipt(receipt,routeTarget.owner,()=>setRouteTarget(undefined))}/>:null}
 
-      {confirmDelete !== undefined ? (
-        <Sheet title="删除公开模型" description="别名、路由和候选会一并移除，客户端将无法继续解析该模型名称。" layout="confirm" tone="danger" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)} busy={remove.isPending}>
-          <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={(version)=>{setConfirmDelete(undefined);useVersionStore.getState().select(version);}}/>
-          <p className="reveal-warning">
-            删除公开模型 <span className="mono">{confirmDelete.model_name}</span>
-            将级联删除其全部别名与路由(含候选),客户端将无法再解析该模型名。
-          </p>
-          <div className="sheet-actions">
-            <SheetDismissButton className="secondary" disabled={remove.isPending}>
-              取消
-            </SheetDismissButton>
-            <button
-              type="button"
-              className="danger"
-              disabled={remove.isPending}
-              onClick={() => remove.mutate(confirmDelete.id)}
-            >
-              确认删除
-            </button>
-          </div>
-        </Sheet>
-      ) : null}
+      {confirmDelete?<ModelDeleteDialog key={`${confirmDelete.owner.selection}:${confirmDelete.model.id}`} model={confirmDelete.model} owner={confirmDelete.owner} onClose={()=>setConfirmDelete(undefined)} onDone={receipt=>{setConfirmDelete(undefined);settleModelReceipt(receipt);}} onReview={receipt=>reviewModelReceipt(receipt,confirmDelete.owner,()=>setConfirmDelete(undefined))}/>:null}
     </section>
   );
 }

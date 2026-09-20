@@ -135,6 +135,30 @@ export function formatCapabilityOverride(
     .join(" ");
 }
 
+/** The compact editor is only safe when its text round-trips every accepted key. */
+export function capabilityOverrideNeedsJson(override: Readonly<Record<string, boolean>>): boolean {
+  const compact = formatCapabilityOverride(override);
+  const parsed = parseCapabilityOverride(compact);
+  if (!parsed.ok) return true;
+  const keys = Object.keys(override);
+  return compact.length > 512 || keys.length !== Object.keys(parsed.override).length
+    || keys.some((key) => parsed.override[key] !== override[key]);
+}
+
+export function parseCapabilityOverrideJson(raw: string): ParsedCapabilityOverride {
+  let value: unknown;
+  try { value = JSON.parse(raw); }
+  catch { return { ok: false, reason: "请填写有效的 JSON 对象。" }; }
+  if (value === null || Array.isArray(value) || typeof value !== "object")
+    return { ok: false, reason: "能力覆盖须是键值为布尔值的 JSON 对象。" };
+  const entries = Object.entries(value);
+  if (entries.length > MAX_CAPABILITY_OVERRIDES)
+    return { ok: false, reason: `能力覆盖最多 ${MAX_CAPABILITY_OVERRIDES} 项。` };
+  if (entries.some(([key, flag]) => !key.trim() || [...key].length > 128 || typeof flag !== "boolean"))
+    return { ok: false, reason: "能力键须为非空且最多 128 字，值只能是 true 或 false。" };
+  return { ok: true, override: Object.fromEntries(entries) as Record<string, boolean> };
+}
+
 export type ParsedCapabilityOverride =
   | Readonly<{ ok: true; override: Readonly<Record<string, boolean>> }>
   | Readonly<{ ok: false; reason: string }>;

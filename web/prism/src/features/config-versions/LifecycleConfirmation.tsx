@@ -58,10 +58,11 @@ export function LifecycleConfirmation({
     context?.configVersionId === id &&
     context.revision === revision &&
     known?.revision === revision;
+  const staleParent=mode==="publish"&&known?.parent_id!=null&&known.parent_id!==active?.id;
   const valid =
     unchanged &&
     (mode === "publish"
-      ? known?.status === "draft"
+      ? known?.status === "draft"&&!staleParent
       : active?.id === id && Boolean(target));
   const commit=()=>onConfirm(JSON.stringify(active?.id??null),String(Math.max(0,...(query.data?.audit??[]).filter(event=>["config_published","config_rolled_back"].includes(event.action)).map(event=>event.id))),revision??"");
   return (
@@ -97,7 +98,7 @@ export function LifecycleConfirmation({
         应用后，新请求使用此配置，已开始的请求继续完成。操作会写入审计。
       </p>
       {query.data && !valid ? (
-        <p role="alert">版本已变化或没有可用目标，请关闭后重新选择并核对。</p>
+        <p role="alert">{staleParent?"此草稿来自较早的已发布配置；请从当前配置重新建立草稿。":"版本已变化或没有可用目标，请关闭后重新选择并核对。"}</p>
       ) : null}
       {error ? <p role="alert">{error}</p> : null}
     </Sheet>

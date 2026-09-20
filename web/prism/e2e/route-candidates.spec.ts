@@ -32,13 +32,21 @@ async function makeRoute(
   await model.getByLabel("模型 ID").fill(`pm-${routeId}`);
   await model.getByLabel("模型名", { exact: false }).fill(`m-${routeId}`);
   await model.getByRole("button", { name: "保存" }).click();
+  const modelReceipt=page.getByRole("dialog",{name:"模型配置结果"});
+  await expect(modelReceipt).toContainText("已保存到当前草稿");
+  await modelReceipt.getByRole("button",{name:"完成"}).click();
 
   const row=page.locator(".models-inventory tbody tr", { hasText: `m-${routeId}` }).first();
   await row.locator(".row-menu summary").click();
   await row.getByRole("button", { name: "配置路由" }).click();
   const routeSheet = page.getByRole("dialog");
-  await routeSheet.getByLabel("路由 ID").fill(routeId);
-  await routeSheet.getByRole("button", { name: "创建" }).click();
+  await routeSheet.getByLabel("路由标识").fill(routeId);
+  await routeSheet.getByRole("button", { name: "创建路由" }).click();
+  const routeReceipt=page.getByRole("dialog",{name:"路由配置结果"});
+  await expect(routeReceipt).toContainText("已保存到当前草稿");
+  await expect(routeReceipt).toContainText("路由已创建");
+  await routeReceipt.getByRole("button",{name:"继续配置候选"}).click();
+  await expect(page.locator("details.models-advanced")).toHaveAttribute("open","");
 }
 
 test("a new route fails validation until a candidate is added", async ({ page }) => {
@@ -50,9 +58,7 @@ test("a new route fails validation until a candidate is added", async ({ page })
 
 
   // The panel says what it just did to the draft rather than reporting success.
-  await expect(page.locator(".action-notice").first()).toContainText(
-    "route_missing_active_candidate",
-  );
+  await expect(page.locator(".action-notice").first()).toContainText("添加候选后再校验");
 
   await page.locator(".route-workbench").getByRole("button", { name: "打开它" }).click();
   await expect(page.locator(".route-workbench")).toContainText("smooth_weighted_round_robin");
@@ -69,11 +75,14 @@ test("a new route fails validation until a candidate is added", async ({ page })
 
   await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("exact 模型 ID");
+  await expect(sheet).toContainText("上游原始模型 ID");
   await sheet.getByLabel("候选标识").fill("cand-e2e");
   await sheet.getByRole("combobox", { name: "接口连接", exact: true }).selectOption("ep-relay-a-responses");
-  await sheet.getByLabel("上游模型名称", { exact: true }).fill("relay-x");
+  await sheet.getByLabel("上游原始模型 ID", { exact: true }).fill("relay-x");
   await sheet.getByRole("button", { name: "创建候选" }).click();
+  const candidateReceipt=page.getByRole("dialog",{name:"候选配置结果"});
+  await expect(candidateReceipt).toContainText("已保存到当前草稿");
+  await candidateReceipt.getByRole("button",{name:"完成"}).click();
 
   // Adding a candidate re-validates on its own — the operator should not have
   // to re-ask whether the thing they just fixed is fixed.
@@ -83,22 +92,25 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await expect(inventory).toContainText("relay-x");
   await inventory.getByRole("button", { name: "编辑候选" }).click();
   const editor = page.getByRole("dialog");
-  await expect(editor.locator('input[name="id"]')).toHaveValue("cand-e2e");
-  await expect(editor.locator('input[name="id"]')).toHaveAttribute("type", "hidden");
-  await editor.getByLabel("weight", { exact: false }).fill("7");
-  await editor.getByLabel("priority", { exact: false }).fill("3");
-  await editor.getByLabel("transform_mode", { exact: false }).selectOption("canonical_bridge");
-  await editor.getByLabel("capability_override", { exact: false }).fill("vision=false tools=true");
+  await expect(editor.getByRole("textbox",{name:"候选标识"})).toHaveValue("cand-e2e");
+  await expect(editor.getByRole("textbox",{name:"候选标识"})).toHaveAttribute("readonly","");
+  await editor.getByLabel("权重").fill("7");
+  await editor.getByLabel("优先级").fill("3");
+  await editor.getByLabel("协议转换").selectOption("canonical_bridge");
+  await editor.getByLabel("能力覆盖").fill("vision=false tools=true");
   await editor.getByRole("button", { name: "保存候选" }).click();
-  await expect(editor).not.toBeVisible();
+  const editReceipt=page.getByRole("dialog",{name:"候选配置结果"});
+  await expect(editReceipt).toContainText("已保存到当前草稿");
+  await editReceipt.getByRole("button",{name:"完成"}).click();
   await expect(inventory).toContainText("权重 7");
   await inventory.getByRole("button", { name: "编辑候选" }).click();
-  await expect(editor.getByLabel("priority", { exact: false })).toHaveValue("3");
-  await expect(editor.getByLabel("transform_mode", { exact: false })).toHaveValue("canonical_bridge");
-  await expect(editor.getByLabel("capability_override", { exact: false })).toHaveValue("vision=false tools=true");
+  await expect(editor.getByLabel("优先级")).toHaveValue("3");
+  await expect(editor.getByLabel("协议转换")).toHaveValue("canonical_bridge");
+  await expect(editor.getByLabel("能力覆盖")).toHaveValue("vision=false tools=true");
   await editor.getByRole("button", { name: "取消", exact: true }).click();
   await inventory.getByRole("button", { name: "删除候选" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "确认删除候选" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "确认删除" }).click();
+  await page.getByRole("dialog",{name:"候选配置结果"}).getByRole("button",{name:"完成"}).click();
   await expect(inventory.locator('[data-resource-id="cand-e2e"]')).toHaveCount(0);
   await expect(page.locator(".rw-validation")).toHaveAttribute("data-valid", "false");
   await inventory.getByRole("button", { name: "路由", exact: true }).click();
@@ -106,6 +118,35 @@ test("a new route fails validation until a candidate is added", async ({ page })
 
   await inventory.getByRole("button", { name: "别名", exact: true }).click();
   await expect(inventory).toContainText("此版本暂无该类资源");
+
+  await page.evaluate(async()=>{
+    const {call}=await import("/src/api/client.ts");
+    await call("grantAccessGroupRoute",{path:{access_group_id:"team-default"},body:{route_id:"rt-e2e",enabled:true}},{versionScoped:true,mutating:true});
+  });
+
+  const workbench=page.locator(".route-workbench");
+  await workbench.getByRole("button",{name:"编辑路由"}).click();
+  const routeEditor=page.getByRole("dialog",{name:"编辑路由"});
+  await routeEditor.getByRole("spinbutton",{name:"最大尝试次数"}).fill("4");
+  await routeEditor.getByRole("button",{name:"保存路由"}).click();
+  const routeEditReceipt=page.getByRole("dialog",{name:"路由配置结果"});
+  await expect(routeEditReceipt).toContainText("已保存到当前草稿");
+  await routeEditReceipt.getByRole("button",{name:"完成"}).click();
+  await expect(workbench).toContainText("4");
+  await workbench.getByRole("button",{name:"删除路由"}).click();
+  const routeDelete=page.getByRole("dialog",{name:"删除路由"});
+  await expect(routeDelete).toContainText("访问组授权");
+  await routeDelete.getByRole("button",{name:"确认删除"}).click();
+  const routeDeleteReceipt=page.getByRole("dialog",{name:"路由配置结果"});
+  await expect(routeDeleteReceipt).toContainText("已保存到当前草稿");
+  await routeDeleteReceipt.getByRole("button",{name:"完成"}).click();
+  await inventory.getByRole("button",{name:"路由",exact:true}).click();
+  await expect(inventory.locator('[data-resource-id="rt-e2e"]')).toHaveCount(0);
+  const grants=await page.evaluate(async()=>{
+    const {call}=await import("/src/api/client.ts");
+    return await call<{route_id:string}[]>("listAccessGroupRoutes",{path:{access_group_id:"team-default"}},{versionScoped:true});
+  });
+  expect(grants.some(grant=>grant.route_id==="rt-e2e")).toBe(false);
 
 });
 
@@ -118,11 +159,11 @@ test("capability_override rejects a non-boolean instead of coercing it", async (
   const sheet = page.getByRole("dialog");
   await sheet.getByLabel("候选标识").fill("cand-cap");
   await sheet.getByRole("combobox", { name: "接口连接", exact: true }).selectOption("ep-relay-a-responses");
-  await sheet.getByLabel("上游模型名称", { exact: true }).fill("relay-x");
-  await sheet.getByLabel("capability_override", { exact: false }).fill("vision=1");
+  await sheet.getByLabel("上游原始模型 ID", { exact: true }).fill("relay-x");
+  await sheet.getByLabel("能力覆盖").fill("vision=1");
   await sheet.getByRole("button", { name: "创建候选" }).click();
 
-  await expect(page.locator(".action-error")).toContainText("只能是 true 或 false");
+  await expect(sheet.getByRole("alert")).toContainText("只能是 true 或 false");
 });
 
 async function selectActive(page: import("@playwright/test").Page): Promise<void> {

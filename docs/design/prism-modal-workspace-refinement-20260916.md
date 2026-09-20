@@ -1,6 +1,6 @@
 # Prism Modal and Workspace Refinement
 
-Status: active implementation. Shared Sheet/channel authorization (`c2c_5477`), legacy OAuth renewal (`c2c_8a4d`), Provider workspace (`c2c_b63f`), account maintenance (`c2c_a74e`), and model/catalog lifecycle (`c2c_2f8c`, iteration 3) have approved checkpoints. Key/access, the remaining ledger rows, and final whole-application acceptance are still pending.
+Status: active implementation. Shared Sheet/channel authorization (`c2c_5477`), legacy OAuth renewal (`c2c_8a4d`), Provider workspace (`c2c_b63f`), account maintenance (`c2c_a74e`), model/catalog lifecycle (`c2c_2f8c`, iteration 3), key/access/publication (`c2c_2f8c`, iteration 5), and advanced model/routing (`c2c_2f8c`, iteration 8) have approved checkpoints. The remaining ledger rows and final whole-application acceptance are pending.
 
 ## Product frame
 
@@ -163,7 +163,7 @@ new contract before this refinement is considered complete.
 | `accounts/AccountsPage.tsx` | inspector / action menu | Account maintenance transitions | Migrated: inspector/action chooser and exact batch owner snapshot | `managed-accounts.spec.ts`, `account-actions.spec.ts`; C2C `c2c_a74e` iteration 6. |
 | `access/IssueKeyDialog.tsx` | form / reveal receipt | One-time Client Key; stage-aware issuance and redacted lost-response reconciliation | Migrated: stable Create/Cancel then Copy/Done footer; secret clears on exit/session change | `modal-daily.spec.ts`, `key-access-lifecycle.spec.ts`; local mock accepted an allowed model and rejected a forbidden model. |
 | `access/KeyPermissionsDialog.tsx` | form / receipt | Captured key/group/grants, private replacement group and button-only dirty state | Migrated: stable Save/Cancel footer and non-replayable outcome | `key-access-lifecycle.spec.ts` sibling isolation, partial move and preflight; local gateway applied edit/readback. |
-| `access/AccessPage.tsx` / `GroupKeyDialog.tsx` | form / confirm / reveal receipt | Client keys, revocation and explicit-group draft signing | Daily signing/revocation migrated; advanced signing has owner-bound recovery and one-time reveal; legacy group routing remains | `key-access-lifecycle.spec.ts` including cancellation, replacement session, recovery GET and revocation; C2C `c2c_2f8c` iteration 5. |
+| `access/AccessPage.tsx` / `GroupKeyDialog.tsx` | form / confirm / reveal receipt | Client keys, revocation and explicit-group draft signing | Daily signing/revocation migrated; advanced signing has owner-bound recovery and one-time reveal; group-route reread uses the same revision-bound query key as its inventory | `key-access-lifecycle.spec.ts` and `access-groups.spec.ts` first-page/cursor recovery; C2C iteration 7 review pending. |
 | `upstreams/ProviderDialog.tsx` | form | Optional credential material; explicit close and busy state | Migrated: stable form-associated footer | `modal-daily.spec.ts`. |
 | `upstreams/UpstreamsPage.tsx` | form / confirm | Provider tags and configuration revision | Chip dirty and confirmation migration; footer pending | Provider E2E pending. |
 | `upstreams/SubresourcePanel.tsx` | form / inspector / confirm / receipt | Endpoint, account and binding configuration | Provider workspace checkpoint migrated: human-readable endpoint/account rows; channel-owned normal account entry; one active sheet/receipt action; semantic binding reconciliation; scheduling and raw credentials deliberately advanced | `subresource-crud.spec.ts` covers draft, active and uncertain application receipts, create/edit/delete, explicit connection, bounded scheduling values and unbound credential retention. |
@@ -171,8 +171,8 @@ new contract before this refinement is considered complete.
 | `upstreams/OAuthWizard.tsx` | callback authorization / receipt | Existing Codex credential renewal, callback and cancellation | Migrated: mount-safe attempt identity, native callback form/footer, server-first cancellation, acknowledged receipt and explicit unknown-result recovery | `credential-oauth.spec.ts` covers compact status, local validation, production-envelope rejection/reconciliation, completion/reread failure, cache isolation, lost response, cancellation uncertainty/pending status, durable fallback and Back; C2C `c2c_8a4d` approved iteration 4. |
 | `models/ConnectModelDialog.tsx` | form / receipt | Exact model ID and endpoint selection; explicit close and busy state | Migrated: stable form footer, pre-fork no-op probe, exact source and staged receipt | `modal-daily.spec.ts`, `model-catalog-lifecycle.spec.ts`; C2C `c2c_2f8c` iteration 3. |
 | `models/ModelConnectionsDialog.tsx` | inspector / form / confirm / receipt | One captured source and last-enabled consequence | Migrated: one owned action, frozen fields during writes, structural preflight, stage-aware result | `model-catalog-lifecycle.spec.ts`; local embedded gateway source edit/readback; C2C `c2c_2f8c` iteration 3. |
-| `models/ModelsPage.tsx` | form / confirm | Aliases, route setup and destructive remove | Description/confirmation migration partial | Model E2E pending. |
-| `models/RouteWorkbench.tsx` | form / confirm | Candidates, aliases and routing revision | Compatibility adapter | Routing E2E pending. |
+| `models/ModelsPage.tsx` / `ModelEditorDialog.tsx` / `ModelAliasDialog.tsx` / `ModelDeleteDialog.tsx` | form / confirm / receipt | Captured model/alias targets, exact draft recovery, no write replay | Migrated: isolated owned Sheet actions, structural preflight and exact working-version receipt | `advanced-model-routing.spec.ts` alias/model edit/delete and response-loss review; C2C iteration 8 approved. |
+| `models/RouteWorkbench.tsx` / `RouteCreateDialog.tsx` / `RouteDialog.tsx` / `CandidateDialog.tsx` | form / confirm / receipt | Selected-draft-only route/candidate CAS, immutable targets and revision-bound validation | Migrated: owned form footers, truthful staged receipts, deletion scope and lossless capability maps | `route-candidates.spec.ts`, `advanced-model-routing.spec.ts`; isolated gateway alias/route/candidate readback and loopback mock; C2C iteration 8 approved. |
 | `catalog/CatalogPage.tsx` / `UpstreamModelBrowser.tsx` | inspector / confirm / receipt | Exact directory target and model choice | Daily connection migrated: frozen evidence, bounded continuation, target-bound refresh and source revalidation; other diagnostics retain their existing view | `model-catalog-lifecycle.spec.ts`; local embedded gateway catalog activation; C2C `c2c_2f8c` iteration 3. |
 | `billing/BillingPage.tsx` | form / confirm / receipt | Price catalog import | Compatibility adapter | Billing E2E pending. |
 | `egress/EgressPage.tsx` | form / confirm / inspector | Host, port and CIDR policy | Chip dirty and confirmations migrated; footer pending | `modal-foundation.spec.ts`. |
@@ -341,3 +341,36 @@ rechecked in EgoLite. No real Provider or production state was changed. C2C
 `c2c_2f8c` approved the complete checkpoint at iteration 5. Group routing,
 remaining advanced workspaces, whole-app acceptance and deployment remain
 active Goal work.
+
+## 2026-09-20 - Advanced model and routing checkpoint
+
+Advanced public-model, alias, route and candidate actions now capture their
+source configuration, selection, revision and exact resource before opening a
+Sheet. Route/candidate writes remain selected-draft-only with fixed `If-Match`;
+active-context model and alias work retains separate saved, applied, partial
+and unconfirmed receipts. An unconfirmed model/alias/route-creation receipt displays the
+operation, target and working-version ID. Its Review action rereads that exact
+version under the original owner; a failed read preserves the receipt and
+offers retry or local exit. The successful review closes the busy Sheet before
+selecting and navigating to that version, so its route blocker cannot swallow
+the transition.
+
+Candidate editing preserves untouched capability overrides at the map level.
+Keys that cannot round-trip through compact `key=true` text use a lossless JSON
+editor with boolean and key-bound validation. Access-group route authorization
+and the routing inventory share a revision-bound query key, so first-page and
+rejected-cursor errors can restart enumeration. Delete confirmations describe
+production cascades; the fixture mirrors model and route-owned descendants
+rather than browser-side delete loops. A real isolated gateway verified exact
+alias, model, route and candidate readback, topology validation, stale-draft
+409 with no mutation, a fresh publication and a synthetic Client Key request
+through the loopback mock; no real Provider or production state was touched.
+The gateway also exposed a nested Store revision conflict incorrectly mapped
+to 503, now classified as 409.
+
+Current checks: 45 unit files / 356 tests, 27 serial advanced routing/access/
+candidate Chromium cases, type check, double-build/four-file SPA gate, the
+prior three embedded UI and two lifecycle HTTP Rust tests, formatting and
+Clippy. C2C `c2c_2f8c` approved the complete checkpoint at iteration 8. Billing,
+egress, runtime/monitoring, configuration/audit, whole-app accessibility and
+responsive acceptance, final gates, and deployment remain open Goal work.

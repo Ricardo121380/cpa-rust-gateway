@@ -39,11 +39,12 @@ async function observe(task:ConfigurationTask):Promise<ConfigVersionSummary>{
 }
 
 /** Read against the selected source first, so a true no-op never forks an active configuration. */
-async function probeUnchanged<T>(work:(task:ConfigurationTask)=>Promise<T>):Promise<Readonly<{source:Source;value?:T;unchanged:boolean;version:ConfigVersionSummary}>>{
+async function probeUnchanged<T>(work:(task:ConfigurationTask)=>Promise<T>,expectedSource?:Source):Promise<Readonly<{source:Source;value?:T;unchanged:boolean;version:ConfigVersionSummary}>>{
   const owner=useVersionStore.getState();
   const session=useSessionStore.getState().generation;
   const context=owner.context;
   if(!context||context.status==="archived")throw new Error("请选择可编辑的配置后继续。");
+  if(expectedSource&&(context.configVersionId!==expectedSource.id||context.revision!==expectedSource.revision))throw new Error("当前配置已变化，请重新核对后操作。");
   const assertOwner=()=>{
     if(useSessionStore.getState().generation!==session||useVersionStore.getState().selectionGeneration!==owner.selectionGeneration)throw new CancelledError({silent:true});
   };
@@ -76,7 +77,7 @@ async function probeUnchanged<T>(work:(task:ConfigurationTask)=>Promise<T>):Prom
 
 /** Model connection writes can persist in stages; never replay an acknowledged or uncertain stage. */
 export async function runModelTask<T>(description:string, work:(task:ConfigurationTask)=>Promise<T>,options:ModelTaskOptions={}):Promise<Readonly<{value?:T;receipt:ModelTaskReceipt}>>{
-  const probed=options.probeUnchanged?await probeUnchanged(work):undefined;
+  const probed=options.probeUnchanged?await probeUnchanged(work,options.expectedSource):undefined;
   if(probed?.unchanged)return {value:probed.value,receipt:{kind:"unchanged",workingVersion:probed.version,acknowledgedWrites:0,message:"该模型来源已存在，本次没有修改配置。"}};
   const task=await beginConfigurationTask(description,options.expectedSource??probed?.source);
   let attempted=false;

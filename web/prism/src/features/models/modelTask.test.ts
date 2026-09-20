@@ -73,4 +73,12 @@ describe("model write receipts",()=>{
     expect(beginConfigurationTask).not.toHaveBeenCalled();
     expect(vi.mocked(call).mock.calls.map(([operation])=>operation)).toEqual(["getConfigVersion","getConfigVersion"]);
   });
+
+  it("refuses a stale captured source even when a newer no-op would look unchanged",async()=>{
+    useVersionStore.getState().reset();
+    useVersionStore.getState().select(version);
+    await expect(runModelTask("edit",async()=>({unchanged:true}),{probeUnchanged:true,expectedSource:{id:"draft",revision:"rev-3"}})).rejects.toThrow("当前配置已变化");
+    expect(beginConfigurationTask).not.toHaveBeenCalled();
+    expect(call).not.toHaveBeenCalled();
+  });
 });

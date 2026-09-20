@@ -434,14 +434,24 @@ impl ManagementServiceError {
     /// use it to decide whether to return a safe conflict or a fail-closed unavailable response.
     #[must_use]
     pub fn lifecycle_failure(&self) -> ManagementLifecycleFailure {
-        match self {
-            Self::Store(
+        let store_conflict = |error: &StoreError| {
+            matches!(
+                error,
                 StoreError::ConfigVersionNotFound
-                | StoreError::ConfigVersionAlreadyActive
-                | StoreError::ConfigVersionRevisionConflict
-                | StoreError::ControlPlaneMutationRequiresDraft,
+                    | StoreError::ConfigVersionAlreadyActive
+                    | StoreError::ConfigVersionRevisionConflict
+                    | StoreError::ControlPlaneMutationRequiresDraft
             )
-            | Self::Publication(
+        };
+        match self {
+            Self::Store(error) | Self::Publication(SnapshotPublicationError::Store(error)) => {
+                if store_conflict(error) {
+                    ManagementLifecycleFailure::Conflict
+                } else {
+                    ManagementLifecycleFailure::Unavailable
+                }
+            }
+            Self::Publication(
                 SnapshotPublicationError::ConfigVersionNotFound
                 | SnapshotPublicationError::Compile(_)
                 | SnapshotPublicationError::EgressPolicy(_)
@@ -451,9 +461,7 @@ impl ManagementServiceError {
                 | SnapshotPublicationError::ClientKeyMaterial(_)
                 | SnapshotPublicationError::ClientKeyAccessGroupMissing,
             ) => ManagementLifecycleFailure::Conflict,
-            Self::Store(_) | Self::Publication(_) | Self::Clock(_) => {
-                ManagementLifecycleFailure::Unavailable
-            }
+            Self::Publication(_) | Self::Clock(_) => ManagementLifecycleFailure::Unavailable,
         }
     }
 }
@@ -506,12 +514,23 @@ mod tests {
     };
 
     use super::{
-        ManagementActor, ManagementClock, ManagementClockError, ManagementService,
-        ManagementServiceError, SystemManagementClock,
+        ManagementActor, ManagementClock, ManagementClockError, ManagementLifecycleFailure,
+        ManagementService, ManagementServiceError, SystemManagementClock,
     };
     use crate::{route_compiler::RouteCompiler, snapshot_publisher::SnapshotPublicationError};
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn stale_publication_origin_is_a_conflict_not_an_unavailable_service() {
+        let error = ManagementServiceError::Publication(SnapshotPublicationError::Store(
+            gateway_store::StoreError::ConfigVersionRevisionConflict,
+        ));
+        assert_eq!(
+            error.lifecycle_failure(),
+            ManagementLifecycleFailure::Conflict
+        );
+    }
 
     #[test]
     fn local_management_lifecycle_is_atomic_audited_and_restart_reconstructs_rollback() -> TestResult

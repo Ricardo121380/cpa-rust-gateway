@@ -1,43 +1,27 @@
 import { ResourcePicker } from "../../components/ResourcePicker";
-import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { RoutingInventory } from "./RoutingInventory";
+import { CandidateDialog, type CandidateAction } from "./CandidateDialog";
+import { RouteDialog, type RouteAction } from "./RouteDialog";
+import { captureDraftRoutingOwner, isModelActionOwner, type DraftRoutingOwner } from "./advancedRoutingTask";
+import { sameRoute } from "./advancedRoutingModel";
+import { sameCandidate } from "./modelTask";
+import { useModelConnections } from "./useModelConnections";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
-import { Sheet } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
-import { useVersionStore } from "../config-versions/versionStore";
+import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import {
-  CREDENTIAL_SCOPE,
-  formatCapabilityOverride,
   type CandidateRecord,
-  parseCapabilityOverride,
   ROUTE_POLICY,
   routeErrorLabel,
-  TRANSFORM_MODES,
-  transformModeHint,
-  validCandidateParams,
-  validRouteParams,
   type RouteRecord,
   type RouteValidation,
-  type TransformMode,
 } from "./model";
-
-type CandidateInput = Readonly<{
-  id: string;
-  endpoint_id: string;
-  upstream_model: string;
-  credential_scope: typeof CREDENTIAL_SCOPE;
-  transform_mode: TransformMode;
-  enabled: boolean;
-  priority: number;
-  weight: number;
-  capability_override: Readonly<Record<string, boolean>>;
-}>;
 
 export function RouteWorkbench({
   focusRouteId,
@@ -49,19 +33,31 @@ export function RouteWorkbench({
   modelSeed?: { model: string; endpoint: string } | undefined;
 }>) {
   const queryClient = useQueryClient();
+  const navigate=useNavigate();
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
 
   const [field, setField] = useState("");
   const [loaded, setLoaded] = useState<string | undefined>();
-  const [candidateTarget, setCandidateTarget] = useState<CandidateRecord>();
-  const [candidateDelete, setCandidateDelete] = useState<CandidateRecord>();
-  const [addingCandidate, setAddingCandidate] = useState(false);
-  const [editingRoute, setEditingRoute] = useState(false);
+  const [candidateAction,setCandidateAction]=useState<CandidateAction>();
+  const [routeAction,setRouteAction]=useState<RouteAction>();
   const [inspecting, setInspecting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [notice, setNotice] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [evidence,setEvidence]=useState<{routeId:string;revision:string;result:RouteValidation}>();
+  const loadedRef=useRef(loaded);
+  loadedRef.current=loaded;
+  useEffect(()=>{setEvidence(undefined);},[loaded,context?.revision]);
+  const topology=useModelConnections();
+
+  const openCandidate=(kind:"edit"|"delete",candidate:CandidateRecord)=>{
+    try{
+      const route=topology.data?.routes.find(row=>row.id===candidate.route_id);
+      const observed=topology.data?.candidates.find(row=>row.id===candidate.id&&row.route_id===candidate.route_id);
+      if(!route||!sameCandidate(observed,candidate))throw new Error("连接清单已变化，请重新读取后操作。");
+      setError(undefined);setCandidateAction({kind,owner:captureDraftRoutingOwner(),route,candidate});
+    }catch(cause){setError(asAppError(cause).message);}
+  };
 
   // The route ModelsPage just created is the one you almost certainly want, and
   // keep the direct handoff alongside the complete inventory.
@@ -71,7 +67,7 @@ export function RouteWorkbench({
       : undefined;
 
   const route = useQuery({
-    queryKey: ["route", scope, loaded],
+    queryKey: ["route", scope, context?.revision, loaded],
     queryFn: () =>
       call<RouteRecord>(
         "getRoute",
@@ -83,111 +79,22 @@ export function RouteWorkbench({
   });
 
   const validation = useMutation({
-    mutationFn: (routeId: string) =>
-      call<RouteValidation>(
-        "validateRoute",
-        { path: { route_id: routeId } },
-        // No If-Match: validateRoute is declared without one, and it does not
-        // advance the revision.
-        { versionScoped: true },
-      ),
-    onError: (cause) => setError(asAppError(cause).message),
-  });
-
-  const addCandidate = useMutation({
-    mutationFn: (input: Readonly<{ routeId: string; body: CandidateInput }>) =>
-      call<Readonly<{ id: string }>>(
-        "createRouteCandidate",
-        { path: { route_id: input.routeId }, body: input.body },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: (created, variables) => {
-      setAddingCandidate(false);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      setNotice(`候选 ${resourceName(created.id,"candidate")} 已加入。重新校验以确认路由现在通得过。`);
-      validation.mutate(variables.routeId);
+    mutationFn: async(input:Readonly<{routeId:string;owner:DraftRoutingOwner}>)=>{
+      if(!isModelActionOwner(input.owner)||useVersionStore.getState().context?.revision!==input.owner.revision)throw new Error("草稿已变化，请重新校验。");
+      const before=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:input.owner.id}});
+      if(before.revision!==input.owner.revision)throw new Error("草稿已变化，请重新校验。");
+      const result=await call<RouteValidation>("validateRoute",{path:{route_id:input.routeId},headers:{"X-Config-Version":input.owner.id}});
+      const after=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:input.owner.id}});
+      if(!isModelActionOwner(input.owner)||after.revision!==input.owner.revision||useVersionStore.getState().context?.revision!==input.owner.revision)throw new Error("校验期间草稿已变化，请重新校验。");
+      return result;
     },
-    onError: (cause) => setError(asAppError(cause).message),
+    onSuccess:(result,input)=>{if(isModelActionOwner(input.owner)&&useVersionStore.getState().context?.revision===input.owner.revision&&loadedRef.current===input.routeId)setEvidence({routeId:input.routeId,revision:input.owner.revision,result});},
+    onError:(cause,input)=>{if(isModelActionOwner(input.owner)&&loadedRef.current===input.routeId)setError(`校验未完成：${asAppError(cause).message}`);},
   });
-
-  const saveCandidate = useMutation({
-    mutationFn: (input: Readonly<{ routeId: string; body: CandidateInput }>) =>
-      call<CandidateRecord>(
-        "updateRouteCandidate",
-        {
-          path: { route_id: input.routeId, candidate_id: input.body.id },
-          body: input.body,
-        },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: (updated) => {
-      setCandidateTarget(undefined);
-      setError(undefined);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      setLoaded(updated.route_id);
-      validation.mutate(updated.route_id);
-      setNotice(`候选 ${resourceName(updated.id,"candidate")} 已保存。`);
-    },
-    onError: (cause) => setError(asAppError(cause).message),
-  });
-  const deleteCandidate = useMutation({
-    mutationFn: (candidate: CandidateRecord) =>
-      call<undefined>(
-        "deleteRouteCandidate",
-        {
-          path: { route_id: candidate.route_id, candidate_id: candidate.id },
-        },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: (_, candidate) => {
-      setCandidateDelete(undefined);
-      setError(undefined);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      setLoaded(candidate.route_id);
-      validation.mutate(candidate.route_id);
-      setNotice(`候选 ${resourceName(candidate.id,"candidate")} 已删除，所属路由保留。`);
-    },
-    onError: (cause) => setError(asAppError(cause).message),
-  });
-
-  const saveRoute = useMutation({
-    mutationFn: (
-      input: Readonly<{
-        routeId: string;
-        body: Omit<RouteRecord, "public_model_id">;
-      }>,
-    ) =>
-      call<RouteRecord>(
-        "updateRoute",
-        { path: { route_id: input.routeId }, body: input.body },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setEditingRoute(false);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      void queryClient.invalidateQueries({
-        queryKey: ["route", scope, loaded],
-      });
-    },
-    onError: (cause) => setError(asAppError(cause).message),
-  });
-
-  const removeRoute = useMutation({
-    mutationFn: (routeId: string) =>
-      call<undefined>(
-        "deleteRoute",
-        { path: { route_id: routeId } },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setConfirmDelete(false);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      setLoaded(undefined);
-      setNotice("路由已删除,其候选一并移除。");
-      validation.reset();
-    },
-    onError: (cause) => setError(asAppError(cause).message),
-  });
+  const startValidation=(routeId:string)=>{
+    try{const owner=captureDraftRoutingOwner();loadedRef.current=routeId;setEvidence(undefined);setError(undefined);validation.mutate({routeId,owner});}
+    catch(cause){setError(asAppError(cause).message);}
+  };
 
   function onLoad(event: FormEvent) {
     event.preventDefault();
@@ -197,10 +104,20 @@ export function RouteWorkbench({
     }
     validation.reset();
     setError(undefined);
+    loadedRef.current=next;
     setLoaded(next);
   }
 
   const record = route.data;
+  const visibleValidation=evidence&&evidence.routeId===record?.id&&evidence.revision===context?.revision?evidence.result:undefined;
+  const openRoute=(kind:"edit"|"delete")=>{
+    try{
+      const baseline=topology.data?.routes.find(row=>row.id===record?.id);
+      if(!record||!sameRoute(baseline,record))throw new Error("路由清单已变化，请重新读取后操作。");
+      if(baseline?.policy!==ROUTE_POLICY)throw new Error("此历史调度策略只支持查看，不能改写。");
+      setError(undefined);setRouteAction({kind,owner:captureDraftRoutingOwner(),route:baseline});
+    }catch(cause){setError(asAppError(cause).message);}
+  };
 
   return (
     <div className="card route-workbench" data-gap="top">
@@ -210,16 +127,11 @@ export function RouteWorkbench({
 
       <RoutingInventory
         editable={editable}
-        onEdit={(candidate) => {
-          setError(undefined);
-          setCandidateTarget(candidate);
-        }}
-        onDelete={(candidate) => {
-          setError(undefined);
-          setCandidateDelete(candidate);
-        }}
+        onEdit={(candidate) => openCandidate("edit",candidate)}
+        onDelete={(candidate) => openCandidate("delete",candidate)}
         onOpen={(id) => {
           setField(id);
+          loadedRef.current=id;
           setLoaded(id);
           validation.reset();
         }}
@@ -233,6 +145,7 @@ export function RouteWorkbench({
             onClick={() => {
               setField(pending);
               validation.reset();
+              loadedRef.current=pending;
               setLoaded(pending);
             }}
           >
@@ -305,15 +218,21 @@ export function RouteWorkbench({
               type="button"
               disabled={!editable}
               title={editable ? undefined : "仅草稿版本可编辑"}
-              onClick={() => setAddingCandidate(true)}
+              onClick={() => {
+                try{
+                  const route=topology.data?.routes.find(row=>row.id===record.id);
+                  if(!route)throw new Error("路由清单尚未读取完成，请重新读取后添加来源。");
+                  setError(undefined);setCandidateAction({kind:"add",owner:captureDraftRoutingOwner(),route,seed:modelSeed});
+                }catch(cause){setError(asAppError(cause).message);}
+              }}
             >
               加候选
             </button>
             <button
               type="button"
               className="secondary"
-              disabled={validation.isPending}
-              onClick={() => validation.mutate(record.id)}
+              disabled={validation.isPending||!editable}
+              onClick={() => startValidation(record.id)}
             >
               {validation.isPending ? "校验中…" : "校验"}
             </button>
@@ -322,7 +241,7 @@ export function RouteWorkbench({
               className="secondary"
               disabled={!editable}
               title={editable ? undefined : "仅草稿版本可编辑"}
-              onClick={() => setEditingRoute(true)}
+              onClick={() => openRoute("edit")}
             >
               编辑路由
             </button>
@@ -337,7 +256,7 @@ export function RouteWorkbench({
               className="danger"
               disabled={!editable}
               title={editable ? undefined : "仅草稿版本可编辑"}
-              onClick={() => setConfirmDelete(true)}
+              onClick={() => openRoute("delete")}
             >
               删除路由
             </button>
@@ -347,19 +266,19 @@ export function RouteWorkbench({
             配置资源列表显示候选定义；Explain 用于检查指定请求的选择结果。
           </p>
 
-          {validation.data !== undefined ? (
+          {visibleValidation !== undefined ? (
             <div
               className="rw-validation"
-              data-valid={validation.data.valid ? "true" : "false"}
+              data-valid={visibleValidation.valid ? "true" : "false"}
             >
               <p>
-                {validation.data.valid
+                {visibleValidation.valid
                   ? "草稿拓扑校验通过"
-                  : `草稿拓扑校验未通过 · ${validation.data.error_codes?.length ?? 0} 项`}
+                  : `草稿拓扑校验未通过 · ${visibleValidation.error_codes?.length ?? 0} 项`}
               </p>
-              {validation.data.valid ? null : (
+              {visibleValidation.valid ? null : (
                 <ul className="rw-codes">
-                  {(validation.data.error_codes ?? []).map((code) => {
+                  {(visibleValidation.error_codes ?? []).map((code) => {
                     const label = routeErrorLabel(code);
                     return (
                       <li key={code}>
@@ -383,58 +302,7 @@ export function RouteWorkbench({
         </>
       ) : null}
 
-      {candidateTarget !== undefined ? (
-        <CandidateSheet
-          key={candidateTarget.id}
-          routeId={candidateTarget.route_id}
-          initial={candidateTarget}
-          error={error}
-          pending={saveCandidate.isPending}
-          onCancel={() => setCandidateTarget(undefined)}
-          onInvalid={setError}
-          onSubmit={(body) =>
-            saveCandidate.mutate({ routeId: candidateTarget.route_id, body })
-          }
-        />
-      ) : null}
-      {candidateDelete !== undefined ? (
-        <Sheet
-          title="确认删除候选"
-          onEscape={() => setCandidateDelete(undefined)}
-        >
-          <p>
-            删除 {resourceName(candidateDelete.id,"candidate")}。所属路由 {resourceName(candidateDelete.route_id,"route")}{" "}
-            将保留；若无启用候选，拓扑校验将失败。
-          </p>
-          {error !== undefined ? <p role="alert">{error}</p> : null}
-          <div className="sheet-actions">
-            <button
-              className="secondary"
-              onClick={() => setCandidateDelete(undefined)}
-            >
-              取消
-            </button>
-            <button
-              className="danger"
-              disabled={deleteCandidate.isPending || !editable}
-              onClick={() => deleteCandidate.mutate(candidateDelete)}
-            >
-              确认删除候选
-            </button>
-          </div>
-        </Sheet>
-      ) : null}
-      {addingCandidate && record !== undefined ? (
-        <CandidateSheet
-          routeId={record.id}
-          pending={addCandidate.isPending}
-          seed={modelSeed}
-          error={error}
-          onCancel={() => setAddingCandidate(false)}
-          onInvalid={setError}
-          onSubmit={(body) => addCandidate.mutate({ routeId: record.id, body })}
-        />
-      ) : null}
+      {candidateAction?<CandidateDialog key={`${candidateAction.owner.selection}:${candidateAction.kind}:${candidateAction.candidate?.id??"new"}`} action={candidateAction} onClose={()=>setCandidateAction(undefined)} onDone={(receipt,routeId)=>{const kind=candidateAction.kind;setCandidateAction(undefined);if(receipt.kind==="unconfirmed"){navigate("/versions");return;}void queryClient.resetQueries({queryKey:["routing-inventory",scope]});loadedRef.current=routeId;setLoaded(routeId);validation.reset();startValidation(routeId);setNotice(kind==="delete"?"候选已从草稿删除；路由和授权保留。":"候选已保存到草稿；正在重新校验路由。");}}/>:null}
 
       {inspecting && record !== undefined ? (
         <ObjectInspector
@@ -453,7 +321,7 @@ export function RouteWorkbench({
               disabled={!editable}
               onClick={() => {
                 setInspecting(false);
-                setEditingRoute(true);
+                openRoute("edit");
               }}
             >
               编辑路由
@@ -462,279 +330,7 @@ export function RouteWorkbench({
         </ObjectInspector>
       ) : null}
 
-      {editingRoute && record !== undefined ? (
-        <Sheet
-          title={`编辑路由 ${resourceName(record.id,"route")}`}
-          onEscape={() => setEditingRoute(false)}
-        >
-          <p className="stat-sub">
-            PATCH 是整体替换,所以下面每个字段都已用{" "}
-            <span className="mono">getRoute</span> 的当前值预填 ——
-            留空会把它写成空,而不是"不改"。
-          </p>
-          <form
-            className="sheet-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              const maxAttempts = Number(data.get("max_attempts"));
-              const bootstrapTimeoutMs = Number(
-                data.get("bootstrap_timeout_ms"),
-              );
-              if (!validRouteParams(maxAttempts, bootstrapTimeoutMs)) {
-                setError(
-                  "路由参数越界:max_attempts 1-16,bootstrap_timeout_ms 1-120000",
-                );
-                return;
-              }
-              saveRoute.mutate({
-                routeId: record.id,
-                body: {
-                  id: record.id,
-                  policy: ROUTE_POLICY,
-                  max_attempts: maxAttempts,
-                  bootstrap_timeout_ms: bootstrapTimeoutMs,
-                },
-              });
-            }}
-          >
-            <label>
-              路由
-              <ResourceIdInput kind="route" className="mono" value={record.id} disabled />
-            </label>
-            <label>
-              调度策略(契约当前唯一值)
-              <input className="mono" value={ROUTE_POLICY} disabled />
-            </label>
-            <label>
-              max_attempts(1-16)
-              <input
-                name="max_attempts"
-                type="number"
-                min={1}
-                max={16}
-                defaultValue={record.max_attempts}
-              />
-            </label>
-            <label>
-              bootstrap_timeout_ms(1-120000)
-              <input
-                name="bootstrap_timeout_ms"
-                type="number"
-                min={1}
-                max={120000}
-                defaultValue={record.bootstrap_timeout_ms}
-              />
-            </label>
-            <div className="sheet-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setEditingRoute(false)}
-              >
-                取消
-              </button>
-              <button type="submit" disabled={saveRoute.isPending}>
-                保存
-              </button>
-            </div>
-          </form>
-        </Sheet>
-      ) : null}
-
-      {confirmDelete && record !== undefined ? (
-        <Sheet title="确认删除路由" onEscape={() => setConfirmDelete(false)}>
-          <p className="reveal-warning">
-            删除路由 <span className="mono">{resourceName(record.id,"route")}</span>{" "}
-            会一并移除它的全部候选。 公开模型{" "}
-            <ResourceIdentity id={record.public_model_id} />{" "}
-            将没有可用路由,客户端解析到它的请求会失败。
-          </p>
-          <div className="sheet-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setConfirmDelete(false)}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              className="danger"
-              disabled={removeRoute.isPending}
-              onClick={() => removeRoute.mutate(record.id)}
-            >
-              确认删除
-            </button>
-          </div>
-        </Sheet>
-      ) : null}
+      {routeAction?<RouteDialog key={`${routeAction.owner.selection}:${routeAction.kind}:${routeAction.route.id}`} action={routeAction} onClose={()=>setRouteAction(undefined)} onDone={(receipt,doneAction)=>{setRouteAction(undefined);if(receipt.kind==="unconfirmed"){navigate("/versions");return;}void queryClient.resetQueries({queryKey:["routing-inventory",scope]});validation.reset();if(doneAction.kind==="delete"){setLoaded(undefined);setNotice("路由已从草稿删除；候选及访问组授权随之移除，公开模型保留。");}else{void queryClient.resetQueries({queryKey:["route",scope]});setNotice("路由参数已保存到草稿；请重新校验后发布。");}}}/> : null}
     </div>
-  );
-}
-
-function CandidateSheet({
-  seed,
-  initial,
-  error,
-  routeId,
-  pending,
-  onCancel,
-  onInvalid,
-  onSubmit,
-}: Readonly<{
-  seed?: { model: string; endpoint: string } | undefined;
-  initial?: CandidateRecord;
-  error?: string | undefined;
-  routeId: string;
-  pending: boolean;
-  onCancel: () => void;
-  onInvalid: (message: string) => void;
-  onSubmit: (body: CandidateInput) => void;
-}>) {
-  const [mode, setMode] = useState<TransformMode>(
-    initial?.transform_mode ?? "passthrough",
-  );
-
-  return (
-    <Sheet
-      title={
-        initial === undefined
-          ? `为 ${resourceName(routeId,"route")} 添加候选`
-          : `编辑候选 ${resourceName(initial.id,"candidate")}`
-      }
-      onEscape={onCancel}
-    >
-      {error !== undefined ? <p role="alert">{error}</p> : null}
-      <p className="stat-sub">
-        使用真实 Endpoint 与 exact 模型 ID；添加后请重新校验草稿拓扑。
-      </p>
-      <form
-        className="sheet-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          const priority = Number(data.get("priority"));
-          const weight = Number(data.get("weight"));
-          if (!validCandidateParams(priority, weight)) {
-            onInvalid("候选参数越界:priority ≥ 0,weight 1-10000");
-            return;
-          }
-          const parsed = parseCapabilityOverride(
-            String(data.get("capability_override") ?? ""),
-          );
-          if (!parsed.ok) {
-            onInvalid(parsed.reason);
-            return;
-          }
-          onSubmit({
-            id: String(data.get("id") ?? "").trim(),
-            endpoint_id: String(data.get("endpoint_id") ?? "").trim(),
-            upstream_model: String(data.get("upstream_model") ?? "").trim(),
-            credential_scope: CREDENTIAL_SCOPE,
-            transform_mode: mode,
-            enabled: data.get("enabled") === "on",
-            priority,
-            weight,
-            capability_override: parsed.override,
-          });
-        }}
-      >
-        <label>
-          {initial ? "候选" : "候选标识"}
-          <ResourceIdInput kind="candidate"
-            name="id"
-            className="mono"
-            required
-            maxLength={128}
-            defaultValue={initial?.id}
-            readOnly={initial !== undefined}
-          />
-        </label>
-        <label>
-          接口连接
-          <ResourcePicker kind="endpoint" name="endpoint_id" required defaultValue={initial?.endpoint_id ?? seed?.endpoint} />
-        </label>
-        <label>
-          上游模型名称
-          <input
-            defaultValue={initial?.upstream_model ?? seed?.model}
-            name="upstream_model"
-            className="mono"
-            required
-            maxLength={256}
-          />
-        </label>
-        <label>
-          credential_scope(契约当前唯一值)
-          <input className="mono" value={CREDENTIAL_SCOPE} disabled />
-        </label>
-        <label>
-          transform_mode
-          <select
-            value={mode}
-            onChange={(event) => setMode(event.target.value as TransformMode)}
-          >
-            {TRANSFORM_MODES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-          <small>{transformModeHint(mode)}</small>
-        </label>
-        <label className="toggle-row">
-          <input
-            name="enabled"
-            type="checkbox"
-            defaultChecked={initial?.enabled ?? true}
-          />
-          启用(只有启用的候选参与校验与调度)
-        </label>
-        <label>
-          priority(≥ 0,小的先试)
-          <input
-            name="priority"
-            type="number"
-            min={0}
-            defaultValue={initial?.priority ?? 0}
-          />
-        </label>
-        <label>
-          weight(1-10000,同优先级内的加权轮询份额)
-          <input
-            name="weight"
-            type="number"
-            min={1}
-            max={10000}
-            defaultValue={initial?.weight ?? 1}
-          />
-        </label>
-        <label>
-          capability_override(可留空 —— 空表示不覆盖任何能力)
-          <input
-            defaultValue={formatCapabilityOverride(
-              initial?.capability_override ?? {},
-            )}
-            name="capability_override"
-            className="mono"
-            maxLength={512}
-            placeholder="vision=true tools=false"
-          />
-          <small>
-            形如 <span className="mono">key=true key=false</span>,最多 32 项。
-            键不限于本面板列出的语义能力。
-          </small>
-        </label>
-        <div className="sheet-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
-            取消
-          </button>
-          <button type="submit" disabled={pending}>
-            {initial === undefined ? "创建候选" : "保存候选"}
-          </button>
-        </div>
-      </form>
-    </Sheet>
   );
 }
