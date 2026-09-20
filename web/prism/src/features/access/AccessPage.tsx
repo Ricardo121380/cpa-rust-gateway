@@ -1,5 +1,5 @@
 import "./access.css";
-import { ResourceIdInput } from "../../components/ResourceIdentity";
+import { GroupMaintenanceDialog } from "./GroupMaintenanceDialog";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
 import { routingInventoryKey, useRoutingPages } from "../models/useRoutingPages";
@@ -8,15 +8,18 @@ import { ReadStatus } from "../../components/ReadStatus";
 // Access control: groups + client keys. Signature safety flow lives here —
 // the reveal-once sheet (docs/07 §6.4): the full rgw_ key exists only in the
 // 201 issue response; closing the sheet erases it from memory permanently.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useState, type FormEvent } from "react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Fragment, useState, useRef, useEffect, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
-import { useVersionStore } from "../config-versions/versionStore";
+import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskNotice } from "../config-versions/ConfigurationTaskNotice";
+import { useSessionStore } from "../../session/sessionStore";
+import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import { runModelTask, type ModelTaskReceipt } from "../models/modelTask";
 import { KeyPermissionsDialog } from "./KeyPermissionsDialog";
 import { IssueKeyDialog } from "./IssueKeyDialog";
@@ -45,6 +48,14 @@ function GroupRoutes({
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
   const [adding, setAdding] = useState(false);
+  const [source,setSource]=useState<{id:string;revision:string}>();
+  const [receipt,setReceipt]=useState<ConfigVersionSummary>();
+  const [workingId,setWorkingId]=useState<string>();
+  const submitted=useRef(false),live=useRef(true);
+  const [owner]=useState(()=>({session:useSessionStore.getState().generation,selection:useVersionStore.getState().selectionGeneration}));
+  useEffect(()=>{live.current=true;return()=>{live.current=false;};},[]);
+  const owned=()=>live.current&&owner.session===useSessionStore.getState().generation&&owner.selection===useVersionStore.getState().selectionGeneration;
+
 
   const grants = useQuery({
     queryKey: ["group-routes", scope, context?.revision, groupId],
@@ -61,22 +72,22 @@ function GroupRoutes({
   const routeIds = suggestions.data?.pages.flatMap((page) => page.items.map((row) => row.id)) ?? [];
 
   const grant = useMutation({
-    mutationFn: (input: { route_id: string; enabled: boolean }) =>
-      call<AccessGroupRoute>(
-        "grantAccessGroupRoute",
-        { path: { access_group_id: groupId }, body: input },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setAdding(false);
-      void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
-      void queryClient.invalidateQueries({ queryKey: ["group-routes", scope, groupId] });
+    mutationFn:async(input:{route_id:string;enabled:boolean})=>{
+      if(!source)throw new Error("请重新打开授权操作。");
+      const task=await beginConfigurationTask("访问组路由授权",source,"deferred");
+      if(!owned())return;setWorkingId(task.version.id);useVersionStore.getState().rememberPending(task.version);
+      await task.mutate("grantAccessGroupRoute",{path:{access_group_id:groupId},body:input});
+      return task.finish();
     },
-    onError: (error) => onError(asAppError(error).message),
+    onSuccess:version=>{if(version&&owned()){useVersionStore.getState().rememberPending(version);setReceipt(version);}},
+    onError:error=>{if(owned())onError(asAppError(error).message);},
   });
+
+  const finishGrant=()=>{setAdding(false);if(receipt&&owned()){useVersionStore.getState().advanceFromEtag(receipt.revision);void queryClient.invalidateQueries({queryKey:["group-routes",scope]});}};
 
   function onGrantSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if(submitted.current)return;submitted.current=true;
     const data = new FormData(event.currentTarget);
     grant.mutate({
       route_id: String(data.get("route_id") ?? "").trim(),
@@ -93,7 +104,7 @@ function GroupRoutes({
           className="secondary"
           disabled={!editable}
           title={editable ? undefined : "仅草稿版本可编辑"}
-          onClick={() => setAdding(true)}
+          onClick={() => {submitted.current=false;setReceipt(undefined);setWorkingId(undefined);grant.reset();setSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setAdding(true);}}
         >
           授权路由
         </button>
@@ -125,9 +136,10 @@ function GroupRoutes({
         </table>
       )}
 
-      {adding ? (
-        <Sheet title={`授权路由 · ${resourceName(groupId,"group")}`} onEscape={() => setAdding(false)} busy={grant.isPending}>
-          <form className="sheet-form" onSubmit={onGrantSubmit}>
+      {adding&&receipt?<Sheet title="路由授权结果" guardUnsaved={false} onEscape={finishGrant} footer={<SheetDismissButton onDismiss={finishGrant}>完成</SheetDismissButton>}><p role="status">授权已保存到草稿，尚未应用。</p></Sheet>:adding ? (
+        <Sheet title={`授权路由 · ${resourceName(groupId,"group")}`} onEscape={() => setAdding(false)} busy={grant.isPending} footer={<><SheetDismissButton className="secondary" disabled={grant.isPending}>取消</SheetDismissButton><button type="submit" form="group-route-form" disabled={submitted.current||suggestions.isPending||suggestions.isError}>授权</button></>}>
+          <ConfigurationTaskNotice workingId={workingId} error={grant.error} onReview={version=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().select(version);}}}/>
+          <form id="group-route-form" className="sheet-form" onSubmit={onGrantSubmit}><fieldset disabled={submitted.current}>
             <label>
               路由
               <select name="route_id" required defaultValue="">
@@ -148,14 +160,7 @@ function GroupRoutes({
               <input name="enabled" type="checkbox" defaultChecked />
               启用
             </label>
-            <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setAdding(false)}>
-                取消
-              </button>
-              <button type="submit" disabled={grant.isPending}>
-                授权
-              </button>
-            </div>
+            </fieldset>
           </form>
         </Sheet>
       ) : null}
@@ -176,8 +181,7 @@ export function AccessPage() {
   const [revokeReceipt,setRevokeReceipt]=useState<ModelTaskReceipt>();
   // undefined = closed; null = creating; record = editing that group
   const [groupForm, setGroupForm] = useState<AccessGroupRecord | null | undefined>();
-  const [groupError, setGroupError] = useState<string>();
-  const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<string | undefined>();
+  const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<AccessGroupRecord | undefined>();
   const [expanded, setExpanded] = useState<string | undefined>();
   const [inspectedGroup, setInspectedGroup] = useState<AccessGroupRecord>();
   const [inspectedKey, setInspectedKey] = useState<ClientKeyRecord>();
@@ -186,6 +190,7 @@ export function AccessPage() {
 
   const groups = useQuery({
     queryKey: ["access-groups", scope, context?.revision],
+    placeholderData: keepPreviousData,
     queryFn: () => call<AccessGroupRecord[]>("listAccessGroups", {}, { versionScoped: true }),
     enabled: scope !== undefined,
   });
@@ -202,75 +207,6 @@ export function AccessPage() {
     if(!current||current.access_group_id!==target.record.access_group_id||current.status!==target.record.status||(current.expires_at_ms??null)!==(target.record.expires_at_ms??null))throw new Error("密钥已变化，请重新打开后核对。");
     await task.mutate("revokeClientKey",{path:{client_key_id:target.record.id}});
   },{expectedSource:target.source,probeUnchanged:true}),onSuccess:({receipt})=>setRevokeReceipt(receipt),onError:(error)=>setActionError(asAppError(error).message)});
-
-  // PATCH takes the whole AccessGroupInput, not a partial — editing is a
-  // full replacement, so the form is seeded with the current record.
-  const saveGroup = useMutation({
-    mutationFn: (input: {
-      existing: boolean;
-      id: string;
-      name: string;
-      status: "active" | "disabled";
-      limits: Readonly<Record<string, number>>;
-    }) => {
-      const body = {
-        id: input.id,
-        name: input.name,
-        status: input.status,
-        limits: input.limits,
-      };
-      return input.existing
-        ? call<AccessGroupRecord>(
-            "updateAccessGroup",
-            { path: { access_group_id: input.id }, body },
-            { versionScoped: true, mutating: true },
-          )
-        : call<AccessGroupRecord>(
-            "createAccessGroup",
-            { body },
-            { versionScoped: true, mutating: true },
-          );
-    },
-    onSuccess: () => {
-      setGroupForm(undefined);
-      void queryClient.invalidateQueries({ queryKey: ["access-groups", scope] });
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  const deleteGroup = useMutation({
-    mutationFn: (id: string) =>
-      call<undefined>(
-        "deleteAccessGroup",
-        { path: { access_group_id: id } },
-        { versionScoped: true, mutating: true },
-      ),
-    onSuccess: () => {
-      setConfirmDeleteGroup(undefined);
-      void queryClient.invalidateQueries({ queryKey: ["access-groups", scope] });
-    },
-    onError: (error) => setActionError(asAppError(error).message),
-  });
-
-  function onGroupSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const limits = data.get("clear_limits") === "on" ? {} : (groupForm?.limits ?? {});
-    const status = data.get("status") === "disabled" ? "disabled" : "active";
-    if (status === "active" && Object.keys(limits).length > 0) {
-      setGroupError("当前网关不支持访问组限额。请明确清除历史限制，或将访问组停用后保存。");
-      return;
-    }
-    setGroupError(undefined);
-    setActionError(undefined);
-    saveGroup.mutate({
-      existing: groupForm !== null && groupForm !== undefined,
-      id: String(data.get("id") ?? "").trim(),
-      name: String(data.get("name") ?? "").trim(),
-      status,
-      limits,
-    });
-  }
 
   function finishRevoke(){
     const receipt=revokeReceipt;
@@ -311,7 +247,7 @@ export function AccessPage() {
             className="secondary"
             disabled={!editable}
             title={editable ? undefined : t.version.readOnly}
-            onClick={() => { setGroupError(undefined); saveGroup.reset(); setGroupForm(null); }}
+            onClick={() => { setGroupForm(null); }}
           >
             新建访问组
           </button>
@@ -357,7 +293,7 @@ export function AccessPage() {
                       className="secondary"
                       disabled={!editable}
                       title={editable ? undefined : t.version.readOnly}
-                      onClick={() => { setGroupError(undefined); saveGroup.reset(); setGroupForm(group); }}
+                      onClick={() => { setGroupForm(group); }}
                     >
                       编辑
                     </button>
@@ -366,7 +302,7 @@ export function AccessPage() {
                       className="danger"
                       disabled={!editable}
                       title={editable ? undefined : t.version.readOnly}
-                      onClick={() => setConfirmDeleteGroup(group.id)}
+                      onClick={() => setConfirmDeleteGroup(group)}
                     >
                       删除
                     </button>
@@ -457,7 +393,7 @@ export function AccessPage() {
       {inspectedGroup === undefined ? null : <ObjectInspector title={resourceName(inspectedGroup.id, "group", inspectedGroup.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 访问组`} onClose={() => setInspectedGroup(undefined)} facts={[
         ["访问组 ID", inspectedGroup.id], ["状态", inspectedGroup.status], ["限制", formatLimits(inspectedGroup.limits) || "未设置"],
       ]}><div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspectedGroup.id); setInspectedGroup(undefined); }}>查看授权路由</button>
-        <button disabled={!editable} onClick={() => { setGroupError(undefined); saveGroup.reset(); setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
+        <button disabled={!editable} onClick={() => { setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
 
       {inspectedKey === undefined ? null : <ObjectInspector title="Client Key" scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 只显示公开元数据`} onClose={() => setInspectedKey(undefined)} facts={[
         ["Key ID", inspectedKey.id], ["前缀", inspectedKey.prefix], ["访问组", inspectedKey.access_group_id],
@@ -465,84 +401,8 @@ export function AccessPage() {
       ]}><p className="small muted">完整密钥仅在签发时显示一次，详情不会重新显示。</p>
         <div className="sheet-actions"><button onClick={() => { setEditKey(inspectedKey); setInspectedKey(undefined); }}>编辑 Client Key</button></div></ObjectInspector>}
 
-      {groupForm !== undefined ? (
-        <Sheet
-          title={groupForm === null ? "新建访问组" : `编辑访问组 · ${resourceName(groupForm.id,"group",groupForm.name)}`}
-          onEscape={() => setGroupForm(undefined)}
-          busy={saveGroup.isPending}
-        >
-          <form className="sheet-form" onSubmit={onGroupSubmit}>
-            <label>
-              {groupForm === null ? "访问组标识" : "访问组"}
-              <ResourceIdInput kind="group"
-                name="id"
-                className="mono"
-                required
-                maxLength={128}
-                readOnly={groupForm !== null}
-                defaultValue={groupForm?.id ?? ""}
-              />
-            </label>
-            <label>
-              名称
-              <input name="name" required maxLength={128} defaultValue={groupForm ? resourceName(groupForm.id,"group",groupForm.name) : ""} />
-            </label>
-            <label>
-              状态
-              <select name="status" defaultValue={groupForm?.status ?? "active"}>
-                <option value="active">active</option>
-                <option value="disabled">disabled</option>
-              </select>
-            </label>
-            {groupForm && Object.keys(groupForm.limits).length > 0 ? (
-              <div>
-                <p>历史限制 <code>{formatLimits(groupForm.limits)}</code></p>
-                <p className="stat-sub">当前网关不支持执行这些限制。保留限制时仅可保存为停用状态。</p>
-                <label className="check-row">
-                  <input type="checkbox" name="clear_limits" />
-                  清除历史限制
-                </label>
-              </div>
-            ) : <p className="stat-sub">当前网关不支持访问组限额，此访问组不设置限额。</p>}
-            {groupError ? <p role="alert">{groupError}</p> : null}
-            {saveGroup.isError ? <p role="alert">{asAppError(saveGroup.error).message}</p> : null}
-            <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setGroupForm(undefined)}>
-                取消
-              </button>
-              <button type="submit" disabled={saveGroup.isPending}>
-                {groupForm === null ? "创建" : "保存"}
-              </button>
-            </div>
-          </form>
-        </Sheet>
-      ) : null}
-
-      {confirmDeleteGroup !== undefined ? (
-        <Sheet title="确认删除访问组" onEscape={() => setConfirmDeleteGroup(undefined)} busy={deleteGroup.isPending}>
-          <p>
-            删除 <span className="mono">{resourceName(confirmDeleteGroup,"group")}</span> 会同时移除它的路由授权。
-            指向该组的 Client Key 会失去访问组 —— 请先确认没有在用的 Key 挂在它下面。
-          </p>
-          <div className="sheet-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setConfirmDeleteGroup(undefined)}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              className="danger"
-              disabled={deleteGroup.isPending}
-              onClick={() => deleteGroup.mutate(confirmDeleteGroup)}
-            >
-              确认删除
-            </button>
-          </div>
-        </Sheet>
-      ) : null}
+      {groupForm!==undefined?<GroupMaintenanceDialog record={groupForm} onClose={()=>{setGroupForm(undefined);void queryClient.invalidateQueries({queryKey:["access-groups"]});}} onSelected={version=>{setGroupForm(undefined);useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["access-groups"]});void queryClient.resetQueries({queryKey:["client-keys"]});}}/>:null}
+      {confirmDeleteGroup?<GroupMaintenanceDialog record={confirmDeleteGroup} removing onClose={()=>{setConfirmDeleteGroup(undefined);void queryClient.invalidateQueries({queryKey:["access-groups"]});}} onSelected={version=>{setConfirmDeleteGroup(undefined);useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["access-groups"]});}}/>:null}
 
       {issuing?<GroupKeyDialog groups={groups.data??[]} onClose={()=>setIssuing(false)} onSettled={()=>{setIssuing(false);void queryClient.invalidateQueries({queryKey:["client-keys",scope]});}}/>:null}
 

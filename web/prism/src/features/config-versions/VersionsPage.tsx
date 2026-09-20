@@ -1,4 +1,4 @@
-import {useEffect,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import {useQuery,useQueryClient} from "@tanstack/react-query";
 import {useSearchParams} from "react-router-dom";
 import {call} from "../../api/client";
@@ -24,7 +24,8 @@ export function VersionsPage(){
  const active=versions.data?.find(version=>version.status==="active");
  const reviewId=params.get("review"),resumeId=params.get("resume");
  const target=versions.data?.find(version=>version.id===reviewId);
- useEffect(()=>{if(resumeId)setDialog({kind:"adopt",id:resumeId});},[resumeId]);
+ const priorResume=useRef<string|null>(null);
+ useEffect(()=>{const previous=priorResume.current;priorResume.current=resumeId;if(resumeId)setDialog({kind:"adopt",id:resumeId});else if(previous)setDialog(current=>current?.kind==="adopt"&&current.id===previous?undefined:current);},[resumeId]);
  const removeParams=(...keys:string[])=>{const next=new URLSearchParams(params);for(const key of keys)next.delete(key);setParams(next);};
  const closeDialog=()=>{setDialog(undefined);if(resumeId)removeParams("resume");};
  const review=(id:string)=>admission.request(()=>{setInspection(undefined);setParams({review:id});});

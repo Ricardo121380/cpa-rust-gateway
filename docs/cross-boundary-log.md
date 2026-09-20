@@ -2846,3 +2846,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Top-level edits/deletes used scrolling action rows, automatic publication and replayable failed forms. They now capture source revision and target fields, defer completion to the pending draft, retain success receipts and refuse a second submission after uncertain results. Deletion inventory pages must match the working version/revision; acknowledged write counts expose partial progress. Exact stored names remain form values; display formatting cannot silently rename them.
 
 **Other side:** FYI. Stable Sheet footers, frozen submitted inputs, owner-checked recovery and pending draft retention are implemented. 22 focused provider/subresource browser cases and 390 units passed. EgoLite against the rebuilt isolated gateway saved a provider rename into a draft and reread it; a separate actual management read confirmed the active name remained unchanged. No production/Provider request or public contract change. Advanced access/egress, provider creation and other outstanding lifecycle/visual unification are not claimed complete.
+
+## 2026-09-20 - Codex - advanced access group maintenance
+
+**What:** `web/prism/src/features/access/{AccessPage,GroupMaintenanceDialog}.tsx`, access-group deletion ETag fixture parity, access/modal E2E, and the configuration resume deep-link effect/regression.
+
+**Why:** Advanced group CRUD and route grants had scrolling actions and discarded write receipts. They now retain captured source/target ownership, save into the pending draft, prevent uncertain write replay and preserve explicit historical-limit decisions. Grant receipts survive parent-list refresh; explicit recovery restarts cancelled inventory reads. Removing a consumed resume query now retires its reopened adoption dialog.
+
+**Other side:** FYI. 12 access/modal and 4 pending-configuration browser cases, TypeScript and 390 units passed. Actual embedded gateway/EgoLite created a synthetic group and granted its local route, read both receipts and verified the grant with context still draft. This is not whole-app acceptance; real deletion/limit preservation were covered by fixtures only. No production state, API contract, real Provider inference or C2C changed. Egress lifecycle migration and whole visual rollout remain pending.

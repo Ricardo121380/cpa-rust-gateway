@@ -75,3 +75,9 @@ Functional base: `26521c2`, followed by the shell-owned adoption-navigation corr
 Top-level edit/delete now save into a tracked pending draft, retain a success receipt and use stable Sheet footers. Submitted forms freeze and cannot replay failed writes. Source revision and exact target fields are checked; bounded deletion inventory pages share the working revision. Recovery callbacks reject retired owners. Original stored names remain unchanged unless edited.
 
 Fresh evidence: 22 provider/subresource fixture browser cases, 390 units and TypeScript passed. EgoLite on the actual isolated gateway renamed a provider in a new draft, showed the pending receipt and reread the new name; direct management read confirmed the active provider still had its original name. Real provider deletion was not exercised. No production mutation or real inference. Provider creation, advanced access/egress, full visual refinement and final integration remain pending.
+
+## Advanced access group checkpoint
+
+Group CRUD now uses an owner-bound maintenance dialog with fixed footer, captured revision/record checks, deferred draft completion and non-replayable recovery. Legacy unsupported limits still require explicit clearing or disabled preservation. Route grants retain a pending receipt until acknowledged; parent query refresh no longer removes the receipt. Recovery resets retired group/key queries. A real-browser discovery also fixed a consumed resume deep link reopening its adoption dialog.
+
+Fresh evidence: 12 access/modal and 4 configuration browser cases passed; TypeScript and 390 unit tests passed. Actual local embedded gateway/EgoLite created `local-group-maintenance` in the existing synthetic draft, granted `local-route`, showed both saved-not-applied receipts and reread the route. No real Provider inference or production change. Real deletion, limits and lost-response cases are fixture coverage only. Final visual acceptance and egress migration remain pending.

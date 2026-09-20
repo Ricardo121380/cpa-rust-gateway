@@ -1051,7 +1051,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         rows.splice(index, 1);
         state.groupRoutes.delete(`${version.id}:${id}`);
         version.revision += 1;
-        return new Response(null, { status: 204 });
+        return new Response(null, { status: 204, headers:{ETag:`"${revisionToken(version)}"`} });
       }
       // PATCH takes the whole AccessGroupInput — replacement, not merge.
       const body = JSON.parse(bodyText ?? "{}") as GroupRow;

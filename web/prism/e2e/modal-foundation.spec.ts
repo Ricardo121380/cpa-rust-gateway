@@ -22,13 +22,14 @@ test("advanced group creation retains its sheet until the held write returns", a
   })).toBe(1);
   await expect(sheet.getByRole("button", { name: "关闭面板" })).toBeDisabled();
   await page.keyboard.press("Escape");
-  await sheet.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(sheet.getByRole("button", { name: "取消", exact: true })).toBeDisabled();
   await expect(sheet).toBeVisible();
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await page.evaluate(async () => {
     const fixture = await import("/src/dev/fixtures.ts");
     fixture.releaseFixtureOperationForTest("POST /admin/access-groups");
   });
+  await page.getByRole("dialog",{name:"访问组修改结果"}).getByRole("button",{name:"关闭",exact:true}).click();
   await expect(sheet).toHaveCount(0);
   await expect(groups.locator('[data-resource-id="pending-group"]')).toBeVisible();
 });

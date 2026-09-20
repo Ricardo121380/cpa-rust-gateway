@@ -40,3 +40,9 @@ test("replacing the local pending selection requires an explicit decision",async
  await expect(page.locator("main")).not.toHaveAttribute("data-context-version","draft-2026-08");
  await expect(page.locator('[data-version-id="draft-2026-08"]')).toBeVisible();
 });
+
+test("resume deep link retires its dialog after explicit adoption",async({page})=>{
+ await unlock(page);await page.evaluate(async()=>{const {router}=await import("/src/App.tsx");await router.navigate("/versions?resume=draft-2026-08");});
+ await page.getByRole("dialog",{name:"接续配置草稿"}).getByRole("button",{name:"接续草稿",exact:true}).click();
+ await expect(page.getByRole("region",{name:"待应用变更",exact:true})).toBeVisible();await expect(page.getByRole("dialog")).toHaveCount(0);
+});

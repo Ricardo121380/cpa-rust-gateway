@@ -27,6 +27,7 @@ test("a group can be created, edited and deleted", async ({ page }) => {
   await create.getByLabel("名称").fill("端到端组");
   await expect(create.locator('input[name="limits"]')).toHaveCount(0);
   await create.getByRole("button", { name: "创建" }).click();
+  await page.getByRole("dialog",{name:"访问组修改结果"}).getByRole("button",{name:"关闭",exact:true}).click();
 
   const row = page.locator('tr:has([data-resource-id="team-e2e"])').first();
   await expect(row).toContainText("端到端组");
@@ -41,12 +42,14 @@ test("a group can be created, edited and deleted", async ({ page }) => {
   await expect(edit.locator('input[name="limits"]')).toHaveCount(0);
   await edit.getByLabel("名称").fill("改名后");
   await edit.getByRole("button", { name: "保存" }).click();
+  await page.getByRole("dialog",{name:"访问组修改结果"}).getByRole("button",{name:"关闭",exact:true}).click();
   await expect(page.locator('tr:has([data-resource-id="team-e2e"])').first()).toContainText("改名后");
 
   await page.locator('tr:has([data-resource-id="team-e2e"])').first().getByRole("button", { name: "删除" }).click();
   const confirm = page.getByRole("dialog");
-  await expect(confirm).toContainText("会同时移除它的路由授权");
+  await expect(confirm).toContainText("及其路由授权");
   await confirm.getByRole("button", { name: "确认删除" }).click();
+  await page.getByRole("dialog",{name:"访问组修改结果"}).getByRole("button",{name:"关闭",exact:true}).click();
   await expect(page.locator('tr:has([data-resource-id="team-e2e"])')).toHaveCount(0);
 });
 
@@ -68,6 +71,7 @@ test("legacy limits require explicit clearing or disabled preservation", async (
   await expect(dialog.getByRole("alert")).toContainText("请明确清除历史限制");
   await dialog.getByRole("combobox",{name:"状态",exact:true}).selectOption("disabled");
   await dialog.getByRole("button",{name:"保存",exact:true}).click();
+  await page.getByRole("dialog",{name:"访问组修改结果"}).getByRole("button",{name:"关闭",exact:true}).click();
   await expect(dialog).toHaveCount(0);
   await expect(row).toContainText("rpm=120");
   await expect(row).toContainText("max_concurrency=8");
@@ -75,6 +79,7 @@ test("legacy limits require explicit clearing or disabled preservation", async (
   await dialog.getByLabel("清除历史限制").check();
   await dialog.getByRole("combobox",{name:"状态",exact:true}).selectOption("active");
   await dialog.getByRole("button",{name:"保存",exact:true}).click();
+  await page.getByRole("dialog",{name:"访问组修改结果"}).getByRole("button",{name:"关闭",exact:true}).click();
   await expect(dialog).toHaveCount(0);
   await expect(row).not.toContainText("rpm=120");
   const saved=await page.evaluate(async()=>{
@@ -116,6 +121,7 @@ test("route grants are listed per group and can be added", async ({ page }) => {
   await expect(sheet.locator('select[name="route_id"] option[value="rt-e2e"]')).toHaveCount(1);
   await sheet.getByRole("combobox", {name:"路由"}).selectOption("rt-e2e");
   await sheet.getByRole("button", { name: "授权" }).click();
+  await page.getByRole("dialog",{name:"路由授权结果"}).getByRole("button",{name:"完成",exact:true}).click();
   await expect(page.locator('.group-routes [data-resource-id="rt-e2e"]')).toBeVisible();
 });
 
@@ -193,4 +199,12 @@ test("group editing is refused on a published version", async ({ page }) => {
   await selectVersion(page, "v-2026-07");
   await openAdvancedGroups(page);
   await expect(page.getByRole("button", { name: "新建访问组" })).toBeDisabled();
+});
+
+test("lost group write is not replayed and remains recoverable by its exact draft",async({page})=>{
+ await openAccess(page);await openAdvancedGroups(page);
+ await page.evaluate(async()=>{const {ManagementApi}=await import("/src/generated/management-client.ts");const original=ManagementApi.prototype.request;Reflect.set(globalThis,"__groupWrites",0);ManagementApi.prototype.request=async function(this:unknown,operation:string,request:unknown){const response=await original.call(this,operation,request);if(operation==="createAccessGroup"){Reflect.set(globalThis,"__groupWrites",Number(Reflect.get(globalThis,"__groupWrites"))+1);throw new Error("synthetic group response lost");}return response;};});
+ await page.getByRole("button",{name:"新建访问组"}).click();const dialog=page.getByRole("dialog");await dialog.getByLabel("访问组标识").fill("group-uncertain");await dialog.getByLabel("名称",{exact:true}).fill("Recovered group");await dialog.getByRole("button",{name:"创建",exact:true}).click();
+ await expect(dialog).toContainText("不会重复提交");await expect(dialog.getByRole("button",{name:"创建",exact:true})).toBeDisabled();await dialog.getByRole("button",{name:"查看待应用的修改"}).click();await openAdvancedGroups(page);
+ await expect(page.locator('tr:has([data-resource-id="group-uncertain"])')).toContainText("Recovered group");expect(await page.evaluate(()=>Reflect.get(globalThis,"__groupWrites"))).toBe(1);
 });
