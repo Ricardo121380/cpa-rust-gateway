@@ -23,9 +23,10 @@ async function openPanelFromActiveConfig(page: import("@playwright/test").Page):
   // Publish it through the same control-plane workflow to exercise a provider
   // write from an actual active configuration, rather than fabricating one.
   await selectDraft(page);
-  await page.locator(".dock").getByRole("button", { name: "发布", exact: true }).click();
-  await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("已发布");
+  await page.locator(".dock").getByRole("button", { name: "查看变更", exact: true }).click();
+  await page.getByRole("region",{name:"待应用变更",exact:true}).getByRole("button",{name:"校验并应用",exact:true}).click();
+  await page.getByRole("dialog", { name: "确认应用配置" }).getByRole("button", { name: "确认应用", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("应用已确认");
   await page.getByRole("button", { name: "完成", exact: true }).click();
   await navigate(page, "上游");
   await page.locator("article", { hasText: "中转站 A" }).getByRole("button", { name: "接口与账号" }).click();

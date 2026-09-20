@@ -2838,3 +2838,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Actual gateway/EgoLite acceptance found that successful draft adoption remounted the outlet before its navigation completed. The stable shell lifecycle host now owns post-adoption navigation after the dialog retires, with a selected-target check.
 
 **Other side:** FYI. Four focused browser cases and TypeScript passed; rebuilt local embedded UI confirmed automatic inline review after adoption, actual publication/rollback and stale lifecycle 409 protection. Three viewport structural checks found no horizontal overflow. Full visual/accessibility acceptance and remaining editor migrations are not complete. No C2C, production mutation or Provider inference.
+
+## 2026-09-20 - Codex - provider top-level maintenance
+
+**What:** `web/prism/src/features/upstreams/UpstreamsPage.tsx`, upstream GET fixture parity and `web/prism/e2e/{provider-top-level,subresource-crud}.spec.ts`.
+
+**Why:** Top-level edits/deletes used scrolling action rows, automatic publication and replayable failed forms. They now capture source revision and target fields, defer completion to the pending draft, retain success receipts and refuse a second submission after uncertain results. Deletion inventory pages must match the working version/revision; acknowledged write counts expose partial progress. Exact stored names remain form values; display formatting cannot silently rename them.
+
+**Other side:** FYI. Stable Sheet footers, frozen submitted inputs, owner-checked recovery and pending draft retention are implemented. 22 focused provider/subresource browser cases and 390 units passed. EgoLite against the rebuilt isolated gateway saved a provider rename into a draft and reread it; a separate actual management read confirmed the active name remained unchanged. No production/Provider request or public contract change. Advanced access/egress, provider creation and other outstanding lifecycle/visual unification are not claimed complete.

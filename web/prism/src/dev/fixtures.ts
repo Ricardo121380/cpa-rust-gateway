@@ -1223,6 +1223,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       version.revision += 1;
       return json(201, row, revisionToken(version));
     }
+    const upstreamRead = /^GET \/admin\/upstreams\/([^/]+)$/u.exec(route);
+    if(upstreamRead){
+      const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const row=state.upstreams.get(version.id)?.find(value=>value.id===decodeURIComponent(upstreamRead[1]!));
+      return row?json(200,row,revisionToken(version)):errorResponse(404,"management_resource_not_found","unknown upstream");
+    }
     const upstreamItem = /^(PATCH|DELETE) \/admin\/upstreams\/([^/]+)$/u.exec(route);
     if (upstreamItem !== null) {
       const version = versionByHeader(headers);

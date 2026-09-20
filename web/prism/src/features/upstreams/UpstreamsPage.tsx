@@ -5,7 +5,7 @@ import { resourceName, referenceText } from "../../utils/resourceNames";
 import { ReadStatus } from "../../components/ReadStatus";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { useState, type FormEvent } from "react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { ChipsInput } from "../../components/ChipsInput";
@@ -13,7 +13,8 @@ import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
-import { useVersionStore } from "../config-versions/versionStore";
+import { useSessionStore } from "../../session/sessionStore";
+import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
 import type { EgressPolicy } from "../egress/model";
 import { SubresourcePanel } from "./SubresourcePanel";
 import { ProviderDialog } from "./ProviderDialog";
@@ -33,6 +34,8 @@ type Upstream = Readonly<{
   egress_policy_id?: string | null;
 }>;
 
+function sameUpstream(a:Upstream,b:Upstream){return a.id===b.id&&a.name===b.name&&a.kind===b.kind&&a.enabled===b.enabled&&(a.egress_policy_id??null)===(b.egress_policy_id??null)&&JSON.stringify(a.tags)===JSON.stringify(b.tags);}
+
 function providerKindLabel(kind:string) {
   return ({"openai-compatible":"OpenAI 兼容","anthropic-compatible":"Anthropic 兼容",codex:"Codex / ChatGPT",claude:"Claude",kimi:"Kimi",kiro:"Kiro","grok.official":"Grok API","grok-web-native":"Grok Web","grok-console-native":"Grok Console","grok-build-native":"Grok Build"} as Record<string,string>)[kind]??kind;
 }
@@ -48,6 +51,7 @@ const KIND_SUGGESTIONS = [
 
 type DraftUpstream = {
   original?: Upstream;
+  source?: {id:string;revision:string};
   id: string;
   name: string;
   kind: string;
@@ -61,7 +65,7 @@ function toDraft(upstream: Upstream): DraftUpstream {
   return {
     original:upstream,
     id: upstream.id,
-    name: resourceName(upstream.id,"upstream",upstream.name),
+    name: upstream.name,
     kind: upstream.kind,
     enabled: upstream.enabled,
     tags: [...upstream.tags],
@@ -85,7 +89,14 @@ export function UpstreamsPage() {
   const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
-  const editable = context?.status === "draft";
+  const [owner]=useState(()=>({session:useSessionStore.getState().generation,selection:useVersionStore.getState().selectionGeneration}));
+  const live=useRef(true);
+  useEffect(()=>{live.current=true;return()=>{live.current=false;};},[]);
+  const owned=()=>live.current&&owner.session===useSessionStore.getState().generation&&owner.selection===useVersionStore.getState().selectionGeneration;
+  const submitted=useRef(false);
+  const [receipt,setReceipt]=useState<ConfigVersionSummary>();
+  const [confirmedWrites,setConfirmedWrites]=useState(0);
+  const [deleteSource,setDeleteSource]=useState<{id:string;revision:string}>();
   const scope = context?.configVersionId;
   const [draft, setDraft] = useState<DraftUpstream | undefined>();
   // ChipsInput changes are committed by buttons, so they bypass the form's
@@ -140,27 +151,27 @@ export function UpstreamsPage() {
 
   const save = useMutation({
     mutationFn: async (input: DraftUpstream) => {
-      const task=await beginConfigurationTask(`编辑提供商 · ${input.name}`);setWorkingId(task.version.id);
-      if(input.original&&JSON.stringify(await task.read<Upstream>("getUpstream",{path:{upstream_id:input.id}}))!==JSON.stringify(input.original))throw new Error("提供商已被修改，请重新读取后编辑。");
+      const task=await beginConfigurationTask(`编辑提供商 · ${input.name}`,input.source,"deferred");setWorkingId(task.version.id);useVersionStore.getState().rememberPending(task.version);
+      if(input.original&&!sameUpstream(await task.read<Upstream>("getUpstream",{path:{upstream_id:input.id}}),input.original))throw new Error("提供商已被修改，请重新读取后编辑。");
       await task.mutate(input.isNew?"createUpstream":"updateUpstream",{...(input.isNew?{}:{path:{upstream_id:input.id}}),body:toInput(input)});
-      return task.finish();
+      setConfirmedWrites(1);return task.finish();
     },
     onSuccess: (version) => {
-      setDraft(undefined);
-      invalidate();
-      useVersionStore.getState().select(version);
+      if(!owned())return;
+      useVersionStore.getState().rememberPending(version);setReceipt(version);invalidate();
     },
-    onError: (error) => setActionError(asAppError(error).message),
+    onError: (error) => {if(owned())setActionError(asAppError(error).message);},
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const task=await beginConfigurationTask("移除提供商");setWorkingId(task.version.id);
+      const task=await beginConfigurationTask("移除提供商",deleteSource,"deferred");setWorkingId(task.version.id);useVersionStore.getState().rememberPending(task.version);
+      if(!confirmDelete||!sameUpstream(await task.read<Upstream>("getUpstream",{path:{upstream_id:id}}),confirmDelete))throw new Error("提供商已变化，请重新读取后确认删除。");
       const load=async<T,>(operation:"listManagedEndpoints"|"listRoutes"|"listRouteCandidates",query:Record<string,string>={})=>{
         const rows:T[]=[];let cursor:string|undefined;let revision:string|undefined;
         do {
           const page=await task.read<RoutingPage<T>|InventoryPage<T>>(operation,{query:{...query,limit:100,...(cursor?{cursor}:{})}});
-          if(revision&&revision!==page.revision)throw new Error("连接已变化，请重新核对提供商。");
+          if(page.config_version!==task.version.id||page.revision!==task.revision()||(revision&&revision!==page.revision))throw new Error("连接已变化，请重新核对提供商。");
           revision=page.revision;rows.push(...page.items);cursor=page.next_cursor??undefined;
           if(rows.length>=10000&&cursor)throw new Error("关联资源超出本次操作范围，请使用高级配置。");
         }while(cursor);
@@ -173,28 +184,28 @@ export function UpstreamsPage() {
       const affected=new Set(candidates.filter((row)=>endpoints.has(row.endpoint_id)).map((row)=>row.route_id));
       const remaining=new Set(candidates.filter((row)=>!endpoints.has(row.endpoint_id)&&row.enabled).map((row)=>row.route_id));
       const paused=new Set(routes.filter((row)=>affected.has(row.id)&&!remaining.has(row.id)).map((row)=>row.public_model_id));
-      await task.mutate("deleteUpstream",{path:{upstream_id:id}});
-      for(const model of models)if(paused.has(model.id)&&model.status==="active")await task.mutate("updatePublicModel",{path:{public_model_id:model.id},body:{...model,status:"disabled"}});
+      await task.mutate("deleteUpstream",{path:{upstream_id:id}});setConfirmedWrites(1);
+      for(const model of models)if(paused.has(model.id)&&model.status==="active"){await task.mutate("updatePublicModel",{path:{public_model_id:model.id},body:{...model,status:"disabled"}});setConfirmedWrites(count=>count+1);}
       return task.finish();
     },
     onSuccess: (version) => {
-      setConfirmDelete(undefined);
-      invalidate();
-      useVersionStore.getState().select(version);
+      if(!owned())return;
+      useVersionStore.getState().rememberPending(version);setReceipt(version);invalidate();
     },
-    onError: (error) => setActionError(asAppError(error).message),
+    onError: (error) => {if(owned())setActionError(asAppError(error).message);},
   });
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (draft !== undefined) {
-      save.mutate(draft);
+    if (draft !== undefined&&!submitted.current) {
+      submitted.current=true;save.mutate(draft);
     }
   }
 
   function beginDraft(next: DraftUpstream) {
+    submitted.current=false;setConfirmedWrites(0);setReceipt(undefined);save.reset();setWorkingId(undefined);setActionError(undefined);
     setDraftDirty(false);
-    setDraft(next);
+    setDraft({...next,source:context?{id:context.configVersionId,revision:context.revision}:undefined});
   }
 
   return (
@@ -237,7 +248,7 @@ export function UpstreamsPage() {
             <footer><div className="row-actions">
               <button className="secondary" disabled={providerActionActive && expanded !== upstream.id} title={providerActionActive && expanded !== upstream.id ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
               <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);beginDraft(toDraft(upstream));}}>编辑</button>
-              <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>setInspected(upstream)}>详情</button><button className="danger" onClick={()=>{remove.reset();setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);}}>移除提供商</button></div></details>
+              <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>setInspected(upstream)}>详情</button><button className="danger" onClick={()=>{remove.reset();submitted.current=false;setConfirmedWrites(0);setReceipt(undefined);setDeleteSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);}}>移除提供商</button></div></details>
             </div></footer>
           </article>;
         })}
@@ -259,10 +270,12 @@ export function UpstreamsPage() {
           <button onClick={() => { beginDraft(toDraft(inspected)); setInspected(undefined); }}>编辑提供商</button></div>
       </ObjectInspector>}
 
-      {draft !== undefined ? (
-        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${resourceName(draft.id,"upstream",draft.name)}`} description="维护服务名称、渠道类型与出口策略；账号授权和接口连接在各自工作区完成。" onEscape={() => !save.isPending&&setDraft(undefined)} busy={save.isPending} isDirty={draftDirty}>
-          <form className="sheet-form" onSubmit={onSubmit}>
-            <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{setDraft(undefined);useVersionStore.getState().select(version);}}/>
+      {receipt?<Sheet title="提供商修改结果" guardUnsaved={false} onEscape={()=>{setReceipt(undefined);setDraft(undefined);setConfirmDelete(undefined);}} footer={<><SheetDismissButton className="secondary">关闭</SheetDismissButton><button onClick={()=>{if(owned())useVersionStore.getState().select(receipt);}}>查看工作草稿</button></>}><p role="status">修改已保存到草稿，尚未应用到当前服务。</p><p>在待应用变更中统一核对、校验并应用。</p></Sheet>:draft !== undefined ? (
+        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${resourceName(draft.id,"upstream",draft.name)}`} description="维护服务名称、渠道类型与出口策略；账号授权和接口连接在各自工作区完成。" onEscape={() => !save.isPending&&setDraft(undefined)} busy={save.isPending} isDirty={draftDirty} footer={<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form="provider-edit-form" disabled={submitted.current}>{save.isPending?"正在保存…":"保存到草稿"}</button></>}>
+          <form id="provider-edit-form" className="sheet-form" onSubmit={onSubmit}>
+            <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().select(version);}}}/>
+            {save.isError?<p role="status">已确认 {confirmedWrites} 项写入；其他结果需读取工作草稿核对，不能在此重复提交。</p>:null}
+            <fieldset disabled={submitted.current}>
             {draft.isNew ? (
               <label>
                 上游 ID(创建后不可变)
@@ -331,39 +344,20 @@ export function UpstreamsPage() {
                 ))}
               </select>
             </label>
-            <div className="sheet-actions">
-              <SheetDismissButton className="secondary" disabled={save.isPending}>
-                取消
-              </SheetDismissButton>
-              <button type="submit" disabled={save.isPending}>
-                {editable?"保存到草稿":"保存并应用"}
-              </button>
-            </div>
+            </fieldset>
           </form>
         </Sheet>
       ) : null}
 
-      {confirmDelete !== undefined ? (
-        <Sheet title="移除提供商" description="历史请求和费用会保留；没有其他候选的关联模型会被停用。" layout="confirm" tone="danger" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)} busy={remove.isPending}>
-          <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={(version)=>{setConfirmDelete(undefined);useVersionStore.getState().select(version);}}/>
+      {!receipt&&confirmDelete !== undefined ? (
+        <Sheet title="移除提供商" description="历史请求和费用会保留；没有其他候选的关联模型会被停用。" layout="confirm" tone="danger" onEscape={() => !remove.isPending&&setConfirmDelete(undefined)} busy={remove.isPending} footer={<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={submitted.current} onClick={()=>{if(!submitted.current){submitted.current=true;remove.mutate(confirmDelete.id);}}}>确认删除</button></>}>
+          <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={(version)=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().select(version);}}}/>
+          {remove.isError?<p role="status">已确认 {confirmedWrites} 项写入；删除及后续模型停用可能只完成一部分，请核对工作草稿。</p>:null}
           <p className="reveal-warning">
             移除 <strong>{resourceName(confirmDelete.id,"upstream",confirmDelete.name)}</strong>
             {confirmDelete.kind.endsWith("-native")?" 及其接口和候选连接；Grok 渠道账号池保留。":" 及其全部账号、接口和候选连接。"}
             不再有启用候选的关联模型会同时停用，历史请求和费用保留。
           </p>
-          <div className="sheet-actions">
-            <SheetDismissButton className="secondary" disabled={remove.isPending}>
-              取消
-            </SheetDismissButton>
-            <button
-              type="button"
-              className="danger"
-              disabled={remove.isPending}
-              onClick={() => remove.mutate(confirmDelete.id)}
-            >
-              确认删除
-            </button>
-          </div>
         </Sheet>
       ) : null}
     </section>
