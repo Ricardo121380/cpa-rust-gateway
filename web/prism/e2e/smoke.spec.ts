@@ -42,9 +42,10 @@ test("overview shows the real planes and deep-links into failure attribution", a
 test("draft dock publishes: anneal sheet, then version reads as active", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);
-  await page.locator(".dock").getByRole("button", { name: "发布" }).click();
-  await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("已发布");
+  await page.locator(".dock").getByRole("button", { name: "查看变更" }).click();
+  await page.getByRole("region", {name:"待应用变更",exact:true}).getByRole("button",{name:"校验并应用",exact:true}).click();
+  await page.getByRole("dialog", { name: "确认应用配置" }).getByRole("button", { name: "确认应用", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("应用已确认");
   await page.getByRole("button", { name: "完成" }).click();
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-status","active");
   await expect(page.locator(".dock")).toHaveCount(0);
@@ -53,18 +54,16 @@ test("draft dock publishes: anneal sheet, then version reads as active", async (
 test("versions workspace creates a draft and validates it", async ({ page }) => {
   await unlock(page);
   await navigate(page, "配置版本");
-  await page.getByRole("button", { name: "创建草稿" }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("版本 ID").fill("draft-e2e");
-  await dialog.getByLabel(/描述/u).fill("e2e 草稿");
-  await dialog.getByRole("button", { name: "创建" }).click();
-  await expect(page.locator('tr[data-version-id="draft-e2e"]')).toContainText("e2e 草稿");
+  await page.getByRole("button", { name: "创建空草稿" }).click();
+  const dialog = page.getByRole("dialog",{name:"创建空草稿"});
+  await dialog.getByLabel("描述").fill("e2e 草稿");
+  await dialog.getByRole("button", { name: "创建草稿",exact:true }).click();
+  await page.getByRole("dialog",{name:"草稿创建结果"}).getByRole("button",{name:"接续草稿",exact:true}).click();
+  const row=page.locator("tr[data-version-id]",{hasText:"e2e 草稿"});
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "验证",exact:true }).click();
+  await expect(page.getByRole("dialog",{name:"配置操作未完成"})).toContainText("route_missing_active_candidate");
 
-  await page
-    .locator('tr[data-version-id="draft-e2e"]')
-    .getByRole("button", { name: "验证" })
-    .click();
-  await expect(page.locator(".validation-card")).toContainText("route_missing_active_candidate");
 });
 
 test("login password supports autocomplete and accessible visibility without changing its value", async ({ page }) => {

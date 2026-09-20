@@ -1,6 +1,6 @@
 # Remaining-plan functional checkpoint — 2026-09-20
 
-Status: implementation in progress, not milestone completion or deployment approval. Base: `75715595b381e234564b949ee390cafb4553c701`; changes remain in the working tree.
+Status: implementation in progress, not milestone completion or deployment approval. Base: `75715595b381e234564b949ee390cafb4553c701`; billing checkpoint committed as `503b740`; plan/provenance committed as `990855a`. Subsequent configuration lifecycle work remains uncommitted.
 
 ## Implemented so far
 
@@ -29,7 +29,7 @@ MCP used existing project `prism-gateway-console-redesign-a735`, agent Pi, reque
 
 - First run `e1f2cd06-ba33-48ff-bcbe-ecfde8d3589d`: no artifact, not accepted.
 - Second run `25c53857-b298-4a28-9046-fb5bc6f21042`: new HTML/spec fetched through MCP and archived at `docs/design/prism-workspace-20260920/`. OpenDesign reports `entry_not_touched` because the existing root entry was intentionally preserved. Files exist in the requested subdirectory.
-- Actual Pi session metadata for both runs resolves provider `cc-switch-kimi-for-coding`, model `k3`, thinking `high`. Installed Pi capability code clamps unsupported max to a supported level. User has been asked whether high is acceptable; no silent substitution or max-compliance claim.
+- Actual Pi session metadata for both runs resolves provider `cc-switch-kimi-for-coding`, model `k3`, thinking `high`. Installed Pi capability code clamps unsupported max to a supported level. User explicitly approved refining the existing high design; no max-compliance claim.
 - Prototype behavior is not authoritative: invented price multipliers, user-entered authorization identity, applying on Escape, immediate key issuance and horizontal mobile navigation conflict with the confirmed production plan. These are explicitly rejected for production adoption. Only reviewed visual/layout proposals may transfer; no prototype script is copied to the SPA.
 
 ## Still required
@@ -50,3 +50,11 @@ C2C requested three correctness fixes; all are now implemented, awaiting follow-
 Performance results are recorded in `prism-remaining-performance-20260920.json`: five warm local-development medians, same 512 synthetic rows. Startup 129.4 → 133.9 ms; editor paint 1802.1 → 858.6 ms; request-filter paint 1580.8 → 842.1 ms. Editor mounts 512 → 50 rows; measured operation invocation counts remain 1 for opening and 5 for filtering. No measured regression crosses both 10% and 50 ms. These noisy dev/frame-scheduling figures are not production response-time claims; final visual changes still require their own comparison.
 
 C2C follow-up: iteration 9 returned `APPROVED / B12_B13_B14_CORRECTIONS`, explicitly limited to the intermediate corrective checkpoint. It independently read execution outputs 39–44 (6 inline cases, Store/service capacity, 3 billing HTTP, 15 lifecycle cases, 373 units/double build). Whole-plan acceptance and visual adoption are not approved. The final gateway binary build and three embedded UI tests also passed after the capacity repair.
+
+## Current state after user steering
+
+The configuration lifecycle host, inline pending review, explicit draft adoption and fixed-ID draft creation are implemented in the working tree, not yet accepted as a complete checkpoint. Recent focused evidence: 19 lifecycle/store unit tests and four browser cases passed. Remaining: migrated publication/diff regressions, wider ownership recovery checks, real gateway apply/rollback verification, advanced editor migration, production visual adaptation and whole-app acceptance. This turn does not use Codex with ChatGPT, as explicitly requested by the user; historical approvals do not cover these new changes. No production deployment occurred.
+
+### Direct local integration verification
+
+Fresh current-code verification: TypeScript and 390 unit tests passed; 5 publication lifecycle cases, 1 concurrent diff pagination/restart case and 10 inline ownership/pending/edit cases passed. Four-file deterministic build / SPA gate and 3 embedded gateway Rust tests passed. Comparison restart was corrected to refresh revision metadata; draft adoption rejects a mismatched returned identity. These are fixture and embedded-asset checks, not real-gateway lifecycle acceptance. Remaining advanced editors, visual rollout, real-gateway acceptance and deployment remain open.

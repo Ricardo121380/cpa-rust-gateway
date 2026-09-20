@@ -14,3 +14,9 @@
 .configuration-diff-table table td {
   padding: 10px 8px;
 }
+
+.pending-change-group { margin-block: 16px; }
+.pending-change-group ul { padding: 0; list-style: none; }
+.pending-change-group li { padding-block: 12px; border-bottom: 1px solid var(--separator); overflow-wrap: anywhere; }
+.pending-change-group li p { margin-block: 6px; }
+.configuration-history-review { margin-block: 20px; padding-block: 16px; border-block: 1px solid var(--separator); }

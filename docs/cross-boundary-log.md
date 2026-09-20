@@ -2822,3 +2822,11 @@ Checkpoint continuation additionally touches `features/access/KeyPermissionsDial
 Review B14 also requires a narrow backend correctness repair: `crates/gateway-store/src/{control_plane,lib}.rs`, `crates/gateway-control/src/management_mutation_service.rs`, `crates/gateway-http-actix/src/management_resources.rs`, and billing HTTP tests now enforce the global 256-catalog capacity atomically. Authority `docs/openapi/management-v1.json` documents existing Error/400 semantics; vendored contract is updated only by sync-contract. No schema or deletion. Review B12/B13 adds same-component navigation retirement and shared pending-batch policy admission. Fresh regression details and remaining scope are in the checkpoint report; no production change or final completion claim.
 
 C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and released-output review. This is a local functional checkpoint only; combined change review, full remaining editor migration, final visual acceptance and deployment remain open. Final gateway build and three embedded UI tests passed; no production service was changed.
+
+## 2026-09-20 - Codex - pending configuration lifecycle integration
+
+**What:** `web/prism/src/features/config-versions/` lifecycle host, inline pending/history review, explicit draft creation/adoption and store guards; `app/{AppShell,DraftDock}.tsx`; fixture lifecycle CAS/audit and fork grant ownership; related configuration, billing ownership and smoke E2E.
+
+**Why:** The confirmed remaining plan requires one explicit review/validate/apply workflow, accurate durable versus uncertain results, and explicit draft adoption without revision regression or automatic write replay. Retrying comparison now refreshes version metadata before comparing again.
+
+**Other side:** FYI. This is a local implementation checkpoint, not full-plan acceptance or deployment. Current evidence: 390 frontend units, 5 publication lifecycle and 1 stale-pagination browser cases, 10 pending/billing/edit integration cases, double-build/four-file management gate and 3 embedded Rust tests. Real-gateway lifecycle acceptance, remaining editors and final visual QA are still pending. This turn intentionally does not use Codex with ChatGPT per the user's explicit instruction. No API contract, production state or real Provider inference changed.

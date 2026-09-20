@@ -12,10 +12,14 @@ export type ConfigVersionSummary = Readonly<{
   description: string;
 }>;
 
+export type PendingSelectionGuard = Readonly<{selection:number;pendingId?:string;pendingRevision?:string}>;
+
 type VersionState = {
   context: VersionContext | undefined;
   pending: ConfigVersionSummary | undefined;
   rememberPending: (summary: ConfigVersionSummary) => void;
+  adoptPending: (summary: ConfigVersionSummary, expected: PendingSelectionGuard) => boolean;
+  resolvePending: (summary: ConfigVersionSummary, expected: PendingSelectionGuard) => boolean;
   conflict: boolean;
   selectionGeneration: number;
   select: (summary: ConfigVersionSummary) => void;
@@ -30,6 +34,20 @@ export const useVersionStore = create<VersionState>((set, get) => ({
   context: undefined,
   pending: undefined,
   rememberPending: summary => set(state => ({pending: summary.status === "draft" && (!state.pending || state.pending.id === summary.id) ? {...summary,revision:state.pending?advanceRevision({configVersionId:summary.id,status:"draft",revision:state.pending.revision},summary.revision).revision:summary.revision} : state.pending})),
+  adoptPending: (summary,expected) => {
+    const state=get();
+    if(summary.status!=="draft"||state.selectionGeneration!==expected.selection||state.pending?.id!==expected.pendingId||state.pending?.revision!==expected.pendingRevision)return false;
+    const knownRevision=state.pending?.id===summary.id?state.pending.revision:state.context?.configVersionId===summary.id?state.context.revision:undefined;
+    if(knownRevision&&advanceRevision({configVersionId:summary.id,status:"draft",revision:knownRevision},summary.revision).revision!==summary.revision)return false;
+    set({pending:summary,context:{configVersionId:summary.id,revision:summary.revision,status:summary.status},selectionGeneration:state.selectionGeneration+1,conflict:false});
+    return true;
+  },
+  resolvePending: (summary,expected) => {
+    const state=get();
+    if(summary.status==="draft"||state.pending?.id!==summary.id||state.selectionGeneration!==expected.selection||state.pending?.id!==expected.pendingId||state.pending?.revision!==expected.pendingRevision)return false;
+    set({pending:undefined,context:{configVersionId:summary.id,revision:summary.revision,status:summary.status},selectionGeneration:state.selectionGeneration+1,conflict:false});
+    return true;
+  },
   conflict: false,
   selectionGeneration: 0,
   selectInitialActive: (versions) => {

@@ -620,6 +620,18 @@ function hex(length: number): string {
 // that proves the UI does not cry wolf over by-design backpressure.
 let scrapes = 0;
 let inventorySequence = 0;
+type ResourceAuditRow = {id:string;action:string;actor:string;config_version_id:string;resource_kind:string;resource_id:string;occurred_at_ms:number};
+const resourceAudit:ResourceAuditRow[]=[];
+let resourceAuditSequence=0n;
+function latestLifecycleId():number{return Math.max(0,...state.audit.filter(event=>event.action==="config_published"||event.action==="config_rolled_back").map(event=>event.id));}
+function lifecycleCas(headers:Headers):Response|undefined {
+ const active=state.versions.find(version=>version.status==="active");
+ if(headers.get("X-Expected-Active-Version")!==JSON.stringify(active?.id??null)||headers.get("X-Expected-Lifecycle-Event")!==String(latestLifecycleId()))return errorResponse(409,"management_revision_conflict","Lifecycle state changed");
+ return undefined;
+}
+function recordLifecycle(action:string,id:string,replaced:string|null):void {
+ state.audit.push({id:Math.max(0,...state.audit.map(event=>event.id))+1,action,actor:"management-key",occurred_at_ms:Date.now(),config_version_id:id,replaced_config_version_id:replaced});
+}
 let lifecycleSequence = 0;
 const editOrigins = new Map<string, {source: string; revision: number; credentials: string; lifecycle: number}>();
 function credentialStamp(version: string): string {
@@ -753,6 +765,7 @@ export function resetFixturesForTest(): void {
   scrapes = 0;
   inventorySequence = 0;
   lifecycleSequence = 0;
+  resourceAudit.splice(0);resourceAuditSequence=0n;
   editOrigins.clear();
   fixtureSessions.clear();
   fixturePassword = "Prism-demo-2026";
@@ -911,12 +924,14 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         const items = collection.get(sourceId);
         if (items !== undefined) collection.set(target.id, structuredClone(items));
       }
-      copy(state.groups); copy(state.keys); copy(state.groupRoutes); copy(state.egress);
+      copy(state.groups); copy(state.keys); copy(state.egress);
+      for(const [key,grants] of [...state.groupRoutes])if(key.startsWith(`${sourceId}:`))state.groupRoutes.set(`${target.id}:${key.slice(sourceId.length+1)}`,structuredClone(grants));
       copy(state.upstreams); copy(state.endpoints); copy(state.credentials); copy(state.bindings);
       copy(state.models); copy(state.aliases); copy(state.routes); copy(state.routeCandidates);
       copy(state.pricePolicy); copy(state.compatPools); copy(state.compatNodes); copy(state.compatBindings);
       editOrigins.set(target.id, {source: source.id, revision: source.revision, credentials: credentialStamp(source.id), lifecycle: lifecycleSequence});
       state.versions.push(target);
+      recordLifecycle("config_created",target.id,null);
       return json(201, {...target, revision: revisionToken(target)});
     }
 
@@ -934,6 +949,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         description: body.description,
       };
       state.versions.push(row);
+      recordLifecycle("config_created",row.id,null);
       state.groups.set(row.id, []);
       state.keys.set(row.id, []);
       return json(201, { ...row, revision: revisionToken(row) });
@@ -951,6 +967,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
 
     const publish = /^POST \/admin\/config-versions\/([^/]+)\/publish$/u.exec(route);
     if (publish !== null) {
+      const conflict=lifecycleCas(headers);if(conflict)return conflict;
       const version = state.versions.find((row) => row.id === decodeURIComponent(publish[1] ?? ""));
       if (version === undefined || version.status !== "draft") {
         return errorResponse(409, "management_lifecycle_conflict", "publish requires an existing draft");
@@ -970,6 +987,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       }
       version.status = "active";
       lifecycleSequence += 1;
+      recordLifecycle("config_published",version.id,replaced?.id??null);
       return json(200, {
         active_config_version_id: version.id,
         replaced_config_version_id: replaced?.id ?? null,
@@ -977,15 +995,18 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     }
 
     if (route === "POST /admin/config-versions/rollback") {
+      const conflict=lifecycleCas(headers);if(conflict)return conflict;
       const active = state.versions.find((row) => row.status === "active");
-      const predecessor = state.versions.find((row) => row.status === "archived" && row.id === active?.parent_id)
-        ?? state.versions.find((row) => row.status === "archived");
+      if(active&&headers.get("If-Match")?.replace(/"/gu,"")!==revisionToken(active))return errorResponse(409,"management_revision_conflict","Revision changed");
+      const previous=state.audit.filter(event=>event.config_version_id===active?.id&&(event.action==="config_published"||event.action==="config_rolled_back")).sort((a,b)=>b.id-a.id)[0]?.replaced_config_version_id;
+      const predecessor = state.versions.find((row) => row.status === "archived" && row.id === previous);
       if (active === undefined || predecessor === undefined) {
         return errorResponse(409, "management_lifecycle_conflict", "no persisted rollback target");
       }
       active.status = "archived";
       predecessor.status = "active";
       lifecycleSequence += 1;
+      recordLifecycle("config_rolled_back",predecessor.id,active.id);
       return json(200, {
         active_config_version_id: predecessor.id,
         replaced_config_version_id: active.id,
@@ -3160,7 +3181,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (route === "GET /admin/resource-audit-events") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
-      return json(200, { items: [], next_before_id: null });
+      const limit=Number(url.searchParams.get("limit")??50),before=url.searchParams.get("before_id");
+      if(!Number.isInteger(limit)||limit<1||limit>100||(before&&!/^[1-9]\d*$/u.test(before)))return errorResponse(400,"invalid_management_request","Invalid audit query");
+      const rows=resourceAudit.filter(event=>event.config_version_id===version.id&&(!before||BigInt(event.id)<BigInt(before))).sort((a,b)=>BigInt(a.id)>BigInt(b.id)?-1:1);
+      const items=rows.slice(0,limit);return json(200,{items,next_before_id:rows.length>limit?items.at(-1)?.id??null:null});
     }
     if (route === "GET /admin/audit-events") {
       return json(200, state.audit);
@@ -3172,5 +3196,18 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     return errorResponse(503, "management_lifecycle_unavailable", `fixture: unhandled ${route}`);
   };
 
-  return respond();
+  return respond().then(response=>{
+    if(response.ok&&method!=="GET"){
+      const version=headers.get("X-Config-Version");
+      const body=bodyText?JSON.parse(bodyText) as Record<string,unknown>:{};
+      let event:{action:string;kind:string;id:string}|undefined;
+      if(route==="POST /admin/billing/catalogs")event={action:"billing_catalog_imported",kind:"billing_catalog",id:String(body.catalog_version_id)};
+      else if(/^POST \/admin\/billing\/catalogs\/[^/]+\/rollback$/u.test(route))event={action:"billing_catalog_rolled_back",kind:"billing_catalog",id:String(body.new_catalog_version_id)};
+      else if(url.pathname==="/admin/billing/routing-price-policy")event={action:method==="DELETE"?"routing_price_policy_deleted":"routing_price_policy_updated",kind:"routing_price_policy",id:version??""};
+      else if(/^\/admin\/access-groups(?:\/[^/]+)?$/u.test(url.pathname))event={action:method==="POST"?"access_group_created":method==="DELETE"?"access_group_deleted":"access_group_updated",kind:"access_group",id:String(body.id??decodeURIComponent(url.pathname.split("/").at(-1)??""))};
+      else if(/^\/admin\/client-keys\/[^/]+$/u.test(url.pathname))event={action:"client_key_updated",kind:"client_key",id:decodeURIComponent(url.pathname.split("/").at(-1)??"")};
+      if(version&&event)resourceAudit.push({id:String(++resourceAuditSequence),action:event.action,actor:"management-key",config_version_id:version,resource_kind:event.kind,resource_id:event.id,occurred_at_ms:Date.now()});
+    }
+    return response;
+  });
 };

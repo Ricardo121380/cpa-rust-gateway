@@ -25,17 +25,17 @@ test("inline dirty switch has one confirmation and retains the edited field",asy
   expect(issues.filter(value=>/blocker|modal budget/u.test(value))).toEqual([]);
 });
 
-test("dock validation takes ownership only after accepted discard",async({page})=>{
+test("dock review takes ownership only after accepted discard",async({page})=>{
   const editor=await open(page);
-  await page.locator(".dock").getByRole("button",{name:"验证",exact:true}).click();
+  await page.locator(".dock").getByRole("button",{name:"查看变更",exact:true}).click();
   const confirm=page.getByRole("dialog",{name:"放弃未保存的修改？"});
   await expect(page.getByRole("dialog")).toHaveCount(1);
   await confirm.getByRole("button",{name:"继续编辑"}).click();
   await expect(editor).toBeVisible();
-  await page.locator(".dock").getByRole("button",{name:"验证",exact:true}).click();
+  await page.locator(".dock").getByRole("button",{name:"查看变更",exact:true}).click();
   await confirm.getByRole("button",{name:"放弃修改"}).click();
-  await expect(editor).toHaveCount(0);
-  await expect(page.getByRole("dialog",{name:"验证结果"})).toBeVisible();
+  await expect(editor.getByLabel("生效时间（本地时区）")).toHaveCount(0);
+  await expect(page.getByRole("region",{name:"待应用变更",exact:true})).toBeVisible();
 });
 
 test("indexed Back can be rejected and then accepted without losing input",async({page})=>{
@@ -81,9 +81,10 @@ test("policy and subsequent key edits share one draft until explicit publication
   await receipt.getByRole("button",{name:"核对配置"}).click();
   await expect(page.locator("main")).toHaveAttribute("data-context-version",draft!);
   expect(await page.evaluate(()=>Reflect.get(globalThis,"__pendingCalls"))).toEqual({copies:1,publishes:0});
-  await page.locator(".dock").getByRole("button",{name:"发布",exact:true}).click();
-  await page.getByRole("dialog",{name:"确认发布"}).getByRole("button",{name:"确认发布",exact:true}).click();
-  await page.getByRole("dialog",{name:"配置已发布"}).getByRole("button",{name:"完成",exact:true}).click();
+  await page.locator(".dock").getByRole("button",{name:"查看变更",exact:true}).click();
+  await page.getByRole("region",{name:"待应用变更",exact:true}).getByRole("button",{name:"校验并应用",exact:true}).click();
+  await page.getByRole("dialog",{name:"确认应用配置"}).getByRole("button",{name:"确认应用",exact:true}).click();
+  await page.getByRole("dialog",{name:"配置操作结果"}).getByRole("button",{name:"完成",exact:true}).click();
   await expect(page.locator("main")).toHaveAttribute("data-context-status","active");
   expect(await page.evaluate(()=>Reflect.get(globalThis,"__pendingCalls"))).toEqual({copies:1,publishes:1});
   expect(await page.evaluate(async()=>{const {useVersionStore}=await import("/src/features/config-versions/versionStore.ts");return useVersionStore.getState().pending;})).toBeUndefined();
@@ -100,7 +101,7 @@ test("a held global write rejects departure without queuing a later Back",async(
   await expect(editor).toHaveAttribute("aria-busy","true");
   await expect(editor.getByRole("button",{name:"关闭编辑"})).toBeDisabled();
   await page.keyboard.press("Escape");
-  await page.locator(".dock").getByRole("button",{name:"验证",exact:true}).click();
+  await page.locator(".dock").getByRole("button",{name:"查看变更",exact:true}).click();
   await page.goBack();
   await expect(page).toHaveURL(/#\/billing/u);
   await expect(page.getByRole("dialog")).toHaveCount(0);

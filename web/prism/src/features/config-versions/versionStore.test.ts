@@ -40,3 +40,37 @@ it("does not replace the pending batch with a different draft and clears it on s
   state.reset();
   expect(useVersionStore.getState().pending).toBeUndefined();
 });
+
+it("adopts a different draft only with the exact prior pending identity and generation",()=>{
+ const store=useVersionStore.getState();store.select(active);store.rememberPending(draft);
+ const guard={selection:useVersionStore.getState().selectionGeneration,pendingId:draft.id,pendingRevision:draft.revision};
+ const other={...draft,id:"chosen-second"};
+ expect(store.adoptPending(other,{...guard,selection:guard.selection-1})).toBe(false);
+ expect(useVersionStore.getState().pending?.id).toBe(draft.id);
+ expect(store.adoptPending(other,guard)).toBe(true);
+ expect(useVersionStore.getState().pending?.id).toBe(other.id);
+ expect(useVersionStore.getState().context?.configVersionId).toBe(other.id);
+ expect(store.adoptPending(draft,guard)).toBe(false);
+});
+it("a changed pending revision rejects a delayed adoption",()=>{
+ const store=useVersionStore.getState();store.select(draft);store.rememberPending(draft);
+ const guard={selection:useVersionStore.getState().selectionGeneration,pendingId:draft.id,pendingRevision:draft.revision};
+ store.advanceFromEtag("rev-8");expect(store.adoptPending({...draft,id:"other"},guard)).toBe(false);
+});
+it("observed terminal resolution clears only the exact tracked batch",()=>{
+ const store=useVersionStore.getState();store.select(active);store.rememberPending(draft);
+ const guard={selection:useVersionStore.getState().selectionGeneration,pendingId:draft.id,pendingRevision:draft.revision};
+ expect(store.resolvePending(active,guard)).toBe(false);
+ expect(store.resolvePending({...draft,status:"archived"},guard)).toBe(true);
+ expect(useVersionStore.getState().pending).toBeUndefined();
+ expect(useVersionStore.getState().context?.status).toBe("archived");
+});
+
+it("rejects an older observation when explicitly resuming the same pending draft",()=>{
+ const store=useVersionStore.getState();store.select(active);store.rememberPending({...draft,revision:"rev-9"});
+ const guard={selection:useVersionStore.getState().selectionGeneration,pendingId:draft.id,pendingRevision:"rev-9"};
+ expect(store.adoptPending(draft,guard)).toBe(false);
+ expect(useVersionStore.getState().pending?.revision).toBe("rev-9");
+ expect(useVersionStore.getState().context?.configVersionId).toBe(active.id);
+ expect(store.adoptPending({...draft,revision:"rev-10"},guard)).toBe(true);
+});
