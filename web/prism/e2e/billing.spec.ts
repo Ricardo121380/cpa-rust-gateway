@@ -11,6 +11,7 @@ async function openBilling(page: import("@playwright/test").Page): Promise<void>
   await selectDraft(page);
   await navigate(page, "计费与价格");
   await expect(page.locator(".bill-table")).toBeVisible();
+  await page.getByText("高级路由价格策略",{exact:true}).click();
 }
 
 test("an unset policy reads as a state, not as an error", async ({ page }) => {
@@ -18,8 +19,8 @@ test("an unset policy reads as a state, not as an error", async ({ page }) => {
 
   // 404 management_resource_not_found is the contract's answer for "not
   // configured", and it is why every candidate's price_evidence is `disabled`.
-  await expect(page.locator(".bill-policy")).toContainText("本版本未配置价格策略");
-  await expect(page.locator(".bill-policy")).toContainText("正常状态");
+  await expect(page.locator(".bill-policy")).toContainText("当前版本未配置价格策略");
+  await expect(page.locator(".bill-policy")).toContainText("正常的未配置状态");
   await expect(page.locator(".bill-policy .action-error")).toHaveCount(0);
   await expect(page.locator(".bill-policy")).toContainText("disabled");
 });
@@ -30,51 +31,54 @@ test("the policy picker refuses a catalog that is not effective yet", async ({ p
   // cat-2026-09-preview is dated ahead of the fixture clock. The backend fails
   // such a binding with RoutingPriceCatalogNotEffective, so it must not be
   // offered at all.
-  await expect(page.locator(".bill-table")).toContainText("cat-2026-09-preview");
+  await expect(page.locator('[data-resource-id="cat-2026-09-preview"]')).toBeVisible();
   await expect(page.locator(".bill-table")).toContainText("未生效");
 
   await page.getByRole("button", { name: "设置策略" }).click();
-  const options = await page.getByLabel("目录版本").locator("option").allTextContents();
-  expect(options.join(" ")).toContain("cat-2026-08");
-  expect(options.join(" ")).not.toContain("cat-2026-09-preview");
+  const options=page.getByRole("dialog").getByRole("combobox",{name:"已生效的价格目录"});
+  await expect(options.locator('option[value="cat-2026-08"]')).toHaveCount(1);
+  await expect(options.locator('option[value="cat-2026-09-preview"]')).toHaveCount(0);
 });
 
 test("binding a catalog, then clearing it, states what each does to routing", async ({ page }) => {
   await openBilling(page);
 
   await page.getByRole("button", { name: "设置策略" }).click();
-  await page.getByLabel("目录版本").selectOption("cat-2026-08");
-  await page.getByRole("button", { name: "绑定" }).click();
+  await page.getByRole("dialog").getByRole("combobox",{name:"已生效的价格目录"}).selectOption("cat-2026-08");
+  await page.getByRole("dialog").getByRole("button", { name: "保存到草稿" }).click();
+  await page.getByRole("dialog",{name:"价格策略结果"}).getByRole("button",{name:"完成"}).click();
 
-  await expect(page.locator(".bill-policy")).toContainText("cat-2026-08");
-  await expect(page.locator(".bill-policy")).toContainText("rate_dominance_v1");
+  await expect(page.locator(".bill-policy")).toContainText("按费率比较");
+  const bound=await page.evaluate(async()=>{const {call}=await import("/src/api/client.ts");return await call<{catalog_version_id:string}>("getRoutingPricePolicy",{},{versionScoped:true});});
+  expect(bound.catalog_version_id).toBe("cat-2026-08");
 
   await page.getByRole("button", { name: "清除策略" }).click();
   const sheet = page.getByRole("dialog");
   // The consequence is named, not implied: every candidate's evidence changes.
-  await expect(sheet).toContainText("price_evidence");
-  await expect(sheet).toContainText("disabled");
-  await page.getByRole("button", { name: "确认清除" }).click();
-  await expect(page.locator(".bill-policy")).toContainText("本版本未配置价格策略");
+  await expect(sheet).toContainText("目录和账本保留");
+  await sheet.getByRole("button", { name: "确认清除" }).click();
+  await page.getByRole("dialog",{name:"价格策略结果"}).getByRole("button",{name:"完成"}).click();
+  await expect(page.locator(".bill-policy")).toContainText("当前版本未配置价格策略");
 });
 
 test("the page says catalogs are global while the policy is version-scoped", async ({ page }) => {
   await openBilling(page);
   // The single most likely operator misreading: "I am on a draft, so this
   // import is isolated". It is not.
-  await expect(page.locator(".bill-catalogs")).toContainText("目录是全局");
-  await expect(page.locator(".bill-catalogs")).toContainText("对所有版本可见");
-  await expect(page.locator(".bill-policy")).toContainText("属于当前配置版本");
+  await expect(page.locator(".bill-catalogs")).toContainText("全局新增历史版本");
+  await expect(page.locator(".bill-catalogs")).toContainText("对所有配置可见");
+  await expect(page.locator(".bill-catalog-table")).not.toContainText("cat-2026-09-preview");
+  await expect(page.locator(".bill-policy")).toContainText("只属于工作配置草稿");
 });
 
 test("import is whole-catalog and insert-only, and says so", async ({ page }) => {
   await openBilling(page);
   await page.getByRole("button", { name: "导入目录" }).click();
 
-  const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("整份提交");
-  await expect(sheet).toContainText("只能新增");
-  await expect(sheet).toContainText("所有配置版本");
+  const sheet = page.locator(".inline-workspace");
+  await expect(sheet).toContainText("整份价目表");
+  await expect(sheet).toContainText("历史目录和账本保留");
+  await expect(sheet).toContainText("所有配置可见");
 });
 
 test("a bad entry is rejected by row number, before the round trip", async ({ page }) => {
@@ -87,9 +91,9 @@ test("a bad entry is rejected by row number, before the round trip", async ({ pa
   });
 
   await page.getByRole("button", { name: "导入目录" }).click();
-  const sheet = page.getByRole("dialog");
-  await sheet.getByLabel("目录版本 ID").fill("cat-bad");
+  const sheet = page.locator(".inline-workspace");
   await sheet.getByLabel("生效时间", { exact: false }).fill("2026-08-01T00:00");
+  await sheet.getByRole("button",{name:"高级 JSON"}).click();
   await sheet
     .getByLabel("条目", { exact: false })
     .fill(
@@ -102,10 +106,10 @@ test("a bad entry is rejected by row number, before the round trip", async ({ pa
         '"cache_read_microunits_per_million":1,"cache_creation_microunits_per_million":1,' +
         '"cached_microunits_per_million":1}]',
     );
-  await sheet.getByRole("button", { name: "导入" }).click();
+  await sheet.getByRole("button", { name: "预览差异" }).click();
 
-  await expect(page.locator(".action-error")).toContainText("第 2 条");
-  await expect(page.locator(".action-error")).toContainText("model");
+  await expect(sheet.getByRole("alert")).toContainText("第 2 条");
+  await expect(sheet.getByRole("alert")).toContainText("model");
   // A 400 on a 512-row paste is useless, so the request is never sent.
   expect(failed).toEqual([]);
 });
@@ -115,28 +119,32 @@ test("rollback creates a new catalog rather than deleting anything", async ({ pa
   const before = await page.locator(".bill-table tbody tr").count();
 
   await page
-    .locator("tr", { hasText: "cat-2026-07" })
-    .getByRole("button", { name: "回滚到它" })
+    .locator('[data-resource-id="cat-2026-07"]')
+    .getByRole("button", { name: "恢复价格" })
     .click();
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("不会删除任何东西");
+  await expect(sheet).toContainText("旧目录与账本原样保留");
+  await sheet.getByText("新目录技术标识",{exact:true}).click();
   await sheet.getByLabel("新目录版本 ID").fill("cat-restored");
   await sheet.getByLabel("生效时间", { exact: false }).fill("2026-08-18T00:00");
-  await sheet.getByRole("button", { name: "创建回滚目录" }).click();
+  await sheet.getByRole("button", { name: "核对恢复内容" }).click();
+  await page.getByRole("dialog",{name:"确认创建恢复目录"}).getByRole("button",{name:"创建新目录"}).click();
+  await page.getByRole("dialog",{name:"价格恢复结果"}).getByRole("button",{name:"完成"}).click();
 
   await expect(page.locator(".bill-table tbody tr")).toHaveCount(before + 1);
-  await expect(page.locator(".bill-table")).toContainText("cat-2026-07");
-  await expect(page.locator(".action-notice")).toContainText("复制自 cat-2026-07");
-  // Importing does not bind: the operator still has to bind it explicitly.
-  await expect(page.locator(".action-notice")).toContainText("还需在上方绑定");
+  await expect(page.locator('[data-resource-id="cat-2026-07"]')).toBeVisible();
+  // Restoring is append-only; the routing policy is still a separate draft action.
+  await expect(page.locator(".bill-policy")).toContainText("未配置价格策略");
 });
 
 test("rates render as microunits with no currency anywhere", async ({ page }) => {
   await openBilling(page);
   await page
-    .locator("tr", { hasText: "cat-2026-08" })
+    .locator('[data-resource-id="cat-2026-08"]')
     .getByRole("button", { name: "看条目" })
     .click();
+
+  await page.locator(".bill-entries-view details").first().locator("summary").click();
 
   await expect(page.locator(".bill-entries-view")).toContainText("microunits / 百万 token");
   await expect(page.locator(".bill-entries-view")).toContainText("1,500,000");

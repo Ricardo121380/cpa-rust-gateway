@@ -25,7 +25,6 @@ import {
   displayKeyStatus,
   formatExpiry,
   formatLimits,
-  parseLimits,
   type AccessGroupRecord,
   type ClientKeyRecord,
 } from "./model";
@@ -127,7 +126,7 @@ function GroupRoutes({
       )}
 
       {adding ? (
-        <Sheet title={`授权路由 · ${resourceName(groupId,"group")}`} onEscape={() => setAdding(false)}>
+        <Sheet title={`授权路由 · ${resourceName(groupId,"group")}`} onEscape={() => setAdding(false)} busy={grant.isPending}>
           <form className="sheet-form" onSubmit={onGrantSubmit}>
             <label>
               路由
@@ -177,6 +176,7 @@ export function AccessPage() {
   const [revokeReceipt,setRevokeReceipt]=useState<ModelTaskReceipt>();
   // undefined = closed; null = creating; record = editing that group
   const [groupForm, setGroupForm] = useState<AccessGroupRecord | null | undefined>();
+  const [groupError, setGroupError] = useState<string>();
   const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<string | undefined>();
   const [expanded, setExpanded] = useState<string | undefined>();
   const [inspectedGroup, setInspectedGroup] = useState<AccessGroupRecord>();
@@ -255,18 +255,20 @@ export function AccessPage() {
   function onGroupSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const parsed = parseLimits(String(data.get("limits") ?? ""));
-    if (!parsed.ok) {
-      setActionError(parsed.reason);
+    const limits = data.get("clear_limits") === "on" ? {} : (groupForm?.limits ?? {});
+    const status = data.get("status") === "disabled" ? "disabled" : "active";
+    if (status === "active" && Object.keys(limits).length > 0) {
+      setGroupError("当前网关不支持访问组限额。请明确清除历史限制，或将访问组停用后保存。");
       return;
     }
+    setGroupError(undefined);
     setActionError(undefined);
     saveGroup.mutate({
       existing: groupForm !== null && groupForm !== undefined,
       id: String(data.get("id") ?? "").trim(),
       name: String(data.get("name") ?? "").trim(),
-      status: data.get("status") === "disabled" ? "disabled" : "active",
-      limits: parsed.limits,
+      status,
+      limits,
     });
   }
 
@@ -309,7 +311,7 @@ export function AccessPage() {
             className="secondary"
             disabled={!editable}
             title={editable ? undefined : t.version.readOnly}
-            onClick={() => setGroupForm(null)}
+            onClick={() => { setGroupError(undefined); saveGroup.reset(); setGroupForm(null); }}
           >
             新建访问组
           </button>
@@ -355,7 +357,7 @@ export function AccessPage() {
                       className="secondary"
                       disabled={!editable}
                       title={editable ? undefined : t.version.readOnly}
-                      onClick={() => setGroupForm(group)}
+                      onClick={() => { setGroupError(undefined); saveGroup.reset(); setGroupForm(group); }}
                     >
                       编辑
                     </button>
@@ -455,7 +457,7 @@ export function AccessPage() {
       {inspectedGroup === undefined ? null : <ObjectInspector title={resourceName(inspectedGroup.id, "group", inspectedGroup.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 访问组`} onClose={() => setInspectedGroup(undefined)} facts={[
         ["访问组 ID", inspectedGroup.id], ["状态", inspectedGroup.status], ["限制", formatLimits(inspectedGroup.limits) || "未设置"],
       ]}><div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspectedGroup.id); setInspectedGroup(undefined); }}>查看授权路由</button>
-        <button disabled={!editable} onClick={() => { setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
+        <button disabled={!editable} onClick={() => { setGroupError(undefined); saveGroup.reset(); setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
 
       {inspectedKey === undefined ? null : <ObjectInspector title="Client Key" scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 只显示公开元数据`} onClose={() => setInspectedKey(undefined)} facts={[
         ["Key ID", inspectedKey.id], ["前缀", inspectedKey.prefix], ["访问组", inspectedKey.access_group_id],
@@ -467,6 +469,7 @@ export function AccessPage() {
         <Sheet
           title={groupForm === null ? "新建访问组" : `编辑访问组 · ${resourceName(groupForm.id,"group",groupForm.name)}`}
           onEscape={() => setGroupForm(undefined)}
+          busy={saveGroup.isPending}
         >
           <form className="sheet-form" onSubmit={onGroupSubmit}>
             <label>
@@ -491,24 +494,18 @@ export function AccessPage() {
                 <option value="disabled">disabled</option>
               </select>
             </label>
-            <label>
-              限制
-              <input
-                name="limits"
-                className="mono"
-                placeholder="max_concurrency=4 rpm=600"
-                defaultValue={groupForm === null ? "" : formatLimits(groupForm.limits)}
-              />
-            </label>
-            <p className="stat-sub">
-              形式与表格里显示的一致:空格分隔的 <span className="mono">key=value</span>,
-              值为非负整数,最多 16 项。留空表示不设限。
-            </p>
-            {groupForm !== null ? (
-              <p className="stat-sub">
-                契约的 PATCH 收的是完整对象 —— 保存等于整体替换,未改的字段也会一并写回。
-              </p>
-            ) : null}
+            {groupForm && Object.keys(groupForm.limits).length > 0 ? (
+              <div>
+                <p>历史限制 <code>{formatLimits(groupForm.limits)}</code></p>
+                <p className="stat-sub">当前网关不支持执行这些限制。保留限制时仅可保存为停用状态。</p>
+                <label className="check-row">
+                  <input type="checkbox" name="clear_limits" />
+                  清除历史限制
+                </label>
+              </div>
+            ) : <p className="stat-sub">当前网关不支持访问组限额，此访问组不设置限额。</p>}
+            {groupError ? <p role="alert">{groupError}</p> : null}
+            {saveGroup.isError ? <p role="alert">{asAppError(saveGroup.error).message}</p> : null}
             <div className="sheet-actions">
               <button type="button" className="secondary" onClick={() => setGroupForm(undefined)}>
                 取消
@@ -522,7 +519,7 @@ export function AccessPage() {
       ) : null}
 
       {confirmDeleteGroup !== undefined ? (
-        <Sheet title="确认删除访问组" onEscape={() => setConfirmDeleteGroup(undefined)}>
+        <Sheet title="确认删除访问组" onEscape={() => setConfirmDeleteGroup(undefined)} busy={deleteGroup.isPending}>
           <p>
             删除 <span className="mono">{resourceName(confirmDeleteGroup,"group")}</span> 会同时移除它的路由授权。
             指向该组的 Client Key 会失去访问组 —— 请先确认没有在用的 Key 挂在它下面。

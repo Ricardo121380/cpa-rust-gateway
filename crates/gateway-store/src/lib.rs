@@ -275,6 +275,8 @@ pub enum StoreError {
     InvalidPersistedBillingRecord,
     /// A billing price catalog version already exists with different entries or metadata.
     ConflictingBillingCatalogVersion,
+    /// A management append would exceed the global readable catalog capacity.
+    BillingCatalogCapacityReached,
     /// A Config-Version routing price policy failed its bounded typed admission contract.
     InvalidRoutingPricePolicyConfiguration,
     /// A compatible proxy pool, node, or binding profile failed bounded typed validation.
@@ -343,6 +345,9 @@ impl fmt::Display for StoreError {
             Self::ConflictingBillingCatalogVersion => {
                 formatter.write_str("billing catalog version conflicts with existing entries")
             }
+            Self::BillingCatalogCapacityReached => {
+                formatter.write_str("billing catalog capacity reached")
+            }
             Self::InvalidRoutingPricePolicyConfiguration => {
                 formatter.write_str("routing price policy configuration is invalid")
             }
@@ -379,6 +384,7 @@ impl Error for StoreError {
             | Self::ConflictingBillingLedgerReplay
             | Self::InvalidPersistedBillingRecord
             | Self::ConflictingBillingCatalogVersion
+            | Self::BillingCatalogCapacityReached
             | Self::InvalidRoutingPricePolicyConfiguration
             | Self::InvalidCompatibleEgressConfiguration
             | Self::DiagnosticEventNotPersistable

@@ -1644,12 +1644,14 @@
       "post": {
         "tags": ["billing"],
         "operationId": "importBillingCatalog",
+        "description": "Appends an immutable global catalog under the selected draft revision. The shared 256-catalog management capacity is checked atomically with insertion, revision and audit. Capacity exhaustion returns 400 invalid_management_request without changing existing catalogs, the draft revision or audit; duplicate identities remain 409.",
         "x-delivery-phase": "P13-05C",
         "x-audit-action": "billing_catalog_imported",
         "parameters": [{ "$ref": "#/components/parameters/IfMatch" }],
         "requestBody": { "$ref": "#/components/requestBodies/BillingCatalogImportInput" },
         "responses": {
           "201": { "$ref": "#/components/responses/BillingCatalogMutation" },
+          "400": { "$ref": "#/components/responses/Error" },
           "409": { "$ref": "#/components/responses/Error" },
           "default": { "$ref": "#/components/responses/Error" }
         }
@@ -1663,12 +1665,14 @@
       "post": {
         "tags": ["billing"],
         "operationId": "rollbackBillingCatalog",
+        "description": "Appends an immutable global catalog under the selected draft revision. The shared 256-catalog management capacity is checked atomically with insertion, revision and audit. Capacity exhaustion returns 400 invalid_management_request without changing existing catalogs, the draft revision or audit; duplicate identities remain 409.",
         "x-delivery-phase": "P13-05C",
         "x-audit-action": "billing_catalog_rolled_back",
         "parameters": [{ "$ref": "#/components/parameters/IfMatch" }],
         "requestBody": { "$ref": "#/components/requestBodies/BillingCatalogRollbackInput" },
         "responses": {
           "201": { "$ref": "#/components/responses/BillingCatalogMutation" },
+          "400": { "$ref": "#/components/responses/Error" },
           "404": { "$ref": "#/components/responses/Error" },
           "409": { "$ref": "#/components/responses/Error" },
           "default": { "$ref": "#/components/responses/Error" }

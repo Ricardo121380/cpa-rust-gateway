@@ -10,6 +10,14 @@
   max-width: 82ch;
 }
 
+.bill-policy-disclosure { padding: 16px 20px; }
+.bill-policy-disclosure > summary { cursor: pointer; font-weight: 650; }
+.bill-policy { padding-top: 14px; }
+.bill-catalogs { min-width: 0; }
+.bill-catalog-table :is(td,th) { vertical-align: middle; }
+.bill-catalog-table .row-actions { min-width: 260px; }
+.bill-catalog-table .mono { overflow-wrap: anywhere; }
+
 .bill-actions {
   display: flex;
   gap: 8px;
@@ -74,6 +82,25 @@
   max-height: 340px;
   overflow: auto;
 }
+.bill-entries-view details,.price-inspector-entries details {
+  border: 1px solid var(--separator);
+  border-radius: var(--r-inner);
+  margin-block: 8px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.bill-entries-view summary,.price-inspector-entries summary { cursor: pointer; display: flex; gap: 8px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.bill-entries-view .fact-grid,.price-inspector-entries .fact-grid { margin-top: 12px; }
+.bill-entries-view .fact-grid dd,.price-inspector-entries .fact-grid dd { overflow-wrap: anywhere; }
+.price-inspector-entries { min-width: 0; }
+.price-preview-list { max-height: 320px; overflow: auto; }
+.catalog-price-preview { display: grid; gap: 12px; min-width: 0; }
+.catalog-price-preview .price-preview-list { overscroll-behavior: contain; scroll-padding-block: 8px; }
+.catalog-price-preview summary { display: grid; gap: 4px; min-height: 44px; align-content: center; }
+.price-preview-pagination { margin-top: 0; }
+.price-preview-pagination label { display: flex; align-items: center; gap: 8px; }
+.price-preview-pagination :is(button,select) { min-height: 44px; }
+.price-preview-pagination [role="status"] { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
 /* ---- import sheet ------------------------------------------------------ */
 
@@ -92,19 +119,21 @@
 }
 
 .price-import-form[hidden] { display:none; }
+#billing-catalog-import-form[hidden] { display:none; }
 .price-import-preview { display:grid; gap:12px; }
 .price-import-preview details { border:1px solid var(--separator); border-radius:12px; padding:12px; overflow-wrap:anywhere; }
 .price-import-preview summary { cursor:pointer; font-weight:600; }
 @media(max-width:720px) {
  .canvas .bill-catalogs { overflow:visible; }
- .bill-catalogs .bill-table,.bill-catalogs .bill-table tbody { display:block; min-width:0; }
- .bill-catalogs .bill-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
- .bill-catalogs .bill-table tr { display:grid; gap:10px; padding:14px; margin:12px 0; border:1px solid var(--separator); border-radius:14px; }
- .canvas .bill-catalogs .bill-table :is(td,th) { display:block; padding:0; border:0; overflow-wrap:anywhere; }
- .canvas .bill-catalogs .bill-table td[data-label] { display:grid; grid-template-columns:80px minmax(0,1fr); gap:8px; text-align:left; }
- .bill-catalogs .bill-table td[data-label]::before { content:attr(data-label); color:var(--ink-2); font-family:var(--font-sans); font-size:12px; }
- .canvas .bill-catalogs .bill-table .row-actions { display:flex; flex-wrap:wrap; gap:8px; }
- .bill-catalogs .row-actions button { min-height:44px; }
+ .bill-catalogs .bill-catalog-table,.bill-catalogs .bill-catalog-table tbody { display:block; min-width:0; }
+ .bill-catalogs .bill-catalog-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+ .bill-catalogs .bill-catalog-table tr { display:grid; gap:10px; padding:14px; margin:12px 0; border:1px solid var(--separator); border-radius:14px; }
+ .canvas .bill-catalogs .bill-catalog-table :is(td,th) { display:block; padding:0; border:0; overflow-wrap:anywhere; }
+ .canvas .bill-catalogs .bill-catalog-table td[data-label] { display:grid; grid-template-columns:80px minmax(0,1fr); gap:8px; text-align:left; }
+ .bill-catalogs .bill-catalog-table td[data-label]::before { content:attr(data-label); color:var(--ink-2); font-family:var(--font-sans); font-size:12px; }
+ .canvas .bill-catalogs .bill-catalog-table td.row-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; min-width:0; }
+ .bill-catalogs .bill-catalog-table td.row-actions::before { grid-column:1/-1; }
+ .bill-catalogs .row-actions button { min-height:44px; width:100%; }
 }
 .price-editor { display:grid; gap:16px; min-width:0; }
 .price-entry { min-width:0; margin:0; border:1px solid var(--separator); border-radius:14px; padding:16px; display:grid; gap:14px; }
@@ -113,3 +142,10 @@
 .price-entry label { min-width:0; }
 .price-entry :is(input,select) { width:100%; min-width:0; }
 @media(max-width:640px) { .price-entry-fields { grid-template-columns:1fr; } }
+
+.inline-workspace { margin-block: 16px; border-block: 1px solid var(--separator); }
+.inline-workspace > .page-head { padding-block: 16px; align-items: start; }
+.inline-workspace-body { min-width: 0; }
+.inline-workspace-footer { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; padding: 16px; background: var(--surface); border-top: 1px solid var(--separator); z-index: 1; }
+.inline-workspace-footer button { min-height: 44px; }
+@media (max-width: 600px) { .inline-workspace-footer { position: static; padding-inline: 0; } .inline-workspace-footer button { flex: 1; } }

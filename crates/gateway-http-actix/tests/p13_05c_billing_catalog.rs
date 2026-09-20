@@ -436,3 +436,57 @@ async fn routing_price_policy_is_config_bound_revisioned_and_csrf_guarded() -> T
     );
     Ok(())
 }
+
+#[actix_web::test]
+async fn catalog_capacity_rejection_keeps_the_http_listing_readable() -> TestResult {
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state()?))
+            .configure(configure_management_resources),
+    )
+    .await;
+    for index in 0..256 {
+        let response = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::post()
+                    .uri("/admin/billing/catalogs")
+                    .insert_header(("If-Match", format!("\"rev-{index}\"")))
+                    .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN))
+                    .set_json(catalog(&format!("capacity-{index}"), 1)),
+            )
+            .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+    let rejected = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/billing/catalogs")
+                .insert_header(("If-Match", "\"rev-256\""))
+                .insert_header(("X-Management-CSRF-Token", CSRF_TOKEN))
+                .set_json(catalog("capacity-overflow", 1)),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(rejected.status(), StatusCode::BAD_REQUEST);
+    let body: Value = test::read_body_json(rejected).await;
+    assert_eq!(body["error"]["code"], "invalid_management_request");
+    let listed = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/billing/catalogs")).to_request(),
+    )
+    .await;
+    assert_eq!(listed.status(), StatusCode::OK);
+    assert_eq!(
+        listed.headers().get(header::ETAG),
+        Some(&header::HeaderValue::from_static("\"rev-256\""))
+    );
+    let rows: Vec<Value> = test::read_body_json(listed).await;
+    assert_eq!(rows.len(), 256);
+    Ok(())
+}

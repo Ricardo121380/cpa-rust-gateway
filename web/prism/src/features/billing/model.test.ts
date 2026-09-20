@@ -3,6 +3,7 @@ import {
   compareCatalogEntries,
   formatCatalogEntries,
   formatRate,
+  formatTime,
   isEffective,
   isPolicyUnset,
   MAX_ENTRIES,
@@ -84,6 +85,13 @@ describe("parseCatalogEntries", () => {
     expect(
       parseCatalogEntries(JSON.stringify([entry({ output_microunits_per_million: -1 })])).ok,
     ).toBe(false);
+    expect(parseCatalogEntries(JSON.stringify([entry({ output_microunits_per_million: Number.MAX_SAFE_INTEGER+1 })])).ok).toBe(false);
+  });
+
+  it("rejects unknown fields and lossy text",()=>{
+    expect(parseCatalogEntries(JSON.stringify([{...entry(),extra:"ignored"}])).ok).toBe(false);
+    expect(parseCatalogEntries(JSON.stringify([entry({model:" model"})])).ok).toBe(false);
+    expect(parseCatalogEntries(JSON.stringify([entry({model:"bad\u0000name"})])).ok).toBe(false);
   });
 
   it("accepts a zero rate — free is a real price, absent is not", () => {
@@ -185,6 +193,10 @@ describe("formatting", () => {
   it("groups rate digits and applies no currency", () => {
     expect(formatRate(1_500_000)).toBe("1,500,000");
     expect(formatRate(1_500_000)).not.toMatch(/[$¥€]/u);
+  });
+
+  it("renders unrepresentable timestamps without throwing",()=>{
+    expect(formatTime(Number.MAX_SAFE_INTEGER)).toBe("无效时间");
   });
 
   it("labels the writable sources and passes an unknown one through", () => {

@@ -1,5 +1,7 @@
 # Prism Modal and Workspace Refinement
 
+> **2026-09-20 confirmed remaining-work plan:** [CPAR remaining development and workspace refinement](../handoffs/prism-remaining-development-plan-20260920.md) records the seven user decisions and M0–M5 acceptance gates. It governs the next implementation: full workspace refinement, inline complex editors, shared pending configuration, independently effective global price catalogs, and OpenDesign Pi/K3 max. Existing implementation evidence below is retained; checkpoint approval is scoped, not whole-application completion. The Goal was paused at planning time; documentation persistence does not resume or complete it. New design generation, implementation and approval remain pending.
+
 Status: active implementation. Shared Sheet/channel authorization (`c2c_5477`), legacy OAuth renewal (`c2c_8a4d`), Provider workspace (`c2c_b63f`), account maintenance (`c2c_a74e`), model/catalog lifecycle (`c2c_2f8c`, iteration 3), key/access/publication (`c2c_2f8c`, iteration 5), and advanced model/routing (`c2c_2f8c`, iteration 8) have approved checkpoints. The remaining ledger rows and final whole-application acceptance are pending.
 
 ## Product frame
@@ -174,7 +176,7 @@ new contract before this refinement is considered complete.
 | `models/ModelsPage.tsx` / `ModelEditorDialog.tsx` / `ModelAliasDialog.tsx` / `ModelDeleteDialog.tsx` | form / confirm / receipt | Captured model/alias targets, exact draft recovery, no write replay | Migrated: isolated owned Sheet actions, structural preflight and exact working-version receipt | `advanced-model-routing.spec.ts` alias/model edit/delete and response-loss review; C2C iteration 8 approved. |
 | `models/RouteWorkbench.tsx` / `RouteCreateDialog.tsx` / `RouteDialog.tsx` / `CandidateDialog.tsx` | form / confirm / receipt | Selected-draft-only route/candidate CAS, immutable targets and revision-bound validation | Migrated: owned form footers, truthful staged receipts, deletion scope and lossless capability maps | `route-candidates.spec.ts`, `advanced-model-routing.spec.ts`; isolated gateway alias/route/candidate readback and loopback mock; C2C iteration 8 approved. |
 | `catalog/CatalogPage.tsx` / `UpstreamModelBrowser.tsx` | inspector / confirm / receipt | Exact directory target and model choice | Daily connection migrated: frozen evidence, bounded continuation, target-bound refresh and source revalidation; other diagnostics retain their existing view | `model-catalog-lifecycle.spec.ts`; local embedded gateway catalog activation; C2C `c2c_2f8c` iteration 3. |
-| `billing/BillingPage.tsx` | form / confirm / receipt | Price catalog import | Compatibility adapter | Billing E2E pending. |
+| `billing/BillingPage.tsx` / `CatalogImportDialog.tsx` / `CatalogRestoreDialog.tsx` / `PricePolicyDialog.tsx` / `CatalogInspector.tsx` | form / confirm / inspector / receipt | Global append-only catalogs versus draft-scoped price policy; exact owner, CAS and staged outcomes | Migrated: one owned action, stable Sheet footer, lossless preview, explicit selection and non-replayable receipts | `billing-lifecycle.spec.ts`, repaired `billing.spec.ts`, `billingTask.test.ts`; real local gateway catalog/import/restore/policy/ledger readback; C2C iteration 9 review pending. |
 | `egress/EgressPage.tsx` | form / confirm / inspector | Host, port and CIDR policy | Chip dirty and confirmations migrated; footer pending | `modal-foundation.spec.ts`. |
 | `egress/CompatibleProxyPanel.tsx` | form / confirm | Sealed proxy endpoints | Compatibility adapter | Egress E2E pending. |
 | `runtime/PoolActionSheet.tsx` | confirm | Scheduler action | Migrated: stable footer, field-local validation and target-bound result | `account-actions.spec.ts`; C2C `c2c_a74e` iteration 6. |
@@ -374,3 +376,55 @@ prior three embedded UI and two lifecycle HTTP Rust tests, formatting and
 Clippy. C2C `c2c_2f8c` approved the complete checkpoint at iteration 8. Billing,
 egress, runtime/monitoring, configuration/audit, whole-app accessibility and
 responsive acceptance, final gates, and deployment remain open Goal work.
+
+## 2026-09-20 - Billing workspace checkpoint (review pending)
+
+The price workspace now separates global catalog history from the selected
+draft's routing-price policy. Import and restore retain one captured owner,
+target catalog ID, complete entries and working configuration through a
+form, frozen preview, commitment and receipt. A catalog write acknowledged by
+the gateway remains globally saved even if the subsequent active-context
+publication fails; an unknown resource response leaves a non-replayable,
+identified review state. Explicit-draft writes say that no publication has
+occurred. Restore appends an `operator` catalog copied from its predecessor;
+neither import nor restore changes an existing catalog or automatically binds
+a policy. Policy bind/clear requires a known baseline, an explicitly selected
+effective catalog, fixed draft revision and separate non-replayable receipt.
+
+Table/JSON mode conversion retains malformed and overlarge input rather than
+truncating 513 entries or blanking them. The parser checks all six rates,
+safe integers, complete exact tuples, text bounds and unknown fields. The
+editor labels the backend's resolved public-model billing key, not the
+candidate upstream model. Source-price lookup remains advisory with explicit
+USD acknowledgement, null-rate preservation and tiered quotes disabled.
+Catalog rows use source and time as ordinary labels while exact IDs stay in
+advanced input, confirmation and recovery views. Mobile entry and inspector
+facts keep six rate labels visible. EgoLite found and fixed a preview bug in
+which a hidden form still occupied the Sheet, pushing the confirmed summary
+below the fold.
+
+Current checks: 46 unit files / 369 tests, 45 serial Chromium billing and
+compatibility cases, type check, four-file double-build and SPA gate, two
+billing HTTP and three embedded-management Rust tests. In the disposable real
+gateway, EgoLite completed active-context import, draft policy binding and
+forward-only restore at 390px. Server readback found the new global catalogs,
+an unchanged active policy, the selected draft's binding and unchanged prior
+ledger count. A loopback-only data-plane request used a distinct client alias,
+public billing model and upstream model; it returned 200, the mock received
+the upstream exact ID, and the new ledger record used the public model's price
+tuple (103 microunits, partial confidence). No real Provider or production
+state was changed. C2C `c2c_2f8c` iteration 9 review remains pending.
+
+### 2026-09-20 confirmed-plan amendment — in progress
+
+C2C `c2c_2f8c / iteration 9` returned `PLAN / CONFIRMED_REMAINING_DEVELOPMENT_PLAN`, next expected `EXECUTED`. This is a bounded billing amendment, not execution approval:
+
+- Preserve billing owner/receipt logic; whole-catalog edit, frozen preview and receipt move inline. Simple restore/policy forms and inspectors retain Sheet.
+- One operation owns router and local departure, including dock admission. An owned confirmation must not register a second router blocker. Busy writes reject departure immediately; queued Back must not fire after the receipt.
+- Full entries, editable rows, inspector and differences are paged at 50. A disjoint 512-entry pair has 1,024 differences. Pagination cannot alter the frozen payload; errors locate the original row.
+- Catalog import/restore stays globally effective by timestamp and does not automatically publish configuration. Advanced policy admission and a persistent, explicitly identified pending batch remain to be integrated and tested across model/key work.
+- Broad visual rollout still waits for the specified OpenDesign K3 result and review. Functional inline structure can proceed independently.
+
+Fresh intermediate evidence: access-group CRUD/legacy-limit/grant suite 7/7; billing/configuration units 49/49. These are targeted local tests, not full milestone acceptance. Inline integration remains under regression testing. No production or Provider inference performed.
+
+OpenDesign first MCP run `e1f2cd06-ba33-48ff-bcbe-ecfde8d3589d` requested Pi `cc-switch-kimi-for-coding/k3:max`; terminal succeeded but `deliverableValid=false`, `no_artifact`. It returned design prose only and is not accepted as a prototype. Second run `25c53857-b298-4a28-9046-fb5bc6f21042` repeats the authorized route with an explicit file-production instruction. Actual reasoning mapping remains to be corroborated; requested suffix alone is not evidence of resolved runtime strength.

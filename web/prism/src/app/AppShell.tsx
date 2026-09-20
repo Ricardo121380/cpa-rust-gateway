@@ -12,6 +12,7 @@ import {
 } from "../features/config-versions/versionStore";
 import { useMessages } from "../i18n/messages";
 import { useSessionStore } from "../session/sessionStore";
+import { OperationBoundary, useOperationBoundary } from "../components/OperationBoundary";
 import { DraftDock } from "./DraftDock";
 import { NAV_GROUPS, NAV_ITEMS, primaryRoute, workspacePages } from "./navigation";
 import { resolvedTheme, useThemeStore } from "./themeStore";
@@ -39,6 +40,25 @@ function ConfigurationBootstrap() {
     <span>资源暂不可用；重新读取后会恢复当前活动配置。</span>
     <button type="button" className="secondary" onClick={() => void versions.refetch()}>重新读取</button>
   </div>;
+}
+
+function PendingConfigurationNotice() {
+  const boundary=useOperationBoundary();
+  const pending=useVersionStore(state=>state.pending);
+  const current=useVersionStore(state=>state.context);
+  const [error,setError]=useState<string>();
+  if(!pending||pending.id===current?.configVersionId)return null;
+  const resume=async()=>{
+    const session=useSessionStore.getState().generation;
+    const selection=useVersionStore.getState().selectionGeneration;
+    try{
+      const version=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:pending.id}});
+      if(session!==useSessionStore.getState().generation||selection!==useVersionStore.getState().selectionGeneration)return;
+      if(version.id!==pending.id||version.status!=="draft")throw new Error("待应用配置状态已变化，请在配置页面核对。");
+      useVersionStore.getState().select(version);
+    }catch(cause){setError(cause instanceof Error?cause.message:"无法重读待应用配置。");}
+  };
+  return <div className="workspace-context" role="status"><span>有一批配置等待应用；继续编辑前请回到工作草稿。</span><button type="button" className="secondary" onClick={()=>boundary.request(()=>void resume())}>继续待应用修改</button>{error?<span role="alert">{error}</span>:null}</div>;
 }
 
 export function AppShell() {
@@ -88,7 +108,7 @@ export function AppShell() {
   const docked = context !== undefined && context.status === "draft";
 
   return (
-    <div
+    <OperationBoundary><div
       className="shell"
       data-conflict={conflict ? "true" : undefined}
       data-dock={docked ? "true" : undefined}
@@ -154,6 +174,7 @@ export function AppShell() {
       <main className="canvas" ref={canvasRef} data-context-version={context?.configVersionId} data-context-status={context?.status}>
         <div className="workspace">
           <ConfigurationBootstrap />
+          <PendingConfigurationNotice />
           {context?.status === "active" || context === undefined ? null : (
             <div className="workspace-context" data-status={context.status} role="status">
               {context.status === "archived"
@@ -170,6 +191,6 @@ export function AppShell() {
       </main>
 
       <DraftDock key={`${sessionGeneration}:${context?.configVersionId ?? "none"}`} />
-    </div>
+    </div></OperationBoundary>
   );
 }

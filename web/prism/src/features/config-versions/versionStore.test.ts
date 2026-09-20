@@ -20,3 +20,23 @@ it("late configuration lists cannot replace an explicitly selected draft or regr
   expect(useVersionStore.getState().context).toEqual({ configVersionId: "test-draft", status: "draft", revision: "rev-10" });
   expect(useVersionStore.getState().selectionGeneration).toBe(generation);
 });
+
+it("retains an identified pending batch while viewing active and clears it after publication", () => {
+  const state=useVersionStore.getState();
+  state.rememberPending(draft);
+  state.select(active);
+  expect(useVersionStore.getState().pending?.id).toBe(draft.id);
+  state.select(draft);
+  state.advanceFromEtag("rev-8");
+  expect(useVersionStore.getState().pending?.revision).toBe("rev-8");
+  state.select({...draft,status:"active",revision:"rev-8"});
+  expect(useVersionStore.getState().pending).toBeUndefined();
+});
+it("does not replace the pending batch with a different draft and clears it on session reset", () => {
+  const state=useVersionStore.getState();
+  state.rememberPending(draft);
+  state.rememberPending({...draft,id:"other"});
+  expect(useVersionStore.getState().pending?.id).toBe(draft.id);
+  state.reset();
+  expect(useVersionStore.getState().pending).toBeUndefined();
+});

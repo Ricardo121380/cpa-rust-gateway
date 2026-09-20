@@ -99,7 +99,7 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
     submitted.current=true;
     save.mutate({baseline,chosen:new Set(selected),label,status,expiry});
   };
-  return <Sheet title={receipt?"密钥权限结果":"编辑 API 密钥"} description={receipt?"请核对保存与应用状态。":"修改名称、状态、有效期和允许调用的模型。"} onEscape={()=>!save.isPending&&done()} busy={save.isPending} isDirty={!receipt&&dirty} footer={receipt?<SheetDismissButton onDismiss={done}>{receipt.kind==="saved_applied"||receipt.kind==="unchanged"?"完成":"核对配置"}</SheetDismissButton>:baseline?<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={!dirty||save.isPending||submitted.current}>保存并应用</button></>:undefined}>
+  return <Sheet title={receipt?"密钥权限结果":"编辑 API 密钥"} description={receipt?"请核对保存与应用状态。":"修改名称、状态、有效期和允许调用的模型。"} onEscape={()=>!save.isPending&&done()} busy={save.isPending} isDirty={!receipt&&dirty} footer={receipt?<SheetDismissButton onDismiss={done}>{receipt.kind==="saved_applied"||receipt.kind==="unchanged"?"完成":"核对配置"}</SheetDismissButton>:baseline?<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={!dirty||save.isPending||submitted.current}>{context?.status==="draft"?"保存到草稿":"保存并应用"}</button></>:undefined}>
     {receipt?<div role="status"><p>{receipt.message}</p><p>已确认保存 {receipt.acknowledgedWrites} 步。</p></div>:<>
       {source.isError?<p role="alert">{asAppError(source.error).message}<button type="button" onClick={()=>void source.refetch()}>重新读取</button></p>:null}
       {source.isPending||source.isFetching&&!baseline?<p role="status">正在读取模型权限…</p>:null}

@@ -1,0 +1,116 @@
+{
+  "baseline": "75715595b381e234564b949ee390cafb4553c701",
+  "environment": "EgoLite, 1440x900, Vite development fixture backend, isolated baseline frontend and working frontend; one warmup plus five sequential samples each",
+  "measurement": "DOMContentLoaded end for startup; action to two animation frames for editor/filter; ManagementApi invocation counts, not remote requests",
+  "limitations": "Local dev rendering measurements include frame scheduling noise and are not production latency or a production SLA. Catalog rows are identical synthetic entries. No inference requests.",
+  "summary": {
+    "5201": {
+      "startupMs": 129.4000000357628,
+      "editorMs": 1802.1000000238419,
+      "editorRows": 512,
+      "editorRequests": 1,
+      "filterMs": 1580.7999999523163,
+      "filterRequests": 5
+    },
+    "5202": {
+      "startupMs": 133.89999997615814,
+      "editorMs": 858.5999999642372,
+      "editorRows": 50,
+      "editorRequests": 1,
+      "filterMs": 842.1000000238419,
+      "filterRequests": 5
+    }
+  },
+  "samples": [
+    {
+      "port": 5201,
+      "samples": [
+        {
+          "startupMs": 129.4000000357628,
+          "editorMs": 1751.199999988079,
+          "editorRows": 512,
+          "editorRequests": 1,
+          "filterMs": 1588.0999999642372,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 132.89999997615814,
+          "editorMs": 1833.1000000238419,
+          "editorRows": 512,
+          "editorRequests": 1,
+          "filterMs": 1348.1000000238419,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 142.69999998807907,
+          "editorMs": 1802.1000000238419,
+          "editorRows": 512,
+          "editorRequests": 1,
+          "filterMs": 1580.7999999523163,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 117.59999996423721,
+          "editorMs": 1795.5,
+          "editorRows": 512,
+          "editorRequests": 1,
+          "filterMs": 652.8000000119209,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 114.30000001192093,
+          "editorMs": 1815.800000011921,
+          "editorRows": 512,
+          "editorRequests": 1,
+          "filterMs": 1615.7999999523163,
+          "filterRequests": 5
+        }
+      ]
+    },
+    {
+      "port": 5202,
+      "samples": [
+        {
+          "startupMs": 114.69999998807907,
+          "editorMs": 440.30000001192093,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 823,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 158.5,
+          "editorMs": 820.3000000119209,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 789.1000000238419,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 145.20000004768372,
+          "editorMs": 906.1999999880791,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 913.1000000238419,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 97.39999997615814,
+          "editorMs": 858.5999999642372,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 842.1000000238419,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 133.89999997615814,
+          "editorMs": 1830.3999999761581,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 1506.6000000238419,
+          "filterRequests": 5
+        }
+      ]
+    }
+  ]
+}

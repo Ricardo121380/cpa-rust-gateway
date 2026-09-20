@@ -146,7 +146,7 @@ impl<T> Revisioned<T> {
 }
 
 /// Maximum immutable billing catalog versions returned by one management read.
-pub const MAX_MANAGEMENT_BILLING_CATALOGS: usize = 256;
+pub use gateway_store::control_plane::MAX_MANAGEMENT_BILLING_CATALOGS;
 
 /// Validated operator/import boundary before the service assigns durable creation time.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -3479,6 +3479,79 @@ mod tests {
         )?;
 
         assert_audit_events(&mut service)?;
+        Ok(())
+    }
+
+    #[test]
+    fn billing_catalog_capacity_rejects_import_and_restore_atomically() -> TestResult {
+        let (mut service, version_id, actor) = test_service()?;
+        let entry = BillingPriceEntry {
+            provider_id: "provider".to_owned(),
+            channel_id: "channel".to_owned(),
+            model: "Exact".to_owned(),
+            input_microunits_per_million: 0,
+            output_microunits_per_million: 1,
+            reasoning_microunits_per_million: 0,
+            cache_read_microunits_per_million: 0,
+            cache_creation_microunits_per_million: 0,
+            cached_microunits_per_million: 0,
+        };
+        let mut revision = ConfigRevision::initial();
+        for index in 0..super::MAX_MANAGEMENT_BILLING_CATALOGS {
+            revision = service
+                .import_billing_catalog(
+                    &actor,
+                    &version_id,
+                    revision,
+                    BillingCatalogImport {
+                        catalog_version_id: format!("capacity-{index}"),
+                        effective_at_ms: 1,
+                        source: BillingCatalogSource::Operator,
+                        entries: vec![entry.clone()],
+                    },
+                )?
+                .revision();
+        }
+        assert_eq!(
+            service.list_billing_catalogs(&version_id)?.value().len(),
+            256
+        );
+        let audits = service.resource_audit_events()?.len();
+        let imported = service.import_billing_catalog(
+            &actor,
+            &version_id,
+            revision,
+            BillingCatalogImport {
+                catalog_version_id: "over-capacity".to_owned(),
+                effective_at_ms: 2,
+                source: BillingCatalogSource::Operator,
+                entries: vec![entry],
+            },
+        );
+        assert!(matches!(
+            imported,
+            Err(ManagementResourceError::Store(
+                StoreError::BillingCatalogCapacityReached
+            ))
+        ));
+        let restored = service.rollback_billing_catalog(
+            &actor,
+            &version_id,
+            revision,
+            "capacity-0",
+            "over-capacity-restore".to_owned(),
+            2,
+        );
+        assert!(matches!(
+            restored,
+            Err(ManagementResourceError::Store(
+                StoreError::BillingCatalogCapacityReached
+            ))
+        ));
+        let catalogs = service.list_billing_catalogs(&version_id)?;
+        assert_eq!(catalogs.value().len(), 256);
+        assert_eq!(catalogs.revision(), revision);
+        assert_eq!(service.resource_audit_events()?.len(), audits);
         Ok(())
     }
 

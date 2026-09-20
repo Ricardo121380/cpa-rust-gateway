@@ -18,7 +18,7 @@ import { UsagePage } from "./features/usage/UsagePage";
 import { AccountsPage } from "./features/accounts/AccountsPage";
 import { CatalogPage } from "./features/catalog/CatalogPage";
 
-const router = createHashRouter([
+export const router = createHashRouter([
   { path: "/unlock", element: <UnlockPage /> },
   {
     path: "/",

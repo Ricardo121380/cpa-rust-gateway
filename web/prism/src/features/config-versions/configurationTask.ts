@@ -5,13 +5,20 @@ import { useSessionStore } from "../../session/sessionStore";
 import { beginConfigurationEdit } from "./beginEdit";
 import { useVersionStore, type ConfigVersionSummary } from "./versionStore";
 
+/** Never silently write into a second draft while another batch is tracked. */
+export function assertPendingConfigurationAdmission(sourceId:string|undefined) {
+  const pending=useVersionStore.getState().pending;
+  if(pending&&sourceId!==pending.id)throw new Error("已有待应用配置，请先返回该工作草稿继续修改，避免创建另一批配置。");
+}
+
 /** A bounded user task edits one draft; intermediate writes never unmount its form or move scope. */
-export async function beginConfigurationTask(description:string, expectedSource?:Readonly<{id:string;revision:string}>) {
+export async function beginConfigurationTask(description:string, expectedSource?:Readonly<{id:string;revision:string}>, completion:"automatic"|"deferred"="automatic") {
   const session=useSessionStore.getState().generation;
   const owner=useVersionStore.getState();
   if(owner.context?.status==="archived")throw new Error("当前查看的是历史配置，请返回当前配置后修改。");
   if(expectedSource&&(owner.context?.configVersionId!==expectedSource.id||owner.context.revision!==expectedSource.revision))throw new Error("当前配置已变化，请重新核对后操作。");
-  const autoApply=owner.context?.status!=="draft";
+  assertPendingConfigurationAdmission(owner.context?.configVersionId);
+  const autoApply=completion==="automatic"&&owner.context?.status!=="draft";
   const assertOwner=()=>{
     if(useSessionStore.getState().generation!==session||useVersionStore.getState().selectionGeneration!==owner.selectionGeneration)throw new CancelledError({silent:true});
   };

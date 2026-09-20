@@ -250,7 +250,7 @@ export function VersionsPage() {
       ) : null}
 
       {creating ? (
-        <Sheet title="创建草稿版本" onEscape={() => setCreating(false)}>
+        <Sheet title="创建草稿版本" onEscape={() => setCreating(false)} busy={create.isPending}>
           <form className="sheet-form" onSubmit={onCreateSubmit}>
             <label>
               版本 ID

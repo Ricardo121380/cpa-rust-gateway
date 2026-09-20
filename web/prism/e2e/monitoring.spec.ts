@@ -1,35 +1,26 @@
-// 请求监控 over the two contract sources that actually exist.
-//
-// The page this replaces claimed latency percentiles and a success rate. The
-// assertions below are mostly about what must NOT be on screen, plus the two
-// traps that are easy to build wrong: a summary read from the loaded page
-// instead of the whole window, and two panels whose scopes silently differ.
+// Request terminal metrics, ledger totals and failure attempts have distinct scopes.
 import { expect, test } from "@playwright/test";
 import { navigate, selectDraft, unlock, clearVersionForTest } from "./helpers";
 
 async function openMonitoring(page: import("@playwright/test").Page): Promise<void> {
   await unlock(page);
   await navigate(page, "请求与失败");
+  await page.getByRole("tab",{name:"计费账本"}).click();
   await expect(page.locator(".mon-table")).toBeVisible();
 }
 
-test("the page states there is no latency and no success rate, and shows neither", async ({
-  page,
-}) => {
-  await openMonitoring(page);
-
-  await expect(page.locator(".mon-hint")).toContainText("没有延迟");
-  await expect(page.locator(".mon-hint")).toContainText("没有请求成败清单");
-  await expect(page.locator(".mon-hint")).toContainText("是编的");
-
-  // The disclaimer names them on purpose; what must not exist is a KPI or a
-  // column presenting them as data. So the negative assertions are scoped to
-  // where a fabricated metric would actually surface.
-  await expect(page.locator(".mon-summary")).not.toContainText("P95");
-  await expect(page.locator(".mon-summary")).not.toContainText("成功率");
-  await expect(page.locator(".mon-summary")).not.toContainText("延迟");
-  await expect(page.locator(".mon-table thead")).not.toContainText("延迟");
-  await expect(page.locator(".mon-table thead")).not.toContainText("状态");
+test("request metrics use terminal requests and keep attempts separate", async ({page}) => {
+  await unlock(page);
+  await navigate(page,"请求与失败");
+  const metrics=page.locator(".request-metrics");
+  await expect(metrics.getByRole("link",{name:"请求数 4",exact:true})).toBeVisible();
+  await expect(metrics.getByRole("link",{name:"成功率 75.0%",exact:true})).toBeVisible();
+  await expect(metrics).toContainText("P50 / P95");
+  await expect(page.locator(".request-history")).toContainText("5 次上游尝试");
+  await expect(page.locator(".request-table tbody tr")).toHaveCount(4);
+  await metrics.getByRole("link",{name:"成功率 75.0%",exact:true}).click();
+  await expect(page).toHaveURL(/outcome=succeeded/u);
+  await expect(page.locator(".request-table tbody tr")).toHaveCount(3);
 });
 
 test("the ledger summary covers the whole window, not the loaded page", async ({ page }) => {
@@ -87,6 +78,7 @@ test("the failure panel is version-scoped and says so when the ledger is not", a
   await expect(page.locator(".empty-state")).toContainText("X-Config-Version");
 
   await selectDraft(page);
+  await page.getByRole("tab",{name:"失败归因"}).click();
   await expect(page.locator(".mon-table")).toBeVisible();
 });
 
@@ -148,7 +140,9 @@ test("a failure opens request attempts and its exact diagnostic target, preservi
   // The tab replaces the ledger's form. Wait for that committed view before
   // filling a field whose accessible name also exists on the departing form.
   await expect(page.getByRole("tab", { name: "失败归因" })).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("textbox", { name: "账号", exact: true }).fill("acct-0");
+  await page.getByRole("combobox", { name: "账号", exact: true }).selectOption({label:"指定历史资源…"});
+  await page.getByRole("textbox",{name:"历史资源引用"}).fill("acct-0");
+  await page.getByRole("button",{name:"使用此引用"}).click();
   await page.getByRole("button", { name: "应用筛选", exact: true }).click();
   await expect(page).toHaveURL(/account_id=acct-0/u);
   const source = page.url();
@@ -161,9 +155,9 @@ test("a failure opens request attempts and its exact diagnostic target, preservi
   const href = await link.getAttribute("href");
   await link.click();
   await expect(page).toHaveURL(/credential_id=acct-0/u);
-  await expect(page.getByRole("region", { name: "当前诊断对象" })).toContainText("acct-0");
+  await expect(page.getByRole("region", { name: "当前诊断对象" }).locator('[data-resource-id="acct-0"]')).toBeVisible();
   expect(href).toContain("endpoint_id=ch-relay-responses");
   await page.goBack();
   await expect(page).toHaveURL(source);
-  await expect(page.getByRole("textbox", { name: "账号", exact: true })).toHaveValue("acct-0");
+  await expect(page.getByRole("combobox", { name: "账号", exact: true })).toHaveValue("acct-0");
 });

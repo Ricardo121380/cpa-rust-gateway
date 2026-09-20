@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { call } from "../api/client";
 import { asAppError } from "../api/errors";
 import { ResourceIdentity } from "../components/ResourceIdentity";
+import { useOperationBoundary } from "../components/OperationBoundary";
 import { Sheet, SheetDismissButton } from "../components/Sheet";
 import { GlassSurface } from "../components/glass/GlassSurface";
 import { LifecycleConfirmation } from "../features/config-versions/LifecycleConfirmation";
@@ -27,6 +28,7 @@ const owned=(source:Source)=>{
 
 /** Draft dock is the third glass pane; its modal state is one transaction at a time. */
 export function DraftDock(){
+  const admission=useOperationBoundary();
   const queryClient=useQueryClient();
   const navigate=useNavigate();
   const context=useVersionStore(state=>state.context);
@@ -100,8 +102,8 @@ export function DraftDock(){
       <span>草稿 <span className="idchip"><ResourceIdentity id={context.configVersionId} kind="config" /></span><span className="idchip mono">{context.revision}</span></span>
       {error?<span className="dock-error">{error}</span>:null}
       <span className="dock-actions">
-        <button type="button" className="secondary" disabled={validate.isPending||publish.isPending||!!panel} onClick={()=>{const target=source();if(!target)return;setError(undefined);setPanel({kind:"validating",source:target});validate.mutate(target);}}>验证</button>
-        <button type="button" disabled={validate.isPending||publish.isPending||!!panel} onClick={()=>{const target=source();if(!target)return;setError(undefined);setPanel({kind:"confirm",source:target});}}>发布</button>
+        <button type="button" className="secondary" disabled={validate.isPending||publish.isPending||!!panel} onClick={()=>admission.request(()=>{const target=source();if(!target)return;setError(undefined);setPanel({kind:"validating",source:target});validate.mutate(target);})}>验证</button>
+        <button type="button" disabled={validate.isPending||publish.isPending||!!panel} onClick={()=>admission.request(()=>{const target=source();if(!target)return;setError(undefined);setPanel({kind:"confirm",source:target});})}>发布</button>
       </span>
     </GlassSurface>:null}
     {panel?.kind==="confirm"?<LifecycleConfirmation mode="publish" id={panel.source.id} pending={publish.isPending} error={error} onCancel={()=>{if(!publish.isPending)setPanel(undefined);}} onConfirm={(expectedActive,lifecycleEvent,revision)=>publish.mutate({source:panel.source,revision,expectedActive,lifecycleEvent})}/>:null}

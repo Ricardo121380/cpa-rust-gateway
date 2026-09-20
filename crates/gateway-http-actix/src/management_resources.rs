@@ -9261,6 +9261,13 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
             "management_credential_revision_conflict",
             "Credential changed",
         ),
+        ManagementResourceError::Store(StoreError::BillingCatalogCapacityReached) => {
+            error_response(
+                StatusCode::BAD_REQUEST,
+                "invalid_management_request",
+                "Billing catalog capacity reached (256); existing catalogs remain readable",
+            )
+        }
         ManagementResourceError::Store(StoreError::ConflictingBillingCatalogVersion) => {
             error_response(
                 StatusCode::CONFLICT,

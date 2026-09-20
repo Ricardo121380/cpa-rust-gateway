@@ -129,7 +129,7 @@ function PoolSheet({
   onSubmit: (body: Record<string, unknown>, path: Record<string, string> | undefined) => void;
 }>) {
   return (
-    <Sheet title={existing === undefined ? "新建代理池" : `编辑代理池 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel}>
+    <Sheet title={existing === undefined ? "新建代理池" : `编辑代理池 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel} busy={pending}>
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -214,7 +214,7 @@ function NodeSheet({
   const creating = existing === undefined;
 
   return (
-    <Sheet title={creating ? "新建代理节点" : `编辑代理节点 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel}>
+    <Sheet title={creating ? "新建代理节点" : `编辑代理节点 · ${resourceOption(existing.id,"resource",existing.name)}`} onEscape={onCancel} busy={pending}>
       <form
         className="sheet-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
@@ -386,6 +386,7 @@ function BindingSheet({
         creating ? "新建兼容出口绑定" : `编辑绑定 · ${resourceOption(existing.endpoint_id,"endpoint")} / ${resourceOption(existing.credential_id,"account")}`
       }
       onEscape={onCancel}
+      busy={pending}
     >
       <form
         className="sheet-form"
@@ -844,7 +845,7 @@ export function CompatibleProxyPanel({
       ) : null}
 
       {doomed === undefined ? null : (
-        <Sheet title={`删除 ${doomed.label}`} onEscape={() => setDoomed(undefined)}>
+        <Sheet title={`删除 ${doomed.label}`} onEscape={() => setDoomed(undefined)} busy={remove.isPending}>
           <p>删除后不可撤销(可以回滚整个配置版本)。</p>
           {doomed.blockers.length > 0 ? (
             // The backend refuses to delete a referenced pool or node and there

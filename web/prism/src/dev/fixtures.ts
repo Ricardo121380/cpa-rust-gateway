@@ -2118,9 +2118,19 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     // them backwards is the mistake the page exists to prevent:
     //   catalogs  GLOBAL — one list, shared by every config version
     //   policy    PER CONFIG VERSION
+    if(route==="POST /admin/billing/price-source/refresh"){
+      const body=JSON.parse(bodyText??"{}") as {models?:unknown};
+      if(Object.keys(body).join("|")!=="models"||!Array.isArray(body.models)||body.models.length<1||body.models.length>512
+        ||body.models.some(model=>typeof model!=="string"||!model||model.length>512))
+        return errorResponse(400,"management_invalid_input","invalid price source input");
+      const items=body.models.flatMap(model=>[{provider:"source-a",model,tiered:false,input_microunits_per_million:0,output_microunits_per_million:1_250_000,reasoning_microunits_per_million:null,cache_read_microunits_per_million:null,cache_creation_microunits_per_million:null,cached_microunits_per_million:null},
+        {provider:"tiered-source",model,tiered:true,input_microunits_per_million:null,output_microunits_per_million:null,reasoning_microunits_per_million:null,cache_read_microunits_per_million:null,cache_creation_microunits_per_million:null,cached_microunits_per_million:null}]);
+      return json(200,{source:"models.dev",url:"https://models.dev/api.json",currency:"USD",unit:"microunits_per_million_tokens",items});
+    }
     if (route === "GET /admin/billing/catalogs") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
+      if(state.catalogs.length>256)return errorResponse(503,"management_unavailable","billing catalog bound exceeded");
       return json(200, state.catalogs, revisionToken(version));
     }
     if (route === "POST /admin/billing/catalogs") {
@@ -2129,9 +2139,24 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const mismatch = requireDraftAndMatch(version, headers);
       if (mismatch !== undefined) return mismatch;
       const body = JSON.parse(bodyText ?? "{}") as CatalogRow;
+      const rates=["input_microunits_per_million","output_microunits_per_million","reasoning_microunits_per_million","cache_read_microunits_per_million","cache_creation_microunits_per_million","cached_microunits_per_million"] as const;
+      const fields=["provider_id","channel_id","model",...rates];
+      const text=(value:unknown,max:number)=>typeof value==="string"&&value.trim()===value&&value.length>0&&value.length<=max&&!/[\p{Cc}]/u.test(value);
+      const tuples=new Set<string>();
+      if(Object.keys(body).sort().join("|")!==["catalog_version_id","effective_at_ms","source","entries"].sort().join("|")
+        ||!text(body.catalog_version_id,128)||!Number.isSafeInteger(body.effective_at_ms)||body.effective_at_ms<0
+        ||!["operator","imported"].includes(body.source)||!Array.isArray(body.entries)||body.entries.length<1||body.entries.length>512
+        ||body.entries.some(entry=>{
+          if(Object.keys(entry).sort().join("|")!==fields.sort().join("|")||!text(entry.provider_id,128)||!text(entry.channel_id,128)||!text(entry.model,512)
+            ||rates.some(field=>!Number.isSafeInteger(entry[field])||entry[field]<0))return true;
+          const key=JSON.stringify([entry.provider_id,entry.channel_id,entry.model]);
+          if(tuples.has(key))return true;
+          tuples.add(key);return false;
+        }))return errorResponse(400,"management_invalid_input","invalid catalog input");
       if (state.catalogs.some((row) => row.catalog_version_id === body.catalog_version_id)) {
         return errorResponse(409, "management_lifecycle_conflict", "catalog id already exists");
       }
+      if(state.catalogs.length>=256)return errorResponse(400,"invalid_management_request","Billing catalog capacity reached (256)");
       // Global on purpose: no version key anywhere.
       state.catalogs.push({ ...body, created_at_ms: 1787100000000 });
       version.revision += 1;
@@ -2163,13 +2188,20 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         new_catalog_version_id: string;
         effective_at_ms: number;
       };
+      if(Object.keys(body).sort().join("|")!==["new_catalog_version_id","effective_at_ms"].sort().join("|")
+        ||!body.new_catalog_version_id?.trim()||body.new_catalog_version_id.trim()!==body.new_catalog_version_id
+        ||body.new_catalog_version_id.length>128||!Number.isSafeInteger(body.effective_at_ms)||body.effective_at_ms<0)
+        return errorResponse(400,"management_invalid_input","invalid rollback input");
+      if(state.catalogs.some(row=>row.catalog_version_id===body.new_catalog_version_id))
+        return errorResponse(409,"management_lifecycle_conflict","catalog id already exists");
+      if(state.catalogs.length>=256)return errorResponse(400,"invalid_management_request","Billing catalog capacity reached (256)");
       // Forward-only: a copy is appended, nothing is deleted.
       state.catalogs.push({
         catalog_version_id: body.new_catalog_version_id,
         effective_at_ms: body.effective_at_ms,
         created_at_ms: 1787100000000,
-        source: source.source,
-        entries: source.entries,
+        source: "operator",
+        entries: structuredClone(source.entries),
       });
       version.revision += 1;
       return json(
@@ -2177,7 +2209,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         {
           catalog_version_id: body.new_catalog_version_id,
           effective_at_ms: body.effective_at_ms,
-          source: source.source,
+          source: "operator",
           entry_count: source.entries.length,
           operation: "rolled_back",
           rolled_back_from: from,
@@ -2201,7 +2233,9 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (version instanceof Response) return version;
       const mismatch = requireDraftAndMatch(version, headers);
       if (mismatch !== undefined) return mismatch;
-      const body = JSON.parse(bodyText ?? "{}") as { catalog_version_id: string };
+      const body = JSON.parse(bodyText ?? "{}") as { catalog_version_id: string; comparison:string };
+      if(Object.keys(body).sort().join("|")!==["catalog_version_id","comparison"].sort().join("|")||body.comparison!=="rate_dominance_v1")
+        return errorResponse(400,"management_invalid_input","invalid price policy input");
       const catalog = state.catalogs.find(
         (row) => row.catalog_version_id === body.catalog_version_id,
       );

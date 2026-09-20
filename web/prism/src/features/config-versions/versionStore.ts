@@ -14,6 +14,8 @@ export type ConfigVersionSummary = Readonly<{
 
 type VersionState = {
   context: VersionContext | undefined;
+  pending: ConfigVersionSummary | undefined;
+  rememberPending: (summary: ConfigVersionSummary) => void;
   conflict: boolean;
   selectionGeneration: number;
   select: (summary: ConfigVersionSummary) => void;
@@ -26,6 +28,8 @@ type VersionState = {
 
 export const useVersionStore = create<VersionState>((set, get) => ({
   context: undefined,
+  pending: undefined,
+  rememberPending: summary => set(state => ({pending: summary.status === "draft" && (!state.pending || state.pending.id === summary.id) ? {...summary,revision:state.pending?advanceRevision({configVersionId:summary.id,status:"draft",revision:state.pending.revision},summary.revision).revision:summary.revision} : state.pending})),
   conflict: false,
   selectionGeneration: 0,
   selectInitialActive: (versions) => {
@@ -35,6 +39,7 @@ export const useVersionStore = create<VersionState>((set, get) => ({
   },
   select: (summary) =>
     set((state) => ({
+      pending: state.pending?.id === summary.id ? (summary.status === "draft" ? {...summary,revision:advanceRevision({configVersionId:summary.id,status:"draft",revision:state.pending.revision},summary.revision).revision} : undefined) : state.pending,
       selectionGeneration: state.selectionGeneration + 1,
       context: state.context?.configVersionId === summary.id ? {
         ...advanceRevision(state.context, summary.revision), status: summary.status,
@@ -52,10 +57,10 @@ export const useVersionStore = create<VersionState>((set, get) => ({
     }
     const next = advanceRevision(current, etag);
     if (next !== current) {
-      set({ context: next, conflict: false });
+      set(state=>({ context: next, conflict: false, pending:state.pending?.id===next.configVersionId?{...state.pending,revision:next.revision}:state.pending }));
     }
   },
   markConflict: () => set({ conflict: true }),
   clearConflict: () => set({ conflict: false }),
-  reset: () => set((state) => ({ context: undefined, conflict: false, selectionGeneration: state.selectionGeneration + 1 })),
+  reset: () => set((state) => ({ context: undefined, pending: undefined, conflict: false, selectionGeneration: state.selectionGeneration + 1 })),
 }));

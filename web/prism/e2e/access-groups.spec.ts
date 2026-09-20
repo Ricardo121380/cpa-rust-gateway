@@ -25,12 +25,12 @@ test("a group can be created, edited and deleted", async ({ page }) => {
   const create = page.getByRole("dialog");
   await create.getByLabel("访问组标识").fill("team-e2e");
   await create.getByLabel("名称").fill("端到端组");
-  await create.getByLabel("限制").fill("max_concurrency=8 rpm=120");
+  await expect(create.locator('input[name="limits"]')).toHaveCount(0);
   await create.getByRole("button", { name: "创建" }).click();
 
   const row = page.locator('tr:has([data-resource-id="team-e2e"])').first();
   await expect(row).toContainText("端到端组");
-  await expect(row).toContainText("max_concurrency=8 rpm=120");
+
 
   // Edit is a full replacement — the form must arrive pre-filled or the save
   // would silently blank the fields the operator did not touch.
@@ -38,7 +38,7 @@ test("a group can be created, edited and deleted", async ({ page }) => {
   const edit = page.getByRole("dialog");
   await expect(edit.locator('input[name="id"]')).toHaveValue("team-e2e");
   await expect(edit.getByLabel("名称")).toHaveValue("端到端组");
-  await expect(edit.getByLabel("限制")).toHaveValue("max_concurrency=8 rpm=120");
+  await expect(edit.locator('input[name="limits"]')).toHaveCount(0);
   await edit.getByLabel("名称").fill("改名后");
   await edit.getByRole("button", { name: "保存" }).click();
   await expect(page.locator('tr:has([data-resource-id="team-e2e"])').first()).toContainText("改名后");
@@ -50,19 +50,38 @@ test("a group can be created, edited and deleted", async ({ page }) => {
   await expect(page.locator('tr:has([data-resource-id="team-e2e"])')).toHaveCount(0);
 });
 
-test("limits are judged before they reach the gateway", async ({ page }) => {
+test("legacy limits require explicit clearing or disabled preservation", async ({ page }) => {
   await openAccess(page);
+  await page.evaluate(async () => {
+    const {call} = await import("/src/api/client.ts");
+    await call("createAccessGroup", {body:{id:"legacy-limits",name:"历史限额组",status:"disabled",limits:{rpm:120,max_concurrency:8}}}, {versionScoped:true,mutating:true});
+  });
+  await navigate(page, "仪表盘");
+  await navigate(page, "访问控制");
   await openAdvancedGroups(page);
-  await page.getByRole("button", { name: "新建访问组" }).click();
-  const create = page.getByRole("dialog");
-  await create.getByLabel("访问组标识").fill("team-bad");
-  await create.getByLabel("名称").fill("坏限额");
-  await create.getByLabel("限制").fill("rpm=-1");
-  await create.getByRole("button", { name: "创建" }).click();
-
-  await expect(page.getByRole("alert")).toContainText("非负整数");
-  // the sheet stays open and nothing was created
-  await expect(page.getByRole("dialog")).toBeVisible();
+  const row=page.locator('tr:has([data-resource-id="legacy-limits"])').first();
+  await row.getByRole("button",{name:"编辑"}).click();
+  const dialog=page.getByRole("dialog");
+  await dialog.getByLabel("名称",{exact:true}).fill("保留历史限制");
+  await dialog.getByRole("combobox",{name:"状态",exact:true}).selectOption("active");
+  await dialog.getByRole("button",{name:"保存",exact:true}).click();
+  await expect(dialog.getByRole("alert")).toContainText("请明确清除历史限制");
+  await dialog.getByRole("combobox",{name:"状态",exact:true}).selectOption("disabled");
+  await dialog.getByRole("button",{name:"保存",exact:true}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(row).toContainText("rpm=120");
+  await expect(row).toContainText("max_concurrency=8");
+  await row.getByRole("button",{name:"编辑"}).click();
+  await dialog.getByLabel("清除历史限制").check();
+  await dialog.getByRole("combobox",{name:"状态",exact:true}).selectOption("active");
+  await dialog.getByRole("button",{name:"保存",exact:true}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(row).not.toContainText("rpm=120");
+  const saved=await page.evaluate(async()=>{
+    const {call}=await import("/src/api/client.ts");
+    return (await call<Array<{id:string;limits:Record<string,number>;status:string}>>("listAccessGroups",{},{versionScoped:true})).find(x=>x.id==="legacy-limits");
+  });
+  expect(saved).toMatchObject({status:"active",limits:{}});
 });
 
 test("route grants are listed per group and can be added", async ({ page }) => {

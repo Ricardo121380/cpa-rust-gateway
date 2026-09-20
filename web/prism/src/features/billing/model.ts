@@ -31,6 +31,16 @@ export const MIN_ENTRIES = 1;
 export const MAX_CATALOGS = 256;
 export const MAX_ID_LENGTH = 128;
 export const MAX_MODEL_LENGTH = 512;
+export const MAX_BILLING_INTEGER = Number.MAX_SAFE_INTEGER;
+
+export function validBillingText(value: string, maximum: number): boolean {
+  return value.length > 0 && value.trim() === value && [...value].length <= maximum
+    && new TextEncoder().encode(value).length <= maximum && !/[\p{Cc}]/u.test(value);
+}
+
+export function validBillingTime(value: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0 && Number.isFinite(new Date(value).getTime());
+}
 
 /** `test` appears on read but is not writable — the UI offers only the two the
  *  contract accepts on import. */
@@ -127,10 +137,10 @@ export function sortCatalogs(catalogs: readonly Catalog[]): readonly Catalog[] {
 
 export type ParsedEntries =
   | Readonly<{ ok: true; entries: readonly CatalogEntry[] }>
-  | Readonly<{ ok: false; reason: string }>;
+  | Readonly<{ ok: false; reason: string; entryIndex?: number }>;
 
 function badEntry(index: number, message: string): ParsedEntries {
-  return { ok: false, reason: `第 ${index + 1} 条:${message}` };
+  return { ok: false, reason: `第 ${index + 1} 条:${message}`, entryIndex: index };
 }
 
 export function parseCatalogEntries(raw: string): ParsedEntries {
@@ -161,6 +171,9 @@ export function parseCatalogEntries(raw: string): ParsedEntries {
       return badEntry(index, "必须是一个对象。");
     }
     const record = item as Record<string, unknown>;
+    const allowed = new Set<string>(["provider_id", "channel_id", "model", ...RATE_FIELDS]);
+    const unknown = Object.keys(record).find((field) => !allowed.has(field));
+    if (unknown !== undefined) return badEntry(index, `不支持字段 ${unknown}；切换编辑模式前请先移除。`);
     const text: Record<string, string> = {};
     for (const [field, max] of [
       ["provider_id", MAX_ID_LENGTH],
@@ -168,19 +181,16 @@ export function parseCatalogEntries(raw: string): ParsedEntries {
       ["model", MAX_MODEL_LENGTH],
     ] as const) {
       const value = record[field];
-      if (typeof value !== "string" || value.length === 0) {
-        return badEntry(index, `${field} 必须是非空字符串。`);
-      }
-      if (value.length > max) {
-        return badEntry(index, `${field} 超过 ${max} 字符。`);
+      if (typeof value !== "string" || !validBillingText(value, max)) {
+        return badEntry(index, `${field} 必须是无首尾空白、控制字符且不超过 ${max} 字节的非空字符串。`);
       }
       text[field] = value;
     }
     const rates: Record<string, number> = {};
     for (const field of RATE_FIELDS) {
       const value = record[field];
-      if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
-        return badEntry(index, `${field} 必须是 ≥ 0 的整数(单位:microunits / 百万 token)。`);
+      if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+        return badEntry(index, `${field} 必须是 0–${MAX_BILLING_INTEGER} 的安全整数(单位:microunits / 百万 token)。`);
       }
       rates[field] = value;
     }
@@ -220,6 +230,7 @@ export function formatCount(value: number): string {
 
 /** UTC, minute precision. */
 export function formatTime(ms: number): string {
+  if (!validBillingTime(ms)) return "无效时间";
   return `${new Date(ms).toISOString().slice(0, 16).replace("T", " ")}Z`;
 }
 

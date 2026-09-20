@@ -42,6 +42,9 @@ use crate::{
     secret_store::{EncryptedSecret, KeyVersion},
 };
 
+/// Global management catalog capacity, shared by enumeration and atomic append admission.
+pub const MAX_MANAGEMENT_BILLING_CATALOGS: usize = 256;
+
 const CLIENT_KEY_DIGEST_BYTES: usize = 32;
 const ROUTING_PRICE_CATALOG_ID_BYTES: usize = 128;
 
@@ -2104,6 +2107,17 @@ impl ControlPlaneTransaction<'_> {
     pub fn insert_billing_catalog(&mut self, catalog: &BillingPriceCatalog) -> StoreResult<()> {
         if load_catalog_from_connection(&self.transaction, &catalog.catalog_version_id)?.is_some() {
             return Err(StoreError::ConflictingBillingCatalogVersion);
+        }
+        let count: i64 = self.transaction.query_row(
+            "SELECT COUNT(*) FROM billing_price_catalog_versions",
+            [],
+            |row| row.get(0),
+        )?;
+        if count
+            >= i64::try_from(MAX_MANAGEMENT_BILLING_CATALOGS)
+                .map_err(|_| StoreError::InvalidPersistedBillingRecord)?
+        {
+            return Err(StoreError::BillingCatalogCapacityReached);
         }
         insert_catalog_in_transaction(&self.transaction, catalog)
     }
@@ -4535,6 +4549,70 @@ mod tests {
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn competing_catalog_appends_share_one_atomic_global_capacity() -> TestResult {
+        use std::sync::{Arc, Barrier};
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
+        let path = std::env::temp_dir().join(format!(
+            "prism-catalog-capacity-{}-{}.sqlite",
+            std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos()
+        ));
+        let mut repository = SqliteControlPlaneRepository::open(&path)?;
+        let first = ConfigVersionId::try_new("capacity-first")?;
+        let second = ConfigVersionId::try_new("capacity-second")?;
+        repository.write_configuration(&draft_configuration(first.clone(), None))?;
+        repository.write_configuration(&draft_configuration(second.clone(), None))?;
+        for index in 0..super::MAX_MANAGEMENT_BILLING_CATALOGS - 1 {
+            insert_billing_catalog(&mut repository, &billing_catalog(&format!("seed-{index}")))?;
+        }
+        let barrier = Arc::new(Barrier::new(2));
+        let mut handles = Vec::new();
+        for (index, id) in [first.clone(), second.clone()].into_iter().enumerate() {
+            let connection = rusqlite::Connection::open(&path)?;
+            connection.busy_timeout(Duration::from_secs(5))?;
+            let mut writer = SqliteControlPlaneRepository::from_connection(connection)?;
+            let ready = barrier.clone();
+            handles.push(std::thread::spawn(move || {
+                ready.wait();
+                writer.mutate_draft_configuration(&id, 0, |transaction| {
+                    transaction.insert_billing_catalog(&billing_catalog(&format!("winner-{index}")))
+                })
+            }));
+        }
+        let outcomes = handles
+            .into_iter()
+            .map(|handle| {
+                handle
+                    .join()
+                    .map_err(|_| std::io::Error::other("catalog writer panicked"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        assert_eq!(outcomes.iter().filter(|result| result.is_ok()).count(), 1);
+        assert_eq!(
+            outcomes
+                .iter()
+                .filter(|result| matches!(result, Err(StoreError::BillingCatalogCapacityReached)))
+                .count(),
+            1
+        );
+        assert_eq!(repository.list_billing_catalogs_bounded(257)?.len(), 256);
+        let revisions = [first, second]
+            .iter()
+            .map(|id| {
+                repository.load_configuration(id).and_then(|configuration| {
+                    configuration
+                        .map(|value| value.version.revision)
+                        .ok_or(StoreError::ConfigVersionNotFound)
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        assert_eq!(revisions.iter().sum::<i64>(), 1);
+        drop(repository);
+        std::fs::remove_file(path)?;
+        Ok(())
+    }
 
     #[test]
     fn prepared_activation_rejects_changed_sources_without_a_partial_transition() -> TestResult {

@@ -1553,7 +1553,7 @@ export function RuntimePage() {
       {targetEndpoint !== null || targetCredential !== null ? (
         <section className="card data-panel--padded rt-target" aria-label="当前诊断对象">
           <h3>当前诊断对象</h3>
-          <p>Endpoint：{targetEndpoint ?? "未指定"} · Credential：{targetCredential ?? "未指定"}</p>
+          <p>接口连接：{targetEndpoint ? <ResourceIdentity id={targetEndpoint} kind="endpoint"/> : "未指定"} · 账号：{targetCredential ? <ResourceIdentity id={targetCredential} kind="account"/> : "未指定"}</p>
           <p>矩阵与恢复操作已限定此对象。历史失败不保证它仍在当前服务版本中；Explain 请填写要检查的路由与请求模型。</p>
           <button className="secondary" onClick={() => { const next = new URLSearchParams(params); next.delete("endpoint_id"); next.delete("credential_id"); next.delete("account_id"); setParams(next); }}>查看全部绑定</button>
         </section>

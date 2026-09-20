@@ -1,6 +1,66 @@
 import { expect, test } from "@playwright/test";
 import { navigate, selectDraft, unlock } from "./helpers";
 
+test("advanced group creation retains its sheet until the held write returns", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "访问控制");
+  const groups = page.locator("details", { hasText: "高级访问组" });
+  await groups.locator("summary").click();
+  await groups.getByRole("button", { name: "新建访问组" }).click();
+  const sheet = page.getByRole("dialog", { name: "新建访问组" });
+  await sheet.getByLabel("访问组标识").fill("pending-group");
+  await sheet.getByLabel("名称", { exact: true }).fill("待保存组");
+  await page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    fixture.holdFixtureOperationForTest("POST /admin/access-groups");
+  });
+  await sheet.getByRole("button", { name: "创建", exact: true }).click();
+  await expect.poll(() => page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    return fixture.fixtureOperationCallsForTest("POST /admin/access-groups");
+  })).toBe(1);
+  await expect(sheet.getByRole("button", { name: "关闭面板" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await sheet.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(sheet).toBeVisible();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  await page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    fixture.releaseFixtureOperationForTest("POST /admin/access-groups");
+  });
+  await expect(sheet).toHaveCount(0);
+  await expect(groups.locator('[data-resource-id="pending-group"]')).toBeVisible();
+});
+
+test("proxy deletion cannot hide its pending write with cancel or Escape", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "出口策略");
+  const row = page.locator('.cp-section tr:has([data-resource-id="pool-empty"])');
+  await row.getByRole("button", { name: "删除", exact: true }).click();
+  const sheet = page.getByRole("dialog");
+  await page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    fixture.holdFixtureOperationForTest("DELETE /admin/compatible-proxy-pools/pool-empty");
+  });
+  await sheet.getByRole("button", { name: "确认删除" }).click();
+  await expect.poll(() => page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    return fixture.fixtureOperationCallsForTest("DELETE /admin/compatible-proxy-pools/pool-empty");
+  })).toBe(1);
+  await expect(sheet.getByRole("button", { name: "关闭面板" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await sheet.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(sheet).toBeVisible();
+  await page.evaluate(async () => {
+    const fixture = await import("/src/dev/fixtures.ts");
+    fixture.releaseFixtureOperationForTest("DELETE /admin/compatible-proxy-pools/pool-empty");
+  });
+  await expect(sheet).toHaveCount(0);
+  await expect(row).toHaveCount(0);
+});
+
 test("discard confirmation isolates a dirty account-import form and restores its field", async ({ page }) => {
   await unlock(page);
   await selectDraft(page);

@@ -38,13 +38,16 @@ export function SheetDismissButton({ children, type = "button", onClick, onDismi
   return <button {...props} type={type} data-sheet-dismiss="true" onClick={(event) => { onClick?.(event); if (!event.defaultPrevented) requestClose?.(onDismiss); }}>{children}</button>;
 }
 
-export function Sheet({
+function SheetBody({
+  blocker,
+  routeGuard,
   title,
   description,
   children,
   footer,
   onEscape,
   onBeforeDismiss,
+  returnFocus,
   layout = "form",
   tone = "default",
   busy = false,
@@ -52,6 +55,8 @@ export function Sheet({
   blockNavigation = false,
   guardUnsaved = true,
 }: Readonly<{
+  blocker: ReturnType<typeof useBlocker>;
+  routeGuard: { current: () => boolean };
   title: string;
   description?: ReactNode;
   children: ReactNode;
@@ -64,6 +69,7 @@ export function Sheet({
    * workspace and its actionable channel error in place.
    */
   onBeforeDismiss?: (() => boolean | Promise<boolean>) | undefined;
+  returnFocus?: () => HTMLElement | null;
   layout?: SheetLayout;
   tone?: SheetTone;
   busy?: boolean;
@@ -91,7 +97,7 @@ export function Sheet({
   // returns, and a queued Back navigation must never consume a one-time value.
   const effectiveBusy = busy || dismissing;
   const shouldBlockRoute = useCallback(() => effectiveBusy || blockNavigation || hasUnsaved(), [blockNavigation, effectiveBusy, hasUnsaved]);
-  const blocker = useBlocker(shouldBlockRoute);
+  routeGuard.current = shouldBlockRoute;
   const completeDismiss = useCallback((reason: SheetCloseReason, deferred: (() => void) | undefined) => {
     if (reason === "route" && blocker.state === "blocked") {
       // The router owns the accepted POP. Calling a parent close here can
@@ -225,8 +231,9 @@ export function Sheet({
         }
         // A replacement dialog owns focus. Never revive secret-bearing DOM just
         // to animate an exit, and only return focus when no dialog replaced it.
-        if (openSheets === 0 && !document.querySelector('[role="dialog"]') && opener !== null && opener.isConnected) {
-          opener.focus();
+        const restoreTarget = returnFocus?.() ?? opener;
+        if (openSheets === 0 && !document.querySelector('[role="dialog"]') && restoreTarget !== null && restoreTarget.isConnected) {
+          restoreTarget.focus();
         }
       });
     };
@@ -313,4 +320,23 @@ export function Sheet({
     </div>,
     document.body,
   );
+}
+
+
+type SheetProps = Omit<Parameters<typeof SheetBody>[0], "blocker" | "routeGuard"> & {
+  /** The containing inline operation already owns navigation admission. */
+  navigationOwned?: boolean;
+};
+const idleBlocker = { state: "unblocked", proceed: undefined, reset: undefined, location: undefined } as const;
+function StandaloneSheet(props: SheetProps) {
+  const routeGuard = useRef<() => boolean>(() => false);
+  const blocker = useBlocker(() => routeGuard.current());
+  return <SheetBody {...props} blocker={blocker} routeGuard={routeGuard}/>;
+}
+function OwnedSheet(props: SheetProps) {
+  const routeGuard = useRef<() => boolean>(() => false);
+  return <SheetBody {...props} blocker={idleBlocker} routeGuard={routeGuard}/>;
+}
+export function Sheet(props: SheetProps) {
+  return props.navigationOwned ? <OwnedSheet {...props}/> : <StandaloneSheet {...props}/>;
 }
