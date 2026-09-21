@@ -1,0 +1,32 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "login": true,
+    "overflow": false,
+    "scripts": [
+      "/admin-ui/assets/main.js?v=2be9c06023713b03f58fe5c6"
+    ],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "login": true,
+    "overflow": false,
+    "scripts": [
+      "/admin-ui/assets/main.js?v=2be9c06023713b03f58fe5c6"
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "login": true,
+    "overflow": false,
+    "scripts": [
+      "/admin-ui/assets/main.js?v=2be9c06023713b03f58fe5c6"
+    ],
+    "errors": []
+  }
+]

@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "revision": "ca75a44351374aac62a40b13ba878a3487345db6",
+  "fallback_revision": "b518d925fdaf03c92d235fa6ca4a7c5565d04043",
+  "schema": 28,
+  "stop_to_ready_ms": 1022,
+  "binary_sha256": "25389fcaabb301bb8ef3619bec682ac516bce2d7311f05470df83d19a57e318f",
+  "frontend_assets": {
+    "/admin-ui/": "d894d006f409923e95c3ff62ea280eae7549330500153d55f5afbef712ee5099",
+    "/admin-ui/assets/main.js": "8b8fda4c1998ee65f1ff95ec18bdba21471a25320af632bdbd7e6e101547ce06",
+    "/admin-ui/assets/vendor.js": "882ff23f8a2d073de5cc33ef822e0dea0e8b8ed984147d4b8d0b464ad97b8ac4",
+    "/admin-ui/assets/index.css": "3701db50c43020bbfc6c8ea149809ac11539ca9af9fd0a1a2f93b961e8108728"
+  },
+  "historical_rows_retained": {
+    "upstreams": 41,
+    "upstream_endpoints": 53,
+    "endpoint_credential_bindings": 43,
+    "grok_accounts": 5,
+    "upstream_credentials": 31,
+    "gateway_event_log": 2229,
+    "billing_ledger_entries": 593,
+    "native_account_identity_observations": 0,
+    "native_account_management_events": 0,
+    "access_groups": 27,
+    "access_group_routes": 74,
+    "client_keys": 27,
+    "public_models": 69,
+    "model_aliases": 8
+  },
+  "effective_permissions_preserved": true,
+  "accounts": 7,
+  "existing_administrator_store_retained": true,
+  "public_https_csp_auth_verified": true,
+  "real_provider_inference_requests": 0,
+  "dns_caddy_autoreg_changed": false
+}

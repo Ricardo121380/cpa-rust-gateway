@@ -144,3 +144,9 @@ Next: close the explicit whole-workspace keyboard/long/error-state and real-chan
 ### 2026-09-21 — 当前浏览器验收工具覆盖
 
 用户明确“浏览器测试走egolite而不是safari”。后续本轮浏览器测试统一使用EgoLite；此前提出的新增Safari专项不再作为当前必需项。历史浏览器证据仍按实际工具和范围保留，不将EgoLite结果写成Safari覆盖。跨版本加载与会话导航检查继续执行，详见[专项复核](../reports/prism-session-navigation-20260921.md)。
+
+### 2026-09-22 — 候选整体验收与正式上线
+
+真实本地网关目录→开放模型→受限密钥→mock请求→事件/账本闭环、三时序会话撤销、EgoLite 84项响应式结构观测通过。补账号重复选当前视图保留筛选修复；本地及远端正式门禁、双架构签名通过。Oracle已部署 `ca75a44`，保留管理员、7账号、2229事件和593账本；公网旧标签正常刷新后新版资源及三尺寸登录页通过。兼容回退 `b518d92`。
+
+[发布报告与证据](../reports/prism-candidate-production-20260922.md)明确区分本地mock业务验证与生产登录页检查。原偶发空画布仍未归因、真实官方授权未新增人工验证，不将此次发布解释为所有历史未决项消失。

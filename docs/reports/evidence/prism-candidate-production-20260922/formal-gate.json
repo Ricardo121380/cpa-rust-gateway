@@ -1,0 +1,243 @@
+{
+  "conclusion": "success",
+  "headSha": "ca75a44351374aac62a40b13ba878a3487345db6",
+  "jobs": [
+    {
+      "completedAt": "2026-09-21T15:53:14Z",
+      "conclusion": "success",
+      "databaseId": 106406907673,
+      "name": "Authorize explicit delivery request",
+      "startedAt": "2026-09-21T15:53:11Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-21T15:53:12Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-21T15:53:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T15:53:12Z",
+          "conclusion": "success",
+          "name": "Check trigger boundary",
+          "number": 2,
+          "startedAt": "2026-09-21T15:53:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T15:53:12Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 3,
+          "startedAt": "2026-09-21T15:53:12Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/35621951153/job/106406907673"
+    },
+    {
+      "completedAt": "2026-09-21T16:01:29Z",
+      "conclusion": "success",
+      "databaseId": 106406944219,
+      "name": "Fast gate (explicit delivery)",
+      "startedAt": "2026-09-21T15:53:17Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-21T15:53:18Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-21T15:53:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T15:53:23Z",
+          "conclusion": "success",
+          "name": "Checkout requested revision",
+          "number": 2,
+          "startedAt": "2026-09-21T15:53:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T15:55:20Z",
+          "conclusion": "success",
+          "name": "Install CI prerequisites",
+          "number": 3,
+          "startedAt": "2026-09-21T15:53:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T15:55:29Z",
+          "conclusion": "success",
+          "name": "Install pinned Rust toolchain",
+          "number": 4,
+          "startedAt": "2026-09-21T15:55:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:01:26Z",
+          "conclusion": "success",
+          "name": "Run fast gate",
+          "number": 5,
+          "startedAt": "2026-09-21T15:55:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:01:26Z",
+          "conclusion": "success",
+          "name": "Post Checkout requested revision",
+          "number": 10,
+          "startedAt": "2026-09-21T16:01:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:01:26Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-09-21T16:01:26Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/35621951153/job/106406944219"
+    },
+    {
+      "completedAt": "2026-09-21T16:02:39Z",
+      "conclusion": "success",
+      "databaseId": 106409998714,
+      "name": "Full supply-chain gate (explicit delivery)",
+      "startedAt": "2026-09-21T16:01:32Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-21T16:01:33Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-21T16:01:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:01:36Z",
+          "conclusion": "success",
+          "name": "Checkout requested revision",
+          "number": 2,
+          "startedAt": "2026-09-21T16:01:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:19Z",
+          "conclusion": "success",
+          "name": "Install native build prerequisites",
+          "number": 3,
+          "startedAt": "2026-09-21T16:01:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:27Z",
+          "conclusion": "success",
+          "name": "Install pinned Rust toolchain",
+          "number": 4,
+          "startedAt": "2026-09-21T16:02:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:31Z",
+          "conclusion": "success",
+          "name": "Restore pinned quality-tool cache",
+          "number": 5,
+          "startedAt": "2026-09-21T16:02:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:32Z",
+          "conclusion": "success",
+          "name": "Install pinned quality tools",
+          "number": 6,
+          "startedAt": "2026-09-21T16:02:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:32Z",
+          "conclusion": "success",
+          "name": "Summarize quality-tool cache",
+          "number": 7,
+          "startedAt": "2026-09-21T16:02:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:37Z",
+          "conclusion": "success",
+          "name": "Run supplemental supply-chain gate",
+          "number": 8,
+          "startedAt": "2026-09-21T16:02:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:37Z",
+          "conclusion": "success",
+          "name": "Post Restore pinned quality-tool cache",
+          "number": 15,
+          "startedAt": "2026-09-21T16:02:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:38Z",
+          "conclusion": "success",
+          "name": "Post Checkout requested revision",
+          "number": 16,
+          "startedAt": "2026-09-21T16:02:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:38Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "startedAt": "2026-09-21T16:02:38Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/35621951153/job/106409998714"
+    },
+    {
+      "completedAt": "2026-09-21T16:02:47Z",
+      "conclusion": "success",
+      "databaseId": 106410438497,
+      "name": "Required delivery gate",
+      "startedAt": "2026-09-21T16:02:43Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-21T16:02:44Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-21T16:02:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:44Z",
+          "conclusion": "success",
+          "name": "Verify formal delivery path",
+          "number": 2,
+          "startedAt": "2026-09-21T16:02:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-21T16:02:44Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 3,
+          "startedAt": "2026-09-21T16:02:44Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/35621951153/job/106410438497"
+    }
+  ],
+  "status": "completed"
+}

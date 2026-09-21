@@ -1,6 +1,16 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
-## 2026-09-21: module URL hotfix (current)
+## 2026-09-22: current signed candidate release
+
+Production serves signed `ca75a44351374aac62a40b13ba878a3487345db6`, schema28.
+Formal gates, both signed targets, isolated fallback roundtrip and public EgoLite
+same-tab reload at three sizes passed. Existing administrator, 7 accounts,
+2229 historical events and 593 ledger rows retained. Compatible binary fallback:
+`b518d925fdaf03c92d235fa6ca4a7c5565d04043`; preserve latest state.
+See [release evidence and limitations](../reports/prism-candidate-production-20260922.md).
+Earlier entries below are historical.
+
+## 2026-09-21: module URL hotfix (historical)
 
 Production now serves signed `b518d925fdaf03c92d235fa6ca4a7c5565d04043`, schema28.
 Formal gate, signing, offline rollback and public checks passed. This fixes mixed-release
