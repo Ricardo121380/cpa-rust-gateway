@@ -2910,3 +2910,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Resource counts hid failed reads behind an indefinite ellipsis. Reuse ReadStatus with loading/failure, retained-data labeling and read-only retry; add resource failure/recovery, empty metrics and long provider-name regressions.
 
 **Other side:** FYI. No contract/backend/production change. Real embedded gateway/EgoLite network blocking and recovery, maintenance preflight, regression and build evidence are in `docs/reports/prism-dashboard-maintenance-readiness-20260921.md`.
+
+## 2026-09-21 - Codex - release module URL isolation
+
+**What:** `web/prism/vite.config.ts`, `web/prism/scripts/check.mjs`.
+
+**Why:** A production screenshot points to UnlockPage's destructuring of useSearchParams. Pairing the current production entry with the preceding signed release's actual vendor reproduces the same function/line failure. Fixed file names allowed different export mappings to share a module URL. The build now adds one deterministic content-derived query revision to entry, CSS, preload and vendor import URLs. The four physical files, same-origin policy and strict CSP remain intact. Build checks reject missing or inconsistent revisions.
+
+**Other side:** FYI. No API or data migration. Screenshot alone cannot prove the user's cached bytes; mixed-release reproduction is confirmed. Prior full-production acceptance claim is reopened pending this release and browser checks.

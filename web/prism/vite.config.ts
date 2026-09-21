@@ -34,6 +34,35 @@ function cspPlugin(): Plugin {
   };
 }
 
+// Fixed on-disk names are required by the Rust embedder. Version every URL,
+// including the entry's vendor import, so prior releases cannot share modules.
+function assetRevisionPlugin(): Plugin {
+  return {
+    name: "prism-asset-revision",
+    enforce: "post",
+    async generateBundle(_options, bundle) {
+      const contents: string[] = [];
+      for (const name of Object.keys(bundle).sort()) {
+        const asset = bundle[name]!;
+        const source = asset.type === "chunk" ? asset.code : asset.source;
+        contents.push(name, typeof source === "string" ? source : new TextDecoder().decode(source));
+      }
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(contents)));
+      const revision = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      for (const asset of Object.values(bundle)) {
+        if (asset.type === "chunk") {
+          asset.code = asset.code.replaceAll('"./vendor.js"', `"./vendor.js?v=${revision}"`);
+        } else if (asset.fileName === "index.html") {
+          asset.source = String(asset.source).replace(
+            /\.\/assets\/(main\.js|vendor\.js|index\.css)/gu,
+            `./assets/$1?v=${revision}`,
+          );
+        }
+      }
+    },
+  };
+}
+
 // Reproducible-build contract (docs/08 §3): fixed file names, no content hashes,
 // no sourcemaps, no timestamps. The emitted file set must match the embedding
 // manifest in gateway-http-actix exactly (cutover happens at FE-1 exit).
@@ -41,7 +70,7 @@ export default defineConfig({
   // Relative asset paths: the SPA is served under the management listener's
   // /admin-ui/ prefix after cutover; hash routing needs no server fallback.
   base: "./",
-  plugins: [react(), cspPlugin()],
+  plugins: [react(), cspPlugin(), assetRevisionPlugin()],
   build: {
     sourcemap: false,
     minify: "esbuild",

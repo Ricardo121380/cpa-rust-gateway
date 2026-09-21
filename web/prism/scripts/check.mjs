@@ -197,6 +197,14 @@ if (!html.includes("style-src 'self';")) {
   failures.push("dist/index.html: production CSP must keep style-src 'self' without inline exemption");
 }
 
+// Stable filenames must not share browser module URLs across releases.
+const main = readFileSync(join(DIST, "assets/main.js"), "utf8");
+const revisions = [...html.matchAll(/\.\/assets\/(?:main\.js|vendor\.js|index\.css)\?v=([a-f0-9]{24})/gu)].map((m) => m[1]);
+const vendorRevision = main.match(/"\.\/vendor\.js\?v=([a-f0-9]{24})"/u)?.[1];
+if (revisions.length !== 3 || new Set(revisions).size !== 1 || vendorRevision !== revisions[0] || main.includes('"./vendor.js"')) {
+  failures.push("all entry, stylesheet, preload and vendor-import URLs must share one build revision");
+}
+
 if (DOUBLE) {
   const first = hashDist();
   rmSync(DIST, { recursive: true });
