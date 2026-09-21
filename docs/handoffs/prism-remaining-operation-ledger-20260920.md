@@ -72,3 +72,9 @@ Next: close the explicit whole-workspace keyboard/long/error-state and real-chan
 - 真实网关三尺寸返回焦点、账号弹窗循环焦点/脏输入恢复/无效导入结果已验；八个工作区键盘导航已验。
 - 12 条状态/详情回归与单独 3 条页内视觉/新增焦点回归通过；类型、四文件构建、gateway 和 3 条 Rust 嵌入检查通过。
 - [逐工作区证据与缺口](../reports/prism-keyboard-readiness-20260921.md)明确区分导航、fixture 和真实操作。M4 全状态验收与 M5 签名上线继续开放。
+
+### 2026-09-21 — 密钥、请求详情与长价格状态验收
+
+- 真实 gateway/EgoLite：键盘选择及清空模型权限、零权限禁止创建、失败请求抽屉与诊断焦点、无效 JSON 原文保留及恢复、512 条长模型价格分页与移动布局已验。未签发新密钥、未保存价格目录。
+- 计费生命周期、页内操作归属和密钥生命周期共 32 条 Chromium 回归通过（零重试）；本批无产品代码修改。
+- [本批证据与边界](../reports/prism-operational-state-readiness-20260921.md)。下一步收敛仪表盘空错态、提供商/模型长内容及高级维护，再核对真实渠道历史证据和发布门禁。M4/M5 未标完成。

@@ -28,3 +28,7 @@ Logs: `/tmp/prism-keyboard-20260921.log`, `/tmp/prism-keyboard-focus.log`, `/tmp
 | Settings/advanced | Fixture egress pending-write and dirty close protections | All maintenance subpage keyboard/empty/error variants |
 
 Next: finish the explicit gaps above with bounded scenarios, then reconcile M4 readiness and prepare the signed M5 release. No DNS, Caddy, Autoreg, production accounts or historical data changed. Local gateway restart briefly interrupted the browser; navigation was restored after readiness, not counted as an application failure.
+
+## Subsequent acceptance
+
+The API-key permission, failed-request drawer and long price-editor gaps have bounded fresh scenarios in [operational state acceptance](prism-operational-state-readiness-20260921.md), including 32 current regressions and separate real gateway observations. Use that report to refine the table above; the original table describes this report's earlier observation scope.
