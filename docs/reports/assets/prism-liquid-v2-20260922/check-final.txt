@@ -1,0 +1,5 @@
+
+> prism-admin@0.0.1 check:full
+> node scripts/check.mjs --double-build
+
+check-prism-spa: OK

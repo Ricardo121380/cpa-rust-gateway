@@ -1,6 +1,6 @@
 # Prism Liquid V2 本地迁移记录
 
-状态：V2 本地视觉候选已实现；共享层定向验收已运行，生产未部署。基线 `de888dd`。用户提供的 V2 原型已存入 `docs/design/chatgpt-prism-liquid-v2/`。
+状态：V2 本地视觉候选已实现；共享层定向验收已运行，生产未部署。基线 `de888dd`；实现提交 `51343ce`。用户提供的 V2 原型已存入 `docs/design/chatgpt-prism-liquid-v2/`。
 
 ## 已实施
 
@@ -31,7 +31,14 @@
 
 ## 明确限制
 
-- C2C iteration 1 提出的 R1–R3 均已修正；最终复审另行记录，不把审阅意见当成执行证据。
+- C2C iteration 2：`APPROVED_FOR_LOCAL_PREVIEW`，R1–R3 CLOSED。结论仅覆盖当前视觉候选与三个修正，不代表全计划、全业务或生产就绪。复审之后补充了真实网关浅色 24 项与按住状态 8 组证据；未改变产品代码。
+- 审阅记录：[ChatGPT 设计与复审会话](https://chatgpt.com/g/g-p-6aa8d7134f2c8191a372d21f415c3e83/c/6ab1479d-31a8-83ea-aa5e-fa4f3df3bd8a)。日志以 `*-final.txt` 纳入版本库。
 - 本轮为现有功能的视觉迁移；未重新跑所有业务端到端场景，也未把 V2A–V2E 的完整行为矩阵标为完成。
 - 原型的演示健康数、模拟目录、假差异前后值不迁入；复杂提供商/路由/价格编辑沿用页内工作区。
 - 未执行 Safari/WebKit，未新增真实 Provider 推理和生产操作；历史会话空画布未宣称修复。
+
+## 查看方式
+
+- EgoLite 已登录的本地隔离实例：http://127.0.0.1:53438/admin-ui/#/ 。该入口依赖本机验收进程，使用合成资源。
+- 静态截图：`assets/prism-liquid-v2-20260922/1440-overview-light.png`、`1440-overview.png`、`390-key-form-dark.png`。
+- 生产域名未切换到本次候选；管理员、历史请求与账本均未改动。

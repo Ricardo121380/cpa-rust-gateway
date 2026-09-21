@@ -1,0 +1,10 @@
+   Compiling gateway-http-actix v0.1.0 (/Users/huangrui/Documents/CPA-Rust/cpa-rust-gateway/crates/gateway-http-actix)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.53s
+     Running tests/p10_09_embedded_management_ui.rs (target/debug/deps/p10_09_embedded_management_ui-4c9e8a67d0985d35)
+
+running 3 tests
+test management_ui_and_public_data_plane_configurations_do_not_share_routes ... ok
+test embedded_management_ui_serves_only_exact_reviewed_assets_with_hardened_headers ... ok
+test route_level_probe_reports_data_plane_timing_with_and_without_ui_registration ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s

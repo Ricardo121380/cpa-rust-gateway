@@ -1,0 +1,19 @@
+
+> prism-admin@0.0.1 build
+> tsc --noEmit && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 245 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html          0.96 kB │ gzip:   0.52 kB
+dist/assets/index.css  128.65 kB │ gzip:  22.50 kB
+dist/assets/vendor.js  141.67 kB │ gzip:  45.98 kB
+dist/assets/main.js    825.32 kB │ gzip: 229.32 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 940ms
