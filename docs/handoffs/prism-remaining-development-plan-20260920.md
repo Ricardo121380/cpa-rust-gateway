@@ -120,3 +120,11 @@
 M4 progressed through the real embedded gateway/mock model-to-key-to-request-to-billing chain, 84 responsive/theme structural observations, and final five-sample performance comparison. Two actual regressions were repaired: delayed account search interrupting an open form, and null access-group labeling. Chromium full run: 286 passed / one fake-clock test wait failed; after correcting that wait, the complete affected group passed 8/8. Unit, type, deterministic four-file and three embedded Rust checks passed. See [integration evidence](../reports/prism-integration-acceptance-20260921.md) for exact scopes and separate runs.
 
 Next: close the explicit whole-workspace keyboard/long/error-state and real-channel/manual-evidence readiness checklist, then signed release and Oracle post-deployment checks. M4 and M5 are not marked complete; no production release occurred. Current-round Codex with ChatGPT exclusion remains in force.
+
+### 2026-09-21 — 最终本地发布门禁与渠道证据
+
+- 完整 Chromium 回归 291/291、前端单元 390/390、供应链检查和修正后的 `scripts/check.sh fast` 全部通过。
+- 全仓首次运行定位到两条旧 OAuth 测试使用不符合当前严格渠道准入的凭据；仅修正合成 fixture，未放宽生产鉴权。定向 42 条回归及随后完整门禁通过。
+- 渠道真实授权、模拟交换及人工待验边界已逐项记录。Oracle 只读预检确认现网仍为 `763b570`，服务与 loopback health 正常。
+- 旧候选 `d232f94` 的远端门禁/签名流程已取消，不作为发布证据。下一步为修正后提交的远端正式门禁、签名产物验证、隔离副本回滚演练及 Oracle 发布；本批没有上线。
+- 详见 [发布就绪记录](../reports/prism-release-readiness-20260921.md)。M5 仍未完成，不宣称整个 Goal 完成。

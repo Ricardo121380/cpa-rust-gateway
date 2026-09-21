@@ -41,6 +41,18 @@ type TestResult = Result<(), Box<dyn Error>>;
 const MANAGEMENT_KEY: &str = "mgmt_0123456789abcdefghijklmnopqrstuvwxyz";
 const VERSION: &str = "draft-p10";
 
+// OAuth admission validates the sealed credential family, even with an injected workflow.
+fn codex_oauth_fixture() -> String {
+    json!({
+        "kind": "codex_oauth",
+        "access_token": "synthetic-access",
+        "refresh_token": "synthetic-refresh",
+        "expires_at_ms": 4_102_444_800_000_i64,
+        "account_id": "synthetic-account"
+    })
+    .to_string()
+}
+
 fn loopback() -> SocketAddr {
     SocketAddr::from(([127, 0, 0, 1], 44_404))
 }
@@ -528,7 +540,7 @@ async fn endpoint_catalog_and_oauth_workflows_are_versioned_injected_and_value_f
             test::TestRequest::post()
                 .uri("/admin/upstreams/upstream-b/credentials")
                 .set_json(json!({
-                    "id":"credential-b", "kind":"oauth", "secret":"workflow-secret", "status":"active"
+                    "id":"credential-b", "kind":"oauth_json", "secret":codex_oauth_fixture(), "status":"active"
                 })),
             Some("rev-3"),
         )
@@ -798,7 +810,7 @@ async fn persisted_active_oauth_projects_complete_after_session_state_is_lost() 
                 .uri("/admin/upstreams/upstream-oauth/credentials")
                 .set_json(json!({
                     "id":"credential-oauth", "kind":"oauth_json",
-                    "secret":"encrypted-by-management-boundary", "status":"active"
+                    "secret":codex_oauth_fixture(), "status":"active"
                 })),
             Some("rev-1"),
         )
