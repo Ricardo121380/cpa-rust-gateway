@@ -132,14 +132,14 @@ function BindingReconcileSheet({
         </p>
       ) : null}
       {bindings.data !== undefined && rows.length === 0 ? (
-        <p className="stat-sub">配置里这个 channel 没有任何绑定。</p>
+        <p className="stat-sub">此接口尚未保存账号连接。</p>
       ) : null}
       {rows.length > 0 ? (
         <table className="responsive-table">
           <thead>
             <tr>
-              <th>credential</th>
-              <th>upstream</th>
+              <th>账号</th>
+              <th>提供商</th>
               <th>启用</th>
               <th>优先级</th>
               <th>权重</th>
@@ -152,7 +152,7 @@ function BindingReconcileSheet({
                 <td className="mono" data-label="账号">
                   <ResourceIdentity id={row.credential_id} kind="account" />
                   {operationalCredentialIds.has(row.credential_id) ? null : (
-                    <strong> · 运营库存里没有</strong>
+                    <strong> · 未在运行状态中观测到</strong>
                   )}
                 </td>
                 <td data-label="提供商"><ResourceIdentity id={row.upstream_id} kind="upstream" /></td>
@@ -196,15 +196,15 @@ function BindingSheet({
   return (
     <Sheet
       title="连接账号"
-      description="选择一个接口和账号；调度策略默认使用均衡、安全的值。"
+      description="将已有账号连接到接口，供该接口调度使用。"
       onEscape={onCancel}
       busy={pending}
-      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={pending}>保存连接</button></>}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={pending || channels.length === 0 || accounts.length === 0}>保存连接</button></>}
     >
       {feedback}
       <form
         id={formId}
-        className="sheet-form"
+        className="sheet-form resource-editor"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -220,6 +220,9 @@ function BindingSheet({
           });
         }}
       >
+        {channels.length === 0 || accounts.length === 0 ? <p role="status" className="empty-state">{channels.length === 0 ? "请先添加接口，再连接账号。" : "请先添加账号，再建立连接。"}</p> : null}
+        <fieldset className="resource-editor-section">
+          <legend>连接对象</legend>
         <label>
           接口
           <select name="channel_id" required defaultValue={initialEndpointId}>
@@ -234,8 +237,14 @@ function BindingSheet({
             {accounts.map((account) => <option key={account.account_id} value={account.account_id}>{account.display} · {account.provider}</option>)}
           </select>
         </label>
+        </fieldset>
+        <label className="check-row">
+          <input name="enabled" type="checkbox" defaultChecked />
+          立即启用连接
+        </label>
         <details className="sheet-advanced">
           <summary>调度设置</summary>
+          <div className="resource-editor-grid binding-scheduling">
           <label>
             优先级
             <input name="priority" type="number" defaultValue={0} min={0} required />
@@ -248,10 +257,7 @@ function BindingSheet({
             并发上限
             <input name="concurrency" type="number" defaultValue={1} min={1} max={100000} required />
           </label>
-          <label className="check-row">
-            <input name="enabled" type="checkbox" defaultChecked />
-            立即启用连接
-          </label>
+          </div>
         </details>
       </form>
     </Sheet>

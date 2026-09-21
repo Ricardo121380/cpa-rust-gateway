@@ -161,3 +161,6 @@ html[data-contrast="more"] .inline-workspace { background: var(--surface); box-s
 .resource-editor .sheet-advanced > label { margin-top:12px; }
 .resource-editor p { margin:0; }
 @media(max-width:600px) { .resource-editor-grid { grid-template-columns:1fr; gap:14px; } }
+
+.binding-scheduling { margin-top:14px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media(max-width:600px) { .binding-scheduling { grid-template-columns:1fr; } }

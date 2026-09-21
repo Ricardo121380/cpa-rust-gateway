@@ -2951,3 +2951,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Separate endpoint connection settings from implementation parameters and credential identity from secret replacement. Use compact desktop field groups and single-column mobile forms; localize status labels without changing request values.
 
 **Other side:** FYI. Existing Sheet lifecycle and mutation behavior retained. 19 resource browser regressions, final SPA build gate and 3 embedded Rust tests passed; real local gateway EgoLite evidence recorded. No production change.
+
+## 2026-09-21 - Codex - account binding form hierarchy
+
+**What:** `web/prism/src/features/upstreams/SubresourcePanel.tsx` and `web/prism/src/design/workspace.css`.
+
+**Why:** Make target selection and enabled state explicit, group scheduling inputs responsively, prevent empty-resource submission, and localize reconciliation terminology.
+
+**Other side:** FYI. Binding payload and mutation lifecycle unchanged. 19 browser regressions, SPA gate and 3 embedded tests passed; real local gateway screenshots and discard checks recorded. No deployment.
