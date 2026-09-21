@@ -314,6 +314,12 @@ export function OverviewPage() {
           <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
           <div className="card overview-resources">
           <div className="overview-resource-head"><h3>资源概览</h3><span className="entity-meta">{context?.status === "draft" ? "待应用" : context?.status === "archived" ? "历史配置" : active === undefined ? "等待接入" : "当前配置"}</span></div>
+          {scope === undefined ? null : <ReadStatus
+            pending={upstreams.isPending || models.isPending || keys.isPending}
+            error={upstreams.error ?? models.error ?? keys.error}
+            hasData={counts.every(item => item.value !== undefined)}
+            retry={() => { void Promise.all([upstreams.refetch(), models.refetch(), keys.refetch()]); }}
+          />}
           {scope === undefined ? (
             <Link to="/upstreams?add=provider">接入第一个提供商 →</Link>
           ) : (

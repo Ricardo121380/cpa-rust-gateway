@@ -2902,3 +2902,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Real embedded gateway keyboard acceptance found Escape left focus on BODY. Restore the original connected opener after actual unmount only when no replacement view owns focus; preserve StrictMode and route navigation. New regression covers Escape, footer cancel and destination focus.
 
 **Other side:** FYI. No API/backend or production change. Real EgoLite three-size checks, targeted regressions, four-file build and embedded tests are documented in `docs/reports/prism-keyboard-readiness-20260921.md`. Remaining M4 gaps stay explicit.
+
+## 2026-09-21 - Codex - dashboard resource read recovery
+
+**What:** `web/prism/src/features/overview/OverviewPage.tsx`, `web/prism/e2e/dashboard-readiness.spec.ts`.
+
+**Why:** Resource counts hid failed reads behind an indefinite ellipsis. Reuse ReadStatus with loading/failure, retained-data labeling and read-only retry; add resource failure/recovery, empty metrics and long provider-name regressions.
+
+**Other side:** FYI. No contract/backend/production change. Real embedded gateway/EgoLite network blocking and recovery, maintenance preflight, regression and build evidence are in `docs/reports/prism-dashboard-maintenance-readiness-20260921.md`.
