@@ -2975,3 +2975,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Verify absolute expiry closes an open editor and removes secrets and caches without waiting for a server rejection.
 
 **Other side:** FYI. No product, contract or backend changes. Six focused browser tests and 22 ownership unit tests passed; actual local gateway logout/revocation/relogin and controlled same-tab asset switching recorded. An automation navigation/revocation blank-page observation remains explicitly open in the report; Safari and production cutover not claimed.
+
+## 2026-09-21 - Codex - navigation-time authentication rejection regression
+
+**What:** `web/prism/e2e/session-ownership.spec.ts`.
+
+**Why:** Cover the settings entry receiving an authentication rejection during hash navigation and require a visible login form, not merely absence of protected content.
+
+**Other side:** FYI. Four final session ownership browser tests passed. Product behavior unchanged; this fixture test does not establish the cause of the earlier real-browser automation observation.

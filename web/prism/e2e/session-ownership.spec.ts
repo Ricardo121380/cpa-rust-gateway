@@ -98,3 +98,22 @@ test("idle expiry removes an open editor without waiting for a server rejection"
   });
   expect(cleared).toBe(true);
 });
+
+test("authentication rejection during settings navigation reaches the login form", async ({ page }) => {
+  await unlock(page);
+  await page.evaluate(async () => {
+    const path = "/src/generated/management-client.ts";
+    const { ManagementApi } = await import(path);
+    const original = ManagementApi.prototype.request;
+    ManagementApi.prototype.request = async function (operation: string, request: unknown) {
+      if (operation === "getSystemInformation") {
+        return new Response(JSON.stringify({ error: { code: "management_access_denied" } }), { status: 404 });
+      }
+      return original.call(this, operation, request);
+    };
+  });
+  await page.goto("/#/settings");
+  await expect(page).toHaveURL(/#\/unlock$/u);
+  await expect(page.getByRole("heading", { name: "管理员登录" })).toBeVisible();
+  await expect(page.locator("main.canvas")).toHaveCount(0);
+});
