@@ -1,5 +1,6 @@
+import { useModelWorkspaceFilters } from "../models/workspaceFilters";
 import { CancelledError, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -34,10 +35,19 @@ export function UpstreamModelBrowser() {
   const providers=useQuery({queryKey:["upstreams",scope],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});
   const catalog=useQuery({queryKey:["catalog-status",scope],queryFn:()=>call<CatalogRow[]>("getCatalogStatus",{},{versionScoped:true}),enabled:!!scope});
   const credentials=useManagedInventory("credentials");const native=useNativeAccounts();
-  const [provider,setProvider]=useState(params.get("upstream_id")??"");
-  const [endpointChoice,setEndpoint]=useState(params.get("endpoint_id")??"");
-  const [credentialChoice,setCredential]=useState(params.get("credential_id")??"");
-  const [search,setSearch]=useState("");const [picked,setPicked]=useState<Set<string>>(new Set());
+  const filterOwner=useRef({session:useSessionStore.getState().generation,selection:useVersionStore.getState().selectionGeneration});
+  const [initialFilters] = useState(() => {
+    const hasTarget = ["upstream_id", "endpoint_id", "credential_id"].some(key => params.has(key));
+    return hasTarget ? {provider:params.get("upstream_id")??"",endpoint:params.get("endpoint_id")??"",credential:params.get("credential_id")??"",search:""} : useModelWorkspaceFilters.getState().catalog;
+  });
+  const [provider,setProvider]=useState(initialFilters.provider);
+  const [endpointChoice,setEndpoint]=useState(initialFilters.endpoint);
+  const [credentialChoice,setCredential]=useState(initialFilters.credential);
+  const [search,setSearch]=useState(initialFilters.search);const [picked,setPicked]=useState<Set<string>>(new Set());
+  useEffect(() => {
+    if(filterOwner.current.session===useSessionStore.getState().generation&&filterOwner.current.selection===useVersionStore.getState().selectionGeneration)
+      useModelWorkspaceFilters.getState().setCatalog({provider,endpoint:endpointChoice,credential:credentialChoice,search});
+  }, [provider,endpointChoice,credentialChoice,search]);
   const [connection,setConnection]=useState<CatalogConnectionSelection>();
   const [selectionError,setSelectionError]=useState<string>();
   const currentChoice=useRef({scope,endpointChoice,credentialChoice});

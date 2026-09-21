@@ -111,3 +111,7 @@ Next: close the explicit whole-workspace keyboard/long/error-state and real-chan
 ### 2026-09-21 — 账号接入主次与来源传递
 
 G01账号授权/导入分离、G03提供商目录来源传递已实现并完成局部真实网关验收。25条账号回归、14条单测、构建/契约/四文件和3条Rust嵌入检查通过；[证据和前后截图](../reports/prism-onboarding-refinement-20260921.md)。G02“无统一入口”的推断撤回：AppShell已有双入口，筛选连续性仍待完善。本批未上线，未宣称全站对齐完成。
+
+### 2026-09-21 — 模型工作区筛选连续性
+
+已保留目录提供商/接口/账号/搜索及已接入模型独立搜索，配置或会话变化清空缓存；不恢复批量勾选和写入任务。16条浏览器回归、2条新单测、构建/四文件/3条Rust嵌入通过；真实本地网关EgoLite往返验证通过。[本批证据](../reports/prism-model-continuity-20260921.md)。未上线，不代表全站产品对齐完成。

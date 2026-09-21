@@ -1,3 +1,4 @@
+import { useModelWorkspaceFilters } from "./workspaceFilters";
 import { useOperationBoundary } from "../../components/OperationBoundary";
 import { Link, useNavigate } from "react-router-dom";
 import { useModelConnections } from "./useModelConnections";
@@ -53,7 +54,8 @@ export function ModelsPage() {
   const [modelEditor,setModelEditor]=useState<{initial?:PublicModel;owner:DraftRoutingOwner}>();
   const [inspected, setInspected] = useState<PublicModel>();
   const [connectionTarget,setConnectionTarget]=useState<PublicModel>();
-  const [searchText,setSearchText]=useState("");
+  const searchText=useModelWorkspaceFilters(state=>state.modelSearch);
+  const setSearchText=useModelWorkspaceFilters(state=>state.setModelSearch);
   const [connectionSeed,setConnectionSeed]=useState<{model:string;endpoint:string;alias?:string;targetModelId?:string}>();
   const topology=useModelConnections();
   const providers=useQuery({queryKey:["upstreams",scope],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});

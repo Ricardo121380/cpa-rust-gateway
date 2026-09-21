@@ -1,0 +1,11 @@
+{
+  "catalog": {
+    "choices": [
+      "local-provider",
+      "local-responses",
+      "local-account"
+    ],
+    "search": "exact"
+  },
+  "model": "local"
+}

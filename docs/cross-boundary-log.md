@@ -2927,3 +2927,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Separate official authorization from credential import so the chooser has one primary action and clears transient import input when switching methods. Honor channel capability flags; import-only channels have no invented OAuth option. Provider activation opens its scoped catalog instead of dropping its source context; account and endpoint remain explicit choices.
 
 **Other side:** FYI. User-authorized Codex frontend work; no API, backend semantics or production change. Existing polling, cancel and result ownership remain unchanged. Product audit G02 corrected after finding existing workspace navigation in AppShell.
+
+## 2026-09-21 - Codex - model workspace read-filter continuity
+
+**What:** `web/prism/src/features/models/workspaceFilters.ts`, `ModelsPage.tsx`, `catalog/UpstreamModelBrowser.tsx`, and focused unit/browser regressions.
+
+**Why:** Switching between upstream catalog and connected models discarded the administrator's read filters. Retain separate in-memory search/filter preferences, clear them on session or configuration selection changes, and let explicit catalog deep links override remembered targets. Do not retain selected models, directory evidence or write tasks.
+
+**Other side:** FYI. No contract/backend/production change, no browser persistence. Existing exact endpoint/account admission and catalog mutation validation remain authoritative.
