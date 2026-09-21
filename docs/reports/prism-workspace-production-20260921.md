@@ -1,5 +1,7 @@
 # Prism workspace release — 2026-09-21
 
+**Acceptance correction:** A subsequent user-reported Safari crash invalidated the broad frontend completion claim. Health, signature and data-preservation checks remain valid, but did not cover mixed-release browser modules. See [incident and hotfix](prism-module-url-hotfix-20260921.md); do not interpret the original release checks as exhaustive production browser acceptance.
+
 ## Release status
 
 Production now serves signed `a19076747c94324f8acb32b70c44410f2aa62eb3` on the existing Oracle service and domain. M4 integrated acceptance and M5 deployment are complete for the scoped workspace plan; official consent boundaries below remain explicit.

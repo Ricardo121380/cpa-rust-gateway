@@ -1,5 +1,15 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-21: module URL hotfix (current)
+
+Production now serves signed `b518d925fdaf03c92d235fa6ca4a7c5565d04043`, schema28.
+Formal gate, signing, offline rollback and public checks passed. This fixes mixed-release
+frontend module URLs; Safari reproduced the original exact crash, then successfully
+logged into production and checked account/onboarding views after deployment.
+Compatible binary fallback: `a190767`; preserve latest state. The fallback lacks
+this browser URL fix. See [scope and incident evidence](../reports/prism-module-url-hotfix-20260921.md).
+
+
 ## 2026-09-21: current signed workspace release
 
 Production serves signed `a19076747c94324f8acb32b70c44410f2aa62eb3`, schema28.
