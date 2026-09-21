@@ -8,6 +8,9 @@ import {
 } from "./model";
 
 describe("manualModelConnectPath", () => {
+  it("keeps a provider scoped directory without selecting an account or endpoint", () => {
+    expect(manualModelConnectPath("provider/a b")).toBe("/catalog?upstream_id=provider%2Fa%20b");
+  });
   it("does not infer an endpoint from a provider card", () => {
     expect(manualModelConnectPath()).toBe("/models?add=model");
     expect(manualModelConnectPath()).not.toContain("from_endpoint");

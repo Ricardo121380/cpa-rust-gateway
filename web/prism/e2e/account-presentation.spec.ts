@@ -65,6 +65,7 @@ for(const width of [1440,1280,390])test(`unified account directory at ${width}`,
   await page.getByRole("button",{name:"授权 / 导入账号",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"授权或导入账号",exact:true});
   await dialog.getByLabel("渠道",{exact:true}).selectOption("grok.build");
+  await dialog.getByRole("button", {name:"导入凭据",exact:true}).click();
   const claims=Buffer.from(JSON.stringify({email:"build.member@example.test",sub:"fixture-subject",exp:Math.floor(Date.now()/1000)+3600})).toString("base64url");
   await dialog.locator("textarea").fill(JSON.stringify({access_token:`header.${claims}.signature`,refresh_token:"fixture-refresh",expires_at:new Date(Date.now()+3600000).toISOString()}));
   await dialog.getByRole("button",{name:"导入账号",exact:true}).click();
@@ -113,6 +114,7 @@ test("pending account search cannot navigate a dirty authorization form", async 
     return dialog.getByLabel("渠道",{exact:true}).count();
   }).toBe(1);
   await dialog.getByLabel("渠道",{exact:true}).selectOption("kimi-coding");
+  await dialog.getByRole("button", {name:"导入凭据",exact:true}).click();
   await dialog.locator("textarea").fill("synthetic-unsaved-material");
   await page.clock.runFor(350);
   await expect(page.getByRole("alertdialog")).toHaveCount(0);

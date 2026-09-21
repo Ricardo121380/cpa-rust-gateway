@@ -132,3 +132,26 @@ test("browser Back cancels a live Kimi session before the router admits departur
   await expect(page).toHaveURL(/#\/$/u);
   await expect(sheet).toHaveCount(0);
 });
+
+test("channel chooser separates official authorization from credential import", async ({ page }) => {
+  await unlock(page);
+  await selectDraft(page);
+  await navigate(page, "账号池");
+  await page.getByRole("button", { name: "授权 / 导入账号" }).click();
+  const chooser = page.getByRole("dialog", { name: "授权或导入账号" });
+  await chooser.getByLabel("渠道", { exact: true }).selectOption("kimi-coding");
+  await expect(chooser.getByRole("button", { name: "授权登录", exact: true })).toBeVisible();
+  await expect(chooser.locator("textarea")).toHaveCount(0);
+  await expect(chooser.getByRole("button", { name: "导入账号", exact: true })).toHaveCount(0);
+  await chooser.getByRole("button", { name: "导入凭据", exact: true }).click();
+  await chooser.locator("textarea").fill("synthetic-secret-not-sent");
+  await expect(chooser.getByRole("button", { name: "授权登录", exact: true })).toHaveCount(0);
+  await chooser.getByRole("button", { name: "官方授权", exact: true }).click();
+  await expect(chooser.locator("textarea")).toHaveCount(0);
+  await chooser.getByRole("button", { name: "导入凭据", exact: true }).click();
+  await expect(chooser.locator("textarea")).toHaveValue("");
+  await chooser.getByLabel("渠道", { exact: true }).selectOption("openai-compatible");
+  await expect(chooser.getByRole("group", { name: "接入方式" })).toHaveCount(0);
+  await expect(chooser.getByRole("button", { name: "导入账号", exact: true })).toBeVisible();
+  await expect(chooser.getByRole("button", { name: "授权登录", exact: true })).toHaveCount(0);
+});

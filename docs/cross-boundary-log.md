@@ -2918,3 +2918,12 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** A production screenshot points to UnlockPage's destructuring of useSearchParams. Pairing the current production entry with the preceding signed release's actual vendor reproduces the same function/line failure. Fixed file names allowed different export mappings to share a module URL. The build now adds one deterministic content-derived query revision to entry, CSS, preload and vendor import URLs. The four physical files, same-origin policy and strict CSP remain intact. Build checks reject missing or inconsistent revisions.
 
 **Other side:** FYI. No API or data migration. Screenshot alone cannot prove the user's cached bytes; mixed-release reproduction is confirmed. Prior full-production acceptance claim is reopened pending this release and browser checks.
+
+
+## 2026-09-21 - Codex - channel onboarding action hierarchy
+
+**What:** `web/prism/src/features/accounts/AddAccountDialog.tsx`, `src/design/workspace.css`, `src/features/upstreams/model.ts`, `UpstreamsPage.tsx`, and targeted account/source-link tests under `web/prism`.
+
+**Why:** Separate official authorization from credential import so the chooser has one primary action and clears transient import input when switching methods. Honor channel capability flags; import-only channels have no invented OAuth option. Provider activation opens its scoped catalog instead of dropping its source context; account and endpoint remain explicit choices.
+
+**Other side:** FYI. User-authorized Codex frontend work; no API, backend semantics or production change. Existing polling, cancel and result ownership remain unchanged. Product audit G02 corrected after finding existing workspace navigation in AppShell.

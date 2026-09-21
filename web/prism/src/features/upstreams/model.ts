@@ -5,9 +5,9 @@
 // so the proposed-G1 slicer is gone rather than kept "just in case".
 export type OAuthState = "pending" | "complete" | "cancelled" | "failed" | "expired";
 
-/** Model activation begins with an explicit endpoint choice in the model workspace. */
-export function manualModelConnectPath(): string {
-  return "/models?add=model";
+/** Preserve provider context without guessing an endpoint or account. */
+export function manualModelConnectPath(upstreamId?: string): string {
+  return upstreamId ? `/catalog?upstream_id=${encodeURIComponent(upstreamId)}` : "/models?add=model";
 }
 
 /** TanStack Query refetchInterval: poll every 2s while pending, else stop. */

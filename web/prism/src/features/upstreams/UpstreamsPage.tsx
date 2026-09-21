@@ -249,7 +249,7 @@ export function UpstreamsPage() {
           return <article className="provider-card" key={upstream.id}>
             <header><div><span className="provider-kind">{providerKindLabel(upstream.kind)}</span><h3>{name}</h3></div><StatusBadge status={upstream.enabled?"active":"disabled"}>{upstream.enabled?"已启用":"已停用"}</StatusBadge></header>
             <div className="provider-connections">{topology.isError?"连接读取失败":!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div>
-            <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={manualModelConnectPath()}>开放模型</Link></div>
+            <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={manualModelConnectPath(upstream.id)}>开放模型</Link></div>
             <footer><div className="row-actions">
               <button className="secondary" disabled={providerActionActive && expanded !== upstream.id} title={providerActionActive && expanded !== upstream.id ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
               <button className="secondary" onClick={()=>boundary.request(()=>{save.reset();setWorkingId(undefined);setActionError(undefined);beginDraft(toDraft(upstream));})}>编辑</button>
