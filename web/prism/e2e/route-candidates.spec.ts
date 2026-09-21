@@ -74,13 +74,13 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await expect(validation).toContainText("这里通过不等于发布会通过");
 
   await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
-  const sheet = page.getByRole("dialog");
+  const sheet = page.getByRole("region",{name:"添加模型来源",exact:true});
   await expect(sheet).toContainText("上游原始模型 ID");
   await sheet.getByLabel("候选标识").fill("cand-e2e");
   await sheet.getByRole("combobox", { name: "接口连接", exact: true }).selectOption("ep-relay-a-responses");
   await sheet.getByLabel("上游原始模型 ID", { exact: true }).fill("relay-x");
   await sheet.getByRole("button", { name: "创建候选" }).click();
-  const candidateReceipt=page.getByRole("dialog",{name:"候选配置结果"});
+  const candidateReceipt=page.locator('.inline-workspace, [role="dialog"]').filter({has:page.getByRole("heading",{name:"候选配置结果",exact:true})});
   await expect(candidateReceipt).toContainText("已保存到当前草稿");
   await candidateReceipt.getByRole("button",{name:"完成"}).click();
 
@@ -91,7 +91,7 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await expect(inventory.locator('[data-resource-id="cand-e2e"]').first()).toBeVisible();
   await expect(inventory).toContainText("relay-x");
   await inventory.getByRole("button", { name: "编辑候选" }).click();
-  const editor = page.getByRole("dialog");
+  const editor = page.getByRole("region",{name:"编辑模型来源",exact:true});
   await expect(editor.getByRole("textbox",{name:"候选标识"})).toHaveValue("cand-e2e");
   await expect(editor.getByRole("textbox",{name:"候选标识"})).toHaveAttribute("readonly","");
   await editor.getByLabel("权重").fill("7");
@@ -99,7 +99,7 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await editor.getByLabel("协议转换").selectOption("canonical_bridge");
   await editor.getByLabel("能力覆盖").fill("vision=false tools=true");
   await editor.getByRole("button", { name: "保存候选" }).click();
-  const editReceipt=page.getByRole("dialog",{name:"候选配置结果"});
+  const editReceipt=page.locator('.inline-workspace, [role="dialog"]').filter({has:page.getByRole("heading",{name:"候选配置结果",exact:true})});
   await expect(editReceipt).toContainText("已保存到当前草稿");
   await editReceipt.getByRole("button",{name:"完成"}).click();
   await expect(inventory).toContainText("权重 7");
@@ -110,7 +110,7 @@ test("a new route fails validation until a candidate is added", async ({ page })
   await editor.getByRole("button", { name: "取消", exact: true }).click();
   await inventory.getByRole("button", { name: "删除候选" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "确认删除" }).click();
-  await page.getByRole("dialog",{name:"候选配置结果"}).getByRole("button",{name:"完成"}).click();
+  await page.locator('.inline-workspace, [role="dialog"]').filter({has:page.getByRole("heading",{name:"候选配置结果",exact:true})}).getByRole("button",{name:"完成"}).click();
   await expect(inventory.locator('[data-resource-id="cand-e2e"]')).toHaveCount(0);
   await expect(page.locator(".rw-validation")).toHaveAttribute("data-valid", "false");
   await inventory.getByRole("button", { name: "路由", exact: true }).click();
@@ -156,7 +156,7 @@ test("capability_override rejects a non-boolean instead of coercing it", async (
   await page.locator(".route-workbench").getByRole("button", { name: "打开它" }).click();
   await page.locator(".route-workbench").getByRole("button", { name: "加候选" }).click();
 
-  const sheet = page.getByRole("dialog");
+  const sheet = page.getByRole("region",{name:"添加模型来源",exact:true});
   await sheet.getByLabel("候选标识").fill("cand-cap");
   await sheet.getByRole("combobox", { name: "接口连接", exact: true }).selectOption("ep-relay-a-responses");
   await sheet.getByLabel("上游原始模型 ID", { exact: true }).fill("relay-x");
@@ -276,4 +276,20 @@ test("legacy route policies expose safe details without the unsupported route re
     await page.keyboard.press("Escape");
     await expect(inspector).toHaveCount(0);
   }
+});
+
+test("inline candidate owns dirty departure and busy sibling actions",async({page})=>{
+ await openModels(page);await makeRoute(page,"rt-inline-guard");
+ await page.locator('.route-workbench').getByRole('button',{name:'打开它'}).click();await page.getByRole('button',{name:'加候选',exact:true}).click();
+ const editor=page.getByRole('region',{name:'添加模型来源',exact:true});
+ await editor.getByLabel('候选标识').fill('candidate-inline-guard');
+ await page.getByRole('button',{name:'接入模型',exact:true}).click();
+ await page.getByRole('dialog',{name:'放弃未保存的修改？'}).getByRole('button',{name:'继续编辑'}).click();
+ await expect(editor.getByLabel('候选标识')).toHaveValue('candidate-inline-guard');
+ await editor.getByRole('combobox',{name:'接口连接',exact:true}).selectOption('ep-relay-a-responses');await editor.getByLabel('上游原始模型 ID',{exact:true}).fill('exact-model');
+ for(const size of [{width:1440,height:900},{width:1280,height:720},{width:390,height:844}]){await page.setViewportSize(size);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);}
+ await page.evaluate(async()=>{const {ManagementApi}=await import('/src/generated/management-client.ts');const original=ManagementApi.prototype.request;ManagementApi.prototype.request=async function(this:unknown,operation:string,request:unknown){if(operation==='createRouteCandidate')await new Promise<void>(resolve=>Reflect.set(globalThis,'__releaseCandidate',resolve));return original.call(this,operation,request);};});
+ await editor.getByRole('button',{name:'创建候选'}).click();await page.waitForFunction(()=>typeof Reflect.get(globalThis,'__releaseCandidate')==='function');
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'接入模型',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(editor.getByRole('button',{name:'取消',exact:true})).toBeDisabled();
+ await page.evaluate(()=>Reflect.get(globalThis,'__releaseCandidate')());await expect(page.getByRole('region',{name:'候选配置结果',exact:true})).toContainText('已保存到当前草稿');
 });

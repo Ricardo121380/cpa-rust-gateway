@@ -1238,7 +1238,13 @@ function EgressDomainSection({
   );
 }
 
-export function ProviderEgressCard({ scope, nowMs }: Readonly<{ scope: string; nowMs: number }>) {
+export function ProviderEgressCard(props: Readonly<{ scope: string; nowMs: number }>) {
+  const context=useVersionStore(state=>state.context);
+  if(context?.status!=="active"||context.configVersionId!==props.scope)return <section className="card rt-card" data-gap="top" aria-label="Provider 出口状态"><h3>Provider 出口状态</h3><p>当前查看的是未运行的配置，尚无对应的出口运行快照。应用配置后可在这里查看运行状态。</p></section>;
+  return <ActiveProviderEgressCard {...props}/>;
+}
+
+function ActiveProviderEgressCard({ scope, nowMs }: Readonly<{ scope: string; nowMs: number }>) {
   const queryClient = useQueryClient();
   const egress = useDomainQuery("egress", scope);
   const session = useDomainQuery("session", scope);

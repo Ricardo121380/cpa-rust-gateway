@@ -50,3 +50,12 @@
 - 剩余：复杂候选编辑页内迁移、草稿读取冲突提示根因、全栏目最终视觉/性能与端到端验收、签名发布。
 
 - 本批最终验证：8 个 Chromium 定向回归、check:full 四文件确定性构建、gateway 编译、3 个 Rust 嵌入测试通过；EgoLite 在最终嵌入版本走通创建→结果→接续草稿→列表重读。日志 `/tmp/prism-provider-create-verified.log`、`/tmp/prism-provider-create-build-final.log`。
+
+### 2026-09-21 — 候选页内编辑与草稿出口状态
+
+- 候选新增/编辑迁入页内工作区，删除保留确认框；原始模型与能力键、来源校验、修订保护和不确定回执继续保留。
+- 模型页其他操作、候选间切换及高级区收起使用同一离开边界；提交中不排队重放用户导航。
+- 草稿冲突根因已核实：`provider_egress_status_service.rs::page` 要求所选配置/修订与 serving snapshot 一致。草稿页错误请求该投影导致 409。现仅活动配置读取，草稿展示无运行快照，不吞掉真正的冲突。
+- EgoLite / 真实嵌入网关：草稿出口页无全局冲突；修改 local-candidate 权重 2→3，保存回执与草稿重读完成；1440×900、1280×720、390×844 均为单一页内编辑、无弹窗和横向溢出。此为合成临时数据，无真实推理或发布。
+- 剩余：全部工作区整体验收、长内容/空错态/键盘与主题偏好、最终性能对比、完整 mock 接入计费链路及签名上线。本批不宣称全计划完成。
+- 本批最终门禁：28 个 Chromium 路由/候选/出口回归通过（含未保存、busy、丢响应、任意能力键及 stale revision）；TypeScript、check:full 四文件确定性构建、gateway 编译和 3 个 Rust 嵌入测试通过。日志 `/tmp/prism-candidate-final.log`、`/tmp/prism-candidate-final-build.log`。此前失败来自旧 fixture 生命周期事件常量、草稿运行投影和隐藏 ID 定位，已修正后完整重跑。

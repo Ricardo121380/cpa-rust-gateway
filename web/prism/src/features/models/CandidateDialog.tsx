@@ -2,6 +2,8 @@ import { CancelledError, isCancelledError, useMutation } from "@tanstack/react-q
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { asAppError } from "../../api/errors";
 import { ResourcePicker } from "../../components/ResourcePicker";
+import { InlineWorkspace } from "../../components/InlineWorkspace";
+import { useOperationBoundary } from "../../components/OperationBoundary";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { useSessionStore } from "../../session/sessionStore";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -15,6 +17,7 @@ type Form={id:string;endpoint:string;model:string;mode:TransformMode;enabled:boo
 export type CandidateAction=Readonly<{kind:"add"|"edit"|"delete";owner:DraftRoutingOwner;route:RouteListItem;candidate?:CandidateRecord;seed?:{model:string;endpoint:string}}>;
 
 export function CandidateDialog({action,onClose,onDone}:Readonly<{action:CandidateAction;onClose:()=>void;onDone:(receipt:ModelTaskReceipt,routeId:string)=>void}>){
+  const boundary=useOperationBoundary();
   const initial=action.candidate;
   const originalOverride=initial?.capability_override??{};
   const jsonOverride=capabilityOverrideNeedsJson(originalOverride);
@@ -63,8 +66,10 @@ export function CandidateDialog({action,onClose,onDone}:Readonly<{action:Candida
   };
   const done=()=>{if(receipt)onDone(receipt,action.route.id);else onClose();};
   const title=receipt?"候选配置结果":action.kind==="add"?"添加模型来源":action.kind==="edit"?"编辑模型来源":"删除模型来源";
-  const footer=receipt?<SheetDismissButton onDismiss={done}>{receipt.kind==="unconfirmed"?"核对草稿":"完成"}</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={write.isPending}>取消</SheetDismissButton><button type={action.kind==="delete"?"button":"submit"} form={action.kind==="delete"?undefined:formId} className={action.kind==="delete"?"danger":undefined} disabled={write.isPending||submitted.current} onClick={action.kind==="delete"?()=>{if(!submitted.current){submitted.current=true;write.mutate(undefined);}}:undefined}>{action.kind==="delete"?"确认删除":action.kind==="add"?"创建候选":"保存候选"}</button></>;
-  return <Sheet title={title} description={receipt?"配置已处理；候选保存与拓扑校验分别展示。":action.kind==="delete"?"只移除这一条路径；路由、公开模型和访问授权保留。":"使用实际接口与上游原始模型 ID；调度参数只影响这条来源。"} layout={receipt?"inspector":action.kind==="delete"?"confirm":"form"} tone={action.kind==="delete"&&!receipt?"danger":"default"} onEscape={done} busy={write.isPending} isDirty={!receipt&&action.kind!=="delete"&&(form.id!==(initial?.id??"")||form.endpoint!==(initial?.endpoint_id??action.seed?.endpoint??"")||form.model!==(initial?.upstream_model??action.seed?.model??"")||form.mode!==(initial?.transform_mode??"passthrough")||form.enabled!==(initial?.enabled??true)||form.priority!==String(initial?.priority??0)||form.weight!==String(initial?.weight??1)||form.overrides!==originalOverrideText)} footer={footer}>
+  const inline=action.kind!=="delete";
+  const dirty=!receipt&&(form.id!==(initial?.id??"")||form.endpoint!==(initial?.endpoint_id??action.seed?.endpoint??"")||form.model!==(initial?.upstream_model??action.seed?.model??"")||form.mode!==(initial?.transform_mode??"passthrough")||form.enabled!==(initial?.enabled??true)||form.priority!==String(initial?.priority??0)||form.weight!==String(initial?.weight??1)||form.overrides!==originalOverrideText);
+  const footer=receipt?<button type="button" onClick={done}>{receipt.kind==="unconfirmed"?"核对草稿":"完成"}</button>:<>{inline?<button type="button" className="secondary" disabled={write.isPending} onClick={()=>boundary.request(()=>{})}>取消</button>:<SheetDismissButton className="secondary" disabled={write.isPending}>取消</SheetDismissButton>}<button type={action.kind==="delete"?"button":"submit"} form={action.kind==="delete"?undefined:formId} className={action.kind==="delete"?"danger":undefined} disabled={write.isPending||submitted.current} onClick={action.kind==="delete"?()=>{if(!submitted.current){submitted.current=true;write.mutate(undefined);}}:undefined}>{action.kind==="delete"?"确认删除":action.kind==="add"?"创建候选":"保存候选"}</button></>;
+  const content=<>
     {receipt?<p role={receipt.kind==="unconfirmed"?"alert":"status"}>{receipt.message}</p>:action.kind==="delete"?<p className="reveal-warning">移除 <strong className="mono">{initial?.upstream_model}</strong> 这条来源。若它是最后一条启用的候选，草稿拓扑校验会失败；不会自动停用公开模型。</p>:<form id={formId} className="sheet-form" onSubmit={submit}><fieldset disabled={write.isPending||submitted.current}>
       <label>候选标识<input className="mono" required maxLength={128} readOnly={!!initial} value={form.id} onChange={event=>setForm({...form,id:event.target.value})}/></label>
       <label>接口连接<ResourcePicker kind="endpoint" required value={form.endpoint} onChange={value=>setForm({...form,endpoint:value})}/></label>
@@ -76,5 +81,6 @@ export function CandidateDialog({action,onClose,onDone}:Readonly<{action:Candida
       <label>能力覆盖（可留空）{jsonOverride?<><textarea className="mono" rows={5} maxLength={8192} value={form.overrides} onChange={event=>setForm({...form,overrides:event.target.value})}/><small>此候选包含特殊能力键；使用 JSON 对象编辑，保持键名原样。</small></>:<input className="mono" maxLength={512} placeholder="vision=true tools=false" value={form.overrides} onChange={event=>setForm({...form,overrides:event.target.value})}/>}</label>
     </fieldset></form>}
     {error?<p role="alert">{error}</p>:null}
-  </Sheet>;
+  </>;
+  return inline?<InlineWorkspace title={title} description="使用实际接口与上游原始模型 ID；调度参数只影响这条来源。" busy={write.isPending} dirty={dirty} onClose={done} footer={footer}>{content}</InlineWorkspace>:<Sheet title={title} layout="confirm" tone={receipt?"default":"danger"} onEscape={done} busy={write.isPending} guardUnsaved={false} footer={footer}>{content}</Sheet>;
 }

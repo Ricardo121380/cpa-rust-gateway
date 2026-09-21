@@ -98,7 +98,9 @@ test("uncertain active-context alias retains its exact working draft through fai
     const active=versions.find(row=>row.status==="active")!;
     const fork=await call<{id:string;revision:string}>("forkConfigVersion",{path:{config_version_id:active.id},headers:{"X-Config-Version":active.id,"If-Match":active.revision},body:{id:"qa-active-model",description:"准备模型维护"}});
     const created=await callRevisioned("createPublicModel",{headers:{"X-Config-Version":fork.id,"If-Match":fork.revision},body:{id:"qa-public-model",model_name:"Exact/QA-Model",display_name:"Exact/QA-Model",status:"active",capabilities:{streaming:true}}});
-    await call("publishConfigVersion",{path:{config_version_id:fork.id},headers:{"If-Match":created.revision,"X-Expected-Active-Version":JSON.stringify(active.id),"X-Expected-Lifecycle-Event":"0"}});
+    const audit=await call<{id:number;action:string}[]>("listManagementAuditEvents");
+    const event=Math.max(0,...audit.filter(row=>["config_published","config_rolled_back"].includes(row.action)).map(row=>row.id));
+    await call("publishConfigVersion",{path:{config_version_id:fork.id},headers:{"If-Match":created.revision,"X-Expected-Active-Version":JSON.stringify(active.id),"X-Expected-Lifecycle-Event":String(event)}});
     await call("createConfigVersion",{body:{id:"qa-other-draft",parent_id:fork.id,description:"添加模型别名"}});
     const selected=await call<import("/src/features/config-versions/versionStore.ts").ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:fork.id}});
     useVersionStore.getState().select(selected);
@@ -209,7 +211,7 @@ test("a lost candidate-create response leaves a single non-replayable receipt",a
   await workbench.getByRole("combobox",{name:"路由",exact:true}).selectOption("rt-lost-candidate");
   await workbench.getByRole("button",{name:"载入"}).click();
   await workbench.getByRole("button",{name:"加候选"}).click();
-  const editor=page.getByRole("dialog",{name:"添加模型来源"});
+  const editor=page.getByRole("region",{name:"添加模型来源",exact:true});
   await editor.getByRole("textbox",{name:"候选标识"}).fill("cand-lost");
   await editor.getByRole("combobox",{name:"接口连接"}).selectOption("ep-relay-a-responses");
   await editor.getByRole("textbox",{name:"上游原始模型 ID"}).fill("minimax-m3");
@@ -225,7 +227,7 @@ test("a lost candidate-create response leaves a single non-replayable receipt",a
     };
   });
   await editor.getByRole("button",{name:"创建候选"}).click();
-  const receipt=page.getByRole("dialog",{name:"候选配置结果"});
+  const receipt=page.locator('.inline-workspace, [role="dialog"]').filter({has:page.getByRole("heading",{name:"候选配置结果",exact:true})});
   await expect(receipt).toContainText("结果未确认");
   await expect(receipt.getByRole("button",{name:"创建候选"})).toHaveCount(0);
   expect(await page.evaluate(()=>Number(Reflect.get(globalThis,"__lostCandidateWrites")))).toBe(1);
@@ -300,11 +302,11 @@ test("editing candidate weight preserves arbitrary accepted override keys",async
   const inventory=page.getByRole("region",{name:"完整配置资源"});
   await inventory.getByRole("button",{name:"候选",exact:true}).click();
   await inventory.getByRole("button",{name:"编辑候选"}).click();
-  const editor=page.getByRole("dialog",{name:"编辑模型来源"});
+  const editor=page.getByRole("region",{name:"编辑模型来源",exact:true});
   await expect(editor.getByRole("textbox",{name:"能力覆盖（可留空）"})).toHaveValue(/"vision=false tools": true/u);
   await editor.getByRole("spinbutton",{name:"权重"}).fill("5");
   await editor.getByRole("button",{name:"保存候选"}).click();
-  await page.getByRole("dialog",{name:"候选配置结果"}).getByRole("button",{name:"完成"}).click();
+  await page.locator('.inline-workspace, [role="dialog"]').filter({has:page.getByRole("heading",{name:"候选配置结果",exact:true})}).getByRole("button",{name:"完成"}).click();
   const saved=await page.evaluate(async()=>{
     const {call}=await import("/src/api/client.ts");
     const page=await call<{items:{id:string;weight:number;capability_override:Record<string,boolean>}[]}>("listRouteCandidates",{query:{limit:100}},{versionScoped:true});
@@ -325,7 +327,7 @@ test("a changed draft revision rejects a stale candidate editor before another w
   await inventory.getByRole("button",{name:"候选",exact:true}).click();
   const row=inventory.locator("tr",{hasText:"cand-stale"});
   await row.getByRole("button",{name:"编辑候选"}).click();
-  const editor=page.getByRole("dialog",{name:"编辑模型来源"});
+  const editor=page.getByRole("region",{name:"编辑模型来源",exact:true});
   await editor.getByRole("spinbutton",{name:"权重"}).fill("2");
   await page.evaluate(async()=>{
     const {call}=await import("/src/api/client.ts");

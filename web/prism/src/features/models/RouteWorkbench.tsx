@@ -1,3 +1,4 @@
+import { useOperationBoundary } from "../../components/OperationBoundary";
 import { ResourcePicker } from "../../components/ResourcePicker";
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
@@ -27,11 +28,14 @@ export function RouteWorkbench({
   focusRouteId,
   editable,
   modelSeed,
+  onCandidateActiveChange,
 }: Readonly<{
+  onCandidateActiveChange: (active:boolean)=>void;
   focusRouteId: string | undefined;
   editable: boolean;
   modelSeed?: { model: string; endpoint: string } | undefined;
 }>) {
+  const boundary=useOperationBoundary();
   const queryClient = useQueryClient();
   const navigate=useNavigate();
   const context = useVersionStore((s) => s.context);
@@ -40,6 +44,7 @@ export function RouteWorkbench({
   const [field, setField] = useState("");
   const [loaded, setLoaded] = useState<string | undefined>();
   const [candidateAction,setCandidateAction]=useState<CandidateAction>();
+  useEffect(()=>{onCandidateActiveChange(!!candidateAction);return()=>onCandidateActiveChange(false);},[candidateAction,onCandidateActiveChange]);
   const [routeAction,setRouteAction]=useState<RouteAction>();
   const [inspecting, setInspecting] = useState(false);
   const [notice, setNotice] = useState<string | undefined>();
@@ -50,14 +55,14 @@ export function RouteWorkbench({
   useEffect(()=>{setEvidence(undefined);},[loaded,context?.revision]);
   const topology=useModelConnections();
 
-  const openCandidate=(kind:"edit"|"delete",candidate:CandidateRecord)=>{
+  const openCandidate=(kind:"edit"|"delete",candidate:CandidateRecord)=>boundary.request(()=>{
     try{
       const route=topology.data?.routes.find(row=>row.id===candidate.route_id);
       const observed=topology.data?.candidates.find(row=>row.id===candidate.id&&row.route_id===candidate.route_id);
       if(!route||!sameCandidate(observed,candidate))throw new Error("连接清单已变化，请重新读取后操作。");
       setError(undefined);setCandidateAction({kind,owner:captureDraftRoutingOwner(),route,candidate});
     }catch(cause){setError(asAppError(cause).message);}
-  };
+  });
 
   // The route ModelsPage just created is the one you almost certainly want, and
   // keep the direct handoff alongside the complete inventory.
@@ -102,22 +107,19 @@ export function RouteWorkbench({
     if (next === "") {
       return;
     }
-    validation.reset();
-    setError(undefined);
-    loadedRef.current=next;
-    setLoaded(next);
+    boundary.request(()=>{validation.reset();setError(undefined);loadedRef.current=next;setLoaded(next);});
   }
 
   const record = route.data;
   const visibleValidation=evidence&&evidence.routeId===record?.id&&evidence.revision===context?.revision?evidence.result:undefined;
-  const openRoute=(kind:"edit"|"delete")=>{
+  const openRoute=(kind:"edit"|"delete")=>boundary.request(()=>{
     try{
       const baseline=topology.data?.routes.find(row=>row.id===record?.id);
       if(!record||!sameRoute(baseline,record))throw new Error("路由清单已变化，请重新读取后操作。");
       if(baseline?.policy!==ROUTE_POLICY)throw new Error("此历史调度策略只支持查看，不能改写。");
       setError(undefined);setRouteAction({kind,owner:captureDraftRoutingOwner(),route:baseline});
     }catch(cause){setError(asAppError(cause).message);}
-  };
+  });
 
   return (
     <div className="card route-workbench" data-gap="top">
@@ -125,16 +127,18 @@ export function RouteWorkbench({
         <h3>路由工作台</h3>
       </header>
 
+      {candidateAction?<CandidateDialog key={`${candidateAction.owner.selection}:${candidateAction.kind}:${candidateAction.candidate?.id??"new"}`} action={candidateAction} onClose={()=>setCandidateAction(undefined)} onDone={(receipt,routeId)=>{const kind=candidateAction.kind;setCandidateAction(undefined);if(receipt.kind==="unconfirmed"){navigate("/versions");return;}void queryClient.resetQueries({queryKey:["routing-inventory",scope]});loadedRef.current=routeId;setLoaded(routeId);validation.reset();startValidation(routeId);setNotice(kind==="delete"?"候选已从草稿删除；路由和授权保留。":"候选已保存到草稿；正在重新校验路由。");}}/>:null}
+
       <RoutingInventory
         editable={editable}
         onEdit={(candidate) => openCandidate("edit",candidate)}
         onDelete={(candidate) => openCandidate("delete",candidate)}
-        onOpen={(id) => {
+        onOpen={(id) => boundary.request(()=>{
           setField(id);
           loadedRef.current=id;
           setLoaded(id);
           validation.reset();
-        }}
+        })}
       />
 
       {pending !== undefined ? (
@@ -211,20 +215,20 @@ export function RouteWorkbench({
           </table>
 
           <div className="rw-actions">
-            <button className="secondary" onClick={() => setInspecting(true)}>
+            <button className="secondary" onClick={() => boundary.request(()=>setInspecting(true))}>
               路由详情
             </button>
             <button
               type="button"
               disabled={!editable}
               title={editable ? undefined : "仅草稿版本可编辑"}
-              onClick={() => {
+              onClick={() => boundary.request(()=>{
                 try{
                   const route=topology.data?.routes.find(row=>row.id===record.id);
                   if(!route)throw new Error("路由清单尚未读取完成，请重新读取后添加来源。");
                   setError(undefined);setCandidateAction({kind:"add",owner:captureDraftRoutingOwner(),route,seed:modelSeed});
                 }catch(cause){setError(asAppError(cause).message);}
-              }}
+              })}
             >
               加候选
             </button>
@@ -232,7 +236,7 @@ export function RouteWorkbench({
               type="button"
               className="secondary"
               disabled={validation.isPending||!editable}
-              onClick={() => startValidation(record.id)}
+              onClick={() => boundary.request(()=>startValidation(record.id))}
             >
               {validation.isPending ? "校验中…" : "校验"}
             </button>
@@ -302,7 +306,7 @@ export function RouteWorkbench({
         </>
       ) : null}
 
-      {candidateAction?<CandidateDialog key={`${candidateAction.owner.selection}:${candidateAction.kind}:${candidateAction.candidate?.id??"new"}`} action={candidateAction} onClose={()=>setCandidateAction(undefined)} onDone={(receipt,routeId)=>{const kind=candidateAction.kind;setCandidateAction(undefined);if(receipt.kind==="unconfirmed"){navigate("/versions");return;}void queryClient.resetQueries({queryKey:["routing-inventory",scope]});loadedRef.current=routeId;setLoaded(routeId);validation.reset();startValidation(routeId);setNotice(kind==="delete"?"候选已从草稿删除；路由和授权保留。":"候选已保存到草稿；正在重新校验路由。");}}/>:null}
+
 
       {inspecting && record !== undefined ? (
         <ObjectInspector

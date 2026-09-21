@@ -11,7 +11,7 @@ const CARD = ".rt-card:has-text('Provider 出口状态')";
 
 test("the three domains stay three tables, never one", async ({ page }) => {
   await unlock(page);
-  await selectDraft(page);
+
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
@@ -35,7 +35,7 @@ test("the three domains stay three tables, never one", async ({ page }) => {
 
 test("an empty domain says the source does not exist, not that it is healthy", async ({ page }) => {
   await unlock(page);
-  await selectDraft(page);
+
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
@@ -52,21 +52,21 @@ test("an empty domain says the source does not exist, not that it is healthy", a
 
 test("a named target with no id is not rendered as a direct one", async ({ page }) => {
   await unlock(page);
-  await selectDraft(page);
+
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
   const egress = page.locator('.rt-domain[data-domain="egress"]');
-  await expect(egress.locator("tr", { hasText: "ep-relay-a-responses" })).toContainText("直连");
+  await expect(egress.locator("tr", { hasText: "generic_compatible" }).first()).toContainText("直连");
   // target_kind and target_id are independently nullable. A blank cell would
   // erase the difference between "went direct" and "named, id not reported".
-  await expect(egress.locator("tr", { hasText: "ep-grok-console" })).toContainText("未报告");
-  await expect(egress.locator("tr", { hasText: "ep-grok-console" })).not.toContainText("直连");
+  await expect(egress.locator("tr", { hasText: "grok_console" })).toContainText("未报告");
+  await expect(egress.locator("tr", { hasText: "grok_console" })).not.toContainText("直连");
 });
 
 test("each domain's chips come from that domain's vocabulary only", async ({ page }) => {
   await unlock(page);
-  await selectDraft(page);
+
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
@@ -85,7 +85,7 @@ test("each domain's chips come from that domain's vocabulary only", async ({ pag
 
 test("a rotated snapshot stops paging and restarts from the first page", async ({ page }) => {
   await unlock(page);
-  await selectDraft(page);
+
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
@@ -111,7 +111,7 @@ test("a rotated snapshot stops paging and restarts from the first page", async (
 
 test("a rotated snapshot does not claim the configuration changed", async ({ page }) => {
   await unlock(page);
-  await selectDraft(page);
+
   await navigate(page, "运行诊断");
   await page.getByText("相关资源状态", { exact: true }).click();
 
@@ -126,3 +126,10 @@ test("a rotated snapshot does not claim the configuration changed", async ({ pag
   // looking for a change nobody made.
   await expect(page.locator(".conflict-bar")).toHaveCount(0);
 });
+
+ test("draft egress explains absent serving snapshot without issuing runtime reads",async({page})=>{
+ await unlock(page);await selectDraft(page);
+ await page.evaluate(async()=>{const {ManagementApi}=await import("/src/generated/management-client.ts");const original=ManagementApi.prototype.request;Reflect.set(globalThis,"__egressReads",0);ManagementApi.prototype.request=async function(this:unknown,operation:string,request:unknown){if(operation==="listProviderEgressStatus")Reflect.set(globalThis,"__egressReads",Number(Reflect.get(globalThis,"__egressReads"))+1);return original.call(this,operation,request);};});
+ await navigate(page,"出口策略");await expect(page.getByRole("region",{name:"Provider 出口状态",exact:true})).toContainText("尚无对应的出口运行快照");
+ expect(await page.evaluate(()=>Reflect.get(globalThis,"__egressReads"))).toBe(0);await expect(page.locator(".conflict-bar")).toHaveCount(0);
+ });

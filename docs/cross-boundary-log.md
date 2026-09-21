@@ -2878,3 +2878,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Creation still automatically published a multi-resource configuration and permanently locked the form even after local validation errors. Creation now uses the shared inline workspace, validates before admission, captures source/session ownership, retains a deferred receipt, and prevents replay after uncertain writes. Local transitions share departure ownership. Explicit draft recovery resets provider/connection reads after selection to retire stale cancelled caches.
 
 **Other side:** FYI. No public contract, production state or real Provider request changed. Acceptance and remaining scope are recorded in the operation ledger. C2C was not used as requested.
+
+## 2026-09-21 - Codex - inline candidate maintenance and serving-only egress reads
+
+**What:** `web/prism/src/features/models/{CandidateDialog,RouteWorkbench,ModelsPage}.tsx`, runtime ProviderEgressCard, egress fixture parity, and candidate/routing/egress browser regressions.
+
+**Why:** Complex candidate editing still used a modal. Add/edit now uses the shared inline workspace and operation boundary, retaining exact IDs, capability keys, revision checks and uncertain receipts; deletion remains a short confirmation. Parent actions and advanced-section closure cannot bypass an active editor. The real gateway's draft egress page requested a serving snapshot for a non-serving version, causing `management_provider_egress_status_config_conflict` and the misleading global banner. Non-active contexts now explain the absent snapshot without issuing those reads; genuine active-config conflicts retain their existing handling. The fixture now projects the active configuration rather than a hardcoded draft.
+
+**Other side:** FYI. Local only, no public contract, production state, C2C or real Provider inference. Fresh evidence and remaining final acceptance are recorded in the operation ledger.

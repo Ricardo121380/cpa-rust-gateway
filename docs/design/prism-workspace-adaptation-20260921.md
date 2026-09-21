@@ -20,6 +20,6 @@ Source: the user-approved OpenDesign K3 **high** exploration in `prism-workspace
 ## Remaining gaps
 
 - Provider creation follow-up completed locally: shared inline editor, deferred task and retained receipt, pre-submit validation, departure ownership and explicit draft reread. Production deployment remains pending.
-- `CandidateDialog.tsx` still places complex source/capability editing in a Sheet. Route deletion/short route settings should retain the appropriate simple confirmation/form; do not indiscriminately turn every Sheet into an inline editor.
+- Candidate add/edit now uses InlineWorkspace; candidate deletion and short route settings keep their appropriate confirmation/form. Exact source and capability semantics remain unchanged.
 - Final all-workspace dark/light, keyboard, long-content, empty/error states and performance acceptance remain open.
-- Actual draft navigation displayed a generic conflict banner during some reads. Cause is not established in this visual batch; investigate before final acceptance rather than hiding the banner cosmetically.
+- Draft egress conflict was traced to requesting a serving-only projection for a draft. The runtime card now explains the absent snapshot without making invalid reads. Actual active-version conflict handling remains unchanged.

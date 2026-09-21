@@ -1,3 +1,4 @@
+import { useOperationBoundary } from "../../components/OperationBoundary";
 import { Link, useNavigate } from "react-router-dom";
 import { useModelConnections } from "./useModelConnections";
 import { ModelConnectionsDialog } from "./ModelConnectionsDialog";
@@ -32,6 +33,7 @@ import {
 } from "./model";
 
 export function ModelsPage() {
+  const boundary=useOperationBoundary();
   const navigate=useNavigate();
   const [search, setSearch] = useSearchParams();
   const sourceModel = search.get("from_model") ?? "";
@@ -58,6 +60,7 @@ export function ModelsPage() {
   const [confirmDelete, setConfirmDelete] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
   const [aliasTarget, setAliasTarget] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
   const [routeTarget, setRouteTarget] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
+  const [candidateActive,setCandidateActive]=useState(false);
   const [createdRouteId, setCreatedRouteId] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | undefined>();
   const [connecting,setConnecting]=useState(search.get("add")==="model");
@@ -76,22 +79,22 @@ export function ModelsPage() {
     void queryClient.resetQueries({ queryKey: ["routing-inventory", scope] });
   };
 
-  const openModelEditor=(initial?:PublicModel)=>{
+  const openModelEditor=(initial?:PublicModel)=>boundary.request(()=>{
     try{setModelEditor({initial,owner:captureModelActionOwner()});setActionError(undefined);}
     catch(cause){setActionError(asAppError(cause).message);}
-  };
-  const openModelDelete=(model:PublicModel)=>{
+ });
+  const openModelDelete=(model:PublicModel)=>boundary.request(()=>{
     try{setConfirmDelete({model,owner:captureModelActionOwner()});setActionError(undefined);}
     catch(cause){setActionError(asAppError(cause).message);}
-  };
-  const openModelAliases=(model:PublicModel)=>{
+ });
+  const openModelAliases=(model:PublicModel)=>boundary.request(()=>{
     try{setAliasTarget({model,owner:captureModelActionOwner()});setActionError(undefined);}
     catch(cause){setActionError(asAppError(cause).message);}
-  };
-  const openRouteCreate=(model:PublicModel)=>{
+ });
+  const openRouteCreate=(model:PublicModel)=>boundary.request(()=>{
     try{const owner=captureModelActionOwner();if(context?.status!=="draft")throw new Error("请先选择草稿后配置路由。");setRouteTarget({model,owner});setActionError(undefined);}
     catch(cause){setActionError(asAppError(cause).message);}
-  };
+ });
   const settleModelReceipt=(receipt:ModelTaskReceipt)=>{
     if(receipt.kind==="unconfirmed")return;
     if(receipt.kind!=="unchanged"){
@@ -119,7 +122,7 @@ export function ModelsPage() {
       <header className="page-head">
         <h2>{t.nav.models}</h2>
         <div className="page-actions">
-          <button onClick={()=>{setConnectionSeed(undefined);setConnecting(true);}}>接入模型</button>
+          <button onClick={()=>boundary.request(()=>{setConnectionSeed(undefined);setConnecting(true);})}>接入模型</button>
 
         </div>
       </header>
@@ -136,7 +139,7 @@ export function ModelsPage() {
           </p>
           <button
             className="secondary"
-            onClick={() => setConnecting(true)}
+            onClick={() => boundary.request(()=>setConnecting(true))}
           >
             开放此模型
           </button>
@@ -194,7 +197,7 @@ export function ModelsPage() {
                 <td data-label="模型 ID"><strong className="mono">{model.model_name}</strong>{model.display_name!==model.model_name?<span className="entity-meta">{model.display_name}</span>:null}</td>
                 <td data-label="来源连接"><div className="model-source-preview">{topology.isError?"连接读取失败":!topology.data?"读取连接…":!sources.length?"未添加连接":[...new Map(sources.map(c=>[c.endpoint_id,c])).values()].map(c=>{const endpoint=topology.data?.endpoints.find(e=>e.id===c.endpoint_id);return <span key={c.id}>{resourceName(endpoint?.upstream_id??"","upstream",providers.data?.find(p=>p.id===endpoint?.upstream_id)?.name)} · {protocolName(endpoint?.api_format??"")}{sources.some(s=>s.endpoint_id===c.endpoint_id&&s.enabled)?"":" · 已停用"}</span>;})}</div></td>
                 <td data-label="状态"><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
-                <td className="row-actions"><button className="secondary" onClick={()=>setConnectionTarget(model)}>管理连接</button><button className="secondary" onClick={()=>setInspected(model)}>详情</button>
+                <td className="row-actions"><button className="secondary" onClick={()=>boundary.request(()=>setConnectionTarget(model))}>管理连接</button><button className="secondary" onClick={()=>boundary.request(()=>setInspected(model))}>详情</button>
                   <details className="row-menu"><summary>更多</summary><div>
                     <button className="secondary" onClick={()=>openModelEditor(model)}>编辑模型</button>
                     <button className="secondary" onClick={()=>openModelAliases(model)}>管理别名</button>
@@ -213,14 +216,14 @@ export function ModelsPage() {
         ) : null}
       </div>
 
-      <details className="models-advanced" open={createdRouteId!==undefined?true:undefined}><summary>高级路由、候选与别名</summary>          <button
+      <details className="models-advanced" open={createdRouteId!==undefined?true:undefined}><summary onClick={event=>{if(candidateActive){event.preventDefault();boundary.request(()=>{});}}}>高级路由、候选与别名</summary>          <button
             type="button"
             disabled={!editable}
             title={editable ? undefined : t.version.readOnly}
             onClick={() => openModelEditor()}
           >
             高级模型配置
-          </button><RouteWorkbench focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
+          </button><RouteWorkbench onCandidateActiveChange={setCandidateActive} focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
 
       {connectionTarget?<ModelConnectionsDialog model={connectionTarget} onClose={()=>setConnectionTarget(undefined)} onSaved={version=>{setConnectionTarget(undefined);useVersionStore.getState().select(version);invalidate();}} onAdd={()=>{const route=topology.data?.routes.find(r=>r.public_model_id===connectionTarget.id);const mappings=[...new Set(topology.data?.candidates.filter(c=>c.route_id===route?.id).map(c=>c.upstream_model)??[])];if(mappings.length>1){setNotice("该模型已有多种上游映射，请在高级路由配置中选择具体路径。");return;}setConnectionSeed({model:mappings[0]??connectionTarget.model_name,endpoint:"",targetModelId:connectionTarget.id});setConnectionTarget(undefined);setConnecting(true);}}/>:null}
       {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[

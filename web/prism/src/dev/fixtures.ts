@@ -2417,13 +2417,11 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     //     cursor, which is the one recovery the contract requires
     //     (re-read from the start, never retry the stale cursor).
     //
-    // config_conflict is bound to the older active version: the snapshot's
-    // source is the draft being rolled out, so `v-2026-07` is "not this
-    // snapshot's source" — the contract's own wording for that 409.
+    // Runtime projections belong to the serving configuration, never a draft.
     if (route === "GET /admin/operations/provider-egress-status") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
-      if (version.id !== "draft-2026-08") {
+      if (version.status !== "active") {
         return errorResponse(
           409,
           "management_provider_egress_status_config_conflict",
