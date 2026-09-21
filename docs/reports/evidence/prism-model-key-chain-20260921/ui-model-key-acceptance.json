@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "real_gateway": true,
+  "ui_model_opened": "Model-Second",
+  "ui_key_select_all_count": 2,
+  "ui_key_final_selection": [
+    "Model-Second"
+  ],
+  "existing_key_unchanged": true,
+  "cross_model_denied": true,
+  "unpriced_preserved": true,
+  "mock_inference_only": true
+}
