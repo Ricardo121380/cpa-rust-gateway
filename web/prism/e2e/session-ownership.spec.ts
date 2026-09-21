@@ -61,3 +61,40 @@ test("changing versions closes a form authored for the previous version", async 
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version","v-2026-07");
 });
+
+test("idle expiry removes an open editor without waiting for a server rejection", async ({ page }) => {
+  await unlock(page);
+  await page.clock.install();
+  await page.evaluate(async () => {
+    const path = "/src/session/sessionStore.ts";
+    const { useSessionStore } = await import(path);
+    const state = useSessionStore.getState();
+    useSessionStore.getState().acceptSession({
+      username: state.username,
+      session_token: state.managementKey,
+      csrf_token: state.csrfToken,
+      expires_at_ms: Date.now() + 60_000,
+      password_change_required: false,
+    });
+  });
+  await selectDraft(page);
+  await navigate(page, "访问控制");
+  await page.getByRole("button", { name: "创建客户端密钥" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.clock.fastForward(60_001);
+  await expect(page).toHaveURL(/#\/unlock$/u);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator("main.canvas")).toHaveCount(0);
+  const cleared = await page.evaluate(async () => {
+    const sessionPath = "/src/session/sessionStore.ts";
+    const queryPath = "/src/api/queryClient.ts";
+    const { useSessionStore } = await import(sessionPath);
+    const { queryClient } = await import(queryPath);
+    const state = useSessionStore.getState();
+    return !state.unlocked && state.managementKey === undefined && state.csrfToken === undefined
+      && queryClient.getQueryCache().getAll().length === 0
+      && queryClient.getMutationCache().getAll().length === 0;
+  });
+  expect(cleared).toBe(true);
+});

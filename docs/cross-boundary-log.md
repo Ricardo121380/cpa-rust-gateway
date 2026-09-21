@@ -2967,3 +2967,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Distinguish requests with usage observations from all external requests, replace implementation notes with user-facing scope, and localize provider/endpoint/key labels.
 
 **Other side:** FYI. User-authorized frontend work; no contract, aggregation, permission or production change. Seven final usage browser regressions, SPA gate and three Rust embedded tests passed; real local gateway request/ledger/usage checks and EgoLite screenshots recorded.
+
+## 2026-09-21 - Codex - idle session expiry browser coverage
+
+**What:** `web/prism/e2e/session-ownership.spec.ts`.
+
+**Why:** Verify absolute expiry closes an open editor and removes secrets and caches without waiting for a server rejection.
+
+**Other side:** FYI. No product, contract or backend changes. Six focused browser tests and 22 ownership unit tests passed; actual local gateway logout/revocation/relogin and controlled same-tab asset switching recorded. An automation navigation/revocation blank-page observation remains explicitly open in the report; Safari and production cutover not claimed.
