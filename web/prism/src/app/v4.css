@@ -189,8 +189,6 @@ textarea {
 }
 :root[data-theme="dark"] { color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
-button.secondary,
-.row-actions button,
 input,
 select,
 textarea {

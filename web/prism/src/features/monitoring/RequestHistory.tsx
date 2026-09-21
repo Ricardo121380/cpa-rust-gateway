@@ -1,8 +1,9 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useId, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError, shouldRetryManagementRead } from "../../api/errors";
+import { useOverviewBilling } from "../overview/useOverviewBilling";
 import { Sheet } from "../../components/Sheet";
 import { ResourcePicker } from "../../components/ResourcePicker";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
@@ -83,10 +84,24 @@ function Trend({series:observed,from,to,bucket}:Readonly<{series:readonly Bucket
   const start=Math.floor(from/bucket)*bucket;
   const byTime=new Map(observed.map(row=>[row.at_ms,row]));
   const series=observed.length?Array.from({length:Math.min(1000,Math.floor((to-start)/bucket)+1)},(_,index)=>{const at=start+index*bucket;return byTime.get(at)??{at_ms:at,requests:0,succeeded:0,failed:0,cancelled:0,average_duration_ms:null,average_first_content_ms:null};}):[];
-  const maximum=Math.max(1,...series.map(row=>row.requests));
-  const points=series.map(row=>`${20+(row.at_ms-start)/Math.max(1,to-start)*720},${135-row.requests/maximum*115}`).join(" ");
-  return <figure className="request-trend"><figcaption>请求趋势 <span>{new Date(from).toLocaleString()} — {new Date(to).toLocaleString()}</span></figcaption>
-    {series.length?<svg viewBox="0 0 760 155" role="img" aria-label="每个时间段的实际请求数"><line x1="20" y1="135" x2="740" y2="135" className="request-axis"/><polyline points={points} className="request-line"/>{series.map(row=><circle key={row.at_ms} cx={20+(row.at_ms-start)/Math.max(1,to-start)*720} cy={135-row.requests/maximum*115} r="3"><title>{new Date(row.at_ms).toLocaleString()}：{row.requests} 次，成功 {row.succeeded}，失败 {row.failed}，取消 {row.cancelled}</title></circle>)}</svg>:<p className="empty-state">此时间范围没有已观测的请求终态。</p>}
+  const [metric,setMetric]=useState<"requests"|"average_duration_ms">("requests");
+  const gradient=useId();
+  const maximum=Math.max(1,...series.map(row=>row[metric]??0));
+  const x=(row:Bucket)=>42+(row.at_ms-start)/Math.max(1,to-start)*690;
+  const y=(row:Bucket)=>155-(row[metric]??0)/maximum*115;
+  // Unknown latency buckets break the line instead of inventing zero latency.
+  const segments:Bucket[][]=[];
+  let current:Bucket[]=[];
+  for(const row of series){if(row[metric]===null){if(current.length)segments.push(current);current=[];}else current.push(row);}
+  if(current.length)segments.push(current);
+  return <figure className="request-trend"><figcaption><strong>请求趋势</strong><div className="trend-modes" role="group" aria-label="趋势指标"><button type="button" aria-pressed={metric==="requests"} onClick={()=>setMetric("requests")}>请求量</button><button type="button" aria-pressed={metric==="average_duration_ms"} onClick={()=>setMetric("average_duration_ms")}>平均耗时</button></div></figcaption>
+    <p className="trend-range">{new Date(from).toLocaleString()} — {new Date(to).toLocaleString()}</p>
+    {series.length?<svg viewBox="0 0 760 185" role="img" aria-label={metric==="requests"?"每个时间段的实际请求数":"每个时间段已观测的平均耗时"}>
+      <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" className="trend-fill-start"/><stop offset="100%" className="trend-fill-end"/></linearGradient></defs>
+      {[0,.5,1].map(part=><g key={part}><line x1="42" y1={155-part*115} x2="732" y2={155-part*115} className="request-axis"/><text x="34" y={159-part*115} textAnchor="end" className="trend-axis-label">{Math.round(maximum*part).toLocaleString()}</text></g>)}
+      {segments.map((segment,index)=>{const points=segment.map(row=>`${x(row)},${y(row)}`).join(" ");return <g key={index}>{metric==="requests"?<polygon points={`${x(segment[0]!)},155 ${points} ${x(segment[segment.length-1]!)},155`} fill={`url(#${gradient})`}/>:null}<polyline points={points} className="request-line"/>{segment.map(row=><circle key={row.at_ms} cx={x(row)} cy={y(row)} r="2.5"><title>{new Date(row.at_ms).toLocaleString()}：{metric==="requests"?`${row.requests} 次，成功 ${row.succeeded}，失败 ${row.failed}，取消 ${row.cancelled}`:milliseconds(row.average_duration_ms)}</title></circle>)}</g>;})}
+      <text x="42" y="179" className="trend-axis-label">{new Date(from).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</text><text x="732" y="179" textAnchor="end" className="trend-axis-label">{new Date(to).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}{metric==="average_duration_ms"?" · ms":""}</text>
+    </svg>:<p className="empty-state">此时间范围没有已观测的请求终态。</p>}
     <details><summary>查看趋势数据</summary><div className="tablewrap"><table><thead><tr><th>时间</th><th>请求</th><th>成功</th><th>失败</th><th>取消</th><th>平均耗时</th></tr></thead><tbody>{series.map(row=><tr key={row.at_ms}><td>{time(row.at_ms)}</td><td>{row.requests}</td><td>{row.succeeded}</td><td>{row.failed}</td><td>{row.cancelled}</td><td>{milliseconds(row.average_duration_ms)}</td></tr>)}</tbody></table></div></details>
   </figure>;
 }
@@ -102,13 +117,36 @@ function Metrics({data,link}:Readonly<{data:Summary;link:string}>) {
 export function RequestOverview({onRangeChange}:Readonly<{onRangeChange?:(range:{from_ms:number;to_ms:number})=>void}>) {
   const [hours,setHours]=useState(24),[anchor,setAnchor]=useState(Date.now());
   const range={from_ms:anchor-hours*3_600_000,to_ms:anchor,bucket_ms:hours>24?86_400_000:3_600_000};
+  const billingRange={from_ms:range.from_ms,to_ms:range.to_ms};
   useEffect(()=>{onRangeChange?.({from_ms:range.from_ms,to_ms:range.to_ms});},[onRangeChange,range.from_ms,range.to_ms]);
   const query=useQuery({queryKey:["request-summary",range],queryFn:()=>call<Page>("summarizeRequests",{query:{...range,limit:1}}),retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1)});
+  const billing=useOverviewBilling(billingRange);
   const link=`/monitoring?tab=requests&from_ms=${range.from_ms}&to_ms=${range.to_ms}`;
-  return <section className="request-overview"><div className="data-toolbar"><h3>请求概览</h3><select aria-label="请求时间范围" value={hours} onChange={event=>{setHours(Number(event.target.value));setAnchor(Date.now());}}><option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select><button className="secondary" onClick={()=>setAnchor(Date.now())}>刷新</button></div>
-    {query.isError?<p role="alert">{asAppError(query.error).message}</p>:query.data?.summary?<><Metrics data={query.data.summary} link={link}/><Trend series={query.data.series} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms}/><Link to={link}>查看此范围请求</Link></>:<p role="status">读取请求统计…</p>}
+  const ledger=`/monitoring?tab=ledger&from_ms=${range.from_ms}&to_ms=${range.to_ms}`;
+  const summary=query.data?.summary;
+  const costs=billing.isError?undefined:billing.data?.summary;
+  return <section className="request-overview">
+    <div className="data-toolbar"><h3>请求概览</h3><select aria-label="请求时间范围" value={hours} onChange={event=>{setHours(Number(event.target.value));setAnchor(Date.now());}}><option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select><button className="secondary" onClick={()=>setAnchor(Date.now())}>刷新</button></div>
+    {query.isError?<p role="alert">{asAppError(query.error).message}</p>:summary?<>
+      <div className="request-metrics overview-kpis">
+        <Link to={link}><span>请求数</span><strong>{summary.requests.toLocaleString()}</strong><small>上游重试不重复计数</small></Link>
+        <Link to={`${link}&outcome=succeeded`}><span>成功率</span><strong>{summary.success_rate===null?"—":`${(summary.success_rate*100).toFixed(1)}%`}</strong><small>{summary.failed} 失败 · {summary.cancelled} 取消</small></Link>
+        <Link to={link}><span>P95 总耗时</span><strong>{milliseconds(summary.p95_duration_ms)}</strong><small>仅统计已观测总耗时</small></Link>
+        <Link to={ledger}><span>已知费用 · 微单位</span><strong>{costs?.records?formatMicrounits(costs.known_cost_microunits):"—"}</strong><small>{billing.isError?"费用暂时无法读取":costs===undefined?"读取中…":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录未计价`}</small></Link>
+      </div>
+      <div className="overview-observations">
+        <Trend series={query.data?.series ?? []} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms}/>
+        <aside className="overview-attention"><h3>需要关注</h3><p className="stat-sub">当前时间范围内的处理事项</p>
+          <Link to={`${link}&outcome=failed`}><strong>{summary.failed} 个失败请求</strong><span>查看错误与上游重试链 →</span></Link>
+          <Link to={ledger}><strong>{costs===undefined?"计价状态待确认":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录尚未计价`}</strong><span>已知费用不等于全部费用 →</span></Link>
+          <Link to="/accounts?view=runtime"><strong>账号健康与额度</strong><span>查看当前认证与调度状态 →</span></Link>
+          <details><summary>更多请求指标</summary><p>P50：{milliseconds(summary.p50_duration_ms)}</p><p>平均首内容延迟：{milliseconds(summary.average_first_content_ms)}</p><p>{summary.attempts} 次上游尝试 · {summary.unknown} 条终态未知</p></details>
+        </aside>
+      </div><Link to={link}>查看此范围请求</Link>
+    </>:<p role="status">读取请求统计…</p>}
   </section>;
 }
+
 function RequestDetail({row,onClose}:Readonly<{row:RequestRow;onClose:()=>void}>) {
   const attempts=useQuery({queryKey:["request-attempts",row.request_id],queryFn:()=>call<readonly AttemptRow[]>("listRequestAttempts",{path:{request_id:row.request_id}}),retry:false});
   return <Sheet title={row.model} layout="inspector" onEscape={onClose}>

@@ -3,7 +3,7 @@ import { KimiDeviceDialog } from "./KimiDeviceDialog";
 import {useAccountDirectory} from "./useAccountDirectory";
 import { useModelConnections } from "../models/useModelConnections";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { asAppError } from "../../api/errors";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
@@ -28,16 +28,14 @@ import { accountActionTargetKey, freezeAccountActionTargets } from "./accountAct
 export function AccountsPage() {
   const [params, setParams] = useSearchParams();
   const runtime = params.get("view") === "runtime" || params.has("auth") || params.has("runtime");
-  return <>
-    <nav className="workspace-navigation" aria-label="账号视图">
+  const navigation = <nav className="workspace-navigation" aria-label="账号视图">
       <button aria-pressed={!runtime} onClick={() => { if (runtime) setParams(new URLSearchParams()); }}>全部账号</button>
       <button aria-pressed={runtime} onClick={() => { if (!runtime) setParams({view: "runtime"}); }}>运行状态</button>
-    </nav>
-    {runtime ? <AccountRuntimePanel /> : <ManagedAccounts />}
-  </>;
+    </nav>;
+  return runtime ? <>{navigation}<AccountRuntimePanel /></> : <ManagedAccounts navigation={navigation} />;
 }
 
-function ManagedAccounts() {
+function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const [params, setParams] = useSearchParams();
   const context = useVersionStore((s) => s.context);
   const client = useQueryClient();
@@ -145,6 +143,7 @@ function ManagedAccounts() {
         <button className="secondary" onClick={() => void refresh()}>刷新账号</button>
       </div>
     </header>
+    {navigation}
     {notice ? <p role="status">{notice}</p> : null}
     {selecting?<div className="account-batch-toolbar" aria-label="批量账号操作"><span>已选 {selectedTargets.length} / 20 份授权</span><div className="page-actions">{(["enable","disable","remove"] as const).map((action)=><button key={action} className="secondary" disabled={!selectedTargets.length} onClick={()=>setBatch({targets:selectedTargets,action})}>{({enable:"启用",disable:"停用",remove:"移除"})[action]}</button>)}<button className="secondary" disabled={!selection.size} onClick={()=>setSelection(new Set())}>清除选择</button></div></div>:null}
     <div className="account-directory-toolbar">

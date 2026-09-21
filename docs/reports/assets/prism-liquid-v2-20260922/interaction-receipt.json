@@ -1,0 +1,32 @@
+{
+  "browser": "EgoLite",
+  "space": 9,
+  "synthetic_only": true,
+  "observed": {
+    "search_opens_focus_input": true,
+    "escape_returns_search_trigger": true,
+    "reduced_motion_hover_transform": "none",
+    "busy_group_save_close_disabled": true,
+    "busy_shortcut_no_second_dialog": true,
+    "group_save_receipt_after_release": true,
+    "one_time_key_reveal_then_auth_denial": {
+      "unlocked": false,
+      "hasSecret": false,
+      "dialogs": 0,
+      "reveals": 0,
+      "queries": 0
+    },
+    "kimi_import_discard_reopen_empty": true,
+    "real_provider_dirty_cancel_guard": true,
+    "search_dirty_cancel_preserves_input": true,
+    "search_dirty_discard_then_immediate_typing": true,
+    "search_returns_stable_trigger_after_editor_unmount": true
+  },
+  "not_executed": [
+    "real_provider_authorization",
+    "inference",
+    "production_deployment",
+    "Safari",
+    "all_business_E2E"
+  ]
+}

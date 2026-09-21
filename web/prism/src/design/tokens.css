@@ -2,6 +2,16 @@
    :root (light) → @media prefers-color-scheme (dark) → [data-theme] override. */
 
 :root {
+  --control-top: #0e65b8;
+  --control-end: #075bb7;
+  --pearl-top: #ffffff;
+  --pearl-end: #f5f7fa;
+  --pearl-edge: #dce3ec;
+  --motion-press: 110ms;
+  --motion-state: 160ms;
+  --motion-select: 210ms;
+  --motion-panel: 240ms;
+
   /* canvas / surface / ink */
   --canvas: #eceef2;
   --content-canvas: #f5f5f7;
@@ -163,6 +173,14 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --control-top: #1266b8;
+  --control-end: #0757a8;
+  --pearl-top: #364559;
+  --pearl-end: #2a3646;
+  --pearl-edge: #485971;
+
+  }
   :root {
     --canvas: #101217;
   --content-canvas: #191b20;
@@ -225,6 +243,12 @@
 }
 
 :root[data-theme="light"] {
+  --control-top: #0e65b8;
+  --control-end: #075bb7;
+  --pearl-top: #ffffff;
+  --pearl-end: #f5f7fa;
+  --pearl-edge: #dce3ec;
+
   --canvas: #eceef2;
   --content-canvas: #f5f5f7;
   --canvas-ambient: linear-gradient(160deg, #c8d8e8 0%, #e8e4f0 45%, #d4e4e0 100%);
@@ -313,6 +337,12 @@
 }
 
 :root[data-theme="dark"] {
+  --control-top: #1266b8;
+  --control-end: #0757a8;
+  --pearl-top: #364559;
+  --pearl-end: #2a3646;
+  --pearl-edge: #485971;
+
   --canvas: #101217;
   --content-canvas: #191b20;
   --canvas-ambient: linear-gradient(160deg, #101826 0%, #181428 45%, #0e1e1e 100%);
@@ -401,3 +431,6 @@ body {
     --dur-anneal: 0ms;
   }
 }
+
+:root[data-motion="reduce"] { --motion-press: 0ms; --motion-state: 0ms; --motion-select: 0ms; --motion-panel: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root, :root[data-theme] { --motion-press: 0ms; --motion-state: 0ms; --motion-select: 0ms; --motion-panel: 0ms; } }

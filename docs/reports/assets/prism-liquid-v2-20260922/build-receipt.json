@@ -1,0 +1,28 @@
+{
+  "baseline": "de888dd",
+  "assets": [
+    {
+      "file": "index.html",
+      "bytes": 955,
+      "sha256": "ee1d81003a4b1dc4eb1370a5e3e114bce7c5dc86898c2c028c213197d21701e5"
+    },
+    {
+      "file": "assets/main.js",
+      "bytes": 825320,
+      "sha256": "7c18db15a2cb9006aeaabda019760c88780cb6e7832aef41c2acd2b7219ae7a9"
+    },
+    {
+      "file": "assets/vendor.js",
+      "bytes": 141674,
+      "sha256": "882ff23f8a2d073de5cc33ef822e0dea0e8b8ed984147d4b8d0b464ad97b8ac4"
+    },
+    {
+      "file": "assets/index.css",
+      "bytes": 128652,
+      "sha256": "dea9830149b66d3325e3eed4413e075fb006c95a447fdb0d40d03ef6d492ba5f"
+    }
+  ],
+  "csp": "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
+  "production_changed": false,
+  "inference_sent": false
+}

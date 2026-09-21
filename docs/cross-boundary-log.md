@@ -2991,3 +2991,12 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Preserve filters when the already-selected account view is clicked. Add regression coverage; align billing fixture time, reconciliation wording and asynchronous lens assertions with their actual behavioral contracts.
 
 **Other side:** FYI. Authorized frontend work; no API, schema, permission or production-data changes. Full candidate acceptance and initial failures are recorded in `docs/reports/prism-candidate-integration-20260921.md`; release gates remain required before deployment.
+
+
+## 2026-09-22 - Codex - user ChatGPT Prism Liquid V2 adoption
+
+**What:** `web/prism/src/app/**`, shared design tokens/Sheet focus admission, overview/request trend, account view arrangement; V2 design source, adoption plan and local evidence.
+
+**Why:** Reproduce the user-selected ChatGPT design in the existing Prism application while retaining real management flows, opaque data panels, session ownership and four-file CSP delivery.
+
+**Other side:** FYI. User-authorized frontend ownership. No backend contract, production or provider inference changes. Local unit, deterministic bundle, embedded asset and EgoLite evidence are recorded in `docs/reports/prism-liquid-v2-adoption-local.md`; full business/release acceptance is not claimed.

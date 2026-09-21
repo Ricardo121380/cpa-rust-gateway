@@ -1,0 +1,170 @@
+[
+  {
+    "route": "/",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘"
+  },
+  {
+    "route": "/accounts",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理"
+  },
+  {
+    "route": "/upstreams",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商"
+  },
+  {
+    "route": "/models",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理"
+  },
+  {
+    "route": "/access",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥"
+  },
+  {
+    "route": "/monitoring",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志"
+  },
+  {
+    "route": "/usage",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用"
+  },
+  {
+    "route": "/settings",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "heading": "设置"
+  },
+  {
+    "route": "/",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘"
+  },
+  {
+    "route": "/accounts",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理"
+  },
+  {
+    "route": "/upstreams",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商"
+  },
+  {
+    "route": "/models",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理"
+  },
+  {
+    "route": "/access",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥"
+  },
+  {
+    "route": "/monitoring",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志"
+  },
+  {
+    "route": "/usage",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用"
+  },
+  {
+    "route": "/settings",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "heading": "设置"
+  },
+  {
+    "route": "/",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘"
+  },
+  {
+    "route": "/accounts",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理"
+  },
+  {
+    "route": "/upstreams",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商"
+  },
+  {
+    "route": "/models",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理"
+  },
+  {
+    "route": "/access",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥"
+  },
+  {
+    "route": "/monitoring",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志"
+  },
+  {
+    "route": "/usage",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用"
+  },
+  {
+    "route": "/settings",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "heading": "设置"
+  }
+]

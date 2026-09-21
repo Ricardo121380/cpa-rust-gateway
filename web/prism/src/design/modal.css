@@ -2,7 +2,7 @@
    solid and readable. Header/body/footer are intentionally owned here rather
    than split between this file and app.css. */
 :root {
-  --sheet-in: 180ms;
+  --sheet-in: var(--motion-panel);
 }
 
 html.has-sheet,
@@ -65,7 +65,8 @@ html.has-sheet body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 22px 0;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--modal-border);
 }
 
 .sheet-heading > div { min-width: 0; }
@@ -103,7 +104,7 @@ html.has-sheet body {
 
 .sheet-body {
   min-height: 0;
-  padding: 18px 22px 22px;
+  padding: 24px;
   overflow: auto;
   overscroll-behavior: contain;
   scroll-padding-block: 16px;
@@ -347,7 +348,7 @@ html.has-sheet body {
   }
   .sheet-panel,
   .sheet-backdrop[data-layout="inspector"] .sheet-panel { border-radius: 18px; }
-  .sheet-heading { padding: 18px 18px 0; }
+  .sheet-heading { padding: 18px; }
   .sheet-body { padding: 16px 18px 18px; }
   .sheet-footer { min-height: 76px; padding: 12px 18px max(14px, env(safe-area-inset-bottom)); }
   .sheet-footer > button,

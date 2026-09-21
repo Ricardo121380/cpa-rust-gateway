@@ -1,0 +1,58 @@
+[
+  {
+    "theme": "light",
+    "mode": "system",
+    "selector": ".page-actions button:not(.secondary)",
+    "hover": "none",
+    "active": "none"
+  },
+  {
+    "theme": "light",
+    "mode": "system",
+    "selector": ".page-actions button.secondary:last-child",
+    "hover": "none",
+    "active": "none"
+  },
+  {
+    "theme": "light",
+    "mode": "application",
+    "selector": ".page-actions button:not(.secondary)",
+    "hover": "none",
+    "active": "none"
+  },
+  {
+    "theme": "light",
+    "mode": "application",
+    "selector": ".page-actions button.secondary:last-child",
+    "hover": "none",
+    "active": "none"
+  },
+  {
+    "theme": "dark",
+    "mode": "system",
+    "selector": ".page-actions button:not(.secondary)",
+    "hover": "none",
+    "active": "none"
+  },
+  {
+    "theme": "dark",
+    "mode": "system",
+    "selector": ".page-actions button.secondary:last-child",
+    "hover": "none",
+    "active": "none"
+  },
+  {
+    "theme": "dark",
+    "mode": "application",
+    "selector": ".page-actions button:not(.secondary)",
+    "hover": "none",
+    "active": "none"
+  },
+  {
+    "theme": "dark",
+    "mode": "application",
+    "selector": ".page-actions button.secondary:last-child",
+    "hover": "none",
+    "active": "none"
+  }
+]

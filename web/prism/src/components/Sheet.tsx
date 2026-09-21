@@ -210,7 +210,7 @@ function SheetBody({
     // the original opener instead of replacing it with the panel's first button.
     openerRef.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const opener = openerRef.current;
-    (panelRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? panelRef.current)?.focus();
+    (panelRef.current?.querySelector<HTMLElement>("[data-sheet-initial-focus]") ?? panelRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? panelRef.current)?.focus();
 
     openSheets += 1;
     document.documentElement.classList.add("has-sheet");

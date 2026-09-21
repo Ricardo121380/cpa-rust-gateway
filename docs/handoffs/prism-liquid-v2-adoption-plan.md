@@ -1,0 +1,41 @@
+# Prism Liquid V2 正式应用迁移
+
+2026-09-22。来源：用户 ChatGPT 设计会话 `6ab1479d-31a8-83ea-aa5e-fa4f3df3bd8a`，C2C `c2c_v2adopt`，PLAN iteration 0。基线 `de888dd`，保留无关未跟踪文件。
+
+视觉源：`docs/design/chatgpt-prism-liquid-v2/CPAR-Prism-Liquid-v2.html` 与 `C2C-Design-Handoff.md`。原型只有演示数据，不作为生产业务或验收证据。
+
+## 批次与验收
+
+|批次|实施内容|完成条件|
+|---|---|---|
+|V2A|全高悬浮侧栏、内容顶栏、实底面板、按钮、弹窗、动效与辅助降级|三尺寸深浅色、焦点、触控、无溢出、类型和构建|
+|V2B|总览四指标、趋势/关注、账号概览、账号列表和授权入口|真实字段/范围、未知值、授权表单/关闭保护、分页和筛选保留|
+|V2C|提供商、模型、密钥工作区与表单|保留拓扑、手动开放、显式权限与一次性秘密|
+|V2D|请求、用量价格、设置和待应用核对|时间深链、六类 token、置信度、完整差异与显式应用|
+|V2E|冻结候选整体本地验收|EgoLite、正式嵌入/CSP、四文件一致、报告和独立审阅|
+
+## 页面映射
+
+|工作区|正式入口|适配重点|
+|---|---|---|
+|总览|`#/`|四指标、双栏趋势/关注、费用与账号摘要|
+|请求日志|`#/monitoring`|筛选、真实终态、详情及尝试链|
+|用量与费用|`#/usage`、`#/billing`|范围与置信度、复杂价格编辑保留页内|
+|账号|`#/accounts`|标题后导航、渠道筛选、统一列表、官方授权及导入|
+|提供商|`#/upstreams`|紧凑主从工作区、页内新建、接口及绑定|
+|模型|`#/models`、`#/catalog`|原始 ID、来源、开放与候选编辑|
+|API 密钥|`#/access`|名称、允许模型、一次性结果与权限维护|
+|设置|`#/settings`|外观/辅助/会话，维护入口保留旧路由|
+
+## 不可变边界
+
+- 复用 React/TanStack/Zustand、GlassSurface/PrismLens、Sheet/InlineWorkspace/OperationBoundary/ConfigurationLifecycleHost。
+- 不复制原型内联事件、模拟任务、原生 dialog、假运行状态或前后差异。真实关闭和秘密清理不等待动画。
+- 仅三面 chrome 玻璃；正文实底。不新增 v7 覆盖层、依赖或 chunk；统一客户端、CSP 和四文件构建不变。
+- 请求与账本同时间范围、各自快照；授权计数不是可调度数，部分分页不作完整统计。
+- 草稿保存不等于发布，全局价格独立保存，原生账号操作即时生效；不自动重放冲突写请求。
+- 本轮本地复刻与验收，不做生产操作、真实授权、额度探测或推理。EgoLite 是浏览器验收入口；不静默改用 Safari。
+
+## 验证记录规则
+
+证据落入 `docs/reports/prism-liquid-v2-adoption-local.md`。区分原型、fixture、真实本地 gateway；不得以历史通过数替代本次结果。C2C 通过连接器读取 diff 和 execution output，不粘贴秘密或日志。

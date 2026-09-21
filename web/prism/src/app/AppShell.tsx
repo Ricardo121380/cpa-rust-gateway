@@ -1,5 +1,5 @@
 // Shell: exactly three chrome glass panes — rail, topbar, (draft-only) dock.
-// V6 keeps a shared frosted workspace beneath the three refractive chrome panes.
+// Liquid V2 places opaque data panels beneath the three refractive chrome panes.
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import { useMessages } from "../i18n/messages";
 import { useSessionStore } from "../session/sessionStore";
 import { OperationBoundary, useOperationBoundary } from "../components/OperationBoundary";
 import { ConfigurationLifecycleHost } from "../features/config-versions/ConfigurationLifecycleHost";
+import { WorkspaceSearch } from "./WorkspaceSearch";
 import { DraftDock } from "./DraftDock";
 import { NAV_GROUPS, NAV_ITEMS, primaryRoute, workspacePages } from "./navigation";
 import { resolvedTheme, useThemeStore } from "./themeStore";
@@ -51,6 +52,7 @@ function PendingConfigurationNotice() {
 }
 
 export function AppShell() {
+  const username = useSessionStore((s) => s.username);
   const unlocked = useSessionStore((s) => s.unlocked);
   const passwordChangeRequired = useSessionStore((s) => s.passwordChangeRequired);
   const sessionGeneration = useSessionStore((s) => s.generation);
@@ -119,14 +121,11 @@ export function AppShell() {
             aria-controls="main-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>
           </button>
-          <strong className="brand">
-            <svg className="brandmark" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="m14 2 12 12-12 12L2 14Z" fill="currentColor" fillOpacity=".12" stroke="currentColor" strokeWidth="1.5" /><path d="m14 6 8 8-8 8V6Z" fill="currentColor" fillOpacity=".35" /></svg>
-            <span>Prism</span>
-          </strong>
           <div className="top-context">
             {currentGroup === undefined ? null : <span>{t.navigation[currentGroup.label]} / </span>}
             <strong>{currentPage === undefined ? "Prism" : t.nav[currentPage.key]}</strong>
           </div>
+          <WorkspaceSearch />
           <button className="chrome-action secondary" aria-label={t.navigation.theme}
             onClick={() => setChoice(resolvedTheme(choice) === "dark" ? "light" : "dark")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none" /></svg></button>
         </GlassSurface>
@@ -142,8 +141,13 @@ export function AppShell() {
       </div>
 
       <GlassSurface as="nav" className="rail" material={material} pane="rail" id="main-navigation" open={menuOpen}>
+          <div className="brand">
+            <svg className="brandmark" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="m14 2 12 21-12 4L2 23 14 2Z M14 2v25 M2 23l12-5 12 5 M14 2 8 21 M14 2l6 19" fill="currentColor" fillOpacity=".04" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>
+            <span><strong>Prism</strong><small>CPAR CONSOLE</small></span>
+          </div>
+        <div className="rail-instance"><strong>我的网关</strong><span>Prism 管理控制台</span></div>
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="rail-group">
+          <div key={group.label} className="rail-group" data-group={group.label}>
             <div className="rail-label">{t.navigation[group.label]}</div>
             {group.items.map((item) => (
               <Link
@@ -159,6 +163,7 @@ export function AppShell() {
             ))}
           </div>
         ))}
+        <div className="rail-session"><span className="rail-avatar" aria-hidden="true">{(username ?? "P").slice(0, 1).toUpperCase()}</span><div><strong>{username ?? "管理员"}</strong><small>管理会话</small></div></div>
       </GlassSurface>
 
       <main className="canvas" ref={canvasRef} data-context-version={context?.configVersionId} data-context-status={context?.status}>

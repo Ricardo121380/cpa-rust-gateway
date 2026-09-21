@@ -1,4 +1,4 @@
-/* K3 high visual adaptation: one material family, no extra blur planes.
+/* Prism Liquid V2 workspace adaptation: one material family, no extra blur planes.
    The confirmed production lifecycle and existing chrome remain authoritative. */
 :root {
   --editor-surface: color-mix(in srgb, var(--surface) 88%, var(--canvas));
@@ -9,9 +9,9 @@
 }
 
 .canvas > .workspace > section > .page-head h2 {
-  font-size: 24px;
-  line-height: 1.4;
-  letter-spacing: normal;
+  font-size: 30px;
+  line-height: 1.25;
+  letter-spacing: -.035em;
 }
 
 .inline-workspace {

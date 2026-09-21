@@ -1,0 +1,242 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/",
+    "heading": "仪表盘",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/accounts",
+    "heading": "账号管理",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/upstreams",
+    "heading": "AI 提供商",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/models",
+    "heading": "模型管理",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/access",
+    "heading": "API 密钥",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/monitoring",
+    "heading": "请求日志",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/usage",
+    "heading": "用量与费用",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "route": "/settings",
+    "heading": "设置",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/",
+    "heading": "仪表盘",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/accounts",
+    "heading": "账号管理",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/upstreams",
+    "heading": "AI 提供商",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/models",
+    "heading": "模型管理",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/access",
+    "heading": "API 密钥",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/monitoring",
+    "heading": "请求日志",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/usage",
+    "heading": "用量与费用",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "route": "/settings",
+    "heading": "设置",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/",
+    "heading": "仪表盘",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/accounts",
+    "heading": "账号管理",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/upstreams",
+    "heading": "AI 提供商",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/models",
+    "heading": "模型管理",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/access",
+    "heading": "API 密钥",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/monitoring",
+    "heading": "请求日志",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/usage",
+    "heading": "用量与费用",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "route": "/settings",
+    "heading": "设置",
+    "overflow": false,
+    "crash": false,
+    "glass": 3,
+    "workspaceBlur": "none"
+  }
+]

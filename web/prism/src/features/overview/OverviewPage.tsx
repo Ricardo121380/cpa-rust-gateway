@@ -1,15 +1,18 @@
+import { useAccountDirectory } from "../accounts/useAccountDirectory";
+import { accountGroups } from "../accounts/presentation";
+import type { PoolSnapshot } from "../runtime/model";
+import { useOverviewBilling } from "./useOverviewBilling";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
 import { RequestOverview } from "../monitoring/RequestHistory";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { call, callText } from "../../api/client";
-import { asAppError, shouldRetryManagementRead } from "../../api/errors";
+import { asAppError } from "../../api/errors";
 import {
   exactShare,
   formatPercent,
   formatMicrounits,
-  type BillingResponse,
 } from "../monitoring/model";
 import { formatCount, StatTile } from "../../components/data/StatTile";
 import { TokenMixBar } from "../../components/data/TokenMixBar";
@@ -212,16 +215,7 @@ function LiveCountersSection() {
  * of mixing those observations with process-lifetime counters.
  */
 function BillingGlance({range}:Readonly<{range:{from_ms:number;to_ms:number}}>) {
-  const billing = useQuery({
-    // Not version-scoped, like the monitoring ledger it summarises.
-    queryKey: ["overview-billing",range],
-    queryFn: () => call<BillingResponse>("listOperationalBilling", { query: { ...range,limit: 1 } }),
-    // The bounded management reader can reject a concurrent dashboard read.
-    // This is safe to retry because it is a snapshot read, never a mutation.
-    retry: shouldRetryManagementRead,
-    retryDelay: (attempt) => 250 * (attempt + 1),
-    refetchInterval: 60_000,
-  });
+  const billing = useOverviewBilling(range);
 
   if (billing.isError) {
     return (
@@ -236,7 +230,7 @@ function BillingGlance({range}:Readonly<{range:{from_ms:number;to_ms:number}}>) 
 
   return (
     <div className="card" data-gap="top">
-      <h3>费用概览</h3>
+      <h3>费用完整性</h3>
       <p className="stat-sub">
         与请求概览使用同一时间范围；账本可能稍后完成处理。
       </p>
@@ -264,6 +258,21 @@ function BillingGlance({range}:Readonly<{range:{from_ms:number;to_ms:number}}>) 
       <Link to={`/monitoring?tab=ledger&from_ms=${range.from_ms}&to_ms=${range.to_ms}`}>查看费用与计价详情 →</Link>
     </div>
   );
+}
+
+function ProviderAccountsGlance() {
+  const inventory=useAccountDirectory({q:"",category:"",status:"",sort:"name",upstream_id:""});
+  const context=useVersionStore(state=>state.context);
+  const summary=inventory.data?.pages[0];
+  const runtime=useQuery({queryKey:["overview-account-runtime"],queryFn:()=>call<PoolSnapshot>("listProviderAccountPools",{query:{limit:100}}),retry:false,refetchInterval:30_000});
+  return <section className="card overview-providers">
+    <header className="overview-resource-head"><h3>提供商与账号</h3><Link to="/accounts">管理账号 →</Link></header>
+    <p className="stat-sub">{context?.status==="draft"?"待应用配置":context?.status==="archived"?"历史配置":"当前配置"}凭据与独立渠道账号；以下为授权数量，非运行可用数。</p>
+    <ReadStatus pending={runtime.isPending} error={runtime.error} hasData={runtime.data!==undefined} retry={()=>void runtime.refetch()}/>
+    {runtime.data?<p className="stat-sub">运行绑定{runtime.data.next_cursor?"（仅已载入部分）":""}：{runtime.data.items.length} 个 · 认证可用 {runtime.data.items.filter(item=>item.auth_status==="active").length} · 调度可用 {runtime.data.items.filter(item=>item.runtime_status==="available").length} · 冷却 {runtime.data.items.filter(item=>item.runtime_status==="cooling").length}。同一账号的多个接口分别计数。<Link to="/accounts?view=runtime">查看运行状态 →</Link></p>:null}
+    {context===undefined||context===null?<p className="muted">尚无配置上下文，请先接入提供商。</p>:<ReadStatus pending={inventory.isPending} error={inventory.error} hasData={summary!==undefined} retry={()=>void inventory.refetch()}/>}
+    {summary?summary.total===0?<p className="muted">尚未接入账号。</p>:<div className="overview-provider-rows">{accountGroups.filter(group=>(summary.category_totals[group.id]??0)>0).map(group=><Link key={group.id} to={`/accounts?category=${encodeURIComponent(group.id)}`}><span className="account-avatar" aria-hidden="true">{group.name.slice(0,2)}</span><span><strong>{group.name}</strong><small>{group.description}</small></span><strong>{summary.category_totals[group.id]} <small>份授权</small></strong><span aria-hidden="true">→</span></Link>)}</div>:null}
+  </section>;
 }
 
 function AnalyticsPointers() {
@@ -306,11 +315,12 @@ export function OverviewPage() {
       <RequestOverview onRangeChange={setRequestRange}/>
       <div className="overview-workspace">
         <div className="overview-primary">
-          <BillingGlance range={requestRange} />
+          <ProviderAccountsGlance />
           <ProcessingStatus compact />
           <AnalyticsPointers />
         </div>
         <aside className="overview-aside">
+          <BillingGlance range={requestRange} />
           <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
           <div className="card overview-resources">
           <div className="overview-resource-head"><h3>资源概览</h3><span className="entity-meta">{context?.status === "draft" ? "待应用" : context?.status === "archived" ? "历史配置" : active === undefined ? "等待接入" : "当前配置"}</span></div>
