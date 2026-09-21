@@ -2870,3 +2870,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Shared forms had decorative unlabelled fieldset borders, heavy input text and inconsistent workspace spacing. The new theme-derived material/spacing layer unifies modal forms and inline editors without additional blur planes. Shell specificity preserves editor gutters; desktop action bars clear the draft dock, and mobile controls retain readable text and touch sizing.
 
 **Other side:** FYI. 16 contrast/interaction/geometry browser cases passed. Actual gateway/EgoLite screenshots checked dark desktop and light mobile forms plus three inline viewport sizes; a historical padding override was found and corrected. K3 provenance is high, not max. No business prototype logic, dependencies, contract, production data or external model calls changed. Remaining creation/candidate migration and generic draft-read conflict investigation are recorded in `docs/design/prism-workspace-adaptation-20260921.md`; full-plan acceptance is not claimed.
+
+## 2026-09-21 - Codex - provider creation pending workspace
+
+**What:** `web/prism/src/features/upstreams/{ProviderDialog,UpstreamsPage}.tsx` and provider/modal E2E.
+
+**Why:** Creation still automatically published a multi-resource configuration and permanently locked the form even after local validation errors. Creation now uses the shared inline workspace, validates before admission, captures source/session ownership, retains a deferred receipt, and prevents replay after uncertain writes. Local transitions share departure ownership. Explicit draft recovery resets provider/connection reads after selection to retire stale cancelled caches.
+
+**Other side:** FYI. No public contract, production state or real Provider request changed. Acceptance and remaining scope are recorded in the operation ledger. C2C was not used as requested.

@@ -1,3 +1,4 @@
+import { useOperationBoundary } from "../../components/OperationBoundary";
 import { Link } from "react-router-dom";
 import { useModelConnections } from "../models/useModelConnections";
 import { protocolName } from "../accounts/presentation";
@@ -87,6 +88,7 @@ function toInput(draft: DraftUpstream) {
 
 export function UpstreamsPage() {
   const t = useMessages();
+  const boundary=useOperationBoundary();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const [owner]=useState(()=>({session:useSessionStore.getState().generation,selection:useVersionStore.getState().selectionGeneration}));
@@ -118,6 +120,7 @@ export function UpstreamsPage() {
 
   const selectProviderWorkspace = (id: string | undefined) => {
     if (providerActionActive && id !== expanded) return;
+    if(adding){boundary.request(()=>{setExpanded(id);});return;}
     setExpanded(id);
     const next = new URLSearchParams(searchParams);
     if (id === undefined) next.delete("upstream_id");
@@ -215,7 +218,7 @@ export function UpstreamsPage() {
         <div className="page-actions">
           <button
             type="button"
-            onClick={() => setAdding(true)}
+            onClick={() => boundary.request(()=>{setExpanded(undefined);setAdding(true);})}
           >
             添加提供商
           </button>
@@ -230,6 +233,8 @@ export function UpstreamsPage() {
           </button>
         </p>
       ) : null}
+
+      {adding?<ProviderDialog onClose={closeAdding} onSaved={(version)=>{closeAdding();useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["upstreams",version.id]});void queryClient.resetQueries({queryKey:["model-connections"]});}}/>:null}
 
       <ReadStatus pending={!!scope&&upstreams.isPending} error={upstreams.error} hasData={upstreams.data !== undefined} retry={() => void upstreams.refetch()} />
 
@@ -247,8 +252,8 @@ export function UpstreamsPage() {
             <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={manualModelConnectPath()}>开放模型</Link></div>
             <footer><div className="row-actions">
               <button className="secondary" disabled={providerActionActive && expanded !== upstream.id} title={providerActionActive && expanded !== upstream.id ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
-              <button className="secondary" onClick={()=>{save.reset();setWorkingId(undefined);setActionError(undefined);beginDraft(toDraft(upstream));}}>编辑</button>
-              <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>setInspected(upstream)}>详情</button><button className="danger" onClick={()=>{remove.reset();submitted.current=false;setConfirmedWrites(0);setReceipt(undefined);setDeleteSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);}}>移除提供商</button></div></details>
+              <button className="secondary" onClick={()=>boundary.request(()=>{save.reset();setWorkingId(undefined);setActionError(undefined);beginDraft(toDraft(upstream));})}>编辑</button>
+              <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>boundary.request(()=>setInspected(upstream))}>详情</button><button className="danger" onClick={()=>boundary.request(()=>{remove.reset();submitted.current=false;setConfirmedWrites(0);setReceipt(undefined);setDeleteSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);})}>移除提供商</button></div></details>
             </div></footer>
           </article>;
         })}
@@ -258,7 +263,7 @@ export function UpstreamsPage() {
       {expanded?<aside className="provider-detail" aria-label="提供商接口与账号"><header><h3>{resourceName(expanded,"upstream",upstreams.data?.find(row=>row.id===expanded)?.name)}</h3><button className="secondary" disabled={providerActionActive} title={providerActionActive ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(undefined)}>关闭</button></header><SubresourcePanel key={expanded} upstreamId={expanded} onAddAccount={() => setAddingAccount(true)} onActionActiveChange={setProviderActionActive}/></aside>:null}
       </div>
 
-      {adding?<ProviderDialog onClose={closeAdding} onSaved={(version)=>{closeAdding();invalidate();useVersionStore.getState().select(version);}}/>:null}
+
       {addingAccount ? <AddAccountDialog onClose={() => setAddingAccount(false)} onCreated={() => { setAddingAccount(false); void queryClient.resetQueries({ queryKey: ["managed-inventory"] }); void queryClient.invalidateQueries({ queryKey: ["account-pools"] }); }} /> : null}
 
       {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "upstream", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[

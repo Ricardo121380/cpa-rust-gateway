@@ -65,8 +65,8 @@ test("daily forms keep their submit actions in stable, native form-associated fo
 
   await navigate(page, "上游");
   await page.getByRole("button", { name: "添加提供商" }).click();
-  const provider = page.getByRole("dialog", { name: "添加 AI 提供商" });
-  await expectFooterForm(provider, "provider-setup-form", "保存并应用");
+  const provider = page.getByRole("region", { name: "添加 AI 提供商",exact:true });
+  await expect(provider.locator(".inline-workspace-footer").getByRole("button",{name:"保存到草稿"})).toHaveAttribute("form","provider-setup-form");
   await expect(provider.locator("#provider-setup-form")).toBeVisible();
   await provider.getByRole("button", { name: "取消" }).click();
 
