@@ -1,0 +1,117 @@
+{
+  "browser": "EgoLite",
+  "mode": "immediate",
+  "realGateway": true,
+  "heldTransport": false,
+  "revocationStatus": 204,
+  "loginVisible": true,
+  "passed": true,
+  "hash": "#/unlock",
+  "protectedContent": false,
+  "appChildren": 1,
+  "events": [
+    {
+      "t": 55,
+      "type": "DOMContentLoaded",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 65,
+      "type": "pageshow",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 1432,
+      "type": "fetch",
+      "detail": "/admin/auth/login"
+    },
+    {
+      "t": 1723,
+      "type": "response",
+      "detail": {
+        "path": "/admin/auth/login",
+        "status": 200
+      }
+    },
+    {
+      "t": 1788,
+      "type": "fetch",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 1792,
+      "type": "response",
+      "detail": {
+        "path": "/admin/config-versions",
+        "status": 200
+      }
+    },
+    {
+      "t": 1792,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1810,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 1811,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1816,
+      "type": "revoked",
+      "detail": 204
+    },
+    {
+      "t": 1818,
+      "type": "popstate",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1821,
+      "type": "hashchange",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1823,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1823,
+      "type": "fetch",
+      "detail": "/admin/operations/billing-processing"
+    },
+    {
+      "t": 1825,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing-processing",
+        "status": 404
+      }
+    },
+    {
+      "t": 1825,
+      "type": "fetch",
+      "detail": "/admin/observability/metrics"
+    },
+    {
+      "t": 1829,
+      "type": "fetch-error",
+      "detail": {
+        "path": "/admin/observability/metrics",
+        "error": "AbortError"
+      }
+    }
+  ]
+}

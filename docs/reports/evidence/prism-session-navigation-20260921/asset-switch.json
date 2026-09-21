@@ -1,0 +1,24 @@
+{
+  "browser": "EgoLite",
+  "sameTab": true,
+  "cacheCleared": false,
+  "before": "http://127.0.0.1:55480/admin-ui/assets/main.js?v=7fd29ab79943be05b928faea",
+  "after": {
+    "entry": "http://127.0.0.1:55480/admin-ui/assets/main.js?v=c628bc48d1c4633777b6fdfb",
+    "assets": [
+      {
+        "url": "http://127.0.0.1:55480/admin-ui/assets/main.js?v=c628bc48d1c4633777b6fdfb",
+        "transfer": 0
+      },
+      {
+        "url": "http://127.0.0.1:55480/admin-ui/assets/index.css?v=c628bc48d1c4633777b6fdfb",
+        "transfer": 0
+      },
+      {
+        "url": "http://127.0.0.1:55480/admin-ui/assets/vendor.js?v=c628bc48d1c4633777b6fdfb",
+        "transfer": 0
+      }
+    ],
+    "loginVisible": true
+  }
+}

@@ -140,3 +140,7 @@ Next: close the explicit whole-workspace keyboard/long/error-state and real-chan
 ### 2026-09-21 — 发布后浏览器崩溃，验收结论更正
 
 用户反馈 Safari 登录页崩溃。真实新旧发布脚本混用在 Safari 精确复现；补充资源 URL 构建版本隔离及构建门禁。此前 M4/M5 的整体前端完成结论过宽：上线与数据保留证据有效，但没有覆盖跨发布浏览器模块生命周期。后续浏览器验收必须覆盖已有标签页跨版本刷新，并分别记录 Safari 与 Chromium。修复及实际复验范围见 [热修复报告](../reports/prism-module-url-hotfix-20260921.md)，不得以本次加载回归冒充全栏目业务重新验收。
+
+### 2026-09-21 — 当前浏览器验收工具覆盖
+
+用户明确“浏览器测试走egolite而不是safari”。后续本轮浏览器测试统一使用EgoLite；此前提出的新增Safari专项不再作为当前必需项。历史浏览器证据仍按实际工具和范围保留，不将EgoLite结果写成Safari覆盖。跨版本加载与会话导航检查继续执行，详见[专项复核](../reports/prism-session-navigation-20260921.md)。
