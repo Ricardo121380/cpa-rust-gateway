@@ -30,7 +30,6 @@ test("state vocabularies translate, glyph and enum value do not change", async (
 
 test("the same word in two vocabularies gets two translations", async ({ page }) => {
   await unlock(page);
-  await selectDraft(page);
   await switchToEnglish(page);
   await navigate(page, "Runtime");
   await page.getByText("相关资源状态", { exact: true }).click();

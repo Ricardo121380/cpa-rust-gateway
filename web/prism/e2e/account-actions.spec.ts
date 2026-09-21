@@ -3,7 +3,9 @@ import { navigate, selectDraft, unlock, clearVersionForTest } from "./helpers";
 
 async function inspect(page: Page, account: string) {
   await page.getByRole("textbox", { name: "搜索已加载账号" }).fill(account);
-  await page.locator(".account-desktop").getByRole("button", { name: "详情", exact: true }).click();
+  const details = page.locator(".account-desktop").getByRole("button", { name: "详情", exact: true });
+  await expect(details).toHaveCount(1);
+  await details.click();
 }
 
 async function loseRuntimeActionResponse(page: Page): Promise<void> {
@@ -53,8 +55,9 @@ async function staleNextCredentialRead(page: Page): Promise<void> {
 
 async function activateDraft(page: Page): Promise<void> {
   await selectDraft(page);
-  await page.locator(".dock").getByRole("button", {name:"发布",exact:true}).click();
-  await page.getByRole("dialog", {name:"确认发布"}).getByRole("button", {name:"确认发布",exact:true}).click();
+  await page.locator(".dock").getByRole("button", {name:"查看变更",exact:true}).click();
+  await page.getByRole("region",{name:"待应用变更",exact:true}).getByRole("button",{name:"校验并应用",exact:true}).click();
+  await page.getByRole("dialog", {name:"确认应用配置"}).getByRole("button", {name:"确认应用",exact:true}).click();
   await page.getByRole("dialog").getByRole("button", {name:"完成",exact:true}).click();
 }
 

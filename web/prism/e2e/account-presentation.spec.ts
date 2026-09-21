@@ -17,11 +17,11 @@ test("runtime uses human identities and connection meaning in rows and confirmat
 });
 test("SSO identity is obtained during import and maintenance does not expose identity repair",async({page})=>{
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
-  await page.getByRole("button",{name:"添加账号",exact:true}).click();
-  const dialog=page.getByRole("dialog",{name:"添加账号",exact:true});
+  await page.getByRole("button",{name:"授权 / 导入账号",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"授权或导入账号",exact:true});
   await dialog.getByLabel("渠道",{exact:true}).selectOption("grok.console");
   await dialog.locator("textarea").fill("fixture-sso");
-  await dialog.getByRole("button",{name:"添加账号",exact:true}).click();
+  await dialog.getByRole("button",{name:"导入账号",exact:true}).click();
   await expect(dialog).toContainText("导入结果");
   await dialog.getByRole("button",{name:"完成",exact:true}).click();
   const grok=page.getByRole("region",{name:"Grok 账号",exact:true});
@@ -41,8 +41,9 @@ test("account identity follows detail and both reauthorization entries",async({p
   await page.getByRole("button",{name:"详情",exact:true}).click();
   const detail=page.getByRole("dialog",{name:"账号详情",exact:true});
   await expect(detail.getByRole("heading",{name:"alex@example.test",exact:true})).toBeVisible();
-  await expect(detail.getByRole("cell",{name:"Codex",exact:true})).toBeVisible();
+  await expect(detail.getByText("Codex",{exact:true})).toBeVisible();
   await expect(detail.locator(".resource-code")).toHaveCount(0);
+  await detail.getByRole("button",{name:"配置",exact:true}).click();
   await expect(detail.locator(".identity-details")).not.toHaveAttribute("open","");
   await detail.getByRole("button",{name:"重新授权",exact:true}).click();
   await expect(wizard).toContainText("alex@example.test");
@@ -51,7 +52,7 @@ test("account identity follows detail and both reauthorization entries",async({p
 for(const width of [1440,1280,390])test(`unified account directory at ${width}`,async({page})=>{
   await page.setViewportSize({width,height:width===390?844:900});
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
-  for(const name of ["API","Codex / ChatGPT","Claude","Kimi","Kiro","Grok"])await expect(page.getByRole("region",{name:`${name} 账号`,exact:true})).toBeVisible();
+  for(const name of ["API","Codex / ChatGPT","Claude","Kimi","Kiro","Grok"])await expect(page.getByRole("navigation",{name:"账号类别"}).getByRole("button",{name,exact:true})).toBeVisible();
   await expect(page.getByText("alex@example.test",{exact:true})).toBeVisible();
   await page.getByLabel("搜索账号",{exact:true}).fill("alex@example.test");
   await expect(page.locator(".account-list tbody tr")).toHaveCount(1);
@@ -59,13 +60,16 @@ for(const width of [1440,1280,390])test(`unified account directory at ${width}`,
   await expect(page.getByRole("dialog",{name:"接口连接"})).toContainText("不同接口可以支持不同请求格式");
   await expect(page.getByRole("link",{name:"管理接口连接",exact:true})).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByLabel("搜索账号",{exact:true}).fill("");
-  await page.getByRole("button",{name:"添加账号",exact:true}).click();
-  const dialog=page.getByRole("dialog",{name:"添加账号",exact:true});
+  await page.getByRole("button",{name:"授权 / 导入账号",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"授权或导入账号",exact:true});
   await dialog.getByLabel("渠道",{exact:true}).selectOption("grok.build");
   const claims=Buffer.from(JSON.stringify({email:"build.member@example.test",sub:"fixture-subject",exp:Math.floor(Date.now()/1000)+3600})).toString("base64url");
   await dialog.locator("textarea").fill(JSON.stringify({access_token:`header.${claims}.signature`,refresh_token:"fixture-refresh",expires_at:new Date(Date.now()+3600000).toISOString()}));
-  await dialog.getByRole("button",{name:"添加账号",exact:true}).click();
+  await dialog.getByRole("button",{name:"导入账号",exact:true}).click();
+  await expect(dialog).toContainText("导入结果");
+  await dialog.getByRole("button",{name:"完成",exact:true}).click();
   await expect(dialog).toHaveCount(0);
   const grok=page.getByRole("region",{name:"Grok 账号",exact:true});
   await expect(grok.getByText("build.member@example.test",{exact:true})).toBeVisible();
@@ -89,4 +93,34 @@ test("account directory retains dark and accessibility preferences",async({page}
   await expect(filter).toHaveAttribute("aria-pressed","true");
   await expect(page.locator(".account-group")).toHaveCount(1);
   await page.screenshot({path:"../../output/accounts-directory-dark.png",fullPage:true});
+});
+
+
+test("pending account search cannot navigate a dirty authorization form", async ({page}) => {
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await unlock(page);await selectDraft(page);await navigate(page,"账号池");
+  await page.getByLabel("搜索账号",{exact:true}).fill("alex@example.test");
+  await expect(page.locator(".account-list tbody tr")).toHaveCount(1);
+  await page.clock.install();
+  await page.clock.pauseAt(new Date());
+  await page.getByLabel("搜索账号",{exact:true}).fill("");
+  await page.getByRole("button",{name:"授权 / 导入账号",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"授权或导入账号"});
+  // Query notifications also use timers. Advance until the channel chooser
+  // renders instead of freezing a notification scheduled after one fixed tick.
+  await expect.poll(async () => {
+    await page.clock.runFor(100);
+    return dialog.getByLabel("渠道",{exact:true}).count();
+  }).toBe(1);
+  await dialog.getByLabel("渠道",{exact:true}).selectOption("kimi-coding");
+  await dialog.locator("textarea").fill("synthetic-unsaved-material");
+  await page.clock.runFor(350);
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  await expect(dialog.locator("textarea")).toHaveValue("synthetic-unsaved-material");
+  expect(new URLSearchParams(new URL(page.url()).hash.split("?")[1]).get("q")).toBe("alex@example.test");
+  await dialog.getByRole("button",{name:"取消",exact:true}).click();
+  await page.getByRole("alertdialog").getByRole("button",{name:"放弃修改",exact:true}).click();
+  await expect(dialog).toHaveCount(0);
+  await page.clock.runFor(350);
+  await expect(page).not.toHaveURL(/q=/u);
 });

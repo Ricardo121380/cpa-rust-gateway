@@ -1,0 +1,126 @@
+{
+  "scope": "EgoLite Chromium, fixture Vite development, 512 prices, one warmup excluded then five measured samples per revision; API invocation counts, not network requests or production SLA",
+  "revisions": {
+    "before": "a2959ef34cbb2f555a7c7c71c4f2473951ea7a0d",
+    "after": "b02329ad4c119b9caf813b4b9d673abf60e44b9b",
+    "after_working_tree_overrides": {
+      "web/prism/src/features/accounts/AccountsPage.tsx": "c04841bf5e505594bd5bd3a050c3be931012380b0e93d72cb421f4bbf60c8420",
+      "web/prism/src/features/usage/UsagePage.tsx": "7d09b411a323cfbdae5cae4b862afb2b5cce9ae73663681b0f583e5cb82c6557"
+    }
+  },
+  "runs": [
+    {
+      "port": 55291,
+      "samples": [
+        {
+          "startupMs": 156.5,
+          "editorMs": 828,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 910.6999999880791,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 173.69999998807907,
+          "editorMs": 869.5999999642372,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 809,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 149.30000001192093,
+          "editorMs": 917.6000000238419,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 822.0999999642372,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 159.69999998807907,
+          "editorMs": 825.5,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 924.1999999880791,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 150.20000004768372,
+          "editorMs": 846.8000000119209,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 807.4000000357628,
+          "filterRequests": 5
+        }
+      ]
+    },
+    {
+      "port": 55292,
+      "samples": [
+        {
+          "startupMs": 182.30000001192093,
+          "editorMs": 823.2000000476837,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 829.6000000238419,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 186.5,
+          "editorMs": 833.1999999880791,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 873.3000000119209,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 157.10000002384186,
+          "editorMs": 834.1999999880791,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 811.5,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 163.10000002384186,
+          "editorMs": 862.2000000476837,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 917,
+          "filterRequests": 5
+        },
+        {
+          "startupMs": 149.70000004768372,
+          "editorMs": 1869.0999999642372,
+          "editorRows": 50,
+          "editorRequests": 1,
+          "filterMs": 922,
+          "filterRequests": 5
+        }
+      ]
+    }
+  ],
+  "medians": {
+    "startupMs": {
+      "before": 156.5,
+      "after": 163.10000002384186,
+      "delta_ms": 6.600000023841858,
+      "delta_percent": 4.2172524114005405,
+      "threshold_exceeded": false
+    },
+    "editorMs": {
+      "before": 846.8000000119209,
+      "after": 834.1999999880791,
+      "delta_ms": -12.600000023841858,
+      "delta_percent": -1.4879546556051615,
+      "threshold_exceeded": false
+    },
+    "filterMs": {
+      "before": 822.0999999642372,
+      "after": 873.3000000119209,
+      "delta_ms": 51.200000047683716,
+      "delta_percent": 6.227952809866322,
+      "threshold_exceeded": false
+    }
+  }
+}

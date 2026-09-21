@@ -8,37 +8,23 @@ import { resourceChoices } from "./resource-choice-fixtures";
 import { expect, test } from "@playwright/test";
 import { navigate, selectDraft, unlock } from "./helpers";
 
-test("editing a client key needs no detail read, and says why prefix is absent", async ({
-  page,
-}) => {
-  await unlock(page);
-  await selectDraft(page);
-  await navigate(page, "访问控制");
-
-  await page.locator("tr", { hasText: "rgw_9f3c21ab04d7e6b2" }).getByRole("button", { name: "编辑" }).click();
-  const sheet = page.getByRole("dialog");
-  // listClientKeys returns the same ClientKey schema as getClientKey, so the
-  // row IS the full record — the form pre-fills from it with no extra request.
-  await expect(sheet.getByLabel("访问组")).toHaveValue("team-default");
-  await expect(sheet).toContainText("整体替换");
-  await expect(sheet).toContainText("prefix");
+test("key editing exposes model permissions without internal group selection", async ({page}) => {
+  await unlock(page);await selectDraft(page);await navigate(page,"访问控制");
+  await page.locator("tr",{hasText:"rgw_9f3c21ab04d7e6b2"}).getByRole("button",{name:"编辑",exact:true}).click();
+  const editor=page.getByRole("dialog",{name:"编辑 API 密钥"});
+  await expect(editor.getByLabel("名称",{exact:true})).toBeVisible();
+  await expect(editor.getByRole("group",{name:/允许模型/u})).toBeVisible();
+  await expect(editor.getByLabel("访问组",{exact:true})).toHaveCount(0);
+  await expect(editor.locator(".reveal-key")).toHaveCount(0);
 });
 
-test("reviving a revoked key warns that the old secret works again", async ({ page }) => {
-  await unlock(page);
-  await selectDraft(page);
-  await navigate(page, "访问控制");
-
-  await page.locator("tr", { hasText: "rgw_00dead00deadbeef" }).getByRole("button", { name: "编辑" }).click();
-  const sheet = page.getByRole("dialog");
-  // update_client_key applies status with no transition check, and revoking
-  // retains the redacted record. So this is not "re-enable an inert row".
-  await expect(sheet.locator(".reveal-warning")).toHaveCount(0);
-  await sheet.getByLabel("状态").selectOption("active");
-  await expect(sheet.locator(".reveal-warning")).toContainText("再次可用");
-
-  await sheet.getByRole("button", { name: "保存" }).click();
-  await expect(page.locator("tr", { hasText: "rgw_00dead00deadbeef" })).toContainText("active");
+test("revoked keys cannot be revived through the permission editor",async({page})=>{
+  await unlock(page);await selectDraft(page);await navigate(page,"访问控制");
+  await page.locator("tr",{hasText:"rgw_00dead00deadbeef"}).getByRole("button",{name:"编辑",exact:true}).click();
+  const editor=page.getByRole("dialog",{name:"编辑 API 密钥"});
+  await expect(editor.getByRole("combobox",{name:"状态",exact:true})).toHaveValue("revoked");
+  await expect(editor.locator('option[value="active"]')).toHaveJSProperty("disabled", true);
+  await expect(editor.locator('option[value="disabled"]')).toHaveJSProperty("disabled", true);
 });
 
 test("channel pin says it spends a real call, and offers no free-form body", async ({ page }) => {
@@ -117,9 +103,9 @@ test("the config plane reports a binding the operational inventory cannot show",
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator('tr:has([data-resource-id="relay-a"])')
+    .locator(".provider-card", {hasText:"中转站 A"})
     .first()
-    .getByRole("button", { name: "子资源" })
+    .getByRole("button", { name: "接口与账号" })
     .click();
   await expect(page.locator(".subresource-panel")).toBeVisible();
 
@@ -128,7 +114,7 @@ test("the config plane reports a binding the operational inventory cannot show",
   const sheet = page.getByRole("dialog");
   // The panel's own table is join-driven: a binding whose credential does not
   // resolve is invisible there while still blocking validation and publish.
-  await expect(sheet).toContainText("cred-deleted");
+  await expect(sheet.locator('[data-resource-id="cred-deleted"]')).toBeVisible();
   await expect(sheet).toContainText("运营库存里没有");
   await expect(sheet.locator(".reveal-warning")).toContainText("只存在于配置里");
 });

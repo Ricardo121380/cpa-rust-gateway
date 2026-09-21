@@ -114,3 +114,9 @@
 本轮开发不使用 Codex with ChatGPT；由 Codex 直接实施、审查和本地验证，不发送新的规划或评审请求，不以等待 C2C 作为开发阻塞。历史 C2C 结果保留为已有证据，不代表新代码获批。其余范围、数据安全、测试与发布要求不变。
 
 当前先收尾配置生命周期：迁移旧发布/差异回归，补并发与不确定结果恢复，再做真实本地网关验收。之后完成提供商、高级访问组、出口编辑器及 K3 high 视觉适配，最后统一验收上线。
+
+## Integrated acceptance checkpoint — 2026-09-21
+
+M4 progressed through the real embedded gateway/mock model-to-key-to-request-to-billing chain, 84 responsive/theme structural observations, and final five-sample performance comparison. Two actual regressions were repaired: delayed account search interrupting an open form, and null access-group labeling. Chromium full run: 286 passed / one fake-clock test wait failed; after correcting that wait, the complete affected group passed 8/8. Unit, type, deterministic four-file and three embedded Rust checks passed. See [integration evidence](../reports/prism-integration-acceptance-20260921.md) for exact scopes and separate runs.
+
+Next: close the explicit whole-workspace keyboard/long/error-state and real-channel/manual-evidence readiness checklist, then signed release and Oracle post-deployment checks. M4 and M5 are not marked complete; no production release occurred. Current-round Codex with ChatGPT exclusion remains in force.

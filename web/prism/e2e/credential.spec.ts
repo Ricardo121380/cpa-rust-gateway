@@ -1,9 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { navigate, selectDraft, unlock } from "./helpers";
 
-// The credential surface. Until G1 there is no listCredentials, so the runtime
-// projections are the only production enumeration — which makes the runtime
-// page the entry point, and makes "can you get there at all" part of the test.
+// Runtime projections must retain navigation to the shared account inspector.
+// Internal references are selectors only; they must not become visible labels.
 
 async function openRuntime(page: import("@playwright/test").Page): Promise<void> {
   await unlock(page);
@@ -11,15 +10,15 @@ async function openRuntime(page: import("@playwright/test").Page): Promise<void>
   await navigate(page, "运行诊断");
 }
 
-test("a credential id in the availability matrix opens its detail", async ({ page }) => {
+test("an account in the availability matrix opens its detail", async ({ page }) => {
   await openRuntime(page);
 
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
+  await page.locator(".rt-matrix thead").locator('button:has([data-resource-id="cred-codex-oauth"])').click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toHaveAccessibleName("账号详情");
   await expect(sheet.getByRole("heading", { name: "ops@fixture.example" })).toBeVisible();
-  await expect(sheet).toContainText("relay-a");
-  await expect(sheet).toContainText("oauth");
+  await sheet.getByRole("button", { name: "配置", exact: true }).click();
+  await expect(sheet).toContainText("Codex / ChatGPT 授权");
 });
 
 test("G5 metadata renders, and its all-null case says so instead of showing blanks", async ({
@@ -28,43 +27,51 @@ test("G5 metadata renders, and its all-null case says so instead of showing blan
   await openRuntime(page);
 
   // The oauth credential carries a full identity.
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
+  await page.locator(".rt-matrix thead").locator('button:has([data-resource-id="cred-codex-oauth"])').click();
   const rich = page.getByRole("dialog");
   await expect(rich).toContainText("ops@fixture.example");
   await expect(rich).toContainText("Plus");
+  await rich.getByRole("button", { name: "配置", exact: true }).click();
   await expect(rich).toContainText("direct_oauth");
   await rich.getByRole("button", { name: "关闭", exact: true }).click();
 
   // The api_key one carries nothing — every metadata field is nullable.
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-relay-key" }).click();
+  await page.locator(".rt-matrix thead").locator('button:has([data-resource-id="cred-relay-key"])').click();
   const sparse = page.getByRole("dialog");
-  await expect(sparse).toContainText("没有记录平台、账号、套餐或配额");
+  await sparse.getByRole("button", { name: "配置", exact: true }).click();
+  await expect(sparse).toContainText("尚无账号、套餐或额度观测");
 });
 
 test("token rotation advances the credential revision", async ({ page }) => {
   await openRuntime(page);
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
+  await page.locator(".rt-matrix thead").locator('button:has([data-resource-id="cred-codex-oauth"])').click();
   const sheet = page.getByRole("dialog");
 
-  const before = await sheet.locator("tbody tr", { hasText: "修订" }).locator("td.mono").innerText();
+  await sheet.getByRole("button", { name: "配置", exact: true }).click();
+  const revision = () => page.evaluate(async () => {
+    const { call } = await import("/src/api/client.ts");
+    return (await call<{ revision: number }>("getCredential", { path: { credential_id: "cred-codex-oauth" } }, { versionScoped: true })).revision;
+  });
+  const before = await revision();
   await sheet.getByRole("button", { name: "轮换令牌" }).click();
   await expect(sheet).toContainText("令牌已轮换");
-  const after = await sheet.locator("tbody tr", { hasText: "修订" }).locator("td.mono").innerText();
-  expect(Number(after)).toBe(Number(before) + 1);
+  await expect.poll(revision).toBe(before + 1);
 });
 
 test("rotation is offered only where a token exists", async ({ page }) => {
   await openRuntime(page);
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-relay-key" }).click();
+  await page.locator(".rt-matrix thead").locator('button:has([data-resource-id="cred-relay-key"])').click();
   const sheet = page.getByRole("dialog");
-  await expect(sheet).toContainText("bearer");
+  await sheet.getByRole("button", { name: "配置", exact: true }).click();
+  await expect(sheet).toContainText("API Key / Token");
   await expect(sheet.getByRole("button", { name: "轮换令牌" })).toHaveCount(0);
   await expect(sheet.getByRole("button", { name: "重新授权" })).toHaveCount(0);
 });
 
 test("re-authorisation reaches the wizard and comes back to the credential", async ({ page }) => {
   await openRuntime(page);
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
+  await page.locator(".rt-matrix thead").locator('button:has([data-resource-id="cred-codex-oauth"])').click();
+  await page.getByRole("dialog").getByRole("button", { name: "配置", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "重新授权" }).click();
 
   const wizard = page.getByRole("dialog");
@@ -78,8 +85,9 @@ test("re-authorisation reaches the wizard and comes back to the credential", asy
 
 test("no secret material reaches the DOM", async ({ page }) => {
   await openRuntime(page);
-  await page.locator(".rt-matrix thead").getByRole("button", { name: "cred-codex-oauth" }).click();
+  await page.locator(".rt-matrix thead").locator('button:has([data-resource-id="cred-codex-oauth"])').click();
   const sheet = page.getByRole("dialog");
+  await sheet.getByRole("button", { name: "配置", exact: true }).click();
   await expect(sheet).toContainText("秘密");
   // presence is reported; the value never is
   await expect(sheet).toContainText("已配置");
@@ -95,11 +103,11 @@ test("an empty provider still exposes account and endpoint creation", async ({ p
   // kiro-sub has an upstream row but no endpoint-credential binding, so the
   // projection returns zero rows for it. That is not "no upstream".
   await page
-    .locator('tr:has([data-resource-id="kiro-sub"])')
+    .locator(".provider-card", { hasText: "Kiro" })
     .first()
-    .getByRole("button", { name: "子资源" })
+    .getByRole("button", { name: "接口与账号" })
     .click();
-  await expect(page.getByRole("button", { name: "新建账号", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "添加账号", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "新建接口", exact: true })).toBeEnabled();
 });
 
@@ -108,17 +116,17 @@ test("the account row opens the credential sheet from the pool inventory", async
   await selectDraft(page);
   await navigate(page, "上游");
   await page
-    .locator('tr:has([data-resource-id="grok-build-pool"])')
+    .locator(".provider-card", { hasText: "中转站 A" })
     .first()
-    .getByRole("button", { name: "子资源" })
+    .getByRole("button", { name: "接口与账号" })
     .click();
 
   const panel = page.locator(".subresource-panel");
   // The operations status vocabulary reaches the screen unmapped.
   // anchored: the id also appears in the binding table below
-  await expect(panel.locator('tr:has([data-resource-id="cred-grok-oauth"])')).toContainText("active");
+  await expect(panel.locator('article[data-resource-id="cred-codex-oauth"]')).toContainText("已启用");
 
-  await panel.locator('tr:has([data-resource-id="cred-grok-oauth"])').getByRole("button", { name: "详情" }).click();
+  await panel.locator('article[data-resource-id="cred-codex-oauth"]').getByRole("button", { name: "详情" }).click();
   await expect(page.getByRole("dialog")).toHaveAccessibleName("账号详情");
-  await expect(page.getByRole("dialog").getByRole("heading", { name: "未提供账号身份" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "alex@example.test" })).toBeVisible();
 });

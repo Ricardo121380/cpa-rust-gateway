@@ -19,9 +19,8 @@ test("language switch reaches the whole shell, not just the settings page", asyn
   await expect(rail.getByRole("link", { name: "Settings", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
-  // and the topbar, which is a separate glass pane. Needs a version selected —
-  // the read-only note only renders for a non-draft version.
-  await expect(page.locator(".topbar")).toContainText("Published configuration");
+  // The separate topbar follows the selected workspace language too.
+  await expect(page.locator(".topbar")).toContainText("Management / Settings");
 
   await page.getByRole("radio", { name: "中文" }).click();
   await expect(rail.getByRole("link", { name: "仪表盘", exact: true })).toBeVisible();

@@ -5,7 +5,7 @@ test("a failed config read labels prior results and can be retried without losin
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "上游");
-  await expect(page.locator("tbody")).toContainText("relay-a");
+  await expect(page.locator(".provider-list")).toContainText("中转站 A");
   await page.evaluate(async () => {
     const generatedPath = "/src/generated/management-client.ts";
     const queryPath = "/src/api/queryClient.ts";
@@ -23,7 +23,7 @@ test("a failed config read labels prior results and can be retried without losin
   });
   await expect(page.getByRole("alert")).toContainText("读取失败");
   await expect(page.getByRole("alert")).toContainText("上次读取");
-  await expect(page.locator("tbody")).toContainText("relay-a");
+  await expect(page.locator(".provider-list")).toContainText("中转站 A");
   await page.getByRole("button", { name: "重试读取" }).click();
   await expect(page.getByRole("alert")).toHaveCount(0);
   await expect(page).not.toHaveURL(/unlock/u);

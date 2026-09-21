@@ -66,10 +66,11 @@ test("config-version state drives the lens, and publishing anneals it", async ({
   });
 
   await navigate(page, "配置版本");
-  await page.locator(".dock").getByRole("button", { name: "发布" }).click();
-  await page.getByRole("dialog", { name: "确认发布" }).getByRole("button", { name: "确认发布", exact: true }).click();
+  await page.locator(".dock").getByRole("button", { name: "查看变更", exact: true }).click();
+  await page.getByRole("region", {name:"待应用变更",exact:true}).getByRole("button", {name:"校验并应用",exact:true}).click();
+  await page.getByRole("dialog", { name: "确认应用配置" }).getByRole("button", { name: "确认应用", exact: true }).click();
   await page.getByRole("button", { name: "完成" }).click();
-  await expect(page.locator(".topbar")).toContainText("已发布配置");
+  await expect(page.locator("main.canvas")).toHaveAttribute("data-context-status", "active");
   await page.waitForTimeout(900);
   const active = await lens(page, "rail");
 
@@ -96,7 +97,7 @@ test("content surfaces share one left edge across pages", async ({ page }) => {
     ["用量分析", "usage"],
   ] as const) {
     await navigate(page, label);
-    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    await expect(page.getByRole("heading", { name: label === "请求与失败" ? "请求日志" : "用量与费用", exact: true })).toBeVisible();
     lefts[name] = await page.evaluate(() => {
       const canvas = document.querySelector(".workspace");
       if (canvas === null) return [];

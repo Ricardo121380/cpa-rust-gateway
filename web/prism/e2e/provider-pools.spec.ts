@@ -51,7 +51,7 @@ test("cooling names the exact account and enforces the contract's window", async
   const sheet = page.getByRole("dialog");
   // An action on one account out of a pool must say which one.
   await expect(sheet).toContainText("runtime.member@example.test");
-  await expect(sheet).toContainText("cred-relay-key");
+  await expect(sheet).not.toContainText("cred-relay-key");
 
   // Below the contract's floor. The input carries min/max, so the browser's own
   // constraint validation refuses the submit before any handler runs — the

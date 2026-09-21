@@ -8,8 +8,9 @@ import { unlock } from "./helpers";
 
 test("overview lights the live counters from the Prometheus exposition", async ({ page }) => {
   await unlock(page);
+  await page.getByText("进程计数与运行事件", { exact: true }).click();
 
-  const section = page.locator(".stat-row").first();
+  const section = page.locator("details.overview-telemetry").filter({ has: page.getByText("进程计数与运行事件", { exact: true }) }).locator(".stat-row");
   await expect(page.getByText("网关实时计数")).toBeVisible();
   await expect(page.getByText("自进程启动累计")).toBeVisible();
 
@@ -36,6 +37,7 @@ test("pipeline health reports a clean Required path without crying wolf on shed 
   page,
 }) => {
   await unlock(page);
+  await page.getByText("进程计数与运行事件", { exact: true }).click();
   await page.getByText("事件、Token 与观测管道", { exact: true }).click();
   const card = page.locator(".card").filter({ hasText: "观测管道健康" });
   await expect(card.locator(".badge-good")).toHaveText("必需事件无丢失");
@@ -46,16 +48,16 @@ test("pipeline health reports a clean Required path without crying wolf on shed 
 
 test("the counters plane stands alone, and says what it cannot show", async ({ page }) => {
   await unlock(page);
+  await page.getByText("进程计数与运行事件", { exact: true }).click();
   await expect(page.getByText("网关实时计数")).toBeVisible();
 
   await page.getByText("事件、Token 与观测管道", { exact: true }).click();
 
-  // The "today" plane it used to sit beside was the proposed analytics shape:
-  // an hourly trend, a today-scoped token bar, a health strip. None existed
-  // outside fixtures, so there is exactly one token card now and no trend.
+  // Cumulative counters remain distinct from the request trend above them.
+  // Their expanded section must not imply its own time-window analytics.
   await expect(page.getByRole("heading", { name: /^Token 构成/u })).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Token 构成(累计)" })).toBeVisible();
-  await expect(page.locator("svg.chart-svg")).toHaveCount(0);
+  await expect(page.locator(".overview-telemetry svg.chart-svg")).toHaveCount(0);
   await expect(page.locator(".health-strip")).toHaveCount(0);
 
   // Pipeline health reads the exposition directly and is always present.
@@ -64,7 +66,7 @@ test("the counters plane stands alone, and says what it cannot show", async ({ p
   // The absence is explained, not silent — and it points at the pages that can
   // answer the question properly.
   await page.getByText("分析范围", { exact: true }).click();
-  await expect(page.getByText(/当前没有服务端时间桶/u)).toBeVisible();
+  await expect(page.getByText(/计数器为进程累计值；请求日志提供独立的时间桶/u)).toBeVisible();
   await expect(page.getByRole("link", { name: "前往用量分析 →" })).toBeVisible();
 });
 
@@ -75,11 +77,12 @@ test("counters accumulate a visit delta across scrapes", async ({ page }) => {
   // instead of spending 15s of wall time.
   await page.clock.install();
   await unlock(page);
+  await page.getByText("进程计数与运行事件", { exact: true }).click();
   await expect(page.getByText("网关实时计数")).toBeVisible();
 
   // Before a second scrape there is no observation window, so no delta is
   // claimed — "+0" here would describe a window that never happened.
-  const attemptsSub = page.locator(".stat-tile").first().locator(".stat-sub");
+  const attemptsSub = page.locator(".overview-telemetry .stat-tile").first().locator(".stat-sub");
   await expect(attemptsSub).toContainText("失败");
   await expect(attemptsSub).not.toContainText("本页 +");
 

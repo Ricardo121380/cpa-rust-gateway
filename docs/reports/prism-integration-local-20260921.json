@@ -1,0 +1,67 @@
+{
+  "request_chain": {
+    "passed": true,
+    "checks": [
+      "full two-page catalog refresh does not widen served models or key grants",
+      "local-json-acceptance",
+      "local-stream-acceptance",
+      "fail-acceptance",
+      "truncate-acceptance",
+      "client stream cancellation"
+    ],
+    "summary": {
+      "attempts": 5,
+      "average_duration_ms": 61.4,
+      "average_first_content_ms": 76.5,
+      "cancelled": 1,
+      "failed": 2,
+      "p50_duration_ms": 87,
+      "p95_duration_ms": 93,
+      "requests": 5,
+      "succeeded": 2,
+      "success_rate": 0.4,
+      "unknown": 0
+    },
+    "real_gateway": true,
+    "provider": "owned loopback TLS mock",
+    "real_provider_inference_calls": 0,
+    "catalog_models": 3,
+    "opened_models": 1,
+    "successes_materialized": true
+  },
+  "model_key": {
+    "passed": true,
+    "real_gateway": true,
+    "ui_model_opened": "Model-Second",
+    "ui_key_select_all_count": 2,
+    "ui_key_final_selection": [
+      "Model-Second"
+    ],
+    "existing_key_unchanged": true,
+    "cross_model_denied": true,
+    "unpriced_preserved": true,
+    "mock_inference_only": true
+  },
+  "code_head": "b02329a",
+  "viewport_checks": {
+    "light": {
+      "views": 42,
+      "horizontal_overflow": 0,
+      "alerts": 0,
+      "scope": "structural only; not a visual or interaction pass"
+    },
+    "dark": {
+      "views": 42,
+      "horizontal_overflow": 0,
+      "alerts": 0,
+      "scope": "structural only; not a visual or interaction pass"
+    }
+  },
+  "preferences": {
+    "reduced_motion_match": true,
+    "reduced_transparency_match": true,
+    "sheet_animation": "none",
+    "scrim_backdrop_filter": "none",
+    "scope": "explicitly observed on open provider form; not inferred from matrix navigation"
+  }
+}

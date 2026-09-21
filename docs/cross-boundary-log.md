@@ -2886,3 +2886,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Complex candidate editing still used a modal. Add/edit now uses the shared inline workspace and operation boundary, retaining exact IDs, capability keys, revision checks and uncertain receipts; deletion remains a short confirmation. Parent actions and advanced-section closure cannot bypass an active editor. The real gateway's draft egress page requested a serving snapshot for a non-serving version, causing `management_provider_egress_status_config_conflict` and the misleading global banner. Non-active contexts now explain the absent snapshot without issuing those reads; genuine active-config conflicts retain their existing handling. The fixture now projects the active configuration rather than a hardcoded draft.
 
 **Other side:** FYI. Local only, no public contract, production state, C2C or real Provider inference. Fresh evidence and remaining final acceptance are recorded in the operation ledger.
+
+## 2026-09-21 - Codex - integrated acceptance and account search ownership
+
+**What:** `web/prism/src/features/accounts/AccountsPage.tsx`, `web/prism/src/features/usage/UsagePage.tsx`, and the affected account/configuration/inspector/telemetry browser regressions.
+
+**Why:** Full regression exposed a real race: a pending 300ms account-search URL replacement could navigate after an authorization form opened, unexpectedly invoking its dirty departure confirmation. Account operations now suspend that timer until their owner closes; a clock-controlled regression covers the delayed replacement and resumption. Usage now preserves the no-access-group aggregation label instead of passing it through resource-name resolution. Legacy tests were migrated to current readable identities, explicit draft adoption/application, grouped navigation and inspector/editor layouts without dropping mutation/permission/secret assertions.
+
+**Other side:** FYI. No backend contract or production state change. Fresh real embedded gateway/mock-chain, regression and performance scope are recorded in `docs/reports/prism-integration-acceptance-20260921.md`. No C2C or real Provider inference.

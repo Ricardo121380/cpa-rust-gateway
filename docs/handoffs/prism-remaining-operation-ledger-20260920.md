@@ -59,3 +59,9 @@
 - EgoLite / 真实嵌入网关：草稿出口页无全局冲突；修改 local-candidate 权重 2→3，保存回执与草稿重读完成；1440×900、1280×720、390×844 均为单一页内编辑、无弹窗和横向溢出。此为合成临时数据，无真实推理或发布。
 - 剩余：全部工作区整体验收、长内容/空错态/键盘与主题偏好、最终性能对比、完整 mock 接入计费链路及签名上线。本批不宣称全计划完成。
 - 本批最终门禁：28 个 Chromium 路由/候选/出口回归通过（含未保存、busy、丢响应、任意能力键及 stale revision）；TypeScript、check:full 四文件确定性构建、gateway 编译和 3 个 Rust 嵌入测试通过。日志 `/tmp/prism-candidate-final.log`、`/tmp/prism-candidate-final-build.log`。此前失败来自旧 fixture 生命周期事件常量、草稿运行投影和隐藏 ID 定位，已修正后完整重跑。
+
+## Integrated acceptance checkpoint — 2026-09-21
+
+M4 progressed through the real embedded gateway/mock model-to-key-to-request-to-billing chain, 84 responsive/theme structural observations, and final five-sample performance comparison. Two actual regressions were repaired: delayed account search interrupting an open form, and null access-group labeling. Chromium full run: 286 passed / one fake-clock test wait failed; after correcting that wait, the complete affected group passed 8/8. Unit, type, deterministic four-file and three embedded Rust checks passed. See [integration evidence](../reports/prism-integration-acceptance-20260921.md) for exact scopes and separate runs.
+
+Next: close the explicit whole-workspace keyboard/long/error-state and real-channel/manual-evidence readiness checklist, then signed release and Oracle post-deployment checks. M4 and M5 are not marked complete; no production release occurred. Current-round Codex with ChatGPT exclusion remains in force.

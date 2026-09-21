@@ -54,8 +54,10 @@ test("catalog missing is failure-only, not a zero-model successful discovery", a
   await unlock(page);
   await selectDraft(page);
   await navigate(page, "模型目录");
+  await page.getByText("目录状态与诊断", {exact:true}).click();
   await page.getByRole("combobox", { name: "目录状态" }).selectOption("missing");
-  await page.getByRole("button", { name: "详情" }).click();
+  await expect(page.getByRole("button", { name: "详情", exact: true })).toHaveCount(1);
+  await page.getByRole("button", { name: "详情", exact: true }).click();
   const inspector = page.getByRole("dialog");
   await expect(inspector).toContainText("authentication");
   await expect(inspector.locator(".fact-grid > div").filter({ hasText: "目录模型数" })).toContainText("未观测");

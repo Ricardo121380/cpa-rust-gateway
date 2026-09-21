@@ -40,11 +40,12 @@ test("an authorized model survives draft selection and seeds a new route candida
   await page.getByRole("link", { name: "用于草稿候选" }).click();
   const handoff = page.getByRole("region", { name: "待用于草稿的模型" });
   await expect(handoff).toContainText("exact-alpha");
+  const handoffPath = new URL(page.url()).hash.slice(1);
   await navigate(page, "配置版本");
   await page.locator('[data-version-id="draft-2026-08"]').getByRole("button", { name: "编辑草稿" }).click();
+  await page.getByRole("dialog", { name: "接续配置草稿" }).getByRole("button", { name: "接续草稿", exact: true }).click();
   await expect(page.locator("main.canvas")).toHaveAttribute("data-context-version", "draft-2026-08");
-  await page.goBack();
-  await page.goBack();
+  await page.evaluate(async path => { const {router} = await import("/src/App.tsx"); await router.navigate(path); }, handoffPath);
   await expect(handoff).toContainText("exact-alpha");
   await handoff.getByRole("button", { name: "开放此模型" }).click();
   const dialog = page.getByRole("dialog", { name: "接入模型" });

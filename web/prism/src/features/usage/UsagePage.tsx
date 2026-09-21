@@ -51,6 +51,7 @@ import {
   shareOf,
   sumFamily,
   TOKEN_FAMILIES,
+  UNGROUPED_LABEL,
   type Collected,
   type FamilyTotal,
   type Filters,
@@ -329,7 +330,7 @@ export function UsagePage() {
                   {groups.map((group) => (
                     <tr key={group.key}>
                       <th scope="row" className="mono usage-key">
-                        {dimension === "public_model" || dimension === "protocol" ? group.key : <ResourceIdentity id={group.key} kind={dimension === "account_id" ? "account" : dimension === "channel_id" ? "endpoint" : dimension === "provider_id" ? "upstream" : dimension === "access_group_id" ? "group" : "resource"} />}
+                        {dimension === "public_model" || dimension === "protocol" || (dimension === "access_group_id" && group.key === UNGROUPED_LABEL) ? group.key : <ResourceIdentity id={group.key} kind={dimension === "account_id" ? "account" : dimension === "channel_id" ? "endpoint" : dimension === "provider_id" ? "upstream" : dimension === "access_group_id" ? "group" : "resource"} />}
                         <ShareBar share={shareOf(group.request_count, totalRequests)} />
                       </th>
                       <td className="mono usage-num">{formatCount(group.request_count)}</td>

@@ -56,10 +56,12 @@ test("an unchanged active connection does not create an unused configuration for
   await first.getByRole("button",{name:"保存并应用"}).click();
   await expect(page.getByRole("dialog",{name:"模型接入结果"})).toContainText("已保存到当前草稿");
   await page.getByRole("dialog",{name:"模型接入结果"}).getByRole("button",{name:"核对配置"}).click();
-  await page.locator(".dock").getByRole("button",{name:"发布",exact:true}).click();
-  await page.getByRole("dialog",{name:"确认发布"}).getByRole("button",{name:"确认发布",exact:true}).click();
-  await expect(page.getByRole("dialog")).toContainText("已发布");
+  await page.locator(".dock").getByRole("button",{name:"查看变更",exact:true}).click();
+  await page.getByRole("region",{name:"待应用变更",exact:true}).getByRole("button",{name:"校验并应用",exact:true}).click();
+  await page.getByRole("dialog",{name:"确认应用配置"}).getByRole("button",{name:"确认应用",exact:true}).click();
+  await expect(page.getByRole("dialog")).toContainText("已确认");
   await page.getByRole("button",{name:"完成",exact:true}).click();
+  await navigate(page,"模型与路由");
   const row=page.locator(".models-inventory tbody tr").filter({hasText:"gpt-5.6-terra"});
   await row.getByRole("button",{name:"管理连接"}).click();
   await page.getByRole("dialog",{name:"gpt-5.6-terra · 来源连接"}).getByRole("button",{name:"添加来源连接"}).click();
@@ -253,10 +255,12 @@ test("a held source update freezes every field until its captured write finishes
 test("source fields stay frozen while a saved edit waits for application",async({page})=>{
   await connectExistingSource(page);
   await page.getByRole("dialog",{name:"minimax-m3 · 来源连接"}).getByRole("button",{name:"关闭",exact:true}).click();
-  await page.locator(".dock").getByRole("button",{name:"发布",exact:true}).click();
-  await page.getByRole("dialog",{name:"确认发布"}).getByRole("button",{name:"确认发布",exact:true}).click();
-  await expect(page.getByRole("dialog")).toContainText("已发布");
+  await page.locator(".dock").getByRole("button",{name:"查看变更",exact:true}).click();
+  await page.getByRole("region",{name:"待应用变更",exact:true}).getByRole("button",{name:"校验并应用",exact:true}).click();
+  await page.getByRole("dialog",{name:"确认应用配置"}).getByRole("button",{name:"确认应用",exact:true}).click();
+  await expect(page.getByRole("dialog")).toContainText("已确认");
   await page.getByRole("button",{name:"完成",exact:true}).click();
+  await navigate(page,"模型与路由");
   const row=page.locator(".models-inventory tbody tr").filter({hasText:"minimax-m3"});
   await row.getByRole("button",{name:"管理连接"}).click();
   await page.getByRole("dialog",{name:"minimax-m3 · 来源连接"}).getByRole("button",{name:"编辑路径"}).click();

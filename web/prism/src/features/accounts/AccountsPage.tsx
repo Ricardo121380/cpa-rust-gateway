@@ -45,7 +45,6 @@ function ManagedAccounts() {
   const provider = params.get("provider") ?? "";
   const [searchInput,setSearchInput]=useState(search);
   useEffect(()=>setSearchInput(search),[search]);
-  useEffect(()=>{if(searchInput===search)return;const timer=setTimeout(()=>{setSelection(new Set());const next=new URLSearchParams(params);if(searchInput)next.set("q",searchInput);else next.delete("q");setParams(next,{replace:true});},300);return()=>clearTimeout(timer);},[searchInput,search,params,setParams]);
   const selectedCategory = params.get("category") ?? "";
   const selectedStatus=params.get("status")??"";
   const sort=params.get("sort")??"name";
@@ -71,6 +70,21 @@ function ManagedAccounts() {
   const [selecting, setSelecting] = useState(false);
   const [batch, setBatch] = useState<{targets:readonly AccountTarget[];action:AccountAction}>();
   const [notice, setNotice] = useState<string>();
+  // A delayed search replace is background work, not an intent to leave a
+  // newly opened account operation. Retire its timer until that owner closes.
+  const operationOpen = ["account", "api-key"].includes(params.get("add") ?? "") ||
+    !!(nativeDetail || nativeOauth || connections || authorizations || detail || oauth ||
+      claudeOauth || kiroOauth || kimiOauth || more || updating || batch);
+  useEffect(() => {
+    if (operationOpen || searchInput === search) return;
+    const timer = setTimeout(() => {
+      setSelection(new Set());
+      const next = new URLSearchParams(params);
+      if (searchInput) next.set("q", searchInput); else next.delete("q");
+      setParams(next, { replace: true });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [operationOpen, searchInput, search, params, setParams]);
   const refresh = () => Promise.all(["account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.invalidateQueries({queryKey:[key]})));
   const update = (name: string, value: string) => {
     if (["q", "provider", "category", "status", "sort"].includes(name)) setSelection(new Set());
