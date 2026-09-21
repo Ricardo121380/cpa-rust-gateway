@@ -2935,3 +2935,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Switching between upstream catalog and connected models discarded the administrator's read filters. Retain separate in-memory search/filter preferences, clear them on session or configuration selection changes, and let explicit catalog deep links override remembered targets. Do not retain selected models, directory evidence or write tasks.
 
 **Other side:** FYI. No contract/backend/production change, no browser persistence. Existing exact endpoint/account admission and catalog mutation validation remain authoritative.
+
+## 2026-09-21 - Codex - provider detail layout and successful-read error fix
+
+**What:** UpstreamsPage, SubresourcePanel, workspace.css and provider-layout browser regression under web/prism.
+
+**Why:** Clarify provider selection/detail hierarchy, merge duplicate catalog actions, put mobile detail first with focus return, and avoid rendering null as a successful-query error.
+
+**Other side:** FYI. User-authorized frontend implementation; no API, production or resource-write semantic change. 22 browser regressions, SPA build gate and 3 Rust embedded tests passed; real local gateway EgoLite screenshots recorded.

@@ -133,3 +133,16 @@ html[data-contrast="more"] .inline-workspace { background: var(--surface); box-s
 .account-authorization-summary h3 { margin: 0 0 8px; font-size: 17px; }
 .account-authorization-summary p { margin: 0; color: var(--ink-2); line-height: 1.6; }
 @media (max-width: 600px) { .account-channel-field select { font-size: 16px; } }
+
+/* Provider selection and detail form a single master/detail workspace. */
+.provider-workspace.has-detail { grid-template-columns:minmax(240px,.65fr) minmax(0,1.35fr); }
+.provider-card[data-selected="true"] { background:var(--editor-header); box-shadow:inset 3px 0 var(--tint); }
+.provider-detail { scroll-margin-block:100px; background:var(--editor-surface); }
+.provider-detail:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
+.provider-detail > header { padding-bottom:16px; border-bottom:1px solid var(--separator); }
+.provider-detail > header > div { min-width:0; }
+.provider-detail > header > button { flex-shrink:0; min-height:44px; }
+@media(max-width:1100px) {
+  .provider-workspace.has-detail { grid-template-columns:1fr; }
+  .provider-workspace.has-detail > .provider-detail { grid-row:1; }
+}

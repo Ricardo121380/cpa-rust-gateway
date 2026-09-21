@@ -623,7 +623,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
 
   return (
     <div className="card subresource-panel">
-      {inventoryError !== undefined ? (
+      {inventoryError != null ? (
         <p role="alert" className="action-error">
           {asAppError(inventoryError).message}
           <button type="button" onClick={refresh}>重新读取账号与端点</button>

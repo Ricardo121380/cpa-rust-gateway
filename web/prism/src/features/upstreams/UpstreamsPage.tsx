@@ -118,9 +118,21 @@ export function UpstreamsPage() {
   const [filter,setFilter]=useState("");
   const [kindFilter,setKindFilter]=useState("");
 
+  const detailRef=useRef<HTMLElement>(null);
+  const detailOpener=useRef<HTMLElement|null>(null);
+  useEffect(()=>{
+    if(!expanded)return;
+    const frame=requestAnimationFrame(()=>{
+      detailRef.current?.focus({preventScroll:true});
+      detailRef.current?.scrollIntoView({block:"nearest"});
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[expanded]);
   const selectProviderWorkspace = (id: string | undefined) => {
     if (providerActionActive && id !== expanded) return;
     if(adding){boundary.request(()=>{setExpanded(id);});return;}
+    if(id!==undefined)detailOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    else if(detailOpener.current?.isConnected)detailOpener.current.focus({preventScroll:true});
     setExpanded(id);
     const next = new URLSearchParams(searchParams);
     if (id === undefined) next.delete("upstream_id");
@@ -246,12 +258,12 @@ export function UpstreamsPage() {
           const endpointIds=new Set(endpoints.map(e=>e.id));
           const models=[...new Set(topology.data?.candidates.filter(c=>endpointIds.has(c.endpoint_id)).map(c=>c.upstream_model)??[])];
           const name=resourceName(upstream.id,"upstream",upstream.name);
-          return <article className="provider-card" key={upstream.id}>
+          return <article className="provider-card" data-selected={expanded===upstream.id} key={upstream.id}>
             <header><div><span className="provider-kind">{providerKindLabel(upstream.kind)}</span><h3>{name}</h3></div><StatusBadge status={upstream.enabled?"active":"disabled"}>{upstream.enabled?"已启用":"已停用"}</StatusBadge></header>
             <div className="provider-connections">{topology.isError?"连接读取失败":!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div>
-            <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={`/catalog?upstream_id=${encodeURIComponent(upstream.id)}`}>上游目录</Link><Link to={manualModelConnectPath(upstream.id)}>开放模型</Link></div>
+            <div className="provider-models"><span className="muted">已开放模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={manualModelConnectPath(upstream.id)}>目录与模型开放</Link></div>
             <footer><div className="row-actions">
-              <button className="secondary" disabled={providerActionActive && expanded !== upstream.id} title={providerActionActive && expanded !== upstream.id ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
+              <button className="secondary" aria-expanded={expanded===upstream.id} aria-controls={expanded===upstream.id?"provider-detail":undefined} disabled={providerActionActive && expanded !== upstream.id} title={providerActionActive && expanded !== upstream.id ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
               <button className="secondary" onClick={()=>boundary.request(()=>{save.reset();setWorkingId(undefined);setActionError(undefined);beginDraft(toDraft(upstream));})}>编辑</button>
               <details className="row-menu"><summary>更多</summary><div><button className="secondary" onClick={()=>boundary.request(()=>setInspected(upstream))}>详情</button><button className="danger" onClick={()=>boundary.request(()=>{remove.reset();submitted.current=false;setConfirmedWrites(0);setReceipt(undefined);setDeleteSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setWorkingId(undefined);setActionError(undefined);setConfirmDelete(upstream);})}>移除提供商</button></div></details>
             </div></footer>
@@ -260,7 +272,7 @@ export function UpstreamsPage() {
         {!scope?<div className="empty-state">选择配置版本后管理提供商。</div>:upstreams.data?.length===0?<div className="empty-state">添加提供商，设置接口地址并连接账号。</div>:filteredUpstreams.length===0?<div className="empty-state">没有符合筛选条件的提供商。<button className="secondary" onClick={()=>{setFilter("");setKindFilter("");}}>清除筛选</button></div>:null}
       </div>
 
-      {expanded?<aside className="provider-detail" aria-label="提供商接口与账号"><header><h3>{resourceName(expanded,"upstream",upstreams.data?.find(row=>row.id===expanded)?.name)}</h3><button className="secondary" disabled={providerActionActive} title={providerActionActive ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(undefined)}>关闭</button></header><SubresourcePanel key={expanded} upstreamId={expanded} onAddAccount={() => setAddingAccount(true)} onActionActiveChange={setProviderActionActive}/></aside>:null}
+      {expanded?<aside id="provider-detail" ref={detailRef} tabIndex={-1} className="provider-detail" aria-label="提供商接口与账号"><header><div><span className="provider-kind">接口与账号</span><h3>{resourceName(expanded,"upstream",upstreams.data?.find(row=>row.id===expanded)?.name)}</h3></div><button className="secondary" disabled={providerActionActive} title={providerActionActive ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(undefined)}>关闭</button></header><SubresourcePanel key={expanded} upstreamId={expanded} onAddAccount={() => setAddingAccount(true)} onActionActiveChange={setProviderActionActive}/></aside>:null}
       </div>
 
 
