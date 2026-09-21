@@ -2943,3 +2943,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Clarify provider selection/detail hierarchy, merge duplicate catalog actions, put mobile detail first with focus return, and avoid rendering null as a successful-query error.
 
 **Other side:** FYI. User-authorized frontend implementation; no API, production or resource-write semantic change. 22 browser regressions, SPA build gate and 3 Rust embedded tests passed; real local gateway EgoLite screenshots recorded.
+
+## 2026-09-21 - Codex - provider resource editor sections
+
+**What:** `web/prism/src/features/upstreams/SubresourcePanel.tsx` and `web/prism/src/design/workspace.css`.
+
+**Why:** Separate endpoint connection settings from implementation parameters and credential identity from secret replacement. Use compact desktop field groups and single-column mobile forms; localize status labels without changing request values.
+
+**Other side:** FYI. Existing Sheet lifecycle and mutation behavior retained. 19 resource browser regressions, final SPA build gate and 3 embedded Rust tests passed; real local gateway EgoLite evidence recorded. No production change.

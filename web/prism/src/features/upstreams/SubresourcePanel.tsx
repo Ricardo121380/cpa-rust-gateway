@@ -305,7 +305,7 @@ function ChannelSheet({
       {feedback}
       <form
         id={formId}
-        className="sheet-form"
+        className="sheet-form resource-editor"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -326,6 +326,31 @@ function ChannelSheet({
           );
         }}
       >
+        <fieldset className="resource-editor-section">
+          <legend>连接设置</legend>
+          <div className="resource-editor-grid">
+        <label>
+          接口地址
+          <input name="base_url" className="mono" required defaultValue={current?.base_url ?? ""} />
+        </label>
+        <label>
+          请求协议
+          <input name="api_format" className="mono" required defaultValue={current?.api_format ?? ""} />
+        </label>
+        <label>
+          请求路径
+          <input
+            name="inference_path"
+            className="mono"
+            required
+            defaultValue={current?.inference_path ?? ""}
+          />
+        </label>
+          </div>
+        </fieldset>
+        <fieldset className="resource-editor-section">
+          <legend>实现参数</legend>
+          <div className="resource-editor-grid">
         <label>
           {editing === undefined ? "接口标识" : "接口"}
           <ResourceIdInput kind="endpoint"
@@ -341,25 +366,10 @@ function ChannelSheet({
           接口实现
           <input name="adapter_id" className="mono" required defaultValue={current?.adapter_id ?? ""} />
         </label>
-        <label>
-          请求协议
-          <input name="api_format" className="mono" required defaultValue={current?.api_format ?? ""} />
-        </label>
-        <label>
-          接口地址
-          <input name="base_url" className="mono" required defaultValue={current?.base_url ?? ""} />
-        </label>
-        <label>
-          请求路径
-          <input
-            name="inference_path"
-            className="mono"
-            required
-            defaultValue={current?.inference_path ?? ""}
-          />
-        </label>
+          </div>
+        </fieldset>
         <details className="sheet-advanced">
-          <summary>高级设置</summary>
+          <summary>目录与启用状态</summary>
           <label>
             模型目录路径（可选）
           <input name="models_path" className="mono" defaultValue={current?.models_path ?? ""} />
@@ -401,7 +411,7 @@ function AccountSheet({
       {feedback}
       <form
         id={formId}
-        className="sheet-form"
+        className="sheet-form resource-editor"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -418,6 +428,9 @@ function AccountSheet({
           );
         }}
       >
+        <fieldset className="resource-editor-section">
+          <legend>账号与认证</legend>
+          <div className="resource-editor-grid">
         <label>
           {editing === undefined ? "凭据标识" : "账号"}
           <ResourceIdInput
@@ -442,11 +455,15 @@ function AccountSheet({
         <label>
           状态
           <select name="status" defaultValue={form.mode==="edit"?form.status:"active"}>
-            <option value="active">active</option>
-            <option value="disabled">disabled</option>
-            <option value="revoked">revoked</option>
+            <option value="active">已启用</option>
+            <option value="disabled">已停用</option>
+            <option value="revoked">已撤销</option>
           </select>
         </label>
+          </div>
+        </fieldset>
+        <fieldset className="resource-editor-section">
+          <legend>{editing === undefined ? "授权资料" : "更新授权资料"}</legend>
         <label>
           授权资料
           {/* Not type="password": Safari's password manager covers the field and
@@ -462,6 +479,7 @@ function AccountSheet({
           />
         </label>
         {editing!==undefined?<p className="muted">更新授权资料会重新校验账号。只需启停时，可在全部账号中操作。</p>:null}
+        </fieldset>
       </form>
     </Sheet>
   );
