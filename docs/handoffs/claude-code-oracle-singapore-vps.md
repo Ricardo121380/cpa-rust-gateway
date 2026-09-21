@@ -1,5 +1,18 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-21: current signed workspace release
+
+Production serves signed `a19076747c94324f8acb32b70c44410f2aa62eb3`, schema28.
+Formal gate, both signed targets, independent ARM64 verification, network-isolated
+production-copy fallback/candidate/fallback/candidate and production checks passed.
+Compatible fallback is `763b57053ce5e9478d71e77b8766da4fdeead625`; keep current
+state and rotating credentials, never restore stale databases. Existing admin,
+accounts, active configuration, requests and ledger retained. DNS/Caddy/firewall/
+Autoreg were not changed, and no real Provider inference was invoked.
+See [release evidence and first-attempt permission repair](../reports/prism-workspace-production-20260921.md).
+Earlier entries below are historical.
+
+
 ## 2026-09-15: daily-workspace alignment hardening deployment (current)
 
 Production now serves signed `0ff3b82e715ce750f05a7116b444f375edfd60dd`,

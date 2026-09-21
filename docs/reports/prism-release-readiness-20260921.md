@@ -1,7 +1,7 @@
 # Prism release readiness — 2026-09-21
 
 Candidate implementation: `d232f9416157cbc4ff3a7f0788307903bc93b800`.
-Status: local final gates passed after a test-fixture correction; signed release and production cutover remain outstanding.
+Status: local final gates passed after a test-fixture correction. Superseding release `a190767` passed formal gates, signing, isolated rollback and Oracle deployment; see [production delivery](prism-workspace-production-20260921.md).
 
 ## Channel evidence boundary
 
