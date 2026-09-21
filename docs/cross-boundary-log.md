@@ -2894,3 +2894,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Full regression exposed a real race: a pending 300ms account-search URL replacement could navigate after an authorization form opened, unexpectedly invoking its dirty departure confirmation. Account operations now suspend that timer until their owner closes; a clock-controlled regression covers the delayed replacement and resumption. Usage now preserves the no-access-group aggregation label instead of passing it through resource-name resolution. Legacy tests were migrated to current readable identities, explicit draft adoption/application, grouped navigation and inspector/editor layouts without dropping mutation/permission/secret assertions.
 
 **Other side:** FYI. No backend contract or production state change. Fresh real embedded gateway/mock-chain, regression and performance scope are recorded in `docs/reports/prism-integration-acceptance-20260921.md`. No C2C or real Provider inference.
+
+## 2026-09-21 - Codex - inline workspace keyboard return
+
+**What:** `web/prism/src/components/InlineWorkspace.tsx`, `web/prism/e2e/workspace-visual.spec.ts`.
+
+**Why:** Real embedded gateway keyboard acceptance found Escape left focus on BODY. Restore the original connected opener after actual unmount only when no replacement view owns focus; preserve StrictMode and route navigation. New regression covers Escape, footer cancel and destination focus.
+
+**Other side:** FYI. No API/backend or production change. Real EgoLite three-size checks, targeted regressions, four-file build and embedded tests are documented in `docs/reports/prism-keyboard-readiness-20260921.md`. Remaining M4 gaps stay explicit.

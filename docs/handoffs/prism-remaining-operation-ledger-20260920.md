@@ -65,3 +65,10 @@
 M4 progressed through the real embedded gateway/mock model-to-key-to-request-to-billing chain, 84 responsive/theme structural observations, and final five-sample performance comparison. Two actual regressions were repaired: delayed account search interrupting an open form, and null access-group labeling. Chromium full run: 286 passed / one fake-clock test wait failed; after correcting that wait, the complete affected group passed 8/8. Unit, type, deterministic four-file and three embedded Rust checks passed. See [integration evidence](../reports/prism-integration-acceptance-20260921.md) for exact scopes and separate runs.
 
 Next: close the explicit whole-workspace keyboard/long/error-state and real-channel/manual-evidence readiness checklist, then signed release and Oracle post-deployment checks. M4 and M5 are not marked complete; no production release occurred. Current-round Codex with ChatGPT exclusion remains in force.
+
+### 2026-09-21 — 键盘与状态验收
+
+- 修复共享页内编辑关闭后焦点丢失：返回仍存在的操作入口，不抢占新页面/弹窗焦点。
+- 真实网关三尺寸返回焦点、账号弹窗循环焦点/脏输入恢复/无效导入结果已验；八个工作区键盘导航已验。
+- 12 条状态/详情回归与单独 3 条页内视觉/新增焦点回归通过；类型、四文件构建、gateway 和 3 条 Rust 嵌入检查通过。
+- [逐工作区证据与缺口](../reports/prism-keyboard-readiness-20260921.md)明确区分导航、fixture 和真实操作。M4 全状态验收与 M5 签名上线继续开放。

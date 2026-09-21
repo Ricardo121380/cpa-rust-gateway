@@ -21,3 +21,20 @@ test("mobile maintenance form preserves labels and readable input sizing",async(
  await expect(dialog.getByRole('button',{name:'保存到草稿',exact:true})).toBeVisible();
  const edges=await dialog.boundingBox();expect(edges!.x).toBeGreaterThanOrEqual(12);expect(edges!.x+edges!.width).toBeLessThanOrEqual(378);
 });
+
+test("inline cancellation restores the opener without stealing route focus", async ({ page }) => {
+ await unlock(page);await navigate(page,"上游");
+ const opener=page.getByRole("button",{name:"添加提供商",exact:true});
+ await opener.click();
+ await expect(page.getByRole("heading",{name:"添加 AI 提供商",exact:true})).toBeFocused();
+ await page.keyboard.press("Escape");
+ await expect(page.locator(".inline-workspace")).toHaveCount(0);
+ await expect(opener).toBeFocused();
+ await opener.click();
+ await page.locator(".inline-workspace").getByRole("button",{name:"取消",exact:true}).click();
+ await expect(opener).toBeFocused();
+ await opener.click();
+ await navigate(page,"模型与路由");
+ await expect(page.locator(".inline-workspace")).toHaveCount(0);
+ await expect(page.locator("#main-navigation").getByRole("link",{name:"模型管理",exact:true})).toBeFocused();
+});

@@ -1,0 +1,66 @@
+[
+  {
+    "workspace": "仪表盘",
+    "url": "#/",
+    "heading": "仪表盘",
+    "focused": "请求日志",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  },
+  {
+    "workspace": "请求日志",
+    "url": "#/monitoring",
+    "heading": "请求日志",
+    "focused": "用量与费用",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  },
+  {
+    "workspace": "用量与费用",
+    "url": "#/usage",
+    "heading": "用量与费用",
+    "focused": "账号管理",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  },
+  {
+    "workspace": "账号管理",
+    "url": "#/accounts",
+    "heading": "账号管理",
+    "focused": "AI 提供商",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  },
+  {
+    "workspace": "AI 提供商",
+    "url": "#/upstreams",
+    "heading": "AI 提供商",
+    "focused": "模型管理",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  },
+  {
+    "workspace": "模型管理",
+    "url": "#/models",
+    "heading": "模型管理",
+    "focused": "API 密钥",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  },
+  {
+    "workspace": "API 密钥",
+    "url": "#/access",
+    "heading": "API 密钥",
+    "focused": "设置",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  },
+  {
+    "workspace": "设置",
+    "url": "#/settings",
+    "heading": "设置",
+    "focused": "设置",
+    "focusVisible": true,
+    "horizontalOverflow": false
+  }
+]

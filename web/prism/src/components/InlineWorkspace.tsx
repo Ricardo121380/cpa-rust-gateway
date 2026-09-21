@@ -12,6 +12,7 @@ export function InlineWorkspace({title,description,children,footer,busy,dirty,on
   const boundary=useOperationBoundary();
   const titleId=useId();
   const heading=useRef<HTMLHeadingElement>(null);
+  const openerRef=useRef<HTMLElement | null>(null);
   const previousFocus=useRef<HTMLElement | null>(null);
   const [leave,setLeave]=useState<Leave>();
   const location=useLocation();
@@ -47,6 +48,19 @@ export function InlineWorkspace({title,description,children,footer,busy,dirty,on
   useEffect(()=>{
     if(busy&&leave){if(blocker.state==="blocked")blocker.reset();setLeave(undefined);}
   },[busy,leave,blocker]);
+  useEffect(()=>{
+    openerRef.current ??= document.activeElement instanceof HTMLElement?document.activeElement:null;
+    const opener=openerRef.current;
+    const mountedHeading=heading.current;
+    return ()=>{
+      // Wait for the replacement view to take focus. StrictMode's simulated
+      // cleanup leaves the heading connected and must not restore the opener.
+      queueMicrotask(()=>{
+        if(!mountedHeading?.isConnected&&opener?.isConnected&&
+          document.activeElement===document.body&&!document.querySelector('[role="dialog"]'))opener.focus();
+      });
+    };
+  },[]);
   useEffect(()=>{heading.current?.focus();heading.current?.scrollIntoView({block:"start"});},[title]);
   useEffect(()=>{
     const handler=(event:BeforeUnloadEvent)=>{if(dirty||busy){event.preventDefault();event.returnValue="";}};
