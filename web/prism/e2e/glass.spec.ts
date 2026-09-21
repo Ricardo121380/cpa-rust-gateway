@@ -26,6 +26,7 @@ test("every mounted chrome pane gets a real displacement map", async ({ page }) 
   await expect(page.locator("html")).toHaveAttribute("data-lens", "on");
 
   for (const pane of ["topbar", "rail"]) {
+    await expect.poll(async () => (await lens(page, pane))?.href).toContain("data:image/png");
     const l = await lens(page, pane);
     expect(l?.href, `${pane} map`).toContain("data:image/png");
     expect(l?.width, `${pane} map width`).toBeGreaterThan(100);
@@ -35,6 +36,7 @@ test("every mounted chrome pane gets a real displacement map", async ({ page }) 
   // never resizes the body — the original ResizeObserver-only wiring left its
   // feImage at href="" and the pane leaked every glyph underneath.
   await selectDraft(page);
+  await expect.poll(async () => (await lens(page, "dock"))?.href).toContain("data:image/png");
   const dock = await lens(page, "dock");
   expect(dock?.href).toContain("data:image/png");
   expect(dock?.width).toBeGreaterThan(100);

@@ -2983,3 +2983,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Cover the settings entry receiving an authentication rejection during hash navigation and require a visible login form, not merely absence of protected content.
 
 **Other side:** FYI. Four final session ownership browser tests passed. Product behavior unchanged; this fixture test does not establish the cause of the earlier real-browser automation observation.
+
+## 2026-09-21 - Codex - candidate acceptance and account view reselection
+
+**What:** `web/prism/src/features/accounts/AccountsPage.tsx`; `web/prism/e2e/account-presentation.spec.ts`, `batch-d.spec.ts`, `billing.spec.ts`, `billing-lifecycle.spec.ts`, `glass.spec.ts`.
+
+**Why:** Preserve filters when the already-selected account view is clicked. Add regression coverage; align billing fixture time, reconciliation wording and asynchronous lens assertions with their actual behavioral contracts.
+
+**Other side:** FYI. Authorized frontend work; no API, schema, permission or production-data changes. Full candidate acceptance and initial failures are recorded in `docs/reports/prism-candidate-integration-20260921.md`; release gates remain required before deployment.

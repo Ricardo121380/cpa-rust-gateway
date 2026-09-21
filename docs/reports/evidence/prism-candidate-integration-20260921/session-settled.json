@@ -1,0 +1,273 @@
+{
+  "browser": "EgoLite",
+  "mode": "settled",
+  "realGateway": true,
+  "heldTransport": false,
+  "revocationStatus": 204,
+  "loginVisible": true,
+  "passed": true,
+  "hash": "#/unlock",
+  "protectedContent": false,
+  "appChildren": 1,
+  "events": [
+    {
+      "t": 37,
+      "type": "DOMContentLoaded",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 42,
+      "type": "pageshow",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 1420,
+      "type": "fetch",
+      "detail": "/admin/auth/login"
+    },
+    {
+      "t": 1750,
+      "type": "response",
+      "detail": {
+        "path": "/admin/auth/login",
+        "status": 200
+      }
+    },
+    {
+      "t": 1783,
+      "type": "fetch",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 1788,
+      "type": "response",
+      "detail": {
+        "path": "/admin/config-versions",
+        "status": 200
+      }
+    },
+    {
+      "t": 1788,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1807,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 1808,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1815,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1815,
+      "type": "fetch",
+      "detail": "/admin/operations/billing-processing"
+    },
+    {
+      "t": 1817,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing-processing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1817,
+      "type": "fetch",
+      "detail": "/admin/observability/metrics"
+    },
+    {
+      "t": 1819,
+      "type": "response",
+      "detail": {
+        "path": "/admin/observability/metrics",
+        "status": 200
+      }
+    },
+    {
+      "t": 1820,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1824,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1824,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1831,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 1831,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1840,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1841,
+      "type": "fetch",
+      "detail": "/admin/operations/billing-processing"
+    },
+    {
+      "t": 1843,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing-processing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1843,
+      "type": "fetch",
+      "detail": "/admin/observability/metrics"
+    },
+    {
+      "t": 1846,
+      "type": "response",
+      "detail": {
+        "path": "/admin/observability/metrics",
+        "status": 200
+      }
+    },
+    {
+      "t": 1847,
+      "type": "fetch",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 1853,
+      "type": "response",
+      "detail": {
+        "path": "/admin/config-versions",
+        "status": 200
+      }
+    },
+    {
+      "t": 1854,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1862,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 1862,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1869,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1870,
+      "type": "fetch",
+      "detail": "/admin/upstreams"
+    },
+    {
+      "t": 1874,
+      "type": "response",
+      "detail": {
+        "path": "/admin/upstreams",
+        "status": 200
+      }
+    },
+    {
+      "t": 1874,
+      "type": "fetch",
+      "detail": "/admin/public-models"
+    },
+    {
+      "t": 1878,
+      "type": "response",
+      "detail": {
+        "path": "/admin/public-models",
+        "status": 200
+      }
+    },
+    {
+      "t": 1878,
+      "type": "fetch",
+      "detail": "/admin/client-keys"
+    },
+    {
+      "t": 1884,
+      "type": "response",
+      "detail": {
+        "path": "/admin/client-keys",
+        "status": 200
+      }
+    },
+    {
+      "t": 1896,
+      "type": "revoked",
+      "detail": 204
+    },
+    {
+      "t": 1899,
+      "type": "popstate",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1904,
+      "type": "fetch",
+      "detail": "/admin/system"
+    },
+    {
+      "t": 1904,
+      "type": "hashchange",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1910,
+      "type": "response",
+      "detail": {
+        "path": "/admin/system",
+        "status": 404
+      }
+    }
+  ]
+}

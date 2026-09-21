@@ -7,6 +7,7 @@ use std::{
     fs,
     net::SocketAddr,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -32,14 +33,17 @@ use serde_json::{Value, json};
 type TestResult = Result<(), Box<dyn Error>>;
 
 const MANAGEMENT_KEY: &str = "mgmt_0123456789abcdefghijklmnopqrstuvwxyz";
+static DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 struct TemporaryDirectory(PathBuf);
 
 impl TemporaryDirectory {
     fn new() -> Result<Self, Box<dyn Error>> {
         let elapsed = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
+        // The wall clock can return the same value to concurrent test threads.
+        let sequence = DIRECTORY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let path = std::env::temp_dir().join(format!(
-            "cpa-rust-gateway-p10-08-http-{elapsed}-{}",
+            "cpa-rust-gateway-p10-08-http-{elapsed}-{sequence}-{}",
             std::process::id()
         ));
         fs::create_dir(&path)?;

@@ -1,0 +1,8 @@
+{
+  "theme": "light",
+  "transparency": "reduce",
+  "motion": "reduce",
+  "filter": "none",
+  "overflow": false,
+  "keyboard": "Space on focused appearance radio activated light theme"
+}

@@ -1,5 +1,22 @@
 import {expect,test} from "@playwright/test";
 import {unlock,selectDraft,navigate} from "./helpers";
+test("reselecting the current account view preserves its search",async({page})=>{
+  await unlock(page);await navigate(page,"账号池");
+  const views=page.getByRole("navigation",{name:"账号视图"});
+  const search=page.getByLabel("搜索账号",{exact:true});
+  await search.fill("alex@example.test");
+  await expect(page).toHaveURL(/q=alex/u);
+  await views.getByRole("button",{name:"全部账号",exact:true}).click();
+  await expect(search).toHaveValue("alex@example.test");
+  await expect(page).toHaveURL(/q=alex/u);
+  await views.getByRole("button",{name:"运行状态",exact:true}).click();
+  const runtime=page.getByLabel("搜索已加载账号");
+  await runtime.fill("runtime.member@example.test");
+  await expect(page).toHaveURL(/q=runtime/u);
+  await views.getByRole("button",{name:"运行状态",exact:true}).click();
+  await expect(runtime).toHaveValue("runtime.member@example.test");
+  await expect(page.locator(".account-desktop").getByRole("button",{name:"详情",exact:true})).toHaveCount(1);
+});
 test("runtime uses human identities and connection meaning in rows and confirmation",async({page})=>{
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
   await page.getByRole("button",{name:"运行状态",exact:true}).click();

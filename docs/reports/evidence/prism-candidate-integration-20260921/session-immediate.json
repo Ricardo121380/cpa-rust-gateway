@@ -1,0 +1,104 @@
+{
+  "browser": "EgoLite",
+  "mode": "immediate",
+  "realGateway": true,
+  "heldTransport": false,
+  "revocationStatus": 204,
+  "loginVisible": true,
+  "passed": true,
+  "hash": "#/unlock",
+  "protectedContent": false,
+  "appChildren": 1,
+  "events": [
+    {
+      "t": 88,
+      "type": "DOMContentLoaded",
+      "detail": "#/"
+    },
+    {
+      "t": 124,
+      "type": "pageshow",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 1448,
+      "type": "fetch",
+      "detail": "/admin/auth/login"
+    },
+    {
+      "t": 1765,
+      "type": "response",
+      "detail": {
+        "path": "/admin/auth/login",
+        "status": 200
+      }
+    },
+    {
+      "t": 1817,
+      "type": "fetch",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 1823,
+      "type": "response",
+      "detail": {
+        "path": "/admin/config-versions",
+        "status": 200
+      }
+    },
+    {
+      "t": 1824,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1830,
+      "type": "revoked",
+      "detail": 204
+    },
+    {
+      "t": 1833,
+      "type": "popstate",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1838,
+      "type": "hashchange",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1839,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 1839,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1842,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 404
+      }
+    },
+    {
+      "t": 1842,
+      "type": "fetch",
+      "detail": "/admin/operations/billing-processing"
+    },
+    {
+      "t": 1845,
+      "type": "fetch-error",
+      "detail": {
+        "path": "/admin/operations/billing-processing",
+        "error": "AbortError"
+      }
+    }
+  ]
+}

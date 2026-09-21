@@ -115,6 +115,6 @@ test("the config plane reports a binding the operational inventory cannot show",
   // The panel's own table is join-driven: a binding whose credential does not
   // resolve is invisible there while still blocking validation and publish.
   await expect(sheet.locator('[data-resource-id="cred-deleted"]')).toBeVisible();
-  await expect(sheet).toContainText("运营库存里没有");
+  await expect(sheet.getByRole("row").filter({has:page.locator('[data-resource-id="cred-deleted"]')})).toContainText("未在运行状态中观测到");
   await expect(sheet.locator(".reveal-warning")).toContainText("只存在于配置里");
 });

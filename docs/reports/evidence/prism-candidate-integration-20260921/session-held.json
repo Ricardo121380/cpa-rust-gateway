@@ -1,0 +1,200 @@
+{
+  "browser": "EgoLite",
+  "mode": "held",
+  "realGateway": true,
+  "heldTransport": true,
+  "revocationStatus": 204,
+  "loginVisible": true,
+  "passed": true,
+  "hash": "#/unlock",
+  "protectedContent": false,
+  "appChildren": 1,
+  "events": [
+    {
+      "t": 39,
+      "type": "DOMContentLoaded",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 43,
+      "type": "pageshow",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 1351,
+      "type": "fetch",
+      "detail": "/admin/auth/login"
+    },
+    {
+      "t": 1639,
+      "type": "response",
+      "detail": {
+        "path": "/admin/auth/login",
+        "status": 200
+      }
+    },
+    {
+      "t": 1670,
+      "type": "fetch",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 1675,
+      "type": "response",
+      "detail": {
+        "path": "/admin/config-versions",
+        "status": 200
+      }
+    },
+    {
+      "t": 1676,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1687,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 1687,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1693,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1693,
+      "type": "fetch",
+      "detail": "/admin/operations/billing-processing"
+    },
+    {
+      "t": 1696,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing-processing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1696,
+      "type": "fetch",
+      "detail": "/admin/observability/metrics"
+    },
+    {
+      "t": 1699,
+      "type": "response",
+      "detail": {
+        "path": "/admin/observability/metrics",
+        "status": 200
+      }
+    },
+    {
+      "t": 1699,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1707,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 1707,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 1712,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1713,
+      "type": "fetch",
+      "detail": "/admin/operations/billing-processing"
+    },
+    {
+      "t": 1716,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing-processing",
+        "status": 200
+      }
+    },
+    {
+      "t": 1716,
+      "type": "fetch",
+      "detail": "/admin/observability/metrics"
+    },
+    {
+      "t": 1719,
+      "type": "response",
+      "detail": {
+        "path": "/admin/observability/metrics",
+        "status": 200
+      }
+    },
+    {
+      "t": 1719,
+      "type": "fetch",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 1721,
+      "type": "revoked",
+      "detail": 204
+    },
+    {
+      "t": 1723,
+      "type": "response",
+      "detail": {
+        "path": "/admin/config-versions",
+        "status": 404
+      }
+    },
+    {
+      "t": 1724,
+      "type": "popstate",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1730,
+      "type": "hashchange",
+      "detail": "#/settings"
+    },
+    {
+      "t": 1787,
+      "type": "released",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 1787,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 1789,
+      "type": "fetch-error",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "error": "AbortError"
+      }
+    }
+  ]
+}

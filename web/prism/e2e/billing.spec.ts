@@ -26,6 +26,7 @@ test("an unset policy reads as a state, not as an error", async ({ page }) => {
 });
 
 test("the policy picker refuses a catalog that is not effective yet", async ({ page }) => {
+  await page.clock.setFixedTime(new Date(1787100000000)); // Same clock as the fixture backend.
   await openBilling(page);
 
   // cat-2026-09-preview is dated ahead of the fixture clock. The backend fails

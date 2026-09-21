@@ -48,6 +48,7 @@ for (const count of [1, 50, 51, 512]) {
 }
 
 test("policy requires an explicit effective catalog and changes only the selected draft",async({page})=>{
+  await page.clock.setFixedTime(new Date(1787100000000)); // Same clock as the fixture backend.
   await openBilling(page);
   await page.getByText("高级路由价格策略",{exact:true}).click();
   const panel=page.locator(".bill-policy");

@@ -30,8 +30,8 @@ export function AccountsPage() {
   const runtime = params.get("view") === "runtime" || params.has("auth") || params.has("runtime");
   return <>
     <nav className="workspace-navigation" aria-label="账号视图">
-      <button aria-pressed={!runtime} onClick={() => setParams(new URLSearchParams())}>全部账号</button>
-      <button aria-pressed={runtime} onClick={() => setParams({view: "runtime"})}>运行状态</button>
+      <button aria-pressed={!runtime} onClick={() => { if (runtime) setParams(new URLSearchParams()); }}>全部账号</button>
+      <button aria-pressed={runtime} onClick={() => { if (!runtime) setParams({view: "runtime"}); }}>运行状态</button>
     </nav>
     {runtime ? <AccountRuntimePanel /> : <ManagedAccounts />}
   </>;
