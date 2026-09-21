@@ -94,12 +94,12 @@ export const DIMENSIONS = [
 export type Dimension = (typeof DIMENSIONS)[number];
 
 const DIMENSION_LABEL: Readonly<Record<Dimension, string>> = {
-  provider_id: "Provider",
-  channel_id: "Channel",
+  provider_id: "提供商",
+  channel_id: "接口",
   account_id: "账号",
   public_model: "公开模型",
   protocol: "协议",
-  client_key_id: "Client Key",
+  client_key_id: "API 密钥",
   access_group_id: "访问组",
 };
 
@@ -234,11 +234,11 @@ export type FilterKey = (typeof FILTER_KEYS)[number];
 export type Filters = Partial<Readonly<Record<FilterKey, string>>>;
 
 const FILTER_LABEL: Readonly<Record<FilterKey, string>> = {
-  provider_id: "Provider",
-  channel_id: "Channel",
+  provider_id: "提供商",
+  channel_id: "接口",
   account_id: "账号",
   model: "公开模型",
-  client_key_id: "Client Key",
+  client_key_id: "API 密钥",
   access_group_id: "访问组",
   protocol: "协议",
 };

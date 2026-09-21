@@ -45,7 +45,7 @@ test("an unobserved token count is a lower bound, not a zero", async ({ page }) 
 
 test("grouping switches dimension and survives in the URL", async ({ page }) => {
   await openUsage(page);
-  await expect(page.locator(".usage-table thead")).toContainText("Provider");
+  await expect(page.locator(".usage-table thead")).toContainText("提供商");
 
   await page.getByLabel("分组维度").selectOption("public_model");
   await expect(page).toHaveURL(/by=public_model/u);
@@ -79,15 +79,15 @@ test("truncation is announced, never silent", async ({ page }) => {
   await expect(warning).toContainText("下面的合计是不完整的");
 });
 
-test("the page offers no trend, heatmap or zoom, and says why", async ({ page }) => {
+test("usage totals distinguish observed usage from all requests", async ({ page }) => {
   await openUsage(page);
 
-  // The contract has no server-side time buckets. A chart here would be
-  // invented data, so the absence is deliberate and stated.
+  // Usage observations must not be presented as the complete request count.
+  await expect(page.locator(".usage-summary")).toContainText("有用量记录的请求");
   await expect(page.locator(".zoom-brush")).toHaveCount(0);
   await expect(page.locator("svg.chart-svg")).toHaveCount(0);
-  await expect(page.locator(".usage-page")).toContainText("契约没有服务端时间桶");
-  await expect(page.locator(".usage-page")).toContainText("成本不在本页");
+  await expect(page.locator(".usage-page")).toContainText("仅统计已收到用量记录的请求");
+  await expect(page.locator(".usage-page")).toContainText("实际费用与缺价状态请查看计费账本");
 });
 
 test("an unknown protocol in the URL is dropped rather than sent", async ({ page }) => {

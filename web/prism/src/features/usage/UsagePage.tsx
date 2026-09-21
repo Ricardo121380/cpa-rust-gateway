@@ -184,18 +184,9 @@ export function UsagePage() {
       <ProcessingStatus compact />
 
       <details className="reading-notes"><summary>聚合维度与观测口径</summary><p className="usage-hint">
-        一行是一个<strong>(Provider · Channel · 账号 · 公开模型 · 协议 · Client Key · 访问组)</strong>
-        组合在所选时间窗内的<strong>聚合</strong>。契约没有服务端时间桶,所以这里没有趋势线,
-        也没有热力图 —— 用 K 个窗口在前端拼一条曲线,要么需要 K×页 次请求,
-        要么会静默少算,两者都不如把这句话写出来。
-        <br />
-        <strong>本页跨配置版本</strong>:
-        <span className="mono">listOperationalUsage</span> 不带{" "}
-        <span className="mono">X-Config-Version</span> —— 用量是已发生请求的持久观测,
-        天然跨版本。
-        <br />
-        成本不在本页:usage 的 <span className="mono">cost_confidence</span> 恒为{" "}
-        <span className="mono">unpriced</span>,计价在「计费」侧。
+        仅统计已收到用量记录的请求，不包含所有失败或取消请求；完整请求数请查看请求日志。
+        数据按所选时间窗汇总，支持按提供商、接口、账号、模型及密钥分组。
+        未观测的 Token 不计为零；实际费用与缺价状态请查看计费账本。
       </p></details>
 
       <div className="card usage-controls">
@@ -276,7 +267,7 @@ export function UsagePage() {
           <div className="card usage-summary">
             <div className="usage-kpi">
               <span className="usage-kpi-value mono">{formatCount(totalRequests)}</span>
-              <span className="usage-kpi-label">请求数</span>
+              <span className="usage-kpi-label">有用量记录的请求</span>
             </div>
             <div className="usage-kpi">
               <span className="usage-kpi-value mono">{formatCount(rows.length)}</span>

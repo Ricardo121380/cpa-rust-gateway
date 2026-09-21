@@ -2959,3 +2959,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Make target selection and enabled state explicit, group scheduling inputs responsively, prevent empty-resource submission, and localize reconciliation terminology.
 
 **Other side:** FYI. Binding payload and mutation lifecycle unchanged. 19 browser regressions, SPA gate and 3 embedded tests passed; real local gateway screenshots and discard checks recorded. No deployment.
+
+## 2026-09-21 - Codex - observed usage scope and terminology
+
+**What:** `web/prism/src/features/usage/UsagePage.tsx`, `model.ts`, and `web/prism/e2e/usage.spec.ts`.
+
+**Why:** Distinguish requests with usage observations from all external requests, replace implementation notes with user-facing scope, and localize provider/endpoint/key labels.
+
+**Other side:** FYI. User-authorized frontend work; no contract, aggregation, permission or production change. Seven final usage browser regressions, SPA gate and three Rust embedded tests passed; real local gateway request/ledger/usage checks and EgoLite screenshots recorded.
