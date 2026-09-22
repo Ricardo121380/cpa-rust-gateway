@@ -1,3 +1,4 @@
+import { UsageCosts } from "./UsageCosts";
 import { WorkspaceTabs } from "../../app/WorkspaceTabs";
 import { ResourcePicker, resourceFilterKinds } from "../../components/ResourcePicker";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
@@ -200,19 +201,6 @@ export function UsagePage() {
 
 
       {exactRange?<p className="usage-range-context">当前链接范围 · {formatWatermark(Number(from))} — {formatWatermark(Number(to))}</p>:null}
-      <div className="usage-controls">
-
-        <label className="usage-by">
-          分组维度
-          <select value={dimension} onChange={(event) => patch({ by: event.target.value })}>
-            {DIMENSIONS.map((value) => (
-              <option key={value} value={value}>
-                {dimensionLabel(value)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
 
       <details className="usage-filter-disclosure" open={activeFilterCount(filters)>0 ? true : undefined}><summary>筛选范围{activeFilterCount(filters)>0 ? ` · ${activeFilterCount(filters)} 项已应用` : ""}</summary>
       <form className="card usage-filters" onSubmit={onFilterSubmit}>
@@ -254,16 +242,23 @@ export function UsagePage() {
         </div>
       </form></details>
 
-      {usage.isError ? (
-        <div className="card empty-state" data-kind="error">
-          <p>{asAppError(usage.error).message}</p>
-        </div>
-      ) : usage.isPending ? (
-        <div className="card empty-state" data-kind="loading">
-          <p>正在读取用量(按游标翻页,最多 {MAX_PAGES} 页)…</p>
-        </div>
-      ) : (
-        <>
+      <UsageCosts range={window} filters={filters}/>
+      <h3 className="usage-section-title">Token 用量明细</h3>
+      <div className="usage-controls">
+
+        <label className="usage-by">
+          分组维度
+          <select value={dimension} onChange={(event) => patch({ by: event.target.value })}>
+            {DIMENSIONS.map((value) => (
+              <option key={value} value={value}>
+                {dimensionLabel(value)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {usage.data && !usage.isError ? (
           <div className="card usage-summary">
             <div className="usage-kpi">
               <span className="usage-kpi-value mono">{formatCount(totalRequests)}</span>
@@ -284,6 +279,19 @@ export function UsagePage() {
               {usage.data.truncated ? null : "(已到末页)"}
             </p>
           </div>
+      ) : null}
+
+      {usage.isError ? (
+        <div className="card empty-state" data-kind="error">
+          <p>{asAppError(usage.error).message}</p>
+        </div>
+      ) : usage.isPending ? (
+        <div className="card empty-state" data-kind="loading">
+          <p>正在读取用量(按游标翻页,最多 {MAX_PAGES} 页)…</p>
+        </div>
+      ) : (
+        <>
+
 
           {usage.data.truncated ? (
             <p role="alert" className="action-error">

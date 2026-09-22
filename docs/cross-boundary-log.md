@@ -3066,3 +3066,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Complete remaining user-authorized V2 internal workflow structure, with compact identity/results, grouped real authorization/price forms, source scheduling and dual-column change review; repair screenshot-observed spacing and heading occlusion.
 
 **Other side:** FYI. No backend/contract/generated-file/production changes. Existing mutation, cancellation, ownership, secret cleanup, complete-diff proof and non-replay logic retained. Local real-gateway evidence and precise limitations are in `docs/reports/prism-v2-workflow-alignment.md`.
+
+## 2026-09-22 - Codex - V2 ledger-backed usage workspace
+
+**What:** `web/prism/src/features/usage/{UsagePage,UsageCosts}.tsx`, `usage.css`, `costSources.ts`, `costSources.test.ts`.
+
+**Why:** Reproduce the V2 usage structure using true request metrics and ledger model costs, rather than prototype allocations. Preserve six-family token detail, unknowns, exact IDs, cursor completeness and explicit unsupported filter states.
+
+**Other side:** FYI. User authorizes this frontend implementation. No backend, generated contracts or production changes. Evidence and limitations: `docs/reports/prism-v2-usage-alignment.md`.

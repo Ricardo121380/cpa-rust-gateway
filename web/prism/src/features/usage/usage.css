@@ -198,3 +198,43 @@
 /* Table cards opt out of the legacy first-child underlap. */
 .shell .canvas .usage-page .card.usage-table-panel { padding:20px 22px; }
 @media(max-width:720px) { .shell .canvas .usage-page .card.usage-table-panel { padding:0 16px; } }
+
+.usage-cost-workspace { display:grid; grid-template-columns:minmax(0,1fr) 318px; gap:20px; margin:24px 0; }
+.usage-cost-panel { min-width:0; padding:22px; border:1px solid var(--separator); border-radius:20px; background:var(--surface); }
+.usage-cost-panel header { display:flex; justify-content:space-between; align-items:start; gap:12px; margin-bottom:18px; }
+.usage-cost-panel h3 { margin:0 0 8px; font-size:16px; font-weight:650; }
+.usage-cost-panel p { font-size:12px; line-height:1.65; color:var(--ink-2); }
+.usage-cost-panel header p { margin:0; }
+.usage-cost-table { width:100%; table-layout:fixed; }
+.usage-cost-table th:first-child { width:45%; }
+.usage-cost-table :is(th,td) { overflow-wrap:anywhere; }
+.usage-cost-table small { display:block; color:var(--ink-2); margin-top:6px; font-size:11px; }
+.usage-cost-panel footer { border-top:1px solid var(--separator); margin-top:20px; padding-top:12px; font-size:12px; }
+.usage-cost-completeness dl { margin:20px 0; }
+.usage-cost-completeness dl > div { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid var(--separator); padding:13px 0; font-size:12px; }
+.usage-cost-completeness dt { color:var(--ink-2); }
+.usage-cost-completeness dd { margin:0; font-weight:600; }
+.usage-section-title { font-size:16px; margin:24px 0 16px; }
+@media(max-width:1100px) { .usage-cost-workspace { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) {
+ .usage-cost-panel { padding:18px; }
+ .usage-cost-table,.usage-cost-table tbody { display:block; }
+ .usage-cost-table thead { position:absolute; clip-path:inset(50%); width:1px; height:1px; overflow:hidden; }
+ .usage-cost-table tr { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:16px 0; border-bottom:1px solid var(--separator); }
+ .shell .canvas .usage-cost-table td { display:block; padding:0; border:0; }
+ .usage-cost-table td:first-child { grid-column:1 / -1; }
+ .usage-cost-table td:nth-child(2)::before { content:"已知费用 · 微单位"; display:block; color:var(--ink-2); font-size:11px; margin-bottom:6px; }
+}
+
+.usage-cost-ratio { display:block; font-size:32px; font-weight:650; letter-spacing:-1px; margin:24px 0 4px; font-variant-numeric:tabular-nums; }
+
+.usage-headline-metrics { margin-top:24px; }
+.usage-headline-metrics > div { min-width:0; padding:0 22px; border-right:1px solid var(--separator); }
+.usage-headline-metrics > div:last-child { border-right:0; }
+.usage-headline-metrics :is(span,strong,small) { display:block; }
+.usage-headline-metrics span,.usage-headline-metrics small { color:var(--ink-2); font-size:12px; }
+.usage-headline-metrics strong { font-size:30px; font-weight:650; margin:14px 0; font-variant-numeric:tabular-nums; }
+.usage-request-link { display:inline-block; margin-left:18px; font-size:12px; }
+@media(max-width:720px) { .usage-headline-metrics > div { padding:12px; border:0; } .usage-headline-metrics strong { font-size:23px; } }
+
+.usage-filter-disclosure { margin-top:16px; }
