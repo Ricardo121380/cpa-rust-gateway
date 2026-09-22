@@ -1,8 +1,9 @@
+import { WorkspaceTabs } from "./WorkspaceTabs";
 // Shell: exactly three chrome glass panes — rail, topbar, (draft-only) dock.
 // Liquid V2 places opaque data panels beneath the three refractive chrome panes.
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { call } from "../api/client";
 import { GlassSurface } from "../components/glass/GlassSurface";
 import { PrismLens } from "../components/glass/PrismLens";
@@ -16,7 +17,7 @@ import { OperationBoundary, useOperationBoundary } from "../components/Operation
 import { ConfigurationLifecycleHost } from "../features/config-versions/ConfigurationLifecycleHost";
 import { WorkspaceSearch } from "./WorkspaceSearch";
 import { DraftDock } from "./DraftDock";
-import { NAV_GROUPS, NAV_ITEMS, primaryRoute, workspacePages } from "./navigation";
+import { NAV_GROUPS, NAV_ITEMS, primaryRoute } from "./navigation";
 import { resolvedTheme, useThemeStore } from "./themeStore";
 
 /**
@@ -68,7 +69,6 @@ export function AppShell() {
   const setChoice = useThemeStore((s) => s.setChoice);
   const currentGroup = NAV_GROUPS.find((group) => group.items.some((item) => item.to === primaryRoute(pathname)));
   const currentPage = NAV_ITEMS.find((item) => item.to === pathname);
-  const pages = workspacePages(pathname);
   const canvasRef = useRef<HTMLElement>(null);
 
   // The canvas — not the window — is the scroll container now (content slides
@@ -178,9 +178,7 @@ export function AppShell() {
               <Link to="/versions">查看配置上下文</Link>
             </div>
           )}
-          {pages.length > 1 ? <nav className="workspace-navigation" aria-label="工作区页面">
-            {pages.map((item) => <NavLink key={item.to} to={item.to} end>{item.to==="/models"?"已接入模型":item.to==="/catalog"?"上游模型":t.nav[item.key]}</NavLink>)}
-          </nav> : null}
+          {["/models", "/catalog", "/usage", "/billing", "/settings"].includes(pathname) ? null : <WorkspaceTabs />}
           <Outlet key={`${sessionGeneration}:${selectionGeneration}`} />
         </div>
       </main>

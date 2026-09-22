@@ -49,7 +49,7 @@ test("SSO identity is obtained during import and maintenance does not expose ide
 });
 test("account identity follows detail and both reauthorization entries",async({page})=>{
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
-  await page.getByRole("button",{name:"Codex / ChatGPT",exact:true}).click();
+  await page.getByRole("combobox",{name:"账号类别",exact:true}).selectOption("codex");
   await page.getByRole("button",{name:"重新授权",exact:true}).click();
   const wizard=page.getByRole("dialog",{name:"重新授权",exact:true});
   await expect(wizard).toContainText("alex@example.test");
@@ -69,7 +69,7 @@ test("account identity follows detail and both reauthorization entries",async({p
 for(const width of [1440,1280,390])test(`unified account directory at ${width}`,async({page})=>{
   await page.setViewportSize({width,height:width===390?844:900});
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
-  for(const name of ["API","Codex / ChatGPT","Claude","Kimi","Kiro","Grok"])await expect(page.getByRole("navigation",{name:"账号类别"}).getByRole("button",{name,exact:true})).toBeVisible();
+  for(const name of ["API","Codex / ChatGPT","Claude","Kimi","Kiro","Grok"])await expect(page.getByRole("combobox",{name:"账号类别",exact:true}).locator("option").filter({hasText:name})).toHaveCount(1);
   await expect(page.getByText("alex@example.test",{exact:true})).toBeVisible();
   await page.getByLabel("搜索账号",{exact:true}).fill("alex@example.test");
   await expect(page.locator(".account-list tbody tr")).toHaveCount(1);
@@ -106,9 +106,9 @@ test("account directory retains dark and accessibility preferences",async({page}
   await page.setViewportSize({width:1280,height:720});
   await unlock(page);await selectDraft(page);await navigate(page,"账号池");
   await expect(page.getByText("alex@example.test",{exact:true})).toBeVisible();
-  const filter=page.getByRole("navigation",{name:"账号类别"}).getByRole("button",{name:"Codex / ChatGPT",exact:true});
-  await filter.focus();await page.keyboard.press("Enter");
-  await expect(filter).toHaveAttribute("aria-pressed","true");
+  const filter=page.getByRole("combobox",{name:"账号类别",exact:true});
+  await filter.focus();await filter.selectOption("codex");
+  await expect(filter).toHaveValue("codex");
   await expect(page.locator(".account-group")).toHaveCount(1);
   await page.screenshot({path:"../../output/accounts-directory-dark.png",fullPage:true});
 });

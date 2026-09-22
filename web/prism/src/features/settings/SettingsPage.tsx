@@ -1,3 +1,4 @@
+import { WorkspaceTabs } from "../../app/WorkspaceTabs";
 // Safe service information and session-only display preferences.
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -48,82 +49,34 @@ export function SettingsPage() {
   return (
     <section className="settings-page">
       <header className="page-head">
-        <h2>{t.settings.title}</h2>
+        <div><h2>{t.settings.title}</h2><p className="page-description">日常偏好保持轻量，复杂维护留在明确的工作区。</p></div>
       </header>
-      <SystemInformation/>
-      <details className="card settings-maintenance" data-gap="top"><summary>高级维护</summary><div className="settings-tool-grid">
-        <Link to="/runtime"><strong>运行诊断</strong><span>账号状态、故障与恢复</span></Link>
-        <Link to="/egress"><strong>网络与出口</strong><span>访问范围、代理与连接策略</span></Link>
-        <Link to="/versions"><strong>配置历史</strong><span>检查待应用修改、差异和回滚</span></Link>
-        <Link to="/audit"><strong>操作记录与备份</strong><span>查看变更记录及备份信息</span></Link>
-      </div></details>
-
-      <div className="card" data-gap="top">
-        <div className="card-head">
-          <h3>{t.settings.appearance}</h3>
+      <WorkspaceTabs />
+      <h3 className="settings-section-title">外观与辅助功能</h3>
+      <div className="card settings-preferences">
+        <div className="settings-preference-row">
+          <div><h3>{t.settings.appearance}</h3><p>当前为{resolvedTheme(choice) === "dark" ? t.settings.themeDark : t.settings.themeLight}；可跟随系统切换。</p></div>
+          <div className="settings-choice" role="radiogroup" aria-label={t.settings.appearance}>
+            {THEMES.map(option => <button key={option.value} type="button" role="radio" aria-checked={choice === option.value} className={choice === option.value ? "chip-on" : "chip-off"} onClick={() => setChoice(option.value)}>{option.label}</button>)}
+          </div>
         </div>
-        <p className="settings-help">{t.settings.lead}</p>
-
-        <div className="settings-choice" role="radiogroup" aria-label={t.settings.appearance}>
-          {THEMES.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={choice === option.value}
-              className={choice === option.value ? "chip-on" : "chip-off"}
-              onClick={() => setChoice(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="settings-preference-row">
+          <div><h3>{t.settings.language}</h3>{lang === "en" ? <p>{t.settings.languageCoverage}</p> : <p>工作区界面的显示语言。</p>}</div>
+          <div className="settings-choice" role="radiogroup" aria-label={t.settings.language}>
+            {LANGS.map(option => <button key={option.value} type="button" role="radio" aria-checked={lang === option.value} className={lang === option.value ? "chip-on" : "chip-off"} onClick={() => setLang(option.value)}>{option.label}</button>)}
+          </div>
         </div>
-        <p className="settings-note">
-          {t.settings.themeActive}:{" "}
-          <strong>
-            {resolvedTheme(choice) === "dark" ? t.settings.themeDark : t.settings.themeLight}
-          </strong>
-        </p>
+        {([
+          ["transparency", "减少透明度", "使用更实的表面，提升内容可读性。"],
+          ["contrast", "增强对比度", "加强文字、控件与背景的区分。"],
+          ["motion", "减少动态效果", "减少过渡与装饰动画。"],
+        ] as const).map(([key, label, description]) => <label className="settings-preference-row" key={key}>
+          <span><strong>{label}</strong><span className="settings-preference-description">{description}</span></span>
+          <input className="settings-switch" type="checkbox" role="switch" aria-label={label} checked={accessibility[key]} onChange={event => accessibility.set(key, event.target.checked)} />
+        </label>)}
+        <p className="settings-preferences-note">偏好仅用于当前会话；系统开启的辅助偏好仍然生效。</p>
       </div>
 
-      <div className="card" data-gap="top">
-        <div className="card-head">
-          <h3>{t.settings.language}</h3>
-        </div>
-
-        {/* The switch used to promise "UI text switches immediately", which was
-            true of the chrome and false of every page body. Saying what English
-            actually reaches is the difference between a known gap and a
-            surprise. */}
-
-        {lang === "en" ? <p className="settings-help">{t.settings.languageCoverage}</p> : null}
-        <div className="settings-choice" role="radiogroup" aria-label={t.settings.language}>
-          {LANGS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={lang === option.value}
-              className={lang === option.value ? "chip-on" : "chip-off"}
-              onClick={() => setLang(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="card" data-gap="top">
-        <h3>辅助外观</h3><p className="settings-help">选择仅用于当前会话；系统开启的辅助偏好仍然生效。</p>
-        <div className="appearance-options">{([
-          ["transparency", "减少透明度"], ["contrast", "增强对比度"], ["motion", "减少动态效果"],
-        ] as const).map(([key, label]) => <label key={key}><input type="checkbox" checked={accessibility[key]} onChange={(event) => accessibility.set(key, event.target.checked)} />{label}</label>)}</div>
-      </div>
-      <div className="card" data-gap="top">
-        <h3>{t.navigation.search}</h3>
-        <div className="data-toolbar"><input ref={searchRef} aria-label={t.navigation.search} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.navigation.search} /></div>
-        <div className="section-search">{NAV_ITEMS.filter((item) => t.nav[item.key].toLowerCase().includes(search.toLowerCase())).map((item) => <Link key={item.to} to={item.to}>{t.nav[item.key]}</Link>)}</div>
-      </div>
 
       <div className="card" data-gap="top">
         <div className="card-head">
@@ -149,6 +102,19 @@ export function SettingsPage() {
         <button type="button" className="secondary" onClick={() => navigate("/unlock?change-password=1")}>{t.unlock.changeTitle}</button>
       </div>
 
+      <h3 className="settings-section-title">系统与维护</h3>
+      <SystemInformation/>
+      <details className="card settings-maintenance" data-gap="top"><summary>高级维护</summary><div className="settings-tool-grid">
+        <Link to="/runtime"><strong>运行诊断</strong><span>账号状态、故障与恢复</span></Link>
+        <Link to="/egress"><strong>网络与出口</strong><span>访问范围、代理与连接策略</span></Link>
+        <Link to="/versions"><strong>配置历史</strong><span>检查待应用修改、差异和回滚</span></Link>
+        <Link to="/audit"><strong>操作记录与备份</strong><span>查看变更记录及备份信息</span></Link>
+      </div></details>
+      <details className="card settings-search" data-gap="top" open={params.get("focus") === "search" ? true : undefined}>
+        <summary>{t.navigation.search}</summary>
+        <div className="data-toolbar"><input ref={searchRef} aria-label={t.navigation.search} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.navigation.search} /></div>
+        <div className="section-search">{NAV_ITEMS.filter((item) => t.nav[item.key].toLowerCase().includes(search.toLowerCase())).map((item) => <Link key={item.to} to={item.to}>{t.nav[item.key]}</Link>)}</div>
+      </details>
       <details className="card settings-technical" data-gap="top"><summary>{t.settings.render} / {t.settings.build}</summary>
       <div className="card" data-gap="top">
         <div className="card-head">

@@ -76,9 +76,9 @@ test("mobile inspector has 12px margins; dark and accessibility controls keep so
   await page.keyboard.press("Escape");
   await navigate(page, "设置");
   await page.getByRole("radio", { name: "深色", exact: true }).click();
-  await page.getByRole("checkbox", { name: "减少透明度" }).check();
-  await page.getByRole("checkbox", { name: "增强对比度" }).check();
-  await page.getByRole("checkbox", { name: "减少动态效果" }).check();
+  await page.getByRole("switch", { name: "减少透明度" }).check();
+  await page.getByRole("switch", { name: "增强对比度" }).check();
+  await page.getByRole("switch", { name: "减少动态效果" }).check();
   expect(await page.locator(".topbar").evaluate((el) => getComputedStyle(el).backdropFilter)).toBe("none");
   expect(await page.locator("html").evaluate((el) => getComputedStyle(el).getPropertyValue("--dur-anneal").trim())).toBe("0ms");
 });

@@ -585,12 +585,10 @@ export function MonitoringPage() {
   return (
     <section className="monitoring-page">
       <header className="page-head">
-        <h2>{t.nav.monitoring}</h2>
+        <div><h2>{t.nav.monitoring}</h2><p className="page-description">从请求终态出发，展开每次尝试与关联证据。</p></div>
         <span className="scope-row">{tab === "requests" ? "请求记录 · 跨配置版本" : tab === "ledger" ? "账本 · 跨配置版本" : `失败归因 · ${scope === undefined ? "未选择版本" : resourceName(scope, "config")}`}</span>
       </header>
-      <ProcessingStatus compact />
-
-      <div className="mon-tabs" role="tablist">
+      <div className="mon-tabs workspace-navigation" role="tablist">
         <button type="button" role="tab" aria-selected={tab==="requests"} onClick={()=>patch({tab:"requests"})}>请求记录</button>
         <button
           type="button"
@@ -623,6 +621,7 @@ export function MonitoringPage() {
           onClear={() => patch(Object.fromEntries(keys.map((key) => [key, null])))}
         />
       )}
+      <ProcessingStatus compact />
     </section>
   );
 }

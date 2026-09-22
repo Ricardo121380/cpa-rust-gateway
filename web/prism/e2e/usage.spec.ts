@@ -67,6 +67,7 @@ test("a Client Key with no access group gets its own bucket", async ({ page }) =
 test("truncation is announced, never silent", async ({ page }) => {
   await openUsage(page);
 
+  await page.locator(".usage-filter-disclosure > summary").click();
   // prov-flood yields 2,400 rows; the page stops at 20 pages x 100 and must say
   // the totals below are incomplete rather than presenting 2,000 as the answer.
   await page.locator('select[name="provider_id"]').selectOption({label:"指定历史资源…"});

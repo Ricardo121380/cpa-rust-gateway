@@ -171,3 +171,10 @@
     margin-left: 0;
   }
 }
+
+.usage-filter-disclosure { margin:16px 0; font-size:12px; color:var(--ink-2); }
+.usage-filter-disclosure summary { cursor:pointer; padding:8px 0; }
+.usage-summary .usage-kpi { flex:1 1 160px; flex-direction:column-reverse; gap:12px; }
+.usage-summary .usage-kpi-value { font-size:28px; font-weight:650; }
+.usage-summary .usage-watermark { flex-basis:100%; padding-top:12px; border-top:1px solid var(--separator); }
+.usage-seg, .usage-seg button { border-radius:11px; }

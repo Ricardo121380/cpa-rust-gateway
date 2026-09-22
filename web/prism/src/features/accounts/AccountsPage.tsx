@@ -136,7 +136,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
       actions:<button className="secondary" onClick={()=>setAuthorizations(group)}>管理授权</button>};
   };
   return <section className="accounts-page">
-    <header className="page-head"><div><h2>账号管理</h2><p>按渠道管理身份、授权与接口连接</p></div>
+    <header className="page-head"><div><h2>账号管理</h2><p className="page-description">以账号身份为主线，查看授权、接口与运行状态。</p></div>
       <div className="page-actions">
         <button onClick={() => update("add", "account")}>授权 / 导入账号</button>
         <button className="secondary" aria-pressed={selecting} onClick={()=>{setSelecting(!selecting);setSelection(new Set());}}>{selecting?"结束选择":"批量管理"}</button>
@@ -148,16 +148,13 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     {selecting?<div className="account-batch-toolbar" aria-label="批量账号操作"><span>已选 {selectedTargets.length} / 20 份授权</span><div className="page-actions">{(["enable","disable","remove"] as const).map((action)=><button key={action} className="secondary" disabled={!selectedTargets.length} onClick={()=>setBatch({targets:selectedTargets,action})}>{({enable:"启用",disable:"停用",remove:"移除"})[action]}</button>)}<button className="secondary" disabled={!selection.size} onClick={()=>setSelection(new Set())}>清除选择</button></div></div>:null}
     <div className="account-directory-toolbar">
       <label className="account-search"><span className="sr-only">搜索账号</span><input aria-label="搜索账号" placeholder="搜索邮箱、用户名、电话或渠道" value={searchInput} onChange={(e)=>setSearchInput(e.target.value)} /></label>
+      <label><span className="sr-only">账号类别</span><select aria-label="账号类别" value={selectedCategory} onChange={event=>update("category",event.target.value)}><option value="">全部渠道</option>{accountGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
       <label><span className="sr-only">账号状态</span><select aria-label="账号状态" value={selectedStatus} onChange={e=>update("status",e.target.value)}><option value="">全部状态</option><option value="enabled">已启用</option><option value="disabled">已停用</option><option value="reauth_required">需要重新授权</option></select></label>
       <label><span className="sr-only">账号套餐</span><select aria-label="账号套餐" value={withoutPlan?"none":plan?`plan:${plan}`:""} onChange={event=>{setSelection(new Set());const next=new URLSearchParams(params);next.delete("plan");next.delete("without_plan");if(event.target.value==="none")next.set("without_plan","true");else if(event.target.value.startsWith("plan:"))next.set("plan",event.target.value.slice(5));setParams(next,{replace:true});}}><option value="">全部套餐</option><option value="none">未观测套餐{inventory.data?`（${inventory.data.pages[0]?.unobserved_plan_total??0}）`:""}</option>{Object.entries(inventory.data?.pages[0]?.plan_totals??{}).map(([label,count])=><option key={label} value={`plan:${label}`}>{label}（{count}）</option>)}</select></label>
       <label><span className="sr-only">账号排序</span><select aria-label="账号排序" value={sort} onChange={e=>update("sort",e.target.value)}><option value="name">身份 A–Z</option><option value="name_desc">身份 Z–A</option><option value="provider">按渠道</option></select></label>
       <span className="entity-meta">匹配 {inventory.data?.pages[0]?.total??"…"} 份授权</span>
       {provider?<button className="secondary" onClick={()=>update("provider","")}>清除提供商筛选</button>:null}
     </div>
-    <nav className="account-category-filter" aria-label="账号类别">
-      <button aria-pressed={!selectedCategory} onClick={()=>update("category","")}>全部</button>
-      {accountGroups.map((group)=><button key={group.id} aria-pressed={selectedCategory===group.id} onClick={()=>update("category",group.id)}>{group.name}</button>)}
-    </nav>
     {error?<div role="alert" className="empty-state">{error.message}<button onClick={()=>void refresh()}>重新读取账号</button></div>:null}
     {inventory.isPending?<p role="status">正在读取账号…</p>:!inventory.isError&&inventory.data?.pages[0]?.total===0?<p className="empty-state">没有匹配的账号。</p>:null}
     <div className="account-directory">

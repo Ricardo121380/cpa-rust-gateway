@@ -1,0 +1,602 @@
+[
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "",
+    "title": "仪表盘",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "accounts",
+    "title": "账号管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "upstreams",
+    "title": "AI 提供商",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "models",
+    "title": "模型管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "catalog",
+    "title": "模型目录",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "access",
+    "title": "API 密钥",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "monitoring",
+    "title": "请求日志",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "usage",
+    "title": "用量与费用",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "billing",
+    "title": "计费与价格",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "route": "settings",
+    "title": "设置",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "",
+    "title": "仪表盘",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "accounts",
+    "title": "账号管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "upstreams",
+    "title": "AI 提供商",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "models",
+    "title": "模型管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "catalog",
+    "title": "模型目录",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "access",
+    "title": "API 密钥",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "monitoring",
+    "title": "请求日志",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "usage",
+    "title": "用量与费用",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "billing",
+    "title": "计费与价格",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "route": "settings",
+    "title": "设置",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "",
+    "title": "仪表盘",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "accounts",
+    "title": "账号管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "upstreams",
+    "title": "AI 提供商",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "models",
+    "title": "模型管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "catalog",
+    "title": "模型目录",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "access",
+    "title": "API 密钥",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "monitoring",
+    "title": "请求日志",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "usage",
+    "title": "用量与费用",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "billing",
+    "title": "计费与价格",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "route": "settings",
+    "title": "设置",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "",
+    "title": "仪表盘",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "accounts",
+    "title": "账号管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "upstreams",
+    "title": "AI 提供商",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "models",
+    "title": "模型管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "catalog",
+    "title": "模型目录",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "access",
+    "title": "API 密钥",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "monitoring",
+    "title": "请求日志",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "usage",
+    "title": "用量与费用",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "billing",
+    "title": "计费与价格",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "route": "settings",
+    "title": "设置",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "",
+    "title": "仪表盘",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "accounts",
+    "title": "账号管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "upstreams",
+    "title": "AI 提供商",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "models",
+    "title": "模型管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "catalog",
+    "title": "模型目录",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "access",
+    "title": "API 密钥",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "monitoring",
+    "title": "请求日志",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "usage",
+    "title": "用量与费用",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "billing",
+    "title": "计费与价格",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "route": "settings",
+    "title": "设置",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "",
+    "title": "仪表盘",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "accounts",
+    "title": "账号管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "upstreams",
+    "title": "AI 提供商",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "models",
+    "title": "模型管理",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "catalog",
+    "title": "模型目录",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "access",
+    "title": "API 密钥",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "monitoring",
+    "title": "请求日志",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "usage",
+    "title": "用量与费用",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "billing",
+    "title": "计费与价格",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  },
+  {
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "route": "settings",
+    "title": "设置",
+    "crashed": false,
+    "overflow": false,
+    "panels": []
+  }
+]

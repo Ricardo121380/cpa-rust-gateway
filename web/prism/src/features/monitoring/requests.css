@@ -1,4 +1,4 @@
-.request-overview { margin:20px 0; }
+.request-overview { margin:0 0 20px; }
 .request-overview h3 { margin:0 auto 0 0; font-size:17px; }
 .request-metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:0; border:1px solid var(--separator); border-radius:16px; background:var(--panel-tint); margin:16px 0; overflow:hidden; }
 .request-metrics a { display:grid; gap:10px; padding:18px; text-decoration:none; color:var(--ink); min-width:0; border-right:1px solid var(--separator); }
@@ -49,7 +49,7 @@
 .overview-kpis small { font-size: 11px; color: var(--ink-2); line-height: 1.5; }
 .overview-observations { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(260px, 1fr); gap: 18px; margin-bottom: 14px; }
 .overview-observations .request-trend { margin: 0; padding: 22px; }
-.overview-observations .request-trend svg { min-height: 220px; }
+.overview-observations .request-trend svg { height:172px; min-height:0; }
 .overview-attention { border: 1px solid var(--separator); border-radius: 16px; padding: 22px; background: var(--surface); min-width: 0; }
 .overview-attention > a { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--separator); color: var(--ink); text-decoration: none; font-size: 13px; }
 .overview-attention > a span { color: var(--ink-2); font-size: 12px; }
@@ -66,3 +66,12 @@
 .trend-fill-start { stop-color:var(--tint); stop-opacity:.15; }
 .trend-fill-end { stop-color:var(--tint); stop-opacity:0; }
 @media(max-width:600px) { .trend-modes button { min-height:44px; } }
+
+.request-extra-filters { grid-column:1 / -1; color:var(--ink-2); font-size:12px; }
+.request-extra-filters summary { cursor:pointer; padding:8px 0; }
+.request-extra-filters > div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:8px; }
+.request-extra-filters .check-row { grid-column:1 / -1; }
+.mon-tabs.workspace-navigation { border-radius:0; background:transparent; padding:0; }
+.mon-tabs.workspace-navigation button { border-radius:0; }
+.mon-tabs.workspace-navigation button[aria-selected="true"] { border-bottom-color:var(--tint); background:transparent; box-shadow:none; color:var(--tint); }
+@media(max-width:720px) { .request-extra-filters > div { grid-template-columns:1fr; } }

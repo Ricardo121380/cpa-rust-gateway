@@ -15,7 +15,7 @@ test("inline editors keep balanced gutters and reachable controls at target size
 });
 
 test("mobile maintenance form preserves labels and readable input sizing",async({page})=>{
- await page.setViewportSize({width:390,height:844});await unlock(page);await selectDraft(page);await navigate(page,"上游");await page.locator('.provider-card',{hasText:'中转站 A'}).getByRole('button',{name:'编辑',exact:true}).click();
+ await page.setViewportSize({width:390,height:844});await unlock(page);await selectDraft(page);await navigate(page,"上游");await page.locator('.provider-card',{hasText:'中转站 A'}).locator('.row-menu summary').click();await page.locator('.provider-card',{hasText:'中转站 A'}).getByRole('button',{name:'编辑',exact:true}).click();
  const dialog=page.getByRole('dialog');await expect(dialog.getByLabel('名称',{exact:true})).toHaveCSS('font-size','16px');
  await expect(dialog.locator('fieldset')).toHaveCSS('border-top-width','0px');
  await expect(dialog.getByRole('button',{name:'保存到草稿',exact:true})).toBeVisible();

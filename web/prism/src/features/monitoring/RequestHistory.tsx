@@ -114,7 +114,7 @@ function Metrics({data,link}:Readonly<{data:Summary;link:string}>) {
     ["平均首内容延迟",milliseconds(data.average_first_content_ms),""],
   ].map(([label,value,outcome])=><Link key={label} to={(()=>{const [path,query]=link.split("?");const params=new URLSearchParams(query);if(outcome)params.set("outcome",outcome);return `${path}?${params}`;})()}><span title={label==="平均首内容延迟"?"仅统计已观测到内容的请求，分母与总耗时不同。":label==="请求数"?"按已受理的推理请求计数，上游重试不重复计数。":undefined}>{label}</span><strong>{value}</strong></Link>)}</div>;
 }
-export function RequestOverview({onRangeChange}:Readonly<{onRangeChange?:(range:{from_ms:number;to_ms:number})=>void}>) {
+export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:(range:{from_ms:number;to_ms:number})=>void;title?:string}>) {
   const [hours,setHours]=useState(24),[anchor,setAnchor]=useState(Date.now());
   const range={from_ms:anchor-hours*3_600_000,to_ms:anchor,bucket_ms:hours>24?86_400_000:3_600_000};
   const billingRange={from_ms:range.from_ms,to_ms:range.to_ms};
@@ -126,7 +126,7 @@ export function RequestOverview({onRangeChange}:Readonly<{onRangeChange?:(range:
   const summary=query.data?.summary;
   const costs=billing.isError?undefined:billing.data?.summary;
   return <section className="request-overview">
-    <div className="data-toolbar"><h3>请求概览</h3><select aria-label="请求时间范围" value={hours} onChange={event=>{setHours(Number(event.target.value));setAnchor(Date.now());}}><option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select><button className="secondary" onClick={()=>setAnchor(Date.now())}>刷新</button></div>
+    <header className="page-head"><div><h2>{title ?? "请求概览"}</h2><p className="page-description">请求、账号与费用，汇集于同一工作台。</p></div><div className="page-actions"><select aria-label="请求时间范围" value={hours} onChange={event=>{setHours(Number(event.target.value));setAnchor(Date.now());}}><option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select><button className="secondary" onClick={()=>setAnchor(Date.now())}>刷新</button></div></header>
     {query.isError?<p role="alert">{asAppError(query.error).message}</p>:summary?<>
       <div className="request-metrics overview-kpis">
         <Link to={link}><span>请求数</span><strong>{summary.requests.toLocaleString()}</strong><small>上游重试不重复计数</small></Link>
@@ -169,11 +169,13 @@ export function RequestHistoryPanel() {
   return <section className="request-history"><form className="request-filters" key={params.toString()} onSubmit={apply}>
     <label>时间<select name="hours" defaultValue={preset}>{preset==="custom"?<option value="custom" disabled>当前链接范围</option>:null}<option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select></label>
     <label>模型<input name="model" defaultValue={params.get("model")??""} placeholder="原始模型 ID"/></label>
-    <label>渠道<ResourcePicker kind="upstream" name="upstream_id" defaultValue={params.get("upstream_id")??""}/></label>
+    <label>结果<select name="outcome" defaultValue={params.get("outcome")??""}><option value="">全部</option>{Object.entries(outcomeLabel).map(([value,name])=><option key={value} value={value}>{name}</option>)}</select></label>
+    <details className="request-extra-filters" open={params.has("upstream_id")||params.has("credential_id")||params.has("client_key_id")||params.get("include_unknown")==="true" ? true : undefined}><summary>渠道、账号及密钥筛选</summary><div>    <label>渠道<ResourcePicker kind="upstream" name="upstream_id" defaultValue={params.get("upstream_id")??""}/></label>
     <label>账号<ResourcePicker kind="account" runtime name="credential_id" defaultValue={params.get("credential_id")??""}/></label>
     <label>API 密钥<ResourcePicker kind="key" name="client_key_id" defaultValue={params.get("client_key_id")??""}/></label>
-    <label>结果<select name="outcome" defaultValue={params.get("outcome")??""}><option value="">全部</option>{Object.entries(outcomeLabel).map(([value,name])=><option key={value} value={value}>{name}</option>)}</select></label>
+
     <label className="check-row"><input type="checkbox" name="include_unknown" value="true" defaultChecked={params.get("include_unknown")==="true"}/>包含时间和终态未知的历史请求</label>
+</div></details>
     <button type="submit">应用筛选</button><button type="button" className="secondary" onClick={()=>{setAnchor(Date.now());setParams({tab:"requests"});}}>重置</button>
   </form>
   {summary?.summary?<><Metrics data={summary.summary} link={link}/><p className="stat-sub">重试单列：{summary.summary.attempts} 次上游尝试 · {summary.summary.unknown} 条终态未知 · {summary.summary.cancelled} 条已取消</p></>:null}

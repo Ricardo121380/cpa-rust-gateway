@@ -1,5 +1,7 @@
 # Prism Liquid V2 本地迁移记录
 
+后续：用户指出首版结构复刻不足，已完成第二轮页面结构调整；最新实现与验收见 [结构复刻记录](prism-liquid-v2-fidelity.md)。以下保留首轮历史证据。
+
 状态：V2 本地视觉候选已实现；共享层定向验收已运行，生产未部署。基线 `de888dd`；实现提交 `51343ce`。用户提供的 V2 原型已存入 `docs/design/chatgpt-prism-liquid-v2/`。
 
 ## 已实施

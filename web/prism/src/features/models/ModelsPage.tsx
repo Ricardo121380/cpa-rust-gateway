@@ -1,3 +1,4 @@
+import { WorkspaceTabs } from "../../app/WorkspaceTabs";
 import { useModelWorkspaceFilters } from "./workspaceFilters";
 import { useOperationBoundary } from "../../components/OperationBoundary";
 import { Link, useNavigate } from "react-router-dom";
@@ -122,12 +123,13 @@ export function ModelsPage() {
   return (
     <section className="models-page">
       <header className="page-head">
-        <h2>{t.nav.models}</h2>
+        <div><h2>{t.nav.models}</h2><p className="page-description">上游发现、对外开放与当前可用性，是三个不同状态。</p></div>
         <div className="page-actions">
           <button onClick={()=>boundary.request(()=>{setConnectionSeed(undefined);setConnecting(true);})}>接入模型</button>
 
         </div>
       </header>
+      <WorkspaceTabs />
       {connecting?<ConnectModelDialog targetModelId={connectionSeed?.targetModelId} endpointSeed={search.get("from_endpoint")??undefined} seed={connectionSeed??modelSeed} onClose={closeConnecting} onSaved={(version)=>{closeConnecting();useVersionStore.getState().select(version);invalidate();}}/>:null}
 
       {modelSeed !== undefined ? (

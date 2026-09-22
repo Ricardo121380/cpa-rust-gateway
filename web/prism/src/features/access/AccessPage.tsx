@@ -223,7 +223,7 @@ export function AccessPage() {
   return (
     <section className="access-page">
       <header className="page-head">
-        <h2>{t.nav.access}</h2>
+        <div><h2>{t.nav.access}</h2><p className="page-description">每把密钥都有明确的模型边界。创建后秘密只显示一次。</p></div>
         <div className="page-actions">
           <button onClick={()=>setCreating(true)}>创建客户端密钥</button>
         </div>
@@ -242,6 +242,66 @@ export function AccessPage() {
       <ReadStatus pending={!!scope&&groups.isPending} error={groups.error} hasData={groups.data !== undefined} retry={() => void groups.refetch()} />
       <ReadStatus pending={!!scope&&keys.isPending} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
 
+      <div className="card tablewrap key-list-wrap">
+        <div className="inventory-heading"><h3>客户端密钥</h3><span className="badge badge-muted">{keys.data?.length ?? "—"} 把密钥</span></div>
+        <table className="key-list">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>秘密不可回读</th>
+              <th>状态</th>
+              <th>过期</th>
+              <th>最近请求</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(keys.data ?? []).map((record) => {
+              const status = displayKeyStatus(record, nowMs);
+              return (
+                <tr key={record.id}>
+                  <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" name={groups.data?.find((group)=>group.id===record.access_group_id)?.name}/> : "未命名密钥"}</td>
+                  <td data-label="密钥标识"><span className="mono">{record.prefix}••••</span><span className="entity-meta">仅创建时显示完整密钥</span></td>
+                  <td data-label="状态">
+                    <StatusBadge status={status}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[status]}</StatusBadge>
+                  </td>
+                  <td data-label="有效期" className="mono">{formatExpiry(record.expires_at_ms)}</td>
+                  <td data-label="最近请求"><a href={`#/monitoring?tab=requests&client_key_id=${encodeURIComponent(record.id)}&from_ms=${Math.max(0,(record.last_request_at_ms??Date.now())-3600000)}&to_ms=${Date.now()}`} title="已持久化终态请求的开始时间；未观测不代表从未使用">{record.last_request_at_ms == null ? "未观测" : new Date(record.last_request_at_ms).toLocaleString()}</a></td>
+                  <td className="row-actions">
+                    <button className="secondary" onClick={() => setInspectedKey(record)}>详情</button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        setActionError(undefined);
+                        setEditKey(record);
+                      }}
+                    >
+                      编辑
+                    </button>
+                    {record.status === "active" ? (
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={() => {if(!context)return;revoke.reset();setRevokeReceipt(undefined);setActionError(undefined);setConfirmRevoke({record,source:{id:context.configVersionId,revision:context.revision}});}}
+                      >
+                        吊销
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {keys.data?.length === 0 ? (
+          <div className="empty-state" data-kind="empty">
+            <p>{t.state.empty}</p>
+          </div>
+        ) : null}
+      </div>
+
+      <p className="inventory-note">模型开放不会自动扩大现有密钥的权限。</p>
       <details className="card"><summary>高级访问组</summary><div className="page-actions">          <button
             type="button"
             className="secondary"
@@ -331,64 +391,6 @@ export function AccessPage() {
       </div>
 
       </details>
-      <div className="card tablewrap key-list-wrap">
-        <h3>客户端密钥</h3>
-        <table className="key-list">
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>密钥标识</th>
-              <th>状态</th>
-              <th>过期</th>
-              <th>最近请求</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(keys.data ?? []).map((record) => {
-              const status = displayKeyStatus(record, nowMs);
-              return (
-                <tr key={record.id}>
-                  <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" name={groups.data?.find((group)=>group.id===record.access_group_id)?.name}/> : "未命名密钥"}</td>
-                  <td data-label="密钥标识" className="mono">{record.prefix}</td>
-                  <td data-label="状态">
-                    <StatusBadge status={status}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[status]}</StatusBadge>
-                  </td>
-                  <td data-label="有效期" className="mono">{formatExpiry(record.expires_at_ms)}</td>
-                  <td data-label="最近请求"><a href={`#/monitoring?tab=requests&client_key_id=${encodeURIComponent(record.id)}&from_ms=${Math.max(0,(record.last_request_at_ms??Date.now())-3600000)}&to_ms=${Date.now()}`} title="已持久化终态请求的开始时间；未观测不代表从未使用">{record.last_request_at_ms == null ? "未观测" : new Date(record.last_request_at_ms).toLocaleString()}</a></td>
-                  <td className="row-actions">
-                    <button className="secondary" onClick={() => setInspectedKey(record)}>详情</button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => {
-                        setActionError(undefined);
-                        setEditKey(record);
-                      }}
-                    >
-                      编辑
-                    </button>
-                    {record.status === "active" ? (
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() => {if(!context)return;revoke.reset();setRevokeReceipt(undefined);setActionError(undefined);setConfirmRevoke({record,source:{id:context.configVersionId,revision:context.revision}});}}
-                      >
-                        吊销
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {keys.data?.length === 0 ? (
-          <div className="empty-state" data-kind="empty">
-            <p>{t.state.empty}</p>
-          </div>
-        ) : null}
-      </div>
 
       {inspectedGroup === undefined ? null : <ObjectInspector title={resourceName(inspectedGroup.id, "group", inspectedGroup.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 访问组`} onClose={() => setInspectedGroup(undefined)} facts={[
         ["访问组 ID", inspectedGroup.id], ["状态", inspectedGroup.status], ["限制", formatLimits(inspectedGroup.limits) || "未设置"],

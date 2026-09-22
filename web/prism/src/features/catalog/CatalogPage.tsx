@@ -1,3 +1,4 @@
+import { WorkspaceTabs } from "../../app/WorkspaceTabs";
 import { UpstreamModelBrowser } from "./UpstreamModelBrowser";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { EffectiveModels } from "./EffectiveModels";
@@ -64,6 +65,7 @@ export function CatalogPage() {
           重新读取
         </button>
       </header>
+      <WorkspaceTabs />
       <UpstreamModelBrowser />
       <details className="card" data-gap="top"><summary>检查客户端可用模型</summary><EffectiveModels /></details>
       <details className="card" data-gap="top"><summary>目录状态与诊断</summary>

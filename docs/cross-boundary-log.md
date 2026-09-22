@@ -3000,3 +3000,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Reproduce the user-selected ChatGPT design in the existing Prism application while retaining real management flows, opaque data panels, session ownership and four-file CSP delivery.
 
 **Other side:** FYI. User-authorized frontend ownership. No backend contract, production or provider inference changes. Local unit, deterministic bundle, embedded asset and EgoLite evidence are recorded in `docs/reports/prism-liquid-v2-adoption-local.md`; full business/release acceptance is not claimed.
+
+## 2026-09-22 - Codex - Liquid V2 page structure fidelity
+
+**What:** `web/prism/src/app/{AppShell,WorkspaceTabs}.tsx`, `web/prism/src/app/v6.css`; account list, provider list/context panel, model/catalog and usage/billing navigation, key list ordering, overview header, request filters, settings preference rows and their feature CSS; `web/prism/e2e/{account-presentation,model-workspace-continuity,provider-top-level,workspace-visual,v4-workspaces,usage}.spec.ts` selectors follow the updated controls.
+
+**Why:** The user requested closer reproduction of their V2 design after rejecting a material-only adaptation. Replace old page structure with the reference's compact rows, lower local tabs, primary data surfaces and secondary maintenance controls.
+
+**Other side:** FYI. Authorized frontend implementation; no contract, permissions, persistence, production data or deployment changes. Real backend flows remain; conditional requests, dirty/busy guards and secrets are not replaced by prototype logic. Evidence and remaining visual differences are recorded in `docs/reports/prism-liquid-v2-fidelity.md`.

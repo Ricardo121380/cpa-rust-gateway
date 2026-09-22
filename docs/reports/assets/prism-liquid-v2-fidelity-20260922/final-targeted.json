@@ -1,0 +1,204 @@
+[
+  {
+    "route": "accounts",
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "monitoring",
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "usage",
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "upstreams",
+    "w": 1440,
+    "h": 900,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "accounts",
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "monitoring",
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "usage",
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "upstreams",
+    "w": 1440,
+    "h": 900,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "accounts",
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "monitoring",
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "usage",
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "upstreams",
+    "w": 1280,
+    "h": 720,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "accounts",
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "monitoring",
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "usage",
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "upstreams",
+    "w": 1280,
+    "h": 720,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "accounts",
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "monitoring",
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "usage",
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "upstreams",
+    "w": 390,
+    "h": 844,
+    "theme": "light",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "accounts",
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "monitoring",
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "usage",
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "route": "upstreams",
+    "w": 390,
+    "h": 844,
+    "theme": "dark",
+    "overflow": false,
+    "crash": false
+  },
+  {
+    "realGateway": true,
+    "route": "monitoring",
+    "heading": "请求日志"
+  },
+  {
+    "realGateway": true,
+    "route": "usage",
+    "heading": "用量与费用"
+  }
+]

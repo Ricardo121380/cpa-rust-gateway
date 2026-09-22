@@ -1,0 +1,22 @@
+[
+  {
+    "file": "index.html",
+    "sha256": "79f11976d4662736914e8209403de6214d5ad3b8da2b44e3110a316124ff4dba",
+    "served_equals_dist": true
+  },
+  {
+    "file": "assets/main.js",
+    "sha256": "a3fdd9cd0d219e61f0540e41257534a80d7add54f81671401ff1b922803ca998",
+    "served_equals_dist": true
+  },
+  {
+    "file": "assets/vendor.js",
+    "sha256": "29a0a30425bd5cae979f34a67b9575223b83f10e04271cf444c1838c4c9231a9",
+    "served_equals_dist": true
+  },
+  {
+    "file": "assets/index.css",
+    "sha256": "516eed62559b6b192e78dd51c803ca5540713b71f77777a2f3a80a4095043925",
+    "served_equals_dist": true
+  }
+]

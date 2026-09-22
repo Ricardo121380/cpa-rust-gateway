@@ -310,9 +310,8 @@ export function OverviewPage() {
 
   return (
     <section className="overview-page">
-      <header className="page-head"><h2>{t.nav.overview}</h2><Link to="/monitoring">查看请求 →</Link></header>
       {!versions.isPending&&(!active||upstreams.data===0||models.data===0||keys.data===0)?<div className="card setup-guide"><h3>开始使用</h3><ol className="setup-steps"><li><Link to="/upstreams?add=provider"><strong>1. 接入提供商</strong><span>设置接口地址并添加账号</span></Link></li><li><Link to="/models?add=model"><strong>2. 开放模型</strong><span>选择模型与接口连接</span></Link></li><li><Link to="/access"><strong>3. 创建客户端密钥</strong><span>选择允许使用的模型</span></Link></li></ol></div>:null}
-      <RequestOverview onRangeChange={setRequestRange}/>
+      <RequestOverview title={t.nav.overview} onRangeChange={setRequestRange}/>
       <div className="overview-workspace">
         <div className="overview-primary">
           <ProviderAccountsGlance />

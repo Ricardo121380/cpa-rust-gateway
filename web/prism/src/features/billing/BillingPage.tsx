@@ -1,3 +1,4 @@
+import { WorkspaceTabs } from "../../app/WorkspaceTabs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { flushSync } from "react-dom";
@@ -79,6 +80,7 @@ export function BillingPage(){
   if(scope===undefined)return <section className="billing-page"><h2>{t.nav.billing}</h2><ProcessingStatus compact/><div className="card empty-state"><p>选择配置后查看价格目录；计费处理状态跨版本可读。</p></div></section>;
   return <section className="billing-page">
     <header className="page-head"><h2>{t.nav.billing}</h2></header>
+      <WorkspaceTabs />
     {action?.kind==="import"?<CatalogImportDialog action={action.data} onClose={()=>setAction(undefined)} onDone={finish} onReview={receipt=>review(action.data.owner,receipt)}/>:null}
     <ProcessingStatus compact/>
     {notice?<p className="action-notice" role="status">{notice} <button type="button" onClick={()=>setNotice(undefined)}>知道了</button></p>:null}

@@ -39,3 +39,7 @@
 ## 验证记录规则
 
 证据落入 `docs/reports/prism-liquid-v2-adoption-local.md`。区分原型、fixture、真实本地 gateway；不得以历史通过数替代本次结果。C2C 通过连接器读取 diff 和 execution output，不粘贴秘密或日志。
+
+## 2026-09-22 第二轮结构对齐
+
+用户指出第一版不足后，进一步完成紧凑提供商列表/右侧工作区、连续账号面板、主页面标题后的下划线页签、密钥优先、横向设置行，以及请求/用量的筛选层级。详见 `docs/reports/prism-liquid-v2-fidelity.md`。这是 V2B–V2D 的推进，不将页面存在或布局观察等同于 V2E 全部业务通过。仍保留原型与真实业务的差异清单，生产尚未发布本地候选。

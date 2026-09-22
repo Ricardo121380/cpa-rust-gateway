@@ -1,3 +1,4 @@
+import { WorkspaceTabs } from "../../app/WorkspaceTabs";
 import { ResourcePicker, resourceFilterKinds } from "../../components/ResourcePicker";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { ProcessingStatus } from "../billing/ProcessingStatus";
@@ -178,16 +179,11 @@ export function UsagePage() {
   return (
     <section className="usage-page">
       <header className="page-head">
-        <h2>{t.nav.usage}</h2>
-        <span className="scope-row">时间窗聚合 · 跨配置版本</span>
+        <div><h2>{t.nav.usage}</h2><p className="page-description">已知用量、计价置信度和未计价记录，分别核对。</p></div>
       </header>
-      <ProcessingStatus compact />
+      <WorkspaceTabs />
 
-      <details className="reading-notes"><summary>聚合维度与观测口径</summary><p className="usage-hint">
-        仅统计已收到用量记录的请求，不包含所有失败或取消请求；完整请求数请查看请求日志。
-        数据按所选时间窗汇总，支持按提供商、接口、账号、模型及密钥分组。
-        未观测的 Token 不计为零；实际费用与缺价状态请查看计费账本。
-      </p></details>
+
 
       <div className="card usage-controls">
         <div className="usage-seg" role="group" aria-label="时间窗">
@@ -215,6 +211,7 @@ export function UsagePage() {
         </label>
       </div>
 
+      <details className="usage-filter-disclosure" open={activeFilterCount(filters)>0 ? true : undefined}><summary>筛选范围{activeFilterCount(filters)>0 ? ` · ${activeFilterCount(filters)} 项已应用` : ""}</summary>
       <form className="card usage-filters" onSubmit={onFilterSubmit}>
         {FILTER_KEYS.map((key) =>
           key === "protocol" ? (
@@ -252,7 +249,7 @@ export function UsagePage() {
             清除({activeFilterCount(filters)})
           </button>
         </div>
-      </form>
+      </form></details>
 
       {usage.isError ? (
         <div className="card empty-state" data-kind="error">
@@ -351,6 +348,12 @@ export function UsagePage() {
           </p>
         </>
       )}
+            <details className="reading-notes"><summary>聚合维度与观测口径</summary><p className="usage-hint">
+        仅统计已收到用量记录的请求，不包含所有失败或取消请求；完整请求数请查看请求日志。
+        数据按所选时间窗汇总，支持按提供商、接口、账号、模型及密钥分组。
+        未观测的 Token 不计为零；实际费用与缺价状态请查看计费账本。
+      </p></details>
+      <ProcessingStatus compact />
     </section>
   );
 }
