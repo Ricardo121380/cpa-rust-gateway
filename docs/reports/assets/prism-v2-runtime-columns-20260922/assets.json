@@ -1,0 +1,18 @@
+[
+  {
+    "file": "index.html",
+    "match": true
+  },
+  {
+    "file": "assets/main.js",
+    "match": true
+  },
+  {
+    "file": "assets/vendor.js",
+    "match": true
+  },
+  {
+    "file": "assets/index.css",
+    "match": true
+  }
+]

@@ -201,18 +201,19 @@ export function ModelsPage() {
         <table>
           <thead>
             <tr>
-              <th>原始模型 ID / 来源</th><th>上游协议</th><th>开放状态</th><th>操作</th>
+              <th>原始模型 ID / 来源</th><th>上游协议</th><th>开放状态</th><th>运行可用性</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {(searchText||providerFilter)&&models.data&&filteredSourcesReady&&visibleModels.length===0?<tr><td colSpan={4} className="empty-state">没有匹配的模型。<button className="secondary" onClick={()=>{setSearchText("");setProviderFilter("");}}>清除筛选</button></td></tr>:null}
-            {providerFilter&&!filteredSourcesReady?<tr><td colSpan={4} className="empty-state">{topology.isError?"来源读取失败，请重新读取后筛选。":"正在读取模型来源…"}</td></tr>:null}
+            {(searchText||providerFilter)&&models.data&&filteredSourcesReady&&visibleModels.length===0?<tr><td colSpan={5} className="empty-state">没有匹配的模型。<button className="secondary" onClick={()=>{setSearchText("");setProviderFilter("");}}>清除筛选</button></td></tr>:null}
+            {providerFilter&&!filteredSourcesReady?<tr><td colSpan={5} className="empty-state">{topology.isError?"来源读取失败，请重新读取后筛选。":"正在读取模型来源…"}</td></tr>:null}
             {(filteredSourcesReady?visibleModels:[]).map((model) => {
               const sources=connectionsFor(model.id);
               return <tr key={model.id}>
                 <td data-label="模型 ID"><strong className="mono">{model.model_name}</strong>{model.display_name!==model.model_name?<span className="entity-meta">{model.display_name}</span>:null}<div className="model-source-preview">{topology.isError?"连接读取失败":!topology.data?"读取连接…":!sources.length?"未添加连接":[...new Map(sources.map(c=>[c.endpoint_id,c])).values()].map(c=>{const endpoint=topology.data?.endpoints.find(e=>e.id===c.endpoint_id);return <span key={c.id}>{resourceName(endpoint?.upstream_id??"","upstream",providers.data?.find(p=>p.id===endpoint?.upstream_id)?.name)}{sources.some(s=>s.endpoint_id===c.endpoint_id&&s.enabled)?"":" · 已停用"}</span>;})}</div></td>
                 <td data-label="上游协议"><div className="model-source-preview">{topology.isError?"未读取":!topology.data?"读取中…":[...new Set(sources.map(source=>topology.data?.endpoints.find(endpoint=>endpoint.id===source.endpoint_id)?.api_format).filter((format):format is string=>!!format))].map(format=><span key={format}>{protocolName(format)}</span>)}</div>{topology.data&&!sources.length?"—":null}</td>
                 <td data-label="开放状态"><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
+                <td data-label="运行可用性">{context?.status!=="active"?<span className="entity-meta">应用后可核对运行准入</span>:topology.isError?<span>运行来源未确认</span>:!topology.data?<span>读取来源…</span>:topology.data.routes.filter(route=>route.public_model_id===model.id).length?<div className="model-source-preview">{topology.data.routes.filter(route=>route.public_model_id===model.id).map((route,index)=><Link key={route.id} to={`/runtime?${new URLSearchParams({route_id:route.id,requested_model:model.model_name})}`}>核对实时准入{topology.data!.routes.filter(candidate=>candidate.public_model_id===model.id).length>1?` · 路由 ${index+1}`:""}</Link>)}<span>按请求协议与运行条件判定</span></div>:<span>尚未连接路由</span>}</td>
                 <td className="row-actions"><button className="secondary" onClick={()=>boundary.request(()=>setConnectionTarget(model))}>管理连接</button><button className="secondary" onClick={()=>boundary.request(()=>setInspected(model))}>详情</button>
                   <details className="row-menu"><summary>更多</summary><div>
                     <button className="secondary" onClick={()=>openModelEditor(model)}>编辑模型</button>

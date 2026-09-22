@@ -3082,3 +3082,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** User-authorized V2 reproduction: fix table-cell/flex cascade regression, remove nested table gutters, align preference rows and compact request statistics while retaining all data and actions.
 
 **Other side:** FYI. No backend/contract/production changes. Current evidence and explicit remaining reference differences: `docs/reports/prism-v2-convergence.md`.
+
+## 2026-09-22 - Codex - V2 runtime evidence columns
+
+**What:** `web/prism/src/features/accounts/{AccountList,AccountsPage,AccountRuntimeSummary}.tsx`, `AccountRuntimeSummary.test.ts`, `features/models/ModelsPage.tsx`, `app/v6.css`.
+
+**Why:** Populate V2-style account runtime/observation and model availability columns from existing runtime facts. Complete bounded snapshot reads; quota amounts remain unobserved and model checks use exact route/model Explain instead of invented schedulable-account totals.
+
+**Other side:** FYI. Existing contracts only; no backend, generated-file or production changes. Three new snapshot tests and local read-only Explain evidence in `docs/reports/prism-v2-convergence.md`.

@@ -1,3 +1,4 @@
+import { AccountRuntimeSummary, useAccountRuntimeSummary } from "./AccountRuntimeSummary";
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
 import { KimiDeviceDialog } from "./KimiDeviceDialog";
 import {useAccountDirectory} from "./useAccountDirectory";
@@ -49,6 +50,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const plan=params.get("plan")??"";const withoutPlan=params.get("without_plan")==="true";
   const inventory=useAccountDirectory({q:search,category:selectedCategory,status:selectedStatus,sort,upstream_id:provider,plan,without_plan:withoutPlan?"true":""});
   const native=inventory;
+  const runtimeSnapshot=useAccountRuntimeSummary();
   const topology = useModelConnections();
   const directory=inventory.data?.pages.flatMap(p=>p.items)??[];
   const nativeRows=directory.flatMap(row=>row.native_account?[row.native_account]:[]);
@@ -83,7 +85,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     }, 300);
     return () => clearTimeout(timer);
   }, [operationOpen, searchInput, search, params, setParams]);
-  const refresh = () => Promise.all(["account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.invalidateQueries({queryKey:[key]})));
+  const refresh = () => Promise.all(["account-list-runtime", "account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.invalidateQueries({queryKey:[key]})));
   const update = (name: string, value: string) => {
     if (["q", "provider", "category", "status", "sort"].includes(name)) setSelection(new Set());
     const next = new URLSearchParams(params);
@@ -115,10 +117,12 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     key:row.credential.id,name:accountName(row.identity,row.credential.id),source:accountSource(row.credential.id),provider:row.provider,
     authentication:row.authentication==="oauth"||row.credential.kind==="oauth_json"?"OAuth 授权":row.authentication==="api_key"?"API Key":"渠道凭据",
     plan:row.plan,planSource:row.plan_source,
+    runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.credential.id]} providerId={row.credential.upstream_id}/>,
     status:<StatusBadge status={ordinaryStatus(row)==="enabled"?"active":ordinaryStatus(row)==="reauth_required"?"unauthorized":"disabled"}>{ordinaryStatus(row)==="enabled"?"已启用":ordinaryStatus(row)==="reauth_required"?"需要重新授权":"已停用"}</StatusBadge>,
     connection:<button className="account-connection-link" onClick={()=>setConnections(row)}>{row.binding_count===0?"未连接接口":[...new Set(row.connections.map((c)=>protocolName(c.api_format)))].join(" · ")||"查看连接"}<span className="entity-meta">{row.binding_count?`${row.binding_count} 个已配置连接 · 查看`:"添加连接后用于请求"}</span></button>,actions:actions(row),
   });
   const nativeView=(row:NativeAccount):AccountListRow=>({key:row.id,name:accountName(row.identity,row.import_batch_id),source:accountSource(row.import_batch_id),provider:nativeNames[row.provider],authentication:row.provider==="grok_build"?"OAuth 授权":"SSO 授权",
+    runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.id]} nativeKind={{grok_build:"grok_build_oauth",grok_web:"grok_web_sso",grok_console:"grok_console_sso"}[row.provider]}/>,
     plan:directory.find(item=>item.native&&item.id===row.id)?.plan,planSource:directory.find(item=>item.native&&item.id===row.id)?.plan_source,
     selected:selection.has(`native:${row.id}`),onSelect:selecting?()=>toggle([`native:${row.id}`]):undefined,
     status:<StatusBadge status={!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"active":"unauthorized"}>{!row.enabled||row.auth_status==="disabled"?"已停用":row.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>,
@@ -129,7 +133,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     const first=group[0]!;if(group.length===1)return ordinaryView(first);
     const active=group.filter((row)=>ordinaryStatus(row)!=="disabled").length;
     const protocols=[...new Set(group.flatMap((row)=>row.connections.map((c)=>protocolName(c.api_format))))];
-    return {...ordinaryView(first),plan:new Set(group.map(row=>row.plan)).size===1?first.plan:null,source:undefined,authentication:`${group.length} 份授权`,
+    return {...ordinaryView(first),runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={group.map(row=>row.credential.id)}/>,plan:new Set(group.map(row=>row.plan)).size===1?first.plan:null,source:undefined,authentication:`${group.length} 份授权`,
       selected:group.every((row)=>selection.has(`ordinary:${row.credential.id}`)),onSelect:selecting?()=>toggle(group.map((row)=>`ordinary:${row.credential.id}`)):undefined,
       status:<StatusBadge status={active?"active":"disabled"}>{active} / {group.length} 份已启用</StatusBadge>,
       connection:<button className="account-connection-link" onClick={()=>setAuthorizations(group)}>{protocols.join(" · ")||"未连接接口"}<span className="entity-meta">查看各份授权的连接</span></button>,
