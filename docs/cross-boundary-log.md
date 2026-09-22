@@ -3106,3 +3106,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Show exact model, source and times as catalog identity; move random technical version IDs into explicit disclosure in restore and inspector workflows.
 
 **Other side:** FYI. User-authorized frontend alignment only. No mutation/contract/backend changes. Local evidence and remaining visual scope: `docs/reports/prism-v2-price-dialogs.md`.
+
+## 2026-09-22 - Codex - V2 lifecycle success state and price preview
+
+**What:** `web/prism/src/features/config-versions/VersionsPage.tsx`, `web/prism/src/features/billing/CatalogImportDialog.tsx`.
+
+**Why:** Real local acceptance exposed an obsolete draft-review alert after successful publication. Render an active-target status without hiding archived/missing errors; align catalog comparison labels with model/time identity.
+
+**Other side:** FYI. No contract/backend changes. Isolated local publish and rollback verified; production untouched. Evidence: `docs/reports/prism-v2-lifecycle-acceptance.md`.

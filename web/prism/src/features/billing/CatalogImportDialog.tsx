@@ -10,6 +10,8 @@ import { PriceEntriesEditor } from "./PriceEntriesEditor";
 import { CatalogPricePreview } from "./CatalogPricePreview";
 import { compareCatalogEntries, formatCatalogEntries, formatTime, parseCatalogEntries, sourceLabel, validBillingText, validBillingTime, WRITABLE_SOURCES, type Catalog, type CatalogEntry } from "./model";
 
+const catalogLabel=(catalog:Catalog)=>`${catalog.entries[0]?.model??"空目录"}${catalog.entries.length>1?` 等 ${catalog.entries.length} 项`:""} · ${formatTime(catalog.effective_at_ms)}`;
+
 type Prepared=Readonly<{id:string;effectiveAt:number;source:string;entries:readonly CatalogEntry[];baseline?:Catalog}>;
 export type CatalogImportAction=Readonly<{owner:BillingOwner;catalogs:readonly Catalog[];template?:Catalog}>;
 
@@ -66,13 +68,13 @@ export function CatalogImportDialog({action,onClose,onDone,onReview}:Readonly<{
     {receipt?<><p role={receipt.kind==="unconfirmed"?"alert":"status"}>{receipt.message}</p><p>目标目录：<strong className="mono">{receipt.target}</strong></p><p>工作配置 ID：<code className="mono">{receipt.workingVersion.id}</code></p>{receipt.catalog?<p>服务端回执：{receipt.catalog.entry_count} 条 · 生效 {formatTime(receipt.catalog.effective_at_ms)}</p>:null}{receipt.observedCatalog?<p>目录重读可见；这不证明原请求回执已确认。</p>:null}{review.isError?<p role="alert">重读失败：{asAppError(review.error).message}。可重试或按此配置 ID 稍后核对。</p>:null}</>
       :<><form id={formId} className="sheet-form" hidden={prepared!==undefined} onSubmit={prepare}><fieldset className="workflow-section" disabled={save.isPending||submitted.current}><legend>目录与生效时间</legend>
         <label>生效时间（本地时区）<input type="datetime-local" required value={effective} onChange={event=>{setDirty(true);setEffective(event.target.value);}}/></label>
-        <details><summary>目录信息与对比基线</summary><label>目录版本 ID<input className="mono" required maxLength={128} value={id} onChange={event=>{setDirty(true);setId(event.target.value);}}/></label><label>来源<select value={source} onChange={event=>{setDirty(true);setSource(event.target.value);}}>{WRITABLE_SOURCES.map(value=><option key={value} value={value}>{sourceLabel(value)}</option>)}</select></label><label>与现有目录对比<select value={baselineId} onChange={event=>{setDirty(true);setBaselineId(event.target.value);}}><option value="">不比较</option>{action.catalogs.map(row=><option key={row.catalog_version_id} value={row.catalog_version_id}>{row.catalog_version_id}</option>)}</select></label></details>
+        <details><summary>目录信息与对比基线</summary><label>目录版本 ID<input className="mono" required maxLength={128} value={id} onChange={event=>{setDirty(true);setId(event.target.value);}}/></label><label>来源<select value={source} onChange={event=>{setDirty(true);setSource(event.target.value);}}>{WRITABLE_SOURCES.map(value=><option key={value} value={value}>{sourceLabel(value)}</option>)}</select></label><label>与现有目录对比<select value={baselineId} onChange={event=>{setDirty(true);setBaselineId(event.target.value);}}><option value="">不比较</option>{action.catalogs.map(row=><option key={row.catalog_version_id} value={row.catalog_version_id}>{catalogLabel(row)}</option>)}</select></label></details>
       </fieldset><PriceEntriesEditor initial={action.template?formatCatalogEntries(action.template.entries):undefined} disabled={save.isPending||submitted.current||prepared!==undefined} onDirty={()=>setDirty(true)} onBusyChange={setQuotePending}/>
       </form>
       {prepared?<div className="price-import-preview">
-        <p>新目录 <strong className="mono">{prepared.id}</strong> · {sourceLabel(prepared.source)} · {prepared.entries.length} 条</p>
+        <p><strong>新价格目录</strong> · {sourceLabel(prepared.source)} · {prepared.entries.length} 条</p><details><summary>目录技术标识</summary><code>{prepared.id}</code></details>
         <p>生效时刻（UTC）：{formatTime(prepared.effectiveAt)}</p>
-        <dl className="price-diff-summary"><div><dt>新增</dt><dd>{changes.filter(row=>row.kind==="added").length}</dd></div><div><dt>费率变化</dt><dd>{changes.filter(row=>row.kind==="changed").length}</dd></div><div><dt>新目录未包含</dt><dd>{changes.filter(row=>row.kind==="removed").length}</dd></div></dl><p className="muted">比较基线：{prepared.baseline?.catalog_version_id??"空目录"}</p>
+        <dl className="price-diff-summary"><div><dt>新增</dt><dd>{changes.filter(row=>row.kind==="added").length}</dd></div><div><dt>费率变化</dt><dd>{changes.filter(row=>row.kind==="changed").length}</dd></div><div><dt>新目录未包含</dt><dd>{changes.filter(row=>row.kind==="removed").length}</dd></div></dl><p className="muted">比较基线：{prepared.baseline?catalogLabel(prepared.baseline):"空目录"}</p>
         <p className="muted">未包含的条目不会删除历史目录，也不一定停止已有计价；服务按有效目录中的精确元组查找。</p>
         <CatalogPricePreview entries={prepared.entries} baseline={prepared.baseline?.entries??[]}/>
       </div>:null}</>}
