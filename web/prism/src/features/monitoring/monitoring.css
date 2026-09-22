@@ -170,6 +170,8 @@
 /* A row's request id opens its attempt trail. It behaves as a button (it opens
    an in-page sheet, it is not navigation) but reads as a link. */
 .linklike {
+  box-shadow: none;
+  font-weight:400;
   background: none;
   border: none;
   padding: 0;

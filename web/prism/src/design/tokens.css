@@ -97,10 +97,9 @@
   --dur-anneal: 600ms;
 
   /* type */
-  --font-text: -apple-system, "SF Pro Text", system-ui, "PingFang SC",
-    "Hiragino Sans GB", sans-serif;
-  --font-display: -apple-system, "SF Pro Display", system-ui, "PingFang SC",
-    sans-serif;
+  --font-text: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "PingFang SC", sans-serif;
+  --font-display: var(--font-text);
+  --font-sans: var(--font-text);
   --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 
   /* ==== ambient + glass material (ported from proto/port) ==== */
@@ -409,10 +408,12 @@ body {
   background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-text);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
+
+strong { font-weight:650; }
 
 .mono {
   font-family: var(--font-mono);

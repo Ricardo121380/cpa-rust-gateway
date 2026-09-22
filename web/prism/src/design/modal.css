@@ -17,9 +17,9 @@ html.has-sheet body {
   display: grid;
   place-items: center;
   padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
-  background: var(--modal-veil);
-  -webkit-backdrop-filter: blur(4px) saturate(112%);
-  backdrop-filter: blur(4px) saturate(112%);
+  background: #15233a48;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   animation: sheet-veil-in var(--sheet-in) var(--ease) both;
 }
 
@@ -48,7 +48,7 @@ html.has-sheet body {
   max-height: inherit;
   overflow: hidden;
   color: var(--ink);
-  background: linear-gradient(155deg, var(--modal-surface-raised), var(--modal-surface) 42%, var(--modal-surface));
+  background: var(--surface);
   border: 1px solid var(--modal-border);
   border-radius: 22px;
   box-shadow: var(--modal-shadow), inset 0 1px 0 var(--panel-shine, rgb(255 255 255 / 68%));
@@ -86,7 +86,7 @@ html.has-sheet body {
   max-width: 54ch;
   margin: 6px 0 0;
   color: var(--ink-2);
-  font-size: 14px;
+  font-size: 12px;
   line-height: 20px;
 }
 
@@ -194,7 +194,7 @@ html.has-sheet body {
   border-radius: 12px;
   background: color-mix(in srgb, var(--surface) 88%, var(--modal-surface));
   font: inherit;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 20px;
 }
 

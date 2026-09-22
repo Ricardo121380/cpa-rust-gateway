@@ -3032,3 +3032,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Complete the user-authorized V2 local workflow refinement with channel-led authorization layout, grouped forms, revision-checked real key permission summaries and readable price endpoint labels.
 
 **Other side:** FYI. No backend contract, generated client, production deployment or real Provider inference changes. Real isolated gateway acceptance and limitations are recorded in `docs/reports/prism-liquid-v2-local-acceptance.md`.
+
+## 2026-09-22 - Codex - V2 typography, material and channel chooser
+
+**What:** `web/prism/src/design/{tokens,modal,workspace}.css`, `app/{app,v6}.css`, `components/workflow-forms.css`, `features/accounts/AddAccountDialog.tsx`, `features/monitoring/{RequestHistory.tsx,requests.css,monitoring.css}`.
+
+**Why:** User rejected typography/material mismatch and requested reference-first V2 reproduction. Unify type family/scale, restore reference ambient geometry, compact surfaces and use channel cards before authorization/import.
+
+**Other side:** FYI. Existing backend, generated contract, write coordinators and production untouched. Local evidence and remaining fidelity work: `docs/reports/prism-v2-type-material.md`.

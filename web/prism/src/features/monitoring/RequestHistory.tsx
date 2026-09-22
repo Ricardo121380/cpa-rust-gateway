@@ -80,7 +80,7 @@ export function requestSearchAfterFilter(
   return next;
 }
 
-function Trend({series:observed,from,to,bucket}:Readonly<{series:readonly Bucket[];from:number;to:number;bucket:number}>) {
+function Trend({series:observed,from,to,bucket,summary}:Readonly<{series:readonly Bucket[];from:number;to:number;bucket:number;summary:Summary}>) {
   const start=Math.floor(from/bucket)*bucket;
   const byTime=new Map(observed.map(row=>[row.at_ms,row]));
   const series=observed.length?Array.from({length:Math.min(1000,Math.floor((to-start)/bucket)+1)},(_,index)=>{const at=start+index*bucket;return byTime.get(at)??{at_ms:at,requests:0,succeeded:0,failed:0,cancelled:0,average_duration_ms:null,average_first_content_ms:null};}):[];
@@ -95,7 +95,7 @@ function Trend({series:observed,from,to,bucket}:Readonly<{series:readonly Bucket
   for(const row of series){if(row[metric]===null){if(current.length)segments.push(current);current=[];}else current.push(row);}
   if(current.length)segments.push(current);
   return <figure className="request-trend"><figcaption><strong>请求趋势</strong><div className="trend-modes" role="group" aria-label="趋势指标"><button type="button" aria-pressed={metric==="requests"} onClick={()=>setMetric("requests")}>请求量</button><button type="button" aria-pressed={metric==="average_duration_ms"} onClick={()=>setMetric("average_duration_ms")}>平均耗时</button></div></figcaption>
-    <p className="trend-range">{new Date(from).toLocaleString()} — {new Date(to).toLocaleString()}</p>
+    <p className="trend-summary"><strong>{metric==="requests"?summary.requests.toLocaleString():milliseconds(summary.average_duration_ms)}</strong><span>{metric==="requests"?"次请求 · 当前时间范围":"平均耗时 · 已观测请求"}</span></p><p className="trend-range">{new Date(from).toLocaleString()} — {new Date(to).toLocaleString()}</p>
     {series.length?<svg viewBox="0 0 760 185" role="img" aria-label={metric==="requests"?"每个时间段的实际请求数":"每个时间段已观测的平均耗时"}>
       <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" className="trend-fill-start"/><stop offset="100%" className="trend-fill-end"/></linearGradient></defs>
       {[0,.5,1].map(part=><g key={part}><line x1="42" y1={155-part*115} x2="732" y2={155-part*115} className="request-axis"/><text x="34" y={159-part*115} textAnchor="end" className="trend-axis-label">{Math.round(maximum*part).toLocaleString()}</text></g>)}
@@ -126,7 +126,7 @@ export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:
   const summary=query.data?.summary;
   const costs=billing.isError?undefined:billing.data?.summary;
   return <section className="request-overview">
-    <header className="page-head"><div><h2>{title ?? "请求概览"}</h2><p className="page-description">请求、账号与费用，汇集于同一工作台。</p></div><div className="page-actions"><select aria-label="请求时间范围" value={hours} onChange={event=>{setHours(Number(event.target.value));setAnchor(Date.now());}}><option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select><button className="secondary" onClick={()=>setAnchor(Date.now())}>刷新</button></div></header>
+    <header className="page-head"><div><p className="overview-eyebrow">YOUR GATEWAY, AT A GLANCE</p><h2>{title ? "运行概览" : "请求概览"}</h2><p className="page-description">请求、账号与费用，汇集于同一工作台。</p></div><div className="overview-range-context"><div className="overview-range" role="group" aria-label="请求时间范围">{([[24,"24 小时"],[168,"7 天"],[720,"30 天"]] as const).map(([value,label])=><button key={value} type="button" aria-pressed={hours===value} onClick={()=>{setHours(value);setAnchor(Date.now());}}>{label}</button>)}<button type="button" aria-label="刷新请求概览" onClick={()=>setAnchor(Date.now())}>刷新</button></div><p className="overview-range-note">截至 {new Date(anchor).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</p></div></header>
     {query.isError?<p role="alert">{asAppError(query.error).message}</p>:summary?<>
       <div className="request-metrics overview-kpis">
         <Link to={link}><span>请求数</span><strong>{summary.requests.toLocaleString()}</strong><small>上游重试不重复计数</small></Link>
@@ -135,7 +135,7 @@ export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:
         <Link to={ledger}><span>已知费用 · 微单位</span><strong>{costs?.records?formatMicrounits(costs.known_cost_microunits):"—"}</strong><small>{billing.isError?"费用暂时无法读取":costs===undefined?"读取中…":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录未计价`}</small></Link>
       </div>
       <div className="overview-observations">
-        <Trend series={query.data?.series ?? []} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms}/>
+        <Trend series={query.data?.series ?? []} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms} summary={summary}/>
         <aside className="overview-attention"><h3>需要关注</h3><p className="stat-sub">当前时间范围内的处理事项</p>
           <Link to={`${link}&outcome=failed`}><strong>{summary.failed} 个失败请求</strong><span>查看错误与上游重试链 →</span></Link>
           <Link to={ledger}><strong>{costs===undefined?"计价状态待确认":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录尚未计价`}</strong><span>已知费用不等于全部费用 →</span></Link>

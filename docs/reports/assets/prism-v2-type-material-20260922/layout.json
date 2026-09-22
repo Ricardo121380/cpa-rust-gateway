@@ -1,0 +1,542 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "",
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "accounts",
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "upstreams",
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "models",
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "access",
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "monitoring",
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "usage",
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "billing",
+    "overflow": false,
+    "crash": false,
+    "heading": "计费与价格",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "settings",
+    "overflow": false,
+    "crash": false,
+    "heading": "设置",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "",
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "accounts",
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "upstreams",
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "models",
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "access",
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "monitoring",
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "usage",
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "billing",
+    "overflow": false,
+    "crash": false,
+    "heading": "计费与价格",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "settings",
+    "overflow": false,
+    "crash": false,
+    "heading": "设置",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "",
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "accounts",
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "upstreams",
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "models",
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "access",
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "monitoring",
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "usage",
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "billing",
+    "overflow": false,
+    "crash": false,
+    "heading": "计费与价格",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "settings",
+    "overflow": false,
+    "crash": false,
+    "heading": "设置",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "",
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "accounts",
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "upstreams",
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "models",
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "access",
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "monitoring",
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "usage",
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "billing",
+    "overflow": false,
+    "crash": false,
+    "heading": "计费与价格",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "settings",
+    "overflow": false,
+    "crash": false,
+    "heading": "设置",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "",
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "accounts",
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "upstreams",
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "models",
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "access",
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "monitoring",
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "usage",
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "billing",
+    "overflow": false,
+    "crash": false,
+    "heading": "计费与价格",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "settings",
+    "overflow": false,
+    "crash": false,
+    "heading": "设置",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "",
+    "overflow": false,
+    "crash": false,
+    "heading": "仪表盘",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "accounts",
+    "overflow": false,
+    "crash": false,
+    "heading": "账号管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "upstreams",
+    "overflow": false,
+    "crash": false,
+    "heading": "AI 提供商",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "models",
+    "overflow": false,
+    "crash": false,
+    "heading": "模型管理",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "access",
+    "overflow": false,
+    "crash": false,
+    "heading": "API 密钥",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "monitoring",
+    "overflow": false,
+    "crash": false,
+    "heading": "请求日志",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "usage",
+    "overflow": false,
+    "crash": false,
+    "heading": "用量与费用",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "billing",
+    "overflow": false,
+    "crash": false,
+    "heading": "计费与价格",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "settings",
+    "overflow": false,
+    "crash": false,
+    "heading": "设置",
+    "font": "-apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans CJK SC\", \"PingFang SC\", sans-serif"
+  }
+]

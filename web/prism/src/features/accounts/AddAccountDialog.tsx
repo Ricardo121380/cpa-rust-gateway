@@ -72,6 +72,7 @@ export function preparedImportRequest(
 export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void}>) {
   const formId="account-import-form";
   const [channelId,setChannelId]=useState("openai-compatible");
+  const [choosingChannel,setChoosingChannel]=useState(true);
   const [inputMode,setInputMode]=useState<"paste"|"files">("paste");
   const [oauth,setOauth]=useState(false);
   const [method,setMethod]=useState<"authorize"|"import">("authorize");
@@ -94,7 +95,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   const channels=useQuery({queryKey:["account-channels"],queryFn:()=>call<readonly Channel[]>("listAccountChannels")});
   // Channel-owned device flows prepare their own canonical target only after the operator starts.
   // They never need to enumerate arbitrary Providers just to render the chooser.
-  const providers=useQuery({queryKey:["account-providers",context?.configVersionId],enabled:!!context&&!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId),
+  const providers=useQuery({queryKey:["account-providers",context?.configVersionId],enabled:!choosingChannel&&!!context&&!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId),
     queryFn:()=>call<readonly {id:string;name:string;kind:string}[]>("listUpstreams",{},{versionScoped:true})});
   const channel=channels.data?.find((row)=>row.id===channelId);
   const authorizing=channel?.authorization_available===true && method==="authorize";
@@ -198,12 +199,12 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth&&channelId==="grok.build")return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth)return <Sheet title="暂不支持的授权方式" layout="confirm" description="该渠道没有可用的授权流程，面板没有执行任何操作。" onEscape={()=>setOauth(false)}><p role="alert">请返回并选择支持的渠道接入方式。</p><div className="sheet-actions"><SheetDismissButton>返回</SheetDismissButton></div></Sheet>;
-  return <Sheet title="授权或导入账号" description={completed?"查看本次保存结果，并在需要时继续应用配置。":"先选择渠道，再使用该渠道支持的授权或导入方式。"} onEscape={close} busy={busy} footer={completed?<SheetDismissButton disabled={busy}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type={authorizing?"button":"submit"} form={authorizing?undefined:formId} disabled={busy||(authorizing?(!native&&!selectedProvider&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)):(!importFormAvailable||(inputMode==="files"&&!materials.current.length)))} onClick={authorizing?()=>{resetInput();setOauth(true);}:undefined}>{authorizing?"授权登录":"导入账号"}</button></>}>
+  return <Sheet title={choosingChannel?"添加账号":"授权或导入账号"} description={completed?"查看本次保存结果，并在需要时继续应用配置。":"先选择渠道，再使用该渠道支持的授权或导入方式。"} onEscape={close} busy={busy} footer={choosingChannel?<SheetDismissButton className="secondary">取消</SheetDismissButton>:completed?<SheetDismissButton disabled={busy}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type={authorizing?"button":"submit"} form={authorizing?undefined:formId} disabled={busy||(authorizing?(!native&&!selectedProvider&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)):(!importFormAvailable||(inputMode==="files"&&!materials.current.length)))} onClick={authorizing?()=>{resetInput();setOauth(true);}:undefined}>{authorizing?"授权登录":"导入账号"}</button></>}>
     {completed?<>
       <h3>导入结果</h3>
       {needsApply?<RuntimeApplyNotice onApplied={()=>setNeedsApply(false)}/>:null}
-    </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:<>
-      <div className="account-onboarding"><label className="account-channel-field">渠道<select aria-label="渠道" value={channelId} disabled={busy} onChange={(event)=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(event.target.value);setMethod("authorize");}}>{channels.data?.map((entry)=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
+    </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:choosingChannel?<div className="account-channel-grid" aria-label="选择账号渠道">{channels.data?.map(entry=><button type="button" className="secondary account-channel-option" key={entry.id} onClick={()=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(entry.id);setMethod("authorize");setChoosingChannel(false);}}><span className="channel-symbol" aria-hidden="true">{entry.name.slice(0,1)}</span><span><strong>{entry.name}</strong><small>{entry.authorization_available?"官方授权":entry.import_available?"导入凭据":"暂不可接入"}</small></span></button>)}</div>:<>
+      <button type="button" className="secondary channel-back" disabled={busy} onClick={()=>{resetInput();setChoosingChannel(true);}}>更换渠道</button><div className="account-onboarding"><div className="account-selected-channel"><strong>{channel?.name}</strong><span>{channel?.authorization_available?"官方授权或导入":"导入账号凭据"}</span></div>
       {channel?.authorization_available&&channel.import_available?<div className="account-access-method" role="group" aria-label="接入方式">
         <button type="button" className="secondary" aria-pressed={authorizing} disabled={busy} onClick={()=>{resetInput();setMethod("authorize");}}>官方授权</button>
         <button type="button" className="secondary" aria-pressed={!authorizing} disabled={busy} onClick={()=>{resetInput();setMethod("import");}}>导入凭据</button>
