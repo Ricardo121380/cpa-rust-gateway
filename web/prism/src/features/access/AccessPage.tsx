@@ -250,8 +250,7 @@ export function AccessPage() {
               <th>名称</th>
               <th>秘密不可回读</th>
               <th>状态</th>
-              <th>过期</th>
-              <th>最近请求</th>
+              <th>使用记录</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -265,8 +264,7 @@ export function AccessPage() {
                   <td data-label="状态">
                     <StatusBadge status={status}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[status]}</StatusBadge>
                   </td>
-                  <td data-label="有效期" className="mono">{formatExpiry(record.expires_at_ms)}</td>
-                  <td data-label="最近请求"><a href={`#/monitoring?tab=requests&client_key_id=${encodeURIComponent(record.id)}&from_ms=${Math.max(0,(record.last_request_at_ms??Date.now())-3600000)}&to_ms=${Date.now()}`} title="已持久化终态请求的开始时间；未观测不代表从未使用">{record.last_request_at_ms == null ? "未观测" : new Date(record.last_request_at_ms).toLocaleString()}</a></td>
+                  <td data-label="使用记录"><span className="entity-meta">有效期 · {formatExpiry(record.expires_at_ms)}</span><a href={`#/monitoring?tab=requests&client_key_id=${encodeURIComponent(record.id)}&from_ms=${Math.max(0,(record.last_request_at_ms??Date.now())-3600000)}&to_ms=${Date.now()}`} title="查看该密钥的请求记录；未观测不代表从未使用">{record.last_request_at_ms == null ? "查看请求记录" : new Date(record.last_request_at_ms).toLocaleString()}</a></td>
                   <td className="row-actions">
                     <button className="secondary" onClick={() => setInspectedKey(record)}>详情</button>
                     <button
@@ -397,11 +395,12 @@ export function AccessPage() {
       ]}><div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspectedGroup.id); setInspectedGroup(undefined); }}>查看授权路由</button>
         <button disabled={!editable} onClick={() => { setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
 
-      {inspectedKey === undefined ? null : <ObjectInspector title="Client Key" scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 只显示公开元数据`} onClose={() => setInspectedKey(undefined)} facts={[
-        ["Key ID", inspectedKey.id], ["前缀", inspectedKey.prefix], ["访问组", inspectedKey.access_group_id],
-        ["配置状态", inspectedKey.status], ["当前显示状态", displayKeyStatus(inspectedKey, nowMs)], ["到期时间", formatExpiry(inspectedKey.expires_at_ms)],
+      {inspectedKey === undefined ? null : <ObjectInspector title={resourceName(inspectedKey.access_group_id, "group", groups.data?.find(group=>group.id===inspectedKey.access_group_id)?.name)} scope="API 密钥" onClose={() => setInspectedKey(undefined)} facts={[
+        ["密钥标识", `${inspectedKey.prefix}••••`],
+        ["状态", ({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[displayKeyStatus(inspectedKey, nowMs)]], ["有效期", formatExpiry(inspectedKey.expires_at_ms)],
+        ["最近请求", inspectedKey.last_request_at_ms == null ? "未观测" : new Date(inspectedKey.last_request_at_ms).toLocaleString()],
       ]}><p className="small muted">完整密钥仅在签发时显示一次，详情不会重新显示。</p>
-        <div className="sheet-actions"><button onClick={() => { setEditKey(inspectedKey); setInspectedKey(undefined); }}>编辑 Client Key</button></div></ObjectInspector>}
+        <div className="sheet-actions"><button onClick={() => { setEditKey(inspectedKey); setInspectedKey(undefined); }}>编辑密钥与权限</button></div></ObjectInspector>}
 
       {groupForm!==undefined?<GroupMaintenanceDialog record={groupForm} onClose={()=>{setGroupForm(undefined);void queryClient.invalidateQueries({queryKey:["access-groups"]});}} onSelected={version=>{setGroupForm(undefined);useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["access-groups"]});void queryClient.resetQueries({queryKey:["client-keys"]});}}/>:null}
       {confirmDeleteGroup?<GroupMaintenanceDialog record={confirmDeleteGroup} removing onClose={()=>{setConfirmDeleteGroup(undefined);void queryClient.invalidateQueries({queryKey:["access-groups"]});}} onSelected={version=>{setConfirmDeleteGroup(undefined);useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["access-groups"]});}}/>:null}

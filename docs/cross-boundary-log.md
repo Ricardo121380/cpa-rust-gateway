@@ -3008,3 +3008,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** The user requested closer reproduction of their V2 design after rejecting a material-only adaptation. Replace old page structure with the reference's compact rows, lower local tabs, primary data surfaces and secondary maintenance controls.
 
 **Other side:** FYI. Authorized frontend implementation; no contract, permissions, persistence, production data or deployment changes. Real backend flows remain; conditional requests, dirty/busy guards and secrets are not replaced by prototype logic. Evidence and remaining visual differences are recorded in `docs/reports/prism-liquid-v2-fidelity.md`.
+
+## 2026-09-22 - Codex - V2 key editor refinement
+
+**What:** `web/prism/src/features/access/{AccessPage,KeyPermissionsDialog}.tsx`, `access.css`.
+
+**Why:** Continue the user-authorized V2 reproduction with compact key metadata, readable details and a searchable permission selection panel across desktop/mobile.
+
+**Other side:** FYI. Existing permission write/conflict/session logic retained; no contract or backend change. Local verification and limitations recorded in `docs/reports/prism-liquid-v2-fidelity.md`; no production deployment.

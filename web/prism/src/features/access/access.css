@@ -11,3 +11,16 @@
  .key-list .row-actions { display:flex; flex-wrap:wrap; gap:8px; }
  .key-list .row-actions button { min-height:44px; flex:1; }
 }
+
+.key-permissions-form .key-fields-row { display:grid; grid-template-columns:1fr 2fr; gap:16px; }
+.key-permissions-form .field-help { margin:4px 0 12px; color:var(--ink-2); font-size:12px; }
+.key-permissions-form .key-model-picker { margin-top:12px; padding:16px; border:1px solid var(--separator); border-radius:16px; }
+.key-model-picker legend { padding:0 6px; font-weight:600; }
+.key-model-picker legend .badge { margin-left:8px; }
+.key-model-picker .data-toolbar { margin:12px 0; gap:8px; flex-wrap:wrap; }
+.key-model-options { max-height:240px; overflow:auto; overscroll-behavior:contain; }
+.key-model-options .check-row { min-height:44px; padding:10px 4px; border-bottom:1px solid var(--separator); align-items:center; }
+.key-model-options .check-row:last-child { border-bottom:0; }
+.key-model-options .mono { overflow-wrap:anywhere; min-width:0; }
+@media(max-width:520px) { .key-permissions-form .key-fields-row { grid-template-columns:1fr; } }
+.key-list .entity-meta { display:block; margin:4px 0; color:var(--ink-2); font-size:12px; }
