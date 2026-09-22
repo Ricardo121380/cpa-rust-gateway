@@ -1,3 +1,4 @@
+import { AccountIdentityHeader } from "./AccountIdentityHeader";
 import { AccountEvidenceTabs } from "./AccountEvidenceTabs";
 import { useModelConnections } from "../models/useModelConnections";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -51,10 +52,9 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
   };
   const title=saved&&!saved.runtime_applied?"账号修改已保存":mode==="credential"?"更新 SSO 凭据":mode==="remove"?"移除授权":mode==="status"?account.enabled?"停用账号":"启用账号":"账号详情";
   const footer=saved&&!saved.runtime_applied?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:mode==="details"?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy} onDismiss={()=>select("details")}>返回</SheetDismissButton><button type="submit" form={formId} className={mode==="remove"?"danger":undefined} disabled={busy}>{mode==="credential"?"保存并应用":"确认"}</button></>;
-  return <Sheet title={title} description={mode==="details"?"查看账号身份、连接、运行证据和维护操作。":mode==="credential"?"替换当前账号的 SSO 凭据；身份与接口连接会保留。":"确认这项账号维护操作及其影响。"} layout={mode==="details"?"inspector":mode==="remove"||saved&&!saved.runtime_applied?"confirm":"form"} tone={mode==="remove"?"danger":"default"} onEscape={()=>!busy&&onClose()} busy={busy} footer={footer}>
-    <h3>{accountName(account.identity)??"未提供账号身份"}</h3>
-    <p>{names[account.provider]}</p>
-    {saved&&!saved.runtime_applied?<div role="alert"><p>修改已保存，运行配置暂未应用。新请求已暂停。</p><button disabled={busy} onClick={()=>apply.mutate()}>应用运行配置</button></div>:mode==="details"?<AccountEvidenceTabs accountId={account.id} onNavigate={onClose} overview={<><StatusBadge status={account.enabled?account.auth_status:"disabled"}>{!account.enabled?"已停用":account.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge><p>{connections.length?`已关联 ${connections.length} 个接口`:"尚未连接接口"}</p></>} configuration={<>
+  return <Sheet title={title} description={mode==="details"?undefined:mode==="credential"?"替换当前账号的 SSO 凭据；身份与接口连接会保留。":"确认这项账号维护操作及其影响。"} layout={mode==="details"?"inspector":mode==="remove"||saved&&!saved.runtime_applied?"confirm":"form"} tone={mode==="remove"?"danger":"default"} onEscape={()=>!busy&&onClose()} busy={busy} footer={footer}>
+    <AccountIdentityHeader name={accountName(account.identity)} provider={names[account.provider]} method={account.provider==="grok_build"?"OAuth 授权":"SSO 授权"} status={<StatusBadge status={account.enabled?account.auth_status:"disabled"}>{!account.enabled?"已停用":account.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>}/>
+    {saved&&!saved.runtime_applied?<div role="alert"><p>修改已保存，运行配置暂未应用。新请求已暂停。</p><button disabled={busy} onClick={()=>apply.mutate()}>应用运行配置</button></div>:mode==="details"?<AccountEvidenceTabs accountId={account.id} onNavigate={onClose} overview={<section className="account-overview-facts"><h4>接口连接</h4>{topology.isError?<p role="alert">接口读取失败</p>:topology.isPending?<p role="status">读取接口…</p>:connections.length?<ul className="account-overview-connections">{connections.map(c=><li key={c.id}><div><strong>{protocolName(c.api_format)}</strong><span>{c.host}</span></div><StatusBadge status={c.enabled?"active":"disabled"}>{c.enabled?"已启用":"已停用"}</StatusBadge></li>)}</ul>:<p>尚未连接接口</p>}<p className="account-evidence-note">认证、额度和模型目录分别校验。已保存授权不等于当前可调度。</p></section>} configuration={<>
       <StatusBadge status={account.enabled?account.auth_status:"disabled"}>{!account.enabled?"已停用":account.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>
       <div className="sheet-actions">
         <button onClick={()=>account.provider==="grok_build"?onAuthorize():select("credential")}>{account.provider==="grok_build"?"重新授权":"更新凭据"}</button>

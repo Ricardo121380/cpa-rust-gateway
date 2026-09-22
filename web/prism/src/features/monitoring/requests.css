@@ -20,11 +20,13 @@
 .request-filters .check-row input { width:18px; min-height:18px; }
 .request-table small { display:block; margin-top:6px; color:var(--ink-2); font-size:12px; }
 .request-table td { overflow-wrap:anywhere; }
-.request-facts { display:grid; grid-template-columns:auto 1fr; gap:12px; font-size:14px; }
+.request-facts { display:grid; grid-template-columns:auto 1fr; gap:14px; font-size:12px; }
 .request-facts dt { color:var(--ink-2); }
 .request-facts dd { margin:0; overflow-wrap:anywhere; }
-.request-attempts { display:grid; gap:12px; padding-left:22px; }
-.request-attempts li { padding:8px; }
+.request-attempts { display:grid; gap:0; list-style:none; padding:0 0 0 8px; }
+.request-attempts li { position:relative; padding:0 0 20px 20px; border-left:1px solid var(--separator); font-size:12px; }
+.request-attempts li::before { content:""; position:absolute; left:-4px; top:5px; width:7px; height:7px; border-radius:50%; background:var(--tint); }
+.request-attempts li:last-child { padding-bottom:0; border-left-color:transparent; }
 .request-attempts li > * { display:block; margin-bottom:6px; }
 @media(max-width:1000px) { .request-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 @media(max-width:720px) {
@@ -97,3 +99,13 @@
 .overview-eyebrow { margin:0 0 7px; font-size:10px; font-weight:600; letter-spacing:1.9px; color:var(--ink-2); }
 .overview-range-note { margin:7px 0 0; text-align:right; font-size:10px; color:var(--ink-2); }
 @media(max-width:600px) { .request-trend .trend-axis-label { font-size:20px; } .overview-eyebrow { font-size:9px; letter-spacing:1px; } }
+
+.request-inspector-header { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 0 20px; }
+.request-inspector-header h3 { flex:1 1 200px; margin:0; font-size:16px; font-weight:650; overflow-wrap:anywhere; }
+.request-inspector-header p { flex-basis:100%; margin:0; color:var(--ink-2); font-size:12px; }
+.request-inspector-section { padding:18px 0; border-top:1px solid var(--separator); }
+.request-inspector-section h4 { display:flex; justify-content:space-between; gap:12px; margin:0 0 16px; font-size:13px; }
+.request-inspector-section h4 span { color:var(--ink-2); font-weight:400; }
+.request-inspector-section summary { color:var(--ink-2); font-size:12px; cursor:pointer; }
+.request-inspector-section .request-facts { margin:0; }
+.request-inspector-section[open] summary { margin-bottom:16px; }

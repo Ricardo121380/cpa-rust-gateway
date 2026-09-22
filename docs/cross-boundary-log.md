@@ -3040,3 +3040,13 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** User rejected typography/material mismatch and requested reference-first V2 reproduction. Unify type family/scale, restore reference ambient geometry, compact surfaces and use channel cards before authorization/import.
 
 **Other side:** FYI. Existing backend, generated contract, write coordinators and production untouched. Local evidence and remaining fidelity work: `docs/reports/prism-v2-type-material.md`.
+
+## 2026-09-22 - Codex - V2 account and resource structure
+
+**What:** `web/prism/src/features/accounts/{AccountsPage,AccountList,AccountIdentityHeader,AccountEvidenceTabs,NativeAccountDialog}.tsx`, `features/upstreams/{CredentialSheet,UpstreamsPage}.tsx`, `features/models/{ModelsPage.tsx,models.css}`, `app/v6.css`.
+
+**Why:** User authorized reference-first internal page reconstruction. Separate account filtering/tools, share real identity inspectors, combine exact model IDs with sources, and compact provider protocol summaries.
+
+**Other side:** FYI. No generated contract, backend, secrets, production state or deployment changes. Local evidence and remaining work: `docs/reports/prism-v2-account-structure.md`.
+
+本批还包含 `features/monitoring/{RequestHistory.tsx,requests.css}` 的 V2 请求详情分区、真实尝试时间线及三个尺寸本地截图；不改变请求终态、时延和计价语义。

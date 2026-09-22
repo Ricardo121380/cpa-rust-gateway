@@ -4,7 +4,9 @@ import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError, shouldRetryManagementRead } from "../../api/errors";
 import { useOverviewBilling } from "../overview/useOverviewBilling";
-import { Sheet } from "../../components/Sheet";
+import { Sheet, SheetDismissButton } from "../../components/Sheet";
+import { StatusBadge } from "../../components/StatusBadge";
+import { protocolName } from "../accounts/presentation";
 import { ResourcePicker } from "../../components/ResourcePicker";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { costConfidenceLabel, formatMicrounits, errorCodeLabel, type AttemptRow } from "./model";
@@ -149,11 +151,12 @@ export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:
 
 function RequestDetail({row,onClose}:Readonly<{row:RequestRow;onClose:()=>void}>) {
   const attempts=useQuery({queryKey:["request-attempts",row.request_id],queryFn:()=>call<readonly AttemptRow[]>("listRequestAttempts",{path:{request_id:row.request_id}}),retry:false});
-  return <Sheet title={row.model} layout="inspector" onEscape={onClose}>
-    <dl className="request-facts"><dt>结果</dt><dd>{outcomeLabel[row.outcome]}</dd><dt>开始</dt><dd>{time(row.started_at_ms)}</dd><dt>结束</dt><dd>{time(row.finished_at_ms)}</dd><dt>总耗时</dt><dd>{milliseconds(row.duration_ms)}</dd><dt>首内容延迟</dt><dd>{milliseconds(row.first_content_ms)}</dd><dt>费用（微单位）</dt><dd>{row.ledger_records?`${row.cost_microunits===null?"—":formatMicrounits(row.cost_microunits)} · ${row.cost_confidence?costConfidenceLabel(row.cost_confidence):""}`:"尚无账本记录"}</dd><dt>上游尝试</dt><dd>{row.attempt_count}</dd><dt>错误</dt><dd>{row.error_code?errorCodeLabel(row.error_code):"—"}</dd></dl>
-    {row.usage?<details><summary>Token 用量</summary><dl className="request-facts">{Object.entries(row.usage).map(([name,value])=><div key={name}><dt>{name}</dt><dd>{value??"未观测"}</dd></div>)}</dl></details>:null}
-    <h4>重试链</h4>{attempts.isError?<p role="alert">{asAppError(attempts.error).message}</p>:attempts.isPending?<p>读取尝试…</p>:<ol className="request-attempts">{attempts.data.map((attempt,index)=><li key={attempt.attempt_id}><strong>尝试 {index+1} · {attempt.outcome==="succeeded"?"已建立上游响应":attempt.outcome}</strong>{attempt.credential_id?<ResourceIdentity id={attempt.credential_id} kind="account"/>:null}{attempt.endpoint_id&&attempt.credential_id?<Link to={`/runtime?${new URLSearchParams({endpoint_id:attempt.endpoint_id,credential_id:attempt.credential_id})}`} onClick={onClose}>查看诊断</Link>:null}</li>)}</ol>}
-    <details className="request-reference"><summary>请求标识</summary><code>{row.request_id}</code></details>
+  return <Sheet title="请求详情" layout="inspector" onEscape={onClose} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
+    <header className="request-inspector-header"><h3>{row.model}</h3><StatusBadge status={row.outcome==="succeeded"?"active":row.outcome==="failed"?"unauthorized":"disabled"}>{outcomeLabel[row.outcome]}</StatusBadge><p>{protocolName(row.protocol)} · {row.streaming?"流式请求":"非流式请求"}</p></header>
+    <section className="request-inspector-section"><h4>时间与计价</h4><dl className="request-facts"><dt>开始</dt><dd>{time(row.started_at_ms)}</dd><dt>结束</dt><dd>{time(row.finished_at_ms)}</dd><dt>总耗时</dt><dd>{milliseconds(row.duration_ms)}</dd><dt>首内容延迟</dt><dd>{milliseconds(row.first_content_ms)}</dd><dt>费用（微单位）</dt><dd>{row.ledger_records?`${row.cost_microunits===null?"—":formatMicrounits(row.cost_microunits)} · ${row.cost_confidence?costConfidenceLabel(row.cost_confidence):""}`:"尚无账本记录"}</dd>{row.error_code?<><dt>错误</dt><dd>{errorCodeLabel(row.error_code)}</dd></>:null}</dl></section>
+    {row.usage?<details className="request-inspector-section"><summary>Token 用量</summary><dl className="request-facts">{Object.entries(row.usage).map(([name,value])=><div key={name}><dt>{name}</dt><dd>{value??"未观测"}</dd></div>)}</dl></details>:null}
+    <section className="request-inspector-section"><h4>上游尝试 <span>{row.attempt_count} 次</span></h4>{attempts.isError?<p role="alert">{asAppError(attempts.error).message}</p>:attempts.isPending?<p role="status">读取尝试…</p>:!attempts.data.length?<p className="muted">暂无可读取的尝试记录。</p>:<ol className="request-attempts">{attempts.data.map((attempt,index)=><li key={attempt.attempt_id}><strong>尝试 {index+1} · {attempt.outcome==="succeeded"?"已建立上游响应":attempt.outcome}</strong>{attempt.credential_id?<ResourceIdentity id={attempt.credential_id} kind="account"/>:null}{attempt.endpoint_id&&attempt.credential_id?<Link to={`/runtime?${new URLSearchParams({endpoint_id:attempt.endpoint_id,credential_id:attempt.credential_id})}`} onClick={onClose}>查看诊断</Link>:null}</li>)}</ol>}</section>
+    <details className="request-reference request-inspector-section"><summary>请求标识</summary><code>{row.request_id}</code></details>
   </Sheet>;
 }
 export function RequestHistoryPanel() {

@@ -1,3 +1,4 @@
+import { AccountIdentityHeader } from "../accounts/AccountIdentityHeader";
 import { AccountEvidenceTabs } from "../accounts/AccountEvidenceTabs";
 import { useVersionStore } from "../config-versions/versionStore";
 import { IdentityDetails } from "../../components/ResourceIdentity";
@@ -117,10 +118,10 @@ export function CredentialSheet({
   const authenticationLabel=isKimiOAuth?"Kimi Coding 授权":isCodexOAuth?"Codex / ChatGPT 授权":row?.kind==="bearer"?"API Key / Token":"已保存渠道凭据";
 
   return (
-    <Sheet title="账号详情" description="查看账号身份、授权状态、套餐与维护操作；内部关联信息按需展开。" layout="inspector" onEscape={onClose} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
-      <h3>{accountName ?? meta?.email ?? "未提供账号身份"}</h3>
+    <Sheet title="账号详情" layout="inspector" onEscape={onClose} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
+      <AccountIdentityHeader name={accountName ?? meta?.email} provider={providerName??"未观测渠道"} method={authenticationLabel} status={row?<StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>:<span className="muted">读取中</span>}/>
       {credential.isError?<p role="alert">{asAppError(credential.error).message}</p>:null}
-      <AccountEvidenceTabs accountId={credentialId} onNavigate={onClose} overview={<dl className="fact-grid"><dt>渠道</dt><dd>{providerName??"未观测"}</dd><dt>状态</dt><dd>{row?<StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>:"读取中"}</dd><dt>套餐</dt><dd>{plan??meta?.plan??"未观测"}</dd><dt>授权资料</dt><dd>{row?.secret_present?"已保存":"未观测"}</dd></dl>} configuration={<>
+      <AccountEvidenceTabs accountId={credentialId} onNavigate={onClose} overview={<section className="account-overview-facts"><h4>授权与套餐</h4><dl className="fact-grid"><dt>接入方式</dt><dd>{authenticationLabel}</dd><dt>套餐</dt><dd>{plan??meta?.plan??"未观测"}</dd><dt>配额声明</dt><dd>{meta?.quota??"未观测"}</dd><dt>授权资料</dt><dd>{row?row.secret_present?"已保存":"未配置":"读取中"}</dd></dl><p className="account-evidence-note">运行调度与剩余额度以各自观测为准。</p></section>} configuration={<>
       <h4>授权配置</h4>
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">

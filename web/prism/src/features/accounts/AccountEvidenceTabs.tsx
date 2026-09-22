@@ -19,7 +19,7 @@ export function AccountEvidenceTabs({accountId,overview,configuration,onNavigate
  const catalog=useQuery({queryKey:['catalog-status',scope],enabled:!!scope&&tab==='models',retry:false,queryFn:({signal})=>call<CatalogRow[]>('getCatalogStatus',{signal},{versionScoped:true})});
  const observed=(catalog.data??[]).filter(row=>row.credential_id===accountId);
  return <div className="account-evidence"><nav className="workspace-navigation" aria-label="账号详情分类">{tabs.map(([value,label])=><button type="button" key={value} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}</nav>
-  {tab==='overview'?overview:tab==='configuration'?configuration:tab==='models'?<>
+  <div className="account-evidence-body">{tab==='overview'?overview:tab==='configuration'?configuration:tab==='models'?<>
    {catalog.isPending?<p role="status">读取模型目录…</p>:catalog.isError?<p role="alert">{asAppError(catalog.error).message}</p>:!observed.length?<p>此账号尚无成功目录观测；不据套餐推断可用模型。</p>:observed.map(row=><section key={row.endpoint_id} className="account-evidence-card"><ResourceIdentity id={row.endpoint_id} kind="endpoint"/><p>{freshnessMeta(row.freshness).label} · 上游模型 {row.model_count??'未观测'}</p><p>观测时间：{row.freshness==='missing'?'未观测':formatObservedAt(row.observed_at_ms)}</p><Link to={`/catalog?${new URLSearchParams({endpoint_id:row.endpoint_id,credential_id:accountId})}`} onClick={onNavigate}>查看完整目录与开放模型</Link></section>)}
    <button className="secondary" disabled={catalog.isFetching} onClick={()=>void catalog.refetch()}>重新读取目录状态</button>
   </>:<>
@@ -31,6 +31,6 @@ export function AccountEvidenceTabs({accountId,overview,configuration,onNavigate
    </section>)}
    {tab==='quota'?<p className="muted">套餐、额度和模型权限分别判断；未观测的余额保持未知。</p>:null}
    <button className="secondary" disabled={runtime.isFetching} onClick={()=>void runtime.refetch()}>重新读取运行观测</button>
-  </>}
+  </>}</div>
  </div>;
 }

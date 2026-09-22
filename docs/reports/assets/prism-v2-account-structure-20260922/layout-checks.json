@@ -1,0 +1,146 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "accounts",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "models",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "upstreams",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "accounts",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "models",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "upstreams",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "accounts",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "models",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "upstreams",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "accounts",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "models",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "upstreams",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "accounts",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "models",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "upstreams",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "accounts",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "models",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "upstreams",
+    "overflow": false,
+    "error": false
+  }
+]

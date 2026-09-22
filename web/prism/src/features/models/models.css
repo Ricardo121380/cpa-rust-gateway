@@ -64,7 +64,10 @@
   color: var(--ink-2);
 }
 
-.model-source-preview { display: grid; gap: 6px; color: var(--ink-2); font-size: 13px; }
+.model-source-preview { display: grid; gap: 4px; color: var(--ink-2); font-size: 11px; }
+.models-inventory td:first-child .model-source-preview { margin-top:6px; }
+.models-inventory td:first-child { width:38%; }
+.models-inventory td:first-child > strong { font-size:12px; }
 .model-source-list { display: grid; gap: 14px; }
 .model-source-card { padding: 18px; border: 1px solid var(--separator); border-radius: 16px; background: var(--surface); }
 .model-source-card h4 { margin: 0 0 6px; }
@@ -105,6 +108,7 @@
     content: attr(data-label); display: block; margin-bottom: 4px;
     color: var(--ink-2); font-size: 12px;
   }
+  .models-inventory tbody td:first-child { width:auto; }
   .models-inventory td:first-child::before { display: none; }
   .models-inventory .mono { white-space: normal; overflow-wrap: anywhere; }
   .models-inventory td.row-actions { display: flex; flex-wrap: wrap; gap: 8px; }

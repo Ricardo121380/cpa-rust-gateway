@@ -258,9 +258,9 @@ export function UpstreamsPage() {
           const models=[...new Set(topology.data?.candidates.filter(c=>endpointIds.has(c.endpoint_id)).map(c=>c.upstream_model)??[])];
           const name=resourceName(upstream.id,"upstream",upstream.name);
           return <article className="provider-card" data-selected={expanded===upstream.id} key={upstream.id}>
-            <header><span className="provider-avatar" aria-hidden="true">{name.slice(0,2)}</span><div><h3>{name}</h3><span className="provider-kind">{providerKindLabel(upstream.kind)} · {upstream.enabled?"已启用":"已停用"}</span><div className="provider-connections">{topology.isError?"连接读取失败":!topology.data?"读取连接…":endpoints.length?endpoints.map(e=><span key={e.id}>{protocolName(e.api_format)} · {new URL(e.base_url).host}{e.enabled?"":" · 已停用"}</span>):"尚未添加接口"}</div></div></header>
+            <header><span className="provider-avatar" aria-hidden="true">{name.slice(0,2)}</span><div><h3>{name}</h3><span className="provider-kind">{providerKindLabel(upstream.kind)} · {upstream.enabled?"已启用":"已停用"}</span><div className="provider-connections">{topology.isError?"连接读取失败":!topology.data?"读取连接…":endpoints.length?[...new Set(endpoints.map(e=>protocolName(e.api_format)))].join(" · "):"尚未添加接口"}</div></div></header>
 
-            <div className="provider-models"><span className="muted">已配置模型 <strong>{topology.isError?"—":topology.data?models.length:"—"}</strong></span><Link to={manualModelConnectPath(upstream.id)}>目录与模型开放</Link></div>
+            <div className="provider-models"><span><strong>{topology.isError?"—":topology.data?models.length:"—"}</strong> 个已配置模型</span><Link to={manualModelConnectPath(upstream.id)}>目录与模型开放</Link></div>
             <footer><div className="row-actions">
               <button className="secondary" aria-expanded={expanded===upstream.id} aria-controls={expanded===upstream.id?"provider-detail":undefined} disabled={providerActionActive && expanded !== upstream.id} title={providerActionActive && expanded !== upstream.id ? "请先完成或关闭当前操作。" : undefined} onClick={()=>selectProviderWorkspace(expanded===upstream.id?undefined:upstream.id)}>{expanded===upstream.id?"收起接口":"接口与账号"}</button>
 

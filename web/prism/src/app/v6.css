@@ -359,15 +359,19 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 .workspace-context button { margin-left:auto; }
 
 /* Account directory: the same rows and material for every channel, including native Grok. */
-.account-directory-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin:24px 0 16px; }
+.account-directory-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:16px 0; }
+.account-directory-tools { display:flex; gap:8px; margin-left:auto; }
+.account-status-tabs { display:flex; flex-wrap:wrap; gap:4px; }
+.account-status-tabs button { min-height:36px; padding:7px 12px; border:1px solid transparent; background:transparent; box-shadow:none; color:var(--ink-2); border-radius:10px; }
+.account-status-tabs button[aria-pressed="true"] { background:var(--surface); border-color:var(--separator); color:var(--ink); }
 .account-search { flex:1; min-width:220px; max-width:480px; margin:0; }
 .account-search input { width:100%; margin:0; }
 .account-category-filter { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:20px; padding:4px; width:fit-content; max-width:100%; border:1px solid var(--separator); border-radius:14px; background:var(--surface-2); }
 .account-category-filter button { background:transparent; color:var(--ink-2); border:1px solid transparent; box-shadow:none; border-radius:11px; padding:8px 16px; min-height:40px; }
 .account-category-filter button[aria-pressed="true"] { background:linear-gradient(145deg,var(--pearl-top),var(--pearl-end)); color:var(--ink); border-color:var(--separator); }
-.account-directory { display:grid; gap:0; border:1px solid var(--separator); border-radius:20px; background:var(--panel-tint); overflow:hidden; }
+.account-directory { display:grid; gap:0; border:1px solid var(--separator); border-radius:20px; background:var(--surface); overflow:hidden; }
 .account-directory:empty { display:none; }
-.account-group { min-width:0; border:0; border-bottom:1px solid var(--separator); border-radius:0; background:var(--panel-tint); }
+.account-group { min-width:0; border:0; border-bottom:1px solid var(--separator); border-radius:0; background:var(--surface); }
 .account-group:last-child { border-bottom:0; }
 .account-grants { display:grid; gap:16px; }
 .account-grant { padding:16px; border:1px solid var(--separator); border-radius:16px; background:var(--panel-tint); overflow-wrap:anywhere; }
@@ -380,7 +384,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 .account-subgroup + .account-subgroup { border-top:1px solid var(--separator); }
 .account-list-wrap { width:100%; overflow-x:auto; }
 .account-list { width:100%; table-layout:fixed; margin:0; }
-.account-list th { font-size:12px; font-weight:500; color:var(--ink-2); }
+.account-list th { background:var(--surface-2); font-size:11px; font-weight:500; color:var(--ink-2); }
 .account-list th:nth-child(1) { width:29%; }
 .account-list th:nth-child(2) { width:15%; }
 .account-list th:nth-child(3) { width:14%; }
@@ -567,3 +571,27 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 .account-identity-layout > span:last-child { min-width:0; overflow-wrap:anywhere; }
 .account-identity-avatar { display:grid; place-items:center; flex:0 0 32px; height:32px; border:1px solid var(--separator); border-radius:10px; background:var(--surface-2); color:var(--ink-2); font-size:12px; }
 .workspace-navigation button[aria-pressed="true"] { border-bottom-color:var(--tint); }
+
+/* V2 account inspector: identity, evidence tabs, then one content plane. */
+.account-inspector-identity { display:grid; grid-template-columns:44px minmax(0,1fr); gap:12px; align-items:center; padding:4px 0 20px; }
+.account-inspector-identity .account-identity-avatar { width:44px; height:44px; font-size:18px; border-radius:13px; }
+.account-inspector-identity h3 { margin:0; font-size:16px; font-weight:650; letter-spacing:-.025em; overflow-wrap:anywhere; }
+.account-inspector-identity p { margin:5px 0 0; font-size:12px; color:var(--ink-2); }
+.account-inspector-status { grid-column:2; }
+.account-evidence .workspace-navigation { gap:22px; margin:0; }
+.account-evidence-body { padding-top:20px; }
+.account-overview-facts h4 { font-size:13px; margin:0 0 16px; }
+.account-overview-facts .fact-grid { margin:0; grid-template-columns:minmax(90px,.8fr) minmax(0,1.2fr); gap:16px; }
+.account-evidence-note { color:var(--ink-2); font-size:11px; line-height:1.7; margin:20px 0 0; padding-top:14px; border-top:1px solid var(--separator); }
+.account-overview-connections { list-style:none; margin:0; padding:0; }
+.account-overview-connections li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; border-bottom:1px solid var(--separator); }
+.account-overview-connections li:first-child { padding-top:0; }
+.account-overview-connections li:last-child { border:0; }
+.account-overview-connections strong { font-size:12px; font-weight:600; }
+.account-overview-connections li > div > span { display:block; margin-top:4px; color:var(--ink-2); font-size:11px; overflow-wrap:anywhere; }
+@media (max-width:720px) {
+  .account-directory-toolbar { gap:8px; }
+  .account-directory-toolbar .account-search { flex-basis:100%; max-width:none; }
+  .account-directory-tools { width:100%; justify-content:flex-end; }
+  .account-status-tabs button { min-height:44px; }
+}
