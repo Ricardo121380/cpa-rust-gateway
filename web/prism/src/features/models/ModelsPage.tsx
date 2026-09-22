@@ -1,3 +1,4 @@
+import { modelSources } from "./modelSources";
 import { WorkspaceTabs } from "../../app/WorkspaceTabs";
 import { useModelWorkspaceFilters } from "./workspaceFilters";
 import { useOperationBoundary } from "../../components/OperationBoundary";
@@ -58,8 +59,10 @@ export function ModelsPage() {
   const searchText=useModelWorkspaceFilters(state=>state.modelSearch);
   const setSearchText=useModelWorkspaceFilters(state=>state.setModelSearch);
   const [connectionSeed,setConnectionSeed]=useState<{model:string;endpoint:string;alias?:string;targetModelId?:string}>();
+  const providerFilter=useModelWorkspaceFilters(state=>state.modelProvider);
+  const setProviderFilter=useModelWorkspaceFilters(state=>state.setModelProvider);
   const topology=useModelConnections();
-  const providers=useQuery({queryKey:["upstreams",scope],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});
+  const providers=useQuery({queryKey:["upstreams",scope,context?.revision],queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true}),enabled:!!scope});
   const [confirmDelete, setConfirmDelete] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
   const [aliasTarget, setAliasTarget] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
   const [routeTarget, setRouteTarget] = useState<{model:PublicModel;owner:DraftRoutingOwner}>();
@@ -75,6 +78,13 @@ export function ModelsPage() {
     queryFn: () => call<PublicModel[]>("listPublicModels", {}, { versionScoped: true }),
     enabled: scope !== undefined,
   });
+
+  const connectionsFor=(id:string)=>modelSources(id,topology.data?.routes??[],topology.data?.candidates??[]);
+  const visibleModels=(models.data??[]).filter(model=>
+    model.model_name.toLowerCase().includes(searchText.trim().toLowerCase())&&
+    (!providerFilter||connectionsFor(model.id).some(candidate=>topology.data?.endpoints.some(endpoint=>endpoint.id===candidate.endpoint_id&&endpoint.upstream_id===providerFilter)))
+  );
+  const filteredSourcesReady=!providerFilter||!!topology.data&&!topology.isError;
 
   const invalidate = () => {
     void queryClient.resetQueries({ queryKey: ["public-models"] });
@@ -183,24 +193,27 @@ export function ModelsPage() {
 
       <ReadStatus pending={!!scope&&models.isPending} error={models.error} hasData={models.data !== undefined} retry={() => void models.refetch()} />
 
-      <div className="data-toolbar"><input type="search" aria-label="搜索已接入模型" placeholder="搜索模型 ID" value={searchText} onChange={e=>setSearchText(e.target.value)}/><span className="muted">{models.data?.length??"—"} 个已接入模型</span><Link to="/catalog">浏览上游模型目录 →</Link></div>
+      <div className="model-source-context"><div><strong>{providerFilter?resourceName(providerFilter,"upstream",providers.data?.find(provider=>provider.id===providerFilter)?.name):"全部来源"}</strong><span>原始模型 ID 与提供商来源同时保留</span></div>{providerFilter?<button className="secondary" onClick={()=>setProviderFilter("")}>清除来源筛选</button>:<Link to="/catalog">浏览上游目录</Link>}</div>
+      <div className="data-toolbar model-filters"><input type="search" aria-label="搜索已接入模型" placeholder="搜索模型 ID" value={searchText} onChange={e=>setSearchText(e.target.value)}/><select aria-label="模型提供商" value={providerFilter} disabled={providers.isPending||providers.isError} onChange={event=>setProviderFilter(event.target.value)}><option value="">全部提供商</option>{providerFilter&&!providers.data?.some(provider=>provider.id===providerFilter)?<option value={providerFilter}>所选来源待核对</option>:null}{providers.data?.map(provider=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select><span className="muted">{models.data&&filteredSourcesReady?visibleModels.length:"—"} / {models.data?.length??"—"} 个已接入模型</span></div>
+      <ReadStatus pending={false} error={providers.error} hasData={!!providers.data} retry={()=>void providers.refetch()}/>
       <ReadStatus pending={false} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
       <div className="card tablewrap models-inventory">
         <table>
           <thead>
             <tr>
-              <th>模型 ID</th><th>来源连接</th><th>状态</th><th>操作</th>
+              <th>模型 ID</th><th>提供商来源</th><th>上游协议</th><th>开放状态</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {searchText&&models.data&&!models.data.some(m=>m.model_name.toLowerCase().includes(searchText.toLowerCase()))?<tr><td colSpan={4} className="empty-state">没有匹配的模型。</td></tr>:null}
-            {(models.data ?? []).filter(m=>m.model_name.toLowerCase().includes(searchText.toLowerCase())).map((model) => {
-              const route=topology.data?.routes.find(r=>r.public_model_id===model.id);
-              const sources=topology.data?.candidates.filter(c=>c.route_id===route?.id)??[];
+            {(searchText||providerFilter)&&models.data&&filteredSourcesReady&&visibleModels.length===0?<tr><td colSpan={5} className="empty-state">没有匹配的模型。<button className="secondary" onClick={()=>{setSearchText("");setProviderFilter("");}}>清除筛选</button></td></tr>:null}
+            {providerFilter&&!filteredSourcesReady?<tr><td colSpan={5} className="empty-state">{topology.isError?"来源读取失败，请重新读取后筛选。":"正在读取模型来源…"}</td></tr>:null}
+            {(filteredSourcesReady?visibleModels:[]).map((model) => {
+              const sources=connectionsFor(model.id);
               return <tr key={model.id}>
                 <td data-label="模型 ID"><strong className="mono">{model.model_name}</strong>{model.display_name!==model.model_name?<span className="entity-meta">{model.display_name}</span>:null}</td>
-                <td data-label="来源连接"><div className="model-source-preview">{topology.isError?"连接读取失败":!topology.data?"读取连接…":!sources.length?"未添加连接":[...new Map(sources.map(c=>[c.endpoint_id,c])).values()].map(c=>{const endpoint=topology.data?.endpoints.find(e=>e.id===c.endpoint_id);return <span key={c.id}>{resourceName(endpoint?.upstream_id??"","upstream",providers.data?.find(p=>p.id===endpoint?.upstream_id)?.name)} · {protocolName(endpoint?.api_format??"")}{sources.some(s=>s.endpoint_id===c.endpoint_id&&s.enabled)?"":" · 已停用"}</span>;})}</div></td>
-                <td data-label="状态"><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
+                <td data-label="来源连接"><div className="model-source-preview">{topology.isError?"连接读取失败":!topology.data?"读取连接…":!sources.length?"未添加连接":[...new Map(sources.map(c=>[c.endpoint_id,c])).values()].map(c=>{const endpoint=topology.data?.endpoints.find(e=>e.id===c.endpoint_id);return <span key={c.id}>{resourceName(endpoint?.upstream_id??"","upstream",providers.data?.find(p=>p.id===endpoint?.upstream_id)?.name)}{sources.some(s=>s.endpoint_id===c.endpoint_id&&s.enabled)?"":" · 已停用"}</span>;})}</div></td>
+                <td data-label="上游协议"><div className="model-source-preview">{topology.isError?"未读取":!topology.data?"读取中…":[...new Set(sources.map(source=>topology.data?.endpoints.find(endpoint=>endpoint.id===source.endpoint_id)?.api_format).filter((format):format is string=>!!format))].map(format=><span key={format}>{protocolName(format)}</span>)}</div>{topology.data&&!sources.length?"—":null}</td>
+                <td data-label="开放状态"><StatusBadge status={model.status}>{model.status==="active"?"已启用":"已停用"}</StatusBadge></td>
                 <td className="row-actions"><button className="secondary" onClick={()=>boundary.request(()=>setConnectionTarget(model))}>管理连接</button><button className="secondary" onClick={()=>boundary.request(()=>setInspected(model))}>详情</button>
                   <details className="row-menu"><summary>更多</summary><div>
                     <button className="secondary" onClick={()=>openModelEditor(model)}>编辑模型</button>
@@ -230,8 +243,8 @@ export function ModelsPage() {
           </button><RouteWorkbench onCandidateActiveChange={setCandidateActive} focusRouteId={createdRouteId} editable={editable} modelSeed={modelSeed} /></details>
 
       {connectionTarget?<ModelConnectionsDialog model={connectionTarget} onClose={()=>setConnectionTarget(undefined)} onSaved={version=>{setConnectionTarget(undefined);useVersionStore.getState().select(version);invalidate();}} onAdd={()=>{const route=topology.data?.routes.find(r=>r.public_model_id===connectionTarget.id);const mappings=[...new Set(topology.data?.candidates.filter(c=>c.route_id===route?.id).map(c=>c.upstream_model)??[])];if(mappings.length>1){setNotice("该模型已有多种上游映射，请在高级路由配置中选择具体路径。");return;}setConnectionSeed({model:mappings[0]??connectionTarget.model_name,endpoint:"",targetModelId:connectionTarget.id});setConnectionTarget(undefined);setConnecting(true);}}/>:null}
-      {inspected === undefined ? null : <ObjectInspector title={inspected.display_name || inspected.model_name} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
-        ["配置 ID", inspected.id], ["模型名称", inspected.model_name], ["配置状态", inspected.status],
+      {inspected === undefined ? null : <ObjectInspector title={inspected.model_name} scope="已接入模型" onClose={() => setInspected(undefined)} facts={[
+        ["模型名称", inspected.model_name], ["显示名称", inspected.display_name || inspected.model_name], ["开放状态", inspected.status==="active"?"已启用":"已停用"],
         ["声明能力", enabledCapabilities(inspected.capabilities).join(" · ") || "未声明"],
       ]}>
         <p className="small muted">这是版本配置中的公开模型；客户端实际可见性还取决于 serving 配置和访问授权。</p>

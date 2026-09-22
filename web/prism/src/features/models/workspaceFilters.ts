@@ -10,17 +10,21 @@ export const emptyCatalogFilters: CatalogFilters = { provider: "", endpoint: "",
 export const useModelWorkspaceFilters = create<{
   catalog: CatalogFilters;
   modelSearch: string;
+  modelProvider: string;
+  setModelProvider: (value: string) => void;
   setCatalog: (value: CatalogFilters) => void;
   setModelSearch: (value: string) => void;
 }>((set) => ({
   catalog: emptyCatalogFilters,
   modelSearch: "",
+  modelProvider: "",
+  setModelProvider: (modelProvider) => set({ modelProvider }),
   setCatalog: (catalog) => set({ catalog }),
   setModelSearch: (modelSearch) => set({ modelSearch }),
 }));
 
 function clearFilters() {
-  useModelWorkspaceFilters.setState({ catalog: emptyCatalogFilters, modelSearch: "" });
+  useModelWorkspaceFilters.setState({ catalog: emptyCatalogFilters, modelSearch: "", modelProvider: "" });
 }
 useSessionStore.subscribe((state, previous) => {
   if (state.generation !== previous.generation) clearFilters();

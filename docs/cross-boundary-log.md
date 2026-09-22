@@ -3016,3 +3016,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Continue the user-authorized V2 reproduction with compact key metadata, readable details and a searchable permission selection panel across desktop/mobile.
 
 **Other side:** FYI. Existing permission write/conflict/session logic retained; no contract or backend change. Local verification and limitations recorded in `docs/reports/prism-liquid-v2-fidelity.md`; no production deployment.
+
+## 2026-09-22 - Codex - V2 model source workspace
+
+**What:** `web/prism/src/features/models/ModelsPage.tsx`, `models.css`, `workspaceFilters.ts`, `workspaceFilters.test.ts`, `modelSources.ts`, `modelSources.test.ts`.
+
+**Why:** Continue user-approved V2 reproduction with source context/filtering, separate upstream protocols and clearer model details. Preserve all configured model routes in source presentation.
+
+**Other side:** FYI. Read-only presentation; no management contract, permissions, generated files or production changes. Local evidence and limitations are in `docs/reports/prism-liquid-v2-fidelity.md`.
