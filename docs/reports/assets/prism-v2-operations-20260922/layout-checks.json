@@ -1,0 +1,146 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "access",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "usage",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "route": "settings",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "access",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "usage",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "dark",
+    "route": "settings",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "access",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "usage",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "light",
+    "route": "settings",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "access",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "usage",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "theme": "dark",
+    "route": "settings",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "access",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "usage",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "route": "settings",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "access",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "usage",
+    "overflow": false,
+    "error": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "route": "settings",
+    "overflow": false,
+    "error": false
+  }
+]

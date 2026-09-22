@@ -107,3 +107,6 @@
 @media(max-width:600px) { .settings-preference-row { gap:14px; flex-wrap:wrap; } .settings-page .settings-preferences { padding:0 16px; } .settings-preference-row:has(.settings-switch) { flex-wrap:nowrap; min-height:64px; } }
 @media(prefers-reduced-motion:reduce) { .settings-switch::before { transition:none; } }
 html[data-motion="reduce"] .settings-switch::before { transition:none; }
+
+.settings-preference-row:last-child { border-bottom:0; }
+.settings-preference-row .settings-lock { margin:0; flex-shrink:0; }

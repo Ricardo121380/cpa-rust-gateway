@@ -79,10 +79,10 @@
 /* ---- summary ----------------------------------------------------------- */
 
 .usage-summary {
-  display: flex;
-  align-items: baseline;
-  gap: 10px 32px;
-  flex-wrap: wrap;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:18px;
+  align-items:start;
 }
 .usage-kpi {
   display: flex;
@@ -176,5 +176,25 @@
 .usage-filter-disclosure summary { cursor:pointer; padding:8px 0; }
 .usage-summary .usage-kpi { flex:1 1 160px; flex-direction:column-reverse; gap:12px; }
 .usage-summary .usage-kpi-value { font-size:28px; font-weight:650; }
-.usage-summary .usage-watermark { flex-basis:100%; padding-top:12px; border-top:1px solid var(--separator); }
+.usage-summary .usage-watermark { grid-column:1/-1; margin:0; padding-top:12px; border-top:1px solid var(--separator); }
 .usage-seg, .usage-seg button { border-radius:11px; }
+
+.usage-controls { margin:18px 0 8px; }
+.usage-page .page-head .usage-seg { flex-wrap:wrap; border-radius:13px; }
+.usage-range-context { color:var(--ink-2); font-size:12px; margin:16px 0; }
+@media(max-width:720px) {
+ .usage-table-panel { overflow:visible; }
+ .usage-table,.usage-table tbody,.usage-table tfoot { display:block; width:100%; min-width:0; }
+ .usage-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+ .usage-table tr { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:18px 0; border-bottom:1px solid var(--separator); }
+ .usage-table tr > th { grid-column:1/-1; min-width:0; }
+ .canvas .usage-table :is(td,th) { display:block; padding:0; border:0; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+ .usage-table td::before { content:attr(data-label); display:block; font-family:var(--font-text); font-size:11px; color:var(--ink-2); margin-bottom:6px; }
+ .usage-table .usage-conf { display:block; width:fit-content; margin:5px 0 0; }
+ .usage-table tfoot tr { border-bottom:0; }
+}
+
+@media(max-width:720px) { .usage-summary .usage-kpi-value { font-size:23px; } .usage-summary .usage-kpi-label { font-size:11px; line-height:1.6; } }
+/* Table cards opt out of the legacy first-child underlap. */
+.shell .canvas .usage-page .card.usage-table-panel { padding:20px 22px; }
+@media(max-width:720px) { .shell .canvas .usage-page .card.usage-table-panel { padding:0 16px; } }

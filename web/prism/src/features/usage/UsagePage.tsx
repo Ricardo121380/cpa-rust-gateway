@@ -101,9 +101,9 @@ function ConfidenceChip({ total }: Readonly<{ total: FamilyTotal }>) {
 /** A family cell: number, then how much to trust it. The `≥` marker is not
  *  decoration — it means at least one contributor reported no observation, so
  *  the figure is a lower bound. */
-function FamilyCell({ total }: Readonly<{ total: FamilyTotal }>) {
+function FamilyCell({ total, label }: Readonly<{ total: FamilyTotal; label:string }>) {
   return (
-    <td className="mono usage-num">
+    <td className="mono usage-num" data-label={label}>
       {total.partialCoverage && total.total !== null ? "≥ " : ""}
       {formatTokens(total.total)}
       <ConfidenceChip total={total} />
@@ -141,7 +141,8 @@ export function UsagePage() {
   // The window is pinned to the query key, not recomputed on every render:
   // a moving `now` would make every re-render a cache miss.
   const from=params.get("from_ms"),to=params.get("to_ms");
-  const window = useMemo(() => from!==null&&to!==null&&Number.isFinite(Number(from))&&Number.isFinite(Number(to))&&Number(from)>=0&&Number(to)>=Number(from)?{from_ms:Number(from),to_ms:Number(to)}:rangeParams(range,Date.now()), [range,from,to]);
+  const exactRange=from!==null&&to!==null&&Number.isFinite(Number(from))&&Number.isFinite(Number(to))&&Number(from)>=0&&Number(to)>=Number(from);
+  const window = useMemo(() => exactRange?{from_ms:Number(from),to_ms:Number(to)}:rangeParams(range,Date.now()), [range,from,to,exactRange]);
 
   const usage = useQuery({
     // No config version in the key: this operation is not version-scoped.
@@ -180,25 +181,27 @@ export function UsagePage() {
     <section className="usage-page">
       <header className="page-head">
         <div><h2>{t.nav.usage}</h2><p className="page-description">已知用量、计价置信度和未计价记录，分别核对。</p></div>
-      </header>
-      <WorkspaceTabs />
-
-
-
-      <div className="card usage-controls">
         <div className="usage-seg" role="group" aria-label="时间窗">
           {RANGE_PRESETS.map((preset) => (
             <button
               key={preset}
               type="button"
               className="secondary"
-              aria-pressed={preset === range}
+              aria-pressed={!exactRange&&preset === range}
               onClick={() => patch({ range: preset })}
             >
               {rangeLabel(preset)}
             </button>
           ))}
         </div>
+      </header>
+      <WorkspaceTabs />
+
+
+
+      {exactRange?<p className="usage-range-context">当前链接范围 · {formatWatermark(Number(from))} — {formatWatermark(Number(to))}</p>:null}
+      <div className="usage-controls">
+
         <label className="usage-by">
           分组维度
           <select value={dimension} onChange={(event) => patch({ by: event.target.value })}>
@@ -301,7 +304,7 @@ export function UsagePage() {
               </p>
             </div>
           ) : (
-            <div className="card tablewrap">
+            <div className="card tablewrap usage-table-panel">
               <table className="usage-table">
                 <thead>
                   <tr>
@@ -321,9 +324,9 @@ export function UsagePage() {
                         {dimension === "public_model" || dimension === "protocol" || (dimension === "access_group_id" && group.key === UNGROUPED_LABEL) ? group.key : <ResourceIdentity id={group.key} kind={dimension === "account_id" ? "account" : dimension === "channel_id" ? "endpoint" : dimension === "provider_id" ? "upstream" : dimension === "access_group_id" ? "group" : "resource"} />}
                         <ShareBar share={shareOf(group.request_count, totalRequests)} />
                       </th>
-                      <td className="mono usage-num">{formatCount(group.request_count)}</td>
+                      <td className="mono usage-num" data-label="请求">{formatCount(group.request_count)}</td>
                       {TOKEN_FAMILIES.map((family) => (
-                        <FamilyCell key={family} total={group.families[family]} />
+                        <FamilyCell key={family} label={familyLabel(family)} total={group.families[family]} />
                       ))}
                     </tr>
                   ))}
@@ -331,9 +334,9 @@ export function UsagePage() {
                 <tfoot>
                   <tr>
                     <th scope="row">合计</th>
-                    <td className="mono usage-num">{formatCount(totalRequests)}</td>
+                    <td className="mono usage-num" data-label="请求">{formatCount(totalRequests)}</td>
                     {TOKEN_FAMILIES.map((family) => (
-                      <FamilyCell key={family} total={sumFamily(rows, family)} />
+                      <FamilyCell key={family} label={familyLabel(family)} total={sumFamily(rows, family)} />
                     ))}
                   </tr>
                 </tfoot>

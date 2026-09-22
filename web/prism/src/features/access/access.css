@@ -24,3 +24,15 @@
 .key-model-options .mono { overflow-wrap:anywhere; min-width:0; }
 @media(max-width:520px) { .key-permissions-form .key-fields-row { grid-template-columns:1fr; } }
 .key-list .entity-meta { display:block; margin:4px 0; color:var(--ink-2); font-size:12px; }
+
+.key-inspector-heading { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding-bottom:20px; }
+.key-inspector-heading h3 { flex:1; margin:0; font-size:16px; font-weight:650; overflow-wrap:anywhere; }
+.key-inspector-heading > code { flex-basis:100%; color:var(--ink-2); font-size:12px; }
+.key-inspector-section { border-top:1px solid var(--separator); padding:20px 0; }
+.key-inspector-section h4 { margin:0 0 16px; font-size:13px; }
+.key-inspector-facts { display:grid; grid-template-columns:minmax(85px,.7fr) minmax(0,1.3fr); gap:16px; margin:0; font-size:12px; }
+.key-inspector-facts dt { color:var(--ink-2); }
+.key-inspector-facts dd { margin:0; overflow-wrap:anywhere; }
+.key-inspector-models { list-style:none; margin:0; padding:0; }
+.key-inspector-models li { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:12px 0; border-bottom:1px solid var(--separator); font-size:12px; }
+.key-inspector-models code { overflow-wrap:anywhere; }

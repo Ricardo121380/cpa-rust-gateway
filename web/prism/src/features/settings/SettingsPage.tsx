@@ -78,28 +78,11 @@ export function SettingsPage() {
       </div>
 
 
-      <div className="card" data-gap="top">
-        <div className="card-head">
-          <h3>{t.settings.session}</h3>
-        </div>
-        <p className="settings-help">{t.settings.sessionHelp}</p>
-        <dl className="settings-facts">
-          <dt>{t.settings.sessionKeyLabel}</dt>
-          <dd className="mono">{username ?? "—"}</dd>
-          <dt>{t.settings.sessionCsrfLabel}</dt>
-          <dd>{expiresAt === undefined ? "—" : new Date(expiresAt).toLocaleString()}</dd>
-        </dl>
-        <button
-          type="button"
-          className="settings-lock"
-          onClick={() => {
-            void logoutAdministrator();
-            navigate("/unlock", { replace: true });
-          }}
-        >
-          {t.settings.lock}
-        </button>
-        <button type="button" className="secondary" onClick={() => navigate("/unlock?change-password=1")}>{t.unlock.changeTitle}</button>
+      <h3 className="settings-section-title">连接与会话</h3>
+      <div className="card settings-preferences">
+        <div className="settings-preference-row"><div><h3>{t.settings.session}</h3><p>{t.settings.sessionHelp}</p></div><strong>{username ?? "—"}</strong></div>
+        <div className="settings-preference-row"><div><h3>{t.settings.sessionCsrfLabel}</h3><p>{expiresAt === undefined ? "未观测" : new Date(expiresAt).toLocaleString()}</p></div><button type="button" className="secondary" onClick={() => navigate("/unlock?change-password=1")}>{t.unlock.changeTitle}</button></div>
+        <div className="settings-preference-row"><div><h3>结束管理会话</h3><p>清除当前会话与缓存，返回登录页。</p></div><button type="button" className="settings-lock" onClick={() => {void logoutAdministrator();navigate("/unlock", { replace: true });}}>{t.settings.lock}</button></div>
       </div>
 
       <h3 className="settings-section-title">系统与维护</h3>

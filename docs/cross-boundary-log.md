@@ -3050,3 +3050,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Other side:** FYI. No generated contract, backend, secrets, production state or deployment changes. Local evidence and remaining work: `docs/reports/prism-v2-account-structure.md`.
 
 本批还包含 `features/monitoring/{RequestHistory.tsx,requests.css}` 的 V2 请求详情分区、真实尝试时间线及三个尺寸本地截图；不改变请求终态、时延和计价语义。
+
+## 2026-09-22 - Codex - V2 operational workspaces
+
+**What:** `web/prism/src/features/access/{AccessPage.tsx,access.css}`, `features/usage/{UsagePage.tsx,usage.css}`, `features/settings/{SettingsPage.tsx,settings.css}`.
+
+**Why:** Continue user-authorized V2 internal structure reproduction with explicit key permissions, compact real usage observations and consistent session rows.
+
+**Other side:** FYI. No backend, generated contract, secret persistence or production change. Evidence and unfinished scope: `docs/reports/prism-v2-operations-structure.md`.

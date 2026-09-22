@@ -403,12 +403,12 @@ export function AccessPage() {
       ]}><div className="sheet-actions"><button className="secondary" onClick={() => { setExpanded(inspectedGroup.id); setInspectedGroup(undefined); }}>查看授权路由</button>
         <button disabled={!editable} onClick={() => { setGroupForm(inspectedGroup); setInspectedGroup(undefined); }}>编辑访问组</button></div></ObjectInspector>}
 
-      {inspectedKey === undefined ? null : <ObjectInspector title={resourceName(inspectedKey.access_group_id, "group", groups.data?.find(group=>group.id===inspectedKey.access_group_id)?.name)} scope="API 密钥" onClose={() => setInspectedKey(undefined)} facts={[
-        ["密钥标识", `${inspectedKey.prefix}••••`],
-        ["状态", ({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[displayKeyStatus(inspectedKey, nowMs)]], ["有效期", formatExpiry(inspectedKey.expires_at_ms)],
-        ["最近请求", inspectedKey.last_request_at_ms == null ? "未观测" : new Date(inspectedKey.last_request_at_ms).toLocaleString()],
-      ]}><p className="small muted">完整密钥仅在签发时显示一次，详情不会重新显示。</p>
-        <div className="sheet-actions"><button onClick={() => { setEditKey(inspectedKey); setInspectedKey(undefined); }}>编辑密钥与权限</button></div></ObjectInspector>}
+      {inspectedKey === undefined ? null : <Sheet title="密钥详情" layout="inspector" onEscape={()=>setInspectedKey(undefined)} footer={<><SheetDismissButton className="secondary">关闭</SheetDismissButton><button onClick={() => { setEditKey(inspectedKey); setInspectedKey(undefined); }}>编辑密钥与权限</button></>}>
+        <header className="key-inspector-heading"><h3>{resourceName(inspectedKey.access_group_id,"group",groups.data?.find(group=>group.id===inspectedKey.access_group_id)?.name)}</h3><StatusBadge status={displayKeyStatus(inspectedKey,nowMs)}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[displayKeyStatus(inspectedKey,nowMs)]}</StatusBadge><code>{inspectedKey.prefix}••••</code></header>
+        <section className="key-inspector-section"><h4>使用与有效期</h4><dl className="key-inspector-facts"><dt>有效期</dt><dd>{formatExpiry(inspectedKey.expires_at_ms)}</dd><dt>最近请求</dt><dd>{inspectedKey.last_request_at_ms == null ? "未观测" : new Date(inspectedKey.last_request_at_ms).toLocaleString()}</dd><dt>完整密钥</dt><dd>仅签发时显示，不可回读</dd></dl></section>
+        <section className="key-inspector-section"><h4>明确允许的模型</h4>{permissions.isError?<button className="secondary" onClick={()=>void permissions.refetch()}>权限未确认 · 重新读取</button>:!permissions.data?.[inspectedKey.access_group_id]?<p role="status">正在读取权限…</p>:permissions.data[inspectedKey.access_group_id]!.length===0?<p className="muted">未授予模型权限</p>:<ul className="key-inspector-models">{permissions.data[inspectedKey.access_group_id]!.map(model=><li key={model.id}><code>{model.name}</code>{!model.enabled?<span className="muted">模型已关闭</span>:null}</li>)}</ul>}<p className="small muted">模型开放不会自动扩大此密钥的权限。</p></section>
+      </Sheet>}
+
 
       {groupForm!==undefined?<GroupMaintenanceDialog record={groupForm} onClose={()=>{setGroupForm(undefined);void queryClient.invalidateQueries({queryKey:["access-groups"]});}} onSelected={version=>{setGroupForm(undefined);useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["access-groups"]});void queryClient.resetQueries({queryKey:["client-keys"]});}}/>:null}
       {confirmDeleteGroup?<GroupMaintenanceDialog record={confirmDeleteGroup} removing onClose={()=>{setConfirmDeleteGroup(undefined);void queryClient.invalidateQueries({queryKey:["access-groups"]});}} onSelected={version=>{setConfirmDeleteGroup(undefined);useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["access-groups"]});}}/>:null}
