@@ -3122,3 +3122,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Real local visual acceptance found a raw immutable candidate ID, protocol enum labels and a sticky action bar sitting across scheduling fields. Reuse the readable association disclosure, retain exact submitted values, group scheduling fields and keep candidate actions after the form.
 
 **Other side:** FYI. User-authorized frontend work only; no contract/backend/production changes. Edit/delete and failed topology validation exercised in a disposable local draft. Evidence: `docs/reports/prism-v2-candidate-acceptance.md`.
+
+## 2026-09-23 - Codex - V2 account row density
+
+**What:** `web/prism/src/features/accounts/AccountRuntimeSummary.tsx`.
+
+**Why:** Reference comparison showed the runtime column used four stacked lines. Make the actual status the accessible evidence link, keeping unknown quota and observation metadata without a duplicate action row.
+
+**Other side:** FYI. Presentation only; runtime matching, pagination and request behavior unchanged. EgoLite final six-state evidence: `docs/reports/prism-v2-density-review.md`.
