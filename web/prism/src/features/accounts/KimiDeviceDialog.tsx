@@ -155,13 +155,14 @@ export function KimiDeviceDialog({
   };
   const footer = completed ? <SheetDismissButton disabled={busy}>完成</SheetDismissButton> : !session ? <><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" disabled={busy || start.isError} onClick={() => start.mutate()}>开始授权</button></> : unresolvedResult ? <SheetDismissButton disabled={busy}>关闭并标记结果未确认</SheetDismissButton> : awaitingConsent ? <SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton> : <SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
   return <Sheet title={credentialId ? "重新授权 Kimi 账号" : "授权 Kimi 账号"} description={credentialId ? "仅更新这个已有账号的授权；当前连接会保留。" : "开始后在 Kimi 官方页面完成设备授权，面板会自动核对结果。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={awaitingConsent} footer={footer}>
-    {completed ? <p role="status">Kimi 账号已保存。</p> : !session ? <>
+    <div className="operation-summary"><span>Kimi · 设备授权</span><strong>连接 Kimi 账号</strong><small>获取验证码 → 官方确认 → 自动保存</small></div>
+    {completed ? <p className="operation-receipt" role="status">Kimi 账号已保存。</p> : !session ? <>
       <p>将打开 Kimi 官方设备授权。完成登录后，此窗口会自动保存授权。</p>
     </> : <>
       <p role={unresolvedResult ? "alert" : "status"}>{unresolvedResult ? "授权结果暂时无法确认；不会重复提交授权请求。请稍后在账号管理中核对。" : pollInFlight && awaitingConsent ? "正在检查 Kimi 授权…" : status[session.state]}</p>
       {awaitingConsent ? <>
         <p>在 Kimi 官方页面输入此验证码：</p>
-        <strong className="mono">{session.user_code}</strong>
+        <strong className="authorization-device-code mono">{session.user_code}</strong>
         {url ? <p><a className="button" href={url} target="_blank" rel="noopener noreferrer">打开 Kimi 授权页</a></p> : null}
         {session.expires_at_ms ? <p className="muted">有效期至 {new Date(session.expires_at_ms).toLocaleTimeString()}。完成后会自动检查结果。</p> : null}
       </> : null}

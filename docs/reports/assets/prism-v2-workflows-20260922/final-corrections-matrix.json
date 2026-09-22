@@ -1,0 +1,128 @@
+[
+  {
+    "route": "#/monitoring",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/monitoring",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/monitoring",
+    "width": 1280,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/monitoring",
+    "width": 1280,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/monitoring",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/monitoring",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/access",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/access",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/access",
+    "width": 1280,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/access",
+    "width": 1280,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/access",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/access",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/versions",
+    "width": 1440,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/versions",
+    "width": 1440,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/versions",
+    "width": 1280,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/versions",
+    "width": 1280,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/versions",
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "crashed": false
+  },
+  {
+    "route": "#/versions",
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "crashed": false
+  }
+]

@@ -3058,3 +3058,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Continue user-authorized V2 internal structure reproduction with explicit key permissions, compact real usage observations and consistent session rows.
 
 **Other side:** FYI. No backend, generated contract, secret persistence or production change. Evidence and unfinished scope: `docs/reports/prism-v2-operations-structure.md`.
+
+## 2026-09-22 - Codex - V2 remaining workflow alignment
+
+**What:** `web/prism/src/components/workflow-forms.css`, `design/workspace.css`, `features/access/access.css`; `features/accounts/{AccountBatchDialog,CredentialUpdateDialog,AuthorizationCodeDialog,KimiDeviceDialog,KiroDeviceDialog,GrokDeviceWizard}.tsx`; `features/upstreams/OAuthWizard.tsx`; `features/models/ModelConnectionsDialog.tsx`; `features/billing/{CatalogImportDialog,CatalogRestoreDialog,PricePolicyDialog}.tsx`; `features/config-versions/{PendingChangesWorkspace,ConfigurationDiff}.tsx` and `configuration-diff.css`; `features/monitoring/{RequestHistory.tsx,requests.css}`.
+
+**Why:** Complete remaining user-authorized V2 internal workflow structure, with compact identity/results, grouped real authorization/price forms, source scheduling and dual-column change review; repair screenshot-observed spacing and heading occlusion.
+
+**Other side:** FYI. No backend/contract/generated-file/production changes. Existing mutation, cancellation, ownership, secret cleanup, complete-diff proof and non-replay logic retained. Local real-gateway evidence and precise limitations are in `docs/reports/prism-v2-workflow-alignment.md`.

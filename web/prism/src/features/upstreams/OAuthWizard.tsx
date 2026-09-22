@@ -498,8 +498,9 @@ export function OAuthWizard({
       blockNavigation={awaitingCallback}
       footer={footer}
     >
+      <div className="operation-summary"><span>官方账号授权</span><strong>{accountName ?? "当前账号"}</strong><small>官方登录 → 回调确认 → 保存结果</small></div>
       {ownershipLost ? <p role="alert">配置或登录状态已变化，已停止这次授权。请关闭后在当前工作区重新开始。</p> : null}
-      {phase === "receipt" ? <p role="status">本次授权回调已由服务端确认并保存。{rereadError === undefined ? "账号资料已重新读取。" : "账号资料将稍后重新读取。"}</p> : null}
+      {phase === "receipt" ? <p className="operation-receipt" role="status">本次授权回调已由服务端确认并保存。{rereadError === undefined ? "账号资料已重新读取。" : "账号资料将稍后重新读取。"}</p> : null}
       {attempt === undefined && !ownershipLost ? <p>启动后将在官方页面完成登录，然后把浏览器跳转的完整回调地址粘贴回来。</p> : null}
       {attempt !== undefined && !ownershipLost && phase !== "receipt" ? (
         <>
@@ -510,7 +511,7 @@ export function OAuthWizard({
               <p>在官方页面完成授权后，复制浏览器地址栏中的完整回调地址。</p>
               {challenge !== undefined ? <p><a className="button" href={challenge} target="_blank" rel="noreferrer noopener">打开官方授权页</a></p> : <p className="reveal-warning">网关没有返回可用的授权链接。请取消后重新启动，或检查渠道配置。</p>}
               {expiry !== undefined ? <p className="muted small">本次授权约在 {expiry} 秒后过期。</p> : null}
-              <form id={formId} className="sheet-form" onSubmit={submitCallback}>
+              <form id={formId} className="sheet-form" onSubmit={submitCallback}><fieldset className="workflow-section"><legend>确认授权</legend>
                 <label htmlFor={`${formId}-input`}>回调地址</label>
                 <textarea
                   id={`${formId}-input`}
@@ -528,7 +529,7 @@ export function OAuthWizard({
                 />
                 <p className="muted small">本机回调页可能打不开；复制地址栏内容即可。授权码只在提交期间保留。</p>
                 {inputError !== undefined ? <p ref={inputErrorRef} id={callbackErrorId} tabIndex={-1} role="alert" className="reveal-warning">{inputError}</p> : null}
-              </form>
+              </fieldset></form>
             </>
           ) : null}
           {unresolved ? <p role="alert" className="reveal-warning">授权结果暂时无法确认；不会重复提交回调或取消请求。请重新读取状态，或稍后在账号管理中核对。</p> : null}

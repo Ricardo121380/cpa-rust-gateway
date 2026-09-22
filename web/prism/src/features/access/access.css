@@ -36,3 +36,6 @@
 .key-inspector-models { list-style:none; margin:0; padding:0; }
 .key-inspector-models li { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:12px 0; border-bottom:1px solid var(--separator); font-size:12px; }
 .key-inspector-models code { overflow-wrap:anywhere; }
+
+.shell .canvas .access-page .card.key-list-wrap { padding:20px 22px; }
+@media(max-width:720px) { .shell .canvas .access-page .card.key-list-wrap { padding:16px; } }

@@ -109,3 +109,8 @@
 .request-inspector-section summary { color:var(--ink-2); font-size:12px; cursor:pointer; }
 .request-inspector-section .request-facts { margin:0; }
 .request-inspector-section[open] summary { margin-bottom:16px; }
+
+.request-filter-actions { grid-column:1 / -1; display:flex; justify-content:flex-end; gap:8px; }
+.request-filter-actions button { min-width:88px; }
+.request-history .request-records-panel { background:var(--surface); border:1px solid var(--separator); border-radius:20px; overflow:hidden; }
+@media(max-width:720px) { .request-filter-actions { justify-content:stretch; } .request-filter-actions button { flex:1; } .request-history .request-records-panel { border:0; background:transparent; border-radius:0; overflow:visible; } }

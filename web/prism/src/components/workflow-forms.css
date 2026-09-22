@@ -45,3 +45,38 @@
 .account-selected-channel { display:grid; gap:5px; }
 .account-selected-channel strong { font-size:16px; }
 .account-selected-channel span { font-size:11px; color:var(--ink-2); }
+
+/* V2 detail identity, compact operation results and secondary scheduling facts. */
+.operation-summary { display:grid; gap:6px; padding:16px 18px; margin-bottom:18px; border:1px solid var(--separator); border-radius:14px; background:var(--surface-2); overflow-wrap:anywhere; }
+.operation-summary > span,.operation-summary > small { color:var(--ink-2); font-size:12px; }
+.operation-summary > strong { font-size:16px; font-weight:650; }
+.operation-items { list-style:none; padding:0; margin:0; }
+.operation-items > li { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:15px 0; border-bottom:1px solid var(--separator); }
+.operation-items > li > div { min-width:0; display:grid; gap:5px; }
+.operation-items strong { font-size:13px; overflow-wrap:anywhere; }
+.operation-items span,.operation-items p { color:var(--ink-2); font-size:12px; }
+.operation-items p { margin:0; max-width:48%; overflow-wrap:anywhere; }
+.operation-items [data-outcome="applied"] { color:var(--tint); }
+.operation-receipt { display:grid; gap:12px; padding:20px; background:var(--surface-2); border:1px solid var(--separator); border-radius:14px; }
+.operation-receipt strong { font-size:16px; }
+.operation-receipt p { margin:0; line-height:1.65; }
+.operation-receipt small { color:var(--ink-2); }
+.source-identity { display:flex; align-items:start; justify-content:space-between; gap:14px; }
+.source-identity > div { min-width:0; }
+.source-identity h4 { font-size:13px; margin:0 0 8px; overflow-wrap:anywhere; }
+.source-identity code { font-size:12px; }
+.source-scheduling,.price-diff-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:14px 0; }
+.source-scheduling dt,.price-diff-summary dt { font-size:11px; color:var(--ink-2); }
+.source-scheduling dd,.price-diff-summary dd { margin:6px 0 0; font-size:13px; overflow-wrap:anywhere; }
+.price-diff-summary { padding:18px; border:1px solid var(--separator); border-radius:14px; background:var(--surface-2); }
+.price-diff-summary dd { font-size:24px; font-weight:650; }
+@media(max-width:600px) {
+ .operation-items > li { align-items:start; flex-direction:column; gap:8px; }
+ .operation-items p { max-width:100%; }
+ .source-scheduling { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .source-scheduling > div:last-child { grid-column:1 / -1; }
+}
+
+.authorization-device-code { display:block; padding:20px; margin:16px 0; text-align:center; font-size:28px; letter-spacing:.08em; background:var(--surface-2); border:1px solid var(--separator); border-radius:14px; overflow-wrap:anywhere; }
+.price-import-preview > p { margin:12px 0; font-size:12px; line-height:1.65; }
+.price-import-preview .price-diff-summary { margin:18px 0; }

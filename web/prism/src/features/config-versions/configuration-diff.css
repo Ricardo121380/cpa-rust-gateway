@@ -20,3 +20,15 @@
 .pending-change-group li { padding-block: 12px; border-bottom: 1px solid var(--separator); overflow-wrap: anywhere; }
 .pending-change-group li p { margin-block: 6px; }
 .configuration-history-review { margin-block: 20px; padding-block: 16px; border-block: 1px solid var(--separator); }
+
+.changes-workspace-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,300px); gap:24px; align-items:start; }
+.changes-workspace-main,.changes-workspace-aside { min-width:0; }
+.changes-workspace-aside { display:grid; gap:16px; }
+.changes-impact,.changes-independent { padding:18px; border:1px solid var(--separator); border-radius:14px; background:var(--surface-2); }
+.changes-workspace-aside h4 { margin:0 0 10px; font-size:13px; }
+.changes-workspace-aside p,.changes-workspace-aside li { font-size:12px; line-height:1.7; overflow-wrap:anywhere; }
+.changes-workspace-aside ul { padding-left:16px; }
+.pending-change-group h4 { font-size:13px; color:var(--ink-2); }
+.pending-change-group strong { font-size:13px; }
+.pending-change-group details { font-size:11px; color:var(--ink-2); }
+@media(max-width:900px) { .changes-workspace-grid { grid-template-columns:minmax(0,1fr); } }

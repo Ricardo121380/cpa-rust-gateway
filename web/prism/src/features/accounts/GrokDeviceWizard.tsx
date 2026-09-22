@@ -31,11 +31,11 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
   const busy=start.isPending||cancel.isPending;
   const footer=!view?<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" disabled={busy||start.isError} onClick={()=>start.mutate()}>开始 Grok 授权</button></>:view.state==="pending"?<SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton>:<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
   return <Sheet title={target?"Grok 重新授权":"添加 Grok 授权账号"} description={target?"仅更新选中账号的官方授权，不改变其他账号或连接。":"在 Grok 官方页面输入设备验证码；保存后会读取授权身份。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={view?.state==="pending"} footer={footer}>
-    {target&&name?<p>{name}</p>:null}
+    <div className="operation-summary"><span>Grok Build · 设备授权</span><strong>{target&&name?name:"连接 Grok 账号"}</strong><small>获取验证码 → 官方确认 → 自动保存</small></div>
     {!view?<p>开始后在 Grok 官方页面完成授权；此窗口会保留验证码并读取身份。</p>:<>
       <p role="status" data-native-session-id={view.session_id}>{labels[view.state]??view.state}</p>
       {view.state==="pending"?<>
-        <p>在 Grok 授权页面输入此验证码：</p><p className="mono">{view.user_code}</p>
+        <p>在 Grok 授权页面输入此验证码：</p><strong className="authorization-device-code mono">{view.user_code}</strong>
         {href?<a className="button" href={href} target="_blank" rel="noopener noreferrer">打开 Grok 授权页面</a>:null}
         <p className="small muted">有效期至 {new Date(view.expires_at_ms).toLocaleTimeString()}。完成后此处自动更新。</p>
       </>:null}
