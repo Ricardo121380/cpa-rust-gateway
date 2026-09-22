@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useVersionStore } from "../config-versions/versionStore";
+import { protocolName } from "../accounts/presentation";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { resourceName } from "../../utils/resourceNames";
@@ -86,6 +88,8 @@ export function PriceEntriesEditor({initial,disabled,onDirty,onBusyChange}:{init
   });
   const [modeError,setModeError]=useState<string>();
   const [usd,setUsd]=useState(false);
+  const context=useVersionStore(state=>state.context);
+  const providers=useQuery({queryKey:["upstreams",context?.configVersionId,context?.revision],enabled:!!context,queryFn:()=>call<{id:string;name:string}[]>("listUpstreams",{},{versionScoped:true})});
   const endpoints=useManagedInventory("endpoints");
   const connections=endpoints.data?.pages.flatMap(p=>p.items)??[];
   const refresh=useMutation({mutationFn:()=>call<Quotes>("refreshPriceSource",{body:{models:[...new Set(rows.map(r=>r.model).filter(Boolean))]}})});
@@ -102,7 +106,7 @@ export function PriceEntriesEditor({initial,disabled,onDirty,onBusyChange}:{init
       {refresh.isError?<p role="alert">{asAppError(refresh.error).message}</p>:null}
       {refresh.data?<><p role="status">已读取 models.dev，匹配 {refresh.data.items.length} 份来源报价。未写入价目表。</p><label className="check-row"><input type="checkbox" checked={usd} onChange={e=>{onDirty?.();setUsd(e.target.checked);}} disabled={busy}/>本次目录采用 USD 计价；我已核对现有费用单位</label></>:null}
       {rows.slice(currentPage*50,currentPage*50+50).map((row,offset)=>{const index=currentPage*50+offset;return <fieldset className="price-entry" data-price-index={index} tabIndex={-1} key={rowIds[index]} disabled={busy}><legend>价格 {index+1} {row.model}</legend>
-        <div className="price-entry-fields"><label>接口连接<select required value={row.channel_id} onChange={e=>{const endpoint=connections.find(v=>v.id===e.target.value);update(index,{channel_id:e.target.value,provider_id:endpoint?.upstream_id??""});}}><option value="">选择接口</option>{row.channel_id&&!connections.some(c=>c.id===row.channel_id)?<option value={row.channel_id}>{resourceName(row.channel_id,"endpoint")}</option>:null}{connections.map(c=><option key={c.id} value={c.id}>{resourceName(c.upstream_id,"upstream")} · {c.api_format}</option>)}</select></label>
+        <div className="price-entry-fields"><label>接口连接<select required value={row.channel_id} onChange={e=>{const endpoint=connections.find(v=>v.id===e.target.value);update(index,{channel_id:e.target.value,provider_id:endpoint?.upstream_id??""});}}><option value="">选择接口</option>{row.channel_id&&!connections.some(c=>c.id===row.channel_id)?<option value={row.channel_id}>{resourceName(row.channel_id,"endpoint")}</option>:null}{connections.map(c=><option key={c.id} value={c.id}>{resourceName(c.upstream_id,"upstream",providers.data?.find(provider=>provider.id===c.upstream_id)?.name)} · {protocolName(c.api_format)}</option>)}</select></label>
         <label>计费模型名（已解析的公开模型）<input required maxLength={512} value={row.model} onChange={e=>update(index,{model:e.target.value})}/></label>
         {RATE_FIELDS.map(field=><label key={field}>{rateLabel(field)}<input type="number" min="0" max={Number.MAX_SAFE_INTEGER} step="1" required value={row[field]} onChange={e=>update(index,{[field]:e.target.value})}/></label>)}</div>
         {refresh.data?<label>选择来源报价<select value="" disabled={!usd} onChange={e=>{const quote=refresh.data?.items[Number(e.target.value)];if(quote){onDirty?.();setRows(current=>current.map((r,i)=>i===index?applyPriceQuote(r,quote):r));}}}><option value="">仅填入来源明确给出的费率</option>{refresh.data.items.map((quote,i)=>quote.model===row.model?<option value={i} key={i} disabled={quote.tiered}>{quote.provider}{quote.tiered?" · 分段价格，需手动核对":""}</option>:null)}</select></label>:null}
@@ -110,6 +114,7 @@ export function PriceEntriesEditor({initial,disabled,onDirty,onBusyChange}:{init
       </fieldset>;})}
       <nav className="bill-actions" aria-label="价格编辑分页"><button type="button" className="secondary" disabled={busy||currentPage===0} onClick={()=>setPage(currentPage-1)}>上一页</button><label>编辑页码<select value={currentPage} disabled={busy} onChange={event=>setPage(Number(event.target.value))}>{Array.from({length:pageCount},(_,index)=><option key={index} value={index}>第 {index+1} / {pageCount} 页</option>)}</select></label><button type="button" className="secondary" disabled={busy||currentPage+1===pageCount} onClick={()=>setPage(currentPage+1)}>下一页</button><span role="status">{currentPage*50+1}–{Math.min(currentPage*50+50,rows.length)} / {rows.length} 条</span></nav>
       <div className="page-actions"><button type="button" className="secondary" disabled={busy||rows.length>=MAX_ENTRIES} onClick={()=>{onDirty?.();setRows(current=>[...current,blank()]);setRowIds(current=>[...current,crypto.randomUUID()]);setPage(Math.floor(rows.length/50));}}>添加价格</button>{endpoints.hasNextPage?<button type="button" className="secondary" disabled={endpoints.isFetching} onClick={()=>void endpoints.fetchNextPage()}>加载更多接口</button>:null}</div>
+      {providers.isError?<p role="alert">提供商名称读取失败：{asAppError(providers.error).message}</p>:null}
       {endpoints.isError?<p role="alert">{asAppError(endpoints.error).message}</p>:null}
     </>}
   </div>;

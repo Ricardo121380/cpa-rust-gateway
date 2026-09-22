@@ -3024,3 +3024,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Continue user-approved V2 reproduction with source context/filtering, separate upstream protocols and clearer model details. Preserve all configured model routes in source presentation.
 
 **Other side:** FYI. Read-only presentation; no management contract, permissions, generated files or production changes. Local evidence and limitations are in `docs/reports/prism-liquid-v2-fidelity.md`.
+
+## 2026-09-22 - Codex - V2 workflow and local acceptance closeout
+
+**What:** `web/prism/src/components/workflow-forms.css`; `features/access/{AccessPage,IssueKeyDialog}.tsx`, `keyPermissionSummary.ts`, `keyPermissionSummary.test.ts`; `features/accounts/AddAccountDialog.tsx`, `features/models/ConnectModelDialog.tsx`, `features/upstreams/ProviderDialog.tsx`, `features/billing/PriceEntriesEditor.tsx`.
+
+**Why:** Complete the user-authorized V2 local workflow refinement with channel-led authorization layout, grouped forms, revision-checked real key permission summaries and readable price endpoint labels.
+
+**Other side:** FYI. No backend contract, generated client, production deployment or real Provider inference changes. Real isolated gateway acceptance and limitations are recorded in `docs/reports/prism-liquid-v2-local-acceptance.md`.

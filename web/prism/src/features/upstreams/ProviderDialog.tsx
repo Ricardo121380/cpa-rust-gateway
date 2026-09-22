@@ -76,14 +76,14 @@ export function ProviderDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
   return <InlineWorkspace title={receipt?"提供商创建结果":"添加 AI 提供商"} description="配置服务地址与协议；账号授权与凭据维护在账号管理中完成。" onClose={onClose} busy={save.isPending} dirty={dirty&&!submitted.current} footer={receipt?<><button className="secondary" onClick={()=>boundary.request(()=>{})}>关闭</button><button onClick={()=>review(receipt)}>查看工作草稿</button></>:<><button className="secondary" disabled={save.isPending} onClick={()=>boundary.request(()=>{})}>取消</button><button type="submit" form={formId} disabled={submitted.current}>{save.isPending?"正在保存…":"保存到草稿"}</button></>}>
     {receipt?<p role="status">提供商及接口已保存到草稿，尚未应用。请在待应用变更中统一核对并应用。</p>:<form id={formId} className="sheet-form" onSubmit={submit} onChange={()=>setDirty(true)}>
     {validation?<p role="alert">{validation}</p>:null}
-    <label>名称<input required maxLength={256} value={name} onChange={(event)=>setName(event.target.value)} placeholder="例如：我的 OpenAI" disabled={submitted.current}/></label>
+    <fieldset className="workflow-section"><legend>服务</legend><label>名称<input required maxLength={256} value={name} onChange={(event)=>setName(event.target.value)} placeholder="例如：我的 OpenAI" disabled={submitted.current}/></label>
     <label>渠道<select value={presetId} onChange={(event)=>changePreset(event.target.value)} disabled={submitted.current}>{CONNECTION_PRESETS.map((row)=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
-    <label>接口地址<input type="url" required value={base} onChange={(event)=>setBase(event.target.value)} readOnly={preset.fixed} disabled={submitted.current}/></label>
+    </fieldset><fieldset className="workflow-section"><legend>连接</legend><label>接口地址<input type="url" required value={base} onChange={(event)=>setBase(event.target.value)} readOnly={preset.fixed} disabled={submitted.current}/></label>
     <label>请求路径<input required value={path} onChange={(event)=>setPath(event.target.value)} readOnly={preset.fixed} disabled={submitted.current}/></label>
-    {preset.native?<p className="muted">使用账号管理中已保存的 {preset.name} 授权。</p>:<label>API Key / 授权文件<span className="entity-meta">可稍后在账号管理中添加。授权文件请粘贴完整内容。</span><textarea ref={secret} rows={3} autoComplete="off" spellCheck={false} maxLength={65536} disabled={submitted.current}/></label>}
+    </fieldset><fieldset className="workflow-section"><legend>账号与模型（可选）</legend>{preset.native?<p className="muted">使用账号管理中已保存的 {preset.name} 授权。</p>:<label>API Key / 授权文件<span className="entity-meta">可稍后在账号管理中添加。授权文件请粘贴完整内容。</span><textarea ref={secret} rows={3} autoComplete="off" spellCheck={false} maxLength={65536} disabled={submitted.current}/></label>}
     <label>开放模型（可选）<textarea rows={3} value={models} onChange={(event)=>setModels(event.target.value)} placeholder="每行一个真实模型 ID" disabled={submitted.current}/></label>
     {models.trim()?<label className="check-row"><input type="checkbox" checked={manual} onChange={(event)=>setManual(event.target.checked)} disabled={submitted.current}/>手动配置这些模型，不依赖自动目录；已确认账号可使用</label>:null}
-    <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={review}/>
+    </fieldset><ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={review}/>
     {save.isError?<p role="status">已确认保存 {confirmed} 项基础资源；账号与模型结果请读取工作草稿核对，本次操作不会重复提交。</p>:null}
   </form>} </InlineWorkspace>;
 }

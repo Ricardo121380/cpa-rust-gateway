@@ -1,0 +1,482 @@
+[
+  {
+    "route": "",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "accounts",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "upstreams",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "models",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "catalog",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "access",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "monitoring",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "usage",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "billing",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "settings",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "accounts",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "upstreams",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "models",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "catalog",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "access",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "monitoring",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "usage",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "billing",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "settings",
+    "theme": "dark",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "accounts",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "upstreams",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "models",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "catalog",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "access",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "monitoring",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "usage",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "billing",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "settings",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "accounts",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "upstreams",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "models",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "catalog",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "access",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "monitoring",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "usage",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "billing",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "settings",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "accounts",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "upstreams",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "models",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "catalog",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "access",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "monitoring",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "usage",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "billing",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "settings",
+    "theme": "light",
+    "width": 1280,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "accounts",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "upstreams",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "models",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "catalog",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "access",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "monitoring",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "usage",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "billing",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  },
+  {
+    "route": "settings",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "crash": false,
+    "panels": 0
+  }
+]

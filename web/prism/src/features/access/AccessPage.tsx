@@ -1,4 +1,5 @@
 import "./access.css";
+import { readKeyPermissionSummaries } from "./keyPermissionSummary";
 import { GroupMaintenanceDialog } from "./GroupMaintenanceDialog";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
@@ -201,6 +202,10 @@ export function AccessPage() {
     enabled: scope !== undefined,
   });
 
+  const permissionGroups=[...new Set(keys.data?.map(key=>key.access_group_id)??[])].sort();
+  const permissions=useQuery({queryKey:["key-permission-summaries",scope,context?.revision,permissionGroups],enabled:!!context&&permissionGroups.length>0,retry:false,
+    queryFn:()=>readKeyPermissionSummaries({id:context!.configVersionId,revision:context!.revision},permissionGroups)});
+
   const revoke=useMutation({mutationFn:async(target:NonNullable<typeof confirmRevoke>)=>runModelTask("吊销客户端密钥",async task=>{
     const keys=await task.read<ClientKeyRecord[]>("listClientKeys");
     const current=keys.find(key=>key.id===target.record.id);
@@ -249,6 +254,7 @@ export function AccessPage() {
             <tr>
               <th>名称</th>
               <th>秘密不可回读</th>
+              <th>模型权限</th>
               <th>状态</th>
               <th>使用记录</th>
               <th>操作</th>
@@ -257,10 +263,12 @@ export function AccessPage() {
           <tbody>
             {(keys.data ?? []).map((record) => {
               const status = displayKeyStatus(record, nowMs);
+              const allowed=permissions.data?.[record.access_group_id];
               return (
                 <tr key={record.id}>
                   <td>{record.access_group_id ? <ResourceIdentity id={record.access_group_id} kind="group" name={groups.data?.find((group)=>group.id===record.access_group_id)?.name}/> : "未命名密钥"}</td>
                   <td data-label="密钥标识"><span className="mono">{record.prefix}••••</span><span className="entity-meta">仅创建时显示完整密钥</span></td>
+                  <td data-label="模型权限"><div className="key-permission-summary">{permissions.isError?<button className="secondary" onClick={()=>void permissions.refetch()}>权限未确认 · 重读</button>:!allowed?<span className="muted">正在读取…</span>:<><span className="mono">{allowed.slice(0,2).map(model=>model.name+(model.enabled?"":"（已关闭）")).join("、")||"未授予模型权限"}</span><span className="entity-meta">明确允许 {allowed.length} 个模型</span></>}</div></td>
                   <td data-label="状态">
                     <StatusBadge status={status}>{({active:"已启用",disabled:"已停用",revoked:"已吊销",expired:"已过期"})[status]}</StatusBadge>
                   </td>

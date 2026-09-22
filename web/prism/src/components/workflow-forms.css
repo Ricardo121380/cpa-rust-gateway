@@ -1,0 +1,33 @@
+/* Shared V2 operational forms; no lifecycle, focus or material overrides. */
+.sheet-body .sheet-form, .inline-workspace .sheet-form { gap:18px; }
+.sheet-form > .workflow-section { min-width:0; margin:0; padding:18px; display:grid; gap:16px; border:1px solid var(--separator); border-radius:14px; background:var(--surface); }
+.workflow-section > legend { padding:0 7px; font-size:13px; font-weight:600; color:var(--ink); }
+.sheet-form .workflow-section p { margin:0; font-size:12px; line-height:1.6; color:var(--ink-2); }
+.sheet-form .workflow-section label { min-width:0; }
+.sheet-form :is(input,select,textarea) { max-width:100%; }
+.sheet-body .sheet-form > fieldset:not(.workflow-section):not(.key-model-picker) { min-width:0; }
+.sheet-body :is(code,.mono) { overflow-wrap:anywhere; }
+.account-onboarding { display:grid; gap:18px; margin-bottom:20px; }
+.account-channel-field { display:grid; gap:8px; font-size:13px; font-weight:600; }
+.account-channel-field select { width:100%; min-height:44px; }
+.account-access-method { display:flex; gap:4px; padding:4px; border:1px solid var(--separator); border-radius:12px; background:var(--surface-2); }
+.account-access-method button { flex:1; box-shadow:none; border-color:transparent; background:transparent; }
+.account-access-method button[aria-pressed="true"] { background:var(--surface); border-color:var(--separator); color:var(--tint); }
+.account-authorization-summary { padding:18px; border:1px solid var(--separator); border-radius:14px; background:var(--surface-2); }
+.account-authorization-summary h3 { margin:0 0 8px; font-size:15px; }
+.account-authorization-summary p { margin:0; color:var(--ink-2); font-size:13px; line-height:1.7; }
+.key-permission-summary { max-width:240px; overflow-wrap:anywhere; }
+:is(.sheet-body,.inline-workspace-body) .price-entry { padding:16px; border:1px solid var(--separator); border-radius:14px; margin:18px 0; }
+:is(.sheet-body,.inline-workspace-body) .price-entry legend { padding:0 6px; max-width:100%; overflow-wrap:anywhere; }
+:is(.sheet-body,.inline-workspace-body) .price-entry-fields { gap:14px; }
+.sheet-body .request-facts { gap:16px; }
+.sheet-body .request-facts > div { padding:10px 0; border-bottom:1px solid var(--separator); }
+.sheet-body .request-facts dt { font-size:12px; color:var(--ink-2); }
+.sheet-body .request-facts dd { margin:6px 0 0; overflow-wrap:anywhere; }
+@media(max-width:600px) {
+ .sheet-form > .workflow-section { padding:14px; }
+ :is(.sheet-body,.inline-workspace-body) .price-entry-fields { grid-template-columns:minmax(0,1fr); }
+ .model-source-controls { grid-template-columns:minmax(0,1fr); }
+ .account-access-method button { min-height:44px; }
+ .key-permission-summary { max-width:none; }
+}

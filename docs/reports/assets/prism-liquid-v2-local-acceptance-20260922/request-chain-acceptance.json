@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "checks": [
+    "full two-page catalog refresh does not widen served models or key grants",
+    "local-json-acceptance",
+    "local-stream-acceptance",
+    "fail-acceptance",
+    "truncate-acceptance",
+    "client stream cancellation"
+  ],
+  "summary": {
+    "attempts": 5,
+    "average_duration_ms": 63.0,
+    "average_first_content_ms": 78.0,
+    "cancelled": 1,
+    "failed": 2,
+    "p50_duration_ms": 90,
+    "p95_duration_ms": 95,
+    "requests": 5,
+    "succeeded": 2,
+    "success_rate": 0.4,
+    "unknown": 0
+  },
+  "real_gateway": true,
+  "provider": "owned loopback TLS mock",
+  "real_provider_inference_calls": 0,
+  "catalog_models": 3,
+  "opened_models": 1,
+  "successes_materialized": true
+}
