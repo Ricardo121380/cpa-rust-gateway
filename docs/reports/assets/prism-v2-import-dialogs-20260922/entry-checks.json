@@ -1,0 +1,266 @@
+[
+  {
+    "name": "OpenAI 兼容 / 中转",
+    "width": 390,
+    "title": "OpenAI 兼容 / 中转",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "OpenAI 兼容 / 中转",
+    "width": 1440,
+    "title": "OpenAI 兼容 / 中转",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Anthropic 兼容 / 中转",
+    "width": 390,
+    "title": "Anthropic 兼容 / 中转",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Anthropic 兼容 / 中转",
+    "width": 1440,
+    "title": "Anthropic 兼容 / 中转",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Codex / ChatGPT",
+    "width": 390,
+    "title": "Codex / ChatGPT",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Codex / ChatGPT",
+    "width": 1440,
+    "title": "Codex / ChatGPT",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Claude",
+    "width": 390,
+    "title": "Claude",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Claude",
+    "width": 1440,
+    "title": "Claude",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Grok Official",
+    "width": 390,
+    "title": "Grok Official",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Grok Official",
+    "width": 1440,
+    "title": "Grok Official",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Kimi Coding",
+    "width": 390,
+    "title": "Kimi Coding",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Kimi Coding",
+    "width": 1440,
+    "title": "Kimi Coding",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Kimi API",
+    "width": 390,
+    "title": "Kimi API",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Kimi API",
+    "width": 1440,
+    "title": "Kimi API",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Grok Build",
+    "width": 390,
+    "title": "Grok Build",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Grok Build",
+    "width": 1440,
+    "title": "Grok Build",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Grok Console",
+    "width": 390,
+    "title": "Grok Console",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Grok Console",
+    "width": 1440,
+    "title": "Grok Console",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Grok Web",
+    "width": 390,
+    "title": "Grok Web",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Grok Web",
+    "width": 1440,
+    "title": "Grok Web",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "导入账号"
+    ]
+  },
+  {
+    "name": "Kiro",
+    "width": 390,
+    "title": "Kiro",
+    "overflow": false,
+    "left": 12,
+    "right": 378,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  },
+  {
+    "name": "Kiro",
+    "width": 1440,
+    "title": "Kiro",
+    "overflow": false,
+    "left": 460,
+    "right": 980,
+    "actions": [
+      "取消",
+      "授权登录"
+    ]
+  }
+]

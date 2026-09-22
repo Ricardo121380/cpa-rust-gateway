@@ -3090,3 +3090,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Populate V2-style account runtime/observation and model availability columns from existing runtime facts. Complete bounded snapshot reads; quota amounts remain unobserved and model checks use exact route/model Explain instead of invented schedulable-account totals.
 
 **Other side:** FYI. Existing contracts only; no backend, generated-file or production changes. Three new snapshot tests and local read-only Explain evidence in `docs/reports/prism-v2-convergence.md`.
+
+## 2026-09-22 - Codex - V2 account import transition protection
+
+**What:** `web/prism/src/features/accounts/AddAccountDialog.tsx`.
+
+**Why:** Simplify channel dialog hierarchy and fix silent input loss when changing channel, authorization method or credential source. Reuse Sheet dismissal protection; selecting the active mode is a no-op.
+
+**Other side:** FYI. User-authorized frontend work, no contract/backend/production changes. Local EgoLite evidence and exact coverage limits: `docs/reports/prism-v2-import-dialogs.md`.

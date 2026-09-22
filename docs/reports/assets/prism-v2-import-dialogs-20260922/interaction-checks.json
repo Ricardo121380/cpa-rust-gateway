@@ -1,0 +1,22 @@
+{
+  "browser": "EgoLite",
+  "realGateway": "127.0.0.1:62992",
+  "syntheticInputNeverSubmitted": true,
+  "authorizationSwitchCancelledPreservesInput": true,
+  "acceptedDiscardClearsInput": true,
+  "fileSelectionRetainedAfterCancelledChannelChange": true,
+  "lightStates": [
+    {
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "overflow": false
+    }
+  ]
+}
