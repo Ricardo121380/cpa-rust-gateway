@@ -65,6 +65,11 @@
   background: var(--editor-header);
 }
 .shell .inline-workspace > .inline-workspace-footer button { min-height: 44px; }
+/* Keep the candidate form's scheduling fields above its actions. A sticky
+   footer can otherwise sit across the fields while the draft dock is visible. */
+.shell .inline-workspace:has(#candidate-action-form) > .inline-workspace-footer {
+  position: static;
+}
 .shell .inline-workspace > .inline-workspace-body > div > fieldset {
   min-width: 0;
   margin: 0;

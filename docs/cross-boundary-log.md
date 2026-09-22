@@ -3114,3 +3114,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Real local acceptance exposed an obsolete draft-review alert after successful publication. Render an active-target status without hiding archived/missing errors; align catalog comparison labels with model/time identity.
 
 **Other side:** FYI. No contract/backend changes. Isolated local publish and rollback verified; production untouched. Evidence: `docs/reports/prism-v2-lifecycle-acceptance.md`.
+
+## 2026-09-22 - Codex - V2 candidate editor hierarchy and acceptance
+
+**What:** `web/prism/src/features/models/CandidateDialog.tsx`, `web/prism/src/design/workspace.css`.
+
+**Why:** Real local visual acceptance found a raw immutable candidate ID, protocol enum labels and a sticky action bar sitting across scheduling fields. Reuse the readable association disclosure, retain exact submitted values, group scheduling fields and keep candidate actions after the form.
+
+**Other side:** FYI. User-authorized frontend work only; no contract/backend/production changes. Edit/delete and failed topology validation exercised in a disposable local draft. Evidence: `docs/reports/prism-v2-candidate-acceptance.md`.

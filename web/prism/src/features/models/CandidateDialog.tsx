@@ -2,6 +2,7 @@ import { CancelledError, isCancelledError, useMutation } from "@tanstack/react-q
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { asAppError } from "../../api/errors";
 import { ResourcePicker } from "../../components/ResourcePicker";
+import { IdentityDetails } from "../../components/ResourceIdentity";
 import { InlineWorkspace } from "../../components/InlineWorkspace";
 import { useOperationBoundary } from "../../components/OperationBoundary";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
@@ -71,15 +72,18 @@ export function CandidateDialog({action,onClose,onDone}:Readonly<{action:Candida
   const footer=receipt?<button type="button" onClick={done}>{receipt.kind==="unconfirmed"?"核对草稿":"完成"}</button>:<>{inline?<button type="button" className="secondary" disabled={write.isPending} onClick={()=>boundary.request(()=>{})}>取消</button>:<SheetDismissButton className="secondary" disabled={write.isPending}>取消</SheetDismissButton>}<button type={action.kind==="delete"?"button":"submit"} form={action.kind==="delete"?undefined:formId} className={action.kind==="delete"?"danger":undefined} disabled={write.isPending||submitted.current} onClick={action.kind==="delete"?()=>{if(!submitted.current){submitted.current=true;write.mutate(undefined);}}:undefined}>{action.kind==="delete"?"确认删除":action.kind==="add"?"创建候选":"保存候选"}</button></>;
   const content=<>
     {receipt?<p role={receipt.kind==="unconfirmed"?"alert":"status"}>{receipt.message}</p>:action.kind==="delete"?<p className="reveal-warning">移除 <strong className="mono">{initial?.upstream_model}</strong> 这条来源。若它是最后一条启用的候选，草稿拓扑校验会失败；不会自动停用公开模型。</p>:<form id={formId} className="sheet-form" onSubmit={submit}><fieldset disabled={write.isPending||submitted.current}>
-      <label>候选标识<input className="mono" required maxLength={128} readOnly={!!initial} value={form.id} onChange={event=>setForm({...form,id:event.target.value})}/></label>
+      {initial?null:<label>候选标识<input className="mono" required maxLength={128} value={form.id} onChange={event=>setForm({...form,id:event.target.value})}/></label>}
       <label>接口连接<ResourcePicker kind="endpoint" required value={form.endpoint} onChange={value=>setForm({...form,endpoint:value})}/></label>
       <label>上游原始模型 ID<input className="mono" required maxLength={256} value={form.model} onChange={event=>setForm({...form,model:event.target.value})}/></label>
-      <label>协议转换<select value={form.mode} onChange={event=>setForm({...form,mode:event.target.value as TransformMode})}>{TRANSFORM_MODES.map(mode=><option key={mode} value={mode}>{mode}</option>)}</select><small>{transformModeHint(form.mode)}</small></label>
+      <label>协议转换<select value={form.mode} onChange={event=>setForm({...form,mode:event.target.value as TransformMode})}>{TRANSFORM_MODES.map(mode=><option key={mode} value={mode}>{transformModeHint(mode)}</option>)}</select></label>
       <label className="toggle-row"><input type="checkbox" checked={form.enabled} onChange={event=>setForm({...form,enabled:event.target.checked})}/>启用此来源</label>
-      <label>优先级<input type="number" min={0} value={form.priority} onChange={event=>setForm({...form,priority:event.target.value})}/></label>
-      <label>权重<input type="number" min={1} max={10000} value={form.weight} onChange={event=>setForm({...form,weight:event.target.value})}/></label>
+      <div className="resource-editor-grid">
+        <label>优先级<input type="number" min={0} value={form.priority} onChange={event=>setForm({...form,priority:event.target.value})}/></label>
+        <label>权重<input type="number" min={1} max={10000} value={form.weight} onChange={event=>setForm({...form,weight:event.target.value})}/></label>
+      </div>
       <label>能力覆盖（可留空）{jsonOverride?<><textarea className="mono" rows={5} maxLength={8192} value={form.overrides} onChange={event=>setForm({...form,overrides:event.target.value})}/><small>此候选包含特殊能力键；使用 JSON 对象编辑，保持键名原样。</small></>:<input className="mono" maxLength={512} placeholder="vision=true tools=false" value={form.overrides} onChange={event=>setForm({...form,overrides:event.target.value})}/>}</label>
     </fieldset></form>}
+    {!receipt&&initial&&inline?<IdentityDetails entries={[["候选",initial.id,initial.upstream_model]]}/>:null}
     {error?<p role="alert">{error}</p>:null}
   </>;
   return inline?<InlineWorkspace title={title} description="使用实际接口与上游原始模型 ID；调度参数只影响这条来源。" busy={write.isPending} dirty={dirty} onClose={done} footer={footer}>{content}</InlineWorkspace>:<Sheet title={title} layout="confirm" tone={receipt?"default":"danger"} onEscape={done} busy={write.isPending} guardUnsaved={false} footer={footer}>{content}</Sheet>;

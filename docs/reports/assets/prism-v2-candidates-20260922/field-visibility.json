@@ -1,0 +1,50 @@
+[
+  {
+    "theme": "light",
+    "width": 390,
+    "weightVisible": true,
+    "workspaceWidth": 318,
+    "workspaceScroll": 318,
+    "footerPosition": "static"
+  },
+  {
+    "theme": "light",
+    "width": 1280,
+    "weightVisible": true,
+    "workspaceWidth": 938,
+    "workspaceScroll": 938,
+    "footerPosition": "sticky"
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "weightVisible": true,
+    "workspaceWidth": 1098,
+    "workspaceScroll": 1098,
+    "footerPosition": "sticky"
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "weightVisible": true,
+    "workspaceWidth": 318,
+    "workspaceScroll": 318,
+    "footerPosition": "static"
+  },
+  {
+    "theme": "dark",
+    "width": 1280,
+    "weightVisible": true,
+    "workspaceWidth": 938,
+    "workspaceScroll": 938,
+    "footerPosition": "sticky"
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "weightVisible": true,
+    "workspaceWidth": 1098,
+    "workspaceScroll": 1098,
+    "footerPosition": "sticky"
+  }
+]

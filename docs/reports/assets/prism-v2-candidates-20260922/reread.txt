@@ -1,0 +1,226 @@
+[p1 "Prism · Gateway Management" | space "Prism Liquid V2 implementation"(9): 2 managed, 2 untracked — p1* "Prism · Gateway Management", p2 "untitled"]
+root
+  svg_root
+  svg_root
+  container
+    button "打开全部栏目" [ref=61, loc=css:button[aria-label="打开全部栏目"]]
+      svg_root
+    button "搜索工作区" [ref=1, loc=css:button[aria-label="搜索工作区"]]
+      svg_root
+    button "切换深浅外观" [ref=2, loc=css:button[aria-label="切换深浅外观"]]
+      svg_root
+  container [ref=11]
+    text "正在编辑草稿：未发布的修改不会影响当前服务。"
+    anchor [ref=12, loc=href:/admin-ui/#/versions, url=http://127.0.0.1:62992/admin-ui/#/versions]
+      text "查看配置上下文"
+    container
+      container
+        heading
+          text "模型管理"
+        paragraph
+          text "上游发现、对外开放与当前可用性，是三个不同状态。"
+        button [ref=13]
+          text "接入模型"
+      container "工作区页面"
+        anchor [ref=14, url=http://127.0.0.1:62992/admin-ui/#/models]
+          text "已开放模型"
+        anchor [ref=15, url=http://127.0.0.1:62992/admin-ui/#/catalog]
+          text "上游目录"
+      text "全部来源"
+      text "原始模型 ID 与提供商来源同时保留"
+      anchor [ref=16, url=http://127.0.0.1:62992/admin-ui/#/catalog]
+        text "浏览上游目录"
+      searchbox "搜索已接入模型" [ref=17, loc=css:input[placeholder="搜索模型 ID"]]
+        text "搜索模型 ID"
+      combobox "模型提供商" [ref=18, loc=css:select[aria-label="模型提供商"]]
+        text "全部提供商"
+      text "2"
+      text "/"
+      text "2"
+      text "个已接入模型"
+      container
+        table
+          table_row
+            table_cell
+              text "原始模型 ID / 来源"
+            table_cell
+              text "上游协议"
+            table_cell
+              text "开放状态"
+            table_cell
+              text "运行可用性"
+            table_cell
+              text "操作"
+        container
+          container
+            text "Exact/Model-v2"
+            text "未添加连接"
+            text "上游协议"
+            text "—"
+            text "开放状态"
+            text "已启用"
+            text "运行可用性"
+            text "应用后可核对运行准入"
+            button [ref=76]
+              text "管理连接"
+            button [ref=77]
+              text "详情"
+            container [ref=78]
+              text "更多"
+            container
+              button [ref=79]
+                text "编辑模型"
+              button [ref=80]
+                text "管理别名"
+              button [ref=81]
+                text "配置路由"
+              button [ref=82]
+                text "删除模型"
+          container
+            text "Model-Second"
+            text "Local compatible provider"
+            container
+              text "上游协议"
+              text "Responses"
+            container
+              text "开放状态"
+              text "已启用"
+            container
+              text "运行可用性"
+              text "应用后可核对运行准入"
+            container
+              button [ref=83]
+                text "管理连接"
+              button [ref=84]
+                text "详情"
+              container
+                container [ref=85]
+                  text "更多"
+                container
+                  button [ref=86]
+                    text "编辑模型"
+                  button [ref=87]
+                    text "管理别名"
+                  button [ref=88]
+                    text "配置路由"
+                  button [ref=89]
+                    text "删除模型"
+      container
+        container [ref=33]
+          text "高级路由、候选与别名"
+        container
+          button [ref=34]
+            text "高级模型配置"
+          container
+            heading
+              text "路由工作台"
+            container "完整配置资源"
+              container
+                heading
+                  text "配置资源"
+                button [ref=35]
+                  text "重新读取"
+              container "资源类型"
+                button [ref=36]
+                  text "路由"
+                button [ref=37]
+                  text "候选"
+                button [ref=38]
+                  text "别名"
+              paragraph
+                text "包含未绑定访问组的草稿资源 · 已载入"
+                text "1"
+                text "项"
+              container [ref=90]
+                table
+                  table_row
+                    table_cell
+                      text "标识"
+                    table_cell
+                      text "所属对象"
+                    table_cell
+                      text "配置"
+                    table_cell
+                      text "操作"
+                  table_row
+                    table_cell
+                      text "候选"
+                    table_cell
+                      text "路由"
+                    table_cell
+                      text "Model-Second · 启用 · 权重 1"
+                    table_cell
+                      button [ref=91]
+                        text "打开路由"
+                      button [ref=92]
+                        text "编辑候选"
+                      button [ref=93]
+                        text "删除候选"
+            paragraph
+              text "候选已从草稿删除；路由和授权保留。"
+              button [ref=71]
+                text "知道了"
+            form
+              container
+                text "路由"
+                combobox [ref=45]
+                  text "选择资源"
+              button [ref=46]
+                text "载入"
+            container [ref=94]
+              table
+                table_row
+                  table_cell
+                    text "所属公开模型"
+                  table_cell
+                    text "local-model"
+                table_row
+                  table_cell
+                    text "调度策略"
+                  table_cell
+                    text "smooth_weighted_round_robin"
+                table_row
+                  table_cell
+                    text "max_attempts"
+                  table_cell
+                    text "1"
+                table_row
+                  table_cell
+                    text "bootstrap_timeout_ms"
+                  table_cell
+                    text "10000"
+            button [ref=95]
+              text "路由详情"
+            button [ref=96]
+              text "加候选"
+            button [ref=97]
+              text "校验"
+            button [ref=98]
+              text "编辑路由"
+            anchor [ref=99, loc=href:/admin-ui/#/runtime?route_id=local-route, url=http://127.0.0.1:62992/admin-ui/#/runtime?route_id=local-route]
+              text "去 Explain 看候选"
+            button [ref=100]
+              text "删除路由"
+            paragraph
+              text "配置资源列表显示候选定义；Explain 用于检查指定请求的选择结果。"
+            paragraph
+              text "草稿拓扑校验未通过 · 1 项"
+            unordered_list
+              list_item
+                text "route_missing_active_candidate"
+                text "路由没有任何启用的候选 —— 建路由后必须至少加一个候选"
+            paragraph
+              text "此处只校验"
+              text "草稿拓扑"
+              text "(候选是否存在、端点是否在且启用、是否有 active 凭据绑定)。能力准入与完整编译在"
+              text "发布"
+              text "时才发生 —— 这里通过不等于发布会通过。"
+  container
+    container
+      text "待应用草稿"
+      text "核对变更后统一生效"
+    container
+      button [ref=47]
+        text "查看变更"
+      button [ref=48]
+        text "校验并应用"
