@@ -5,7 +5,7 @@ import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { useSessionStore } from "../../session/sessionStore";
 import { useVersionStore } from "../config-versions/versionStore";
 import { isBillingOwner, runBillingCatalogTask, type BillingOwner, type BillingReceipt } from "./billingTask";
-import { formatTime, validBillingText, validBillingTime, type Catalog } from "./model";
+import { formatTime, sourceLabel, validBillingText, validBillingTime, type Catalog } from "./model";
 
 export type CatalogRestoreAction=Readonly<{owner:BillingOwner;predecessor:Catalog}>;
 
@@ -19,6 +19,7 @@ export function CatalogRestoreDialog({action,onClose,onDone,onReview}:Readonly<{
   const [error,setError]=useState<string>();
   const submitted=useRef(false);
   const formId="billing-catalog-restore-form";
+  const sourceName=action.predecessor.entries[0]?.model??"空目录";
   useEffect(()=>{
     const closeIfLost=()=>{if(!isBillingOwner(action.owner))onClose();};
     const stopVersion=useVersionStore.subscribe(closeIfLost);
@@ -47,9 +48,10 @@ export function CatalogRestoreDialog({action,onClose,onDone,onReview}:Readonly<{
   return <Sheet title={receipt?"价格恢复结果":prepared?"确认创建恢复目录":"从历史目录恢复价格"}
     description={receipt?"新目录写入与配置应用分别显示。":"复制历史目录的全部条目，创建新的全局目录；旧目录与账本原样保留。"}
     layout={prepared||receipt?"confirm":"form"} onEscape={done} busy={save.isPending||review.isPending} isDirty={!receipt&&(!!effective||prepared!==undefined)} guardUnsaved={!receipt} footer={footer}>
-    {receipt?<><p className="operation-receipt" role={receipt.kind==="unconfirmed"?"alert":"status"}>{receipt.message}</p><p>来源 <strong className="mono">{action.predecessor.catalog_version_id}</strong> → 新目录 <strong className="mono">{receipt.target}</strong></p><p>工作配置 ID：<code className="mono">{receipt.workingVersion.id}</code></p>{review.isError?<p role="alert">重读失败：{asAppError(review.error).message}。可重试或按此配置 ID 稍后核对。</p>:null}</>
-      :prepared?<div className="reveal-warning"><p>将 <strong className="mono">{action.predecessor.catalog_version_id}</strong> 的 {action.predecessor.entries.length} 条价格复制为 <strong className="mono">{prepared.id}</strong>。</p><p>新目录生效时刻（UTC）：{formatTime(prepared.effectiveAt)}。这不会回滚配置、删除中间目录或改写账本。</p></div>
-      :<form id={formId} className="sheet-form" onSubmit={prepare}><fieldset className="workflow-section" disabled={save.isPending}><legend>恢复目录</legend><p>来源目录：<strong className="mono">{action.predecessor.catalog_version_id}</strong> · {action.predecessor.entries.length} 条</p><details><summary>新目录技术标识</summary><label>新目录版本 ID<input className="mono" required maxLength={128} value={id} onChange={event=>setId(event.target.value)}/></label></details><label>生效时间（本地时区）<input type="datetime-local" required value={effective} onChange={event=>setEffective(event.target.value)}/></label></fieldset></form>}
+    <div className="operation-summary"><span>恢复来源 · {sourceLabel(action.predecessor.source)}</span><strong>{sourceName}{action.predecessor.entries.length>1?` 等 ${action.predecessor.entries.length} 项`:""}</strong><small>生效 {formatTime(action.predecessor.effective_at_ms)} · 创建 {formatTime(action.predecessor.created_at_ms)}（UTC）</small></div>
+    {receipt?<><p className="operation-receipt" role={receipt.kind==="unconfirmed"?"alert":"status"}>{receipt.message}</p><details><summary>技术标识</summary><p>来源目录：<code>{action.predecessor.catalog_version_id}</code></p><p>新目录：<code>{receipt.target}</code></p><p>工作配置：<code>{receipt.workingVersion.id}</code></p></details>{review.isError?<p role="alert">重读失败：{asAppError(review.error).message}。可重试或按此配置 ID 稍后核对。</p>:null}</>
+      :prepared?<div className="reveal-warning"><p>将以上目录的 <strong>{action.predecessor.entries.length} 条价格</strong>复制到新目录。</p><details><summary>新目录技术标识</summary><code>{prepared.id}</code></details><p>新目录生效时刻（UTC）：{formatTime(prepared.effectiveAt)}。这不会回滚配置、删除中间目录或改写账本。</p></div>
+      :<form id={formId} className="sheet-form" onSubmit={prepare}><fieldset className="workflow-section" disabled={save.isPending}><legend>恢复目录</legend><details><summary>新目录技术标识</summary><label>新目录版本 ID<input className="mono" required maxLength={128} value={id} onChange={event=>setId(event.target.value)}/></label></details><label>生效时间（本地时区）<input type="datetime-local" required value={effective} onChange={event=>setEffective(event.target.value)}/></label></fieldset></form>}
     {error?<p role="alert">{error}</p>:null}
   </Sheet>;
 }

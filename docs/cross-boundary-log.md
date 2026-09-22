@@ -3098,3 +3098,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Simplify channel dialog hierarchy and fix silent input loss when changing channel, authorization method or credential source. Reuse Sheet dismissal protection; selecting the active mode is a no-op.
 
 **Other side:** FYI. User-authorized frontend work, no contract/backend/production changes. Local EgoLite evidence and exact coverage limits: `docs/reports/prism-v2-import-dialogs.md`.
+
+## 2026-09-22 - Codex - V2 price catalog identity hierarchy
+
+**What:** `web/prism/src/features/billing/{CatalogRestoreDialog,CatalogInspector}.tsx`.
+
+**Why:** Show exact model, source and times as catalog identity; move random technical version IDs into explicit disclosure in restore and inspector workflows.
+
+**Other side:** FYI. User-authorized frontend alignment only. No mutation/contract/backend changes. Local evidence and remaining visual scope: `docs/reports/prism-v2-price-dialogs.md`.
