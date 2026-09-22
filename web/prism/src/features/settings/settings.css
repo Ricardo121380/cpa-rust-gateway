@@ -28,12 +28,29 @@
 .settings-page .settings-choice {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 2px;
+  padding:3px;
+  border:1px solid var(--separator);
+  border-radius:12px;
+  background:var(--surface-2);
 }
 .settings-page .settings-choice button {
-  font-size: 12.5px;
-  padding: 6px 14px;
+  min-height:32px;
+  font-size: 11px;
+  padding: 6px 12px;
+  border:1px solid transparent;
+  border-radius:9px;
+  background:transparent;
+  color:var(--ink-2);
+  box-shadow:none;
 }
+.settings-page .settings-choice button[aria-checked="true"] {
+  background:linear-gradient(145deg,var(--pearl-top),var(--pearl-end));
+  border-color:var(--pearl-edge);
+  color:var(--ink);
+  box-shadow:0 2px 4px #2539580a;
+}
+@media(max-width:600px) { .settings-page .settings-choice button { min-height:44px; } }
 
 /* Definition list as a two-column fact table: label left, value right. Grid
    rather than float so a long value wraps under itself instead of under the
@@ -99,7 +116,7 @@
 .settings-preference-row p, .settings-preference-description { display:block; margin:6px 0 0; color:var(--ink-2); font-size:12px; line-height:1.6; }
 .settings-preference-row .settings-choice { flex-shrink:0; }
 .settings-page .settings-switch { appearance:none; flex:0 0 38px; width:38px; height:22px; min-height:22px; padding:2px; margin:0; border:1px solid var(--separator); border-radius:20px; background:var(--surface-2); cursor:pointer; }
-.settings-switch::before { content:""; display:block; width:16px; height:16px; border-radius:50%; background:var(--ink-2); transition:transform 160ms ease; }
+.settings-switch::before { content:""; display:block; width:16px; height:16px; border-radius:50%; background:white; box-shadow:0 1px 3px #0003; transition:transform 160ms ease; }
 .settings-page .settings-switch:checked { background:var(--tint); border-color:var(--tint); }
 .settings-switch:checked::before { background:white; transform:translateX(16px); }
 .settings-preferences-note { margin:0; padding:14px 22px; color:var(--ink-2); font-size:11px; }

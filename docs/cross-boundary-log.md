@@ -3130,3 +3130,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Reference comparison showed the runtime column used four stacked lines. Make the actual status the accessible evidence link, keeping unknown quota and observation metadata without a duplicate action row.
 
 **Other side:** FYI. Presentation only; runtime matching, pagination and request behavior unchanged. EgoLite final six-state evidence: `docs/reports/prism-v2-density-review.md`.
+
+## 2026-09-23 - Codex - V2 fixed visual closeout
+
+**What:** `web/prism/src/app/v6.css`, `design/modal.css`, `features/access/{AccessPage.tsx,IssueKeyDialog.tsx,access.css}`, `features/models/{ConnectModelDialog.tsx,models.css}`, `features/monitoring/{RequestHistory.tsx,requests.css}`, `features/settings/settings.css`, `features/usage/{UsageCosts.tsx,UsagePage.tsx,usage.css}`.
+
+**Why:** Complete the user-authorized fixed V2 comparison batch across eight workspaces and seven dialogs: compact contextual widths, stable toolbars/segmented controls, request trend footer, open form sections and responsive close targets. Preserve exact range, permissions, multi-selection, real confidence/unknowns and existing Sheet lifecycle.
+
+**Other side:** FYI. No backend/contract/generated-file/production changes. Final local embedded assets match dist; 48 workspace and 42 dialog states plus targeted regression and interaction evidence are recorded in `docs/reports/prism-v2-closeout-20260923.md`. Scope remains local visual acceptance, not real provider/OAuth completion.

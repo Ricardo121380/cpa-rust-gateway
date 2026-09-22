@@ -92,14 +92,18 @@ html.has-sheet body {
 
 .sheet-close {
   display: grid;
-  width: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
   padding: 0;
   place-items: center;
-  border-radius: 12px;
-  font-size: 22px;
+  border-radius: 50%;
+  font-size: 20px;
   line-height: 1;
+}
+
+@media (max-width:600px), (pointer:coarse) {
+  .sheet-close { width:44px; min-width:44px; min-height:44px; }
 }
 
 .sheet-body {

@@ -187,7 +187,6 @@ export function UsagePage() {
             <button
               key={preset}
               type="button"
-              className="secondary"
               aria-pressed={!exactRange&&preset === range}
               onClick={() => patch({ range: preset })}
             >
@@ -196,12 +195,9 @@ export function UsagePage() {
           ))}
         </div>
       </header>
-      <WorkspaceTabs />
-
-
-
       {exactRange?<p className="usage-range-context">当前链接范围 · {formatWatermark(Number(from))} — {formatWatermark(Number(to))}</p>:null}
 
+      <div className="usage-workspace-tools"><WorkspaceTabs />
       <details className="usage-filter-disclosure" open={activeFilterCount(filters)>0 ? true : undefined}><summary>筛选范围{activeFilterCount(filters)>0 ? ` · ${activeFilterCount(filters)} 项已应用` : ""}</summary>
       <form className="card usage-filters" onSubmit={onFilterSubmit}>
         {FILTER_KEYS.map((key) =>
@@ -240,7 +236,7 @@ export function UsagePage() {
             清除({activeFilterCount(filters)})
           </button>
         </div>
-      </form></details>
+      </form></details></div>
 
       <UsageCosts range={window} filters={filters}/>
       <h3 className="usage-section-title">Token 用量明细</h3>

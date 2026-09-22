@@ -1,0 +1,730 @@
+{
+  "rows": [
+    {
+      "name": "overview",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "运行概览",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 794.484375,
+      "inputs": []
+    },
+    {
+      "name": "accounts",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "账号管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 467.6875,
+      "inputs": []
+    },
+    {
+      "name": "providers",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "AI 提供商",
+      "alerts": [],
+      "exception": false,
+      "inputs": [
+        {
+          "width": 1019
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "模型管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 386.6875,
+      "inputs": [
+        {
+          "width": 330
+        }
+      ]
+    },
+    {
+      "name": "keys",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "API 密钥",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 191.1875,
+      "inputs": []
+    },
+    {
+      "name": "requests",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "请求日志",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 443.6875,
+      "inputs": []
+    },
+    {
+      "name": "usage",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "用量与费用",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 543.984375,
+      "inputs": []
+    },
+    {
+      "name": "settings",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "设置",
+      "alerts": [],
+      "exception": false,
+      "inputs": []
+    },
+    {
+      "name": "overview",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "运行概览",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 794.484375,
+      "inputs": []
+    },
+    {
+      "name": "accounts",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "账号管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 467.6875,
+      "inputs": []
+    },
+    {
+      "name": "providers",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "AI 提供商",
+      "alerts": [],
+      "exception": false,
+      "inputs": [
+        {
+          "width": 859
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "模型管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 386.6875,
+      "inputs": [
+        {
+          "width": 330
+        }
+      ]
+    },
+    {
+      "name": "keys",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "API 密钥",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 191.1875,
+      "inputs": []
+    },
+    {
+      "name": "requests",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "请求日志",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 443.6875,
+      "inputs": []
+    },
+    {
+      "name": "usage",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "用量与费用",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 543.984375,
+      "inputs": []
+    },
+    {
+      "name": "settings",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "设置",
+      "alerts": [],
+      "exception": false,
+      "inputs": []
+    },
+    {
+      "name": "overview",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "运行概览",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 983.875,
+      "inputs": []
+    },
+    {
+      "name": "accounts",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "账号管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 689.6875,
+      "inputs": []
+    },
+    {
+      "name": "providers",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "AI 提供商",
+      "alerts": [],
+      "exception": false,
+      "inputs": [
+        {
+          "width": 239
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "模型管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 514.1875,
+      "inputs": [
+        {
+          "width": 366
+        }
+      ]
+    },
+    {
+      "name": "keys",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "API 密钥",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 253.1875,
+      "inputs": []
+    },
+    {
+      "name": "requests",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "请求日志",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 736.875,
+      "inputs": []
+    },
+    {
+      "name": "usage",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "用量与费用",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 726.359375,
+      "inputs": []
+    },
+    {
+      "name": "settings",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "设置",
+      "alerts": [],
+      "exception": false,
+      "inputs": []
+    },
+    {
+      "name": "overview",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "运行概览",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 794.484375,
+      "inputs": []
+    },
+    {
+      "name": "accounts",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "账号管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 467.6875,
+      "inputs": []
+    },
+    {
+      "name": "providers",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "AI 提供商",
+      "alerts": [],
+      "exception": false,
+      "inputs": [
+        {
+          "width": 1019
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "模型管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 386.6875,
+      "inputs": [
+        {
+          "width": 330
+        }
+      ]
+    },
+    {
+      "name": "keys",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "API 密钥",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 191.1875,
+      "inputs": []
+    },
+    {
+      "name": "requests",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "请求日志",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 443.6875,
+      "inputs": []
+    },
+    {
+      "name": "usage",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "用量与费用",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 543.984375,
+      "inputs": []
+    },
+    {
+      "name": "settings",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvasWidth": 1440,
+      "canvasScroll": 1440,
+      "docWidth": 1440,
+      "heading": "设置",
+      "alerts": [],
+      "exception": false,
+      "inputs": []
+    },
+    {
+      "name": "overview",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "运行概览",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 794.484375,
+      "inputs": []
+    },
+    {
+      "name": "accounts",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "账号管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 467.6875,
+      "inputs": []
+    },
+    {
+      "name": "providers",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "AI 提供商",
+      "alerts": [],
+      "exception": false,
+      "inputs": [
+        {
+          "width": 859
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "模型管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 386.6875,
+      "inputs": [
+        {
+          "width": 330
+        }
+      ]
+    },
+    {
+      "name": "keys",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "API 密钥",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 191.1875,
+      "inputs": []
+    },
+    {
+      "name": "requests",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "请求日志",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 443.6875,
+      "inputs": []
+    },
+    {
+      "name": "usage",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "用量与费用",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 543.984375,
+      "inputs": []
+    },
+    {
+      "name": "settings",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvasWidth": 1280,
+      "canvasScroll": 1280,
+      "docWidth": 1280,
+      "heading": "设置",
+      "alerts": [],
+      "exception": false,
+      "inputs": []
+    },
+    {
+      "name": "overview",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "运行概览",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 983.875,
+      "inputs": []
+    },
+    {
+      "name": "accounts",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "账号管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 689.6875,
+      "inputs": []
+    },
+    {
+      "name": "providers",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "AI 提供商",
+      "alerts": [],
+      "exception": false,
+      "inputs": [
+        {
+          "width": 239
+        }
+      ]
+    },
+    {
+      "name": "models",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "模型管理",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 514.1875,
+      "inputs": [
+        {
+          "width": 366
+        }
+      ]
+    },
+    {
+      "name": "keys",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "API 密钥",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 253.1875,
+      "inputs": []
+    },
+    {
+      "name": "requests",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "请求日志",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 736.875,
+      "inputs": []
+    },
+    {
+      "name": "usage",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "用量与费用",
+      "alerts": [],
+      "exception": false,
+      "tableTop": 726.359375,
+      "inputs": []
+    },
+    {
+      "name": "settings",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvasWidth": 390,
+      "canvasScroll": 390,
+      "docWidth": 390,
+      "heading": "设置",
+      "alerts": [],
+      "exception": false,
+      "inputs": []
+    }
+  ],
+  "eventCounts": {
+    "Runtime.executionContextCreated": 2,
+    "Page.frameScheduledNavigation": 48,
+    "Page.frameStartedLoading": 48,
+    "Page.navigatedWithinDocument": 48,
+    "Page.frameStoppedLoading": 48,
+    "Page.frameClearedScheduledNavigation": 48,
+    "Network.requestWillBeSent": 291,
+    "Network.requestWillBeSentExtraInfo": 286,
+    "Network.responseReceivedExtraInfo": 286,
+    "Network.responseReceived": 291,
+    "Network.dataReceived": 299,
+    "Network.loadingFinished": 291,
+    "Page.frameResized": 5,
+    "Network.requestServedFromCache": 5
+  },
+  "runtimeExceptions": 0,
+  "networkFailures": 0
+}

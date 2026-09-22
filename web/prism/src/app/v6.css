@@ -362,7 +362,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 /* Account directory: the same rows and material for every channel, including native Grok. */
 .account-directory-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:16px 0; }
 .account-directory-tools { display:flex; gap:8px; margin-left:auto; }
-.account-status-tabs { display:flex; flex-wrap:wrap; gap:4px; }
+.account-status-tabs { display:flex; flex-wrap:wrap; gap:2px; padding:3px; border:1px solid var(--separator); border-radius:12px; background:var(--surface-2); }
 .account-status-tabs button { min-height:36px; padding:7px 12px; border:1px solid transparent; background:transparent; box-shadow:none; color:var(--ink-2); border-radius:10px; }
 .account-status-tabs button[aria-pressed="true"] { background:var(--surface); border-color:var(--separator); color:var(--ink); }
 .account-search { flex:1; min-width:220px; max-width:480px; margin:0; }
@@ -452,17 +452,17 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 .upstream-model-browser .data-toolbar label { display:grid; gap:6px; flex:1 1 180px; font-size:13px; }
 .upstream-model-browser .data-toolbar select { min-width:0; width:100%; }
 /* V2: one compact source list with a stable contextual workspace. */
-.provider-workspace { display:grid; grid-template-columns:minmax(0,2.5fr) minmax(240px,1fr); align-items:start; gap:20px; min-width:0; }
+.provider-workspace { display:grid; grid-template-columns:minmax(0,1fr) 290px; align-items:start; gap:20px; min-width:0; }
 .provider-list { min-width:0; padding:22px; border:1px solid var(--separator); border-radius:20px; background:var(--panel-tint); }
 .provider-list-heading { display:flex; justify-content:space-between; align-items:start; gap:12px; padding-bottom:20px; }
 .provider-list-heading h3, .provider-guide h3 { margin:0; font-size:16px; }
 .provider-list-heading p { margin:6px 0 0; color:var(--ink-2); font-size:12px; }
-.provider-card { display:grid; grid-template-columns:minmax(150px,1.4fr) minmax(100px,.75fr) auto; gap:8px 16px; align-items:center; padding:18px 0; border:0; border-top:1px solid var(--separator); min-width:0; }
+.provider-card { display:grid; grid-template-columns:minmax(150px,1fr) minmax(110px,.6fr) auto; gap:8px 14px; align-items:center; padding:14px 0; border:0; border-top:1px solid var(--separator); min-width:0; }
 .provider-card > header { display:flex; align-items:center; gap:10px; min-width:0; }
 .provider-avatar { display:grid; place-items:center; flex:0 0 32px; height:32px; border:1px solid var(--separator); border-radius:10px; background:var(--surface-2); color:var(--ink); font-size:11px; font-weight:600; }
-.provider-card h3 { margin:0 0 4px; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.provider-card h3 { margin:0 0 2px; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
 .provider-kind { color:var(--ink-2); font-size:11px; }
-.provider-connections { display:grid; gap:4px; margin-top:4px; color:var(--ink-2); font-size:11px; overflow-wrap:anywhere; }
+.provider-connections { display:grid; gap:4px; margin-top:2px; color:var(--ink-2); font-size:11px; overflow-wrap:anywhere; }
 .provider-models { grid-column:2; grid-row:1; display:grid; gap:6px; font-size:12px; }
 .provider-models strong { color:var(--ink); font-variant-numeric:tabular-nums; }
 .provider-card > footer { grid-column:3; margin:0; padding:0; border:0; }

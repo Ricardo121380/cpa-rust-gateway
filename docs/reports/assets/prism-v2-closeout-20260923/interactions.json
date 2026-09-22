@@ -1,0 +1,205 @@
+{
+  "dirtyGuard": {
+    "escapePrompt": true,
+    "continueRetainedNameAndSelection": true,
+    "discardClosedWithoutSubmit": true
+  },
+  "requestRange": {
+    "exactRangePreserved": true,
+    "failedRows": 2,
+    "summaryExpanded": true
+  },
+  "emptyRequest": "此筛选下没有请求记录。",
+  "usageFilter": {
+    "model": "Exact/Model-v2",
+    "rows": 1,
+    "clearedRows": 2
+  },
+  "finalKeyForm": {
+    "focusStayedInsideFor14Tabs": true,
+    "dirtyRetained": true,
+    "discardClosed": true,
+    "issued": false
+  },
+  "readError": {
+    "method": "local URL blocked with CDP",
+    "visible": "Failed to fetch",
+    "recovered": true
+  },
+  "accessibility": {
+    "transparency": "reduce",
+    "contrast": "more",
+    "motion": "reduce",
+    "blur": [
+      "none",
+      "none"
+    ],
+    "activeAnimations": 0
+  },
+  "contrast": {
+    "scope": "sampled body and link text; nearest opaque surface or canvas; excludes gradients and chrome",
+    "pages": [
+      {
+        "theme": "light",
+        "hash": "/",
+        "samples": [
+          {
+            "text": "请求、账号与费用，汇集于同一工作台。",
+            "ratio": 5.17
+          },
+          {
+            "text": "查看此范围请求 →",
+            "ratio": 6.21
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "hash": "/usage",
+        "samples": [
+          {
+            "text": "已知用量、计价置信度和未计价记录，分别核对。",
+            "ratio": 5.17
+          },
+          {
+            "text": "按原始模型归类 · 已知费用",
+            "ratio": 5.65
+          },
+          {
+            "text": "金额使用后台微单位，不擅自指定币种；缺价与未观测金额保留未知。",
+            "ratio": 5.65
+          },
+          {
+            "text": "完整筛选范围 · 独立账本快照",
+            "ratio": 5.65
+          },
+          {
+            "text": "账本记录的精确计价占比",
+            "ratio": 5.65
+          },
+          {
+            "text": "已知费用不等于全部费用。账本与请求数可能不同，计费处理也可能稍后完成。",
+            "ratio": 5.65
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "hash": "/monitoring",
+        "samples": [
+          {
+            "text": "从请求终态出发，展开每次尝试与关联证据。",
+            "ratio": 5.17
+          },
+          {
+            "text": "6 个请求 · 2 个失败 统计与延迟",
+            "ratio": 13.74
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "hash": "/settings",
+        "samples": [
+          {
+            "text": "日常偏好保持轻量，复杂维护留在明确的工作区。",
+            "ratio": 5.17
+          },
+          {
+            "text": "使用更实的表面，提升内容可读性。",
+            "ratio": 5.65
+          },
+          {
+            "text": "加强文字、控件与背景的区分。",
+            "ratio": 5.65
+          },
+          {
+            "text": "减少过渡与装饰动画。",
+            "ratio": 5.65
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "hash": "/",
+        "samples": [
+          {
+            "text": "请求、账号与费用，汇集于同一工作台。",
+            "ratio": 9.16
+          },
+          {
+            "text": "查看此范围请求 →",
+            "ratio": 7.84
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "hash": "/usage",
+        "samples": [
+          {
+            "text": "已知用量、计价置信度和未计价记录，分别核对。",
+            "ratio": 9.16
+          },
+          {
+            "text": "按原始模型归类 · 已知费用",
+            "ratio": 7.79
+          },
+          {
+            "text": "金额使用后台微单位，不擅自指定币种；缺价与未观测金额保留未知。",
+            "ratio": 7.79
+          },
+          {
+            "text": "完整筛选范围 · 独立账本快照",
+            "ratio": 7.79
+          },
+          {
+            "text": "账本记录的精确计价占比",
+            "ratio": 7.79
+          },
+          {
+            "text": "已知费用不等于全部费用。账本与请求数可能不同，计费处理也可能稍后完成。",
+            "ratio": 7.79
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "hash": "/monitoring",
+        "samples": [
+          {
+            "text": "从请求终态出发，展开每次尝试与关联证据。",
+            "ratio": 9.16
+          },
+          {
+            "text": "6 个请求 · 2 个失败 统计与延迟",
+            "ratio": 15.97
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "hash": "/settings",
+        "samples": [
+          {
+            "text": "日常偏好保持轻量，复杂维护留在明确的工作区。",
+            "ratio": 9.16
+          },
+          {
+            "text": "使用更实的表面，提升内容可读性。",
+            "ratio": 7.79
+          },
+          {
+            "text": "加强文字、控件与背景的区分。",
+            "ratio": 7.79
+          },
+          {
+            "text": "减少过渡与装饰动画。",
+            "ratio": 7.79
+          }
+        ]
+      }
+    ],
+    "failures": []
+  }
+}

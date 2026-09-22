@@ -248,8 +248,7 @@ export function AccessPage() {
       <ReadStatus pending={!!scope&&keys.isPending} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
 
       <div className="card tablewrap key-list-wrap">
-        <div className="inventory-heading"><h3>客户端密钥</h3><span className="badge badge-muted">{keys.data?.length ?? "—"} 把密钥</span></div>
-        <table className="key-list">
+        <table className="key-list" aria-label="客户端密钥">
           <thead>
             <tr>
               <th>名称</th>
@@ -307,7 +306,7 @@ export function AccessPage() {
         ) : null}
       </div>
 
-      <p className="inventory-note">模型开放不会自动扩大现有密钥的权限。</p>
+      <p className="inventory-note"><span>{keys.data?.length ?? "—"} 把密钥</span><span>模型开放不会自动扩大现有密钥的权限。</span></p>
       <details className="card"><summary>高级访问组</summary><div className="page-actions">          <button
             type="button"
             className="secondary"

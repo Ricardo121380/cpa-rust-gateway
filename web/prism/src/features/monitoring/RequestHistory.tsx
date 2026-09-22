@@ -82,7 +82,7 @@ export function requestSearchAfterFilter(
   return next;
 }
 
-function Trend({series:observed,from,to,bucket,summary}:Readonly<{series:readonly Bucket[];from:number;to:number;bucket:number;summary:Summary}>) {
+function Trend({series:observed,from,to,bucket,summary,requestLink}:Readonly<{series:readonly Bucket[];from:number;to:number;bucket:number;summary:Summary;requestLink:string}>) {
   const start=Math.floor(from/bucket)*bucket;
   const byTime=new Map(observed.map(row=>[row.at_ms,row]));
   const series=observed.length?Array.from({length:Math.min(1000,Math.floor((to-start)/bucket)+1)},(_,index)=>{const at=start+index*bucket;return byTime.get(at)??{at_ms:at,requests:0,succeeded:0,failed:0,cancelled:0,average_duration_ms:null,average_first_content_ms:null};}):[];
@@ -97,14 +97,14 @@ function Trend({series:observed,from,to,bucket,summary}:Readonly<{series:readonl
   for(const row of series){if(row[metric]===null){if(current.length)segments.push(current);current=[];}else current.push(row);}
   if(current.length)segments.push(current);
   return <figure className="request-trend"><figcaption><strong>请求趋势</strong><div className="trend-modes" role="group" aria-label="趋势指标"><button type="button" aria-pressed={metric==="requests"} onClick={()=>setMetric("requests")}>请求量</button><button type="button" aria-pressed={metric==="average_duration_ms"} onClick={()=>setMetric("average_duration_ms")}>平均耗时</button></div></figcaption>
-    <p className="trend-summary"><strong>{metric==="requests"?summary.requests.toLocaleString():milliseconds(summary.average_duration_ms)}</strong><span>{metric==="requests"?"次请求 · 当前时间范围":"平均耗时 · 已观测请求"}</span></p><p className="trend-range">{new Date(from).toLocaleString()} — {new Date(to).toLocaleString()}</p>
+    <p className="trend-summary"><strong>{metric==="requests"?summary.requests.toLocaleString():milliseconds(summary.average_duration_ms)}</strong><span>{metric==="requests"?"次请求 · 当前时间范围":"平均耗时 · 已观测请求"}</span></p>
     {series.length?<svg viewBox="0 0 760 185" role="img" aria-label={metric==="requests"?"每个时间段的实际请求数":"每个时间段已观测的平均耗时"}>
       <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" className="trend-fill-start"/><stop offset="100%" className="trend-fill-end"/></linearGradient></defs>
       {[0,.5,1].map(part=><g key={part}><line x1="42" y1={155-part*115} x2="732" y2={155-part*115} className="request-axis"/><text x="34" y={159-part*115} textAnchor="end" className="trend-axis-label">{Math.round(maximum*part).toLocaleString()}</text></g>)}
       {segments.map((segment,index)=>{const points=segment.map(row=>`${x(row)},${y(row)}`).join(" ");return <g key={index}>{metric==="requests"?<polygon points={`${x(segment[0]!)},155 ${points} ${x(segment[segment.length-1]!)},155`} fill={`url(#${gradient})`}/>:null}<polyline points={points} className="request-line"/>{segment.map(row=><circle key={row.at_ms} cx={x(row)} cy={y(row)} r="2.5"><title>{new Date(row.at_ms).toLocaleString()}：{metric==="requests"?`${row.requests} 次，成功 ${row.succeeded}，失败 ${row.failed}，取消 ${row.cancelled}`:milliseconds(row.average_duration_ms)}</title></circle>)}</g>;})}
       <text x="42" y="179" className="trend-axis-label">{new Date(from).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</text><text x="732" y="179" textAnchor="end" className="trend-axis-label">{new Date(to).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}{metric==="average_duration_ms"?" · ms":""}</text>
     </svg>:<p className="empty-state">此时间范围没有已观测的请求终态。</p>}
-    <details><summary>查看趋势数据</summary><div className="tablewrap"><table><thead><tr><th>时间</th><th>请求</th><th>成功</th><th>失败</th><th>取消</th><th>平均耗时</th></tr></thead><tbody>{series.map(row=><tr key={row.at_ms}><td>{time(row.at_ms)}</td><td>{row.requests}</td><td>{row.succeeded}</td><td>{row.failed}</td><td>{row.cancelled}</td><td>{milliseconds(row.average_duration_ms)}</td></tr>)}</tbody></table></div></details>
+    <div className="trend-footer"><Link to={requestLink}>查看此范围请求 →</Link><details><summary>趋势数据与时间范围</summary><p className="trend-range">{new Date(from).toLocaleString()} — {new Date(to).toLocaleString()}</p><div className="tablewrap"><table><thead><tr><th>时间</th><th>请求</th><th>成功</th><th>失败</th><th>取消</th><th>平均耗时</th></tr></thead><tbody>{series.map(row=><tr key={row.at_ms}><td>{time(row.at_ms)}</td><td>{row.requests}</td><td>{row.succeeded}</td><td>{row.failed}</td><td>{row.cancelled}</td><td>{milliseconds(row.average_duration_ms)}</td></tr>)}</tbody></table></div></details></div>
   </figure>;
 }
 function Metrics({data,link}:Readonly<{data:Summary;link:string}>) {
@@ -137,14 +137,14 @@ export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:
         <Link to={ledger}><span>已知费用 · 微单位</span><strong>{costs?.records?formatMicrounits(costs.known_cost_microunits):"—"}</strong><small>{billing.isError?"费用暂时无法读取":costs===undefined?"读取中…":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录未计价`}</small></Link>
       </div>
       <div className="overview-observations">
-        <Trend series={query.data?.series ?? []} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms} summary={summary}/>
+        <Trend series={query.data?.series ?? []} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms} summary={summary} requestLink={link}/>
         <aside className="overview-attention"><h3>需要关注</h3><p className="stat-sub">当前时间范围内的处理事项</p>
           <Link to={`${link}&outcome=failed`}><strong>{summary.failed} 个失败请求</strong><span>查看错误与上游重试链 →</span></Link>
           <Link to={ledger}><strong>{costs===undefined?"计价状态待确认":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录尚未计价`}</strong><span>已知费用不等于全部费用 →</span></Link>
           <Link to="/accounts?view=runtime"><strong>账号健康与额度</strong><span>查看当前认证与调度状态 →</span></Link>
           <details><summary>更多请求指标</summary><p>P50：{milliseconds(summary.p50_duration_ms)}</p><p>平均首内容延迟：{milliseconds(summary.average_first_content_ms)}</p><p>{summary.attempts} 次上游尝试 · {summary.unknown} 条终态未知</p></details>
         </aside>
-      </div><Link to={link}>查看此范围请求</Link>
+      </div>
     </>:<p role="status">读取请求统计…</p>}
   </section>;
 }
@@ -181,9 +181,11 @@ export function RequestHistoryPanel() {
 </div></details>
     <div className="request-filter-actions"><button type="submit">应用筛选</button><button type="button" className="secondary" onClick={()=>{setAnchor(Date.now());setParams({tab:"requests"});}}>重置</button></div>
   </form>
-  {summary?.summary?<details className="request-summary-disclosure"><summary>{summary.summary.requests.toLocaleString()} 个请求 · {summary.summary.failed.toLocaleString()} 个失败 <span>查看统计与延迟</span></summary><Metrics data={summary.summary} link={link}/><p className="stat-sub">重试单列：{summary.summary.attempts} 次上游尝试 · {summary.summary.unknown} 条终态未知 · {summary.summary.cancelled} 条已取消</p></details>:null}
-  <div className="data-toolbar"><button className="secondary" onClick={()=>{setAnchor(Date.now());void requests.refetch();}}>重新读取</button><button className="secondary" disabled={!rows.length} onClick={()=>downloadText(`requests-${Date.now()}.jsonl`,rows.map(row=>JSON.stringify(row)).join("\n"))}>导出已载入记录（{rows.length}）</button></div>
-  {requests.isError?<p role="alert">{asAppError(requests.error).message}</p>:requests.isPending?<p role="status">读取请求记录…</p>:!rows.length?<p className="empty-state">此筛选下没有请求记录。</p>:<div className="tablewrap request-records-panel"><table className="request-table"><thead><tr><th>模型 / 时间</th><th>渠道 / 账号</th><th>结果</th><th>耗时 / 首内容</th><th>费用（微单位）</th><th>操作</th></tr></thead><tbody>{rows.map(row=><tr key={row.request_id}><td><strong>{row.model}</strong><small>{time(row.finished_at_ms)}</small></td><td><div>{row.upstream_id?<ResourceIdentity id={row.upstream_id} kind="upstream"/>:"—"}</div>{row.credential_id?<small><ResourceIdentity id={row.credential_id} kind="account"/></small>:null}</td><td>{outcomeLabel[row.outcome]}<small>{row.attempt_count} 次尝试</small></td><td>{milliseconds(row.duration_ms)}<small>{milliseconds(row.first_content_ms)}</small></td><td>{row.ledger_records?row.cost_microunits===null?(row.cost_confidence?costConfidenceLabel(row.cost_confidence):"金额未观测"):formatMicrounits(row.cost_microunits):"无账本记录"}</td><td><button className="secondary" onClick={()=>setDetail(row)}>详情</button></td></tr>)}</tbody></table></div>}
+  <div className="request-results-toolbar">
+    {summary?.summary?<details className="request-summary-disclosure"><summary>{summary.summary.requests.toLocaleString()} 个请求 · {summary.summary.failed.toLocaleString()} 个失败 <span>统计与延迟</span></summary><Metrics data={summary.summary} link={link}/><p className="stat-sub">重试单列：{summary.summary.attempts} 次上游尝试 · {summary.summary.unknown} 条终态未知 · {summary.summary.cancelled} 条已取消</p></details>:<span/>}
+    <div className="request-read-actions"><button className="secondary" onClick={()=>{setAnchor(Date.now());void requests.refetch();}}>重新读取</button><button className="secondary" disabled={!rows.length} onClick={()=>downloadText(`requests-${Date.now()}.jsonl`,rows.map(row=>JSON.stringify(row)).join("\n"))}>导出已载入记录（{rows.length}）</button></div>
+  </div>
+  {requests.isError?<p role="alert">{asAppError(requests.error).message}</p>:requests.isPending?<p role="status">读取请求记录…</p>:!rows.length?<p className="empty-state">此筛选下没有请求记录。</p>:<div className="tablewrap request-records-panel"><table className="request-table"><thead><tr><th>模型 / 时间</th><th>渠道 / 账号</th><th>结果</th><th>耗时 / 首内容</th><th>费用（微单位）</th><th>操作</th></tr></thead><tbody>{rows.map(row=><tr key={row.request_id}><td><strong>{row.model}</strong><small>{time(row.finished_at_ms)}</small></td><td><div>{row.upstream_id?<ResourceIdentity id={row.upstream_id} kind="upstream"/>:"—"}</div>{row.credential_id?<small><ResourceIdentity id={row.credential_id} kind="account"/></small>:null}</td><td><StatusBadge status={row.outcome==="succeeded"?"active":row.outcome==="failed"?"unauthorized":"disabled"}>{outcomeLabel[row.outcome]}</StatusBadge><small>{row.attempt_count} 次尝试</small></td><td>{milliseconds(row.duration_ms)}<small>{milliseconds(row.first_content_ms)}</small></td><td>{row.ledger_records?row.cost_microunits===null?(row.cost_confidence?costConfidenceLabel(row.cost_confidence):"金额未观测"):formatMicrounits(row.cost_microunits):"无账本记录"}</td><td><button className="secondary" onClick={()=>setDetail(row)}>详情</button></td></tr>)}</tbody></table></div>}
   {requests.hasNextPage?<button className="secondary" disabled={requests.isFetchingNextPage||requests.isError} onClick={()=>void requests.fetchNextPage()}>加载更多</button>:null}
   {detail?<RequestDetail row={detail} onClose={()=>setDetail(undefined)}/>:null}
   </section>;

@@ -131,6 +131,9 @@
 .model-source-context span { color:var(--ink-2); font-size:12px; }
 .model-source-context > a,.model-source-context > button { flex-shrink:0; }
 .model-filters { flex-wrap:wrap; gap:12px; }
+.model-filters input[type="search"] { flex:0 1 330px; min-width:180px; }
+.model-filters > .muted { margin-left:auto; font-size:12px; }
+@media(max-width:700px) { .model-filters input[type="search"] { flex:1 1 100%; min-width:0; } .model-filters > .muted { margin-left:0; } }
 .model-filters select { max-width:240px; }
 @media(max-width:700px) { .shell .models-page .model-source-context { align-items:flex-start; flex-direction:column; } .model-filters select { max-width:100%; } }
 

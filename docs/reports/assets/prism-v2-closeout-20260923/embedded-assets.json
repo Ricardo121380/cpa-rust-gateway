@@ -1,0 +1,38 @@
+[
+  {
+    "file": "index.html",
+    "status": 200,
+    "bytes": 955,
+    "sha256": "9828bd62ab39bbaca44141971a8ce02c6cd0cba67666cd88cb73adb8f9747846",
+    "equalsDist": true,
+    "contentType": "text/html; charset=utf-8",
+    "hasCsp": true
+  },
+  {
+    "file": "assets/main.js",
+    "status": 200,
+    "bytes": 854437,
+    "sha256": "d6bbd87407da6ad084e466b9a9dd3d05af67278dd0eee3a14c26ee6c3f039277",
+    "equalsDist": true,
+    "contentType": "application/javascript; charset=utf-8",
+    "hasCsp": true
+  },
+  {
+    "file": "assets/vendor.js",
+    "status": 200,
+    "bytes": 141674,
+    "sha256": "29a0a30425bd5cae979f34a67b9575223b83f10e04271cf444c1838c4c9231a9",
+    "equalsDist": true,
+    "contentType": "application/javascript; charset=utf-8",
+    "hasCsp": true
+  },
+  {
+    "file": "assets/index.css",
+    "status": 200,
+    "bytes": 156876,
+    "sha256": "5f7d80c173feac9c8b7089e182d312faf67ff3db482974b9e5061461aaf5aa39",
+    "equalsDist": true,
+    "contentType": "text/css; charset=utf-8",
+    "hasCsp": true
+  }
+]

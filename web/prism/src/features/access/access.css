@@ -38,6 +38,15 @@
 .key-inspector-models code { overflow-wrap:anywhere; }
 
 .shell .canvas .access-page .card.key-list-wrap { padding:0; overflow:hidden; }
-.key-list-wrap > .inventory-heading { padding:16px 22px; margin:0; }
+.access-page .inventory-note { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 20px; font-size:12px; }
 .key-list-wrap .key-list { margin:0; }
 @media(max-width:720px) { .shell .canvas .access-page .card.key-list-wrap { padding:16px; } }
+
+/* The issue form uses open sections; selection remains a real multi-model list. */
+.key-issue-form .key-fields-row { grid-template-columns:2fr 1fr; }
+.key-issue-form .key-model-picker { margin:0; padding:0; border:0; border-radius:0; gap:12px; }
+.key-issue-form .key-model-picker legend { padding:0 0 12px; }
+.key-issue-form .key-model-picker .data-toolbar { padding:0; margin:0; border:0; }
+.key-issue-form .key-model-options { border-top:1px solid var(--separator); }
+.key-issue-form .field-help { margin:0; }
+@media(max-width:520px) { .key-issue-form .key-fields-row { grid-template-columns:1fr; } }

@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { StatusBadge } from "../../components/StatusBadge";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import { exactShare, formatPercent, formatMicrounits, type BillingResponse } from "../monitoring/model";
@@ -35,7 +36,7 @@ export function UsageCosts({range,filters}:Readonly<{range:Readonly<{from_ms?:nu
     <div className="usage-cost-workspace">
     <section className="usage-cost-panel" aria-label="费用来源"><header><div><h3>费用来源</h3><p>按原始模型归类 · 已知费用</p></div><span className="badge">运营者计价</span></header>
       {!supported?<p className="empty-state">账本暂不支持密钥、访问组或协议筛选。请清除这些条件后核对同范围费用。</p>:billing.isError?<div role="alert"><p>{asAppError(billing.error).message}</p><button className="secondary" onClick={()=>void billing.refetch()}>重新读取费用</button></div>:billing.isPending?<p role="status">读取费用来源…</p>:sources.length?<>
-        <table className="usage-cost-table"><thead><tr><th>模型</th><th>已知费用 · 微单位</th><th>计价状态</th></tr></thead><tbody>{sources.map(source=><tr key={source.model}><td><code>{source.model}</code><small>{source.records} 条账本记录</small></td><td>{formatMicrounits(source.known)}</td><td>{source.incomplete?`${source.incomplete} 条未完整计价`:"精确"}</td></tr>)}</tbody></table>
+        <table className="usage-cost-table"><thead><tr><th>模型</th><th>已知费用 · 微单位</th><th>计价状态</th></tr></thead><tbody>{sources.map(source=><tr key={source.model}><td><code>{source.model}</code><small>{source.records} 条账本记录</small></td><td>{formatMicrounits(source.known)}</td><td><StatusBadge status={source.incomplete?"stale":"fresh"}>{source.incomplete?`${source.incomplete} 条未完整计价`:"精确"}</StatusBadge></td></tr>)}</tbody></table>
         {billing.hasNextPage?<div className="usage-cost-more"><p>当前仅汇总已载入记录，模型费用尚不完整。</p><button disabled={billing.isFetchingNextPage} onClick={()=>void billing.fetchNextPage()}>加载更多费用记录</button></div>:null}
       </>:<p className="empty-state">当前范围没有账本记录，不能据此判断没有消费。</p>}
       <footer><p>金额使用后台微单位，不擅自指定币种；缺价与未观测金额保留未知。</p>{supported?<Link to={`/monitoring?${ledger}`}>查看同范围账本 →</Link>:null}{requestSupported?<Link className="usage-request-link" to={`/monitoring?${requestLink}`}>查看同范围请求 →</Link>:null}</footer>
