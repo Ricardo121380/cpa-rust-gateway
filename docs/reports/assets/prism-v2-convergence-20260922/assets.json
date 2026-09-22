@@ -1,0 +1,22 @@
+[
+  {
+    "file": "index.html",
+    "match": true,
+    "sha256": "757639fe7025d613c193a33cdeeb9cb201fbe4eb346d5fd1129a7070b9ac93cd"
+  },
+  {
+    "file": "assets/main.js",
+    "match": true,
+    "sha256": "350011d5435f4916693101aecd90b7a1a06adb00d913cf92931ad6e39b210988"
+  },
+  {
+    "file": "assets/vendor.js",
+    "match": true,
+    "sha256": "29a0a30425bd5cae979f34a67b9575223b83f10e04271cf444c1838c4c9231a9"
+  },
+  {
+    "file": "assets/index.css",
+    "match": true,
+    "sha256": "95ae64a6df1d13bbad2ff9fc8e4c0e2f9ab6ad9a323cf0e84b8b1acf30504e6e"
+  }
+]

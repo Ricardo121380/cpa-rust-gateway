@@ -125,7 +125,7 @@
 .model-batch-results li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .model-batch-results code { overflow-wrap: anywhere; white-space: normal; min-width: 0; }
 
-.shell .models-page .model-source-context { display:flex; margin-bottom:12px; align-items:center; justify-content:space-between; gap:16px; padding:14px 18px; border:1px solid var(--separator); border-radius:14px; background:var(--surface); }
+.shell .models-page .model-source-context { display:flex; margin-bottom:12px; align-items:center; justify-content:space-between; gap:16px; padding:14px 18px; border:0; border-radius:10px; background:var(--surface-2); }
 .model-source-context > div { display:flex; align-items:center; flex-wrap:wrap; gap:12px; min-width:0; }
 .model-source-context strong { overflow-wrap:anywhere; }
 .model-source-context span { color:var(--ink-2); font-size:12px; }
@@ -133,3 +133,7 @@
 .model-filters { flex-wrap:wrap; gap:12px; }
 .model-filters select { max-width:240px; }
 @media(max-width:700px) { .shell .models-page .model-source-context { align-items:flex-start; flex-direction:column; } .model-filters select { max-width:100%; } }
+
+.shell .canvas .models-page .card.models-inventory { padding:0; overflow:hidden; }
+.models-inventory table { margin:0; }
+@media(max-width:700px) { .shell .canvas .models-page .card.models-inventory { overflow:visible; } }

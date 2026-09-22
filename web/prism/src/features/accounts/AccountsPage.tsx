@@ -143,6 +143,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
       </div>
     </header>
     {navigation}
+    {inventory.data&&!inventory.isError?<div className="account-inventory-summary" aria-label="账号目录摘要"><span><strong>{inventory.data.pages[0]?.total.toLocaleString()}</strong>匹配授权</span><span><strong>{Object.keys(inventory.data.pages[0]?.category_totals??{}).filter(key=>(inventory.data?.pages[0]?.category_totals[key]??0)>0).length}</strong>账号类别</span><span><strong>{inventory.data.pages[0]?.unobserved_plan_total.toLocaleString()}</strong>套餐未观测</span></div>:null}
     {notice ? <p role="status">{notice}</p> : null}
     {selecting?<div className="account-batch-toolbar" aria-label="批量账号操作"><span>已选 {selectedTargets.length} / 20 份授权</span><div className="page-actions">{(["enable","disable","remove"] as const).map((action)=><button key={action} className="secondary" disabled={!selectedTargets.length} onClick={()=>setBatch({targets:selectedTargets,action})}>{({enable:"启用",disable:"停用",remove:"移除"})[action]}</button>)}<button className="secondary" disabled={!selection.size} onClick={()=>setSelection(new Set())}>清除选择</button></div></div>:null}
     <div className="account-status-tabs" role="group" aria-label="授权状态筛选">

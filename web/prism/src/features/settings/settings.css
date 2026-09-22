@@ -93,8 +93,8 @@
 
 /* V2 preference rows: one quiet surface, explanation left and control right. */
 .settings-section-title { margin:24px 0 12px; color:var(--ink-2); font-size:12px; font-weight:600; }
-.settings-page .settings-preferences { padding:0 22px; }
-.settings-preference-row { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:20px 0; border-bottom:1px solid var(--separator); }
+.shell .canvas .settings-page .card.settings-preferences { padding:0; overflow:hidden; }
+.settings-preference-row { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:20px 22px; border-bottom:1px solid var(--separator); }
 .settings-preference-row h3, .settings-preference-row strong { margin:0; font-size:13px; font-weight:600; }
 .settings-preference-row p, .settings-preference-description { display:block; margin:6px 0 0; color:var(--ink-2); font-size:12px; line-height:1.6; }
 .settings-preference-row .settings-choice { flex-shrink:0; }
@@ -102,9 +102,9 @@
 .settings-switch::before { content:""; display:block; width:16px; height:16px; border-radius:50%; background:var(--ink-2); transition:transform 160ms ease; }
 .settings-page .settings-switch:checked { background:var(--tint); border-color:var(--tint); }
 .settings-switch:checked::before { background:white; transform:translateX(16px); }
-.settings-preferences-note { margin:0; padding:14px 0; color:var(--ink-2); font-size:11px; }
+.settings-preferences-note { margin:0; padding:14px 22px; color:var(--ink-2); font-size:11px; }
 .settings-search summary { cursor:pointer; font-weight:600; }
-@media(max-width:600px) { .settings-preference-row { gap:14px; flex-wrap:wrap; } .settings-page .settings-preferences { padding:0 16px; } .settings-preference-row:has(.settings-switch) { flex-wrap:nowrap; min-height:64px; } }
+@media(max-width:600px) { .settings-preference-row { gap:14px; flex-wrap:wrap; } .settings-page .settings-preference-row { padding:18px 16px; } .settings-preference-row:has(.settings-switch) { flex-wrap:nowrap; min-height:64px; } }
 @media(prefers-reduced-motion:reduce) { .settings-switch::before { transition:none; } }
 html[data-motion="reduce"] .settings-switch::before { transition:none; }
 

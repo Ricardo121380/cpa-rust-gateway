@@ -3074,3 +3074,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** Reproduce the V2 usage structure using true request metrics and ledger model costs, rather than prototype allocations. Preserve six-family token detail, unknowns, exact IDs, cursor completeness and explicit unsupported filter states.
 
 **Other side:** FYI. User authorizes this frontend implementation. No backend, generated contracts or production changes. Evidence and limitations: `docs/reports/prism-v2-usage-alignment.md`.
+
+## 2026-09-22 - Codex - V2 cross-page visual convergence
+
+**What:** `web/prism/src/app/v6.css`, `features/accounts/AccountsPage.tsx`, `features/access/access.css`, `features/models/models.css`, `features/settings/settings.css`, `features/monitoring/{RequestHistory.tsx,requests.css}`.
+
+**Why:** User-authorized V2 reproduction: fix table-cell/flex cascade regression, remove nested table gutters, align preference rows and compact request statistics while retaining all data and actions.
+
+**Other side:** FYI. No backend/contract/production changes. Current evidence and explicit remaining reference differences: `docs/reports/prism-v2-convergence.md`.
