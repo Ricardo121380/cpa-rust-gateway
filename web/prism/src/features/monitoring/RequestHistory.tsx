@@ -132,16 +132,16 @@ export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:
     {query.isError?<p role="alert">{asAppError(query.error).message}</p>:summary?<>
       <div className="request-metrics overview-kpis">
         <Link to={link}><span>请求数</span><strong>{summary.requests.toLocaleString()}</strong><small>上游重试不重复计数</small></Link>
-        <Link to={`${link}&outcome=succeeded`}><span>成功率</span><strong>{summary.success_rate===null?"—":`${(summary.success_rate*100).toFixed(1)}%`}</strong><small>{summary.failed} 失败 · {summary.cancelled} 取消</small></Link>
-        <Link to={link}><span>P95 总耗时</span><strong>{milliseconds(summary.p95_duration_ms)}</strong><small>仅统计已观测总耗时</small></Link>
+        <Link to={`${link}&outcome=succeeded`}><span>成功率</span><strong>{summary.success_rate===null?"—":<>{(summary.success_rate*100).toFixed(1)}<small className="metric-unit">%</small></>}</strong><small>{summary.failed} 失败 · {summary.cancelled} 取消</small></Link>
+        <Link to={link}><span>P95 总耗时</span><strong>{summary.p95_duration_ms===null?"—":<>{Math.round(summary.p95_duration_ms).toLocaleString()}<small className="metric-unit">ms</small></>}</strong><small>仅统计已观测总耗时</small></Link>
         <Link to={ledger}><span>已知费用 · 微单位</span><strong>{costs?.records?formatMicrounits(costs.known_cost_microunits):"—"}</strong><small>{billing.isError?"费用暂时无法读取":costs===undefined?"读取中…":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录未计价`}</small></Link>
       </div>
       <div className="overview-observations">
         <Trend series={query.data?.series ?? []} from={range.from_ms} to={range.to_ms} bucket={range.bucket_ms} summary={summary} requestLink={link}/>
         <aside className="overview-attention"><h3>需要关注</h3><p className="stat-sub">当前时间范围内的处理事项</p>
-          <Link to={`${link}&outcome=failed`}><strong>{summary.failed} 个失败请求</strong><span>查看错误与上游重试链 →</span></Link>
-          <Link to={ledger}><strong>{costs===undefined?"计价状态待确认":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录尚未计价`}</strong><span>已知费用不等于全部费用 →</span></Link>
-          <Link to="/accounts?view=runtime"><strong>账号健康与额度</strong><span>查看当前认证与调度状态 →</span></Link>
+          <Link to={`${link}&outcome=failed`}><span className="attention-symbol" data-tone={summary.failed>0?"warning":"neutral"} aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z M12 9v5 M12 17v1"/></svg></span><div><strong>{summary.failed>0?`${summary.failed} 个失败请求`:"未发现失败请求"}</strong><p>查看错误与上游重试链</p></div><span className="attention-chevron" aria-hidden="true">›</span></Link>
+          <Link to={ledger}><span className="attention-symbol" data-tone="info" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18v-5 M12 18V5 M19 18V9"/></svg></span><div><strong>{costs===undefined?"计价状态待确认":costs.records===0?"尚无账本记录":`${costs.unpriced_records} 条记录尚未计价`}</strong><p>已知费用不等于全部费用</p></div><span className="attention-chevron" aria-hidden="true">›</span></Link>
+          <Link to="/accounts?view=runtime"><span className="attention-symbol" data-tone="neutral" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><div><strong>账号健康与额度</strong><p>查看当前认证与调度状态</p></div><span className="attention-chevron" aria-hidden="true">›</span></Link>
           <details><summary>更多请求指标</summary><p>P50：{milliseconds(summary.p50_duration_ms)}</p><p>平均首内容延迟：{milliseconds(summary.average_first_content_ms)}</p><p>{summary.attempts} 次上游尝试 · {summary.unknown} 条终态未知</p></details>
         </aside>
       </div>

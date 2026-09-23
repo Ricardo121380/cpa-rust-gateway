@@ -646,7 +646,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
   const accountForm = action?.kind === "account-form" ? action.form : undefined;
 
   return (
-    <div className="card subresource-panel">
+    <div className="subresource-panel">
       {inventoryError != null ? (
         <p role="alert" className="action-error">
           {asAppError(inventoryError).message}
@@ -708,6 +708,11 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                   </StatusBadge>
                   </dd></div>
                 </dl>
+                <div className="subresource-actions" aria-label={`${channel.display} 主要操作`}>
+                  <Link to={`/catalog?endpoint_id=${encodeURIComponent(channel.channel_id)}`}>模型目录</Link>
+                  <button type="button" className="secondary" disabled={!editable} onClick={() => setAction({ kind: "binding-form", channelId: channel.channel_id })}>连接账号</button>
+                </div>
+                <details className="subresource-more"><summary>更多接口操作</summary><div className="subresource-maintenance">
                 <div className="subresource-actions" aria-label={`${channel.display} 操作`}>
                   <span className="subresource-action-label">接口测试</span>
                   <button
@@ -736,15 +741,6 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                   ) : null}
                 </div>
                 <div className="subresource-actions" aria-label={`${channel.display} 维护操作`}>
-                  <Link to={`/catalog?endpoint_id=${encodeURIComponent(channel.channel_id)}`}>模型目录</Link>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={!editable}
-                    onClick={() => setAction({ kind: "binding-form", channelId: channel.channel_id })}
-                  >
-                    连接账号
-                  </button>
                   <button
                     type="button"
                     className="secondary"
@@ -769,7 +765,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                   >
                     删除
                   </button>
-                </div>
+                </div></div></details>
               </article>
             );
           })}
@@ -807,9 +803,10 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                 </dd></div>
               </dl>
               <div className="subresource-actions" aria-label={`${account.display} 操作`}>
-                <button type="button" onClick={() => setAction({ kind: "account-inspector", accountId: account.account_id })}>
+                <button type="button" className="secondary" onClick={() => setAction({ kind: "account-inspector", accountId: account.account_id })}>
                   详情
                 </button>
+                <details className="subresource-more"><summary>更多账号操作</summary><div className="subresource-maintenance">
                 <button
                   type="button"
                   className="secondary"
@@ -838,6 +835,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                 >
                   删除
                 </button>
+                </div></details>
               </div>
             </article>
           ))}

@@ -1,0 +1,22 @@
+[
+  {
+    "file": "index.html",
+    "identical": true,
+    "sha256": "69515d0a896e4d86dd04097bcedc4dfec75ee71fc2ed1fa7708b1267857218f4"
+  },
+  {
+    "file": "assets/main.js",
+    "identical": true,
+    "sha256": "9397cf6804a04a79e1daffe7dcf0286d065bff946e8f8a4ff127eb099a114937"
+  },
+  {
+    "file": "assets/vendor.js",
+    "identical": true,
+    "sha256": "29a0a30425bd5cae979f34a67b9575223b83f10e04271cf444c1838c4c9231a9"
+  },
+  {
+    "file": "assets/index.css",
+    "identical": true,
+    "sha256": "37d87b3c7f02eaf008fbb9f6c8e2b88f128c317ac1ab1859b3eef1855e000d8c"
+  }
+]

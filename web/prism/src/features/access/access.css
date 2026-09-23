@@ -50,3 +50,14 @@
 .key-issue-form .key-model-options { border-top:1px solid var(--separator); }
 .key-issue-form .field-help { margin:0; }
 @media(max-width:520px) { .key-issue-form .key-fields-row { grid-template-columns:1fr; } }
+
+.key-model-empty { display:grid; justify-items:start; gap:8px; margin:0; padding:18px 0; border-top:1px solid var(--separator); font-size:12px; }
+.key-model-empty p { margin:0; font-weight:600; }
+.key-model-empty > span { color:var(--ink-2); line-height:1.6; }
+.key-selected-models { border-top:1px solid var(--separator); padding-top:12px; font-size:12px; }
+.key-selected-models > strong { font-weight:600; }
+.key-selected-models ul { list-style:none; margin:8px 0 0; padding:0; max-height:150px; overflow:auto; }
+.key-selected-models li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0; }
+.key-selected-models code { overflow-wrap:anywhere; min-width:0; }
+.key-selected-models button { flex:none; min-height:36px; font-size:11px; padding:6px 10px; }
+@media(max-width:720px) { .key-selected-models button { min-height:44px; } }

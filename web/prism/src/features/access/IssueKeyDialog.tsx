@@ -28,6 +28,10 @@ export function IssueKeyDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
   useEffect(()=>useSessionStore.subscribe((state,previous)=>{
     if(state.generation!==previous.generation)setIssued(undefined);
   }),[]);
+  const availableModels=models.data?.filter(model=>model.status==="active")??[];
+  const visibleModels=availableModels.filter(model=>model.model_name.toLowerCase().includes(search.trim().toLowerCase()));
+  const selectedModels=models.data?.filter(model=>chosen.has(model.id))??[];
+  const toggleModel=(id:string)=>setChosen(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next;});
   const dirty=name.trim().length>0||chosen.size>0||days!=="30";
   const save=useMutation({gcTime:0,mutationFn:async()=>{
     if(!owner||!chosen.size)throw new Error("请选择允许使用的模型。");
@@ -83,9 +87,21 @@ export function IssueKeyDialog({onClose,onSaved}:Readonly<{onClose:()=>void;onSa
     {issued?<><p role="status">{save.isPending?"密钥已生成，正在应用配置…":receipt?.kind==="saved_applied"?"密钥已生效，可以连接客户端。":"密钥已生成，但配置尚未确认应用。"}</p><code className="reveal-key mono">{issued.key}</code><p className="muted">请现在复制并安全保存完整密钥。</p>{copyError?<p role="alert">无法访问剪贴板，请手动复制。</p>:null}</>:receipt?<div role="status"><p>{receipt.message}</p>{recovery?<p>{recovery}</p>:null}<p>已确认保存 {receipt.acknowledgedWrites} 步。</p></div>:<form id={formId} className="sheet-form key-permissions-form key-issue-form" onSubmit={submit}>
       <div className="key-fields-row"><label>名称<input required maxLength={256} value={name} disabled={submitted.current} onChange={event=>setName(event.target.value)} placeholder="例如：我的客户端"/></label>
       <label>有效期<select value={days} onChange={event=>setDays(event.target.value)} disabled={submitted.current}><option value="30">30 天</option><option value="90">90 天</option><option value="365">1 年</option><option value="0">不过期</option></select></label></div>
-      <fieldset className="key-model-picker" disabled={submitted.current}><legend>允许使用的模型 · 已选 {chosen.size}</legend><label>搜索模型<input type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="按原始模型 ID 搜索"/></label><div className="data-toolbar"><button type="button" className="secondary" onClick={()=>setChosen(new Set(models.data?.filter(model=>model.status==="active").map(model=>model.id)??[]))}>全选当前已开放模型</button><button type="button" className="secondary" onClick={()=>setChosen(new Set())}>清空选择</button></div><div className="key-model-options">{models.data?.filter(model=>model.status==="active"&&model.model_name.toLowerCase().includes(search.trim().toLowerCase())).map(model=><label className="check-row" key={model.id}><input type="checkbox" checked={chosen.has(model.id)} onChange={()=>setChosen(current=>{const next=new Set(current);if(next.has(model.id))next.delete(model.id);else next.add(model.id);return next;})}/><span className="mono">{model.model_name}</span></label>)}</div><p className="field-help">新增模型不会自动加入此密钥。搜索不会改变已选权限。</p></fieldset>
-      {models.isError?<p role="alert">{asAppError(models.error).message}</p>:null}
-      {!models.data?.some(model=>model.status==="active")?<Link to="/models?add=model">先开放模型</Link>:null}
+      <fieldset className="key-model-picker" disabled={submitted.current}>
+        <legend>允许使用的模型 · 已选 {chosen.size}</legend>
+        <label>搜索模型<input type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="按原始模型 ID 搜索"/></label>
+        <div className="data-toolbar">
+          <button type="button" className="secondary" disabled={!availableModels.length||models.isError} onClick={()=>setChosen(new Set(availableModels.map(model=>model.id)))}>全选当前已开放模型</button>
+          <button type="button" className="secondary" disabled={!chosen.size} onClick={()=>setChosen(new Set())}>清空选择</button>
+        </div>
+        {models.isError?<div role="alert" className="key-model-empty"><p>{asAppError(models.error).message}</p><button type="button" className="secondary" onClick={()=>void models.refetch()}>重新读取模型</button></div>
+          :models.isPending?<p role="status" className="key-model-empty">正在读取已开放模型…</p>
+          :!availableModels.length?<div className="key-model-empty"><p>尚无已开放模型</p><Link to="/models?add=model">先开放模型</Link></div>
+          :!visibleModels.length?<div className="key-model-empty" role="status"><p>没有匹配模型</p><span>试试其他原始模型 ID，或清除搜索查看全部模型。</span><button type="button" className="secondary" onClick={()=>setSearch("")}>清除搜索</button></div>
+          :<div className="key-model-options">{visibleModels.map(model=><label className="check-row" key={model.id}><input type="checkbox" checked={chosen.has(model.id)} onChange={()=>toggleModel(model.id)}/><span className="mono">{model.model_name}</span></label>)}</div>}
+        {chosen.size>0?<div className="key-selected-models" aria-label="已选模型"><strong>已选模型 · {chosen.size}</strong><ul>{selectedModels.map(model=><li key={model.id}><code>{model.model_name}</code><button type="button" className="secondary" aria-label={`移除 ${model.model_name}`} onClick={()=>toggleModel(model.id)}>移除</button></li>)}</ul></div>:null}
+        <p className="field-help">新增模型不会自动加入此密钥。搜索不会改变已选权限。</p>
+      </fieldset>
     </form>}
     {save.isError?<p role="alert">{asAppError(save.error).message}</p>:null}
     {receipt&&issued?<p role="status">{receipt.message}{recovery?` ${recovery}`:""}</p>:null}

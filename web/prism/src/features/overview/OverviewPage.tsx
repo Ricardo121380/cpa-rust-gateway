@@ -11,8 +11,7 @@ import { call, callText } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import {
   exactShare,
-  formatPercent,
-  formatMicrounits,
+  summaryIsPartitioned,
 } from "../monitoring/model";
 import { formatCount, StatTile } from "../../components/data/StatTile";
 import { TokenMixBar } from "../../components/data/TokenMixBar";
@@ -229,7 +228,7 @@ function BillingGlance({range}:Readonly<{range:{from_ms:number;to_ms:number}}>) 
   const summary = billing.data?.summary;
 
   return (
-    <div className="card" data-gap="top">
+    <div className="card overview-billing">
       <h3>费用完整性</h3>
       <p className="stat-sub">
         与请求概览使用同一时间范围；账本可能稍后完成处理。
@@ -239,21 +238,17 @@ function BillingGlance({range}:Readonly<{range:{from_ms:number;to_ms:number}}>) 
       ) : summary.records === 0 ? (
         <p className="muted">账本暂无记录。可能尚未处理或没有可计价事件，不能据此判断没有消费。</p>
       ) : (
-        <div className="count-row">
-          <span className="count-tile"><span className="count-value mono">{formatMicrounits(summary.known_cost_microunits)}</span><span className="count-label">已知费用 · 微单位</span></span>
-          <span className="count-tile">
-            <span className="count-value mono">{formatCount(summary.records)}</span>
-            <span className="count-label">账本记录</span>
-          </span>
-          <span className="count-tile">
-            <span className="count-value mono">{formatPercent(exactShare(summary))}</span>
-            <span className="count-label">成本精确</span>
-          </span>
-          <span className="count-tile">
-            <span className="count-value mono">{formatCount(summary.unpriced_records)}</span>
-            <span className="count-label">无价格</span>
-          </span>
-        </div>
+        <>
+          <div className="billing-completeness-number">{((exactShare(summary)??0)*100).toFixed(1)}<small>%</small></div>
+          <p className="stat-sub">账本记录的精确计价占比</p>
+          {summaryIsPartitioned(summary)?<svg className="billing-completeness-track" viewBox="0 0 100 6" preserveAspectRatio="none" role="img" aria-label="计价记录构成；各类别数量见下方">{([
+            ["exact",summary.exact_records], ["partial",summary.partial_records], ["unknown",summary.unknown_records], ["unpriced",summary.unpriced_records],
+          ] as const).map(([kind,count],index,parts)=><rect key={kind} className={`billing-part-${kind}`} x={parts.slice(0,index).reduce((sum,part)=>sum+part[1],0)/summary.records*100} y="0" width={count/summary.records*100} height="6"/>)}</svg>:<p className="stat-sub">计价分类数量暂不一致，请核对账本。</p>}
+          <dl className="billing-completeness-facts">{([
+            ["exact","精确计价",summary.exact_records], ["partial","部分已知",summary.partial_records], ["unknown","用量未知",summary.unknown_records], ["unpriced","尚未计价",summary.unpriced_records],
+          ] as const).map(([kind,label,count])=><div key={kind}><dt><span className={`billing-dot billing-part-${kind}`} aria-hidden="true"/>{label}</dt><dd>{formatCount(count)} 条</dd></div>)}</dl>
+          <p className="stat-sub">账本共 {formatCount(summary.records)} 条，可能晚于请求完成。未计价不是零费用。</p>
+        </>
       )}
       <Link to={`/monitoring?tab=ledger&from_ms=${range.from_ms}&to_ms=${range.to_ms}`}>查看费用与计价详情 →</Link>
     </div>
@@ -315,11 +310,13 @@ export function OverviewPage() {
       <div className="overview-workspace">
         <div className="overview-primary">
           <ProviderAccountsGlance />
-          <ProcessingStatus compact />
-          <AnalyticsPointers />
+
         </div>
         <aside className="overview-aside">
           <BillingGlance range={requestRange} />
+        </aside>
+      </div>
+      <details className="overview-telemetry overview-maintenance"><summary>资源与处理状态</summary><ProcessingStatus compact /><AnalyticsPointers />
           <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
           <div className="card overview-resources">
           <div className="overview-resource-head"><h3>资源概览</h3><span className="entity-meta">{context?.status === "draft" ? "待应用" : context?.status === "archived" ? "历史配置" : active === undefined ? "等待接入" : "当前配置"}</span></div>
@@ -342,8 +339,7 @@ export function OverviewPage() {
             </div>
           )}
           </div>
-        </aside>
-      </div>
+      </details>
       <details className="overview-telemetry"><summary>进程计数与运行事件</summary><LiveCountersSection/></details>
     </section>
   );

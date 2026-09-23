@@ -68,6 +68,8 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const [updating,setUpdating]=useState<ManagedCredential>();
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [selecting, setSelecting] = useState(false);
+  const [filtersOpen,setFiltersOpen]=useState(false);
+  const filterCount=Number(!!selectedCategory)+Number(!!plan||withoutPlan)+Number(sort!=="name")+Number(!!provider);
   const [batch, setBatch] = useState<{targets:readonly AccountTarget[];action:AccountAction}>();
   const [notice, setNotice] = useState<string>();
   // A delayed search replace is background work, not an intent to leave a
@@ -155,12 +157,15 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     </div>
     <div className="account-directory-toolbar">
       <label className="account-search"><span className="sr-only">搜索账号</span><input aria-label="搜索账号" placeholder="搜索邮箱、用户名、电话或渠道" value={searchInput} onChange={(e)=>setSearchInput(e.target.value)} /></label>
+      <button type="button" className="secondary account-filter-toggle" aria-expanded={filtersOpen} aria-controls="account-directory-filters" onClick={()=>setFiltersOpen(open=>!open)}>筛选{filterCount?` · ${filterCount}`:""}</button>
+      <div id="account-directory-filters" className="account-directory-filters" data-open={filtersOpen}>
       <label><span className="sr-only">账号类别</span><select aria-label="账号类别" value={selectedCategory} onChange={event=>update("category",event.target.value)}><option value="">全部渠道</option>{accountGroups.map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
 
       <label><span className="sr-only">账号套餐</span><select aria-label="账号套餐" value={withoutPlan?"none":plan?`plan:${plan}`:""} onChange={event=>{setSelection(new Set());const next=new URLSearchParams(params);next.delete("plan");next.delete("without_plan");if(event.target.value==="none")next.set("without_plan","true");else if(event.target.value.startsWith("plan:"))next.set("plan",event.target.value.slice(5));setParams(next,{replace:true});}}><option value="">全部套餐</option><option value="none">未观测套餐{inventory.data?`（${inventory.data.pages[0]?.unobserved_plan_total??0}）`:""}</option>{Object.entries(inventory.data?.pages[0]?.plan_totals??{}).map(([label,count])=><option key={label} value={`plan:${label}`}>{label}（{count}）</option>)}</select></label>
       <label><span className="sr-only">账号排序</span><select aria-label="账号排序" value={sort} onChange={e=>update("sort",e.target.value)}><option value="name">身份 A–Z</option><option value="name_desc">身份 Z–A</option><option value="provider">按渠道</option></select></label>
       <div className="account-directory-tools"><button className="secondary" aria-pressed={selecting} onClick={()=>{setSelecting(!selecting);setSelection(new Set());}}>{selecting?"结束选择":"批量管理"}</button><button className="secondary" disabled={inventory.isFetching} onClick={() => void refresh()}>刷新快照</button></div>
       {provider?<button className="secondary" onClick={()=>update("provider","")}>清除提供商筛选</button>:null}
+      </div>
     </div>
     {error?<div role="alert" className="empty-state">{error.message}<button onClick={()=>void refresh()}>重新读取账号</button></div>:null}
     {inventory.isPending?<p role="status">正在读取账号…</p>:!inventory.isError&&inventory.data?.pages[0]?.total===0?<p className="empty-state">没有匹配的账号。</p>:null}
