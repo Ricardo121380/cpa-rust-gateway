@@ -33,7 +33,7 @@ export function AccountsPage() {
       <button aria-pressed={!runtime} onClick={() => { if (runtime) setParams(new URLSearchParams()); }}>全部账号</button>
       <button aria-pressed={runtime} onClick={() => { if (!runtime) setParams({view: "runtime"}); }}>运行状态</button>
     </nav>;
-  return runtime ? <>{navigation}<AccountRuntimePanel /></> : <ManagedAccounts navigation={navigation} />;
+  return runtime ? <AccountRuntimePanel navigation={navigation} /> : <ManagedAccounts navigation={navigation} />;
 }
 
 function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {

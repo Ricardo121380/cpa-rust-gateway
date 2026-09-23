@@ -107,6 +107,7 @@ html.has-sheet body {
 }
 
 .sheet-body {
+  min-width: 0;
   min-height: 0;
   padding: 24px;
   overflow: auto;
@@ -149,6 +150,9 @@ html.has-sheet body {
 
 .sheet-form label,
 .sheet-form legend {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: var(--ink-2);
   font-size: 13px;
   font-weight: 560;
@@ -201,6 +205,8 @@ html.has-sheet body {
   font-size: 12px;
   line-height: 20px;
 }
+
+.sheet-form select { padding-inline-end: 32px; }
 
 .sheet-form .toggle-row {
   display: flex;
@@ -255,6 +261,15 @@ html.has-sheet body {
 .sheet-actions > button,
 .sheet-actions > a {
   min-height: 44px;
+}
+
+.sheet-footer > :is(button, a),
+.sheet-actions > :is(button, a) {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .reveal-warning {

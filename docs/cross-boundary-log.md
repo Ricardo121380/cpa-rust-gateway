@@ -3146,3 +3146,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** User-authorized fixes for the fresh Computer Use audit: align overview hierarchy and genuine cost completeness, flatten provider details, disclose secondary mobile filters, and preserve visible selected model permissions during empty search.
 
 **Other side:** FYI. Existing data/operation contracts and all maintenance actions retained; no backend/generated-file/production changes. Evidence and bounds: `docs/reports/prism-v2-computer-use-fixes-20260923.md`.
+
+## 2026-09-23 - Codex - V2 text insets and modal polish
+
+**What:** `web/prism/src/app/{app.css,v6.css}`, `design/modal.css`, `components/workflow-forms.css`, `features/accounts/{AccountsPage,AccountRuntimePanel}.tsx`, and `web/prism/DESIGN.md`.
+
+**Why:** User-reported text touching borders exposed obsolete global section padding resets, zero-inset mobile runtime groups/metrics and selected provider rows. Restore surface-owned spacing, allow account/field/action text to fit, use one-column channel choices on narrow phones, and put runtime navigation below the page header.
+
+**Other side:** FYI. User-authorized frontend polish only; backend/contracts/production unchanged. Local real gateway rebuilt and four served assets matched, 12 targeted tests and EgoLite desktop/mobile/dialog evidence: `docs/reports/prism-v2-spacing-polish-20260923.md`.

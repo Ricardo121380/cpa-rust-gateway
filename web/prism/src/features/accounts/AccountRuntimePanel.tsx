@@ -7,7 +7,7 @@ import {
   useQueryClient,
   useQuery,
 } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -44,7 +44,7 @@ type RuntimeActionReceipt=Readonly<{target:RuntimeActionTarget;kind:"received";v
 type CredentialMaintenance=Readonly<{kind:"native";account:NativeAccount}|{kind:"ordinary";credentialId:string;account:PoolAccount}>;
 const nativeProviderForKind=(kind:string):NativeAccount["provider"]|undefined=>({grok_build_oauth:"grok_build",grok_console_sso:"grok_console",grok_web_sso:"grok_web"}[kind] as NativeAccount["provider"]|undefined);
 
-export function AccountRuntimePanel() {
+export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNode}>) {
   const t = useMessages();
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
@@ -199,6 +199,7 @@ export function AccountRuntimePanel() {
           刷新账号
         </button>
       </header>
+      {navigation}
       {actionError === undefined ? null : (
         <p className="action-error" role="alert">
           {actionError}

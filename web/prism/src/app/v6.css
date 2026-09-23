@@ -202,6 +202,8 @@
 .shell .canvas .card { padding: 20px 22px; }
 .canvas .data-toolbar { padding: 0 0 16px; }
 .canvas .data-footer { padding: 14px 0; }
+.canvas .data-panel > .data-toolbar { padding: 16px 18px; }
+.canvas .data-panel > .data-footer { padding: 14px 18px; }
 .canvas .stat-row { margin-block: 20px 24px; padding: 0; }
 .shell .canvas .stat-tile { padding: 20px 22px; }
 .canvas th { padding: 11px 12px; border-bottom-color: var(--separator); }
@@ -248,6 +250,8 @@
 .accounts-page .stat-row { margin-bottom: 22px; }
 .account-group-head { display: flex; align-items: center; gap: 12px; padding: 20px 0 10px; font-size: 13px; font-weight: 600; }
 .account-group-head small { color: var(--ink-2); font-size: 12px; font-weight: 400; }
+.account-desktop .account-group-head { padding-inline: 18px; }
+.account-desktop td { white-space: normal; overflow-wrap: anywhere; }
 .account-provider + .account-provider { margin-top: 14px; border-top: 1px solid var(--separator); }
 .account-desktop table { table-layout: fixed; }
 .account-desktop th:first-child { width: 37%; }
@@ -292,7 +296,7 @@
   .shell .canvas > .workspace { padding: 8px 0 24px; }
   .published-configuration { align-items: flex-start; flex-direction: column; }
   .account-desktop { display: none; }
-  .account-mobile { display: block; padding: 0; }
+  .account-mobile { display: block; padding: 0 16px; }
   .overview-workspace { grid-template-columns: 1fr; gap: 20px; }
   .overview-aside { border-left: 0; border-top: 1px solid var(--separator); padding: 24px 0 0; }
 }
@@ -304,7 +308,6 @@
   .topbar .chrome-action[href] { display: none; }
   .canvas h2 { font-size: 24px; }
   .page-head { flex-wrap: wrap; gap: 14px; }
-  .shell .canvas .stat-tile { padding: 17px 16px; }
   .stat-value { font-size: 30px; }
   .overview-resources .count-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   .configuration-list :is(table, tbody) { display: block; min-width: 0; width: 100%; }
@@ -319,11 +322,10 @@
   .billing-processing-compact .processing-summary { grid-column: 1 / -1; grid-row: 2; }
   .canvas .stat-row { padding-block: 16px; row-gap: 18px; }
   .shell .canvas .stat-tile { padding: 0 14px; }
-  .shell .canvas .stat-tile:nth-child(odd) { padding-left: 0; }
   .shell .canvas .stat-tile:nth-child(n + 3) { border-top: 0; }
   .overview-page .stat-row { grid-template-columns: 1fr 1fr; }
   .overview-page .stat-tile:first-child { grid-column: 1 / -1; }
-  .overview-page .stat-tile:nth-child(2) { padding-left: 0; border-left: 0; }
+  .overview-page .stat-tile:nth-child(2) { border-left: 0; }
   .overview-page .stat-tile:nth-child(3) { padding-left: 14px; border-left: 1px solid var(--separator); }
   .overview-page .overview-grid { grid-template-columns: 1fr; gap: 0; }
   .overview-page .stat-tile:first-child .stat-value { font-size: 36px; }
@@ -392,7 +394,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
 .account-list th:nth-child(4) { width:20%; }
 .account-list th:nth-child(5) { width:18%; }
 .account-list th:nth-child(6) { width:15%; }
-.account-list td, .account-list th { padding:16px 18px; text-align:left; overflow-wrap:anywhere; vertical-align:middle; }
+.account-list td, .account-list th { padding:16px 18px; text-align:left; white-space:normal; overflow-wrap:anywhere; vertical-align:middle; }
 .account-list td:first-child, .account-list th:first-child { padding-left:24px; }
 .account-list td:last-child, .account-list th:last-child { padding-right:24px; }
 .account-list td strong { display:block; font-size:12px; font-weight:600; line-height:1.55; }
@@ -426,7 +428,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .canvas :is(.card,
   .account-list tr { padding:16px; border-bottom:1px solid var(--separator); }
   .account-list tr:last-child { border-bottom:0; }
   .account-list td, .account-list td:first-child, .account-list td:last-child { display:block; padding:6px 0; border:0; width:auto; }
-  .account-list td[data-label] { display:grid; grid-template-columns:72px 1fr; align-items:start; gap:4px 8px; }
+  .account-list td[data-label] { display:grid; grid-template-columns:72px minmax(0,1fr); align-items:start; gap:4px 8px; }
   .account-list td[data-label]::before { content:attr(data-label); color:var(--ink-2); font-size:12px; }
   .account-list td[data-label] .entity-meta { grid-column:2; margin-top:0; }
   .account-list td[data-label] .account-connection-link .entity-meta { display:block; margin-top:4px; }
@@ -440,7 +442,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 @media (prefers-reduced-transparency:reduce), (prefers-contrast:more) { .account-group { background:var(--surface); } }
 
 .accounts-page .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
-/* Restore inner spacing after the shell's legacy section-underlap rule. */
+/* Align account group headings and empty states with the table cells. */
 .shell .account-directory-head, .shell .account-group-empty, .shell .account-subgroup > h4 { margin-left:0; padding-left:24px; }
 @media (max-width:720px) {
   .shell .account-directory-head, .shell .account-group-empty, .shell .account-subgroup > h4 { padding-left:16px; }
@@ -457,8 +459,9 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 .provider-list-heading { display:flex; justify-content:space-between; align-items:start; gap:12px; padding-bottom:20px; }
 .provider-list-heading h3, .provider-guide h3 { margin:0; font-size:16px; }
 .provider-list-heading p { margin:6px 0 0; color:var(--ink-2); font-size:12px; }
-.provider-card { display:grid; grid-template-columns:minmax(150px,1fr) minmax(110px,.6fr) auto; gap:8px 14px; align-items:center; padding:14px 0; border:0; border-top:1px solid var(--separator); min-width:0; }
+.provider-card { display:grid; grid-template-columns:minmax(150px,1fr) minmax(110px,.6fr) auto; gap:8px 14px; align-items:center; padding:14px 12px; border:0; border-top:1px solid var(--separator); min-width:0; }
 .provider-card > header { display:flex; align-items:center; gap:10px; min-width:0; }
+.provider-card > header > div { min-width:0; }
 .provider-avatar { display:grid; place-items:center; flex:0 0 32px; height:32px; border:1px solid var(--separator); border-radius:10px; background:var(--surface-2); color:var(--ink); font-size:11px; font-weight:600; }
 .provider-card h3 { margin:0 0 2px; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
 .provider-kind { color:var(--ink-2); font-size:11px; }
@@ -599,7 +602,7 @@ html:is([data-transparency="reduce"], [data-contrast="more"]) .account-group { b
 .account-inventory-summary { display:flex; flex-wrap:wrap; align-items:baseline; gap:20px; margin:18px 0; color:var(--ink-2); font-size:12px; }
 .account-inventory-summary strong { margin-right:6px; font-size:18px; font-weight:650; color:var(--ink); font-variant-numeric:tabular-nums; }
 
-.account-runtime-summary { display:grid; gap:5px; font-size:12px; min-width:120px; }
+.account-runtime-summary { display:grid; gap:5px; font-size:12px; min-width:0; }
 .account-runtime-summary small { color:var(--ink-2); font-size:11px; }
 .account-runtime-summary a { font-size:11px; }
 

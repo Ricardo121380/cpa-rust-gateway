@@ -255,48 +255,8 @@
   margin: 4px 0 14px;
 }
 
-/* Content surfaces slide --card-shift to the left — across the gutter and
-   --rail-underlap under the rail's inner edge — so the rail refracts real
-   content instead of flat background. Pages either put their blocks straight
-   into the canvas (Overview) or wrap them in a <section>; tabbed pages add a
-   [role="tabpanel"] inside that section. Those wrappers are LAYOUT-ONLY: they
-   pass the shift through to their children rather than consuming it, and the
-   match is depth-independent so adding a wrapper level cannot silently strand a
-   page's cards 24px right of every other page's (which is exactly what the
-   tabpanel on Usage did). Text-level blocks hand the whole shift back as
-   padding (their glyphs do not move). Grid wrappers hand back nothing, so their
-   FIRST COLUMN underlaps exactly like a full-width card — that is what keeps
-   the canvas's left edge straight instead of ragged.
-
-   The structural half of the match sits in :where() so this rule stays at
-   (0,2,0): high enough to beat .card's own `padding` shorthand, low enough that
-   the hand-back rules below still win. Without that, adding the tabpanel level
-   also silently out-specified every hand-back and halved the visible padding of
-   direct-child surfaces. */
-.shell :where(.canvas, .canvas :is(section, [role="tabpanel"])) > :not(section, [role="tabpanel"]) {
-  margin-left: calc(-1 * var(--card-shift));
-  padding-left: var(--card-shift);
-}
-.shell
-  :where(.canvas, .canvas :is(section, [role="tabpanel"]))
-  > :is(.overview-grid, .stat-row) {
-  padding-left: 0;
-}
-
-/* Surfaces (any depth: full-width, grid cell, stat tile) hand back everything
-   except the underlap, so measured from the VISIBLE left edge their padding is
-   exactly what it always was. */
-.shell .canvas .card {
-  padding-left: calc(20px + var(--rail-underlap));
-}
-.shell .canvas .stat-tile,
-.shell .canvas .filter-bar {
-  padding-left: calc(16px + var(--rail-underlap));
-}
-/* tables own their horizontal padding via th/td:first-child */
-.shell .canvas .card.tablewrap {
-  padding-left: var(--rail-underlap);
-}
+/* V2 surfaces own their insets. The retired rail-underlap layout reset every
+   section child's left padding, including rounded panels and selected rows. */
 
 .card {
   background: var(--surface);

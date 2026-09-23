@@ -1,0 +1,20 @@
+[
+  {
+    "page": "仪表盘",
+    "clipped": [],
+    "heading": "运行概览",
+    "overflow": false
+  },
+  {
+    "page": "请求日志",
+    "clipped": [],
+    "heading": "请求日志",
+    "overflow": false
+  },
+  {
+    "page": "用量与费用",
+    "clipped": [],
+    "heading": "用量与费用",
+    "overflow": false
+  }
+]
