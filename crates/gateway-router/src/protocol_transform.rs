@@ -768,6 +768,19 @@ fn validate_target_root_extensions(
             validate_output_limit(raw)?;
         } else if name == expected_tool_choice {
             validate_tool_choice(raw, target, !request.tools.is_empty())?;
+        } else if target == ProtocolFormat::OpenAiResponses && name == "openai.responses.include" {
+            // Pi requests encrypted reasoning alongside summaries. Keep the reviewed selector
+            // intact for the Responses builder; other output expansions remain unsupported.
+            let valid = serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| {
+                value.as_array().is_some_and(|items| {
+                    items
+                        .iter()
+                        .all(|item| item.as_str() == Some("reasoning.encrypted_content"))
+                })
+            });
+            if !valid {
+                return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+            }
         } else {
             if matches!(
                 name,
@@ -835,14 +848,21 @@ fn validate_target_thinking(
         ProtocolFormat::OpenAiChatCompletions => {
             Err(ProtocolTransformRejection::ThinkingUnsupported)
         }
-        ProtocolFormat::OpenAiResponses if thinking.extensions.is_empty() => {
+        ProtocolFormat::OpenAiResponses => {
+            if !thinking.extensions.iter().all(|(name, raw)| {
+                name == "summary"
+                    && serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| {
+                        matches!(value.as_str(), Some("auto" | "concise" | "detailed"))
+                    })
+            }) {
+                return Err(ProtocolTransformRejection::ThinkingUnsupported);
+            }
             match thinking.effort.as_str() {
                 "none" | "auto" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max" => Ok(()),
                 _ => Err(ProtocolTransformRejection::ThinkingUnsupported),
             }
         }
         ProtocolFormat::AnthropicMessages => messages_thinking_to_responses(thinking).map(|_| ()),
-        ProtocolFormat::OpenAiResponses => Err(ProtocolTransformRejection::ThinkingUnsupported),
     }
 }
 
@@ -1390,6 +1410,124 @@ mod tests {
                 wire.get("tool_choice"),
                 Some(&serde_json::from_str(raw_choice)?)
             );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pi_responses_reasoning_controls_survive_projection_and_encoding()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let decoded = protocol_openai_responses::decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-pi-reasoning.json"
+        ))?;
+        let capabilities = all_capabilities()?;
+        for mode in [
+            SnapshotTransformMode::Canonical,
+            SnapshotTransformMode::CanonicalBridge,
+        ] {
+            let mut transform = input(
+                &decoded.request,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::OpenAiResponses,
+                mode,
+                NativePayloadAvailability::Exact,
+                &capabilities,
+            );
+            transform.streaming = true;
+            let ProjectedProtocolRequest::Canonical(projected) =
+                project_registered_protocol_request(transform)?
+            else {
+                return Err("Pi request must use the typed Responses builder".into());
+            };
+            assert_eq!(projected, decoded.request);
+            let outbound = OpenAiResponsesRequestBuilder::build(
+                &OpenAiResponsesEndpoint::try_new("https://relay.example", "/v1/responses")?,
+                &OpenAiResponsesApiKey::try_new("synthetic-secret")?,
+                "grok-4.5",
+                &projected,
+                decoded.mode,
+            )?;
+            let wire: Value = serde_json::from_slice(outbound.body())?;
+            assert_eq!(
+                wire["reasoning"],
+                serde_json::json!({"effort":"low","summary":"auto"})
+            );
+            assert_eq!(
+                wire["include"],
+                serde_json::json!(["reasoning.encrypted_content"])
+            );
+            assert_eq!(wire["tools"][0]["name"], "read");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn responses_reasoning_controls_keep_unknown_values_and_bridges_rejected()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let capabilities = all_capabilities()?;
+        let fixture: Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/openai-responses/request-pi-reasoning.json"
+        ))?;
+        for include in [
+            serde_json::json!(null),
+            serde_json::json!("reasoning.encrypted_content"),
+            serde_json::json!(["unknown"]),
+            serde_json::json!(["reasoning.encrypted_content", 1]),
+        ] {
+            let mut body = fixture.clone();
+            body["include"] = include;
+            let decoded = protocol_openai_responses::decode_request(&body.to_string())?;
+            assert_eq!(
+                project_protocol_request(input(
+                    &decoded.request,
+                    ProtocolFormat::OpenAiResponses,
+                    ProtocolFormat::OpenAiResponses,
+                    SnapshotTransformMode::CanonicalBridge,
+                    NativePayloadAvailability::Exact,
+                    &capabilities,
+                )),
+                Err(ProtocolTransformRejection::UnknownRequestExtensions)
+            );
+        }
+        for summary in [
+            serde_json::json!(null),
+            serde_json::json!(true),
+            serde_json::json!("unknown"),
+        ] {
+            let mut body = fixture.clone();
+            body["reasoning"]["summary"] = summary;
+            let decoded = protocol_openai_responses::decode_request(&body.to_string())?;
+            assert_eq!(
+                project_protocol_request(input(
+                    &decoded.request,
+                    ProtocolFormat::OpenAiResponses,
+                    ProtocolFormat::OpenAiResponses,
+                    SnapshotTransformMode::CanonicalBridge,
+                    NativePayloadAvailability::Exact,
+                    &capabilities,
+                )),
+                Err(ProtocolTransformRejection::ThinkingUnsupported)
+            );
+        }
+        for summary in ["auto", "concise", "detailed"] {
+            let mut body = fixture.clone();
+            body["reasoning"]["summary"] = summary.into();
+            let decoded = protocol_openai_responses::decode_request(&body.to_string())?;
+            for target in [
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::AnthropicMessages,
+                ProtocolFormat::OpenAiChatCompletions,
+            ] {
+                let projected = project_protocol_request(input(
+                    &decoded.request,
+                    ProtocolFormat::OpenAiResponses,
+                    target,
+                    SnapshotTransformMode::CanonicalBridge,
+                    NativePayloadAvailability::Exact,
+                    &capabilities,
+                ));
+                assert_eq!(projected.is_ok(), target == ProtocolFormat::OpenAiResponses);
+            }
         }
         Ok(())
     }

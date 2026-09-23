@@ -1844,73 +1844,98 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // hands an OpenAI-Responses request to an Anthropic Candidate, whose request build
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
+            let protocol_accepted = AtomicBool::new(false);
+            let protocol_rejected = AtomicBool::new(false);
+            let is_candidate_eligible = |candidate: &SnapshotRouteCandidate| {
+                if exact_upstream_model
+                    .as_deref()
+                    .is_some_and(|model| candidate.upstream_model() != model)
+                {
+                    return false;
+                }
+                match driver.project_candidate(candidate) {
+                    Ok(_) => {
+                        protocol_accepted.store(true, Ordering::Relaxed);
+                        true
+                    }
+                    Err(reason) => {
+                        protocol_rejected.store(true, Ordering::Relaxed);
+                        tracing::debug!(
+                            target: "protocol_admission",
+                            request_id = %context.request_id(),
+                            ?reason,
+                            "candidate rejected before credential selection"
+                        );
+                        false
+                    }
+                }
+            };
             let started = if let Some(pin) = continuation_pin.as_ref() {
                 orchestrator
                     .start_continuation_once_with_event_sink(
                         context.request_id(),
                         pin,
                         route_snapshot.as_ref(),
-                        |candidate| {
-                            exact_upstream_model
-                                .as_deref()
-                                .is_none_or(|model| candidate.upstream_model() == model)
-                                && driver.project_candidate(candidate).is_ok()
-                        },
+                        is_candidate_eligible,
                         &driver,
                         retry_gate.as_ref(),
                         event_sink.as_ref(),
                     )
-                    .await?
+                    .await
+            } else if let Some(exact_model) = exact_upstream_model.as_deref() {
+                orchestrator
+                    .start_with_event_sink_exact_model_matching(
+                        context.request_id(),
+                        route_snapshot.as_ref(),
+                        &route_id,
+                        exact_model,
+                        is_candidate_eligible,
+                        &driver,
+                        retry_gate.as_ref(),
+                        event_sink.as_ref(),
+                    )
+                    .await
             } else {
-                let is_candidate_eligible = |candidate: &SnapshotRouteCandidate| {
-                    exact_upstream_model
-                        .as_deref()
-                        .is_none_or(|model| candidate.upstream_model() == model)
-                        && driver.project_candidate(candidate).is_ok()
-                };
-                if let Some(exact_model) = exact_upstream_model.as_deref() {
-                    orchestrator
-                        .start_with_event_sink_exact_model_matching(
-                            context.request_id(),
-                            route_snapshot.as_ref(),
-                            &route_id,
-                            exact_model,
-                            is_candidate_eligible,
-                            &driver,
-                            retry_gate.as_ref(),
-                            event_sink.as_ref(),
-                        )
-                        .await?
-                } else {
-                    match route_snapshot.as_ref() {
-                        Some(snapshot) => {
-                            orchestrator
-                                .start_with_event_sink_provider_scoped_matching_from_snapshot(
-                                    context.request_id(),
-                                    snapshot,
-                                    &route_id,
-                                    is_candidate_eligible,
-                                    &driver,
-                                    retry_gate.as_ref(),
-                                    event_sink.as_ref(),
-                                )
-                                .await?
-                        }
-                        None => {
-                            orchestrator
-                                .start_with_event_sink_provider_scoped_matching(
-                                    context.request_id(),
-                                    &route_id,
-                                    is_candidate_eligible,
-                                    &driver,
-                                    retry_gate.as_ref(),
-                                    event_sink.as_ref(),
-                                )
-                                .await?
-                        }
+                match route_snapshot.as_ref() {
+                    Some(snapshot) => {
+                        orchestrator
+                            .start_with_event_sink_provider_scoped_matching_from_snapshot(
+                                context.request_id(),
+                                snapshot,
+                                &route_id,
+                                is_candidate_eligible,
+                                &driver,
+                                retry_gate.as_ref(),
+                                event_sink.as_ref(),
+                            )
+                            .await
+                    }
+                    None => {
+                        orchestrator
+                            .start_with_event_sink_provider_scoped_matching(
+                                context.request_id(),
+                                &route_id,
+                                is_candidate_eligible,
+                                &driver,
+                                retry_gate.as_ref(),
+                                event_sink.as_ref(),
+                            )
+                            .await
                     }
                 }
-            };
+            }
+            .map_err(|error| {
+                // Preserve real credential/snapshot/provider-scope failures. Only an entirely
+                // incompatible request is a client error; never reclassify an attempted call.
+                if error.code() == GatewayErrorCode::CredentialUnavailable
+                    && protocol_rejected.load(Ordering::Relaxed)
+                    && !protocol_accepted.load(Ordering::Relaxed)
+                {
+                    GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request)
+                } else {
+                    error
+                }
+            })?;
             if let Some(recorder) = lineage_recorder {
                 recorder.record(stored_response_execution_lineage(
                     &snapshot_version,
@@ -9456,7 +9481,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn routed_executor_rejects_ambiguous_provider_scope_before_driver_start()
+    async fn routed_executor_distinguishes_protocol_rejection_from_unavailable_credentials()
     -> Result<(), Box<dyn Error>> {
         let directory = TemporaryDirectory::new()?;
         let database = directory.join("control.sqlite3");
@@ -9489,7 +9514,7 @@ mod tests {
                 Arc::clone(lifecycle.registry()),
                 Arc::clone(&attempt_stages),
                 event_sink,
-                runtime_health,
+                Arc::clone(&runtime_health),
                 runtime_quota,
                 Arc::new(GrokBuildCacheIdentityDeriver::new([0xC4; 32])),
                 UpstreamProxy::Direct,
@@ -9527,6 +9552,74 @@ mod tests {
                 .list_request_attempts(&RequestId::try_new("p13-07c-ambiguous-runtime")?)
                 .map_err(|_| "attempt ledger unexpectedly unavailable")?,
             Vec::new()
+        );
+        // The same configured credentials remain available: only request extensions differ.
+        // Exercise both provider-scoped and exact-model ingress, including a missing model.
+        for (label, exact_model, expected) in [
+            (
+                "unsupported-scoped",
+                None,
+                GatewayErrorCode::ClientRequestError,
+            ),
+            (
+                "unsupported-exact",
+                Some("p12-widened-upstream-model"),
+                GatewayErrorCode::ClientRequestError,
+            ),
+            (
+                "missing-exact",
+                Some("absent-model"),
+                GatewayErrorCode::CredentialUnavailable,
+            ),
+        ] {
+            let decoded = decode_request(
+                r#"{"model":"primary","input":"synthetic","metadata":{"unsupported":true}}"#,
+            )?;
+            let request_id = RequestId::try_new(label)?;
+            let execution = ResponsesExecution::new(
+                RequestContext::new(request_id.clone()),
+                decoded.request,
+                Some(RouteId::try_new("p12-widened-route-primary")?),
+                ResponsesResponseMode::NonStreaming,
+                Arc::new(NeverCancelledGate),
+            )
+            .with_exact_upstream_model(exact_model.map(str::to_owned))
+            .with_route_snapshot(Some(scheduler.snapshot()));
+            let error = executor
+                .execute_routed(execution)
+                .await
+                .err()
+                .ok_or("request started")?;
+            assert_eq!(error.code(), expected, "{label}");
+            assert!(
+                attempt_stages
+                    .list_request_attempts(&request_id)
+                    .map_err(|_| "attempt ledger unavailable")?
+                    .is_empty()
+            );
+        }
+        // A compatible request with forbidden bindings must retain the credential diagnosis.
+        for (endpoint_id, entry) in scheduler.diagnostic_bindings() {
+            runtime_health.mark_credential_forbidden(endpoint_id, entry.credential_id().clone())?;
+        }
+        let decoded = decode_request(r#"{"model":"primary","input":"synthetic"}"#)?;
+        let execution = ResponsesExecution::new(
+            RequestContext::new(RequestId::try_new("unavailable-compatible")?),
+            decoded.request,
+            Some(RouteId::try_new("p12-widened-route-primary")?),
+            ResponsesResponseMode::NonStreaming,
+            Arc::new(NeverCancelledGate),
+        )
+        .with_exact_upstream_model(Some("p12-widened-upstream-model".to_owned()))
+        .with_route_snapshot(Some(scheduler.snapshot()));
+        assert_eq!(
+            executor
+                .execute_routed(execution)
+                .await
+                .err()
+                .ok_or("forbidden credentials were used")?
+                .code(),
+            GatewayErrorCode::CredentialUnavailable
         );
         Ok(())
     }
