@@ -1,0 +1,23 @@
+{
+  "build": {
+    "build_revision": "3a8e5af60738c925dcf44d94baf376227870a16c",
+    "build_target": "aarch64-unknown-linux-gnu",
+    "rust_version": "1.97.1",
+    "schema_version": 28,
+    "version": "0.1.0"
+  },
+  "accepting_requests": true,
+  "service": {
+    "MainPID": "1740127",
+    "NRestarts": "0",
+    "ExecMainStartTimestamp": "Wed 2026-09-23 16:21:30 UTC",
+    "ActiveState": "active",
+    "SubState": "running"
+  },
+  "health": 200,
+  "journal": {
+    "current_process_records": 13,
+    "error_events": 0,
+    "panic_events": 0
+  }
+}

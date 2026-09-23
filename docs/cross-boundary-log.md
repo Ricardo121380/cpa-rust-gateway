@@ -3154,3 +3154,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** User-reported text touching borders exposed obsolete global section padding resets, zero-inset mobile runtime groups/metrics and selected provider rows. Restore surface-owned spacing, allow account/field/action text to fit, use one-column channel choices on narrow phones, and put runtime navigation below the page header.
 
 **Other side:** FYI. User-authorized frontend polish only; backend/contracts/production unchanged. Local real gateway rebuilt and four served assets matched, 12 targeted tests and EgoLite desktop/mobile/dialog evidence: `docs/reports/prism-v2-spacing-polish-20260923.md`.
+
+## 2026-09-24 - Codex - Combined production deployment
+
+**What:** Production now runs signed `3a8e5af60738c925dcf44d94baf376227870a16c`, including the committed Prism frontend through `ac7a8d5` and the Grok/Pi Responses repair. Frontend resource version: `4096b00e6d6d5ad7b40e3366`.
+
+**Why:** User explicitly requested deploying the backend patch and then the frontend together.
+
+**Other side:** FYI. No frontend source or management contract changed during deployment. Formal gates, signing, production-copy rollback and authenticated API/data checks passed; browser verified the new login page at three sizes. Compatible rollback is `ca75a443`, keeping latest schema28 data/credentials. Real inference and post-reload authenticated browser workspaces were not exercised. Evidence: `docs/reports/prism-grok-production-20260924.md`.

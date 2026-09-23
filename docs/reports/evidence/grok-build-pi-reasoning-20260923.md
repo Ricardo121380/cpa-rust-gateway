@@ -48,7 +48,10 @@ The runtime discarded those rejection reasons and returned a credential error.
   Changed Rust files passed formatting checks; the diff and fixture/report links were checked.
 - Fixture: [synthetic Pi request](../../../tests/fixtures/openai-responses/request-pi-reasoning.json).
 
-No production deployment, service restart, account mutation, or real model request was made.
-OMP's previously consumed acceptance budget remains unchanged. Production recovery still
-requires deployment and a separately authorized live acceptance request; offline admission
-and encoding do not establish upstream support or successful inference.
+The initial repair verification above made no production change or real model request.
+The user subsequently authorized deployment, then expanded it to include the committed
+Prism V2 frontend. Combined revision `3a8e5af60738c925dcf44d94baf376227870a16c`
+was deployed on 2026-09-24; see the [production receipt and limits](../prism-grok-production-20260924.md).
+OMP's previously consumed acceptance budget remains unchanged. No real model request was
+made during deployment; offline admission and encoding do not establish upstream support
+or successful inference.

@@ -1,5 +1,18 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-24: Prism V2 and Grok/Pi repair deployed
+
+Production serves signed `3a8e5af60738c925dcf44d94baf376227870a16c`, schema28,
+including committed frontend updates through `ac7a8d5` and the Grok/Pi Responses
+admission repair. Exact-revision formal gates, both signed targets, independent
+verification, isolated fallback roundtrip and public/authenticated API checks passed.
+Stop-to-ready: 1021 ms. Existing administrator, 7 accounts, 2231 historical events,
+593 ledger rows and effective permissions retained. Compatible binary fallback:
+`ca75a44351374aac62a40b13ba878a3487345db6`; preserve latest data and rotating credentials.
+EgoLite loaded the new login page at three sizes; browser workspace checks after
+reload and real inference are not claimed. See [release evidence](../reports/prism-grok-production-20260924.md).
+Earlier entries below are historical.
+
 ## 2026-09-22: current signed candidate release
 
 Production serves signed `ca75a44351374aac62a40b13ba878a3487345db6`, schema28.

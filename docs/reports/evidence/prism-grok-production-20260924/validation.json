@@ -1,0 +1,10 @@
+{
+  "rust_test_suites": 118,
+  "rust_passed": 1285,
+  "rust_ignored": 9,
+  "formal_gate": "success",
+  "revision": "3a8e5af60738c925dcf44d94baf376227870a16c",
+  "frontend_test_files": 53,
+  "frontend_tests": 403,
+  "spa_double_build": "passed"
+}

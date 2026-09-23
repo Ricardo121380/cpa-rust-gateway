@@ -1,0 +1,84 @@
+{
+  "provider_requests": 0,
+  "authenticated_workspace_checked": false,
+  "login_page_checks": [
+    {
+      "width": 1440,
+      "height": 900,
+      "ready": "complete",
+      "loginVisible": true,
+      "inputs": [
+        {
+          "type": "text",
+          "rect": {
+            "left": 553,
+            "right": 887
+          }
+        },
+        {
+          "type": "password",
+          "rect": {
+            "left": 553,
+            "right": 887
+          }
+        }
+      ],
+      "overflow": false,
+      "scripts": [
+        "/admin-ui/assets/main.js?v=4096b00e6d6d5ad7b40e3366"
+      ]
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "ready": "complete",
+      "loginVisible": true,
+      "inputs": [
+        {
+          "type": "text",
+          "rect": {
+            "left": 473,
+            "right": 807
+          }
+        },
+        {
+          "type": "password",
+          "rect": {
+            "left": 473,
+            "right": 807
+          }
+        }
+      ],
+      "overflow": false,
+      "scripts": [
+        "/admin-ui/assets/main.js?v=4096b00e6d6d5ad7b40e3366"
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "ready": "complete",
+      "loginVisible": true,
+      "inputs": [
+        {
+          "type": "text",
+          "rect": {
+            "left": 37,
+            "right": 353
+          }
+        },
+        {
+          "type": "password",
+          "rect": {
+            "left": 37,
+            "right": 353
+          }
+        }
+      ],
+      "overflow": false,
+      "scripts": [
+        "/admin-ui/assets/main.js?v=4096b00e6d6d5ad7b40e3366"
+      ]
+    }
+  ]
+}
