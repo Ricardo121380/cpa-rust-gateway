@@ -39,6 +39,46 @@ struct CorrelationSnapshot {
 }
 
 #[test]
+fn build_request_preserves_pi_reasoning_summary_and_include() -> TestResult {
+    let decoded = decode_request(include_str!(
+        "../../../tests/fixtures/openai-responses/request-pi-reasoning.json"
+    ))?;
+    let capabilities = gateway_catalog::CapabilitySet::try_new([
+        gateway_catalog::SemanticCapability::Tools,
+        gateway_catalog::SemanticCapability::JsonSchema,
+        gateway_catalog::SemanticCapability::Reasoning,
+        gateway_catalog::SemanticCapability::Streaming,
+    ])?;
+    let gateway_router::ProjectedProtocolRequest::Canonical(projected) =
+        gateway_router::project_registered_protocol_request(
+            gateway_router::ProtocolTransformInput {
+                source: gateway_router::ProtocolFormat::OpenAiResponses,
+                target: gateway_router::ProtocolFormat::OpenAiResponses,
+                mode: gateway_router::SnapshotTransformMode::CanonicalBridge,
+                native_payload: gateway_router::NativePayloadAvailability::Exact,
+                request: &decoded.request,
+                streaming: true,
+                requires_json_schema: false,
+                requires_parallel_tools: false,
+                target_capabilities: &capabilities,
+            },
+        )?
+    else {
+        return Err("native Build requests must use typed Canonical projection".into());
+    };
+    let outbound = GrokBuildResponsesRequestBuilder::build(
+        &credential()?,
+        "grok-4.5",
+        &projected,
+        decoded.mode,
+    )?;
+    let rebuilt = decode_request(std::str::from_utf8(outbound.body())?)?;
+    assert_eq!(rebuilt.request, decoded.request);
+    assert_eq!(rebuilt.mode, decoded.mode);
+    Ok(())
+}
+
+#[test]
 fn build_request_uses_the_current_cli_profile_and_exact_admitted_target() -> TestResult {
     let decoded = decode_request(include_str!(
         "../../../tests/fixtures/openai-responses/request-canonical.json"

@@ -1,0 +1,10 @@
+{
+  "model": "grok-4.5",
+  "input": [{"role": "user", "content": [{"type": "input_text", "text": "Synthetic Pi compatibility check."}]}],
+  "stream": true,
+  "store": false,
+  "max_output_tokens": 2048,
+  "tools": [{"type": "function", "name": "read", "description": "Synthetic tool", "parameters": {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]}}],
+  "reasoning": {"effort": "low", "summary": "auto"},
+  "include": ["reasoning.encrypted_content"]
+}
