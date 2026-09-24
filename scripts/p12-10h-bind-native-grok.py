@@ -138,14 +138,15 @@ def enter(args: argparse.Namespace) -> int:
         # The management API accepts its stable public spelling here and maps it to
         # the runtime's endpoint-binding scope internally.
         "credential_scope": "all_active",
-        # One native Responses endpoint serves same-protocol Canonical requests and the reviewed
-        # cross-protocol lossless bridge matrix. Reasoning is narrowed at this public route so a
-        # Chat client can never receive an unrepresentable private-reasoning event.
+        # This is a Responses endpoint. Keep the adapter's native Reasoning capability so
+        # Responses clients can pass through Pi's reasoning controls. Chat clients are filtered
+        # separately by the protocol admission gate when the target may return private reasoning;
+        # narrowing this candidate here would reject valid Responses requests before the Provider.
         "transform_mode": "canonical_bridge",
         "enabled": True,
         "priority": 0,
         "weight": 1,
-        "capability_override": {"allow_unlisted_model": True, "reasoning": False},
+        "capability_override": {"allow_unlisted_model": True},
     })
     call(session, ledger, "access_group_id", "POST", "/admin/access-groups", {
         "id": ACCESS_GROUP_ID,

@@ -13,6 +13,13 @@ assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
+# The native Build route speaks OpenAI Responses. Its capability override must not narrow
+# Reasoning: Pi sends reasoning controls on valid Responses requests, while the router's
+# protocol admission gate independently excludes Chat clients from a Reasoning-capable target.
+BUILD_BINDING = Path(__file__).with_name("p12-10h-bind-native-grok.py").read_text(encoding="utf-8")
+assert '"capability_override": {"allow_unlisted_model": True}' in BUILD_BINDING
+assert '"capability_override": {"allow_unlisted_model": True, "reasoning": False}' not in BUILD_BINDING
+
 assert MODULE.endpoint_admission("http://127.0.0.1:18180", False)[0] == "http://127.0.0.1:18180"
 try:
     MODULE.endpoint_admission("http://example.test", False)
