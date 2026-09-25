@@ -1,5 +1,20 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-25: native Grok continuation repair deployed
+
+Production now serves signed `4d5ce334f595aae76d8e9230c11df57642210c3d`, schema28.
+This fixes Responses reasoning items missing the required summary array, including legacy
+content-only histories, and adds safe correlated native Build rejection diagnostics.
+Formal gates, both signed targets, isolated artifact regression, production-copy rollback and
+public/authenticated readback passed. Stop-to-ready: 1,032 ms; 7 accounts, 2,248 events,
+596 ledger rows and effective permissions retained. Frontend assets are unchanged.
+Fallback is `f4ebf4d`; preserve latest databases/rotating credentials. The user-approved two
+synthetic Build diagnostics are exhausted; no further inference is authorized by that allowance.
+OMP approval/write/read acceptance is not claimed. See
+[native continuation evidence](../reports/cpar-grok-native-continuation-20260925.md).
+Earlier entries below are historical.
+
+
 ## 2026-09-24: Prism V2 and Grok/Pi repair deployed
 
 Production serves signed `3a8e5af60738c925dcf44d94baf376227870a16c`, schema28,

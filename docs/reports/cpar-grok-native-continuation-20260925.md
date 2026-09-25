@@ -53,8 +53,8 @@ history and generated reasoning were not stored or printed. **Budget is exhauste
 - Targeted provider-grok, protocol-openai-responses and provider-openai-compatible run:
   **299 passed, 5 pre-existing ignored**, no real network inference. Formal deployment gate
   already runs these suites, so the native-chain regression is mandatory for future releases.
-- Final release gate, signed artifacts, isolated rollback and deployment receipts are recorded
-  in the follow-up production section when completed. Until then this is a local candidate.
+- Final release gate, signed artifacts, isolated rollback and production cutover passed;
+  see the production evidence below.
 
 ## Remaining boundaries
 
@@ -68,3 +68,36 @@ cause; solving faithful opaque/native replay needs an explicit canonical metadat
 ownership review, especially for encrypted reasoning. Do not claim arbitrary native reasoning
 roundtrips are lossless. The previously documented intermittent generic mock 503 is also not
 explained by this fix.
+
+## Production evidence
+
+Deployed `4d5ce334f595aae76d8e9230c11df57642210c3d` at **2026-09-25 15:22:47 UTC**
+(23:22:47 Asia/Shanghai), following existing authorization for Oracle and its domain.
+
+- Implementation `799723e`; router expectation update `2399644`; tracing dependency boundary
+  declaration `4d5ce33`. Earlier formal runs failed on the outdated assertion and the undeclared
+  tracing dependency respectively; neither candidate was deployed. Both were corrected, not waived.
+- [Exact revision delivery gate](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36150102261):
+  Fast, supply-chain and required gate all succeeded. Local full Rust run: 1,298 passed,
+  9 existing ignored. Clippy, format, contracts, source/dependency boundaries, secret scan,
+  four-file management embed and real local gateway continuation tests passed.
+- [Signed ARM64 and x86_64 artifacts](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36150107483):
+  independently verified signatures, manifest, SBOM and checksums.
+- Production ARM64 SHA-256:
+  `45786a8649720cd513eee09ae86fcab7a0ac2eadd0a2e836446a925562e6f055`.
+- The signed ARM64 binary passed the real-gateway/loopback mock regression in a disconnected
+  network namespace. Separately, the native Grok adapter tests run in the formal Rust suite.
+- Disconnected production-copy fallback/candidate/fallback/candidate passed on schema28;
+  accounts, effective grants, historical records and administrator store retained.
+- Stop-to-ready **1,032 ms**. Public HTTPS health, CSP/assets, authentication boundary,
+  authenticated inventory/system/requests, process executable hash and loopback binds passed.
+- Existing 7 managed accounts, 2,248 event rows and 596 ledger rows retained. Four frontend asset
+  hashes are unchanged. No DNS/Caddy/Autoreg edits, schema migration or historical deletion.
+- Compatible fallback is signed `f4ebf4d75c111f8e0fa8e4f9d342a01bfb8da723`; keep latest databases
+  and rotating credentials. Rollback reintroduces the missing-summary defect.
+- Release/backup receipts: `/var/tmp/cpar-native-4d5ce334f595` on Oracle and
+  `/private/tmp/cpar-native-release-20260925` locally. Deployment itself made **zero** Provider
+  requests; this does not reset or exclude the **two** earlier diagnostic requests.
+
+No further OMP task execution was initiated. Its full approval/write/read acceptance remains
+separate from this repaired and deployed protocol defect.

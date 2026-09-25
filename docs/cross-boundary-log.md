@@ -3186,3 +3186,18 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** User-authorized proactive CPAR repair and existing deployment scope. Formal exact-revision gates, signed native artifact regression, disconnected production-copy rollback and authenticated data readback passed.
 
 **Other side:** FYI. Seven accounts, effective permissions and prior 2,241 event/595 ledger rows preserved; no real inference or OMP UI acceptance claimed. First-CI intermittent 503 remains documented without an invented cause. Evidence: `docs/reports/cpar-agent-production-20260925.md`.
+
+## 2026-09-25 - Codex - Native Grok continuation production repair
+
+**What:** Oracle now runs signed `4d5ce334f595aae76d8e9230c11df57642210c3d`, schema28.
+Responses outputs and legacy replay include the required summary array; native Build rejection
+logs retain only status, correlation and allowlisted labels. Frontend assets remain identical.
+
+**Why:** Two separately authorized synthetic diagnostics isolated an omitted-summary defect:
+422 without summary, 200/completed with summary. The previous generic adapter gate missed the
+native decoder/public encoder/replay chain, now covered by eight combinations.
+
+**Other side:** FYI. No management contract or frontend source changes. Formal gates, signing,
+artifact regression, isolated rollback, account/history/permission preservation and domain
+readback passed. Existing OMP retry budget remains exhausted; full OMP workflow is not claimed.
+Evidence: `docs/reports/cpar-grok-native-continuation-20260925.md`.
