@@ -78,6 +78,7 @@ Mandatory scenarios:
 
 ## Release status
 
-Implementation and local checks are complete. Production rollout evidence will be recorded
-separately after exact-revision CI, signed artifact verification, isolated production-copy
-rehearsal and deployment readback. Until then, local passing tests do not mean production is fixed.
+Production runs `f4ebf4d75c111f8e0fa8e4f9d342a01bfb8da723` as of 08:43:53 UTC.
+Implementation commit: `7468d6d`; safe failure-diagnostic follow-up: `f4ebf4d`.
+See [production evidence](cpar-agent-production-20260925.md), including the unreproduced first-CI
+503 and the distinction between isolated mock acceptance and real OMP acceptance.

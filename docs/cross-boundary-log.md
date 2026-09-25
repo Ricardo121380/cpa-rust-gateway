@@ -3178,3 +3178,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** OMP's second model round failed even though the earlier single-round canary passed. Every formal fast gate must exercise actual multi-round output replay and stored history, plus error/cancellation/ledger checks.
 
 **Other side:** FYI. No frontend or management contract change; no external Provider call in this gate. Twelve successful rounds and three malformed requests are tested without expanding production capabilities. Evidence and saved-history rollback limitation: `docs/reports/cpar-agent-compatibility-20260925.md`.
+
+## 2026-09-25 - Codex - Agent continuation production cutover
+
+**What:** Existing Oracle service now runs signed `f4ebf4d75c111f8e0fa8e4f9d342a01bfb8da723`. Stop-to-ready 1,029 ms; schema28 and frontend asset bytes unchanged.
+
+**Why:** User-authorized proactive CPAR repair and existing deployment scope. Formal exact-revision gates, signed native artifact regression, disconnected production-copy rollback and authenticated data readback passed.
+
+**Other side:** FYI. Seven accounts, effective permissions and prior 2,241 event/595 ledger rows preserved; no real inference or OMP UI acceptance claimed. First-CI intermittent 503 remains documented without an invented cause. Evidence: `docs/reports/cpar-agent-production-20260925.md`.
