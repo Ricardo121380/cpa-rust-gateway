@@ -1521,9 +1521,11 @@ mod tests {
                 wire["include"],
                 serde_json::json!(["reasoning.encrypted_content"])
             );
-            let source: Value = serde_json::from_str(include_str!(
+            let mut source: Value = serde_json::from_str(include_str!(
                 "../../../tests/fixtures/openai-responses/request-pi-continuation.json"
             ))?;
+            // The typed wire builder upgrades legacy content-only history for native Responses.
+            source["input"][1]["summary"] = serde_json::json!([]);
             assert_eq!(wire["input"][1], source["input"][1]);
             assert_eq!(wire["input"][2], source["input"][2]);
             assert_eq!(wire["input"][3], source["input"][3]);
