@@ -420,3 +420,134 @@ impl TransparentRetryGate for NeverCancelled {
         Box::pin(future::pending())
     }
 }
+
+/// Exercise the native Build decoder and both public encoders before replaying an SDK tool result.
+/// The previous generic mock never exercised this complete chain.
+#[tokio::test]
+async fn native_reasoning_continuation_survives_public_json_sse_and_legacy_history() -> TestResult {
+    use serde_json::{Value, json};
+    for upstream_stream in [false, true] {
+        for public_stream in [false, true] {
+            for legacy_history in [false, true] {
+                let fixture = || {
+                    if upstream_stream {
+                        let mut wire =
+                            include_bytes!("../../../tests/fixtures/grok-build/p6-03-stream.sse")
+                                .to_vec();
+                        wire.push(b'\n');
+                        FixtureResponse::ok_sse(wire.chunks(19).map(ToOwned::to_owned).collect())
+                    } else {
+                        FixtureResponse::ok_json(include_bytes!(
+                            "../../../tests/fixtures/grok-build/p6-03-non-streaming.json"
+                        ))
+                    }
+                };
+                let transport = Arc::new(FixtureTransport::new([fixture(), fixture()]));
+                let mode = if upstream_stream {
+                    GrokBuildExecutionMode::Streaming
+                } else {
+                    GrokBuildExecutionMode::NonStreaming
+                };
+                let adapter = adapter(mode, transport.clone())?;
+                let events = collect(
+                    adapter
+                        .execute(context()?, request_with_thinking()?)
+                        .await?,
+                )
+                .await?;
+                let first = public_continuation_response(events, public_stream)?;
+                let mut input = vec![json!({"role":"user", "content":"Synthetic task."})];
+                let output = first["output"].as_array().ok_or("missing output")?;
+                assert_eq!(
+                    output
+                        .iter()
+                        .filter(|item| item["type"] == "reasoning")
+                        .count(),
+                    1
+                );
+                let mut expected = Vec::new();
+                let mut results = Vec::new();
+                for item in output {
+                    let mut replay = item.clone();
+                    if item["type"] == "reasoning" {
+                        assert_eq!(
+                            item["summary"],
+                            json!([]),
+                            "public output must be valid Responses input"
+                        );
+                        assert!(
+                            !item["content"][0]["text"]
+                                .as_str()
+                                .ok_or("missing reasoning")?
+                                .is_empty()
+                        );
+                        if legacy_history {
+                            replay
+                                .as_object_mut()
+                                .ok_or("invalid output")?
+                                .remove("summary");
+                        }
+                    }
+                    if item["type"] == "function_call" {
+                        results.push(json!({"type":"function_call_output", "call_id":item["call_id"], "output":"Synthetic result; no tool executed."}));
+                    }
+                    if matches!(item["type"].as_str(), Some("reasoning" | "function_call")) {
+                        expected.push(item.clone());
+                    }
+                    input.push(replay);
+                }
+                assert_eq!(results.len(), 1);
+                input.extend(results.clone());
+                let replay = decode_request(&json!({"model":"grok-4.5", "input":input, "reasoning":{"effort":"low"}, "stream":upstream_stream}).to_string())?;
+                let events = collect(adapter.execute(context()?, replay.request).await?).await?;
+                assert_success_shape(&events);
+                assert_eq!(transport.call_count(), 2);
+                let outbound: Value = serde_json::from_slice(
+                    &transport.request_body().ok_or("missing outbound request")?,
+                )?;
+                let outbound = outbound["input"]
+                    .as_array()
+                    .ok_or("missing outbound input")?;
+                let history = outbound
+                    .iter()
+                    .filter(|item| {
+                        matches!(item["type"].as_str(), Some("reasoning" | "function_call"))
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    history, expected,
+                    "preserve text, identity, order and call correlation with required summary"
+                );
+                assert_eq!(outbound.last(), results.last());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn public_continuation_response(
+    events: Vec<CanonicalEvent>,
+    streaming: bool,
+) -> Result<serde_json::Value, Box<dyn Error>> {
+    use protocol_openai_responses::{
+        OpenAiResponseMetadata, OpenAiResponsesSseEncoder, encode_response,
+    };
+    let metadata = OpenAiResponseMetadata::try_new("grok-4.5", 1_700_000_000)?;
+    if !streaming {
+        return Ok(encode_response(
+            &gateway_core::CanonicalResponse::try_new(events)?,
+            metadata,
+        )?);
+    }
+    let mut encoder = OpenAiResponsesSseEncoder::new(metadata);
+    for event in &events {
+        for frame in encoder.encode_event(event)? {
+            let data = frame.data();
+            if data["type"] == "response.completed" {
+                return Ok(data["response"].clone());
+            }
+        }
+    }
+    Err("missing public stream terminal".into())
+}

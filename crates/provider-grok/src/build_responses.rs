@@ -501,10 +501,9 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
                     if role != "assistant" {
                         return Err(provider_protocol_error());
                     }
-                    input.push(
-                        serde_json::from_str(history.raw().get())
-                            .map_err(|_| provider_protocol_error())?,
-                    );
+                    input.push(protocol_openai_responses::encode_reasoning_history(
+                        history,
+                    )?);
                 }
                 MessageContent::ToolCall(call) => {
                     flush_message_parts(&mut input, role, &message.extensions, &mut message_parts)?;
@@ -741,6 +740,8 @@ pub enum GrokBuildResponsesErrorSignal {
 pub struct GrokBuildResponsesHttpError {
     status: u16,
     signal: GrokBuildResponsesErrorSignal,
+    body_kind: &'static str,
+    diagnostic_fields: [Option<&'static str>; 3],
 }
 
 impl GrokBuildResponsesHttpError {
@@ -760,18 +761,31 @@ impl GrokBuildResponsesHttpError {
             return Err(provider_protocol_error());
         }
 
-        let signal = match parse_strict_json(body, MAX_GROK_BUILD_ERROR_BODY_BYTES) {
-            Ok(Value::Object(object)) => error_signal(&object),
-            Ok(
-                Value::Null
-                | Value::Bool(_)
-                | Value::Number(_)
-                | Value::String(_)
-                | Value::Array(_),
-            )
-            | Err(()) => GrokBuildResponsesErrorSignal::None,
-        };
-        Ok(Self { status, signal })
+        let (signal, body_kind, diagnostic_fields) =
+            match parse_strict_json(body, MAX_GROK_BUILD_ERROR_BODY_BYTES) {
+                Ok(Value::Object(object)) => {
+                    let error = object
+                        .get("error")
+                        .and_then(Value::as_object)
+                        .unwrap_or(&object);
+                    let fields = ["code", "type", "param"].map(|name| {
+                        error
+                            .get(name)
+                            .and_then(Value::as_str)
+                            .and_then(safe_error_label)
+                    });
+                    (error_signal(&object), "object", fields)
+                }
+                Ok(Value::String(_)) => (GrokBuildResponsesErrorSignal::None, "string", [None; 3]),
+                Ok(_) => (GrokBuildResponsesErrorSignal::None, "other_json", [None; 3]),
+                Err(()) => (GrokBuildResponsesErrorSignal::None, "non_json", [None; 3]),
+            };
+        Ok(Self {
+            status,
+            signal,
+            body_kind,
+            diagnostic_fields,
+        })
     }
 
     /// Returns the raw HTTP status without assigning a remediation action.
@@ -785,6 +799,36 @@ impl GrokBuildResponsesHttpError {
     pub const fn signal(self) -> GrokBuildResponsesErrorSignal {
         self.signal
     }
+
+    /// Returns a closed body-format label, never a response fragment.
+    #[must_use]
+    pub const fn body_kind(self) -> &'static str {
+        self.body_kind
+    }
+
+    /// Returns allowlisted code, type and parameter labels in that order.
+    /// Unknown labels are omitted, even when short or syntactically valid.
+    #[must_use]
+    pub const fn diagnostic_fields(self) -> [Option<&'static str>; 3] {
+        self.diagnostic_fields
+    }
+}
+
+fn safe_error_label(value: &str) -> Option<&'static str> {
+    match value {
+        "invalid_request_error" => Some("invalid_request_error"),
+        "invalid_argument" => Some("invalid_argument"),
+        "validation_error" => Some("validation_error"),
+        "invalid_grant" => Some("invalid_grant"),
+        "invalid_token" => Some("invalid_token"),
+        "rate_limit_exceeded" => Some("rate_limit_exceeded"),
+        "input" => Some("input"),
+        "reasoning" => Some("reasoning"),
+        "summary" => Some("summary"),
+        "tools" => Some("tools"),
+        "model" => Some("model"),
+        _ => None,
+    }
 }
 
 impl fmt::Debug for GrokBuildResponsesHttpError {
@@ -793,6 +837,8 @@ impl fmt::Debug for GrokBuildResponsesHttpError {
             .debug_struct("GrokBuildResponsesHttpError")
             .field("status", &self.status)
             .field("signal", &self.signal)
+            .field("body_kind", &self.body_kind)
+            .field("diagnostic_fields", &self.diagnostic_fields)
             .field("body", &"<redacted>")
             .finish()
     }

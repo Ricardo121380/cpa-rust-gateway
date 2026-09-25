@@ -2171,6 +2171,7 @@ dependencies = [
  "sha2",
  "time",
  "tokio",
+ "tracing",
  "url",
  "zeroize",
 ]

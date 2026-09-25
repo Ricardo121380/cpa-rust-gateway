@@ -379,6 +379,18 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
             if !(200..=299).contains(&status) {
                 let bytes = read_bounded_body(&mut *body, MAX_GROK_BUILD_ERROR_BODY_BYTES).await?;
                 let envelope = GrokBuildResponsesHttpError::parse(status, &bytes)?;
+                let [code, error_type, param] = envelope.diagnostic_fields();
+                tracing::warn!(
+                    event = "grok_build_http_rejection",
+                    request_id = context.request_id().as_str(),
+                    upstream_status = envelope.status(),
+                    body_kind = envelope.body_kind(),
+                    error_code = code,
+                    error_type,
+                    error_param = param,
+                    signal = ?envelope.signal(),
+                    "Grok Build rejected a request"
+                );
                 return Err(classify_grok_build_failure(
                     envelope.status(),
                     envelope.signal(),

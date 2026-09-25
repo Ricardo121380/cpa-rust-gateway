@@ -30,6 +30,27 @@ pub use upstream_response::{
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "protocol-openai-responses";
 
+/// Encodes validated history with the Responses-required summary array.
+///
+/// Older gateway/Pi histories can contain only `content`. Preserve their identity and text,
+/// and express the absence of a summary as an empty array rather than omitting a required field.
+/// The retained canonical history is not mutated; existing summaries remain intact.
+///
+/// # Errors
+///
+/// Returns an internal error if validated history cannot be decoded.
+pub fn encode_reasoning_history(
+    history: &gateway_core::ReasoningHistory,
+) -> Result<Value, GatewayError> {
+    let mut item: Value =
+        serde_json::from_str(history.raw().get()).map_err(|_| internal_error())?;
+    let object = item.as_object_mut().ok_or_else(internal_error)?;
+    if object.get("summary").is_none_or(Value::is_null) {
+        object.insert("summary".to_owned(), Value::Array(Vec::new()));
+    }
+    Ok(item)
+}
+
 /// The output mode requested by the `stream` field of a Responses request.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ResponseMode {
@@ -1878,6 +1899,7 @@ impl OutputItem {
                 "id": id,
                 "type": "reasoning",
                 "status": status.as_str(),
+                "summary": [],
                 "content": content.iter().map(|text| json!({
                     "type": "reasoning_text",
                     "text": text,

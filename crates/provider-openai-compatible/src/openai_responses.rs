@@ -462,10 +462,9 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
                     if role != "assistant" {
                         return Err(provider_protocol_error());
                     }
-                    input.push(
-                        serde_json::from_str(history.raw().get())
-                            .map_err(|_| provider_protocol_error())?,
-                    );
+                    input.push(protocol_openai_responses::encode_reasoning_history(
+                        history,
+                    )?);
                 }
                 MessageContent::ToolCall(call) => {
                     flush_message_parts(&mut input, role, &message.extensions, &mut message_parts)?;

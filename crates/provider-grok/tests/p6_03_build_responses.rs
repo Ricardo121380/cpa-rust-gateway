@@ -113,7 +113,14 @@ fn build_request_preserves_pi_multiturn_reasoning_and_tool_history() -> TestResu
         decoded.mode,
     )?;
     let rebuilt = decode_request(std::str::from_utf8(outbound.body())?)?;
-    assert_eq!(rebuilt.request, decoded.request);
+    let mut expected: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/openai-responses/request-pi-continuation.json"
+    ))?;
+    expected["input"][1]["summary"] = serde_json::json!([]);
+    assert_eq!(
+        rebuilt.request,
+        decode_request(&expected.to_string())?.request
+    );
     assert_eq!(rebuilt.mode, decoded.mode);
     Ok(())
 }
@@ -894,4 +901,35 @@ fn policy() -> Result<EgressPolicy, Box<dyn Error>> {
         allowed_cidrs: BTreeSet::new(),
         redirect_policy: RedirectPolicy::Deny,
     })?)
+}
+
+#[test]
+fn error_diagnostics_admit_only_fixed_labels_and_body_shape() -> TestResult {
+    use serde_json::json;
+    let body = json!({"error":{"type":"invalid_request_error","code":"validation_error","param":"summary","message":"private prompt token@example.test"}});
+    let error = GrokBuildResponsesHttpError::parse(422, &serde_json::to_vec(&body)?)?;
+    assert_eq!(
+        error.diagnostic_fields(),
+        [
+            Some("validation_error"),
+            Some("invalid_request_error"),
+            Some("summary")
+        ]
+    );
+    assert_eq!(error.body_kind(), "object");
+    assert!(!format!("{error:?}").contains("private"));
+    for body in [
+        json!({"error":{"type":"secret","code":"secret","param":"secret","message":"secret"}}),
+        json!("secret"),
+        json!(["secret"]),
+    ] {
+        let error = GrokBuildResponsesHttpError::parse(422, &serde_json::to_vec(&body)?)?;
+        assert_eq!(error.diagnostic_fields(), [None; 3]);
+        assert!(!format!("{error:?}").contains("secret"));
+    }
+    assert_eq!(
+        GrokBuildResponsesHttpError::parse(422, b"synthetic text error")?.body_kind(),
+        "non_json"
+    );
+    Ok(())
 }
