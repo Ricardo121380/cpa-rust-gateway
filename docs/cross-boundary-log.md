@@ -3162,3 +3162,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** User explicitly requested deploying the backend patch and then the frontend together.
 
 **Other side:** FYI. No frontend source or management contract changed during deployment. Formal gates, signing, production-copy rollback and authenticated API/data checks passed; browser verified the new login page at three sizes. Compatible rollback is `ca75a443`, keeping latest schema28 data/credentials. Real inference and post-reload authenticated browser workspaces were not exercised. Evidence: `docs/reports/prism-grok-production-20260924.md`.
+
+## 2026-09-25 - Codex - Grok Build reasoning configuration hot publication
+
+**What:** Active configuration is `production-grok-reasoning-20260925` rev-1; only the Grok Build candidate's `reasoning:false` override was removed. Runtime binary remains signed `3a8e5af`, without restart. Previous active configuration is retained.
+
+**Why:** User-authorized repair of OMP low Responses requests rejected by the legacy override. One real synthetic OMP request replay completed with HTTP 200, reasoning and a tool call; persisted succeeded/1 attempt/1 unpriced ledger record.
+
+**Other side:** FYI. No frontend source or contract change. Responses is selected; Chat is now excluded for this Reasoning-capable candidate by the existing protocol gate. This is not OMP approval/write-flow acceptance. Evidence: `docs/reports/grok-reasoning-production-20260925.md`.

@@ -1,0 +1,51 @@
+{
+  "rows": [
+    {
+      "attempt_count": 1,
+      "cost_confidence": "unpriced",
+      "cost_microunits": null,
+      "duration_ms": 2879,
+      "error_code": null,
+      "finished_at_ms": 1790308009636,
+      "first_content_ms": 2879,
+      "ledger_records": 1,
+      "model": "grok-4.5",
+      "outcome": "succeeded",
+      "protocol": "openai_responses",
+      "request_id": "p1-request-b763edcc195a3e02ae4eb7b837c728cb-0",
+      "requested_model": "grok-4.5",
+      "started_at_ms": 1790308006756,
+      "usage": {
+        "cache_creation_tokens": null,
+        "cache_read_tokens": null,
+        "cached_tokens": 0,
+        "input_tokens": 3123,
+        "output_tokens": 121,
+        "reasoning_tokens": 38
+      }
+    }
+  ],
+  "row_keys": [
+    "attempt_count",
+    "client_key_id",
+    "cost_confidence",
+    "cost_microunits",
+    "credential_id",
+    "duration_ms",
+    "endpoint_id",
+    "error_code",
+    "finished_at_ms",
+    "first_content_ms",
+    "ledger_records",
+    "model",
+    "outcome",
+    "protocol",
+    "request_id",
+    "requested_model",
+    "started_at_ms",
+    "streaming",
+    "upstream_id",
+    "usage"
+  ],
+  "next_cursor": null
+}

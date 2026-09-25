@@ -1,0 +1,50 @@
+{
+  "started_at": "2026-09-25T03:46:44.796220+00:00",
+  "requests": 1,
+  "automatic_retries": 0,
+  "model": "grok-4.5",
+  "reasoning": {
+    "effort": "low",
+    "summary": "auto"
+  },
+  "include": [
+    "reasoning.encrypted_content"
+  ],
+  "tool_definitions": 6,
+  "request_sha256": "62cd9e0ff5ee08642781bc689c9251cca64c22d5e8e0f2b2f78769f2a170b3f1",
+  "source": "same installed OMP synthetic capture; first provider response only; tools not executed",
+  "http_status": 200,
+  "content_type": "text/event-stream",
+  "request_id": null,
+  "completed": true,
+  "failed_event": false,
+  "events": {
+    "response.created": 1,
+    "response.in_progress": 1,
+    "response.output_item.added": 2,
+    "response.reasoning_text.delta": 1,
+    "response.function_call_arguments.delta": 1,
+    "response.function_call_arguments.done": 1,
+    "response.output_item.done": 2,
+    "response.reasoning_text.done": 1,
+    "response.completed": 1
+  },
+  "text_characters": 0,
+  "tool_calls": 1,
+  "usage": {
+    "input_tokens": 3123,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 121,
+    "output_tokens_details": {
+      "reasoning_tokens": 38
+    },
+    "total_tokens": 3244
+  },
+  "response_bytes": 4984,
+  "passed": true,
+  "duration_seconds": 5.073,
+  "original_config_unchanged": true,
+  "finished_at": "2026-09-25T03:46:49.870346+00:00"
+}
