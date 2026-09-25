@@ -46,7 +46,19 @@ for stream, stored in ((False, False), (True, False), (False, True), (True, True
         if previous:
             body['previous_response_id'] = previous
         status, _, raw = request('/v1/responses', body)
-        assert status == 200, (stream, turn, status)
+        if status != 200:
+            try:
+                error = json.loads(raw).get('error', {})
+                code = error.get('code', error.get('type')) if isinstance(error, dict) else None
+            except ValueError:
+                code = None
+            _, _, availability = request('/admin/runtime/availability', management=True)
+            diagnostic = {'stream': stream, 'stored': stored, 'turn': turn + 1,
+                          'status': status, 'code': code,
+                          'availability': json.loads(availability)}
+            (out / 'agent-failure.json').write_text(json.dumps(diagnostic, indent=2) + '\n')
+            print(json.dumps({'agent_failure': diagnostic}), flush=True)
+            raise AssertionError((stream, stored, turn, status, code))
         if stream:
             frames = [json.loads(line[6:]) for line in raw.splitlines() if line.startswith('data: ')]
             assert not any(frame['type'] == 'response.failed' for frame in frames)
