@@ -151,10 +151,20 @@ fn response_messages(response: &CanonicalResponse) -> Result<Vec<CanonicalMessag
         protocol_openai_responses::OpenAiResponseMetadata::try_new("stored-history", 0)?,
     )?;
     let mut input = encoded.get("output").cloned().ok_or_else(internal_error)?;
-    // These item IDs are gateway-generated, not upstream ownership handles. Keep stable
-    // item correlation while never forwarding the gateway's local response lookup key.
+    // Preserve native item identity; only synthesized IDs contain the gateway's local lookup
+    // key. Native metadata is validated on output and has no encrypted ownership handle.
+    let native_ids = response
+        .events()
+        .iter()
+        .filter_map(|event| match event {
+            CanonicalEvent::OutputItemStart(item) => Some(item.item_id.as_str()),
+            _ => None,
+        })
+        .collect::<std::collections::BTreeSet<_>>();
     for item in input.as_array_mut().ok_or_else(internal_error)? {
-        if let Some(id) = item.get("id").and_then(serde_json::Value::as_str) {
+        if let Some(id) = item.get("id").and_then(serde_json::Value::as_str)
+            && !native_ids.contains(id)
+        {
             use sha2::{Digest, Sha256};
             let replay_id = format!("history_{:x}", Sha256::digest(id.as_bytes()));
             item["id"] = serde_json::Value::String(replay_id);
@@ -204,6 +214,40 @@ mod tests {
     use super::response_messages;
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn stored_native_item_ids_are_preserved_without_exposing_local_lookup_id() -> TestResult {
+        use protocol_openai_responses::{native_item_metadata, native_part_extensions};
+        let item = serde_json::json!({"id":"rs-upstream","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":"synthetic"}]});
+        let response = CanonicalResponse::try_new(vec![
+            CanonicalEvent::ResponseStart(ResponseStart {
+                response_id: ResponseId::try_new("local-lookup-key")?,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageStart(MessageStart {
+                role: MessageRole("assistant".into()),
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::OutputItemStart(native_item_metadata(&item, false)?),
+            CanonicalEvent::ReasoningDelta(gateway_core::ReasoningDelta {
+                text: "synthetic".into(),
+                extensions: native_part_extensions("rs-upstream", "summary", 0)?,
+            }),
+            CanonicalEvent::OutputItemEnd(native_item_metadata(&item, true)?),
+            CanonicalEvent::MessageEnd(MessageEnd::default()),
+            CanonicalEvent::ResponseEnd(ResponseEnd::default()),
+        ])?;
+        let replay = response_messages(&response)?;
+        let MessageContent::Reasoning(reasoning) = &replay[0].content[0] else {
+            return Err("missing reasoning".into());
+        };
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(reasoning.raw().get())?,
+            item
+        );
+        assert!(!serde_json::to_string(&replay)?.contains("local-lookup-key"));
+        Ok(())
+    }
 
     #[test]
     fn stored_reasoning_replays_the_same_items_as_client_managed_history() -> TestResult {

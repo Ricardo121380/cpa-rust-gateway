@@ -23,8 +23,8 @@ pub use account_entitlement::{
 };
 pub use canonical_event::{
     CanonicalEvent, CanonicalEventState, CanonicalResponse, MessageEnd, MessageStart,
-    ReasoningDelta, ResponseEnd, ResponseStart, StreamError, TextDelta, ToolCallArgumentsDelta,
-    ToolCallEnd, ToolCallStart, Usage, UsageDelta,
+    OutputItemMetadata, ReasoningDelta, ResponseEnd, ResponseStart, StreamError, TextDelta,
+    ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart, Usage, UsageDelta,
 };
 pub use canonical_request::CanonicalRequest;
 pub use error::{ErrorScope, GatewayError, GatewayErrorCode};

@@ -122,7 +122,13 @@ fn project_event(
     event: &CanonicalEvent,
     target: ProtocolFormat,
 ) -> Result<Option<CanonicalEvent>, ProtocolResponseRejection> {
-    reject_extensions(event)?;
+    if has_native_output_metadata(event) {
+        if target != ProtocolFormat::OpenAiResponses {
+            return project_native_identity(event);
+        }
+    } else {
+        reject_extensions(event)?;
+    }
     match event {
         CanonicalEvent::ReasoningDelta(_) if target == ProtocolFormat::OpenAiChatCompletions => {
             Err(ProtocolResponseRejection::ReasoningUnsupported)
@@ -154,8 +160,73 @@ fn project_event(
     }
 }
 
+// Message/tool identities are optional envelope metadata in Chat/Messages. Their complete
+// semantic deltas remain in the stream. Reasoning metadata is Responses-only; never flatten it.
+fn project_native_identity(
+    event: &CanonicalEvent,
+) -> Result<Option<CanonicalEvent>, ProtocolResponseRejection> {
+    let invalid = || ProtocolResponseRejection::UnknownExtensions;
+    match event {
+        CanonicalEvent::OutputItemStart(item) | CanonicalEvent::OutputItemEnd(item) => {
+            let value: serde_json::Value = serde_json::from_str(
+                item.extensions
+                    .get("openai.responses.output_item")
+                    .ok_or_else(invalid)?
+                    .get(),
+            )
+            .map_err(|_| invalid())?;
+            let object = value.as_object().ok_or_else(invalid)?;
+            let fields: &[&str] = match value["type"].as_str() {
+                Some("message") => &["id", "type", "status", "role", "content"],
+                Some("function_call") => &["id", "type", "status", "call_id", "name", "arguments"],
+                _ => return Err(ProtocolResponseRejection::ReasoningUnsupported),
+            };
+            if value["id"] != item.item_id
+                || object.keys().any(|key| !fields.contains(&key.as_str()))
+            {
+                return Err(invalid());
+            }
+            Ok(None)
+        }
+        CanonicalEvent::TextDelta(delta) => {
+            let value: serde_json::Value = serde_json::from_str(
+                delta
+                    .extensions
+                    .get("openai.responses.output_part")
+                    .ok_or_else(invalid)?
+                    .get(),
+            )
+            .map_err(|_| invalid())?;
+            if value["field"] != "content"
+                || value["id"].as_str().is_none_or(str::is_empty)
+                || value["index"].as_u64().is_none_or(|index| index >= 64)
+                || value.as_object().ok_or_else(invalid)?.len() != 3
+            {
+                return Err(invalid());
+            }
+            let mut delta = delta.clone();
+            delta.extensions = gateway_core::RawExtensions::default();
+            Ok(Some(CanonicalEvent::TextDelta(delta)))
+        }
+        _ => Err(ProtocolResponseRejection::ReasoningUnsupported),
+    }
+}
+
+fn has_native_output_metadata(event: &CanonicalEvent) -> bool {
+    let (extensions, key) = match event {
+        CanonicalEvent::OutputItemStart(v) | CanonicalEvent::OutputItemEnd(v) => {
+            (&v.extensions, "openai.responses.output_item")
+        }
+        CanonicalEvent::TextDelta(v) => (&v.extensions, "openai.responses.output_part"),
+        CanonicalEvent::ReasoningDelta(v) => (&v.extensions, "openai.responses.output_part"),
+        _ => return false,
+    };
+    extensions.iter().len() == 1 && extensions.get(key).is_some()
+}
+
 fn reject_extensions(event: &CanonicalEvent) -> Result<(), ProtocolResponseRejection> {
     let empty = match event {
+        CanonicalEvent::OutputItemStart(_) | CanonicalEvent::OutputItemEnd(_) => false,
         CanonicalEvent::ResponseStart(value) => value.extensions.is_empty(),
         CanonicalEvent::MessageStart(value) => value.extensions.is_empty(),
         CanonicalEvent::TextDelta(value) => value.extensions.is_empty(),

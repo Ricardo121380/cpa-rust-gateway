@@ -412,7 +412,9 @@ fn summarize(events: Vec<CanonicalEvent>) -> Result<Vec<Marker>, LegacyProtocolE
             CanonicalEvent::MessageEnd(_) => Marker::MessageEnd,
             CanonicalEvent::UsageDelta(delta) if delta.is_final => Marker::UsageFinal,
             CanonicalEvent::ResponseEnd(_) => Marker::ResponseEnd,
-            CanonicalEvent::UsageDelta(_)
+            CanonicalEvent::OutputItemStart(_)
+            | CanonicalEvent::OutputItemEnd(_)
+            | CanonicalEvent::UsageDelta(_)
             | CanonicalEvent::StreamError(_)
             | CanonicalEvent::TextDelta(_)
             | CanonicalEvent::ReasoningDelta(_)

@@ -304,7 +304,9 @@ impl CanonicalSuccessShape {
             CanonicalEvent::StreamError(_) => {
                 self.markers.insert(CanonicalSuccessMarker::StreamError);
             }
-            CanonicalEvent::MessageStart(_)
+            CanonicalEvent::OutputItemStart(_)
+            | CanonicalEvent::OutputItemEnd(_)
+            | CanonicalEvent::MessageStart(_)
             | CanonicalEvent::ReasoningDelta(_)
             | CanonicalEvent::ToolCallStart(_)
             | CanonicalEvent::ToolCallArgumentsDelta(_)

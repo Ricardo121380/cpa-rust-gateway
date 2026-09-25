@@ -1,0 +1,116 @@
+{
+  "checked_at": "2026-09-25T17:30:05.322862+00:00",
+  "method": "Read-only SQLite query with mode=ro and query_only; four exact previously recorded OMP request IDs; no credentials or request bodies read",
+  "service": {
+    "active": "active",
+    "sub": "running",
+    "automatic_restarts": 0
+  },
+  "release": "4d5ce334f595aae76d8e9230c11df57642210c3d",
+  "binary_sha256": "45786a8649720cd513eee09ae86fcab7a0ac2eadd0a2e836446a925562e6f055",
+  "omp_task": "f291faaf-1618-4c74-b9ed-57c834fa65aa",
+  "request_id_prefix": "p1-request-bbb8f58d1d03ba22f380872f58879b88-",
+  "requests": [
+    {
+      "turn": 1,
+      "events": {
+        "request": 1,
+        "attempt": 1,
+        "usage": 1,
+        "request_finished": 1
+      },
+      "terminal": {
+        "outcome": "succeeded",
+        "error_code": null,
+        "duration_ms": 2789,
+        "first_content_ms": 2789
+      },
+      "ledger": [
+        {
+          "billing_status": "unpriced",
+          "cost_confidence": "unpriced",
+          "cost_microunits": null,
+          "input_tokens": 3212,
+          "output_tokens": 169,
+          "cached_tokens": 128
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "events": {
+        "request": 1,
+        "attempt": 1,
+        "usage": 1,
+        "request_finished": 1
+      },
+      "terminal": {
+        "outcome": "succeeded",
+        "error_code": null,
+        "duration_ms": 4306,
+        "first_content_ms": 4305
+      },
+      "ledger": [
+        {
+          "billing_status": "unpriced",
+          "cost_confidence": "unpriced",
+          "cost_microunits": null,
+          "input_tokens": 3959,
+          "output_tokens": 92,
+          "cached_tokens": 128
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "events": {
+        "request": 1,
+        "attempt": 1,
+        "usage": 1,
+        "request_finished": 1
+      },
+      "terminal": {
+        "outcome": "succeeded",
+        "error_code": null,
+        "duration_ms": 2004,
+        "first_content_ms": 2004
+      },
+      "ledger": [
+        {
+          "billing_status": "unpriced",
+          "cost_confidence": "unpriced",
+          "cost_microunits": null,
+          "input_tokens": 4076,
+          "output_tokens": 67,
+          "cached_tokens": 3072
+        }
+      ]
+    },
+    {
+      "turn": 4,
+      "events": {
+        "request": 1,
+        "attempt": 1,
+        "usage": 1,
+        "request_finished": 1
+      },
+      "terminal": {
+        "outcome": "succeeded",
+        "error_code": null,
+        "duration_ms": 3363,
+        "first_content_ms": 3354
+      },
+      "ledger": [
+        {
+          "billing_status": "unpriced",
+          "cost_confidence": "unpriced",
+          "cost_microunits": null,
+          "input_tokens": 4140,
+          "output_tokens": 59,
+          "cached_tokens": 3968
+        }
+      ]
+    }
+  ],
+  "new_real_inference_calls": 0
+}

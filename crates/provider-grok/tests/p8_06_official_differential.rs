@@ -253,7 +253,9 @@ fn projection(events: &[CanonicalEvent]) -> SemanticProjection {
             CanonicalEvent::UsageDelta(delta) if delta.is_final => {
                 reasoning_tokens = delta.usage.reasoning_tokens;
             }
-            CanonicalEvent::ResponseStart(_)
+            CanonicalEvent::OutputItemStart(_)
+            | CanonicalEvent::OutputItemEnd(_)
+            | CanonicalEvent::ResponseStart(_)
             | CanonicalEvent::MessageStart(_)
             | CanonicalEvent::ToolCallArgumentsDelta(_)
             | CanonicalEvent::MessageEnd(_)

@@ -476,6 +476,9 @@ impl ChatSseEncoder {
         event: &CanonicalEvent,
     ) -> Result<Vec<ChatSseFrame>, GatewayError> {
         match event {
+            CanonicalEvent::OutputItemStart(_) | CanonicalEvent::OutputItemEnd(_) => {
+                Err(stream_error())
+            }
             CanonicalEvent::ResponseStart(start) => {
                 if self.state.is_some() {
                     return Err(stream_error());
@@ -737,6 +740,7 @@ pub fn encode_error(error: &GatewayError) -> Value {
 
 fn ensure_event_extensions_empty(event: &CanonicalEvent) -> Result<(), GatewayError> {
     let empty = match event {
+        CanonicalEvent::OutputItemStart(_) | CanonicalEvent::OutputItemEnd(_) => false,
         CanonicalEvent::ResponseStart(value) => value.extensions.is_empty(),
         CanonicalEvent::MessageStart(value) => value.extensions.is_empty(),
         CanonicalEvent::TextDelta(value) => value.extensions.is_empty(),

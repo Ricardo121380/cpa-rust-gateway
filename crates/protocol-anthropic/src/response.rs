@@ -296,6 +296,9 @@ impl Assembly {
         metadata: &AnthropicResponseMetadata,
     ) -> Result<Vec<SseFrame>, GatewayError> {
         match event {
+            CanonicalEvent::OutputItemStart(_) | CanonicalEvent::OutputItemEnd(_) => {
+                Err(stream_protocol_error())
+            }
             CanonicalEvent::ResponseStart(start) => {
                 self.response_id = Some(start.response_id.as_str().to_owned());
                 Ok(Vec::new())
@@ -939,6 +942,7 @@ fn normalize_tool_arguments(arguments: &str) -> String {
 
 fn ensure_representable(event: &CanonicalEvent) -> Result<(), GatewayError> {
     let extensions_empty = match event {
+        CanonicalEvent::OutputItemStart(_) | CanonicalEvent::OutputItemEnd(_) => false,
         CanonicalEvent::ResponseStart(value) => value.extensions.is_empty(),
         CanonicalEvent::MessageStart(value) => value.extensions.is_empty(),
         CanonicalEvent::TextDelta(value) => value.extensions.is_empty(),

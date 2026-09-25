@@ -19,6 +19,10 @@ pub enum CanonicalEvent {
     ResponseStart(ResponseStart),
     /// Begins one assistant or other protocol-neutral output message.
     MessageStart(MessageStart),
+    /// Declares an independently identified output item inside the active message.
+    OutputItemStart(OutputItemMetadata),
+    /// Completes a declared output item, retaining opaque protocol metadata.
+    OutputItemEnd(OutputItemMetadata),
     /// Appends visible text to the active message.
     TextDelta(TextDelta),
     /// Appends provider reasoning text to the active message.
@@ -47,6 +51,9 @@ impl fmt::Debug for CanonicalEvent {
             }
             Self::MessageStart(_) => {
                 formatter.write_str("CanonicalEvent::MessageStart(<redacted>)")
+            }
+            Self::OutputItemStart(_) | Self::OutputItemEnd(_) => {
+                formatter.write_str("CanonicalEvent::OutputItemMetadata(<redacted>)")
             }
             Self::TextDelta(_) => formatter.write_str("CanonicalEvent::TextDelta(<redacted>)"),
             Self::ReasoningDelta(_) => {
@@ -108,6 +115,23 @@ impl fmt::Debug for MessageStart {
             .field("role", &"<redacted>")
             .field("extensions", &self.extensions)
             .finish()
+    }
+}
+
+/// Optional output-item identity and opaque, protocol-scoped metadata.
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OutputItemMetadata {
+    /// Stable identifier, independent of the enclosing response and tool-call ID.
+    pub item_id: String,
+    /// Explicit protocol metadata interpreted only by the corresponding codec.
+    #[serde(default)]
+    pub extensions: RawExtensions,
+}
+
+impl fmt::Debug for OutputItemMetadata {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("OutputItemMetadata(<redacted>)")
     }
 }
 
@@ -549,6 +573,7 @@ enum ResponseLifecycle {
 struct OpenResponse {
     message_open: bool,
     tool_calls: BTreeMap<String, ToolCallLifecycle>,
+    output_items: BTreeMap<String, bool>,
     usage: UsageLifecycle,
 }
 
@@ -561,6 +586,25 @@ impl OpenResponse {
                 }
 
                 self.message_open = true;
+                Ok(())
+            }
+            CanonicalEvent::OutputItemStart(item) => {
+                if !self.message_open
+                    || item.item_id.is_empty()
+                    || item.item_id.len() > 512
+                    || !item.item_id.bytes().all(|byte| byte.is_ascii_graphic())
+                    || self.output_items.contains_key(&item.item_id)
+                {
+                    return Err(stream_protocol_error());
+                }
+                self.output_items.insert(item.item_id.clone(), false);
+                Ok(())
+            }
+            CanonicalEvent::OutputItemEnd(item) => {
+                if !self.message_open || self.output_items.get(&item.item_id) != Some(&false) {
+                    return Err(stream_protocol_error());
+                }
+                self.output_items.insert(item.item_id.clone(), true);
                 Ok(())
             }
             CanonicalEvent::TextDelta(delta) => {
@@ -657,7 +701,7 @@ impl OpenResponse {
         if !self.message_open {
             return Err(stream_protocol_error());
         }
-        if self.has_open_tool_call() {
+        if self.has_open_tool_call() || self.output_items.values().any(|done| !done) {
             return Err(stream_protocol_error());
         }
 
@@ -666,7 +710,9 @@ impl OpenResponse {
     }
 
     fn is_ready_to_end(&self) -> bool {
-        !self.message_open && !self.has_open_tool_call()
+        !self.message_open
+            && !self.has_open_tool_call()
+            && self.output_items.values().all(|done| *done)
     }
 
     fn has_open_tool_call(&self) -> bool {
@@ -702,7 +748,10 @@ const fn stream_truncated_error() -> GatewayError {
 #[cfg(test)]
 mod tests {
     use super::{CanonicalEvent, CanonicalEventState, CanonicalResponse};
-    use crate::{ErrorScope, GatewayErrorCode, RawExtensions, ResponseEnd};
+    use crate::{
+        ErrorScope, GatewayErrorCode, MessageEnd, MessageRole, MessageStart, RawExtensions,
+        ResponseEnd, ResponseId, ResponseStart,
+    };
 
     fn parse_event(value: &str) -> Result<CanonicalEvent, serde_json::Error> {
         serde_json::from_str(value)
@@ -1011,6 +1060,56 @@ mod tests {
     }
 
     #[test]
+    fn output_items_require_unique_bounded_identity_and_completion()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let start = super::OutputItemMetadata {
+            item_id: "native-item".into(),
+            extensions: RawExtensions::default(),
+        };
+        let prefix = vec![
+            CanonicalEvent::ResponseStart(ResponseStart {
+                response_id: ResponseId::try_new("response")?,
+                extensions: RawExtensions::default(),
+            }),
+            CanonicalEvent::MessageStart(MessageStart {
+                role: MessageRole("assistant".into()),
+                extensions: RawExtensions::default(),
+            }),
+        ];
+        let mut state = CanonicalEventState::default();
+        for event in prefix {
+            state.apply(&event)?;
+        }
+        assert!(
+            state
+                .apply(&CanonicalEvent::OutputItemEnd(start.clone()))
+                .is_err()
+        );
+        state.apply(&CanonicalEvent::OutputItemStart(start.clone()))?;
+        assert!(
+            state
+                .apply(&CanonicalEvent::OutputItemStart(start.clone()))
+                .is_err()
+        );
+        assert!(
+            state
+                .apply(&CanonicalEvent::MessageEnd(MessageEnd::default()))
+                .is_err()
+        );
+        state.apply(&CanonicalEvent::OutputItemEnd(start.clone()))?;
+        assert!(
+            state
+                .apply(&CanonicalEvent::OutputItemEnd(start.clone()))
+                .is_err()
+        );
+        state.apply(&CanonicalEvent::MessageEnd(MessageEnd::default()))?;
+        state.apply(&CanonicalEvent::ResponseEnd(ResponseEnd::default()))?;
+        state.finish()?;
+        assert!(!format!("{start:?}").contains("native-item"));
+        Ok(())
+    }
+
+    #[test]
     fn event_debug_forms_redact_text_tool_and_raw_extension_values() -> Result<(), serde_json::Error>
     {
         let events: Vec<CanonicalEvent> = serde_json::from_str(include_str!(
@@ -1021,6 +1120,9 @@ mod tests {
             .map(|event| match event {
                 CanonicalEvent::ResponseStart(value) => format!("{value:?}"),
                 CanonicalEvent::MessageStart(value) => format!("{value:?}"),
+                CanonicalEvent::OutputItemStart(value) | CanonicalEvent::OutputItemEnd(value) => {
+                    format!("{value:?}")
+                }
                 CanonicalEvent::TextDelta(value) => format!("{value:?}"),
                 CanonicalEvent::ReasoningDelta(value) => format!("{value:?}"),
                 CanonicalEvent::ToolCallStart(value) => format!("{value:?}"),

@@ -27,6 +27,7 @@ them.
 ```text
 ResponseStart
   -> zero or more sequential MessageStart ... MessageEnd regions
+       -> optional OutputItemStart ... OutputItemEnd identity regions
        -> TextDelta | ReasoningDelta
        -> zero or more interleaved ToolCallStart ... ToolCallEnd regions
   -> zero or more UsageDelta updates at any valid point before ResponseEnd
@@ -39,7 +40,11 @@ ResponseStart -> any valid partial sequence -> StreamError
 
 - The canonical event vocabulary is exactly `ResponseStart`, `MessageStart`, `TextDelta`,
   `ReasoningDelta`, `ToolCallStart`, `ToolCallArgumentsDelta`, `ToolCallEnd`, `UsageDelta`,
-  `MessageEnd`, `ResponseEnd`, and `StreamError`.
+  `MessageEnd`, `ResponseEnd`, `StreamError`, and optional `OutputItemStart`/`OutputItemEnd`.
+- Output item IDs are unique, nonempty ASCII graphic strings of at most 512 bytes.
+  Every declared item must end once before its enclosing Message ends. Opaque metadata
+  remains redacted and is interpreted only at the protocol boundary; the core does
+  not interpret Responses fields. Older producers need no output-item metadata.
 - A response begins once and terminates once. `ResponseEnd` and `StreamError` are terminal; no
   later semantic event is accepted.
 - At most one Message is active at a time. Text and Reasoning deltas must be non-empty and belong
@@ -76,3 +81,9 @@ ResponseStart -> any valid partial sequence -> StreamError
   out-of-order events, empty text/reasoning and Tool identifiers, sequential Messages, incomplete
   normal termination, interim/final Usage ordering, duplicate final Usage, terminality, and
   diagnostic redaction.
+
+## 2026-09-26 compatibility note
+
+[CR-RESPONSES-NATIVE-FIDELITY-001](../change-requests/CR-RESPONSES-NATIVE-FIDELITY-001.md)
+adds the optional item events. Old stored payloads still decode; new item events require
+this binary for continuation. Rollback must preserve data and disclose this replay boundary.

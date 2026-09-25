@@ -681,7 +681,9 @@ impl ProbeResponseShape {
                 CanonicalEvent::StreamError(_) => {
                     self.markers.insert(ProbeSemanticMarker::StreamError);
                 }
-                CanonicalEvent::MessageStart(_)
+                CanonicalEvent::OutputItemStart(_)
+                | CanonicalEvent::OutputItemEnd(_)
+                | CanonicalEvent::MessageStart(_)
                 | CanonicalEvent::ReasoningDelta(_)
                 | CanonicalEvent::ToolCallStart(_)
                 | CanonicalEvent::ToolCallArgumentsDelta(_)

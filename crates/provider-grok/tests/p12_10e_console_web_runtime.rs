@@ -603,7 +603,9 @@ fn projection(events: &[CanonicalEvent]) -> SemanticProjection {
                     delta.usage.reasoning_tokens.unwrap_or(0),
                 ));
             }
-            CanonicalEvent::ResponseStart(_)
+            CanonicalEvent::OutputItemStart(_)
+            | CanonicalEvent::OutputItemEnd(_)
+            | CanonicalEvent::ResponseStart(_)
             | CanonicalEvent::MessageStart(_)
             | CanonicalEvent::ToolCallArgumentsDelta(_)
             | CanonicalEvent::UsageDelta(_)

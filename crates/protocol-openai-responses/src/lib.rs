@@ -11,7 +11,9 @@ use std::{
     fmt,
 };
 
+mod native_output;
 mod upstream_response;
+pub use native_output::{has_native_output_metadata, native_item_metadata, native_part_extensions};
 
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalMessage, CanonicalRequest, CanonicalResponse,
@@ -1086,7 +1088,13 @@ impl OpenAiResponsesSseEncoder {
         &mut self,
         event: &CanonicalEvent,
     ) -> Result<Vec<SseFrame>, GatewayError> {
+        if let Some(frames) = self.encode_native_event(event)? {
+            return Ok(frames);
+        }
         match event {
+            CanonicalEvent::OutputItemStart(_) | CanonicalEvent::OutputItemEnd(_) => {
+                Err(stream_protocol_error())
+            }
             CanonicalEvent::ResponseStart(start) => {
                 self.encode_response_start(start.response_id.as_str())
             }
@@ -1834,6 +1842,10 @@ fn append_reasoning_done_frames(
 
 #[derive(Clone)]
 enum OutputItem {
+    Native {
+        id: String,
+        value: Value,
+    },
     Message {
         id: String,
         role: String,
@@ -1857,7 +1869,8 @@ enum OutputItem {
 impl OutputItem {
     fn id(&self) -> &str {
         match self {
-            Self::Message { id, .. }
+            Self::Native { id, .. }
+            | Self::Message { id, .. }
             | Self::FunctionCall { id, .. }
             | Self::Reasoning { id, .. } => id,
         }
@@ -1865,6 +1878,7 @@ impl OutputItem {
 
     fn to_value(&self) -> Value {
         match self {
+            Self::Native { value, .. } => value.clone(),
             Self::Message {
                 id,
                 role,
@@ -1983,6 +1997,9 @@ fn insert_optional_number(object: &mut Map<String, Value>, name: &str, value: Op
 }
 
 fn ensure_representable_event_extensions(event: &CanonicalEvent) -> Result<(), GatewayError> {
+    if has_native_output_metadata(event) {
+        return Ok(());
+    }
     if let CanonicalEvent::UsageDelta(value) = event {
         // The Responses usage schema cannot losslessly distinguish these canonical values or
         // carry generic raw fields. Reject instead of inventing an aggregate or dropping data.
@@ -1997,6 +2014,9 @@ fn ensure_representable_event_extensions(event: &CanonicalEvent) -> Result<(), G
     }
 
     let extensions = match event {
+        CanonicalEvent::OutputItemStart(value) | CanonicalEvent::OutputItemEnd(value) => {
+            &value.extensions
+        }
         CanonicalEvent::ResponseStart(value) => &value.extensions,
         CanonicalEvent::MessageStart(value) => &value.extensions,
         CanonicalEvent::TextDelta(value) => &value.extensions,

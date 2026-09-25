@@ -551,7 +551,18 @@ impl ReasoningPolicy {
     }
 
     fn retains(self, event: &CanonicalEvent) -> bool {
-        matches!(self, Self::RetainRequested) || !matches!(event, CanonicalEvent::ReasoningDelta(_))
+        if matches!(self, Self::RetainRequested) {
+            return true;
+        }
+        match event {
+            CanonicalEvent::ReasoningDelta(_) => false,
+            CanonicalEvent::OutputItemStart(item) | CanonicalEvent::OutputItemEnd(item) => !item
+                .extensions
+                .get("openai.responses.output_item")
+                .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw.get()).ok())
+                .is_some_and(|item| item["type"] == "reasoning"),
+            _ => true,
+        }
     }
 }
 

@@ -1,0 +1,139 @@
+{
+  "gate": "scripts/check.sh fast",
+  "passed": true,
+  "rust": {
+    "passed": 1305,
+    "failed": 0,
+    "ignored": 9,
+    "groups": 120
+  },
+  "real_gateway_checks": [
+    {
+      "passed": true,
+      "real_gateway": true,
+      "provider": "owned loopback TLS mock",
+      "real_provider_calls": 0,
+      "checks": [
+        {
+          "stream": false,
+          "stored": false,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": false,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": false,
+          "turn": 3,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": false,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": false,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": false,
+          "turn": 3,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": true,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": true,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": true,
+          "turn": 3,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": true,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": true,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": true,
+          "turn": 3,
+          "completed": true
+        }
+      ],
+      "summary": {
+        "attempts": 12,
+        "average_duration_ms": 1.7333333333333334,
+        "average_first_content_ms": 1.5833333333333333,
+        "cancelled": 0,
+        "failed": 3,
+        "p50_duration_ms": 1,
+        "p95_duration_ms": 4,
+        "requests": 15,
+        "succeeded": 12,
+        "success_rate": 0.8,
+        "unknown": 0
+      },
+      "replayed_gateway_output": true,
+      "decode_failures_observed": 3,
+      "successful_requests_materialized": 12
+    },
+    {
+      "passed": true,
+      "checks": [
+        "full two-page catalog refresh does not widen served models or key grants",
+        "local-json-acceptance",
+        "local-stream-acceptance",
+        "fail-acceptance",
+        "truncate-acceptance",
+        "client stream cancellation"
+      ],
+      "summary": {
+        "attempts": 5,
+        "average_duration_ms": 68.0,
+        "average_first_content_ms": 84.5,
+        "cancelled": 1,
+        "failed": 2,
+        "p50_duration_ms": 101,
+        "p95_duration_ms": 103,
+        "requests": 5,
+        "succeeded": 2,
+        "success_rate": 0.4,
+        "unknown": 0
+      },
+      "real_gateway": true,
+      "provider": "owned loopback TLS mock",
+      "real_provider_inference_calls": 0,
+      "catalog_models": 3,
+      "opened_models": 1,
+      "successes_materialized": true
+    }
+  ],
+  "real_provider_inference_calls": 0
+}

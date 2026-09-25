@@ -1,5 +1,7 @@
 # Prism Liquid V2 正式应用迁移
 
+> 2026-09-26 状态索引：[当前清单](../reports/cpar-current-status-20260926.md)。本计划后续V2结构/精修已于9月24日生产发布；历史“未上线”条目是当时记录。最近生产登录态全工作区回归仍未补齐，本轮浏览器空间由用户接管，等待明确恢复控制。
+
 2026-09-22。来源：用户 ChatGPT 设计会话 `6ab1479d-31a8-83ea-aa5e-fa4f3df3bd8a`，C2C `c2c_v2adopt`，PLAN iteration 0。基线 `de888dd`，保留无关未跟踪文件。
 
 视觉源：`docs/design/chatgpt-prism-liquid-v2/CPAR-Prism-Liquid-v2.html` 与 `C2C-Design-Handoff.md`。原型只有演示数据，不作为生产业务或验收证据。

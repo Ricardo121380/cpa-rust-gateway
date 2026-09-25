@@ -465,6 +465,7 @@ async fn native_reasoning_continuation_survives_public_json_sse_and_legacy_histo
                         .count(),
                     1
                 );
+                assert_native_output_ids(output);
                 let mut expected = Vec::new();
                 let mut results = Vec::new();
                 for item in output {
@@ -526,6 +527,16 @@ async fn native_reasoning_continuation_survives_public_json_sse_and_legacy_histo
     Ok(())
 }
 
+fn assert_native_output_ids(output: &[serde_json::Value]) {
+    assert_eq!(
+        output
+            .iter()
+            .map(|item| item["id"].as_str().unwrap_or(""))
+            .collect::<Vec<_>>(),
+        ["rsn-grok-build-01", "msg-grok-build-01", "fc-grok-build-01"]
+    );
+}
+
 fn public_continuation_response(
     events: Vec<CanonicalEvent>,
     streaming: bool,
@@ -534,6 +545,12 @@ fn public_continuation_response(
         OpenAiResponseMetadata, OpenAiResponsesSseEncoder, encode_response,
     };
     let metadata = OpenAiResponseMetadata::try_new("grok-4.5", 1_700_000_000)?;
+    let canonical = gateway_core::CanonicalResponse::try_new(events)?;
+    let projected = gateway_router::project_protocol_response(
+        &canonical,
+        gateway_router::ProtocolFormat::OpenAiResponses,
+    )?;
+    let events = projected.into_events();
     if !streaming {
         return Ok(encode_response(
             &gateway_core::CanonicalResponse::try_new(events)?,

@@ -8291,6 +8291,8 @@ mod tests {
         events
             .iter()
             .map(|event| match event {
+                CanonicalEvent::OutputItemStart(_) => "output_item_start",
+                CanonicalEvent::OutputItemEnd(_) => "output_item_end",
                 CanonicalEvent::ResponseStart(_) => "response_start",
                 CanonicalEvent::MessageStart(_) => "message_start",
                 CanonicalEvent::TextDelta(_) => "text_delta",

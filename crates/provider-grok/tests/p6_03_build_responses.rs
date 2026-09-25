@@ -605,7 +605,7 @@ fn stream_normalizes_empty_tool_arguments_and_rejects_inconsistent_tool_metadata
     );
     let events = GrokBuildResponsesStreamDecoder::new().push_bytes(valid.as_bytes())?;
     assert!(matches!(
-        events.last(),
+        events.iter().rev().find(|event| matches!(event, CanonicalEvent::ToolCallEnd(_))),
         Some(CanonicalEvent::ToolCallEnd(end)) if end.arguments.get() == "{}"
     ));
 
@@ -837,7 +837,9 @@ fn projection(events: &[CanonicalEvent]) -> Result<SemanticProjection, Box<dyn E
             CanonicalEvent::UsageDelta(delta) if delta.is_final => {
                 cached_tokens = delta.usage.cached_tokens;
             }
-            CanonicalEvent::MessageStart(_)
+            CanonicalEvent::OutputItemStart(_)
+            | CanonicalEvent::OutputItemEnd(_)
+            | CanonicalEvent::MessageStart(_)
             | CanonicalEvent::ToolCallArgumentsDelta(_)
             | CanonicalEvent::MessageEnd(_)
             | CanonicalEvent::ResponseEnd(_)
