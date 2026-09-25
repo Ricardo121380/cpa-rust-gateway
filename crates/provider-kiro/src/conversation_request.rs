@@ -409,7 +409,10 @@ fn encode_user_message(
             MessageContent::ToolResult(result) => {
                 tool_results.push(encode_tool_result(result, historical_tools)?);
             }
-            MessageContent::Text(_) | MessageContent::Opaque(_) | MessageContent::ToolCall(_) => {
+            MessageContent::Reasoning(_)
+            | MessageContent::Text(_)
+            | MessageContent::Opaque(_)
+            | MessageContent::ToolCall(_) => {
                 return Err(KiroConversationRequestError::UnsupportedMessageContent);
             }
         }
@@ -441,7 +444,10 @@ fn encode_assistant_message(
             MessageContent::ToolCall(call) => {
                 tool_uses.push(encode_tool_call(call, historical_tools)?);
             }
-            MessageContent::Text(_) | MessageContent::Opaque(_) | MessageContent::ToolResult(_) => {
+            MessageContent::Reasoning(_)
+            | MessageContent::Text(_)
+            | MessageContent::Opaque(_)
+            | MessageContent::ToolResult(_) => {
                 return Err(KiroConversationRequestError::UnsupportedMessageContent);
             }
         }

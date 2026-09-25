@@ -1,11 +1,9 @@
 //! Pure gateway-owned stored history replay and compaction helpers.
 
-use std::collections::BTreeMap;
-
 use gateway_core::{
     CanonicalEvent, CanonicalMessage, CanonicalRequest, CanonicalResponse, ErrorScope,
     GatewayError, GatewayErrorCode, MessageContent, MessageRole, RawExtensions, RawJson,
-    TextContent, ToolCall,
+    TextContent,
 };
 use gateway_router::{
     ResponsesContinuationKind, ResponsesContinuationPin, ResponsesExecutionLineage, SnapshotVersion,
@@ -145,142 +143,27 @@ pub(crate) fn extract_compaction_summary(
 }
 
 fn response_messages(response: &CanonicalResponse) -> Result<Vec<CanonicalMessage>, GatewayError> {
-    let mut completed = Vec::new();
-    let mut current: Option<MessageBuilder> = None;
-    for event in response.events() {
-        match event {
-            CanonicalEvent::MessageStart(start) => {
-                if current.is_some() {
-                    return Err(internal_error());
-                }
-                current = Some(MessageBuilder::new(start.role.clone()));
-            }
-            CanonicalEvent::TextDelta(delta) => current
-                .as_mut()
-                .ok_or_else(internal_error)?
-                .push_text(&delta.text),
-            CanonicalEvent::ToolCallStart(start) => current
-                .as_mut()
-                .ok_or_else(internal_error)?
-                .start_tool(&start.call_id, &start.name)?,
-            CanonicalEvent::ToolCallEnd(end) => current
-                .as_mut()
-                .ok_or_else(internal_error)?
-                .finish_tool(&end.call_id, end.arguments.clone())?,
-            CanonicalEvent::MessageEnd(_) => {
-                let message = current.take().ok_or_else(internal_error)?.finish()?;
-                if !message.content.is_empty() {
-                    completed.push(message);
-                }
-            }
-            CanonicalEvent::ResponseStart(_)
-            | CanonicalEvent::ReasoningDelta(_)
-            | CanonicalEvent::ToolCallArgumentsDelta(_)
-            | CanonicalEvent::UsageDelta(_)
-            | CanonicalEvent::ResponseEnd(_) => {}
-            CanonicalEvent::StreamError(_) => return Err(internal_error()),
+    // Stored/WebSocket continuation must replay the same history a public Responses client
+    // receives. Reuse the wire roundtrip instead of a second builder that dropped reasoning
+    // and item identity. This also keeps tool status/call IDs and interleaved item order aligned.
+    let encoded = protocol_openai_responses::encode_response(
+        response,
+        protocol_openai_responses::OpenAiResponseMetadata::try_new("stored-history", 0)?,
+    )?;
+    let mut input = encoded.get("output").cloned().ok_or_else(internal_error)?;
+    // These item IDs are gateway-generated, not upstream ownership handles. Keep stable
+    // item correlation while never forwarding the gateway's local response lookup key.
+    for item in input.as_array_mut().ok_or_else(internal_error)? {
+        if let Some(id) = item.get("id").and_then(serde_json::Value::as_str) {
+            use sha2::{Digest, Sha256};
+            let replay_id = format!("history_{:x}", Sha256::digest(id.as_bytes()));
+            item["id"] = serde_json::Value::String(replay_id);
         }
     }
-    if current.is_some() {
-        return Err(internal_error());
-    }
-    Ok(completed)
-}
-
-struct MessageBuilder {
-    role: MessageRole,
-    content: Vec<PendingContent>,
-    tools: BTreeMap<String, usize>,
-}
-
-enum PendingContent {
-    Text(String),
-    Tool {
-        id: String,
-        name: String,
-        arguments: Option<RawJson>,
-    },
-}
-
-impl MessageBuilder {
-    fn new(role: MessageRole) -> Self {
-        Self {
-            role,
-            content: Vec::new(),
-            tools: BTreeMap::new(),
-        }
-    }
-
-    fn push_text(&mut self, text: &str) {
-        if let Some(PendingContent::Text(existing)) = self.content.last_mut() {
-            existing.push_str(text);
-        } else {
-            self.content.push(PendingContent::Text(text.to_owned()));
-        }
-    }
-
-    fn start_tool(&mut self, id: &str, name: &str) -> Result<(), GatewayError> {
-        if id.is_empty() || name.is_empty() || self.tools.contains_key(id) {
-            return Err(internal_error());
-        }
-        let index = self.content.len();
-        self.content.push(PendingContent::Tool {
-            id: id.to_owned(),
-            name: name.to_owned(),
-            arguments: None,
-        });
-        self.tools.insert(id.to_owned(), index);
-        Ok(())
-    }
-
-    fn finish_tool(&mut self, id: &str, arguments: RawJson) -> Result<(), GatewayError> {
-        let index = self.tools.remove(id).ok_or_else(internal_error)?;
-        let Some(PendingContent::Tool {
-            arguments: retained,
-            ..
-        }) = self.content.get_mut(index)
-        else {
-            return Err(internal_error());
-        };
-        if retained.replace(arguments).is_some() {
-            return Err(internal_error());
-        }
-        Ok(())
-    }
-
-    fn finish(self) -> Result<CanonicalMessage, GatewayError> {
-        if !self.tools.is_empty() {
-            return Err(internal_error());
-        }
-        let content = self
-            .content
-            .into_iter()
-            .map(|content| match content {
-                PendingContent::Text(text) => Ok(MessageContent::Text(TextContent {
-                    text,
-                    extensions: RawExtensions::default(),
-                })),
-                PendingContent::Tool {
-                    id,
-                    name,
-                    arguments: Some(arguments),
-                } => Ok(MessageContent::ToolCall(ToolCall {
-                    id,
-                    name,
-                    arguments,
-                    extensions: RawExtensions::default(),
-                })),
-                PendingContent::Tool {
-                    arguments: None, ..
-                } => Err(internal_error()),
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(CanonicalMessage {
-            role: self.role,
-            content,
-            extensions: RawExtensions::default(),
-        })
-    }
+    let body = serde_json::json!({"model":"stored-history", "input":input});
+    protocol_openai_responses::decode_request(&body.to_string())
+        .map(|decoded| decoded.request.messages)
+        .map_err(|_| internal_error())
 }
 
 fn ensure_request_bound(request: &CanonicalRequest) -> Result<(), GatewayError> {
@@ -323,6 +206,31 @@ mod tests {
     type TestResult = Result<(), Box<dyn Error>>;
 
     #[test]
+    fn stored_reasoning_replays_the_same_items_as_client_managed_history() -> TestResult {
+        let wire = serde_json::json!({"id":"resp-synthetic","object":"response","status":"completed","output":[
+            {"id":"rs","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":"synthetic reasoning"}]},
+            {"id":"fc","type":"function_call","status":"completed","call_id":"call","name":"read","arguments":"{}"}
+        ]});
+        let response = CanonicalResponse::try_new(
+            protocol_openai_responses::decode_upstream_response(&wire.to_string())?,
+        )?;
+        let replay = response_messages(&response)?;
+        assert_eq!(replay.len(), 2);
+        let MessageContent::Reasoning(history) = &replay[0].content[0] else {
+            return Err("stored reasoning lost".into());
+        };
+        let item: serde_json::Value = serde_json::from_str(history.raw().get())?;
+        assert_eq!(item["content"][0]["text"], "synthetic reasoning");
+        let MessageContent::ToolCall(call) = &replay[1].content[0] else {
+            return Err("stored call lost".into());
+        };
+        assert_eq!(call.id, "call");
+        assert!(call.extensions.get("id").is_some());
+        assert!(call.extensions.get("status").is_some());
+        Ok(())
+    }
+
+    #[test]
     fn stored_assistant_text_and_complete_tool_calls_replay_in_order() -> TestResult {
         let response = CanonicalResponse::try_new(vec![
             CanonicalEvent::ResponseStart(ResponseStart {
@@ -352,14 +260,14 @@ mod tests {
         ])?;
 
         let replay = response_messages(&response)?;
-        assert_eq!(replay.len(), 1);
+        assert_eq!(replay.len(), 2);
         assert_eq!(replay[0].role.0, "assistant");
-        assert_eq!(replay[0].content.len(), 2);
+        assert_eq!(replay[0].content.len(), 1);
         let MessageContent::Text(text) = &replay[0].content[0] else {
             return Err("expected replayed text before Tool call".into());
         };
         assert_eq!(text.text, "checking");
-        let MessageContent::ToolCall(tool) = &replay[0].content[1] else {
+        let MessageContent::ToolCall(tool) = &replay[1].content[0] else {
             return Err("expected replayed Tool call".into());
         };
         assert_eq!(tool.id, "call-weather");

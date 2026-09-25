@@ -1703,6 +1703,65 @@ async fn send_websocket_error(
     .await
 }
 
+/// Record authenticated ingress rejections without retaining request text, tool arguments or
+/// arbitrary model strings. Empty model denotes unavailable/unresolved metadata, never an
+/// invented route. No provider Attempt/Usage is emitted for a request rejected before routing.
+fn observe_ingress_rejection(
+    state: &ResponsesHttpState,
+    client: &AuthenticatedResponsesClient,
+    protocol: GatewayProtocol,
+    body: Option<&str>,
+    start: (std::time::Instant, i64),
+    error: &GatewayError,
+    mut response: HttpResponse,
+) -> HttpResponse {
+    let Ok(context) = state.metadata_factory.request_context() else {
+        return response;
+    };
+    let id = context.request_id().clone();
+    let (client_key, group) = client.event_identity();
+    let metadata = body.and_then(|body| serde_json::from_str::<serde_json::Value>(body).ok());
+    let model = metadata
+        .as_ref()
+        .and_then(|value| value.get("model"))
+        .and_then(serde_json::Value::as_str)
+        .filter(|model| model.len() <= 512);
+    let resolved = model.and_then(|model| resolve_public_model(client, model).ok());
+    let (requested, public, alias) = match (model, resolved) {
+        (Some(model), Some(resolved)) => (
+            model.to_owned(),
+            resolved.public_model,
+            resolved.route_alias,
+        ),
+        _ => (String::new(), String::new(), None),
+    };
+    let streaming = metadata
+        .as_ref()
+        .and_then(|value| value.get("stream"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    let _ = state
+        .event_sink
+        .try_emit(GatewayEvent::Request(RequestEvent::new(
+            id.clone(),
+            client_key,
+            group,
+            protocol,
+            requested,
+            public,
+            alias,
+            streaming,
+        )));
+    let observer = UsageEventObserver::new(id.clone(), Arc::clone(&state.event_sink), start);
+    observer.fail(error);
+    if let Ok(value) = header::HeaderValue::from_str(id.as_str()) {
+        response
+            .headers_mut()
+            .insert(header::HeaderName::from_static("x-request-id"), value);
+    }
+    response
+}
+
 #[allow(clippy::too_many_lines)] // Preserve the admission-to-delivery observation sequence.
 async fn chat_completions(
     request: HttpRequest,
@@ -1717,14 +1776,42 @@ async fn chat_completions(
     };
     let body = match read_bounded_request_body(&request, payload).await {
         Ok(body) => body,
-        Err(error) => return chat_request_body_error(error),
+        Err(error) => {
+            return observe_ingress_rejection(
+                &state,
+                &authenticated_client,
+                GatewayProtocol::OpenAiChatCompletions,
+                None,
+                request_start,
+                &client_request_error(),
+                chat_request_body_error(error),
+            );
+        }
     };
     let Ok(body) = std::str::from_utf8(&body) else {
-        return pre_header_chat_error(&client_request_error());
+        return observe_ingress_rejection(
+            &state,
+            &authenticated_client,
+            GatewayProtocol::OpenAiChatCompletions,
+            None,
+            request_start,
+            &client_request_error(),
+            pre_header_chat_error(&client_request_error()),
+        );
     };
     let decoded = match decode_chat_request(body) {
         Ok(decoded) => decoded,
-        Err(error) => return pre_header_chat_error(&error),
+        Err(error) => {
+            return observe_ingress_rejection(
+                &state,
+                &authenticated_client,
+                GatewayProtocol::OpenAiChatCompletions,
+                Some(body),
+                request_start,
+                &error,
+                pre_header_chat_error(&error),
+            );
+        }
     };
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
@@ -1830,14 +1917,42 @@ async fn responses(
     };
     let body = match read_bounded_request_body(&request, payload).await {
         Ok(body) => body,
-        Err(error) => return request_body_error(error),
+        Err(error) => {
+            return observe_ingress_rejection(
+                &state,
+                &authenticated_client,
+                GatewayProtocol::OpenAiResponses,
+                None,
+                request_start,
+                &client_request_error(),
+                request_body_error(error),
+            );
+        }
     };
     let Ok(body) = std::str::from_utf8(&body) else {
-        return pre_header_error(&client_request_error());
+        return observe_ingress_rejection(
+            &state,
+            &authenticated_client,
+            GatewayProtocol::OpenAiResponses,
+            None,
+            request_start,
+            &client_request_error(),
+            pre_header_error(&client_request_error()),
+        );
     };
     let decoded = match decode_request(body) {
         Ok(decoded) => decoded,
-        Err(error) => return pre_header_error(&error),
+        Err(error) => {
+            return observe_ingress_rejection(
+                &state,
+                &authenticated_client,
+                GatewayProtocol::OpenAiResponses,
+                Some(body),
+                request_start,
+                &error,
+                pre_header_error(&error),
+            );
+        }
     };
     if decoded.store
         && (state.stored_responses.is_none() || !state.executor.supports_stored_response_lineage())
@@ -2304,14 +2419,42 @@ async fn messages(
     };
     let body = match read_bounded_request_body(&request, payload).await {
         Ok(body) => body,
-        Err(error) => return anthropic_request_body_error(error),
+        Err(error) => {
+            return observe_ingress_rejection(
+                &state,
+                &authenticated_client,
+                GatewayProtocol::AnthropicMessages,
+                None,
+                request_start,
+                &client_request_error(),
+                anthropic_request_body_error(error),
+            );
+        }
     };
     let Ok(body) = std::str::from_utf8(&body) else {
-        return pre_header_anthropic_error(&client_request_error());
+        return observe_ingress_rejection(
+            &state,
+            &authenticated_client,
+            GatewayProtocol::AnthropicMessages,
+            None,
+            request_start,
+            &client_request_error(),
+            pre_header_anthropic_error(&client_request_error()),
+        );
     };
     let decoded = match decode_anthropic_request(body) {
         Ok(decoded) => decoded,
-        Err(error) => return pre_header_anthropic_error(&error),
+        Err(error) => {
+            return observe_ingress_rejection(
+                &state,
+                &authenticated_client,
+                GatewayProtocol::AnthropicMessages,
+                Some(body),
+                request_start,
+                &error,
+                pre_header_anthropic_error(&error),
+            );
+        }
     };
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
@@ -5151,6 +5294,61 @@ mod tests {
         assert_eq!(event.requested_model(), SNAPSHOT_MODEL_ALIAS);
         assert_eq!(event.public_model(), SNAPSHOT_PUBLIC_MODEL);
         assert!(!event.streaming());
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn authenticated_decode_failures_are_observed_without_attempt_or_prompt() -> TestResult {
+        for (path, payload) in [
+            (
+                "/v1/responses",
+                r#"{"model":"mock-model","input":[{"type":"reasoning","id":"r","encrypted_content":"must-not-enter-events"}]}"#,
+            ),
+            (
+                "/v1/chat/completions",
+                r#"{"model":"mock-model","messages":42,"private":"must-not-enter-events"}"#,
+            ),
+            (
+                "/v1/messages",
+                r#"{"model":"mock-model","messages":42,"private":"must-not-enter-events"}"#,
+            ),
+            ("/v1/responses", "not-json-must-not-enter-events"),
+        ] {
+            let (queue, mut receiver) =
+                BoundedEventQueue::try_new(EventQueueConfig::try_new(8, 1)?)?;
+            let state =
+                mock_state_with_event_sink(text_events_with_final_usage()?, Arc::new(queue))?;
+            let app = test::init_service(
+                App::new()
+                    .app_data(web::Data::new(state))
+                    .configure(configure),
+            )
+            .await;
+            let response = test::call_service(
+                &app,
+                authorized(test::TestRequest::post().uri(path).set_payload(payload)).to_request(),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+            assert_eq!(
+                response
+                    .headers()
+                    .get("x-request-id")
+                    .and_then(|v| v.to_str().ok()),
+                Some("http-test-request")
+            );
+            let mut events = Vec::new();
+            while let Some(event) = receiver.try_recv() {
+                events.push(event);
+            }
+            assert_eq!(events.len(), 2);
+            assert!(matches!(&events[0], GatewayEvent::Request(_)));
+            let GatewayEvent::RequestFinished(end) = &events[1] else {
+                return Err("missing rejection outcome".into());
+            };
+            assert_eq!(end.outcome, gateway_core::RequestOutcome::Failed);
+            assert!(!serde_json::to_string(&events)?.contains("must-not-enter-events"));
+        }
         Ok(())
     }
 

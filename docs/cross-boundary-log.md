@@ -3170,3 +3170,11 @@ C2C `c2c_2f8c` iteration 9 approved B12/B13/B14 corrections after source and rel
 **Why:** User-authorized repair of OMP low Responses requests rejected by the legacy override. One real synthetic OMP request replay completed with HTTP 200, reasoning and a tool call; persisted succeeded/1 attempt/1 unpriced ledger record.
 
 **Other side:** FYI. No frontend source or contract change. Responses is selected; Chat is now excluded for this Reasoning-capable candidate by the existing protocol gate. This is not OMP approval/write-flow acceptance. Evidence: `docs/reports/grok-reasoning-production-20260925.md`.
+
+## 2026-09-25 - Codex - Mandatory Agent continuation regression
+
+**What:** `scripts/check.sh` now runs `scripts/test-agent-roundtrip.py` against a real local gateway and loopback TLS mock after the gateway build. Related backend repairs cover reasoning/tool history replay, SSE completion, ingress failure observation and capability admission.
+
+**Why:** OMP's second model round failed even though the earlier single-round canary passed. Every formal fast gate must exercise actual multi-round output replay and stored history, plus error/cancellation/ledger checks.
+
+**Other side:** FYI. No frontend or management contract change; no external Provider call in this gate. Twelve successful rounds and three malformed requests are tested without expanding production capabilities. Evidence and saved-history rollback limitation: `docs/reports/cpar-agent-compatibility-20260925.md`.

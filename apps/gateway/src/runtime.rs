@@ -1733,6 +1733,27 @@ impl TransparentRetryGate for P13ChannelPinRetryGate {
     }
 }
 
+/// Scheduler predicates do not see candidates without active bindings. Classify a request
+/// as incompatible only after checking the entire matching route, including those candidates.
+/// Missing runtime/adapter evidence is a service limitation, never proof of bad client input.
+fn all_matching_candidates_reject_protocol(
+    candidates: &[SnapshotRouteCandidate],
+    exact_model: Option<&str>,
+    project: impl Fn(&SnapshotRouteCandidate) -> Result<(), ProtocolTransformRejection>,
+) -> bool {
+    let mut rejected = false;
+    for candidate in candidates
+        .iter()
+        .filter(|candidate| exact_model.is_none_or(|model| candidate.upstream_model() == model))
+    {
+        match project(candidate) {
+            Ok(()) | Err(ProtocolTransformRejection::PairUnregistered) => return false,
+            Err(_) => rejected = true,
+        }
+    }
+    rejected
+}
+
 struct P12ChannelPinFacade {
     executor: Arc<P12RoutedResponsesExecutor>,
 }
@@ -1844,8 +1865,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // hands an OpenAI-Responses request to an Anthropic Candidate, whose request build
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
-            let protocol_accepted = AtomicBool::new(false);
-            let protocol_rejected = AtomicBool::new(false);
+            let admission_snapshot = route_snapshot.clone().unwrap_or_else(|| registry.load());
             let is_candidate_eligible = |candidate: &SnapshotRouteCandidate| {
                 if exact_upstream_model
                     .as_deref()
@@ -1854,12 +1874,8 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                     return false;
                 }
                 match driver.project_candidate(candidate) {
-                    Ok(_) => {
-                        protocol_accepted.store(true, Ordering::Relaxed);
-                        true
-                    }
+                    Ok(_) => true,
                     Err(reason) => {
-                        protocol_rejected.store(true, Ordering::Relaxed);
                         tracing::debug!(
                             target: "protocol_admission",
                             request_id = %context.request_id(),
@@ -1928,8 +1944,14 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 // Preserve real credential/snapshot/provider-scope failures. Only an entirely
                 // incompatible request is a client error; never reclassify an attempted call.
                 if error.code() == GatewayErrorCode::CredentialUnavailable
-                    && protocol_rejected.load(Ordering::Relaxed)
-                    && !protocol_accepted.load(Ordering::Relaxed)
+                    && !exact_continuation
+                    && admission_snapshot.route(&route_id).is_some_and(|route| {
+                        all_matching_candidates_reject_protocol(
+                            route.candidates(),
+                            exact_upstream_model.as_deref(),
+                            |candidate| driver.project_candidate(candidate).map(|_| ()),
+                        )
+                    })
                 {
                     GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request)
                 } else {
@@ -3422,6 +3444,22 @@ fn has_p12_unlisted_model_override(value: &str) -> bool {
 /// exposed through a Chat bridge: it is a capability subtraction, so it cannot manufacture a
 /// private-reasoning event that Chat cannot represent. Native Grok routes use the same shape.
 fn p12_candidate_override_is_admissible(adapter_id: &str, value: &str) -> bool {
+    if adapter_id == "openai-compatible.responses"
+        && let Ok(Value::Object(object)) = serde_json::from_str::<Value>(value)
+        && object
+            .keys()
+            .any(|key| matches!(key.as_str(), "stored_responses" | "response_compaction"))
+    {
+        // Match the compiler's reviewed explicit opt-in; never enable these capabilities
+        // by default or let generic assertions widen native adapter capabilities.
+        return object.iter().all(|(key, value)| match key.as_str() {
+            "allow_unlisted_model" | "stored_responses" | "response_compaction" => {
+                *value == Value::Bool(true)
+            }
+            "reasoning" => *value == Value::Bool(false),
+            _ => false,
+        });
+    }
     is_empty_capability_object(value)
         || has_p12_unlisted_model_override(value)
         || (matches!(
@@ -12730,6 +12768,84 @@ mod tests {
             ClientKeyService::new(ClientKeyPepper::try_from_bytes([0xE1_u8; 32])?),
         );
         assert!(composition.is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn generic_responses_continuity_opt_in_matches_compiler_without_native_escalation() {
+        let explicit =
+            r#"{"allow_unlisted_model":true,"stored_responses":true,"response_compaction":true}"#;
+        assert!(p12_candidate_override_is_admissible(
+            "openai-compatible.responses",
+            explicit
+        ));
+        for adapter in [
+            "grok.build.responses",
+            "grok.console.responses",
+            "kiro.messages",
+        ] {
+            assert!(!p12_candidate_override_is_admissible(adapter, explicit));
+        }
+        assert!(!p12_candidate_override_is_admissible(
+            "openai-compatible.responses",
+            r#"{"stored_responses":true,"vision":true}"#
+        ));
+        assert!(!p12_candidate_override_is_admissible(
+            "openai-compatible.responses",
+            r#"{"stored_responses":"true"}"#
+        ));
+    }
+
+    #[test]
+    fn protocol_error_classification_checks_unavailable_candidates_and_exact_models()
+    -> Result<(), Box<dyn Error>> {
+        let candidate =
+            |id: &str, model: &str, bindings| -> Result<SnapshotRouteCandidate, Box<dyn Error>> {
+                Ok(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+                    id: RouteCandidateId::try_new(id)?,
+                    endpoint_id: EndpointId::try_new(id)?,
+                    upstream_id: UpstreamId::try_new(id)?,
+                    endpoint_api_format: "openai/responses".into(),
+                    upstream_model: model.into(),
+                    transform_mode: SnapshotTransformMode::CanonicalBridge,
+                    priority: 0,
+                    weight: 1,
+                    effective_capabilities: CapabilitySet::empty(),
+                    catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
+                    active_binding_count: bindings,
+                }))
+            };
+        let candidates = [
+            candidate("incompatible", "model-a", 1)?,
+            candidate("compatible-unavailable", "model-a", 0)?,
+        ];
+        assert!(!candidates[1].is_hard_eligible());
+        assert!(!super::all_matching_candidates_reject_protocol(
+            &candidates,
+            None,
+            |candidate| {
+                if candidate.id().as_str() == "compatible-unavailable" {
+                    Ok(())
+                } else {
+                    Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
+                }
+            }
+        ));
+        assert!(super::all_matching_candidates_reject_protocol(
+            &candidates,
+            None,
+            |_| Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
+        ));
+        assert!(!super::all_matching_candidates_reject_protocol(
+            &candidates,
+            None,
+            |_| Err(gateway_router::ProtocolTransformRejection::PairUnregistered)
+        ));
+        assert!(!super::all_matching_candidates_reject_protocol(
+            &candidates,
+            Some("other-model"),
+            |_| Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
+        ));
         Ok(())
     }
 

@@ -433,7 +433,7 @@ fn reject_nested_extensions_and_opaque(
                 MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
                     return Err(ProtocolTransformRejection::UnknownContentExtensions);
                 }
-                MessageContent::Opaque(_) => {
+                MessageContent::Reasoning(_) | MessageContent::Opaque(_) => {
                     return Err(ProtocolTransformRejection::OpaqueContent);
                 }
                 MessageContent::Text(_)
@@ -711,13 +711,20 @@ fn canonical_rejection(
                 MessageContent::Opaque(_) => {
                     return Err(ProtocolTransformRejection::OpaqueContent);
                 }
+                MessageContent::Reasoning(_) if target != ProtocolFormat::OpenAiResponses => {
+                    return Err(ProtocolTransformRejection::ThinkingUnsupported);
+                }
                 MessageContent::ToolCall(call)
                     if !(call.extensions.is_empty()
                         || target == ProtocolFormat::OpenAiResponses
                             && call.extensions.iter().all(|(key, value)| {
-                                key == "id"
-                                    && serde_json::from_str::<serde_json::Value>(value.get())
-                                        .is_ok_and(|value| valid_responses_item_id(&value))
+                                serde_json::from_str::<serde_json::Value>(value.get()).is_ok_and(
+                                    |value| match key {
+                                        "id" => valid_responses_item_id(&value),
+                                        "status" => value.as_str() == Some("completed"),
+                                        _ => false,
+                                    },
+                                )
                             })) =>
                 {
                     return Err(ProtocolTransformRejection::UnknownContentExtensions);
@@ -725,7 +732,8 @@ fn canonical_rejection(
                 MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
                     return Err(ProtocolTransformRejection::UnknownContentExtensions);
                 }
-                MessageContent::Text(_)
+                MessageContent::Reasoning(_)
+                | MessageContent::Text(_)
                 | MessageContent::ToolCall(_)
                 | MessageContent::ToolResult(_) => {}
             }
@@ -944,7 +952,10 @@ fn valid_responses_content(role: &str, content: &[MessageContent]) -> bool {
         "system" | "developer" | "user" => content
             .iter()
             .all(|part| matches!(part, MessageContent::Text(_))),
-        "assistant" => valid_assistant_tool_history(content),
+        "assistant" => {
+            matches!(content, [MessageContent::Reasoning(_)])
+                || valid_assistant_tool_history(content)
+        }
         "tool" => valid_tool_result_message(content, ProtocolFormat::OpenAiResponses),
         _ => false,
     }
@@ -995,7 +1006,14 @@ fn capability_rejection(
     if input.requires_parallel_tools && !capabilities.supports(SemanticCapability::ParallelTools) {
         return Err(ProtocolTransformRejection::ParallelToolsUnsupported);
     }
-    if request.thinking.is_some() && !capabilities.supports(SemanticCapability::Reasoning) {
+    let has_reasoning = request.thinking.is_some()
+        || request.messages.iter().any(|message| {
+            message
+                .content
+                .iter()
+                .any(|part| matches!(part, MessageContent::Reasoning(_)))
+        });
+    if has_reasoning && !capabilities.supports(SemanticCapability::Reasoning) {
         return Err(ProtocolTransformRejection::ReasoningUnsupported);
     }
 
@@ -1457,6 +1475,92 @@ mod tests {
                 serde_json::json!(["reasoning.encrypted_content"])
             );
             assert_eq!(wire["tools"][0]["name"], "read");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pi_responses_continuation_survives_projection_and_encoding()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let decoded = protocol_openai_responses::decode_request(include_str!(
+            "../../../tests/fixtures/openai-responses/request-pi-continuation.json"
+        ))?;
+        let capabilities = all_capabilities()?;
+        for mode in [
+            SnapshotTransformMode::Canonical,
+            SnapshotTransformMode::CanonicalBridge,
+        ] {
+            let mut transform = input(
+                &decoded.request,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::OpenAiResponses,
+                mode,
+                NativePayloadAvailability::Exact,
+                &capabilities,
+            );
+            transform.streaming = true;
+            let ProjectedProtocolRequest::Canonical(projected) =
+                project_registered_protocol_request(transform)?
+            else {
+                return Err("Pi request must use the typed Responses builder".into());
+            };
+            assert_eq!(projected, decoded.request);
+            let outbound = OpenAiResponsesRequestBuilder::build(
+                &OpenAiResponsesEndpoint::try_new("https://relay.example", "/v1/responses")?,
+                &OpenAiResponsesApiKey::try_new("synthetic-secret")?,
+                "grok-4.5",
+                &projected,
+                decoded.mode,
+            )?;
+            let wire: Value = serde_json::from_slice(outbound.body())?;
+            assert_eq!(
+                wire["reasoning"],
+                serde_json::json!({"effort":"low","summary":"auto"})
+            );
+            assert_eq!(
+                wire["include"],
+                serde_json::json!(["reasoning.encrypted_content"])
+            );
+            let source: Value = serde_json::from_str(include_str!(
+                "../../../tests/fixtures/openai-responses/request-pi-continuation.json"
+            ))?;
+            assert_eq!(wire["input"][1], source["input"][1]);
+            assert_eq!(wire["input"][2], source["input"][2]);
+            assert_eq!(wire["input"][3], source["input"][3]);
+            for target in [
+                ProtocolFormat::OpenAiChatCompletions,
+                ProtocolFormat::AnthropicMessages,
+            ] {
+                assert!(
+                    project_registered_protocol_request(input(
+                        &decoded.request,
+                        ProtocolFormat::OpenAiResponses,
+                        target,
+                        mode,
+                        NativePayloadAvailability::Exact,
+                        &capabilities,
+                    ))
+                    .is_err()
+                );
+            }
+            let mut history_only = decoded.request.clone();
+            history_only.thinking = None;
+            let without_reasoning = CapabilitySet::try_new([
+                SemanticCapability::Tools,
+                SemanticCapability::JsonSchema,
+                SemanticCapability::Streaming,
+            ])?;
+            assert!(
+                project_registered_protocol_request(input(
+                    &history_only,
+                    ProtocolFormat::OpenAiResponses,
+                    ProtocolFormat::OpenAiResponses,
+                    mode,
+                    NativePayloadAvailability::Exact,
+                    &without_reasoning,
+                ))
+                .is_err()
+            );
         }
         Ok(())
     }

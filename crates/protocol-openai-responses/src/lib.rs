@@ -443,6 +443,14 @@ fn decode_input_item(item: &Value) -> Result<CanonicalMessage, GatewayError> {
     let item_type = item.get("type").and_then(Value::as_str);
 
     match item_type {
+        Some("reasoning") => Ok(CanonicalMessage {
+            role: MessageRole("assistant".to_owned()),
+            content: vec![MessageContent::Reasoning(
+                gateway_core::ReasoningHistory::try_from(raw_json(&Value::Object(item.clone()))?)
+                    .map_err(|_| client_request_error())?,
+            )],
+            extensions: RawExtensions::default(),
+        }),
         Some("function_call") => decode_function_call(item),
         Some("function_call_output") => decode_function_call_output(item),
         Some("message") | None if item.contains_key("role") => decode_message_item(item),
@@ -2214,6 +2222,8 @@ fn frame(
 
 #[cfg(test)]
 mod tests {
+    use gateway_core::MessageContent;
+    use serde_json::{Value, json};
     use std::error::Error;
 
     use gateway_core::{
@@ -2239,6 +2249,59 @@ mod tests {
         Ok(serde_json::from_str(include_str!(
             "../../../tests/fixtures/openai-responses/canonical-events.json"
         ))?)
+    }
+
+    #[test]
+    fn reasoning_history_is_bounded_typed_and_not_visible_text()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let base: Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/openai-responses/request-pi-continuation.json"
+        ))?;
+        for item in [
+            json!({"type":"reasoning","id":"rs_empty","summary":[]}),
+            json!({"type":"reasoning","id":"rs_both","status":"incomplete","summary":[{"type":"summary_text","text":"summary"}],"content":[],"encrypted_content":null}),
+            base["input"][1].clone(),
+        ] {
+            let mut body = base.clone();
+            body["input"][1] = item.clone();
+            let decoded = decode_request(&body.to_string())?;
+            let MessageContent::Reasoning(history) = &decoded.request.messages[1].content[0] else {
+                return Err("reasoning was flattened".into());
+            };
+            assert_eq!(serde_json::from_str::<Value>(history.raw().get())?, item);
+            assert!(!format!("{history:?}").contains("Synthetic"));
+        }
+        for (field, value) in [
+            ("id", json!("")),
+            ("status", json!("in_progress")),
+            ("status", json!(42)),
+            ("unknown", json!(true)),
+            ("encrypted_content", json!("unowned-ciphertext")),
+            ("content", json!([{"type":"output_text","text":"wrong"}])),
+            ("content", json!([{"type":"reasoning_text","text":1}])),
+            (
+                "content",
+                json!([{"type":"reasoning_text","text":"ok","extra":true}]),
+            ),
+            (
+                "content",
+                json!([{"type":"reasoning_text","text":"x".repeat(1024*1024)}]),
+            ),
+        ] {
+            let mut body = base.clone();
+            body["input"][1][field] = value;
+            assert!(
+                decode_request(&body.to_string()).is_err(),
+                "accepted {field}"
+            );
+        }
+        assert!(
+            decode_request(
+                r#"{"model":"m","input":[{"type":"reasoning","id":"r","id":"s","summary":[]}]}"#
+            )
+            .is_err()
+        );
+        Ok(())
     }
 
     #[test]

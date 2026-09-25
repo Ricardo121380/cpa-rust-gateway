@@ -38,6 +38,21 @@ The controller supports a `restart-request` marker in its own temporary root aft
 Terminate only the controller belonging to this receipt; its cleanup stops its gateway and mock.
 These checks do not prove real provider authorization or model-directory completeness.
 
+## Agent multi-turn regression
+
+`python3 scripts/test-agent-roundtrip.py` launches and cleans up a fresh owned gateway/mock,
+runs four three-turn flows (JSON/SSE × client-managed/stored history), with two tool-result
+continuations each, then the
+existing error/truncation/cancellation/ledger scenarios. It is part of `scripts/check.sh` after
+the gateway build. The client replays the gateway's exact output items (including reasoning and
+tool status) instead of manually deleting unsupported history. The mock verifies the next
+request, and authenticated decode failures must be counted without attempts or billed usage.
+Successful temporary fixtures are removed; failed runs retain their private controller log,
+receipt and synthetic state for diagnosis. The fixture explicitly opts its generic Responses
+candidate into stored-response support; production capabilities are unchanged.
+There are zero external Provider calls. For an already running owned fixture, run
+`python3 scripts/acceptance/prism-agent-roundtrip.py <receipt-directory>` once.
+
 ## Legacy alias retirement
 
 `prism-retire-legacy-aliases.py` performs an explicit plan/apply migration using

@@ -40,7 +40,8 @@ pub use id::{
     RouteCandidateId, RouteId, UpstreamId,
 };
 pub use message::{
-    CanonicalMessage, MessageContent, MessageRole, OpaqueContent, TextContent, ToolCall, ToolResult,
+    CanonicalMessage, MessageContent, MessageRole, OpaqueContent, ReasoningHistory, TextContent,
+    ToolCall, ToolResult,
 };
 pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};
 pub use request_context::RequestContext;

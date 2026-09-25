@@ -273,6 +273,16 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
         for part in &message.content {
             match part {
                 MessageContent::Text(text) => content.push(encode_text_part(role, text)?),
+                MessageContent::Reasoning(history) => {
+                    flush_message_content(&mut input, role, &mut content)?;
+                    if role != "assistant" {
+                        return Err(client_request_error());
+                    }
+                    input.push(
+                        serde_json::from_str(history.raw().get())
+                            .map_err(|_| client_request_error())?,
+                    );
+                }
                 MessageContent::ToolCall(call) => {
                     flush_message_content(&mut input, role, &mut content)?;
                     if role != "assistant" {

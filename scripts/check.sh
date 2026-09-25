@@ -146,6 +146,7 @@ run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 run_step "Rust tests" cargo test --locked --workspace --all-features
 run_step "P12 serve envelope" "$repo_root/scripts/test-p12-02-serve.sh"
+run_step "Agent multi-turn and stream regression" python3 "$repo_root/scripts/test-agent-roundtrip.py"
 run_step "Source policy" "$repo_root/scripts/check-source-policy.rb"
 run_step "Secret scanner test" "$repo_root/scripts/test-secret-scan.sh"
 run_step "Crate boundaries" "$repo_root/scripts/check-crate-boundaries.rb"

@@ -1,0 +1,42 @@
+{
+  "model": "grok-4.5",
+  "stream": true,
+  "store": false,
+  "input": [
+    {
+      "role": "user",
+      "content": "Synthetic task."
+    },
+    {
+      "type": "reasoning",
+      "id": "rs_fixture",
+      "status": "completed",
+      "content": [
+        {
+          "type": "reasoning_text",
+          "text": "Synthetic reasoning placeholder."
+        }
+      ]
+    },
+    {
+      "type": "function_call",
+      "id": "fc_fixture",
+      "call_id": "call_fixture",
+      "name": "read",
+      "arguments": "{\"path\":\"proof.txt\"}",
+      "status": "completed"
+    },
+    {
+      "type": "function_call_output",
+      "call_id": "call_fixture",
+      "output": "Synthetic tool result."
+    }
+  ],
+  "reasoning": {
+    "effort": "low",
+    "summary": "auto"
+  },
+  "include": [
+    "reasoning.encrypted_content"
+  ]
+}

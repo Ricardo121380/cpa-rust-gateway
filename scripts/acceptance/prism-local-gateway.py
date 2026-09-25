@@ -2,7 +2,7 @@
 import os,pathlib,tempfile,secrets,socket,subprocess,time,json,ssl,threading,urllib.request,urllib.error,signal,sys
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 os.umask(0o077)
-repo=pathlib.Path.cwd();out=pathlib.Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=True);root=pathlib.Path(tempfile.mkdtemp(prefix='prism-complete-local-'));state=root/'state';creds=root/'credentials';state.mkdir();creds.mkdir()
+repo=pathlib.Path.cwd();target=pathlib.Path(os.environ.get('CARGO_TARGET_DIR', str(repo/'target'))).resolve();out=pathlib.Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=True);root=pathlib.Path(tempfile.mkdtemp(prefix='prism-complete-local-'));state=root/'state';creds=root/'credentials';state.mkdir();creds.mkdir()
 previous=out/'local-preview.json'
 if previous.exists():
  old=json.loads(previous.read_text())
@@ -34,6 +34,32 @@ class Provider(BaseHTTPRequestHandler):
    text=json.dumps(body);model=body.get('model');mode='fail' if 'fail-acceptance' in text else 'cancel' if 'cancel-acceptance' in text else 'stream-fail' if 'truncate-acceptance' in text else 'success'
    with (root/'inference-calls.jsonl').open('a') as f:f.write(json.dumps({'model':model,'mode':mode,'stream':bool(body.get('stream'))})+'\n')
    if mode=='fail':return self.reply(503,{'error':{'message':'local upstream unavailable','type':'server_error'}})
+   if 'agent-roundtrip-acceptance' in text:
+    history=body.get('input',[])
+    turns=sum(item.get('type')=='function_call_output' for item in history if isinstance(item,dict)) if isinstance(history,list) else 0
+    if turns:
+     reasoning=[item for item in history if item.get('type')=='reasoning']
+     calls=[item for item in history if item.get('type')=='function_call']
+     results=[item for item in history if item.get('type')=='function_call_output']
+     valid=len(reasoning)==turns and len(calls)==turns and all(call['call_id']==result['call_id'] and call['status']=='completed' for call,result in zip(calls,results))
+     valid=valid and all(item.get('content')==[{'type':'reasoning_text','text':'synthetic reasoning'}] for item in reasoning)
+     if not valid:return self.reply(400,{'error':{'message':'lost or reordered agent history'}})
+    items=[{'id':f'rs_{turns}','type':'reasoning','status':'completed','summary':[{'type':'summary_text','text':'synthetic reasoning'}]}]
+    if turns<2:items.append({'id':f'fc_{turns}','type':'function_call','status':'completed','call_id':f'call_{turns}','name':'read','arguments':'{"path":"proof.txt"}'})
+    else:items.append({'id':'msg_done','type':'message','role':'assistant','status':'completed','content':[{'type':'output_text','text':'agent roundtrip complete','annotations':[]}]})
+    response={'id':'resp_'+secrets.token_hex(8),'object':'response','status':'completed','model':model,'output':items,'usage':{'input_tokens':10+turns,'output_tokens':4,'total_tokens':14+turns}}
+    with (root/'agent-roundtrip-calls.jsonl').open('a') as f:f.write(json.dumps({'turn':turns,'history_types':[item.get('type','message') for item in history],'reasoning':body.get('reasoning')})+'\n')
+    if not body.get('stream'):return self.reply(200,response)
+    self.send_response(200);self.send_header('Content-Type','text/event-stream');self.send_header('Connection','close');self.end_headers();self.close_connection=True
+    def agent_frame(kind,**payload):
+     self.wfile.write(('event: '+kind+'\ndata: '+json.dumps({'type':kind,**payload})+'\n\n').encode());self.wfile.flush()
+    agent_frame('response.created',response={**response,'status':'in_progress','output':[]})
+    for index,item in enumerate(items):
+     agent_frame('response.output_item.added',output_index=index,item={**item,'status':'in_progress','summary':[]} if item['type']=='reasoning' else {**item,'status':'in_progress'})
+     if item['type']=='message':agent_frame('response.output_text.delta',output_index=index,item_id=item['id'],delta='agent roundtrip complete')
+     agent_frame('response.output_item.done',output_index=index,item=item)
+    agent_frame('response.completed',response=response)
+    return
    item={'id':'msg_local','type':'message','role':'assistant','status':'completed','content':[{'type':'output_text','text':'local receipt','annotations':[]}]}
    response={'id':'resp_'+secrets.token_hex(8),'object':'response','created_at':int(time.time()),'status':'completed','model':model,'output':[item],'usage':{'input_tokens':10,'output_tokens':3,'total_tokens':13}}
    time.sleep(.03)
@@ -57,10 +83,10 @@ provider=ThreadingHTTPServer(('127.0.0.1',0),Provider);tls=ssl.SSLContext(ssl.PR
 def port():
  with socket.socket() as s:s.bind(('127.0.0.1',0));return s.getsockname()[1]
 a,d=port(),port();base=f'http://127.0.0.1:{a}';http=urllib.request.build_opener(urllib.request.ProxyHandler({}));log=(root/'gateway.log').open('ab')
-subprocess.run([str(repo/'target/debug/gateway'),'admin-login','init','--state-dir',str(state),'--password-file',str(root/'initial-password')],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+subprocess.run([str(target/'debug/gateway'),'admin-login','init','--state-dir',str(state),'--password-file',str(root/'initial-password')],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 info={'root':str(root),'url':base+'/admin-ui/#/unlock','admin_port':a,'data_port':d,'mock_port':provider.server_port,'synthetic':True,'controller_pid':os.getpid()}
 def start():
- p=subprocess.Popen([str(repo/'target/debug/gateway'),'serve','--state-dir',str(state),'--credential-dir',str(creds),'--data-listen',f'127.0.0.1:{d}','--management-listen',f'127.0.0.1:{a}'],stdout=log,stderr=log,env={**os.environ,'SSL_CERT_FILE':str(ca)})
+ p=subprocess.Popen([str(target/'debug/gateway'),'serve','--state-dir',str(state),'--credential-dir',str(creds),'--data-listen',f'127.0.0.1:{d}','--management-listen',f'127.0.0.1:{a}'],stdout=log,stderr=log,env={**os.environ,'SSL_CERT_FILE':str(ca)})
  info['pid']=p.pid;(out/'local-preview.json').write_text(json.dumps(info,indent=2));return p
 p=start();scope=None;revision=None
 headers={'Origin':base,'X-Management-Key':(creds/'management-key').read_text(),'X-Management-CSRF-Token':(creds/'management-csrf').read_text(),'Content-Type':'application/json'}
@@ -88,7 +114,7 @@ try:
   api('POST','/admin/endpoints/local-responses/credential-bindings',{'credential_id':account['id'],'enabled':True,'priority':0,'weight':1,'concurrency':1})
  api('POST','/admin/public-models',{'id':'local-model','model_name':models[0],'display_name':models[0],'status':'active','capabilities':{}})
  api('POST','/admin/public-models/local-model/routes',{'id':'local-route','policy':'smooth_weighted_round_robin','max_attempts':1,'bootstrap_timeout_ms':10000})
- api('POST','/admin/routes/local-route/candidates',{'id':'local-candidate','endpoint_id':'local-responses','upstream_model':models[0],'credential_scope':'all_active','transform_mode':'canonical_bridge','enabled':True,'priority':0,'weight':1,'capability_override':{'allow_unlisted_model':True}})
+ api('POST','/admin/routes/local-route/candidates',{'id':'local-candidate','endpoint_id':'local-responses','upstream_model':models[0],'credential_scope':'all_active','transform_mode':'canonical_bridge','enabled':True,'priority':0,'weight':1,'capability_override':{'allow_unlisted_model':True,'stored_responses':True}})
  api('POST','/admin/access-groups',{'id':'local-group','name':'Local client','status':'active','limits':{}})
  api('POST','/admin/access-groups/local-group/routes',{'route_id':'local-route','enabled':True})
  issued=api('POST','/admin/client-keys',{'id':'local-client','access_group_id':'local-group','status':'active','expires_at_ms':None});(root/'client-key').write_text(issued['key'])

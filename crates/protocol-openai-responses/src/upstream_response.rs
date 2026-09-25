@@ -273,7 +273,6 @@ impl CompletedState {
         {
             return Err(protocol_error());
         }
-        let mut emitted = false;
         for (field, part_type) in [("summary", "summary_text"), ("content", "reasoning_text")] {
             let Some(parts) = item.get(field) else {
                 continue;
@@ -286,20 +285,20 @@ impl CompletedState {
                     return Err(protocol_error());
                 }
                 let text = required_string(part, "text")?;
+                if text.is_empty() {
+                    continue;
+                }
                 self.ensure_message(events);
                 events.push(CanonicalEvent::ReasoningDelta(ReasoningDelta {
                     text: text.to_owned(),
                     extensions: RawExtensions::default(),
                 }));
-                emitted = true;
                 self.emitted_content = true;
             }
         }
-        if emitted {
-            Ok(())
-        } else {
-            Err(protocol_error())
-        }
+        // Empty private reasoning is valid alongside visible text or a tool call. The
+        // response-level emitted_content guard still rejects an entirely empty response.
+        Ok(())
     }
 
     fn decode_tool(
@@ -419,10 +418,17 @@ struct SseState {
     emitted_content: bool,
     output_items: BTreeSet<String>,
     text_items: BTreeSet<String>,
-    reasoning_items: BTreeSet<String>,
+    reasoning_items: BTreeMap<String, OpenReasoning>,
+    retained_reasoning_bytes: usize,
     tools: BTreeMap<String, OpenTool>,
     call_ids: BTreeSet<String>,
     retained_argument_bytes: usize,
+}
+
+#[derive(Default)]
+struct OpenReasoning {
+    text: String,
+    ended: bool,
 }
 
 struct OpenTool {
@@ -621,7 +627,8 @@ impl OpenAiResponsesSseDecoder {
             emitted_content: false,
             output_items: BTreeSet::new(),
             text_items: BTreeSet::new(),
-            reasoning_items: BTreeSet::new(),
+            reasoning_items: BTreeMap::new(),
+            retained_reasoning_bytes: 0,
             tools: BTreeMap::new(),
             call_ids: BTreeSet::new(),
             retained_argument_bytes: 0,
@@ -666,7 +673,9 @@ impl OpenAiResponsesSseDecoder {
                 {
                     return Err(protocol_error());
                 }
-                state.reasoning_items.insert(item_id);
+                state
+                    .reasoning_items
+                    .insert(item_id, OpenReasoning::default());
                 if suppress_reasoning {
                     Ok(())
                 } else {
@@ -697,16 +706,102 @@ impl OpenAiResponsesSseDecoder {
     fn reasoning_delta(&mut self, value: &Value) -> Result<(), GatewayError> {
         let item_id = required_string_value(value, "item_id")?;
         let delta = string_value(value, "delta")?;
-        if !self.streaming_mut()?.reasoning_items.contains(&item_id) {
-            return Err(protocol_error());
-        }
-        if self.suppress_reasoning {
+        let suppress = self.suppress_reasoning;
+        let state = self.streaming_mut()?;
+        let reasoning = state
+            .reasoning_items
+            .get_mut(&item_id)
+            .filter(|item| !item.ended)
+            .ok_or_else(protocol_error)?;
+        if suppress {
             return Ok(());
         }
+        state.retained_reasoning_bytes = state
+            .retained_reasoning_bytes
+            .checked_add(delta.len())
+            .filter(|size| *size <= MAX_RESPONSE_BYTES)
+            .ok_or_else(protocol_error)?;
+        reasoning.text.push_str(&delta);
         if !delta.is_empty() {
-            self.streaming_mut()?.emitted_content = true;
+            state.emitted_content = true;
             self.emit(CanonicalEvent::ReasoningDelta(ReasoningDelta {
                 text: delta,
+                extensions: RawExtensions::default(),
+            }))?;
+        }
+        Ok(())
+    }
+
+    fn finish_reasoning(&mut self, item: &Map<String, Value>) -> Result<(), GatewayError> {
+        require_only_keys(
+            item,
+            &[
+                "type",
+                "id",
+                "status",
+                "summary",
+                "content",
+                "encrypted_content",
+            ],
+        )?;
+        let id = identifier(item, "id")?;
+        if !completed_or_absent(item.get("status")) {
+            return Err(protocol_error());
+        }
+        let suppress = self.suppress_reasoning;
+        if !suppress
+            && item
+                .get("encrypted_content")
+                .is_some_and(|value| !value.is_null())
+        {
+            return Err(protocol_error());
+        }
+        let state = self.streaming_mut()?;
+        let reasoning = state
+            .reasoning_items
+            .get_mut(id)
+            .ok_or_else(protocol_error)?;
+        if suppress {
+            reasoning.ended = true;
+            return Ok(());
+        }
+        let mut final_text = String::new();
+        for (field, kind) in [("summary", "summary_text"), ("content", "reasoning_text")] {
+            if let Some(parts) = item.get(field) {
+                let parts = parts.as_array().ok_or_else(protocol_error)?;
+                for part in parts {
+                    let part = object(part)?;
+                    require_only_keys(part, &["type", "text"])?;
+                    if part.get("type").and_then(Value::as_str) != Some(kind) {
+                        return Err(protocol_error());
+                    }
+                    final_text.push_str(required_string(part, "text")?);
+                }
+            }
+        }
+        let suffix = if item.contains_key("summary") || item.contains_key("content") {
+            final_text
+                .strip_prefix(&reasoning.text)
+                .ok_or_else(protocol_error)?
+                .to_owned()
+        } else {
+            String::new()
+        };
+        if reasoning.ended && !suffix.is_empty() {
+            return Err(protocol_error());
+        }
+        state.retained_reasoning_bytes = state
+            .retained_reasoning_bytes
+            .checked_add(suffix.len())
+            .filter(|size| *size <= MAX_RESPONSE_BYTES)
+            .ok_or_else(protocol_error)?;
+        reasoning.text.push_str(&suffix);
+        reasoning.ended = true;
+        if !suffix.is_empty() {
+            state.emitted_content = true;
+            self.ensure_message()?;
+            self.emit(CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                text: suffix,
                 extensions: RawExtensions::default(),
             }))?;
         }
@@ -798,12 +893,7 @@ impl OpenAiResponsesSseDecoder {
             {
                 Ok(())
             }
-            "reasoning"
-                if self.streaming_mut()?.reasoning_items.contains(item_id)
-                    && completed_or_absent(item.get("status")) =>
-            {
-                Ok(())
-            }
+            "reasoning" => self.finish_reasoning(item),
             _ => Err(protocol_error()),
         }
     }
@@ -862,6 +952,16 @@ impl OpenAiResponsesSseDecoder {
 
     fn end(&mut self, value: &Value, reported_reason: Option<&str>) -> Result<(), GatewayError> {
         let response = object(value.get("response").ok_or_else(protocol_error)?)?;
+        // Some providers repeat or supply final private reasoning only in the completion
+        // snapshot. Validate it as well as output_item.done; never silently discard it.
+        if let Some(output) = response.get("output") {
+            for item in output.as_array().ok_or_else(protocol_error)? {
+                let item = object(item)?;
+                if item.get("type").and_then(Value::as_str) == Some("reasoning") {
+                    self.finish_reasoning(item)?;
+                }
+            }
+        }
         let state = self.streaming_mut()?;
         let expected_status = if reported_reason.is_some() {
             "incomplete"
@@ -1342,6 +1442,85 @@ mod tests {
         events.extend(decoder.push(b"\n")?);
         events.extend(decoder.finish()?);
         Ok(events)
+    }
+
+    fn reasoning_stream(
+        delta: Option<&str>,
+        done: &serde_json::Value,
+        completed: &serde_json::Value,
+    ) -> Vec<u8> {
+        let mut frames = vec![
+            serde_json::json!({"type":"response.created","response":{"id":"resp-fixture"}}),
+            serde_json::json!({"type":"response.output_item.added","item":{"type":"reasoning","id":"rs-fixture","summary":[]}}),
+        ];
+        if let Some(delta) = delta {
+            frames.push(serde_json::json!({"type":"response.reasoning_summary_text.delta","item_id":"rs-fixture","delta":delta}));
+        }
+        frames.push(serde_json::json!({"type":"response.output_item.done","item":done}));
+        frames.push(serde_json::json!({"type":"response.completed","response":completed}));
+        let mut wire = Vec::new();
+        for frame in frames {
+            wire.extend_from_slice(b"data: ");
+            wire.extend_from_slice(frame.to_string().as_bytes());
+            wire.extend_from_slice(b"\n\n");
+        }
+        wire
+    }
+
+    #[test]
+    fn reasoning_done_supplies_missing_suffix_without_duplicate_deltas()
+    -> Result<(), Box<dyn std::error::Error>> {
+        for delta in [None, Some("syn"), Some("synthetic reasoning")] {
+            let item = serde_json::json!({"type":"reasoning","id":"rs-fixture","status":"completed","summary":[{"type":"summary_text","text":"synthetic reasoning"}]});
+            let completed = serde_json::json!({"id":"resp-fixture","status":"completed","output":[item.clone()]});
+            let stream = reasoning_stream(delta, &item, &completed);
+            let mut decoder = OpenAiResponsesSseDecoder::new();
+            let mut events = Vec::new();
+            for chunk in stream.chunks(7) {
+                events.extend(decoder.push(chunk)?);
+            }
+            events.extend(decoder.finish()?);
+            assert_eq!(digest(&events).reasoning, "synthetic reasoning");
+            assert_eq!(digest(&events).stop_reason.as_deref(), Some("end_turn"));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn late_encrypted_or_conflicting_reasoning_is_never_silently_lost() {
+        let item = serde_json::json!({"type":"reasoning","id":"rs-fixture","status":"completed","summary":[{"type":"summary_text","text":"synthetic reasoning"}]});
+        for late in [false, true] {
+            let mut encrypted = item.clone();
+            encrypted["encrypted_content"] = serde_json::json!("unowned-ciphertext");
+            let completed = serde_json::json!({"id":"resp-fixture","status":"completed","output":[if late {encrypted.clone()} else {item.clone()}]});
+            let stream = reasoning_stream(
+                Some("synthetic reasoning"),
+                &if late { item.clone() } else { encrypted },
+                &completed,
+            );
+            assert!(OpenAiResponsesSseDecoder::new().push(&stream).is_err());
+        }
+        let stream = reasoning_stream(
+            Some("incompatible prefix"),
+            &item,
+            &serde_json::json!({"id":"resp-fixture","status":"completed"}),
+        );
+        assert!(OpenAiResponsesSseDecoder::new().push(&stream).is_err());
+    }
+
+    #[test]
+    fn empty_reasoning_alongside_text_is_valid_but_empty_response_is_not()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut response: serde_json::Value = serde_json::from_str(JSON)?;
+        let empty = serde_json::json!({"id":"rs-empty","type":"reasoning","status":"completed","summary":[]});
+        response["output"]
+            .as_array_mut()
+            .ok_or("output")?
+            .insert(0, empty.clone());
+        assert!(decode_upstream_response(&response.to_string()).is_ok());
+        response["output"] = serde_json::json!([empty]);
+        assert!(decode_upstream_response(&response.to_string()).is_err());
+        Ok(())
     }
 
     #[test]

@@ -57,6 +57,8 @@ pub enum MessageContent {
     ToolCall(ToolCall),
     /// A historical result correlated to one Tool call.
     ToolResult(ToolResult),
+    /// A protocol-scoped reasoning item retained separately from visible assistant text.
+    Reasoning(ReasoningHistory),
     /// A future or unsupported content block retained as full raw JSON.
     Opaque(OpaqueContent),
 }
@@ -67,8 +69,94 @@ impl fmt::Debug for MessageContent {
             Self::Text(_) => formatter.write_str("MessageContent::Text(<redacted>)"),
             Self::ToolCall(_) => formatter.write_str("MessageContent::ToolCall(<redacted>)"),
             Self::ToolResult(_) => formatter.write_str("MessageContent::ToolResult(<redacted>)"),
+            Self::Reasoning(_) => formatter.write_str("MessageContent::Reasoning(<redacted>)"),
             Self::Opaque(_) => formatter.write_str("MessageContent::Opaque(<redacted>)"),
         }
+    }
+}
+
+/// Validated clear-text Responses reasoning history, including its original item identity.
+///
+/// The wire item is retained intact so absent/empty summary and content remain distinct.
+/// It may only be replayed to Responses; encrypted items require an ownership-aware path and
+/// are deliberately not admitted here. Debug never exposes reasoning text.
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "RawJson", into = "RawJson")]
+pub struct ReasoningHistory(RawJson);
+
+impl ReasoningHistory {
+    /// Returns the validated complete top-level wire item.
+    #[must_use]
+    pub const fn raw(&self) -> &RawJson {
+        &self.0
+    }
+}
+
+impl fmt::Debug for ReasoningHistory {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("ReasoningHistory(<redacted>)")
+    }
+}
+
+impl TryFrom<RawJson> for ReasoningHistory {
+    type Error = &'static str;
+
+    fn try_from(raw: RawJson) -> Result<Self, Self::Error> {
+        // Typed decoding rejects unknown/duplicate fields, including inside the raw envelope.
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Item {
+            r#type: String,
+            id: String,
+            status: Option<String>,
+            summary: Option<Vec<Part>>,
+            content: Option<Vec<Part>>,
+            encrypted_content: Option<String>,
+        }
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Part {
+            r#type: String,
+            text: String,
+        }
+        const INVALID: &str = "unsupported reasoning history";
+        if raw.get().len() > 1024 * 1024 {
+            return Err(INVALID);
+        }
+        let item: Item = serde_json::from_str(raw.get()).map_err(|_| INVALID)?;
+        if item.r#type != "reasoning"
+            || item.id.is_empty()
+            || item.id.len() > 512
+            || !item.id.bytes().all(|byte| byte.is_ascii_graphic())
+            || item
+                .status
+                .as_deref()
+                .is_some_and(|status| !matches!(status, "completed" | "incomplete"))
+            || item.encrypted_content.is_some()
+            || (item.summary.is_none() && item.content.is_none())
+        {
+            return Err(INVALID);
+        }
+        for (parts, kind) in [
+            (item.summary, "summary_text"),
+            (item.content, "reasoning_text"),
+        ] {
+            if let Some(parts) = parts
+                && (parts.len() > 64
+                    || parts
+                        .iter()
+                        .any(|part| part.r#type != kind || part.text.contains('\0')))
+            {
+                return Err(INVALID);
+            }
+        }
+        Ok(Self(raw))
+    }
+}
+
+impl From<ReasoningHistory> for RawJson {
+    fn from(history: ReasoningHistory) -> Self {
+        history.0
     }
 }
 

@@ -439,7 +439,9 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
         let contains_tool_item = message.content.iter().any(|content| {
             matches!(
                 content,
-                MessageContent::ToolCall(_) | MessageContent::ToolResult(_)
+                MessageContent::Reasoning(_)
+                    | MessageContent::ToolCall(_)
+                    | MessageContent::ToolResult(_)
             )
         });
         if contains_tool_item && !message.extensions.is_empty() {
@@ -454,6 +456,16 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
                 }
                 MessageContent::Opaque(opaque) => {
                     message_parts.push(encode_opaque_part(opaque.raw(), &opaque.extensions)?);
+                }
+                MessageContent::Reasoning(history) => {
+                    flush_message_parts(&mut input, role, &message.extensions, &mut message_parts)?;
+                    if role != "assistant" {
+                        return Err(provider_protocol_error());
+                    }
+                    input.push(
+                        serde_json::from_str(history.raw().get())
+                            .map_err(|_| provider_protocol_error())?,
+                    );
                 }
                 MessageContent::ToolCall(call) => {
                     flush_message_parts(&mut input, role, &message.extensions, &mut message_parts)?;

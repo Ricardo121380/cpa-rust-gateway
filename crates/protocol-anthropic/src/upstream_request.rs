@@ -270,6 +270,7 @@ fn encode_content_block(
             encode_tool_result_block(result)?
         }
         MessageContent::Opaque(opaque) => encode_opaque_block(opaque)?,
+        MessageContent::Reasoning(_) => return Err(provider_protocol_error()),
     };
     observe_cache_control(&block, cache_controls)?;
     Ok(Value::Object(block))
