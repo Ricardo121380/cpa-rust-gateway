@@ -1,0 +1,10 @@
+{
+  "status": 500,
+  "url": "https://cpar.142857142.xyz/admin/operations/usage?from_ms=1787817512844&to_ms=1790409512844&limit=100",
+  "body": {
+    "error": {
+      "code": "management_internal_error",
+      "message": "Management operation failed"
+    }
+  }
+}

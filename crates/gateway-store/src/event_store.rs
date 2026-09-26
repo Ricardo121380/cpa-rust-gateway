@@ -521,12 +521,18 @@ impl SqliteEventStore {
             (r IS NULL OR a IS NULL OR usage_count<>1 OR json_extract(a,'$.attempt.outcome')<>'succeeded') AS invalid
             FROM lineages
         ), filtered AS (
-            SELECT * FROM projected WHERE invalid OR (observed>=?2 AND observed<=?3
-            AND (?4 IS NULL OR provider=?4) AND (?5 IS NULL OR channel=?5)
-            AND (?6 IS NULL OR account=?6) AND (?7 IS NULL OR model=?7)
-            AND (?8 IS NULL OR client=?8) AND (?9 IS NULL OR access_group=?9)
-            AND (?10 IS NULL OR protocol=?10))
+            SELECT * FROM projected WHERE (observed IS NULL OR (observed>=?2 AND observed<=?3))
+            AND (?4 IS NULL OR provider IS NULL OR provider=?4)
+            AND (?5 IS NULL OR channel IS NULL OR channel=?5)
+            AND (?6 IS NULL OR account IS NULL OR account=?6)
+            AND (?7 IS NULL OR model IS NULL OR model=?7)
+            AND (?8 IS NULL OR client IS NULL OR client=?8)
+            AND (?9 IS NULL OR r IS NULL OR access_group=?9)
+            AND (?10 IS NULL OR protocol IS NULL OR protocol=?10)
         )";
+        // Reject ambiguous lineages only when they may belong to this query. A known
+        // nonmatching dimension excludes a row; missing metadata cannot establish exclusion.
+        // Validate before applying the page cursor so an invalid group is never skipped.
         let (observed, invalid): (Option<i64>, Option<i64>) = transaction.query_row(
             &format!("{cte} SELECT MAX(observed), MAX(invalid) FROM filtered"),
             rusqlite::params![
@@ -1394,6 +1400,134 @@ mod tests {
                 .visit_usage_lineages(&super::UsageEventQuery::default(), |_, _, _| Ok(true))
                 .is_err()
         );
+        Ok(())
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)] // One history proves filter isolation, pinned replay, and unknown-scope rejection.
+    fn usage_lineage_errors_respect_filters_without_hiding_unknown_scope() -> TestResult {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let (old_id, events) = sample_events()?;
+        store.append_batch(&events)?;
+        let snapshot = store
+            .visit_usage_lineages(&super::UsageEventQuery::default(), |_, _, _| Ok(true))?
+            .snapshot_ordinal;
+        // Historical rows predate the append path's conflicting-Usage rejection.
+        store.connection.execute(
+            "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage',?1,?2,?3)",
+            rusqlite::params!["legacy-second-usage", old_id.as_str(), serde_json::to_string(&usage_event(old_id.as_str(), "different-response", 7)?)?],
+        )?;
+        let current_id = RequestId::try_new("current-request")?;
+        store.append_batch(&[
+            GatewayEvent::Request(RequestEvent::new(
+                current_id.clone(),
+                ClientKeyId::try_new("current-client")?,
+                Some(gateway_core::AccessGroupId::try_new("current-group")?),
+                GatewayProtocol::OpenAiChatCompletions,
+                "current-model".to_owned(),
+                "current-model".to_owned(),
+                None,
+                false,
+            )),
+            GatewayEvent::Attempt(AttemptEvent::new(
+                current_id.clone(),
+                1,
+                RouteId::try_new("current-route")?,
+                RouteCandidateId::try_new("current-candidate")?,
+                CredentialId::try_new("current-account")?,
+                EndpointId::try_new("current-channel")?,
+                UpstreamId::try_new("current-provider")?,
+                "current-model".to_owned(),
+                190,
+                200,
+                AttemptOutcome::Succeeded,
+                AttemptRetryDecision::Completed,
+            )),
+            usage_event(current_id.as_str(), "current-response", 9)?,
+        ])?;
+        let queries = [
+            super::UsageEventQuery {
+                from_ms: Some(100),
+                to_ms: Some(200),
+                ..Default::default()
+            },
+            super::UsageEventQuery {
+                provider_id: Some("current-provider"),
+                ..Default::default()
+            },
+            super::UsageEventQuery {
+                channel_id: Some("current-channel"),
+                ..Default::default()
+            },
+            super::UsageEventQuery {
+                account_id: Some("current-account"),
+                ..Default::default()
+            },
+            super::UsageEventQuery {
+                public_model: Some("current-model"),
+                ..Default::default()
+            },
+            super::UsageEventQuery {
+                client_key_id: Some("current-client"),
+                ..Default::default()
+            },
+            super::UsageEventQuery {
+                access_group_id: Some("current-group"),
+                ..Default::default()
+            },
+            super::UsageEventQuery {
+                protocol: Some("openai_chat_completions"),
+                ..Default::default()
+            },
+        ];
+        for query in &queries {
+            let mut seen = Vec::new();
+            let metadata = store.visit_usage_lineages(query, |request, _, usage| {
+                seen.push((request.request_id().clone(), usage.usage().input_tokens));
+                Ok(true)
+            })?;
+            assert_eq!(seen, vec![(current_id.clone(), Some(9))]);
+            assert_eq!(metadata.observed_through_ms, Some(200));
+        }
+        assert!(
+            store
+                .visit_usage_lineages(&super::UsageEventQuery::default(), |_, _, _| Ok(true))
+                .is_err()
+        );
+        assert!(
+            store
+                .visit_usage_lineages(
+                    &super::UsageEventQuery {
+                        from_ms: Some(25),
+                        to_ms: Some(25),
+                        ..Default::default()
+                    },
+                    |_, _, _| Ok(true)
+                )
+                .is_err()
+        );
+        // The earlier immutable snapshot still contains one valid usage.
+        let mut count = 0;
+        store.visit_usage_lineages(
+            &super::UsageEventQuery {
+                snapshot_ordinal: snapshot,
+                ..Default::default()
+            },
+            |_, _, _| {
+                count += 1;
+                Ok(true)
+            },
+        )?;
+        assert_eq!(count, 1);
+        // No Request or Attempt means neither time nor identity can disprove membership.
+        store.append_batch(&[usage_event("unknown-request", "unknown-response", 1)?])?;
+        for query in &queries {
+            assert!(
+                store
+                    .visit_usage_lineages(query, |_, _, _| Ok(true))
+                    .is_err()
+            );
+        }
         Ok(())
     }
 

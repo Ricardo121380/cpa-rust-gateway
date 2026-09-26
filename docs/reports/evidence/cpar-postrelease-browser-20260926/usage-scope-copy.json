@@ -1,0 +1,61 @@
+{
+  "snapshot_ordinal": 2356,
+  "results": [
+    {
+      "range": "24h",
+      "query": "before",
+      "lineages": 32,
+      "invalid_lineages": 4,
+      "observed_through_ms": 1790389917830
+    },
+    {
+      "range": "24h",
+      "query": "candidate",
+      "lineages": 28,
+      "invalid_lineages": 0,
+      "observed_through_ms": 1790389917830
+    },
+    {
+      "range": "7d",
+      "query": "before",
+      "lineages": 34,
+      "invalid_lineages": 4,
+      "observed_through_ms": 1790389917830
+    },
+    {
+      "range": "7d",
+      "query": "candidate",
+      "lineages": 30,
+      "invalid_lineages": 0,
+      "observed_through_ms": 1790389917830
+    },
+    {
+      "range": "30d",
+      "query": "before",
+      "lineages": 495,
+      "invalid_lineages": 4,
+      "observed_through_ms": 1790389917830
+    },
+    {
+      "range": "30d",
+      "query": "candidate",
+      "lineages": 491,
+      "invalid_lineages": 0,
+      "observed_through_ms": 1790389917830
+    },
+    {
+      "range": "all",
+      "query": "before",
+      "lineages": 703,
+      "invalid_lineages": 4,
+      "observed_through_ms": 1790389917830
+    },
+    {
+      "range": "all",
+      "query": "candidate",
+      "lineages": 703,
+      "invalid_lineages": 4,
+      "observed_through_ms": 1790389917830
+    }
+  ]
+}

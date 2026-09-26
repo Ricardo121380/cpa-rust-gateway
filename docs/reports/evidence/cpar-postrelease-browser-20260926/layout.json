@@ -1,0 +1,92 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "dialog": {
+      "x": 904,
+      "y": 16,
+      "width": 520,
+      "height": 868,
+      "scroll": 520,
+      "client": 520
+    },
+    "titleOverflow": false,
+    "documentOverflow": false,
+    "controls": true
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "dialog": {
+      "x": 744,
+      "y": 16,
+      "width": 520,
+      "height": 688,
+      "scroll": 520,
+      "client": 520
+    },
+    "titleOverflow": false,
+    "documentOverflow": false,
+    "controls": true
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "dialog": {
+      "x": 12,
+      "y": 299.8125,
+      "width": 366,
+      "height": 532.1875,
+      "scroll": 366,
+      "client": 366
+    },
+    "titleOverflow": false,
+    "documentOverflow": false,
+    "controls": true
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "dark": "has-sheet",
+    "dialog": {
+      "x": 12,
+      "y": 299.8125,
+      "width": 366,
+      "height": 532.1875,
+      "scroll": 366,
+      "client": 366
+    },
+    "documentOverflow": false,
+    "controls": true
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "dark": "has-sheet",
+    "dialog": {
+      "x": 744,
+      "y": 16,
+      "width": 520,
+      "height": 688,
+      "scroll": 520,
+      "client": 520
+    },
+    "documentOverflow": false,
+    "controls": true
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "dark": "has-sheet",
+    "dialog": {
+      "x": 904,
+      "y": 16,
+      "width": 520,
+      "height": 868,
+      "scroll": 520,
+      "client": 520
+    },
+    "documentOverflow": false,
+    "controls": true
+  }
+]
