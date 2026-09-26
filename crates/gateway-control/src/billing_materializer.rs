@@ -274,8 +274,10 @@ fn compile_usage_entry(
                 }
             }
             GatewayEvent::Usage(value) if value == usage => matching_usage = true,
-            GatewayEvent::Usage(_)
-            | GatewayEvent::RequestFinished(_)
+            // Historical clients sometimes reused a request ID for different responses.
+            // A request-only join cannot assign their usage to one successful attempt.
+            GatewayEvent::Usage(_) => return Err(BillingMaterializationError::InvalidLineage),
+            GatewayEvent::RequestFinished(_)
             | GatewayEvent::Health(_)
             | GatewayEvent::Diagnostic(_) => {}
         }
@@ -422,6 +424,25 @@ mod tests {
                 cached_microunits_per_million: 0,
             }],
         }
+    }
+
+    #[test]
+    fn conflicting_legacy_usage_cannot_be_assigned_to_one_successful_attempt()
+    -> Result<(), Box<dyn Error>> {
+        let (source, request_id) = events()?;
+        let mut lineage = source.list_events()?;
+        let stored = lineage.last().ok_or("missing usage")?.clone();
+        let GatewayEvent::Usage(usage) = stored.event() else {
+            return Err("expected usage".into());
+        };
+        // Separate response IDs carrying the same token counts are still ambiguous.
+        let (other, _) = events_for(request_id.as_str(), "other-response")?;
+        lineage.push(other.list_events()?.pop().ok_or("missing second usage")?);
+        assert!(matches!(
+            compile_usage_entry(&stored, usage, &lineage, &[], None, 2_000),
+            Err(BillingMaterializationError::InvalidLineage)
+        ));
+        Ok(())
     }
 
     #[test]
