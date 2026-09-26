@@ -5,12 +5,13 @@
 
 ## 当前进度
 
-- M4-01/02：大样本查询与独立算数校验已通过；容量采样和页面告警已实现，等待最终网关/浏览器验收。
-- M4-03/04：本轮Rust 1,357项、前端415项、严格Clippy、四文件嵌入、契约/边界、serve装配及mock多轮请求通过；实际网关EgoLite操作和最终候选正式门禁继续执行，M3记录不是M4通过证据。
-- M4-05：schema28 旧二进制不能直接承担新增事件格式的回退；需离线完整副本与兼容回退候选验证，保留最新凭据、历史和权限。
-- M4-06：真实推理 **0/12**；未发送新调用。
-- M4-07/08：未部署；生产登录态复验尚未执行。
-- M4-09：本报告随实际证据更新，不把准备工作当交付。
+- M4-01/02：10万/100万精确查询、容量采样及告警通过本轮本地验收。
+- M4-03/04：`3de0319` 正式fast/supply-chain通过，Rust 1,356项、前端415项；双架构签名与独立校验通过。EgoLite真实嵌入应用48个工作区状态、18个弹窗状态及模型→受限Key→mock请求→账本通过。
+- M4-05：完整生产副本28→31→兼容30→31通过；新格式事件/checkpoint、管理员、历史、轮转密文和权限保留，演练无网络。
+- M4-06：真实推理 **1/12**，首个Pi Grok Build请求在HTTP200后流错误，准确持久为失败，无自动重试；多轮闭环未完成。真实目录读取单独记录为元数据验证。
+- M4-07：`3de0319` 已部署，schema31，切换到就绪1,031ms；公网4资源hash/CSP/鉴权、7账号、原有2,356事件/699账本与权限保留核验通过。DNS/Caddy/Autoreg未改变。
+- M4-08：生产EgoLite登录页已交给用户，等待本人登录；不能用登录页或本地矩阵代替生产登录态验收。
+- M4-09：报告持续更新；新增流协议修复尚待签名发布和真实核验，**M4未完成**。
 
 ## 测量与安全边界
 
@@ -44,3 +45,12 @@
 首候选 `c50e11a` 的release-artifact运行36249803472被ARM Debian容器冒烟正确拦截：缺少`GLIBC_2.39`；未签发ARM产物、未部署。x64在较旧构建宿主通过，不能代替ARM验收。移除新增的`Command`/df进程路径，改为固定rustix 1.1.4的安全statvfs封装；不抬高运行镜像/生产系统要求，不放宽unsafe或跳过冒烟。后续候选必须重新完成双架构及正式门禁。
 
 本轮EgoLite在嵌入gateway完成48个工作区状态、18个主要弹窗状态，及目录手动开放→Key显式权限→mock调用→unpriced账本；held晚到失效响应正确清除会话。容量低磁盘真实采样提示已检查390px辅助偏好布局。上述前端资产未被原生采样修复改变；最终签名资产仍须核对。
+
+## 本次发布、目录及真实失败证据
+
+- 正式门禁 [36250575121](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36250575121)，签名构建 [36250577536](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36250577536)。[签名回执](evidence/cpar-reliability-m4-20260926/verified-artifact.json)、[兼容回退](evidence/cpar-reliability-m4-20260926/verified-fallback.json)、[演练](evidence/cpar-reliability-m4-20260926/rehearsal.json)、[切换回执](evidence/cpar-reliability-m4-20260926/production-receipt.json)。回退目标fa5f280/schema30，保留最新状态，仅撤销31的两索引及迁移标记；不能切回旧schema28或恢复旧凭据库。
+- [真实目录](evidence/cpar-reliability-m4-20260926/real-catalog-receipt.json)：不启后台续期的隔离副本中，一个Build账号返回4个exact模型，Krill两个已配置接口各返回相同21个模型；另两个Build读取Busy，Codex读取authentication。数量是实取结果，不预设为产品容量。Krill现服务的gpt-5.5不在本次目录且测试Key不可见，不能宣称其推理已验收。
+- 目录验收脚本最初错误地用SELECT *比较schema28/31行，新增两个NULL续接字段导致断言失败。已按原列重查六个保护表全部相同；[更正证据](evidence/cpar-reliability-m4-20260926/metadata-preservation.json)。没有为修正收据重复访问Provider。
+- 首次Pi发送前的外部preflight误把public-models数组当分页，失败后主线程仍启动了1次受控请求，这是验收编排缺陷。现补发送器内强制前置校验：精确revision、10分钟内观测、目标route max_attempts=1；缺失/格式/版本/陈旧/未来/次数/缺route七种错误均零SDK调用、零额度预留。实际请求回读确认只有1个attempt；本次计入1/12，不重置。
+- [Pi结果](evidence/cpar-reliability-m4-20260926/pi-live-receipt.json)、[持久回读](evidence/cpar-reliability-m4-20260926/pi-first-readback.json)：HTTP200，首内容2309ms，总2999ms，终态failed/UpstreamProtocolError；未观测usage/账本，不记零。attempt仅表示HTTP建立成功(stage=http_status)，不冒充整次请求成功。旧11隔离事件仍保留，水位已追平。
+- 离线发现Build未处理response.incomplete。现补JSON/SSE明确max_output_tokens/content_filter终态、实际usage和不完整文本状态，保留错误身份、未知原因及残缺工具参数的拒绝；19个Build专项、两相关crate共264项通过(5既有ignored)。该缺口有[xAI Responses状态规范](https://docs.x.ai/developers/rest-api-reference/inference/responses)依据，但**没有原始上游帧证据证明它就是本次失败原因**。补安全固定标签日志用于后续定位，不输出上游正文/标识。

@@ -1,0 +1,143 @@
+{
+  "inspection_revision": "3de0319a644539baeabe92042c9f0fd8032b145c",
+  "metadata_only": true,
+  "production_mutations": 0,
+  "inference_requests": 0,
+  "background_renewal": false,
+  "protected_original_columns_unchanged": true,
+  "preservation_receipt": "metadata-preservation.json",
+  "harness_assertion_corrected": "Schema 30 adds two NULL columns; original cells verified against unchanged production source; no metadata calls repeated.",
+  "results": [
+    {
+      "channel": "Codex",
+      "account_ref": "071b294bce46",
+      "endpoint_ref": "67759acc2c23",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "error": "Busy",
+        "inference_requests": 0,
+        "metadata_only": true
+      },
+      "failure_class": "authentication"
+    },
+    {
+      "channel": "Grok Build",
+      "account_ref": "a6370161014a",
+      "endpoint_ref": "97536a5b3b69",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "error": "Busy",
+        "inference_requests": 0,
+        "metadata_only": true
+      }
+    },
+    {
+      "channel": "Grok Build",
+      "account_ref": "78f9a5c88de7",
+      "endpoint_ref": "97536a5b3b69",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "error": "Busy",
+        "inference_requests": 0,
+        "metadata_only": true
+      }
+    },
+    {
+      "channel": "Grok Build",
+      "account_ref": "319bde2905a6",
+      "endpoint_ref": "97536a5b3b69",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "inference_requests": 0,
+        "metadata_only": true,
+        "model_count": 4,
+        "observed_at_ms": 1790435818245
+      },
+      "models": [
+        "grok-4.5",
+        "grok-4.6",
+        "grok-4.7",
+        "grok-4.7-build-fast"
+      ],
+      "complete_count_matches": true
+    },
+    {
+      "channel": "Krill",
+      "account_ref": "5afbb699ec53",
+      "endpoint_ref": "1df299bd018b",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "inference_requests": 0,
+        "metadata_only": true,
+        "model_count": 21,
+        "observed_at_ms": 1790435818771
+      },
+      "models": [
+        "claude-fable-5",
+        "claude-fable-5-1",
+        "claude-haiku-4-5-20251001",
+        "claude-opus-4-6",
+        "claude-opus-4-7",
+        "claude-opus-4-8",
+        "claude-opus-5",
+        "claude-opus-5-5",
+        "claude-sonnet-4-6",
+        "claude-sonnet-5",
+        "codex-auto-review",
+        "gpt-5.6-luna",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-6-astra",
+        "gpt-6-sol",
+        "gpt-image-2",
+        "gpt-image-2.5",
+        "grok-4.5",
+        "grok-4.6",
+        "grok-4.7"
+      ],
+      "complete_count_matches": true
+    },
+    {
+      "channel": "Krill",
+      "account_ref": "5afbb699ec53",
+      "endpoint_ref": "a93324d114b6",
+      "result": {
+        "background_workers_started": false,
+        "credential_refresh_attempted": false,
+        "inference_requests": 0,
+        "metadata_only": true,
+        "model_count": 21,
+        "observed_at_ms": 1790435819039
+      },
+      "models": [
+        "claude-fable-5",
+        "claude-fable-5-1",
+        "claude-haiku-4-5-20251001",
+        "claude-opus-4-6",
+        "claude-opus-4-7",
+        "claude-opus-4-8",
+        "claude-opus-5",
+        "claude-opus-5-5",
+        "claude-sonnet-4-6",
+        "claude-sonnet-5",
+        "codex-auto-review",
+        "gpt-5.6-luna",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-6-astra",
+        "gpt-6-sol",
+        "gpt-image-2",
+        "gpt-image-2.5",
+        "grok-4.5",
+        "grok-4.6",
+        "grok-4.7"
+      ],
+      "complete_count_matches": true
+    }
+  ]
+}

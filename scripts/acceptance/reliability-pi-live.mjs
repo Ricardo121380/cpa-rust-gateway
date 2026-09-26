@@ -4,10 +4,18 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
-const [mode, modulePath, configPath, ledgerPath, receiptPath] = process.argv.slice(2);
+const [mode, modulePath, configPath, ledgerPath, receiptPath, preflightPath, expectedRevision] = process.argv.slice(2);
 assert(['--check-client', '--execute'].includes(mode) && modulePath, 'Explicit mode and installed Pi module required');
 const {stream} = await import(pathToFileURL(modulePath).href);
 const offline = mode === '--check-client';
+function requirePreflight() {
+  assert(preflightPath && /^[a-f0-9]{40}$/.test(expectedRevision ?? ''), 'Explicit preflight and exact release revision required');
+  const pre = JSON.parse(fs.readFileSync(preflightPath, 'utf8'));
+  assert.equal(pre.candidate_revision, expectedRevision, 'Running release differs from expected revision');
+  const age = Date.now() - pre.observed_at_ms;
+  assert(Number.isFinite(age) && age >= 0 && age < 600_000, 'Fresh route observation required');
+  assert.equal(pre.routes?.[config.model]?.max_attempts, 1, 'Route must permit exactly one upstream attempt');
+}
 const config = offline ? {baseUrl:'http://127.0.0.1:1/v1',model:'synthetic',apiKey:'synthetic'} : JSON.parse(fs.readFileSync(configPath,'utf8'));
 const target = new URL(config.baseUrl + '/responses');
 assert(offline || (target.origin === 'https://cpar.142857142.xyz' && target.pathname === '/v1/responses'));
@@ -18,12 +26,13 @@ const receipt={client:'Pi',clientModule:modulePath,model:config.model,maxOutputT
 let lock;
 if (!offline) {
   assert((fs.statSync(configPath).mode & 0o777) === 0o600,'Private configuration must be 0600');
+  requirePreflight();
   lock = fs.openSync(ledgerPath+'.lock','wx',0o600);
 }
 function persist() { if (!offline) fs.writeFileSync(receiptPath,JSON.stringify(receipt,null,2),{mode:0o600}); }
 async function run(messages,required,turn) {
   let calls=0,result;
-  const row={turn,required,wireRequests:0,requestId:null,result:'not_sent'};
+  const row={turn,required,wireRequests:0,requestId:null,result:'not_sent',events:{}};
   receipt.turns.push(row);persist();
   const checkedFetch = async (url,options) => {
     assert.equal(new URL(String(url)).href,target.href);
@@ -33,6 +42,7 @@ async function run(messages,required,turn) {
     assert.equal(payload.reasoning.effort,'low');
     assert(++calls===1,'Refuse SDK retry');row.wireRequests=calls;
     if (!offline) {
+      requirePreflight();
       const ledger=JSON.parse(fs.readFileSync(ledgerPath,'utf8'));
       assert.equal(ledger.allowance,12);assert.equal(ledger.plan,'cpar-reliability-20260926');
       assert(ledger.attempts.length<12);assert.equal(ledger.maxOutputTokens,512);
@@ -43,7 +53,8 @@ async function run(messages,required,turn) {
       const directory=fs.openSync(path.dirname(ledgerPath),'r');try {fs.fsyncSync(directory);}finally{fs.closeSync(directory);}
       row.result='send_started';persist();
       const response=await fetch(url,{...options,redirect:'error'});
-      row.requestId=response.headers.get('x-request-id');row.httpStatus=response.status;persist();
+      const id=response.headers.get('x-request-id');
+      row.requestId=id && /^[a-zA-Z0-9:._-]{1,200}$/.test(id) ? id : null;row.httpStatus=response.status;persist();
       return response;
     }
     // Force an HTTP failure to prove the installed SDK does not retry.
@@ -54,8 +65,14 @@ async function run(messages,required,turn) {
     signal:AbortSignal.timeout(90000),cacheRetention:'none',reasoningEffort:'low',
     fetch:checkedFetch,...(required?{toolChoice:'required'}:{}),
   })) {
+    if(['start','text_start','text_delta','text_end','thinking_start','thinking_delta','thinking_end','toolcall_start','toolcall_delta','toolcall_end','done','error'].includes(event.type)) row.events[event.type]=(row.events[event.type]??0)+1;
     if(event.type==='done')result=event.message;
-    if(event.type==='error'){row.result='client_stream_error';persist();}
+    if(event.type==='error'){
+      row.result='client_stream_error';
+      const message=String(event.error?.errorMessage ?? '');
+      row.errorClass=['UpstreamProtocolError','StreamTruncated','CredentialUnavailable','ProviderPermanent','ProviderTransient'].find(code=>message.includes(code)) ?? (message.includes('without')&&message.includes('terminal')?'missing_terminal':'unknown');
+      persist();
+    }
   }
   assert.equal(calls,1,'Expected exactly one wire submission');
   if(offline){assert.equal(row.result,'client_stream_error');return;}

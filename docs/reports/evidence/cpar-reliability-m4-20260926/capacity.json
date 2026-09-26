@@ -1,0 +1,8 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "passed": true,
+  "text": "存储与记录容量\n磁盘剩余空间偏低，请安排扩容或离线维护\n磁盘可用 / 总量\n5.11 GiB / 228.27 GiB\n数据库 / WAL\n0.0 MiB / 3.2 MiB\n记录队列占用 / 容量\n0 / 1024\n容量观测时间\n2026/9/26 22:57:11\n\n容量每分钟采样；告警不会自动删除历史。队列占用不包含已取出、等待写入的批次。",
+  "overflow": false,
+  "width": 390
+}

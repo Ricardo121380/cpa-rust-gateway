@@ -935,3 +935,96 @@ fn error_diagnostics_admit_only_fixed_labels_and_body_shape() -> TestResult {
     );
     Ok(())
 }
+
+#[test]
+fn incomplete_build_json_and_chunked_sse_preserve_reason_usage_and_partial_text() -> TestResult {
+    use serde_json::json;
+    for reason in ["max_output_tokens", "content_filter"] {
+        for kind in ["message", "reasoning", "empty"] {
+            let item = if kind == "message" {
+                json!({"id":"partial","type":"message","status":"incomplete","role":"assistant","content":[{"type":"output_text","text":"partial"}]})
+            } else {
+                json!({"id":"partial","type":"reasoning","status":"incomplete","summary":[{"type":"summary_text","text":"partial"}]})
+            };
+            let output = if kind == "empty" {
+                json!([])
+            } else {
+                json!([item])
+            };
+            let response = json!({"id":"limited","status":"incomplete","incomplete_details":{"reason":reason},"output":output,"usage":{"input_tokens":12,"output_tokens":512,"output_tokens_details":{"reasoning_tokens":500}}});
+            let expected =
+                GrokBuildResponsesDecoder::decode_non_streaming(response.to_string().as_bytes())?;
+            let mut frames = vec![json!({"type":"response.created","response":{"id":"limited"}})];
+            if kind != "empty" {
+                let mut added = item.clone();
+                added["status"] = json!("in_progress");
+                frames.push(json!({"type":"response.output_item.added","item":added}));
+                frames.push(json!({"type":"response.output_item.done","item":item}));
+            }
+            frames.push(json!({"type":"response.incomplete","response":response}));
+            let mut wire = String::new();
+            for v in frames {
+                use std::fmt::Write as _;
+                write!(
+                    wire,
+                    "event: {}\ndata: {v}\n\n",
+                    v["type"].as_str().unwrap_or_default()
+                )?;
+            }
+            for chunk_size in [1, 7, 4096] {
+                let mut decoder = GrokBuildResponsesStreamDecoder::new();
+                let mut events = Vec::new();
+                for chunk in wire.as_bytes().chunks(chunk_size) {
+                    events.extend(decoder.push_bytes(chunk)?);
+                }
+                decoder.finish()?;
+                assert_eq!(events, expected.events());
+                let canonical = CanonicalResponse::try_new(events)?;
+                let encoded = protocol_openai_responses::encode_response(
+                    &canonical,
+                    protocol_openai_responses::OpenAiResponseMetadata::try_new("grok-4.5", 1)?,
+                )?;
+                assert_eq!(encoded["status"], "incomplete");
+                assert_eq!(encoded["incomplete_details"]["reason"], reason);
+                assert_eq!(encoded["usage"]["output_tokens"], 512);
+                assert_eq!(
+                    encoded["usage"]["output_tokens_details"]["reasoning_tokens"],
+                    500
+                );
+                if kind != "empty" {
+                    assert_eq!(encoded["output"][0]["status"], "incomplete");
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn incomplete_build_does_not_accept_unknown_reason_wrong_identity_or_partial_tools() {
+    use serde_json::json;
+    for response in [
+        json!({"id":"r","status":"incomplete","incomplete_details":{"reason":"invented"},"output":[]}),
+        json!({"id":"r","status":"completed","output":[{"id":"m","type":"message","status":"incomplete","content":[]}]}),
+        json!({"id":"r","status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},"output":[{"id":"t","type":"function_call","call_id":"c","name":"echo","status":"incomplete","arguments":"{\"value\":"}]}),
+    ] {
+        assert!(
+            GrokBuildResponsesDecoder::decode_non_streaming(response.to_string().as_bytes())
+                .is_err()
+        );
+    }
+    for (event, status, id) in [
+        ("response.completed", "incomplete", "r"),
+        ("response.incomplete", "completed", "r"),
+        ("response.incomplete", "incomplete", "other"),
+    ] {
+        let wire = format!(
+            "event: response.created\ndata: {{\"type\":\"response.created\",\"response\":{{\"id\":\"r\"}}}}\n\nevent: {event}\ndata: {{\"type\":\"{event}\",\"response\":{{\"id\":\"{id}\",\"status\":\"{status}\",\"incomplete_details\":{{\"reason\":\"max_output_tokens\"}},\"output\":[]}}}}\n\n"
+        );
+        assert!(
+            GrokBuildResponsesStreamDecoder::new()
+                .push_bytes(wire.as_bytes())
+                .is_err()
+        );
+    }
+}

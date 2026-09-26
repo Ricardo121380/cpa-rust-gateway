@@ -137,3 +137,19 @@ if needed. This command is for production-copy acceptance; it does not replace t
 refresh workflow or prove official interactive authorization completed.
 
 Alias retirement also accepts `--catalog-paths <reviewed-json>` for exact endpoint IDs and model-list paths. These paths join the static graph fingerprint and expected readback; normal request timestamps do not invalidate the reviewed configuration plan. Infer no path from a provider name: verify the base path and its documented model-list endpoint first.
+
+## M4 bounded Pi acceptance
+
+`reliability-pi-live.mjs --check-client <installed-pi-responses-module>` performs an offline
+503 wire check. `node --test scripts/acceptance/reliability-pi-live.test.mjs` proves invalid
+preflights cannot invoke the SDK or reserve allowance.
+
+Live mode requires explicit arguments:
+`--execute <module> <0600-private-config> <persistent-allowance-ledger> <new-receipt> <preflight-json> <exact-release-sha>`.
+The authenticated operator preflight supplies `candidate_revision`, `observed_at_ms` and
+`routes[exact-model].max_attempts`, derived from the active published graph, not guessed names.
+Each send requires a matching revision, observation under ten minutes old and max_attempts=1.
+Freeze graph edits during this short acceptance window; the observation is not an atomic pin.
+Four synthetic Pi turns are intended, with 512 output tokens, low reasoning, no SDK/route retry,
+and a pre-send fsync allowance record. Stop at the first failure; never restart this script
+as an automatic retry or reset the ledger. An HTTP200 stream failure is still failure.

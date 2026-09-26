@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "browser": "EgoLite",
+  "realGateway": true,
+  "syntheticOnly": true,
+  "invalidJsonRejected": true,
+  "apiKeyImported": true,
+  "identityUnknownCorrectly": true,
+  "hasResponses": true,
+  "hasSix": true
+}

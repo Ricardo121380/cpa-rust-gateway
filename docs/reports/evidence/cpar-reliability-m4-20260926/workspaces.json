@@ -1,0 +1,631 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "passed": true,
+  "states": [
+    {
+      "hash": "#/",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "运行概览"
+      ],
+      "screenshot": "overview-light-1440.png"
+    },
+    {
+      "hash": "#/accounts",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "账号管理"
+      ],
+      "screenshot": "accounts-light-1440.png"
+    },
+    {
+      "hash": "#/upstreams",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "AI 提供商"
+      ],
+      "screenshot": "upstreams-light-1440.png"
+    },
+    {
+      "hash": "#/models",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "模型管理"
+      ],
+      "screenshot": "models-light-1440.png"
+    },
+    {
+      "hash": "#/access",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "API 密钥"
+      ],
+      "screenshot": "access-light-1440.png"
+    },
+    {
+      "hash": "#/monitoring",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "请求日志"
+      ],
+      "screenshot": "monitoring-light-1440.png"
+    },
+    {
+      "hash": "#/usage",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "用量与费用"
+      ],
+      "screenshot": "usage-light-1440.png"
+    },
+    {
+      "hash": "#/settings",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "设置"
+      ],
+      "screenshot": "settings-light-1440.png"
+    },
+    {
+      "hash": "#/",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "运行概览"
+      ],
+      "screenshot": "overview-light-1280.png"
+    },
+    {
+      "hash": "#/accounts",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "账号管理"
+      ],
+      "screenshot": "accounts-light-1280.png"
+    },
+    {
+      "hash": "#/upstreams",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "AI 提供商"
+      ],
+      "screenshot": "upstreams-light-1280.png"
+    },
+    {
+      "hash": "#/models",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "模型管理"
+      ],
+      "screenshot": "models-light-1280.png"
+    },
+    {
+      "hash": "#/access",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "API 密钥"
+      ],
+      "screenshot": "access-light-1280.png"
+    },
+    {
+      "hash": "#/monitoring",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "请求日志"
+      ],
+      "screenshot": "monitoring-light-1280.png"
+    },
+    {
+      "hash": "#/usage",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "用量与费用"
+      ],
+      "screenshot": "usage-light-1280.png"
+    },
+    {
+      "hash": "#/settings",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "设置"
+      ],
+      "screenshot": "settings-light-1280.png"
+    },
+    {
+      "hash": "#/",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "运行概览"
+      ],
+      "screenshot": "overview-light-390.png"
+    },
+    {
+      "hash": "#/accounts",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "账号管理"
+      ],
+      "screenshot": "accounts-light-390.png"
+    },
+    {
+      "hash": "#/upstreams",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "AI 提供商"
+      ],
+      "screenshot": "upstreams-light-390.png"
+    },
+    {
+      "hash": "#/models",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "模型管理"
+      ],
+      "screenshot": "models-light-390.png"
+    },
+    {
+      "hash": "#/access",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "API 密钥"
+      ],
+      "screenshot": "access-light-390.png"
+    },
+    {
+      "hash": "#/monitoring",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "请求日志"
+      ],
+      "screenshot": "monitoring-light-390.png"
+    },
+    {
+      "hash": "#/usage",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "用量与费用"
+      ],
+      "screenshot": "usage-light-390.png"
+    },
+    {
+      "hash": "#/settings",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "设置"
+      ],
+      "screenshot": "settings-light-390.png"
+    },
+    {
+      "hash": "#/",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "运行概览"
+      ],
+      "screenshot": "overview-dark-1440.png"
+    },
+    {
+      "hash": "#/accounts",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "账号管理"
+      ],
+      "screenshot": "accounts-dark-1440.png"
+    },
+    {
+      "hash": "#/upstreams",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "AI 提供商"
+      ],
+      "screenshot": "upstreams-dark-1440.png"
+    },
+    {
+      "hash": "#/models",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "模型管理"
+      ],
+      "screenshot": "models-dark-1440.png"
+    },
+    {
+      "hash": "#/access",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "API 密钥"
+      ],
+      "screenshot": "access-dark-1440.png"
+    },
+    {
+      "hash": "#/monitoring",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "请求日志"
+      ],
+      "screenshot": "monitoring-dark-1440.png"
+    },
+    {
+      "hash": "#/usage",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "用量与费用"
+      ],
+      "screenshot": "usage-dark-1440.png"
+    },
+    {
+      "hash": "#/settings",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "设置"
+      ],
+      "screenshot": "settings-dark-1440.png"
+    },
+    {
+      "hash": "#/",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "运行概览"
+      ],
+      "screenshot": "overview-dark-1280.png"
+    },
+    {
+      "hash": "#/accounts",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "账号管理"
+      ],
+      "screenshot": "accounts-dark-1280.png"
+    },
+    {
+      "hash": "#/upstreams",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "AI 提供商"
+      ],
+      "screenshot": "upstreams-dark-1280.png"
+    },
+    {
+      "hash": "#/models",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "模型管理"
+      ],
+      "screenshot": "models-dark-1280.png"
+    },
+    {
+      "hash": "#/access",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "API 密钥"
+      ],
+      "screenshot": "access-dark-1280.png"
+    },
+    {
+      "hash": "#/monitoring",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "请求日志"
+      ],
+      "screenshot": "monitoring-dark-1280.png"
+    },
+    {
+      "hash": "#/usage",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "用量与费用"
+      ],
+      "screenshot": "usage-dark-1280.png"
+    },
+    {
+      "hash": "#/settings",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "设置"
+      ],
+      "screenshot": "settings-dark-1280.png"
+    },
+    {
+      "hash": "#/",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "运行概览"
+      ],
+      "screenshot": "overview-dark-390.png"
+    },
+    {
+      "hash": "#/accounts",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "账号管理"
+      ],
+      "screenshot": "accounts-dark-390.png"
+    },
+    {
+      "hash": "#/upstreams",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "AI 提供商"
+      ],
+      "screenshot": "upstreams-dark-390.png"
+    },
+    {
+      "hash": "#/models",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "模型管理"
+      ],
+      "screenshot": "models-dark-390.png"
+    },
+    {
+      "hash": "#/access",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "API 密钥"
+      ],
+      "screenshot": "access-dark-390.png"
+    },
+    {
+      "hash": "#/monitoring",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "请求日志"
+      ],
+      "screenshot": "monitoring-dark-390.png"
+    },
+    {
+      "hash": "#/usage",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "用量与费用"
+      ],
+      "screenshot": "usage-dark-390.png"
+    },
+    {
+      "hash": "#/settings",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "canvas": true,
+      "overflow": false,
+      "errors": [],
+      "headings": [
+        "设置"
+      ],
+      "screenshot": "settings-dark-390.png"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "method": "compare_original_columns_to_unchanged_production_source_after_metadata",
+  "tables": {
+    "upstream_credentials": {
+      "rows_source": 33,
+      "rows_copy": 33,
+      "original_columns_equal": true,
+      "added_columns": [],
+      "added_values_all_null": true
+    },
+    "grok_accounts": {
+      "rows_source": 5,
+      "rows_copy": 5,
+      "original_columns_equal": true,
+      "added_columns": [
+        "continuation_floor_revision",
+        "continuation_current_revision"
+      ],
+      "added_values_all_null": true
+    },
+    "gateway_event_log": {
+      "rows_source": 2356,
+      "rows_copy": 2356,
+      "original_columns_equal": true,
+      "added_columns": [],
+      "added_values_all_null": true
+    },
+    "billing_ledger_entries": {
+      "rows_source": 699,
+      "rows_copy": 699,
+      "original_columns_equal": true,
+      "added_columns": [],
+      "added_values_all_null": true
+    },
+    "client_keys": {
+      "rows_source": 29,
+      "rows_copy": 29,
+      "original_columns_equal": true,
+      "added_columns": [],
+      "added_values_all_null": true
+    },
+    "access_group_routes": {
+      "rows_source": 79,
+      "rows_copy": 79,
+      "original_columns_equal": true,
+      "added_columns": [],
+      "added_values_all_null": true
+    }
+  },
+  "inference_requests": 0,
+  "production_mutations": 0
+}

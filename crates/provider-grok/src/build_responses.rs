@@ -844,14 +844,14 @@ impl fmt::Debug for GrokBuildResponsesHttpError {
     }
 }
 
-/// Decodes a completed non-streaming Build Responses JSON body into a successful Canonical response.
+/// Decodes a terminal non-streaming Build Responses JSON body into a Canonical response.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct GrokBuildResponsesDecoder;
 
 impl GrokBuildResponsesDecoder {
-    /// Decodes one bounded `response.completed` representation without an HTTP client.
+    /// Decodes one bounded completed or explicitly incomplete response without an HTTP client.
     ///
-    /// The response must be completed, contain only representable message/reasoning/function-call
+    /// The response must be completed or explicitly incomplete, contain only representable
     /// output items, and pass Canonical lifecycle validation. Error HTTP bodies are parsed through
     /// [`GrokBuildResponsesHttpError`] instead.
     ///
@@ -872,7 +872,7 @@ impl GrokBuildResponsesDecoder {
             state.handle_output_item_added(item, &mut events)?;
             state.handle_output_item_done(item, &mut events)?;
         }
-        state.handle_response_completed(response, &mut events)?;
+        state.handle_response_terminal(response, &mut events)?;
         CanonicalResponse::try_new(events)
     }
 
@@ -985,7 +985,7 @@ impl GrokBuildResponsesStreamDecoder {
     /// # Errors
     ///
     /// Returns `StreamTruncated/Stream` for a partial SSE record or a response that never reached
-    /// `response.completed`/`response.failed`.
+    /// `response.completed`/`response.incomplete`/`response.failed`.
     pub fn finish(&self) -> Result<(), GatewayError> {
         if !self.pending.is_empty() {
             return Err(stream_truncated_error());
@@ -1110,7 +1110,16 @@ impl GrokBuildResponsesDecodeState {
             return Err(stream_protocol_error());
         }
 
-        match event_name.as_str() {
+        self.handle_sse_event(&event_name, object, events)
+    }
+
+    fn handle_sse_event(
+        &mut self,
+        event_name: &str,
+        object: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let result = (|| match event_name {
             "keepalive" => Ok(()),
             "response.created" => self.handle_response_created(
                 required_object(object, "response", stream_protocol_error())?,
@@ -1150,13 +1159,39 @@ impl GrokBuildResponsesDecodeState {
             "response.function_call_arguments.done" => {
                 self.handle_function_arguments_done(object, events)
             }
-            "response.completed" => self.handle_response_completed(
-                required_object(object, "response", stream_protocol_error())?,
-                events,
-            ),
+            "response.completed" | "response.incomplete" => {
+                let response = required_object(object, "response", stream_protocol_error())?;
+                if response.get("status").and_then(Value::as_str)
+                    != event_name.strip_prefix("response.")
+                {
+                    return Err(stream_protocol_error());
+                }
+                self.handle_response_terminal(response, events)
+            }
             "response.failed" => self.handle_response_failed(object, events),
             _ => Err(stream_protocol_error()),
+        })();
+        if result.is_err() {
+            // Closed labels only: never render upstream text, item IDs, or unknown field names.
+            let event = match event_name {
+                "response.output_item.added" => "output_item_added",
+                "response.output_item.done" => "output_item_done",
+                "response.completed" => "completed",
+                "response.incomplete" => "incomplete",
+                "response.function_call_arguments.done" => "function_arguments_done",
+                "response.function_call_arguments.delta" => "function_arguments_delta",
+                _ => "other",
+            };
+            let item = object.get("item");
+            let item_status = match item.and_then(|v| v.get("status")).and_then(Value::as_str) {
+                Some("completed") => "completed",
+                Some("incomplete") => "incomplete",
+                Some("in_progress") => "in_progress",
+                _ => "absent_or_other",
+            };
+            tracing::warn!(event, item_status, "Grok Build SSE semantic rejection");
         }
+        result
     }
 
     fn handle_response_created(
@@ -1265,7 +1300,10 @@ impl GrokBuildResponsesDecodeState {
         if required_string(item, "type", stream_protocol_error())? != expected_kind {
             return Err(stream_protocol_error());
         }
-        if required_string(item, "status", stream_protocol_error())? != "completed" {
+        let status = required_string(item, "status", stream_protocol_error())?;
+        if status != "completed"
+            && !(status == "incomplete" && kind != OutputItemKind::FunctionCall)
+        {
             return Err(stream_protocol_error());
         }
 
@@ -1627,13 +1665,33 @@ impl GrokBuildResponsesDecodeState {
         Ok(call_id)
     }
 
-    fn handle_response_completed(
+    fn handle_response_terminal(
         &mut self,
         response: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         self.require_matching_response(response)?;
-        if required_string(response, "status", stream_protocol_error())? != "completed" {
+        let status = required_string(response, "status", stream_protocol_error())?;
+        let incomplete_reason = match status {
+            "completed" => None,
+            "incomplete" => Some(
+                match required_object(response, "incomplete_details", stream_protocol_error())?
+                    .get("reason")
+                    .and_then(Value::as_str)
+                {
+                    Some("max_output_tokens") => "max_tokens",
+                    Some("content_filter") => "refusal",
+                    _ => return Err(stream_protocol_error()),
+                },
+            ),
+            _ => return Err(stream_protocol_error()),
+        };
+        if status == "completed"
+            && self
+                .completed_items
+                .values()
+                .any(|v| v.get("status").and_then(Value::as_str) == Some("incomplete"))
+        {
             return Err(stream_protocol_error());
         }
         let output = required_array(response, "output", stream_protocol_error())?;
@@ -1675,7 +1733,8 @@ impl GrokBuildResponsesDecodeState {
                 return Err(stream_protocol_error());
             }
         }
-        if completed_output_item_ids != self.done_item_ids {
+        if completed_output_item_ids != self.done_item_ids || output.len() != self.item_order.len()
+        {
             return Err(stream_protocol_error());
         }
         if let Some(usage) = parse_usage(response, &stream_protocol_error())? {
@@ -1697,7 +1756,9 @@ impl GrokBuildResponsesDecodeState {
             )?;
             self.message_open = false;
         }
-        let stop_reason = if self.completed_function_calls.is_empty() {
+        let stop_reason = if let Some(reason) = incomplete_reason {
+            reason
+        } else if self.completed_function_calls.is_empty() {
             "end_turn"
         } else {
             "tool_use"

@@ -53,10 +53,15 @@ pub fn native_item_metadata(
     {
         return Err(stream_protocol_error());
     }
+    let incomplete = completed
+        && kind != "function_call"
+        && item.get("status").and_then(Value::as_str) == Some("incomplete");
     item.remove("encrypted_content");
     item.insert(
         "status".into(),
-        json!(if completed {
+        json!(if incomplete {
+            "incomplete"
+        } else if completed {
             "completed"
         } else {
             "in_progress"
