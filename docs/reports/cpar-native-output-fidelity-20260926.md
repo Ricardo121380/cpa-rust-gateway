@@ -1,5 +1,7 @@
 # Native Responses fidelity — 2026-09-26
 
+> 发布更新（2026-09-26 15:26）：本报告实现已包含在生产签名版 `b39ec32`；76条旧用量恢复，11条关联歧义保留。下文“未发布”是实施当时状态。新版本部署、API验证及浏览器限制见[发布报告](cpar-stability-production-20260926.md)。
+
 Status: implemented and verified locally; not released. Production remains `4d5ce334`.
 Base: `d99bb4f6ba7f018f447e6b3f4356415afab3b59a`. This report covers native Grok
 Build output fidelity, not arbitrary opaque reasoning or all Provider implementations.

@@ -3221,3 +3221,19 @@ ledger untouched; fixes remain local pending formal release. Production eight-wo
 acceptance, three sizes/two themes and refresh lock verified; native detail dialogs additionally
 checked against isolated real gateway with synthetic credentials. Evidence and limits:
 `docs/reports/prism-production-browser-20260926.md`.
+
+
+## 2026-09-26 - Codex - Stability findings production release
+
+**What:** Oracle now serves signed `b39ec3238dbd0ae5abe67ddf0c3d799188b423b9`, including native
+Grok output fidelity and Prism provider native-account detail fixes. Schema28, four assets,
+existing admin/accounts/permissions preserved. Cutover1046ms.
+
+**Why:** User authorized the next formal release. Initial CI and copy-rehearsal failures were
+retained and corrected: fixture catalog readiness and ambiguous historical Usage lineage.
+Exact final formal gates, signatures, signed artifact and copy rollback passed before deployment.
+
+**Other side:** FYI. Production API confirms Build3/Console2 native runtime accounts. 76 old
+Usage rows recovered as unpriced; 11 ambiguous rows remain needs_repair. No new real inference
+or production configuration/DNS/Caddy/Autoreg changes. Post-release browser login pending;
+do not relabel earlier browser screenshots as this revision. Evidence: `docs/reports/cpar-stability-production-20260926.md`.

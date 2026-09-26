@@ -1,0 +1,14 @@
+{
+  "revision": "b39ec3238dbd0ae5abe67ddf0c3d799188b423b9",
+  "run_id": 36226180703,
+  "target": "x86_64-unknown-linux-gnu",
+  "signature_verified": true,
+  "artifact_and_sbom_verified": true,
+  "binary_sha256": "f5ad2042acb8aa2dd8be6e3b431f19480c15ccd07213ddab52e695b45b296bbc",
+  "frontend_assets": {
+    "/admin-ui/": "a970237752183630679df7f9da60077617c005c000867f12305e706a6c8bd727",
+    "/admin-ui/assets/main.js": "12a177c8dda1e464e1ef3f17c842daa7affa014725709dcf3ef64c1aaeca067b",
+    "/admin-ui/assets/vendor.js": "29a0a30425bd5cae979f34a67b9575223b83f10e04271cf444c1838c4c9231a9",
+    "/admin-ui/assets/index.css": "04a848d2c3092fec8494cd20ca3b7a75f3c9669a315108e8ee4d07f10bb85bc9"
+  }
+}

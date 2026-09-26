@@ -1,5 +1,20 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+
+## 2026-09-26: native fidelity and production findings deployed
+
+Production serves signed `b39ec3238dbd0ae5abe67ddf0c3d799188b423b9`, schema28.
+Native Grok provider details now use native inventory and observed runtime counts; native
+Responses IDs/reasoning parts are preserved. 76 legacy Usage records were materialized as
+unpriced, original 623 ledger rows retained (total699). Eleven ambiguous historical rows
+remain invalid_lineage; do not erase them or invent their missing request/attempt mapping.
+Formal gates, both signatures, isolated artifact, production-copy fallback roundtrip and
+public/authenticated API readback passed. Stop-to-ready1046ms. Existing7 accounts/admin,
+2356 events and effective permissions retained. No new real inference or DNS/Caddy/Autoreg
+change. Fallback4d5ce334 preserves latest databases; new optional native payload replay may
+require a new conversation on that older binary. Post-release logged-in EgoLite check pending.
+See [release report](../reports/cpar-stability-production-20260926.md). Earlier entries are historical.
+
 ## 2026-09-25: native Grok continuation repair deployed
 
 Production now serves signed `4d5ce334f595aae76d8e9230c11df57642210c3d`, schema28.

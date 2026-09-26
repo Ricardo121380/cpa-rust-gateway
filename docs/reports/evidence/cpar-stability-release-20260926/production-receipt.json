@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "revision": "b39ec3238dbd0ae5abe67ddf0c3d799188b423b9",
+  "fallback_revision": "4d5ce334f595aae76d8e9230c11df57642210c3d",
+  "schema": 28,
+  "stop_to_ready_ms": 1046,
+  "binary_sha256": "631ff35b4192cb3ff875f0ba6158ea8c3529cea14380a4cb522bd4794afb2a8c",
+  "frontend_assets": {
+    "/admin-ui/": "a970237752183630679df7f9da60077617c005c000867f12305e706a6c8bd727",
+    "/admin-ui/assets/main.js": "12a177c8dda1e464e1ef3f17c842daa7affa014725709dcf3ef64c1aaeca067b",
+    "/admin-ui/assets/vendor.js": "29a0a30425bd5cae979f34a67b9575223b83f10e04271cf444c1838c4c9231a9",
+    "/admin-ui/assets/index.css": "04a848d2c3092fec8494cd20ca3b7a75f3c9669a315108e8ee4d07f10bb85bc9"
+  },
+  "historical_rows_retained": {
+    "upstreams": 45,
+    "upstream_endpoints": 58,
+    "endpoint_credential_bindings": 46,
+    "grok_accounts": 5,
+    "upstream_credentials": 33,
+    "gateway_event_log": 2356,
+    "billing_ledger_entries": 623,
+    "native_account_identity_observations": 0,
+    "native_account_management_events": 0,
+    "access_groups": 29,
+    "access_group_routes": 79,
+    "client_keys": 29,
+    "public_models": 73,
+    "model_aliases": 8
+  },
+  "effective_permissions_preserved": true,
+  "accounts": 7,
+  "existing_administrator_store_retained": true,
+  "public_https_csp_auth_verified": true,
+  "real_provider_inference_requests": 0,
+  "dns_caddy_autoreg_changed": false,
+  "legacy_billing_before": {
+    "target_events": 87,
+    "ledger_rows": 0,
+    "resolved_failures": 0,
+    "statuses": {},
+    "null_cost_rows": 0,
+    "total_ledger": 623,
+    "pending_failures": 87,
+    "checkpoint": 2356
+  },
+  "legacy_billing_recovered": {
+    "target_events": 87,
+    "ledger_rows": 76,
+    "resolved_failures": 76,
+    "statuses": {
+      "unpriced": 76
+    },
+    "null_cost_rows": 76,
+    "total_ledger": 699,
+    "pending_failures": 11,
+    "checkpoint": 2356
+  },
+  "completed_at_utc": "2026-09-26T07:26:07Z"
+}
