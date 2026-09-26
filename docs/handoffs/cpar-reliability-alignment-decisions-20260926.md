@@ -1,6 +1,6 @@
 # CPAR 可靠性与 CPA 行为对齐：讨论决策记录
 
-日期：2026-09-26。状态：用户已确认方案，文档交付；功能开发尚未启动。
+日期：2026-09-26。决策确认时状态：用户已确认方案，交付计划文档。其后用户已指令实施 M0/M1；动态进度以关联开发计划与验收清单为准，本页保留讨论原始决定。
 
 关联：[开发计划](cpar-reliability-alignment-plan-20260926.md) · [验收清单](cpar-reliability-alignment-acceptance-20260926.md) · [当前状态](../reports/cpar-current-status-20260926.md)。
 
