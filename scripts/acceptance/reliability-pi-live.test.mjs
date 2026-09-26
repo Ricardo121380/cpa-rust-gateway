@@ -11,7 +11,7 @@ for(const scenario of ['missing','malformed','wrong_revision','stale','future','
     const dir=fs.mkdtempSync(path.join(os.tmpdir(),'cpar-preflight-test-'));
     try {
       const config=path.join(dir,'config.json'), ledger=path.join(dir,'ledger.json'), receipt=path.join(dir,'receipt.json'), preflight=path.join(dir,'preflight.json'), module=path.join(dir,'client.mjs');
-      fs.writeFileSync(config,JSON.stringify({baseUrl:'https://cpar.142857142.xyz/v1',model:'grok-4.5',apiKey:'synthetic-test-only'}),{mode:0o600});
+      fs.writeFileSync(config,JSON.stringify({baseUrl:'https://cpar.142857142.xyz/v1',model:'grok-4.5',apiKey:'test-only'}),{mode:0o600});
       fs.writeFileSync(ledger,JSON.stringify({plan:'cpar-reliability-20260926',allowance:12,maxOutputTokens:512,attempts:[]}));
       const ledgerBefore=fs.readFileSync(ledger,'utf8');
       fs.writeFileSync(module,`import fs from 'node:fs';export async function* stream(){fs.writeFileSync(${JSON.stringify(path.join(dir,'sdk-invoked'))},'unexpected');throw Error('SDK must not be invoked');}`);
@@ -33,7 +33,7 @@ for(const [stopReason,rawStopReason] of [['length','incomplete.max_output_tokens
     const dir=fs.mkdtempSync(path.join(os.tmpdir(),'cpar-terminal-test-'));
     try {
       const names=Object.fromEntries(['config','ledger','receipt','preflight','client'].map(n=>[n,path.join(dir,n+(n==='client'?'.mjs':'.json'))]));
-      fs.writeFileSync(names.config,JSON.stringify({baseUrl:'https://cpar.142857142.xyz/v1',model:'grok-4.5',apiKey:'synthetic-test-only'}),{mode:0o600});
+      fs.writeFileSync(names.config,JSON.stringify({baseUrl:'https://cpar.142857142.xyz/v1',model:'grok-4.5',apiKey:'test-only'}),{mode:0o600});
       fs.writeFileSync(names.ledger,JSON.stringify({plan:'cpar-reliability-20260926',allowance:12,maxOutputTokens:512,attempts:[]}));
       fs.writeFileSync(names.preflight,JSON.stringify({candidate_revision:revision,observed_at_ms:Date.now(),routes:{'grok-4.5':{max_attempts:1}}}));
       fs.writeFileSync(names.client,`globalThis.fetch=async()=>new Response('',{status:200});export async function* stream(model,context,options){await options.fetch(model.baseUrl+'/responses',{method:'POST',body:JSON.stringify({model:model.id,max_output_tokens:512,stream:true,reasoning:{effort:'low'}})});yield {type:'done',message:${JSON.stringify({stopReason,rawStopReason,usage:{output:512},content:[{type:'toolCall',id:'c',name:'diagnostic_echo',arguments:{value:'CPAR_TOOL_OK'}}]})}};}`);
