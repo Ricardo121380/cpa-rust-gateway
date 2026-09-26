@@ -17,11 +17,11 @@
 | M1-04 | 异常记录 | 可重试错误有界恢复；毒记录可追溯隔离，不静默丢弃或无限重试 | 重试计数、隔离原因、前后源数据 | 本地通过；[逐项证据](../reports/cpar-reliability-m0-m1-20260926.md) |
 | M1-05 | 历史兼容 | 11条已批准歧义事件仍保留隔离；近期完整查询和全历史部分查询语义保持 | 隔离生产副本、独立计数、原记录与账本保留 | 本地通过；[逐项证据](../reports/cpar-reliability-m0-m1-20260926.md) |
 | M1-06 | 流与关停 | 正常关停排空；客户端取消、上游断流、终态未知不误记成功，租约能释放 | JSON/SSE、取消/超时、关停与恢复 | 本地通过；[逐项证据](../reports/cpar-reliability-m0-m1-20260926.md) |
-| M2-01 | 授权与导入 | 渠道自身的真实入口；不出现 Kimi 选 Codex 的跨渠道误绑；重复导入处理可解释 | 各渠道本地交换/导入回归；真实官方登录另列 | 未执行 |
-| M2-02 | 自动刷新 | 支持 refresh 的渠道有真实 worker 装配；过期、撤销、临时失败、CAS冲突分类正确 | 启动/周期/退避/CAS/停机测试与装配证据 | 未执行 |
-| M2-03 | 身份、协议、额度 | 可靠身份来自授权/导入/已支持元数据；协议准确，额度有来源/时效，未知不补零 | 管理投影与真实应用操作；合成数据标明 | 未执行 |
-| M2-04 | 目录与模型权限 | 刷新访问上游、重读只读缓存；分页完整、exact ID、多来源和账号隔离；发现不扩权 | mock目录＋允许的真实元数据回读，未授权调用拒绝 | 未执行 |
-| M2-05 | 续接 | 同账号刷新后的可续接条件有协议依据；拒绝跨账号/撤销/归属不明，保持工具与reasoning | 原生适配器 JSON/SSE 多轮/工具/轮转矩阵 | 未执行 |
+| M2-01 | 授权与导入 | 渠道自身的真实入口；不出现 Kimi 选 Codex 的跨渠道误绑；重复导入处理可解释 | 各渠道本地交换/导入回归；真实官方登录另列 | 本地通过；官方登录属M4；[证据](../reports/cpar-reliability-m2-20260926.md) |
+| M2-02 | 自动刷新 | 支持 refresh 的渠道有真实 worker 装配；过期、撤销、临时失败、CAS冲突分类正确 | 启动/周期/退避/CAS/停机测试与装配证据 | 本地通过；启动/周期/claim/CAS/退避/停机已覆盖；[证据](../reports/cpar-reliability-m2-20260926.md) |
+| M2-03 | 身份、协议、额度 | 可靠身份来自授权/导入/已支持元数据；协议准确，额度有来源/时效，未知不补零 | 管理投影与真实应用操作；合成数据标明 | 本地投影通过；浏览器/真实元数据属M3/M4；[证据](../reports/cpar-reliability-m2-20260926.md) |
+| M2-04 | 目录与模型权限 | 刷新访问上游、重读只读缓存；分页完整、exact ID、多来源和账号隔离；发现不扩权 | mock目录＋允许的真实元数据回读，未授权调用拒绝 | 本地mock通过；真实元数据属M4；Kiro CLI/API Key保持能力限制；[证据](../reports/cpar-reliability-m2-20260926.md) |
+| M2-05 | 续接 | 同账号刷新后的可续接条件有协议依据；拒绝跨账号/撤销/归属不明，保持工具与reasoning | 原生适配器 JSON/SSE 多轮/工具/轮转矩阵 | 本地原生编解码/HTTP历史通过；真实链路属M4；[证据](../reports/cpar-reliability-m2-20260926.md) |
 | M3-01 | 应用错误 | 渲染异常出现安全恢复界面，不露原始堆栈；恢复动作有效，错误仍可定位 | 故障注入＋真实应用 EgoLite 操作 | 未执行 |
 | M3-02 | 请求分页 | 下一页/后台刷新失败保留已加载数据与筛选；仅重试失败读取，首屏错误单独呈现 | 组件/交互回归、错误与恢复截图 | 未执行 |
 | M3-03 | 会话与并发 | 401清理秘密/缓存/轮询，旧响应不污染新会话；409及不确定写入不自动重放 | 乱序/失效/并发/丢响应回归 | 未执行 |
@@ -40,20 +40,20 @@
 
 ## 2. 渠道验收矩阵
 
-M0 已按当前源码核对下表能力，符号与差距见 [渠道基线](cpar-reliability-m0-baseline-20260926.md)。这不代表 M2 专项或真实授权已经通过；不能以静态样例冒充发现，也不能把 API Key 或 SSO 硬套 refresh token。
+M0 已按当前源码核对下表能力，符号与差距见 [渠道基线](cpar-reliability-m0-baseline-20260926.md)。本表已追加 M2 本地回归结果；M0 静态核对本身不证明专项或真实授权通过，不能以静态样例冒充发现，也不能把 API Key 或 SSO 硬套 refresh token。
 
 | 渠道 | 首次/重授权或更新、导入 | 身份与协议 | 刷新/过期恢复 | 目录/额度/隔离 | 本地功能 | 本轮真实验证 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 普通 API/兼容上游（含 Krill） | API Key/文件导入、凭据更新；无通用OAuth | 输入或可靠元数据；按配置协议 | 无通用token refresh | models_path；未知额度不补零 | M2专项未执行 | 未执行 |
-| Codex/ChatGPT | AuthCode、replace_existing、OAuth JSON | 授权身份；Responses | 已有worker；轮转专项待M2 | 原生目录/权益，保留账号归属 | M2专项未执行 | 未执行 |
-| Claude | AuthCode、替换、OAuth JSON | 可靠身份；Messages | 定时worker装配待M2 | models_path；无证据额度保持未知 | M2专项未执行 | 未执行 |
-| Kimi | Coding Device/JSON；API Key另分支 | 可靠身份；Coding与API分开 | Coding已有worker；专项待M2 | 按兼容目录与实际来源 | M2专项未执行 | 未执行 |
-| Kiro | OIDC Device/替换/JSON | Provider元数据与协议 | 定时worker装配待M2 | Provider支持目录/订阅；通用装配待M2 | M2专项未执行 | 未执行 |
-| Grok Web | SSO导入/替换；不承诺OAuth登录 | 身份按可靠元数据 | 无refresh token；更新/重授权 | 不套Build目录；保留未知/来源限制 | M2专项未执行 | 未执行 |
-| Grok Console | SSO导入/替换；不承诺OAuth登录 | 身份探测；缺失如实显示 | 无refresh token；更新/重授权 | 额度有类型；目录能力限制 | M2专项未执行 | 未执行 |
-| Grok Build | Device OAuth/重新授权/原生导入 | 原生身份；Responses | 已有原生token worker | 真实Build目录；启停/冷却/诊断 | M2专项未执行 | 未执行 |
+| 普通 API/兼容上游（含 Krill） | API Key/文件导入、凭据更新；无通用OAuth | 输入或可靠元数据；按配置协议 | 无通用token refresh | models_path；未知额度不补零 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Codex/ChatGPT | AuthCode、replace_existing、OAuth JSON | 授权身份；Responses | 持久claim/CAS/退避worker；普通续接严格revision | 原生目录/权益，保留账号归属 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Claude | AuthCode、替换、OAuth JSON | 可靠身份；Messages | 启动/定时持久worker已装配 | models_path；无证据额度保持未知 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Kimi | Coding Device/JSON；API Key另分支 | 可靠身份；Coding与API分开 | Coding持久worker已装配 | 按兼容目录与实际来源 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Kiro | OIDC Device/替换/JSON | Provider元数据与协议 | 启动/定时持久worker已装配 | IDE OAuth分页目录已装配；CLI/API Key元数据限制、额度未知 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Grok Web | SSO导入/替换；不承诺OAuth登录 | 身份按可靠元数据 | 无refresh token；更新/重授权 | 不套Build目录；保留未知/来源限制 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Grok Console | SSO导入/替换；不承诺OAuth登录 | 身份探测；缺失如实显示 | 无refresh token；更新/重授权 | 额度有类型；目录能力限制 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Grok Build | Device OAuth/重新授权/原生导入 | 原生身份；Responses | 原生worker＋同grant刷新证明 | 真实Build目录；启停/冷却/诊断 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
 
-每行最终附代码/接口、能力来源、测试编号及证据链接。真实调用只从明确可用渠道按冻结清单分配；缺授权的渠道保留人工依赖，不能变更为“真实通过”。
+每行的代码/接口、能力来源与实际测试见 [M2 报告](../reports/cpar-reliability-m2-20260926.md)。真实调用只从明确可用渠道按冻结清单分配；缺授权的渠道保留人工依赖，不能变更为“真实通过”。
 
 ## 3. 页面和布局矩阵
 
@@ -75,4 +75,4 @@ M0 已按当前源码核对下表能力，符号与差距见 [渠道基线](cpar
 
 ## 5. 计划落盘检查与实施门禁区分
 
-最初的计划落盘只检查文档，不计为功能通过。后续 M0/M1 的实际实现与本地门禁单独记录于 [实施报告](../reports/cpar-reliability-m0-m1-20260926.md)。M2–M4 仍须依本表独立验收；本地通过不等于生产上线、真实推理或视觉验收。
+最初的计划落盘只检查文档，不计为功能通过。后续 M0/M1 的实际实现与本地门禁单独记录于 [实施报告](../reports/cpar-reliability-m0-m1-20260926.md)。M2 的本地验收已完成，M3/M4 仍须依本表独立验收；本地通过不等于生产上线、真实推理或视觉验收。

@@ -1,0 +1,241 @@
+{
+  "implementation_commit": "1a2fdb86f7e6be42f9f437d74797dc14e89f8353",
+  "validation": "local only; no production, real provider inference or official login",
+  "fast_gate": "PASS",
+  "fast_log_sha256": "cd1108a8d3b7cb53580d3e79409bab707a6d5f8e5fdfe95e687e0d03921eee69",
+  "rust_command": "cargo test --locked --workspace --all-features",
+  "rust": {
+    "passed": 1350,
+    "failed": 0,
+    "ignored": 12
+  },
+  "selected_rust_tests": [
+    "credential_refresh::tests::claude_and_kiro_scope_requires_enabled_exact_owner_binding ... ok",
+    "credential_refresh::tests::refresh_scope_uses_exact_channel_binding_not_the_oauth_storage_label ... ok",
+    "credential_refresh::ordinary::tests::http_exchange_bounds_bodies_and_does_not_follow_redirects ... ok",
+    "credential_refresh::ordinary::tests::unknown_rejections_are_not_revocation_and_stop_prevents_new_exchanges ... ok",
+    "credential_refresh::ordinary::tests::stop_during_exchange_commits_current_result_but_never_starts_the_next ... ok",
+    "runtime::catalog_refresh::tests::kiro_pages_keep_exact_identity_ids_and_cursor_until_complete ... ok",
+    "runtime::catalog_refresh::tests::kiro_partial_or_repeated_pages_never_return_a_successful_partial_catalog ... ok",
+    "credential_refresh::ordinary::tests::damaged_ciphertext_is_isolated_from_a_healthy_sibling ... ok",
+    "credential_refresh::ordinary::tests::bounded_pass_leaves_remaining_credentials_for_the_next_pass ... ok",
+    "credential_refresh::ordinary::tests::startup_refreshes_expired_claude_and_kiro_and_preserves_identity_and_kind ... ok",
+    "credential_refresh::ordinary::tests::failures_backoff_across_passes_and_revoked_grants_stop_refreshing ... ok",
+    "runtime::m2_continuity::native_build_http_history_survives_proven_rotation_in_json_and_sse ... ok",
+    "runtime::tests::oauth_expiry_is_published_even_if_startup_refresh_cannot_complete ... ok",
+    "account_presentation::tests::channel_names_do_not_depend_on_opaque_credential_ids_or_oauth_storage_kind ... ok",
+    "first_codex_authorization_creates_only_after_callback_and_rejects_replay ... ok",
+    "claude_enrollment_and_reauthorization_keep_one_identity_and_reject_wrong_account ... ok",
+    "kiro_import_uses_its_prepared_region_target_without_an_endpoint_binding ... ok",
+    "named_channel_imports_use_prepared_targets_without_bindings ... ok",
+    "repeated_oauth_import_rotates_one_account_but_keeps_other_members_separate ... ok",
+    "kimi_device_enrollment_is_channel_bound_and_persists_only_after_success ... ok",
+    "kiro_device_enrollment_has_no_placeholder_and_persists_only_after_exchange ... ok",
+    "credential_refresh::tests::changed_credential_or_archived_graph_blocks_all_old_outcomes ... ok",
+    "credential_refresh::tests::persistent_backoff_revocation_and_manual_replacement_are_revision_scoped ... ok",
+    "credential_refresh::tests::claim_lease_fences_late_success_and_late_failure ... ok",
+    "credential_refresh::tests::claims_and_backoff_survive_reopen_and_peer_connections ... ok",
+    "credential_refresh::tests::schema_thirty_rolls_back_without_rolling_back_rotated_secrets_or_audits ... ok",
+    "credential_pool::tests::proven_build_rotation_preserves_history_but_reauthorization_revokes_it ... ok",
+    "runtime_credential::tests::refresh_rejects_different_account_without_mutation_and_preserves_identity ... ok",
+    "proven_build_rotation_survives_reload_and_rejects_unknown_or_changed_owner ... ok",
+    "completion_cannot_commit_after_claim_deadline ... ok",
+    "catalog::tests::metadata_preserves_ids_and_rejects_partial_or_malformed_pages ... ok",
+    "catalog::tests::metadata_request_stays_in_exact_region_and_credential_family ... ok"
+  ],
+  "ignored_tests": [
+    "runtime::tests::m1_mock_request_confirmation_timing ... ignored, isolated M1 timing run, five samples per mode; no provider network",
+    "authorized_loopback_soak_writes_a_value_free_receipt ... ignored, P11-04 runs only through scripts/run-p11-04-soak.sh",
+    "authorized_real_endpoints_validate_non_streaming_and_sse_paths ... ignored, requires explicit P3_10_* real-test configuration and user authorization",
+    "authorized_single_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P4_00_DIAGNOSTIC_* authorization and one-request configuration",
+    "local_claude_code_bare_covers_normal_tool_parallel_tool_and_plan_mode ... ignored, requires P5_07_CLAUDE_CODE_BIN and launches a loopback-only local Claude Code --bare client",
+    "event_store::durability_tests::crash_child ... ignored, subprocess crash fixture",
+    "event_store::durability_tests::historical_production_projection_survives_migration_and_partial_read ... ignored, requires CPAR_M1_HISTORY_PROJECTION owner-readable input",
+    "random_seed_tool_chunk_interleavings_are_replayable ... ignored, run scripts/run-p1-09-property.sh to generate or replay P1_09_SEED",
+    "authorized_build_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P6_03_* authorization, one target, one mode, and one-request configuration",
+    "official_cli_cache_preflight_builds_without_network ... ignored, requires explicit P6_03_LOCAL_CACHE_PREFLIGHT and one official-CLI cache path; no network",
+    "authorized_official_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P8_07_* authorization, one Official API key, one target, one mode, and one-request configuration",
+    "authorized_web_canary_uses_one_fixed_target_and_one_send ... ignored, requires P9_09_* authorization, one temporary grok2api Web SSO token, one target label, and one-request configuration"
+  ],
+  "prism": {
+    "command": "npm --prefix web/prism test -- src/features/accounts src/features/catalog src/features/models/connectModel src/features/upstreams/nativeProviderPanel",
+    "files_passed": 12,
+    "tests_passed": 33
+  },
+  "real_gateway_loopback": [
+    {
+      "passed": true,
+      "real_gateway": true,
+      "provider": "owned loopback TLS mock",
+      "real_provider_calls": 0,
+      "checks": [
+        {
+          "stream": false,
+          "stored": false,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": false,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": false,
+          "turn": 3,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": false,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": false,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": false,
+          "turn": 3,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": true,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": true,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": false,
+          "stored": true,
+          "turn": 3,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": true,
+          "turn": 1,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": true,
+          "turn": 2,
+          "completed": true
+        },
+        {
+          "stream": true,
+          "stored": true,
+          "turn": 3,
+          "completed": true
+        }
+      ],
+      "summary": {
+        "attempts": 12,
+        "average_duration_ms": 2.1333333333333333,
+        "average_first_content_ms": 2.3333333333333335,
+        "cancelled": 0,
+        "failed": 3,
+        "p50_duration_ms": 2,
+        "p95_duration_ms": 5,
+        "requests": 15,
+        "succeeded": 12,
+        "success_rate": 0.8,
+        "unknown": 0
+      },
+      "replayed_gateway_output": true,
+      "decode_failures_observed": 3,
+      "successful_requests_materialized": 12
+    },
+    {
+      "observed_summary": {
+        "attempts": 5,
+        "average_duration_ms": 63.2,
+        "average_first_content_ms": 78.25,
+        "cancelled": 1,
+        "failed": 2,
+        "p50_duration_ms": 90,
+        "p95_duration_ms": 95,
+        "requests": 5,
+        "succeeded": 2,
+        "success_rate": 0.4,
+        "unknown": 0
+      },
+      "rows": [
+        {
+          "result": "cancelled",
+          "duration_ms": 90,
+          "first_content_ms": 90,
+          "ledger_records": 0
+        },
+        {
+          "result": "failed",
+          "duration_ms": 95,
+          "first_content_ms": 95,
+          "ledger_records": 0
+        },
+        {
+          "result": "failed",
+          "duration_ms": 2,
+          "first_content_ms": null,
+          "ledger_records": 0
+        },
+        {
+          "result": "succeeded",
+          "duration_ms": 93,
+          "first_content_ms": 92,
+          "ledger_records": 1
+        },
+        {
+          "result": "succeeded",
+          "duration_ms": 36,
+          "first_content_ms": 36,
+          "ledger_records": 1
+        }
+      ]
+    },
+    {
+      "passed": true,
+      "checks": [
+        "full two-page catalog refresh does not widen served models or key grants",
+        "local-json-acceptance",
+        "local-stream-acceptance",
+        "fail-acceptance",
+        "truncate-acceptance",
+        "client stream cancellation"
+      ],
+      "summary": {
+        "attempts": 5,
+        "average_duration_ms": 63.2,
+        "average_first_content_ms": 78.25,
+        "cancelled": 1,
+        "failed": 2,
+        "p50_duration_ms": 90,
+        "p95_duration_ms": 95,
+        "requests": 5,
+        "succeeded": 2,
+        "success_rate": 0.4,
+        "unknown": 0
+      },
+      "real_gateway": true,
+      "provider": "owned loopback TLS mock",
+      "real_provider_inference_calls": 0,
+      "catalog_models": 3,
+      "opened_models": 1,
+      "successes_materialized": true
+    }
+  ],
+  "real_provider_inference_attempts": 0
+}
