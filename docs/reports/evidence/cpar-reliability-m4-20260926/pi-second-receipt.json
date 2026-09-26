@@ -1,0 +1,23 @@
+{
+  "client": "Pi",
+  "clientModule": "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/api/openai-responses.js",
+  "model": "grok-4.5",
+  "maxOutputTokens": 512,
+  "maxRetries": 0,
+  "offline": false,
+  "turns": [
+    {
+      "turn": 1,
+      "required": true,
+      "wireRequests": 1,
+      "requestId": null,
+      "result": "client_stream_error",
+      "events": {
+        "error": 1
+      },
+      "httpStatus": 502,
+      "errorClass": "UpstreamProtocolError"
+    }
+  ],
+  "passed": false
+}

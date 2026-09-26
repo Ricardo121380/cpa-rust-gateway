@@ -933,6 +933,7 @@ impl AttemptOrchestrator {
             return Err(egress_unavailable_error());
         }
         let required_capability = match pin.kind() {
+            ResponsesContinuationKind::OwnedReasoning => SemanticCapability::Reasoning,
             ResponsesContinuationKind::StoredResponse => SemanticCapability::StoredResponses,
             ResponsesContinuationKind::Compaction => SemanticCapability::ResponseCompaction,
             ResponsesContinuationKind::WebSocketSession => SemanticCapability::ResponsesWebSocket,

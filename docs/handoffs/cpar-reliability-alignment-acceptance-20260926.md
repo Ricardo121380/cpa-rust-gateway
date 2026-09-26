@@ -31,10 +31,10 @@
 | M4-01 | 大样本正确性 | 10万/100万合成请求的窄窗、分页、汇总与独立计算一致，未知和排除口径不变 | 固定数据脚本、环境与查询结果对照 | 本地通过；[M4证据](../reports/cpar-reliability-m4-20260926.md) |
 | M4-02 | 性能与容量 | 账本批读，无逐行查询；过滤下推，聚合成本明确；容量告警可触发且不删除历史 | SQL/扫描成本、耗时/内存、磁盘/WAL/积压指标 | 本地通过；真实容量快照、390px告警与辅助偏好已核验 |
 | M4-03 | 本地真实网关 | 授权/导入→身份/协议→目录→开放→受限Key→mock请求→终态/趋势/账本 | 嵌入正式SPA＋真实gateway＋loopback mock | 本地通过；本轮48工作区/18弹窗与实际模型-Key-mock账本链 |
-| M4-04 | 正式门禁 | 适用前端、Rust、契约、嵌入、供应链与确定性四文件构建通过 | 同一候选commit的门禁与签名回执 | 3de0319正式门禁/签名双架构通过；a49c491修复版正在重新构建 |
+| M4-04 | 正式门禁 | 适用前端、Rust、契约、嵌入、供应链与确定性四文件构建通过 | 同一候选commit的门禁与签名回执 | f1e576c完整门禁、双架构独立签名校验与发布通过；加密reasoning修复尚在本地 |
 | M4-05 | 升级与回退 | 隔离生产副本演练成功，账号/权限/历史保留；schema变化有实际回退路径 | 升级、回退、再升级比对，无真实外发 | 通过；完整副本28→31→兼容30→31，管理员/账号/权限/历史保留 |
-| M4-06 | 真实调用 | 新增总次数≤12，单次输出≤512，无自动重试；代表性多轮与可用渠道冒烟 | 每次尝试登记、客户端/网关/事件/账本回读 | 进行中；1/12，Pi首轮流错误已持久失败，无重试 |
-| M4-07 | 发布与现网 | 签名候选、进程与资产一致；API鉴权/隔离、数据保留、回滚点与域名可访问 | Oracle现网回执；不改DNS/Caddy/Autoreg | 3de0319/schema31已发布；首批回执通过，流修复尚待发布 |
+| M4-06 | 真实调用 | 新增总次数≤12，单次输出≤512，无自动重试；代表性多轮与可用渠道冒烟 | 每次尝试登记、客户端/网关/事件/账本回读 | 进行中；4/12：三次Build协议拒绝，一次Console凭据拒绝，均1attempt/已持久失败 |
+| M4-07 | 发布与现网 | 签名候选、进程与资产一致；API鉴权/隔离、数据保留、回滚点与域名可访问 | Oracle现网回执；不改DNS/Caddy/Autoreg | f1e576c/schema31已发布；回执通过；已定位加密reasoning拒绝，修复未发布 |
 | M4-08 | 登录后复验 | 生产八工作区与主要操作、旧标签页跨版本刷新/锁定；需本人登录时单独记录 | EgoLite实际登录态证据，不能用登录页替代 | 待本人登录；EgoLite空间13生产页已交回用户 |
 | M4-09 | 最终报告 | 实现/本地/真实/生产/人工待验分开；失败原因、提交、回滚、入口可审查 | 更新本清单和当前状态，关联交付报告 | 进行中；见M4报告；不得标整轮完成 |
 
@@ -45,13 +45,13 @@ M0 已按当前源码核对下表能力，符号与差距见 [渠道基线](cpar
 | 渠道 | 首次/重授权或更新、导入 | 身份与协议 | 刷新/过期恢复 | 目录/额度/隔离 | 本地功能 | 本轮真实验证 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 普通 API/兼容上游（含 Krill） | API Key/文件导入、凭据更新；无通用OAuth | 输入或可靠元数据；按配置协议 | 无通用token refresh | models_path；未知额度不补零 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 隔离副本Krill两接口各21个实取模型；未推理 |
-| Codex/ChatGPT | AuthCode、replace_existing、OAuth JSON | 授权身份；Responses | 持久claim/CAS/退避worker；普通续接严格revision | 原生目录/权益，保留账号归属 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Codex/ChatGPT | AuthCode、replace_existing、OAuth JSON | 授权身份；Responses | 持久claim/CAS/退避worker；普通续接严格revision | 原生目录/权益，保留账号归属 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 目录读取authentication失败；尚未推理 |
 | Claude | AuthCode、替换、OAuth JSON | 可靠身份；Messages | 启动/定时持久worker已装配 | models_path；无证据额度保持未知 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
 | Kimi | Coding Device/JSON；API Key另分支 | 可靠身份；Coding与API分开 | Coding持久worker已装配 | 按兼容目录与实际来源 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
 | Kiro | OIDC Device/替换/JSON | Provider元数据与协议 | 启动/定时持久worker已装配 | IDE OAuth分页目录已装配；CLI/API Key元数据限制、额度未知 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
 | Grok Web | SSO导入/替换；不承诺OAuth登录 | 身份按可靠元数据 | 无refresh token；更新/重授权 | 不套Build目录；保留未知/来源限制 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
-| Grok Console | SSO导入/替换；不承诺OAuth登录 | 身份探测；缺失如实显示 | 无refresh token；更新/重授权 | 额度有类型；目录能力限制 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
-| Grok Build | Device OAuth/重新授权/原生导入 | 原生身份；Responses | 原生worker＋同grant刷新证明 | 真实Build目录；启停/冷却/诊断 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 未执行 |
+| Grok Console | SSO导入/替换；不承诺OAuth登录 | 身份探测；缺失如实显示 | 无refresh token；更新/重授权 | 额度有类型；目录能力限制 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 单次JSON CredentialUnauthorized，需有效SSO；无自动重试 |
+| Grok Build | Device OAuth/重新授权/原生导入 | 原生身份；Responses | 原生worker＋同grant刷新证明 | 真实Build目录；启停/冷却/诊断 | 本地回归通过；见[M2报告](../reports/cpar-reliability-m2-20260926.md) | 一账号真实4模型；两次Pi协议拒绝已留证，未通过多轮 |
 
 每行的代码/接口、能力来源与实际测试见 [M2 报告](../reports/cpar-reliability-m2-20260926.md)。真实调用只从明确可用渠道按冻结清单分配；缺授权的渠道保留人工依赖，不能变更为“真实通过”。
 
@@ -65,14 +65,18 @@ M0 已按当前源码核对下表能力，符号与差距见 [渠道基线](cpar
 
 ## 4. 真实推理尝试登记
 
-当前使用1/12。执行前补具体渠道、exact模型、协议、客户端、用例和限制；每次发送前先登记序号，发送结果不明按已用处理。任何自动重试、自动换号重放、客户端补发均不得逃过总计数。
+当前使用4/12。执行前补具体渠道、exact模型、协议、客户端、用例和限制；每次发送前先登记序号，发送结果不明按已用处理。任何自动重试、自动换号重放、客户端补发均不得逃过总计数。
 
 | 序号 | 候选版本/环境 | 渠道/模型/协议 | 测试目标与输出限制 | 发送时间及是否已用 | 结果分类 | 持久事件/用量/账本证据 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 3de0319 / Oracle生产 | Grok Build / grok-4.5 / Responses SSE / Pi | 合成工具首轮，low，512，无重试 | 2026-09-26T15:22:54Z，已用1/12 | HTTP200后UpstreamProtocolError | 整次failed/1attempt/用量未知/无账本；见[M4](../reports/cpar-reliability-m4-20260926.md) |
+
+第2次：079a683 Build/Pi，2026-09-26T17:21:46Z，HTTP502/UpstreamProtocolError；第3次：079a683 Console/JSON，2026-09-26T17:30:43Z，CredentialUnauthorized。两次均512上限、无重试、持久1attempt/failed/未知用量；精确时间与回执见M4报告。
 
 不保存密钥、token、密码或模型私有内容；错误只记录脱敏分类。未知费用保持未知。预算用尽后仍未通过的必需项不得标完成；明确是实现故障、官方登录依赖、上游失败还是未获追加额度。
 
 ## 5. 计划落盘检查与实施门禁区分
 
 最初的计划落盘只检查文档，不计为功能通过。后续 M0/M1 的实际实现与本地门禁单独记录于 [实施报告](../reports/cpar-reliability-m0-m1-20260926.md)。M2、M3 的本地验收已完成，M3视觉证据单独列明；M4仍须依本表独立验收。本地通过不等于生产上线或真实推理。
+
+第4次：f1e576c Build/Pi 单轮诊断，HTTP502/UpstreamProtocolError，2003ms，1attempt、无usage/账本。reasoning metadata拒绝非空encrypted_content。剩余8次；修复验证前不再次调用。

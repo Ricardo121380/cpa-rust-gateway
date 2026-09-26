@@ -322,6 +322,24 @@ impl GrokBuildResponsesRequestBuilder {
         mode: ResponseMode,
         cache_identity: Option<&GrokBuildCacheIdentity>,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
+        Self::build_owned(
+            credential,
+            upstream_model,
+            request,
+            mode,
+            cache_identity,
+            None,
+        )
+    }
+
+    pub(crate) fn build_owned(
+        credential: &GrokBuildCredential,
+        upstream_model: &str,
+        request: &CanonicalRequest,
+        mode: ResponseMode,
+        cache_identity: Option<&GrokBuildCacheIdentity>,
+        owner: Option<&crate::GrokBuildReasoningOwner>,
+    ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
         if credential.access_token().is_empty()
             || !credential
                 .access_token()
@@ -351,7 +369,7 @@ impl GrokBuildResponsesRequestBuilder {
             request_id: random_uuid_v4()?,
             traceparent: random_traceparent()?,
             model_override: upstream_model.to_owned(),
-            body: encode_body(upstream_model, request, mode, cache_identity)?,
+            body: encode_body(upstream_model, request, mode, cache_identity, owner)?,
         })
     }
 }
@@ -361,6 +379,7 @@ fn encode_body(
     request: &CanonicalRequest,
     mode: ResponseMode,
     cache_identity: Option<&GrokBuildCacheIdentity>,
+    owner: Option<&crate::GrokBuildReasoningOwner>,
 ) -> Result<Vec<u8>, GatewayError> {
     let mut root = Map::new();
     root.insert("model".to_owned(), Value::String(upstream_model.to_owned()));
@@ -369,7 +388,7 @@ fn encode_body(
         Value::Bool(matches!(mode, ResponseMode::Streaming)),
     );
 
-    let input = encode_input(&request.messages)?;
+    let input = encode_input(&request.messages, owner)?;
     if !input.is_empty() {
         let input = plain_user_text_input(&request.messages).map_or_else(
             || Value::Array(input),
@@ -468,7 +487,10 @@ fn append_hex_byte(output: &mut String, byte: u8) {
     output.push(char::from(HEX[usize::from(byte & 0x0f)]));
 }
 
-fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayError> {
+fn encode_input(
+    messages: &[CanonicalMessage],
+    owner: Option<&crate::GrokBuildReasoningOwner>,
+) -> Result<Vec<Value>, GatewayError> {
     let mut input = Vec::new();
     for message in messages {
         let role = message.role.0.as_str();
@@ -501,9 +523,20 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
                     if role != "assistant" {
                         return Err(provider_protocol_error());
                     }
-                    input.push(protocol_openai_responses::encode_reasoning_history(
-                        history,
-                    )?);
+                    let mut item: Value = serde_json::from_str(history.raw().get())
+                        .map_err(|_| provider_protocol_error())?;
+                    if item.get("encrypted_content").is_some_and(|v| !v.is_null()) {
+                        owner
+                            .ok_or_else(provider_protocol_error)?
+                            .open_item(&mut item)?;
+                        item.as_object_mut()
+                            .ok_or_else(provider_protocol_error)?
+                            .entry("summary")
+                            .or_insert_with(|| serde_json::json!([]));
+                    } else {
+                        item = protocol_openai_responses::encode_reasoning_history(history)?;
+                    }
+                    input.push(item);
                 }
                 MessageContent::ToolCall(call) => {
                     flush_message_parts(&mut input, role, &message.extensions, &mut message_parts)?;
@@ -859,12 +892,22 @@ impl GrokBuildResponsesDecoder {
     ///
     /// Returns a safe provider/stream protocol error for malformed or unrepresentable input.
     pub fn decode_non_streaming(input: &[u8]) -> Result<CanonicalResponse, GatewayError> {
+        Self::decode_owned(input, None)
+    }
+
+    fn decode_owned(
+        input: &[u8],
+        owner: Option<crate::GrokBuildReasoningOwner>,
+    ) -> Result<CanonicalResponse, GatewayError> {
         let value = parse_strict_json(input, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
             .map_err(|()| provider_protocol_error())?;
         let response = value.as_object().ok_or_else(provider_protocol_error)?;
         let output = required_array(response, "output", provider_protocol_error())?;
 
-        let mut state = GrokBuildResponsesDecodeState::default();
+        let mut state = GrokBuildResponsesDecodeState {
+            reasoning_owner: owner,
+            ..Default::default()
+        };
         let mut events = Vec::new();
         state.handle_response_created(response, &mut events)?;
         for item in output {
@@ -891,8 +934,16 @@ impl GrokBuildResponsesDecoder {
         content_encoding: Option<&str>,
         input: &[u8],
     ) -> Result<CanonicalResponse, GatewayError> {
+        Self::decode_owned_with_encoding(content_encoding, input, None)
+    }
+
+    pub(crate) fn decode_owned_with_encoding(
+        content_encoding: Option<&str>,
+        input: &[u8],
+        owner: Option<crate::GrokBuildReasoningOwner>,
+    ) -> Result<CanonicalResponse, GatewayError> {
         let decoded = decode_non_streaming_content_encoding(content_encoding, input)?;
-        Self::decode_non_streaming(&decoded)
+        Self::decode_owned(&decoded, owner)
     }
 }
 
@@ -941,6 +992,14 @@ impl GrokBuildResponsesStreamDecoder {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub(crate) fn with_reasoning_owner(
+        mut self,
+        owner: Option<crate::GrokBuildReasoningOwner>,
+    ) -> Self {
+        self.state.reasoning_owner = owner;
+        self
     }
 
     /// Accepts one arbitrary raw SSE byte chunk and returns newly decoded Canonical events.
@@ -1006,6 +1065,7 @@ impl fmt::Debug for GrokBuildResponsesStreamDecoder {
 
 #[derive(Clone, Default)]
 struct GrokBuildResponsesDecodeState {
+    reasoning_owner: Option<crate::GrokBuildReasoningOwner>,
     canonical: CanonicalEventState,
     response_id: Option<String>,
     message_open: bool,
@@ -1025,6 +1085,7 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildResponsesDecodeState")
+            .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("canonical", &self.canonical)
             .field("response_started", &self.response_id.is_some())
             .field("message_open", &self.message_open)
@@ -1056,6 +1117,22 @@ enum OutputItemKind {
 }
 
 impl GrokBuildResponsesDecodeState {
+    fn item_metadata(
+        &self,
+        item: &Map<String, Value>,
+        completed: bool,
+    ) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+        let mut value = Value::Object(item.clone());
+        if value.get("encrypted_content").is_some_and(|v| !v.is_null()) {
+            self.reasoning_owner
+                .as_ref()
+                .ok_or_else(stream_protocol_error)?
+                .seal_item(&mut value)
+                .map_err(|_| stream_protocol_error())?;
+        }
+        protocol_openai_responses::native_item_metadata(&value, completed)
+    }
+
     fn handle_sse_record(
         &mut self,
         record: &[u8],
@@ -1243,10 +1320,7 @@ impl GrokBuildResponsesDecodeState {
         self.ensure_message(events)?;
         self.emit(
             events,
-            CanonicalEvent::OutputItemStart(protocol_openai_responses::native_item_metadata(
-                &Value::Object(item.clone()),
-                false,
-            )?),
+            CanonicalEvent::OutputItemStart(self.item_metadata(item, false)?),
         )?;
 
         if kind == OutputItemKind::FunctionCall {
@@ -1393,10 +1467,7 @@ impl GrokBuildResponsesDecodeState {
             );
         }
         *stage = "metadata";
-        let metadata = protocol_openai_responses::native_item_metadata(
-            &Value::Object(completed.clone()),
-            true,
-        )?;
+        let metadata = self.item_metadata(&completed, true)?;
         *stage = "canonical_item_end";
         self.emit(events, CanonicalEvent::OutputItemEnd(metadata))?;
         self.completed_items
@@ -1708,6 +1779,7 @@ impl GrokBuildResponsesDecodeState {
         Ok(call_id)
     }
 
+    #[allow(clippy::too_many_lines)] // Terminal metadata must agree with every emitted native item.
     fn handle_response_terminal(
         &mut self,
         response: &Map<String, Value>,
@@ -1745,7 +1817,9 @@ impl GrokBuildResponsesDecodeState {
             if self.item_order.get(index).map(String::as_str) != Some(item_id) {
                 return Err(stream_protocol_error());
             }
-            if item.get("encrypted_content").is_some_and(|v| !v.is_null()) {
+            if item.get("encrypted_content").is_some_and(|v| !v.is_null())
+                && self.reasoning_owner.is_none()
+            {
                 return Err(stream_protocol_error());
             }
             let known = self
@@ -1755,6 +1829,9 @@ impl GrokBuildResponsesDecodeState {
                 .ok_or_else(stream_protocol_error)?;
             for (key, value) in item {
                 if key == "encrypted_content" {
+                    if !value.is_null() && known.get(key) != Some(value) {
+                        return Err(stream_protocol_error());
+                    }
                     continue;
                 }
                 if key == "arguments" {

@@ -15,6 +15,7 @@ const PART: &str = "openai.responses.output_part";
 ///
 /// # Errors
 /// Rejects unrepresentable items, unsafe identities, and unowned encrypted reasoning.
+#[allow(clippy::too_many_lines)] // Keep the closed item schema and opaque-token boundary together.
 pub fn native_item_metadata(
     item: &Value,
     completed: bool,
@@ -49,14 +50,20 @@ pub fn native_item_metadata(
         _ => return Err(stream_protocol_error()),
     };
     if item.keys().any(|key| !allowed.contains(&key.as_str()))
-        || item.get("encrypted_content").is_some_and(|v| !v.is_null())
+        || item.get("encrypted_content").is_some_and(|v| {
+            !v.is_null()
+                && v.as_str()
+                    .is_none_or(|v| !gateway_core::is_owned_reasoning_token(v))
+        })
     {
         return Err(stream_protocol_error());
     }
     let incomplete = completed
         && kind != "function_call"
         && item.get("status").and_then(Value::as_str) == Some("incomplete");
-    item.remove("encrypted_content");
+    if item.get("encrypted_content").is_some_and(Value::is_null) {
+        item.remove("encrypted_content");
+    }
     item.insert(
         "status".into(),
         json!(if incomplete {
@@ -122,6 +129,7 @@ pub fn native_item_metadata(
 }
 
 fn clear_item_content(item: &mut serde_json::Map<String, Value>) {
+    item.remove("encrypted_content");
     for field in ["summary", "content"] {
         if item.contains_key(field) {
             item.insert(field.into(), json!([]));

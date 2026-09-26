@@ -1,0 +1,64 @@
+{
+  "requests": [
+    {
+      "attempt_count": 1,
+      "client_key_id": "pi-cpar-grok-build",
+      "cost_confidence": null,
+      "cost_microunits": null,
+      "credential_id": "grok-94ad58bcb057e7c7cc437ae991ecae77",
+      "duration_ms": 2003,
+      "endpoint_id": "p12-12-production-grok-build-endpoint",
+      "error_code": "UpstreamProtocolError",
+      "finished_at_ms": 1790444648106,
+      "first_content_ms": null,
+      "ledger_records": 0,
+      "model": "grok-4.5",
+      "outcome": "failed",
+      "protocol": "openai_responses",
+      "request_id": "p1-request-c93df8659712b18d60fd7e2f9453cb0c-0",
+      "requested_model": "grok-4.5",
+      "started_at_ms": 1790444646103,
+      "streaming": true,
+      "upstream_id": "p12-12-production-grok-build-upstream",
+      "usage": null
+    }
+  ],
+  "attempts": [
+    {
+      "observation": {
+        "attempt_number": 1,
+        "upstream_id": "p12-12-production-grok-build-upstream",
+        "started_at_ms": 1790444646107,
+        "ended_at_ms": 1790444646892,
+        "duration_ms": 785,
+        "error_code": null,
+        "error_scope": null,
+        "retry_decision": "completed"
+      },
+      "attempt_id": "attempt:45:p1-request-c93df8659712b18d60fd7e2f9453cb0c-0:1",
+      "outcome": "succeeded",
+      "stage": "http_status",
+      "endpoint_id": "p12-12-production-grok-build-endpoint",
+      "credential_id": "grok-94ad58bcb057e7c7cc437ae991ecae77"
+    }
+  ],
+  "safe_logs": [
+    {
+      "stage": "metadata",
+      "item_type": "reasoning",
+      "encrypted_content_present": true,
+      "timestamp_us": "1790444648106227"
+    }
+  ],
+  "processing": {
+    "checkpoint_ordinal": 2368,
+    "checkpoint_updated_at_ms": 1790444648109,
+    "failure_code": null,
+    "observed_at_ms": 1790444686322,
+    "quarantined_failures": 11,
+    "source_ordinal": 2368,
+    "state": "needs_repair",
+    "unresolved_failures": 11
+  },
+  "safe_logs_extraction_note": "Re-read bounded journald window; decoded MESSAGE JSON fields exactly. One event; original word matching was replaced, no raw log/body retained."
+}

@@ -18,6 +18,8 @@ pub enum ResponsesContinuationKind {
     Compaction,
     /// Replay one bounded completed turn retained only by the current WebSocket connection.
     WebSocketSession,
+    /// Replay authenticated client-carried reasoning on its original Build binding.
+    OwnedReasoning,
 }
 
 /// Exact immutable routing and Credential identity of the Attempt whose source was returned.

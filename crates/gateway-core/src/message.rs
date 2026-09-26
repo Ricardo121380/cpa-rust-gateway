@@ -75,16 +75,38 @@ impl fmt::Debug for MessageContent {
     }
 }
 
-/// Validated clear-text Responses reasoning history, including its original item identity.
+/// Recognizes only the bounded syntax of a gateway-owned reasoning token.
+/// This is not authentication: the serving runtime must verify AEAD and pin its owner before use.
+#[must_use]
+pub fn is_owned_reasoning_token(value: &str) -> bool {
+    value.len() <= 128 * 1024
+        && value
+            .strip_prefix("cpar_reasoning_v1.")
+            .is_some_and(|body| {
+                body.len() >= 60
+                    && body
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+            })
+}
+
+/// Validated Responses reasoning syntax, including its original item identity.
 ///
 /// The wire item is retained intact so absent/empty summary and content remain distinct.
-/// It may only be replayed to Responses; encrypted items require an ownership-aware path and
-/// are deliberately not admitted here. Debug never exposes reasoning text.
+/// Raw provider ciphertext is rejected. Gateway-owned tokens require runtime authentication
+/// and exact continuation selection; parsing is not authorization. Debug is redacted.
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(try_from = "RawJson", into = "RawJson")]
 pub struct ReasoningHistory(RawJson);
 
 impl ReasoningHistory {
+    /// Whether this item requires authenticated, exact-owner replay at the serving boundary.
+    #[must_use]
+    pub fn has_encrypted_content(&self) -> bool {
+        serde_json::from_str::<serde_json::Value>(self.0.get())
+            .is_ok_and(|v| v.get("encrypted_content").is_some_and(|v| !v.is_null()))
+    }
+
     /// Returns the validated complete top-level wire item.
     #[must_use]
     pub const fn raw(&self) -> &RawJson {
@@ -132,7 +154,10 @@ impl TryFrom<RawJson> for ReasoningHistory {
                 .status
                 .as_deref()
                 .is_some_and(|status| !matches!(status, "completed" | "incomplete"))
-            || item.encrypted_content.is_some()
+            || item
+                .encrypted_content
+                .as_deref()
+                .is_some_and(|v| !is_owned_reasoning_token(v))
             || (item.summary.is_none() && item.content.is_none())
         {
             return Err(INVALID);

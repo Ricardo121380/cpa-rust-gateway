@@ -46,6 +46,10 @@ pub fn encode_reasoning_history(
 ) -> Result<Value, GatewayError> {
     let mut item: Value =
         serde_json::from_str(history.raw().get()).map_err(|_| internal_error())?;
+    // Opaque Build tokens must be opened by their owning adapter, never serialized by a generic one.
+    if item.get("encrypted_content").is_some_and(|v| !v.is_null()) {
+        return Err(internal_error());
+    }
     let object = item.as_object_mut().ok_or_else(internal_error)?;
     if object.get("summary").is_none_or(Value::is_null) {
         object.insert("summary".to_owned(), Value::Array(Vec::new()));

@@ -1,0 +1,12 @@
+{
+  "model": "grok-4.20-0309",
+  "channel": "Grok Console",
+  "max_output_tokens": 512,
+  "automatic_retries": 0,
+  "passed": false,
+  "started_at_ms": 1790443843876,
+  "status": 502,
+  "request_id": null,
+  "finished_at_ms": 1790443846043,
+  "error_code": "other"
+}

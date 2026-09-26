@@ -8,10 +8,10 @@
 - M4-01/02：10万/100万精确查询、容量采样及告警通过本轮本地验收。
 - M4-03/04：`3de0319` 正式fast/supply-chain通过，Rust 1,356项、前端415项；双架构签名与独立校验通过。EgoLite真实嵌入应用48个工作区状态、18个弹窗状态及模型→受限Key→mock请求→账本通过。
 - M4-05：完整生产副本28→31→兼容30→31通过；新格式事件/checkpoint、管理员、历史、轮转密文和权限保留，演练无网络。
-- M4-06：真实推理 **1/12**，首个Pi Grok Build请求在HTTP200后流错误，准确持久为失败，无自动重试；多轮闭环未完成。真实目录读取单独记录为元数据验证。
+- M4-06：真实推理 **4/12**，三次Pi Build协议失败、一次Console凭据拒绝，均准确持久为失败、1attempt且无自动重试；多轮闭环未完成。真实目录读取单独记录为元数据验证。
 - M4-07：`3de0319` 已部署，schema31，切换到就绪1,031ms；公网4资源hash/CSP/鉴权、7账号、原有2,356事件/699账本与权限保留核验通过。DNS/Caddy/Autoreg未改变。
 - M4-08：生产EgoLite登录页已交给用户，等待本人登录；不能用登录页或本地矩阵代替生产登录态验收。
-- M4-09：报告持续更新；新增流协议修复尚待签名发布和真实核验，**M4未完成**。
+- M4-09：报告持续更新；f1e576c诊断版已发布；已定位加密reasoning兼容缺口，修复与生产登录复验未完成，**M4未完成**。
 
 ## 测量与安全边界
 
@@ -56,3 +56,30 @@
 - 离线发现Build未处理response.incomplete。现补JSON/SSE明确max_output_tokens/content_filter终态、实际usage和不完整文本状态，保留错误身份、未知原因及残缺工具参数的拒绝；19个Build专项、两相关crate共264项通过(5既有ignored)。该缺口有[xAI Responses状态规范](https://docs.x.ai/developers/rest-api-reference/inference/responses)依据，但**没有原始上游帧证据证明它就是本次失败原因**。补安全固定标签日志用于后续定位，不输出上游正文/标识。
 
 独立复核另发现验收器不能仅以Pi的done事件算通过：已在本地验收工具补严格rawStopReason=completed及对应toolUse/stop要求，两个合成incomplete done用例均停止首轮并保持passed=false；加上七个前置检查，共9项脚本测试通过。该工具修订不改变a49c491的网关二进制。
+
+## 流修复候选门禁
+
+a49c491 的正式门禁36252515389在密钥扫描处失败：合成脚本值触发扫描；未部署该候选。将测试值改为明确的非秘密短占位符，未修改扫描规则。079a683ea46f72711ddfc4602d3bde06b08927fc已通过[完整门禁36253429923](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36253429923)及[双架构签名构建36253432916](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36253432916)。产物独立校验、同schema31副本演练和部署仍需后续回执，不能由CI成功推定完成。
+
+## 2026-09-27 流修复发布与第二、三次尝试
+
+079a683已发布，schema31；[签名校验](evidence/cpar-reliability-m4-20260926/stream-fix-artifact.json)、[无网络同schema回退演练](evidence/cpar-reliability-m4-20260926/stream-fix-rehearsal.json)、[隔离登录测试](evidence/cpar-reliability-m4-20260926/stream-fix-auth.json)、[生产切换](evidence/cpar-reliability-m4-20260926/stream-fix-production.json)均通过。切换就绪650ms，保留2,359条既有事件、699账本、7账号、11隔离记录及权限；四文件hash与首批相同，没有DNS/Caddy/Autoreg变更。
+
+- 第2次：Pi/Build/grok-4.5/Responses SSE，修复后单次发送仍HTTP502/UpstreamProtocolError，2,243ms、无首内容。持久记录1attempt/failed、usage和费用未知，无账本。安全日志确认output_item_done、item状态completed；不能把先前incomplete修复说成本次根因。见[客户端](evidence/cpar-reliability-m4-20260926/pi-second-receipt.json)和[持久回读](evidence/cpar-reliability-m4-20260926/pi-second-readback.json)。
+- 第3次：Grok Console/grok-4.20-0309/Responses JSON，512上限、无重试，HTTP502。持久回读明确CredentialUnauthorized/credential/non_retryable，366ms、1attempt，需有效授权；harness白名单外编码为other，不能仅凭该值归因。见[客户端](evidence/cpar-reliability-m4-20260926/console-smoke.json)和[持久回读](evidence/cpar-reliability-m4-20260926/console-readback.json)。未再次发送。
+- 总计3/12；剩余9次。Build新增固定校验阶段、item类型和密文存在位诊断，绝不输出ID/正文/密文或放宽归属校验。6种坏item边界合成测试、19项Build回归及严格Clippy通过；f1e576c为诊断候选，尚待正式门禁与发布。
+
+当前生产登录态EgoLite仍等待本人登录；M4保持未完成。后续需要真实完成的多轮链路，不能以本地或服务健康代替。
+
+渠道只读复查见[运行状态](evidence/cpar-reliability-m4-20260926/channel-availability.json)：Codex授权已过期，未浪费推理额度验证已知过期；Build三连接中一可用、两过期；Console命中连接为unauthorized，另一连接为available但尚未真实验证，不能断言所有Console账号失效。Krill两协议连接可用仅为运行态观测，目录中没有当前开放gpt-5.5且验收Key不可见，不扩权凑验收。
+
+
+## 2026-09-27 第四次诊断与原生加密历史修复
+
+f1e576cf07593f648852dce718b8ad4a9102e43a通过正式门禁36259338866、双架构签名36259341429、独立产物校验、无网络副本回退/重升级和隔离登录测试后发布。schema31，切换就绪632ms，保留原有2365事件、699账本、7账号及11隔离记录；前端四文件未变化。证据前缀为本报告evidence目录的item-diagnostic-*。
+
+第4次受控单轮诊断为Pi/Build/grok-4.5/Responses SSE，low、512上限、无重试；HTTP502，2003ms，1attempt、failed，无首内容/usage/账本。安全诊断确认reasoning的metadata拒绝非空encrypted_content；原固定词提取额外误中JSON字段名item_type/message；已只读重查限定时间窗并按MESSAGE.fields精确解析，确认仅1条metadata/reasoning/cipher_present=true，回执已更正。回执为pi-fourth-*。总额4/12，剩余8，不重置。
+
+修复按[CR](../change-requests/CR-M4-OWNED-BUILD-REASONING-001.md)实现stateless AEAD封套、租约前归属验证及精确凭据续接；store:false不转为持久历史。独立复核指出已有continuation kind不可被覆盖，已保留其能力检查并额外要求Build/Reasoning。本地专项与运行装配验证进行中；不得将此实现称为已生产验证。
+
+本地验证：四相关crate共498项通过（5项既有ignored）；新增归属专项3项、真实HTTP＋原生Build mock的stored/stateless两项（各JSON/SSE）及严格Clippy通过。覆盖混合grant、旧revision无证明拒绝/有证明可租约、原continuation kind保留、cipher终态漂移和跨Key零上游发送。以上为本地合成验证，不是真实渠道成功证据。

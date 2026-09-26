@@ -34,3 +34,13 @@
 - `response_ownership_and_reasoning_replay_are_exact_encrypted_and_clearable`
 - `failure_matrix_never_turns_egress_or_transient_faults_into_permanent_credential_state`
 - `build_request_uses_the_current_cli_profile_and_exact_admitted_target`
+
+## M4 stateless reasoning extension (2026-09-27)
+
+[CR-M4-OWNED-BUILD-REASONING-001](../change-requests/CR-M4-OWNED-BUILD-REASONING-001.md)
+adds client-carried, AEAD-authenticated Build reasoning envelopes. Unlike the P6 database replay
+primitive, this path does not persist response history for `store:false`. Authentication precedes
+exact lease selection; the original credential/revision or independently proven M2 grant rotation
+remains required. Existing stored/compaction/WebSocket capability checks remain additive.
+The public canonical syntax accepts only bounded gateway tokens, never raw provider ciphertext;
+syntax recognition is not an ownership proof. The owning Build adapter alone unwraps after lease.

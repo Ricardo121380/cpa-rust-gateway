@@ -15,6 +15,8 @@ mod credential_runtime;
 mod grok2api_migration;
 mod inference;
 mod oauth;
+mod owned_reasoning;
+pub use owned_reasoning::{GrokBuildReasoningCodec, GrokBuildReasoningOwner};
 mod official;
 mod official_capabilities;
 mod official_metadata;

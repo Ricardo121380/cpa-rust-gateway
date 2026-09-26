@@ -1069,6 +1069,7 @@ impl GatewayEventSink for P12FanoutEventSink {
 }
 
 struct P12RoutedResponsesExecutor {
+    reasoning_codec: provider_grok::GrokBuildReasoningCodec,
     registry: Arc<RouteSnapshotRegistry>,
     snapshot_version: SnapshotVersion,
     config_revision: ConfigRevision,
@@ -1323,6 +1324,7 @@ impl P12RoutedResponsesExecutor {
 
         Ok((
             Self {
+                reasoning_codec: provider_grok::GrokBuildReasoningCodec::new(secret_store.clone()),
                 registry,
                 snapshot_version: snapshot.version().clone(),
                 config_revision: ConfigRevision::try_new(configuration.version.revision).map_err(
@@ -1497,6 +1499,11 @@ impl P12RoutedResponsesExecutor {
             channel_pin_observation: Some(Arc::clone(&observation)),
             native_grok_egress: self.native_grok_egress.clone(),
             grok_build_cache_identity_deriver: Arc::clone(&self.grok_build_cache_identity_deriver),
+            reasoning_binding: Some((
+                self.reasoning_codec.clone(),
+                self.snapshot_version.clone(),
+                request.route_id().clone(),
+            )),
         };
         let started = self
             .orchestrator
@@ -1831,7 +1838,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let client_transport = execution.client_transport();
         let retry_gate = Arc::clone(execution.retry_gate());
         let lineage_recorder = execution.lineage_recorder().cloned();
-        let continuation_pin = execution.continuation_pin().cloned();
+        let mut continuation_pin = execution.continuation_pin().cloned();
         let registry = Arc::clone(&self.registry);
         let snapshot_version = self.snapshot_version.clone();
 
@@ -1844,6 +1851,15 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 return Err(stale_runtime_error());
             }
             let route_id = route_id.ok_or_else(route_not_found_error)?;
+            if let Some(client) = context.client_key_id() {
+                continuation_pin = self.reasoning_codec.continuation_pin(
+                    &request,
+                    client,
+                    u64::try_from(system_now_ms().map_err(|_| internal_error())?)
+                        .map_err(|_| internal_error())?,
+                    continuation_pin,
+                )?;
+            }
             if continuation_pin.as_ref().is_some_and(|pin| {
                 pin.lineage().snapshot_version() != &snapshot_version
                     || pin.lineage().route_id() != &route_id
@@ -1852,6 +1868,11 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             }
             let exact_continuation = continuation_pin.is_some();
             let driver = EndpointAttemptDriver {
+                reasoning_binding: Some((
+                    self.reasoning_codec.clone(),
+                    snapshot_version.clone(),
+                    route_id.clone(),
+                )),
                 request_id: context.request_id().clone(),
                 client_key_id: context.client_key_id().cloned(),
                 request,
@@ -4154,6 +4175,11 @@ struct CompatibleEgressSelection {
 }
 
 struct EndpointAttemptDriver {
+    reasoning_binding: Option<(
+        provider_grok::GrokBuildReasoningCodec,
+        SnapshotVersion,
+        RouteId,
+    )>,
     request_id: RequestId,
     client_key_id: Option<ClientKeyId>,
     request: CanonicalRequest,
@@ -4299,6 +4325,13 @@ impl EndpointAttemptDriver {
                 .supports(SemanticCapability::ResponsesWebSocket)
         {
             return Err(ProtocolTransformRejection::ResponsesWebSocketUnsupported);
+        }
+        if self.request.messages.iter().flat_map(|m| &m.content).any(|part| {
+            matches!(part, gateway_core::MessageContent::Reasoning(history) if history.has_encrypted_content())
+        }) && (!matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
+            || self.client_key_id.is_none()
+            || !candidate.effective_capabilities().supports(SemanticCapability::Reasoning)) {
+            return Err(ProtocolTransformRejection::PairUnregistered);
         }
         // Provider-specific runtimes use the protocol's Canonical semantics but not a generic
         // provider's native HTTP body. Only their typed Canonical paths are registered.
@@ -4797,6 +4830,22 @@ impl EndpointAttemptDriver {
         .map_err(AttemptFailure::NonRetryable)?
         .with_provider_egress_attempt(native_egress)
         .with_cache_identity_deriver(Arc::clone(&self.grok_build_cache_identity_deriver));
+        let adapter = if let (Some((codec, version, route)), Some(client)) =
+            (&self.reasoning_binding, &self.client_key_id)
+        {
+            adapter.with_reasoning_owner(provider_grok::GrokBuildReasoningOwner::new(
+                codec.clone(),
+                client.clone(),
+                self.request.requested_model.clone(),
+                candidate.upstream_model().to_owned(),
+                stored_response_execution_lineage(version, route, candidate, credential)
+                    .map_err(AttemptFailure::NonRetryable)?,
+                u64::try_from(system_now_ms()?)
+                    .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?,
+            ))
+        } else {
+            adapter
+        };
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::EgressAdmission,
@@ -9452,6 +9501,7 @@ mod tests {
             r#"{"model":"gateway-model","input":"fail over safely","stream":false}"#,
         )?;
         let driver = EndpointAttemptDriver {
+            reasoning_binding: None,
             request_id: request_id.clone(),
             client_key_id: None,
             request: decoded.request,
@@ -9789,6 +9839,7 @@ mod tests {
             "../../../tests/fixtures/openai-responses/request-canonical.json"
         ))?;
         let driver = EndpointAttemptDriver {
+            reasoning_binding: None,
             request_id: request_id.clone(),
             client_key_id: None,
             request: decoded.request,

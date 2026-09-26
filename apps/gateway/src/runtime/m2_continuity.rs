@@ -38,7 +38,7 @@ impl GrokBuildTransport for Transport {
             bodies.push(request);
             let id = format!("m2-native-{}", bodies.len());
             let response = serde_json::json!({"id":id,"object":"response","status":"completed","model":"grok-model","output":[
-                {"id":"reason","type":"reasoning","summary":[{"type":"summary_text","text":"synthetic reasoning"}],"status":"completed"},
+                {"id":"reason","type":"reasoning","summary":[{"type":"summary_text","text":"synthetic reasoning"}],"encrypted_content":"synthetic-cipher","status":"completed"},
                 {"id":"call-item","type":"function_call","call_id":"tool-call","name":"local_tool","arguments":"{}","status":"completed"}
             ],"usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}});
             let (content_type, bytes) = if self.streaming {
@@ -95,6 +95,7 @@ impl ResponsesEventSource for Source {
     }
 }
 struct Executor {
+    codec: provider_grok::GrokBuildReasoningCodec,
     pool: Arc<EndpointCredentialPool>,
     transport: Arc<Transport>,
 }
@@ -118,7 +119,17 @@ impl ResponsesExecutor for Executor {
     ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
         Box::pin(async move {
             let credential = CredentialId::try_new("m2-account").map_err(|_| internal_error())?;
-            let lease = if let Some(pin) = execution.continuation_pin() {
+            let client = execution
+                .context()
+                .client_key_id()
+                .ok_or_else(internal_error)?;
+            let pin = self.codec.continuation_pin(
+                execution.request(),
+                client,
+                10_000,
+                execution.continuation_pin().cloned(),
+            )?;
+            let lease = if let Some(pin) = pin.as_ref() {
                 self.pool.try_lease_exact_revision_eligible_at(
                     pin.lineage().credential_id(),
                     pin.lineage().credential_revision(),
@@ -130,18 +141,18 @@ impl ResponsesExecutor for Executor {
                     .try_lease_exact_eligible_at(&credential, NOW, |_| true)
             }
             .ok_or_else(credential_unavailable_error)?;
+            let lineage = ResponsesExecutionLineage::new(
+                SnapshotVersion::try_new("m2-config").map_err(|_| internal_error())?,
+                ProviderId::try_new("m2-provider").map_err(|_| internal_error())?,
+                gateway_core::UpstreamId::try_new("m2-provider").map_err(|_| internal_error())?,
+                EndpointId::try_new("m2-channel").map_err(|_| internal_error())?,
+                RouteId::try_new("m2-route").map_err(|_| internal_error())?,
+                RouteCandidateId::try_new("m2-candidate").map_err(|_| internal_error())?,
+                credential,
+                lease.credential_revision(),
+            );
             if let Some(recorder) = execution.lineage_recorder() {
-                recorder.record(ResponsesExecutionLineage::new(
-                    SnapshotVersion::try_new("m2-config").map_err(|_| internal_error())?,
-                    ProviderId::try_new("m2-provider").map_err(|_| internal_error())?,
-                    gateway_core::UpstreamId::try_new("m2-provider")
-                        .map_err(|_| internal_error())?,
-                    EndpointId::try_new("m2-channel").map_err(|_| internal_error())?,
-                    RouteId::try_new("m2-route").map_err(|_| internal_error())?,
-                    RouteCandidateId::try_new("m2-candidate").map_err(|_| internal_error())?,
-                    credential,
-                    lease.credential_revision(),
-                ))?;
+                recorder.record(lineage.clone())?;
             }
             let mode = if self.transport.streaming {
                 GrokBuildExecutionMode::Streaming
@@ -154,7 +165,15 @@ impl ResponsesExecutor for Executor {
                 "grok-model",
                 mode,
                 self.transport.clone(),
-            )?;
+            )?
+            .with_reasoning_owner(provider_grok::GrokBuildReasoningOwner::new(
+                self.codec.clone(),
+                client.clone(),
+                execution.request().requested_model.clone(),
+                "grok-model".into(),
+                lineage,
+                10_000,
+            ));
             let inner = adapter
                 .execute(execution.context().clone(), execution.request().clone())
                 .await?;
@@ -203,6 +222,12 @@ async fn native_build_http_history_survives_proven_rotation_in_json_and_sse() ->
         ])?);
         let state = ResponsesHttpState::new(
             Arc::new(Executor {
+                codec: provider_grok::GrokBuildReasoningCodec::new(SecretStore::new(
+                    MasterKeyRing::try_new(
+                        version,
+                        [(version, MasterKey::try_from_bytes([61; 32])?)],
+                    )?,
+                )),
                 pool: pool.clone(),
                 transport: transport.clone(),
             }),
@@ -326,6 +351,127 @@ async fn native_build_http_history_survives_proven_rotation_in_json_and_sse() ->
         );
         assert_eq!(transport.bodies.lock().map_err(|_| "capture")?.len(), 2);
         assert_eq!(pool.active_lease_count(&credential), Some(0));
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn native_build_stateless_cipher_history_preserves_tools_without_storing_responses()
+-> TestResult {
+    for streaming in [false, true] {
+        let credential = CredentialId::try_new("m2-account")?;
+        let pool = Arc::new(EndpointCredentialPool::try_new(
+            EndpointId::try_new("m2-channel")?,
+            [EndpointCredentialInput {
+                credential_id: credential.clone(),
+                credential_kind: "grok_build_oauth".into(),
+                credential_revision: 1,
+                priority: 0,
+                weight: 1,
+                concurrency: 1,
+                expires_at_ms: Some(1_000_000),
+                secret: CredentialSecret::try_new(SECRET.to_vec())?,
+            }],
+        )?);
+        let transport = Arc::new(Transport {
+            bodies: Mutex::new(Vec::new()),
+            streaming,
+        });
+        let version = KeyVersion::try_new(1)?;
+        let secret_store = SecretStore::new(MasterKeyRing::try_new(
+            version,
+            [(version, MasterKey::try_from_bytes([61; 32])?)],
+        )?);
+        let store = Arc::new(SqliteStoredResponseStore::open_in_memory(
+            secret_store.clone(),
+        )?);
+        let auth = Arc::new(InMemoryClientKeyAuthenticator::try_new([
+            InMemoryClientKey::try_new("m2-owner-secret", ClientKeyId::try_new("owner")?, true)?,
+            InMemoryClientKey::try_new(
+                "m2-foreign-secret",
+                ClientKeyId::try_new("foreign")?,
+                true,
+            )?,
+        ])?);
+        let state = ResponsesHttpState::new(
+            Arc::new(Executor {
+                codec: provider_grok::GrokBuildReasoningCodec::new(secret_store),
+                pool,
+                transport: transport.clone(),
+            }),
+            auth,
+            default_stream_capacity()?,
+        )
+        .with_stored_response_store(store.clone());
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(gateway_http_actix::configure),
+        )
+        .await;
+        let first = test::TestRequest::post().uri("/v1/responses").insert_header(("authorization","Bearer m2-owner-secret"))
+            .set_json(serde_json::json!({"model":"grok-model","input":"synthetic","store":false,"stream":streaming,
+                "reasoning":{"effort":"low"}})).to_request();
+        let response = test::call_service(&app, first).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = test::read_body(response).await;
+        assert!(!String::from_utf8_lossy(&bytes).contains("synthetic-cipher"));
+        let terminal = if streaming {
+            let wire = std::str::from_utf8(&bytes)?;
+            let data = wire
+                .split("\n\n")
+                .find(|v| v.starts_with("event: response.completed"))
+                .ok_or("completed event")?
+                .lines()
+                .find_map(|line| line.strip_prefix("data: "))
+                .ok_or("terminal data")?;
+            serde_json::from_str::<Value>(data)?["response"].clone()
+        } else {
+            serde_json::from_slice::<Value>(&bytes)?
+        };
+        let mut history = terminal["output"].as_array().ok_or("output")?.clone();
+        assert!(
+            history[0]["encrypted_content"]
+                .as_str()
+                .is_some_and(gateway_core::is_owned_reasoning_token)
+        );
+        history.push(serde_json::json!({"type":"function_call_output","call_id":"tool-call","output":"synthetic result"}));
+        let continuation = serde_json::json!({"model":"grok-model","input":history,"store":false,"stream":streaming,"reasoning":{"effort":"low"}});
+        let next = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header(("authorization", "Bearer m2-owner-secret"))
+            .set_json(&continuation)
+            .to_request();
+        let response = test::call_service(&app, next).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let _ = test::read_body(response).await;
+        let foreign = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header(("authorization", "Bearer m2-foreign-secret"))
+            .set_json(&continuation)
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, foreign).await.status(),
+            StatusCode::BAD_REQUEST
+        );
+        let requests = transport.bodies.lock().map_err(|_| "capture")?;
+        assert_eq!(requests.len(), 2);
+        assert_eq!(
+            requests[1]["input"][0]["encrypted_content"],
+            "synthetic-cipher"
+        );
+        assert_eq!(requests[1]["input"][2]["output"], "synthetic result");
+        for id in ["m2-native-1", "m2-native-2"] {
+            assert!(
+                store
+                    .get_owned(
+                        &ClientKeyId::try_new("owner")?,
+                        &ResponseId::try_new(id)?,
+                        system_now_ms_runtime()?
+                    )?
+                    .is_none()
+            );
+        }
     }
     Ok(())
 }

@@ -41,7 +41,7 @@ pub use id::{
 };
 pub use message::{
     CanonicalMessage, MessageContent, MessageRole, OpaqueContent, ReasoningHistory, TextContent,
-    ToolCall, ToolResult,
+    ToolCall, ToolResult, is_owned_reasoning_token,
 };
 pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};
 pub use request_context::RequestContext;

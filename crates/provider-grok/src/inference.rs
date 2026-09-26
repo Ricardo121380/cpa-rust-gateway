@@ -256,6 +256,7 @@ pub struct GrokBuildInferenceAdapter {
     transport: Arc<dyn GrokBuildTransport>,
     egress_attempt: Option<Arc<GrokNativeEgressAttempt>>,
     cache_identity_deriver: Option<Arc<GrokBuildCacheIdentityDeriver>>,
+    reasoning_owner: Option<crate::GrokBuildReasoningOwner>,
 }
 
 impl GrokBuildInferenceAdapter {
@@ -288,7 +289,15 @@ impl GrokBuildInferenceAdapter {
             transport,
             egress_attempt: None,
             cache_identity_deriver: None,
+            reasoning_owner: None,
         })
+    }
+
+    /// Adds authenticated stateless reasoning ownership for this selected attempt.
+    #[must_use]
+    pub fn with_reasoning_owner(mut self, owner: crate::GrokBuildReasoningOwner) -> Self {
+        self.reasoning_owner = Some(owner);
+        self
     }
 
     /// Adds the exact CPAR lease/egress attempt compiled for this adapter invocation.
@@ -313,6 +322,7 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildInferenceAdapter")
+            .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("provider_id", &self.provider_id)
             .field("credential", &self.credential)
             .field("upstream_model", &"<redacted>")
@@ -346,6 +356,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let egress_attempt = self.egress_attempt.clone();
         let cache_identity_deriver = self.cache_identity_deriver.clone();
         let reasoning_policy = ReasoningPolicy::from_request(&request);
+        let reasoning_owner = self.reasoning_owner.clone();
 
         Box::pin(async move {
             let cache_identity = request
@@ -365,12 +376,13 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         .map_err(|_| provider_protocol_error())
                 })
                 .transpose()?;
-            let outbound = GrokBuildResponsesRequestBuilder::build_with_cache_identity(
+            let outbound = GrokBuildResponsesRequestBuilder::build_owned(
                 &credential,
                 &upstream_model,
                 &request,
                 mode.response_mode(),
                 cache_identity.as_ref(),
+                reasoning_owner.as_ref(),
             )?;
             let response = transport
                 .send_with_egress_attempt(outbound, egress_attempt.clone())
@@ -408,11 +420,11 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                     let bytes =
                         read_bounded_body(&mut *body, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
                             .await?;
-                    let decoded =
-                        GrokBuildResponsesDecoder::decode_non_streaming_with_content_encoding(
-                            Some(content_encoding.decoder_value()),
-                            &bytes,
-                        )?;
+                    let decoded = GrokBuildResponsesDecoder::decode_owned_with_encoding(
+                        Some(content_encoding.decoder_value()),
+                        &bytes,
+                        reasoning_owner,
+                    )?;
                     let events = decoded
                         .into_events()
                         .into_iter()
@@ -425,8 +437,11 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 GrokBuildExecutionMode::Streaming
                     if content_type == GrokBuildResponseContentType::EventStream =>
                 {
-                    let source = Box::new(StreamingEventSource::new(body, reasoning_policy))
-                        as Box<dyn CanonicalEventSource>;
+                    let source = Box::new(StreamingEventSource::new(
+                        body,
+                        reasoning_policy,
+                        reasoning_owner,
+                    )) as Box<dyn CanonicalEventSource>;
                     Ok(wrap_egress_source(source, egress_attempt))
                 }
                 _ => Err(provider_protocol_error()),
@@ -494,10 +509,14 @@ struct StreamingEventSource {
 }
 
 impl StreamingEventSource {
-    fn new(body: Box<dyn GrokBuildResponseBody>, reasoning_policy: ReasoningPolicy) -> Self {
+    fn new(
+        body: Box<dyn GrokBuildResponseBody>,
+        reasoning_policy: ReasoningPolicy,
+        owner: Option<crate::GrokBuildReasoningOwner>,
+    ) -> Self {
         Self {
             body,
-            decoder: GrokBuildResponsesStreamDecoder::new(),
+            decoder: GrokBuildResponsesStreamDecoder::new().with_reasoning_owner(owner),
             pending: VecDeque::new(),
             response_started: false,
             terminal_failure_emitted: false,
