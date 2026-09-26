@@ -1,5 +1,22 @@
 import { protocolName } from "../accounts/presentation";
 import type { ManagedCredential, ManagedEndpoint } from "../accounts/inventory";
+import type { NativeAccount } from "../accounts/NativeAccounts";
+import type { PoolAccount } from "../runtime/model";
+
+export function nativeProviderForAdapter(adapter: string): NativeAccount["provider"] | undefined {
+  const providers: Readonly<Record<string, NativeAccount["provider"]>> = { "grok.build.responses": "grok_build", "grok.console.responses": "grok_console", "grok.web.responses": "grok_web" };
+  return providers[adapter];
+}
+
+/** A configured credential binding is not the native channel's runtime pool. */
+export function observedEndpointAccounts(rows: readonly Pick<PoolAccount, "provider_id" | "channel_id" | "account_id">[], upstreamId: string, endpointId: string): readonly string[] {
+  return [...new Set(rows.filter(row => row.provider_id === upstreamId && row.channel_id === endpointId).map(row => row.account_id))];
+}
+
+export function nativeAccountsForEndpoints(accounts: readonly NativeAccount[], endpoints: readonly Pick<ManagedEndpoint, "adapter_id">[]): readonly NativeAccount[] {
+  const providers = new Set(endpoints.map(endpoint => nativeProviderForAdapter(endpoint.adapter_id)));
+  return accounts.filter(account => providers.has(account.provider));
+}
 
 export function endpointLabel(endpoint: Pick<ManagedEndpoint, "api_format" | "base_url">): string {
   try {

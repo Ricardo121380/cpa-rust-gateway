@@ -1,0 +1,38 @@
+{
+  "fast_gate": {
+    "command": "scripts/check.sh fast",
+    "exit_code": 0,
+    "steps": 41,
+    "rust_passed": 1307,
+    "rust_failed": 0,
+    "rust_ignored": 9,
+    "note": "Final native-dialog mount condition received separate final frontend/embedded checks."
+  },
+  "production_browser": {
+    "workspace_states": 48,
+    "page_crashes": 0,
+    "document_horizontal_overflows": 0,
+    "unhandled_errors": 0,
+    "refresh_locked": true,
+    "protected_navigation_locked": true
+  },
+  "local_gateway_browser": {
+    "synthetic_native_identity_rendered": true,
+    "details_and_reauthorization_preparation": true,
+    "real_authorization_started": false,
+    "synthetic_password_change_revoked_session": true,
+    "server_401_cleared_view": true,
+    "native_draft_published": false,
+    "egress_restrictions_preserved": true
+  },
+  "production_modified": false,
+  "real_inference_calls": 0,
+  "final_frontend": {
+    "test_files": 54,
+    "tests_passed": 406,
+    "type_check": true,
+    "contract_unchanged": true,
+    "four_file_double_build": true,
+    "embedded_tests_passed": 3
+  }
+}

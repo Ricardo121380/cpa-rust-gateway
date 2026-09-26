@@ -454,6 +454,75 @@ mod tests {
     }
 
     #[test]
+    fn legacy_usage_retry_preserves_source_identity_and_existing_ledger()
+    -> Result<(), Box<dyn Error>> {
+        let (source, _) = events()?;
+        let original = source
+            .list_events()?
+            .into_iter()
+            .map(|event| event.event().clone())
+            .collect::<Vec<_>>();
+        let database = std::env::temp_dir().join(format!(
+            "cpar-legacy-billing-{}-{}.sqlite",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let mut events = SqliteEventStore::open(&database)?;
+        events.append_batch(&original[..2])?;
+        let connection = gateway_store::open(&database)?;
+        connection.execute(
+            "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage','response-1','request-1',?1)",
+            [serde_json::to_string(&original[2])?],
+        )?;
+        drop(connection);
+        let mut ledger = SqliteBillingLedger::open(&database)?;
+        let first = materialize_billing_events(
+            &events,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            2_000,
+        )?;
+        assert_eq!(first.inserted_rows, 1);
+        assert_eq!(first.failed_events, 0);
+        let rows = ledger.list_bounded(10)?;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].source_event_id, "response-1");
+        ledger.record_materialization_failure(
+            BILLING_MATERIALIZER_ID,
+            3,
+            "invalid_event",
+            2_000,
+        )?;
+        assert_eq!(events.append_batch(&original)?, 0);
+        let retry = materialize_billing_events(
+            &events,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            34_000,
+        )?;
+        assert_eq!(retry.retried_events, 1);
+        assert_eq!(retry.replayed_rows, 1);
+        assert_eq!(retry.inserted_rows, 0);
+        assert_eq!(retry.failed_events, 0);
+        assert!(
+            ledger
+                .list_materialization_failures_due(BILLING_MATERIALIZER_ID, 34_000, 10)?
+                .is_empty()
+        );
+        assert_eq!(ledger.list_bounded(10)?.len(), 1);
+        drop(ledger);
+        drop(events);
+        std::fs::remove_file(database)?;
+        Ok(())
+    }
+
+    #[test]
     fn incomplete_lineage_does_not_block_later_events_and_repairs_after_arrival()
     -> Result<(), Box<dyn Error>> {
         let (late, _) = events_for("request-late", "response-late")?;

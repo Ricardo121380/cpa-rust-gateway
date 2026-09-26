@@ -15,6 +15,9 @@ import type { ManagementOperationName, ManagementRequest } from "../../generated
 import { CredentialSheet } from "./CredentialSheet";
 import { accountStatusLabel, authenticationLabel, endpointLabel, runtimeConnectionLabel, sameEndpointConfiguration } from "./subresourceModel";
 import { useManagedInventory, type ManagedEndpoint } from "../accounts/inventory";
+import { useAccountRuntimeSummary } from "../accounts/AccountRuntimeSummary";
+import { NativeProviderAccounts } from "./NativeProviderAccounts";
+import { nativeProviderForAdapter, observedEndpointAccounts } from "./subresourceModel";
 import { runProviderResourceTask, type ProviderResourceReceipt } from "./providerResourceTask";
 import {
   accountStatusTone,
@@ -507,6 +510,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
   const scope = context?.configVersionId;
   const [testResults, setTestResults] = useState<Record<string, EndpointTest>>({});
   const [action, setAction] = useState<ProviderAction | undefined>();
+  const [nativeActionActive, setNativeActionActive] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [savingAccount, setSavingAccount] = useState(false);
   const savingAccountRef = useRef(false);
@@ -536,6 +540,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
 
   const managedEndpoints = useManagedInventory("endpoints", upstreamId);
   const managedCredentials = useManagedInventory("credentials", upstreamId);
+  const runtimeSnapshot = useAccountRuntimeSummary();
 
   const test = useMutation({
     mutationFn: (input: { endpointId: string; mode: "non_streaming" | "sse" }) =>
@@ -552,6 +557,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
   function refresh(): void {
     void queryClient.invalidateQueries({ queryKey: ["account-pools", scope, upstreamId] });
     void queryClient.resetQueries({ queryKey: ["managed-inventory", scope] });
+    void queryClient.invalidateQueries({ queryKey: ["account-list-runtime"] });
   }
 
   // Every one of these takes a WHOLE Input on PATCH — the contract has no
@@ -590,9 +596,9 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
   const feedback=error ? <p role="alert" className="action-error">{error}</p> : null;
 
   useEffect(() => {
-    onActionActiveChange(action !== undefined);
+    onActionActiveChange(action !== undefined || nativeActionActive);
     return () => onActionActiveChange(false);
-  }, [action, onActionActiveChange]);
+  }, [action, nativeActionActive, onActionActiveChange]);
 
   if (action?.kind === "receipt") {
     return <ProviderReceipt receipt={action.receipt} onDone={() => {
@@ -606,28 +612,29 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
   // An active Sheet owns its own input and exact target. A background
   // inventory refresh must not destroy that operation (or its receipt) merely
   // because its list request failed or a just-deleted row disappeared.
-  if (inventoryError && action === undefined) {
+  if (inventoryError && action === undefined && !nativeActionActive) {
     return <div className="card empty-state" role="alert">
       <p>{asAppError(inventoryError).message}</p>
       <button type="button" onClick={refresh}>重新读取账号与端点</button>
     </div>;
   }
-  if ((!managedEndpoints.data || !managedCredentials.data) && action === undefined) {
+  if ((!managedEndpoints.data || !managedCredentials.data) && action === undefined && !nativeActionActive) {
     return <div className="card empty-state">读取账号与端点…</div>;
   }
   const observed = providerPool(pools.data?.items ?? [], upstreamId);
-  const runtimeConnectionState = pools.isError
+  const runtimeConnectionState = runtimeSnapshot.isError
     ? "unavailable"
-    : pools.data === undefined
+    : runtimeSnapshot.data === undefined
       ? "loading"
-      : pools.data.next_cursor !== null && pools.data.next_cursor !== undefined
-        ? "partial"
-        : "observed";
+      : "observed";
+  const endpoints = (managedEndpoints.data?.pages ?? []).flatMap(page => page.items);
+  const nativeEndpoints = endpoints.filter(endpoint => nativeProviderForAdapter(endpoint.adapter_id) !== undefined);
+  const hasOrdinaryEndpoints = endpoints.some(endpoint => nativeProviderForAdapter(endpoint.adapter_id) === undefined);
   const pool = {
     channels: (managedEndpoints.data?.pages ?? []).flatMap((page) => page.items).map((endpoint) => ({
       channel_id: endpoint.id, display: endpointLabel(endpoint), record: endpoint, adapter_id: endpoint.adapter_id, api_format: endpoint.api_format,
       transport: endpoint.transport, channel_enabled: endpoint.enabled,
-      account_ids: observed?.channels.find((channel) => channel.channel_id === endpoint.id)?.account_ids ?? [],
+      account_ids: observedEndpointAccounts(runtimeSnapshot.data?.rows ?? [], upstreamId, endpoint.id),
     })),
     accounts: (managedCredentials.data?.pages ?? []).flatMap((page) => page.items).map((account) => ({
       ...account,
@@ -680,7 +687,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
         >
           新建接口
         </button>
-        <button
+        {hasOrdinaryEndpoints ? <button
           type="button"
           className="secondary"
           disabled={!editable}
@@ -688,7 +695,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
           onClick={() => setAction({ kind: "binding-form", channelId: "" })}
         >
           连接账号
-        </button>
+        </button> : null}
       </h3>
       <div className="subresource-list" aria-label="接口列表">
           {pool.channels.map((channel) => {
@@ -710,7 +717,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                 </dl>
                 <div className="subresource-actions" aria-label={`${channel.display} 主要操作`}>
                   <Link to={`/catalog?endpoint_id=${encodeURIComponent(channel.channel_id)}`}>模型目录</Link>
-                  <button type="button" className="secondary" disabled={!editable} onClick={() => setAction({ kind: "binding-form", channelId: channel.channel_id })}>连接账号</button>
+                  {nativeProviderForAdapter(channel.adapter_id) ? <Link to={`/accounts?view=runtime&provider=${encodeURIComponent(upstreamId)}`}>查看账号运行状态</Link> : <button type="button" className="secondary" disabled={!editable} onClick={() => setAction({ kind: "binding-form", channelId: channel.channel_id })}>连接账号</button>}
                 </div>
                 <details className="subresource-more"><summary>更多接口操作</summary><div className="subresource-maintenance">
                 <div className="subresource-actions" aria-label={`${channel.display} 操作`}>
@@ -741,14 +748,14 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                   ) : null}
                 </div>
                 <div className="subresource-actions" aria-label={`${channel.display} 维护操作`}>
-                  <button
+                  {nativeProviderForAdapter(channel.adapter_id) === undefined ? <button
                     type="button"
                     className="secondary"
                     disabled={pools.isError || pools.data === undefined}
                     onClick={() => setAction({ kind: "reconcile", channelId: channel.channel_id })}
                   >
                     核对绑定
-                  </button>
+                  </button> : null}
                   <button
                     type="button"
                     className="secondary"
@@ -773,6 +780,8 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
       {managedEndpoints.hasNextPage ? <button className="secondary" disabled={managedEndpoints.isFetchingNextPage} onClick={() => void managedEndpoints.fetchNextPage()}>加载更多端点</button> : null}
       {pool.channels.length === 0 ? <p className="empty-state">尚未添加端点。</p> : null}
 
+      {nativeEndpoints.length > 0 || nativeActionActive ? <NativeProviderAccounts endpoints={nativeEndpoints} onAddAccount={onAddAccount} onActionActiveChange={setNativeActionActive} /> : null}
+      {hasOrdinaryEndpoints || pool.accounts.length > 0 || nativeEndpoints.length === 0 ? <>
       {managedCredentials.hasNextPage ? <button className="secondary" disabled={managedCredentials.isFetchingNextPage} onClick={() => void managedCredentials.fetchNextPage()}>加载更多账号</button> : null}
       <h3>
         账号 <span className="idchip mono">{pool.accounts.length}</span>
@@ -888,6 +897,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
       </p>
 
       </details>
+      </> : null}
       {action?.kind === "reconcile" ? (
         <BindingReconcileSheet
           channelId={action.channelId}
@@ -923,7 +933,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
         />
       ) : null}
 
-      {action?.kind === "binding-form" ? <BindingSheet initialEndpointId={action.channelId} channels={pool.channels} accounts={pool.accounts} pending={saveBinding.isPending} feedback={feedback} onCancel={() => !saveBinding.isPending && setAction(undefined)} onSubmit={(input) => saveBinding.mutate(input)} /> : null}
+      {action?.kind === "binding-form" ? <BindingSheet initialEndpointId={action.channelId} channels={pool.channels.filter(channel => !nativeProviderForAdapter(channel.adapter_id))} accounts={pool.accounts} pending={saveBinding.isPending} feedback={feedback} onCancel={() => !saveBinding.isPending && setAction(undefined)} onSubmit={(input) => saveBinding.mutate(input)} /> : null}
 
       {action?.kind === "confirm-delete" ? (
         <Sheet title="确认删除" description="此操作会修改当前配置；保存后会显示应用结果。" layout="confirm" tone="danger" busy={remove.isPending} onEscape={() => !remove.isPending&&setAction(undefined)} footer={<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={remove.isPending} onClick={() => remove.mutate(action.target)}>确认删除</button></>}>

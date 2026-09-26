@@ -3201,3 +3201,23 @@ native decoder/public encoder/replay chain, now covered by eight combinations.
 artifact regression, isolated rollback, account/history/permission preservation and domain
 readback passed. Existing OMP retry budget remains exhausted; full OMP workflow is not claimed.
 Evidence: `docs/reports/cpar-grok-native-continuation-20260925.md`.
+
+## 2026-09-26 - Codex - Authenticated production findings PB-01 / PB-02
+
+**What:** `web/prism/src/features/upstreams/{SubresourcePanel,NativeProviderAccounts,UpstreamsPage}.tsx`,
+`web/prism/src/features/upstreams/{subresourceModel,subresourceModel.test,nativeProviderPanel.test}.ts`;
+backend `crates/gateway-store/src/event_store.rs` and `crates/gateway-control/src/billing_materializer.rs`.
+
+**Why:** Production EgoLite acceptance found native Grok accounts omitted from provider details,
+ordinary binding controls incorrectly offered for native adapters, and 87 valid historical Usage
+events rejected because their durable IDs predate request-scoped hashes. Show native inventory
+and real runtime observations separately; retain existing detail/authorization flows and re-read
+after enrollment. Accept exact legacy Usage identity without weakening payload/index checks or
+creating duplicate billing events on replay.
+
+**Other side:** FYI under the user's unified frontend/backend repair authorization. No API/schema,
+generated contract, dependency, chunk or secret-persistence change. Production accounts/history/
+ledger untouched; fixes remain local pending formal release. Production eight-workspace read-only
+acceptance, three sizes/two themes and refresh lock verified; native detail dialogs additionally
+checked against isolated real gateway with synthetic credentials. Evidence and limits:
+`docs/reports/prism-production-browser-20260926.md`.

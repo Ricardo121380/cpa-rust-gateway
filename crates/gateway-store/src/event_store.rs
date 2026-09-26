@@ -328,7 +328,31 @@ impl SqliteEventStore {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let mut inserted = 0;
-        for record in &records {
+        for (record, event) in records.iter().zip(events) {
+            // Before request-scoped Usage IDs, the same observation was stored under
+            // its upstream response ID. Preserve that row and billing source identity
+            // when replayed; inserting the new ID would bill the request twice.
+            if let GatewayEvent::Usage(usage) = event {
+                let existing: Option<(String, String, Option<i64>)> = transaction
+                    .query_row(
+                        "SELECT event_id, payload_json, occurred_at_ms FROM gateway_event_log \
+                         WHERE event_type = 'usage' AND request_id = ?1 ORDER BY event_ordinal LIMIT 1",
+                        [usage.request_id().as_str()],
+                        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                    )
+                    .optional()?;
+                if let Some((id, payload, timestamp)) = existing {
+                    if (id != record.event_id && id != usage.response_id().as_str())
+                        || timestamp.is_some()
+                    {
+                        return Err(StoreError::InvalidPersistedGatewayEvent);
+                    }
+                    if payload != record.payload_json {
+                        return Err(StoreError::ConflictingGatewayEventReplay);
+                    }
+                    continue;
+                }
+            }
             let existing: Option<String> = transaction
                 .query_row(
                     "SELECT payload_json FROM gateway_event_log \
@@ -714,8 +738,10 @@ fn decode_stored_event(
     let event: GatewayEvent =
         serde_json::from_str(payload_json).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
     let expected = EventRecord::from_event(&event)?;
+    let legacy_usage_id =
+        matches!(&event, GatewayEvent::Usage(usage) if event_id == usage.response_id().as_str());
     if expected.kind != kind
-        || expected.event_id != event_id
+        || (expected.event_id != event_id && !legacy_usage_id)
         || expected.request_id != request_id
         || expected.occurred_at_ms != occurred_at_ms
         || expected.payload_json != payload_json
@@ -1556,6 +1582,45 @@ mod tests {
         store.quick_check()?;
         drop(store);
         fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn legacy_usage_identity_is_readable_and_replays_without_new_row() -> TestResult {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let event = usage_event("legacy-request", "legacy-response", 3)?;
+        store.connection.execute(
+            "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage',?1,?2,?3)",
+            rusqlite::params!["legacy-response", "legacy-request", serde_json::to_string(&event)?],
+        )?;
+        let rows = store.events_for_request(&RequestId::try_new("legacy-request")?)?;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].event_id(), "legacy-response");
+        assert_eq!(rows[0].event(), &event);
+        assert!(
+            store
+                .materialization_event(rows[0].ordinal())?
+                .is_some_and(|row| row.event.is_some())
+        );
+        assert_eq!(store.append_batch(&[event])?, 0);
+        assert!(matches!(
+            store.append_batch(&[usage_event("legacy-request", "legacy-response", 4)?]),
+            Err(crate::StoreError::ConflictingGatewayEventReplay)
+        ));
+        // An upstream may reuse the old response ID for another external request.
+        assert_eq!(
+            store.append_batch(&[usage_event("another-request", "legacy-response", 5)?])?,
+            1
+        );
+        assert_eq!(store.list_events()?.len(), 2);
+        store.connection.execute(
+            "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage','unrelated-id','bad-request',?1)",
+            [serde_json::to_string(&usage_event("bad-request", "actual-response", 2)?)?],
+        )?;
+        assert!(matches!(
+            store.list_events(),
+            Err(crate::StoreError::InvalidPersistedGatewayEvent)
+        ));
         Ok(())
     }
 

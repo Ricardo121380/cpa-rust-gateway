@@ -275,7 +275,7 @@ export function UpstreamsPage() {
       </div>
 
 
-      {addingAccount ? <AddAccountDialog onClose={() => setAddingAccount(false)} onCreated={() => { setAddingAccount(false); void queryClient.resetQueries({ queryKey: ["managed-inventory"] }); void queryClient.invalidateQueries({ queryKey: ["account-pools"] }); }} /> : null}
+      {addingAccount ? <AddAccountDialog onClose={() => setAddingAccount(false)} onCreated={() => { setAddingAccount(false); for (const key of ["managed-inventory", "account-pools", "native-accounts", "account-directory", "account-list-runtime"]) void queryClient.resetQueries({ queryKey: [key] }); }} /> : null}
 
       {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "upstream", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")}`} onClose={() => setInspected(undefined)} facts={[
         ["上游 ID", inspected.id], ["Provider 家族", inspected.kind], ["配置启用", inspected.enabled ? "已启用" : "已停用"],

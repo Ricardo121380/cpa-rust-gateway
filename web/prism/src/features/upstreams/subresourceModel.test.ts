@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { accountStatusLabel, authenticationLabel, endpointLabel, runtimeConnectionLabel, sameEndpointConfiguration } from "./subresourceModel";
+import { accountStatusLabel, authenticationLabel, endpointLabel, runtimeConnectionLabel, sameEndpointConfiguration, nativeAccountsForEndpoints, observedEndpointAccounts } from "./subresourceModel";
+import type { NativeAccount } from "../accounts/NativeAccounts";
 
 describe("provider workspace presentation", () => {
+  it("includes native channel identities even with no ordinary credential bindings", () => {
+    const base: NativeAccount = { id: "native-1", provider: "grok_build", enabled: true, auth_status: "active", revision: 1, import_batch_id: "autoreg", identity: {email:"member@example.test",phone:null,username:null} };
+    const accounts = [base, {...base,id:"native-2",enabled:false}, {...base,id:"console",provider:"grok_console" as const}];
+    expect(nativeAccountsForEndpoints(accounts, [{adapter_id:"grok.build.responses"}]).map(a=>a.id)).toEqual(["native-1","native-2"]);
+    expect(nativeAccountsForEndpoints(accounts, [{adapter_id:"openai.responses"}])).toEqual([]);
+  });
+
+  it("counts observed connections only for the exact provider and endpoint", () => {
+    const row = {provider_id:"build",channel_id:"responses",account_id:"member"};
+    expect(observedEndpointAccounts([row,row,{...row,provider_id:"other"},{...row,channel_id:"other",account_id:"different"}],"build","responses")).toEqual(["member"]);
+  });
   it("uses channel semantics instead of credential storage kinds", () => {
     expect(authenticationLabel({ authentication: "oauth", category: "codex" })).toBe("OAuth 授权");
     expect(authenticationLabel({ authentication: "api_key", category: "kimi" })).toBe("Kimi API Key");

@@ -1,0 +1,919 @@
+{
+  "browser": "EgoLite Chromium, space 1 / p1",
+  "production_revision": "4d5ce334f595aae76d8e9230c11df57642210c3d",
+  "note": "Viewport and crash measurements, not proof that every async request had settled. Theme selected with the actual UI; dark screenshots and computed body background confirmed. No screenshot or identity data included.",
+  "rows": [
+    {
+      "route": "#/",
+      "heading": "运行概览",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号管理",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "AI 提供商",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/models",
+      "heading": "模型管理",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/access",
+      "heading": "API 密钥",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求日志",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量与费用",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/",
+      "heading": "运行概览",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号管理",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "AI 提供商",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/models",
+      "heading": "模型管理",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/access",
+      "heading": "API 密钥",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求日志",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量与费用",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/",
+      "heading": "运行概览",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号管理",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "AI 提供商",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/models",
+      "heading": "模型管理",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/access",
+      "heading": "API 密钥",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求日志",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量与费用",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "light"
+    },
+    {
+      "route": "#/",
+      "heading": "运行概览",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号管理",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "AI 提供商",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/models",
+      "heading": "模型管理",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/access",
+      "heading": "API 密钥",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求日志",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量与费用",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "mainWidth": 1440,
+      "mainClient": 1440,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/",
+      "heading": "运行概览",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号管理",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "AI 提供商",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/models",
+      "heading": "模型管理",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/access",
+      "heading": "API 密钥",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求日志",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量与费用",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "viewport": [
+        1280,
+        720
+      ],
+      "scrollWidth": 1280,
+      "bodyWidth": 1280,
+      "mainWidth": 1280,
+      "mainClient": 1280,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/",
+      "heading": "运行概览",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/accounts",
+      "heading": "账号管理",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/upstreams",
+      "heading": "AI 提供商",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/models",
+      "heading": "模型管理",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/access",
+      "heading": "API 密钥",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/monitoring",
+      "heading": "请求日志",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/usage",
+      "heading": "用量与费用",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    },
+    {
+      "route": "#/settings",
+      "heading": "设置",
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "mainWidth": 390,
+      "mainClient": 390,
+      "crash": false,
+      "errors": {
+        "errors": 0,
+        "rejections": 0
+      },
+      "visibleTestNames": 0,
+      "requestedTheme": "dark"
+    }
+  ]
+}
