@@ -1,0 +1,49 @@
+{
+  "client": "Pi",
+  "clientModule": "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/api/openai-responses.js",
+  "model": "grok-4.5",
+  "maxOutputTokens": 512,
+  "maxRetries": 0,
+  "offline": false,
+  "turns": [
+    {
+      "turn": 1,
+      "required": true,
+      "wireRequests": 1,
+      "requestId": null,
+      "result": "completed",
+      "events": {
+        "start": 1,
+        "thinking_start": 1,
+        "thinking_delta": 3,
+        "thinking_end": 1,
+        "toolcall_start": 1,
+        "toolcall_delta": 1,
+        "toolcall_end": 1,
+        "done": 1
+      },
+      "httpStatus": 200,
+      "stopReason": "toolUse",
+      "outputTokens": 115,
+      "terminalStatus": "completed"
+    },
+    {
+      "turn": 2,
+      "required": false,
+      "wireRequests": 1,
+      "requestId": null,
+      "result": "client_stream_error",
+      "events": {
+        "start": 1,
+        "thinking_start": 1,
+        "thinking_end": 1,
+        "text_start": 1,
+        "text_delta": 6,
+        "error": 1
+      },
+      "httpStatus": 200,
+      "errorClass": "UpstreamProtocolError"
+    }
+  ],
+  "passed": false
+}

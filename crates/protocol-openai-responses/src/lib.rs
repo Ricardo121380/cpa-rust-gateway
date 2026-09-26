@@ -13,7 +13,10 @@ use std::{
 
 mod native_output;
 mod upstream_response;
-pub use native_output::{has_native_output_metadata, native_item_metadata, native_part_extensions};
+pub use native_output::{
+    has_native_output_metadata, native_item_metadata, native_item_metadata_rejection,
+    native_part_extensions,
+};
 
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalMessage, CanonicalRequest, CanonicalResponse,

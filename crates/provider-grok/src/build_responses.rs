@@ -1368,8 +1368,18 @@ impl GrokBuildResponsesDecodeState {
             // Fixed stage/type labels and a presence bit, never ciphertext, IDs, or text.
             let encrypted_content_present =
                 item.get("encrypted_content").is_some_and(|v| !v.is_null());
+            let metadata_rejection = if stage == "metadata" {
+                protocol_openai_responses::native_item_metadata_rejection(
+                    &Value::Object(item.clone()),
+                    true,
+                )
+                .unwrap_or("ownership_or_extension")
+            } else {
+                "not_metadata"
+            };
             tracing::warn!(
                 stage,
+                metadata_rejection,
                 item_type,
                 encrypted_content_present,
                 "Grok Build item completion rejected"

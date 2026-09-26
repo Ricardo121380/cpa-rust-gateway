@@ -15,15 +15,33 @@ const PART: &str = "openai.responses.output_part";
 ///
 /// # Errors
 /// Rejects unrepresentable items, unsafe identities, and unowned encrypted reasoning.
-#[allow(clippy::too_many_lines)] // Keep the closed item schema and opaque-token boundary together.
 pub fn native_item_metadata(
     item: &Value,
     completed: bool,
+) -> Result<OutputItemMetadata, GatewayError> {
+    native_item_metadata_checked(item, completed, &mut "shape")
+}
+
+/// Fixed rejection category only; never includes upstream field names or values.
+#[must_use]
+pub fn native_item_metadata_rejection(item: &Value, completed: bool) -> Option<&'static str> {
+    let mut stage = "shape";
+    native_item_metadata_checked(item, completed, &mut stage)
+        .err()
+        .map(|_| stage)
+}
+
+#[allow(clippy::too_many_lines)] // Closed schema with fixed diagnostics at each validation boundary.
+fn native_item_metadata_checked(
+    item: &Value,
+    completed: bool,
+    stage: &mut &'static str,
 ) -> Result<OutputItemMetadata, GatewayError> {
     let mut item = item
         .as_object()
         .cloned()
         .ok_or_else(stream_protocol_error)?;
+    *stage = "item_identity";
     let id = item
         .get("id")
         .and_then(Value::as_str)
@@ -32,6 +50,7 @@ pub fn native_item_metadata(
     if id.is_empty() || id.len() > 512 || !id.bytes().all(|b| b.is_ascii_graphic()) {
         return Err(stream_protocol_error());
     }
+    *stage = "item_kind";
     let kind = item
         .get("type")
         .and_then(Value::as_str)
@@ -49,13 +68,24 @@ pub fn native_item_metadata(
         "function_call" => &["id", "type", "status", "call_id", "name", "arguments"],
         _ => return Err(stream_protocol_error()),
     };
-    if item.keys().any(|key| !allowed.contains(&key.as_str()))
-        || item.get("encrypted_content").is_some_and(|v| {
-            !v.is_null()
-                && v.as_str()
-                    .is_none_or(|v| !gateway_core::is_owned_reasoning_token(v))
-        })
-    {
+    *stage = if item.contains_key("phase") {
+        "item_phase"
+    } else if item.contains_key("metadata") {
+        "item_metadata"
+    } else if item.contains_key("internal_chat_message_metadata_passthrough") {
+        "item_internal_metadata"
+    } else {
+        "item_extra_field"
+    };
+    if item.keys().any(|key| !allowed.contains(&key.as_str())) {
+        return Err(stream_protocol_error());
+    }
+    *stage = "unowned_cipher";
+    if item.get("encrypted_content").is_some_and(|v| {
+        !v.is_null()
+            && v.as_str()
+                .is_none_or(|v| !gateway_core::is_owned_reasoning_token(v))
+    }) {
         return Err(stream_protocol_error());
     }
     let incomplete = completed
@@ -79,19 +109,21 @@ pub fn native_item_metadata(
             item.entry("summary").or_insert_with(|| json!([]));
             for (field, kind) in [("summary", "summary_text"), ("content", "reasoning_text")] {
                 if let Some(parts) = item.get(field) {
-                    validate_parts(parts, kind)?;
+                    validate_parts(parts, kind, stage)?;
                 }
             }
         }
         Some("message") => {
             item.entry("role").or_insert_with(|| json!("assistant"));
+            *stage = "message_role";
             if item["role"] != "assistant" {
                 return Err(stream_protocol_error());
             }
             item.entry("content").or_insert_with(|| json!([]));
-            validate_parts(&item["content"], "output_text")?;
+            validate_parts(&item["content"], "output_text", stage)?;
         }
         Some("function_call") => {
+            *stage = "function_fields";
             for field in ["call_id", "name"] {
                 if item
                     .get(field)
@@ -111,10 +143,12 @@ pub fn native_item_metadata(
     if !completed {
         clear_item_content(&mut item);
     }
+    *stage = "item_size";
     let serialized = Value::Object(item).to_string();
     if serialized.len() > 1024 * 1024 {
         return Err(stream_protocol_error());
     }
+    *stage = "extension_capacity";
     let mut extensions = RawExtensions::default();
     extensions
         .try_insert(
@@ -140,24 +174,44 @@ fn clear_item_content(item: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn validate_parts(value: &Value, kind: &str) -> Result<(), GatewayError> {
+fn validate_parts(value: &Value, kind: &str, stage: &mut &'static str) -> Result<(), GatewayError> {
+    *stage = "parts_shape";
     let parts = value.as_array().ok_or_else(stream_protocol_error)?;
     if parts.len() > 64 {
         return Err(stream_protocol_error());
     }
     for part in parts {
+        *stage = "part_shape";
         let part = part.as_object().ok_or_else(stream_protocol_error)?;
+        *stage = "part_type_or_text";
         if part.get("type") != Some(&json!(kind))
             || part
                 .get("text")
                 .and_then(Value::as_str)
                 .is_none_or(|v| v.contains('\0'))
-            || part
-                .keys()
-                .any(|key| !matches!(key.as_str(), "type" | "text" | "annotations"))
-            || part
-                .get("annotations")
-                .is_some_and(|v| kind != "output_text" || v != &json!([]))
+        {
+            return Err(stream_protocol_error());
+        }
+        *stage = match part.get("logprobs") {
+            Some(Value::Null) => "part_logprobs_null",
+            Some(Value::Array(v)) if v.is_empty() => "part_logprobs_empty",
+            Some(_) => "part_logprobs_value",
+            None => "part_extra_field",
+        };
+        if part
+            .keys()
+            .any(|key| !matches!(key.as_str(), "type" | "text" | "annotations"))
+        {
+            return Err(stream_protocol_error());
+        }
+        *stage = if part.get("annotations").is_some_and(Value::is_null) {
+            "part_annotations_null"
+        } else {
+            "part_annotations_value"
+        };
+        if part
+            .get("annotations")
+            .is_some_and(|v| kind != "output_text" || v != &json!([]))
         {
             return Err(stream_protocol_error());
         }
@@ -508,5 +562,47 @@ impl OpenAiResponsesSseEncoder {
             value,
         )?);
         Ok(frames)
+    }
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    #[test]
+    fn fixed_metadata_categories_do_not_accept_or_expose_upstream_extensions() {
+        let base = json!({"id":"message", "type":"message", "role":"assistant", "status":"completed", "content":[{"type":"output_text","text":"synthetic","annotations":[]}]});
+        assert!(native_item_metadata_rejection(&base, true).is_none());
+        for (key, value, expected) in [
+            ("logprobs", Value::Null, "part_logprobs_null"),
+            ("logprobs", json!([]), "part_logprobs_empty"),
+            ("logprobs", json!([{}]), "part_logprobs_value"),
+            ("annotations", Value::Null, "part_annotations_null"),
+            ("annotations", json!([{}]), "part_annotations_value"),
+            (
+                "private-synthetic-field",
+                json!("private-value"),
+                "part_extra_field",
+            ),
+        ] {
+            let mut item = base.clone();
+            item["content"][0][key] = value;
+            assert!(native_item_metadata(&item, true).is_err());
+            assert_eq!(native_item_metadata_rejection(&item, true), Some(expected));
+        }
+        for (key, expected) in [
+            ("phase", "item_phase"),
+            ("metadata", "item_metadata"),
+            (
+                "internal_chat_message_metadata_passthrough",
+                "item_internal_metadata",
+            ),
+            ("private-synthetic-field", "item_extra_field"),
+        ] {
+            let mut item = base.clone();
+            item[key] = json!("private-value");
+            assert_eq!(native_item_metadata_rejection(&item, true), Some(expected));
+            assert!(native_item_metadata(&item, true).is_err());
+        }
     }
 }

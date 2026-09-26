@@ -8,10 +8,10 @@
 - M4-01/02：10万/100万精确查询、容量采样及告警通过本轮本地验收。
 - M4-03/04：`3de0319` 正式fast/supply-chain通过，Rust 1,356项、前端415项；双架构签名与独立校验通过。EgoLite真实嵌入应用48个工作区状态、18个弹窗状态及模型→受限Key→mock请求→账本通过。
 - M4-05：完整生产副本28→31→兼容30→31通过；新格式事件/checkpoint、管理员、历史、轮转密文和权限保留，演练无网络。
-- M4-06：真实推理 **4/12**，三次Pi Build协议失败、一次Console凭据拒绝，均准确持久为失败、1attempt且无自动重试；多轮闭环未完成。真实目录读取单独记录为元数据验证。
+- M4-06：真实推理 **6/12**，Build首轮工具调用成功并入账；续轮文本metadata拒绝，四轮闭环未完成。每次均1attempt，无自动重试。真实目录读取单独记录为元数据验证。
 - M4-07：`3de0319` 已部署，schema31，切换到就绪1,031ms；公网4资源hash/CSP/鉴权、7账号、原有2,356事件/699账本与权限保留核验通过。DNS/Caddy/Autoreg未改变。
 - M4-08：生产EgoLite登录页已交给用户，等待本人登录；不能用登录页或本地矩阵代替生产登录态验收。
-- M4-09：报告持续更新；f1e576c诊断版已发布；已定位加密reasoning兼容缺口，修复与生产登录复验未完成，**M4未完成**。
+- M4-09：报告持续更新；8916032加密reasoning修复已发布；新增文本metadata拒绝及生产登录复验未完成，**M4未完成**。
 
 ## 测量与安全边界
 
@@ -83,3 +83,12 @@ f1e576cf07593f648852dce718b8ad4a9102e43a通过正式门禁36259338866、双架�
 修复按[CR](../change-requests/CR-M4-OWNED-BUILD-REASONING-001.md)实现stateless AEAD封套、租约前归属验证及精确凭据续接；store:false不转为持久历史。独立复核指出已有continuation kind不可被覆盖，已保留其能力检查并额外要求Build/Reasoning。本地专项与运行装配验证进行中；不得将此实现称为已生产验证。
 
 本地验证：四相关crate共498项通过（5项既有ignored）；新增归属专项3项、真实HTTP＋原生Build mock的stored/stateless两项（各JSON/SSE）及严格Clippy通过。覆盖混合grant、旧revision无证明拒绝/有证明可租约、原continuation kind保留、cipher终态漂移和跨Key零上游发送。以上为本地合成验证，不是真实渠道成功证据。
+
+
+## 2026-09-27 加密历史发布及第五、六次真实尝试
+
+8916032ef79ea5cc944a0e609ddcea6caf4e38d1已通过完整门禁36262228082、双架构签名36262228134及独立产物验证。无网络schema31副本完成升级/回退/重升级与隔离登录；切换669ms，保留2368既有事件、699既有账本、7账号、11隔离记录和权限。证据为owned-reasoning-*。回退至f1时保留最新状态；旧版不能接受新加密历史封套，相关会话需重启，不丢弃密文伪装续接。
+
+Pi原始SDK默认加密reasoning路径：第5次工具调用成功，HTTP200、completed/toolUse，输出115token；持久记录succeeded/1attempt、2585ms、首内容1956ms，327输入/115输出/99reasoning，1条unpriced账本。第6次工具结果回传后收到文本，但终态failed/UpstreamProtocolError，1160ms、首内容1120ms，1attempt，无可靠usage或账本。已停止剩余两轮，不把HTTP200或局部文本算成功。累计6/12，余6。
+
+限定日志精确确认第6次为metadata/message、encrypted_content_present=false，不能由此推断具体字段。新增固定枚举的metadata拒绝分类（顶层扩展、part类型/扩展、logprobs形状、annotations形状等），只记固定标签，不记录动态字段名、正文、密文；保留原校验策略。两相关crate回归通过，新增分类回归及严格Clippy通过；诊断候选尚待发布。回执pi-fifth-sixth-*及pi-sixth-diagnostic.json。持久处理水位2375已追平，原11隔离保持。
