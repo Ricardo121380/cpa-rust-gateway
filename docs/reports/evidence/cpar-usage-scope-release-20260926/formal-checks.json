@@ -1,0 +1,8 @@
+{
+  "revision": "3a164322c5731747cceb268e26249349953281d6",
+  "rust_passed": 1309,
+  "rust_failed": 0,
+  "rust_ignored": 9,
+  "fast_passed": true,
+  "supply_chain_passed": true
+}

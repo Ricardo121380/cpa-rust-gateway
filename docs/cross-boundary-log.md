@@ -3237,3 +3237,20 @@ Exact final formal gates, signatures, signed artifact and copy rollback passed b
 Usage rows recovered as unpriced; 11 ambiguous rows remain needs_repair. No new real inference
 or production configuration/DNS/Caddy/Autoreg changes. Post-release browser login pending;
 do not relabel earlier browser screenshots as this revision. Evidence: `docs/reports/cpar-stability-production-20260926.md`.
+
+
+## 2026-09-26 - Codex - Post-release browser verification and usage scope
+
+**What:** Production browser verified native provider/account details and ledger pagination on
+unchanged Prism assets. `crates/gateway-store/src/event_store.rs` scopes lineage validation to
+query filters; signed `3a16432` deployed after formal/signing/isolated rollback gates.
+
+**Why:** PB-03 revealed all four invalid historical lineages poisoned every Token usage window.
+Recent windows now return complete observed usage; in-scope and unknown-scope invalid data remain
+rejected before pagination. No schema/API shape/frontend source change.
+
+**Other side:** FYI.699 ledger rows,11 unresolved events and account/admin/permission state retained.
+Post-restart old browser session correctly locks. After user login, EgoLite verified28/30/491
+usage-bearing requests, model grouping and desktop/mobile layouts; all-history error remains.
+Two Build accounts remain expired, two Console identities missing; neither is disguised by counts.
+Evidence: `docs/reports/cpar-usage-scope-production-20260926.md`.

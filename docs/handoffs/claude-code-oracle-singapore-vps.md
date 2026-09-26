@@ -1,5 +1,19 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-26 16:24: scoped usage query repair deployed
+
+Production serves signed `3a164322c5731747cceb268e26249349953281d6`, schema28. Known
+out-of-scope historical lineage errors no longer block24h/7d/30d Token usage reads; all-history
+ambiguity still fails closed. Existing699 ledger rows,11 unresolved events,7 accounts/admin,
+2356 events and permissions retained. Frontend assets unchanged. Formal gates, both signatures,
+isolated artifact and production-copy binary rollback passed; stop-to-ready1018ms. Fallback is
+`b39ec32`, retaining latest databases/credentials. The user-login browser check found PB-03;
+restart then invalidated that browser session. After normal login,16:38–16:40 EgoLite verification
+confirmed repaired recent Token rendering, model grouping and desktop/mobile layouts. All-history
+Token still fails on retained ambiguity; the ledger remains readable. Browser kept on24h usage.
+See [release evidence](../reports/cpar-usage-scope-production-20260926.md).
+
+
 
 ## 2026-09-26: native fidelity and production findings deployed
 

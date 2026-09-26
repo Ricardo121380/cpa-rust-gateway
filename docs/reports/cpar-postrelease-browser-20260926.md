@@ -5,11 +5,37 @@ Verified production frontend asset version `3c6586561e344a4f03f59153`, deployed 
 `b39ec32`. No login bypass, credential capture, Provider inference, OAuth start, account
 mutation or configuration publication was performed.
 
+> Release update: PB-03 shipped as signed `3a16432` at16:24. Recent production API reads now
+> succeed; all-history ambiguity remains. After the user logged in again, the16:38–16:40 EgoLite
+> recheck verified repaired Token rendering. See [release evidence](cpar-usage-scope-production-20260926.md).
+
+## Post-repair logged-in recheck
+
+- Same production space1/p1, normal user login, signed backend `3a16432`.24h/7d/30d visibly
+  show28/30/491 requests with usage and no management error. These are usage-bearing requests,
+  not all incoming requests. Six token categories retain their independent confidence; unobserved
+  cache read/write remain unknown.
+- Thirty-day provider grouping has one provider and five underlying aggregate rows. Switching to
+  model grouping shows `grok-4.6`446 and `grok-4.5`45, totaling491 without changing scope.
+-1440×900 and1280×720 desktop views render the table;390×844 uses stacked cards. Light/dark mobile
+  cards retain all token labels and values; document/table widths remain within the viewport.
+- All-history Token still shows `Management operation failed`; no complete total is fabricated.
+  The separate ledger visibly retains699 records. Processing remains2356/2356 with11 unresolved
+  events. The generic error text remains an open UX issue.
+- Browser returned to the authenticated24h usage view at1440×900, light appearance, and was
+  released with `finish({keep:["p1"]})` for user inspection. No production mutation or Provider call.
+
+Counts and layout evidence: [recheck JSON](evidence/cpar-postrelease-browser-20260926/usage-recheck.json).
+Screenshots remain in the private directory listed below; this check does not replace the earlier
+eight-workspace regression or claim new real-channel authorization/inference acceptance.
+
 ## Actual browser results
 
 - Grok Build: provider panel lists three managed native accounts with real email identities;
   endpoint shows Responses and three observed runtime accounts. No ordinary credential-binding
-  controls are presented for native accounts.
+  controls are presented for native accounts. Runtime deep-link retains the provider filter;
+  three bindings are observed, but only one is authenticated/schedulable and two are expired.
+  Saved inventory count is not a claim of three usable accounts.
 - Grok Console: two managed accounts and two observed runtime accounts, Responses. Both historical
   SSO identities remain unavailable. The UI does not invent emails; this is an existing limitation,
   not proof that identity acquisition now succeeds.
@@ -51,6 +77,5 @@ validated materializations; its partial historical coverage remains visible in p
 
 The focused regression covers time, all seven dimensions, exact boundary inclusion, old immutable
 snapshot and unknown-scope rejection. It fails against the original SQL and passes against the fix.
-Existing large-history snapshot/paging regression and strict store Clippy pass. Release evidence
-will identify the final deployed revision separately; this document does not turn a local patch
-into a production result.
+Existing large-history snapshot/paging regression and strict store Clippy pass. The linked release
+report records formal gates and the exact deployed revision separately from browser results.

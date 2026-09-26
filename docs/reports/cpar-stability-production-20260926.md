@@ -8,6 +8,11 @@ The exact running executable SHA-256 is
 
 Entry: [Prism administration](https://cpar.142857142.xyz/admin-ui/).
 
+> Follow-up: authenticated EgoLite verification completed after normal user login. Native account
+> panels, ledger pagination and processing status passed; PB-03 was found in Token usage filtering.
+> See [browser results and candidate repair](cpar-postrelease-browser-20260926.md). The login-pending
+> statements below describe the release-time boundary.
+
 ## Delivered behavior
 
 - `297401f`: native Grok output IDs, reasoning summary/content parts and JSON/SSE history

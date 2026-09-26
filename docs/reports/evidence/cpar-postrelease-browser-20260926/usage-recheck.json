@@ -1,0 +1,197 @@
+{
+  "verifiedAt": "2026-09-26T08:38:41.160Z",
+  "browser": "EgoLite",
+  "space": 1,
+  "page": "p1",
+  "deployment": "3a164322c5731747cceb268e26249349953281d6",
+  "ranges": [
+    {
+      "range": "24 小时",
+      "summary": [
+        {
+          "label": "有用量记录的请求",
+          "value": "28"
+        },
+        {
+          "label": "聚合行",
+          "value": "1"
+        },
+        {
+          "label": "提供商 数",
+          "value": "1"
+        }
+      ],
+      "tableHeaders": [
+        "提供商",
+        "请求",
+        "输入",
+        "输出",
+        "推理",
+        "缓存读",
+        "缓存写",
+        "已缓存"
+      ],
+      "totals": [
+        "合计",
+        "28",
+        "101,310精确",
+        "4,569精确",
+        "1,639精确",
+        "—未知≥",
+        "—未知≥",
+        "44,160精确"
+      ],
+      "rows": 1,
+      "watermark": "数据截至 2026-09-26 02:31Z · 读取 1 页(已到末页)",
+      "processingState": "needs_repair",
+      "processingCounts": [
+        "2356",
+        "2356",
+        "11"
+      ],
+      "hasManagementError": false
+    },
+    {
+      "range": "7 天",
+      "summary": [
+        {
+          "label": "有用量记录的请求",
+          "value": "30"
+        },
+        {
+          "label": "聚合行",
+          "value": "1"
+        },
+        {
+          "label": "提供商 数",
+          "value": "1"
+        }
+      ],
+      "tableHeaders": [
+        "提供商",
+        "请求",
+        "输入",
+        "输出",
+        "推理",
+        "缓存读",
+        "缓存写",
+        "已缓存"
+      ],
+      "totals": [
+        "合计",
+        "30",
+        "107,642精确",
+        "4,866精确",
+        "1,770精确",
+        "—未知≥",
+        "—未知≥",
+        "44,160精确"
+      ],
+      "rows": 1,
+      "watermark": "数据截至 2026-09-26 02:31Z · 读取 1 页(已到末页)",
+      "processingState": "needs_repair",
+      "processingCounts": [
+        "2356",
+        "2356",
+        "11"
+      ],
+      "hasManagementError": false
+    },
+    {
+      "range": "30 天",
+      "summary": [
+        {
+          "label": "有用量记录的请求",
+          "value": "491"
+        },
+        {
+          "label": "聚合行",
+          "value": "5"
+        },
+        {
+          "label": "提供商 数",
+          "value": "1"
+        }
+      ],
+      "tableHeaders": [
+        "提供商",
+        "请求",
+        "输入",
+        "输出",
+        "推理",
+        "缓存读",
+        "缓存写",
+        "已缓存"
+      ],
+      "totals": [
+        "合计",
+        "491",
+        "1,742,008精确",
+        "128,869精确",
+        "72,061精确",
+        "—未知≥",
+        "—未知≥",
+        "735,936精确"
+      ],
+      "rows": 1,
+      "watermark": "数据截至 2026-09-26 02:31Z · 读取 1 页(已到末页)",
+      "processingState": "needs_repair",
+      "processingCounts": [
+        "2356",
+        "2356",
+        "11"
+      ],
+      "hasManagementError": false
+    }
+  ],
+  "modelGrouping": [
+    {
+      "model": "grok-4.6",
+      "requests": "446"
+    },
+    {
+      "model": "grok-4.5",
+      "requests": "45"
+    }
+  ],
+  "layouts": [
+    {
+      "width": 1280,
+      "height": 720,
+      "documentWidth": 1280,
+      "tableWidth": 940,
+      "tableScrollWidth": 940,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "tableWidth": 332,
+      "tableScrollWidth": 332,
+      "overflow": false
+    }
+  ],
+  "allHistory": {
+    "expectedRejectionShown": true,
+    "usageSummaryAbsent": true,
+    "unpricedRows": "699 条"
+  },
+  "ledger": {
+    "countAndLabelVisible": true,
+    "processingState": "needs_repair",
+    "processingCounts": [
+      "2356",
+      "2356",
+      "11"
+    ]
+  },
+  "returnedTo": {
+    "url": "https://cpar.142857142.xyz/admin-ui/#/usage?range=24h",
+    "range": "24 hours",
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "authenticated": true
+  }
+}

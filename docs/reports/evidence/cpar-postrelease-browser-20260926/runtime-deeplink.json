@@ -1,0 +1,9 @@
+{
+  "providerFilterPresent": true,
+  "rows": 3,
+  "clearProviderFilter": true,
+  "visibleTestLabels": false,
+  "managed_bindings": 3,
+  "authentication_available": 1,
+  "expired_bindings": 2
+}
