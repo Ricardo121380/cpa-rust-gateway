@@ -29,6 +29,30 @@ try:
                     break
                 assert time.monotonic() < deadline, 'local gateway setup timed out'
                 time.sleep(.1)
+            # Publishing the fixture starts its catalog worker asynchronously. That worker
+            # leases the same concurrency-one credentials and publishes a new admission
+            # snapshot. Wait for its actual completion, not a delay or an inference retry.
+            state = Path(info['root'])
+            while True:
+                assert controller.poll() is None, 'gateway stopped during catalog initialization'
+                records = []
+                for line in (state / 'gateway.log').read_text().splitlines():
+                    try:
+                        record = json.loads(line)
+                    except ValueError:
+                        continue
+                    if record.get('target') == 'model_catalog':
+                        records.append(record.get('fields', {}))
+                completed = [record for record in records
+                             if record.get('message') == 'model Catalog pass completed']
+                if completed:
+                    assert completed[-1]['attempted'] == completed[-1]['succeeded'] == 5, completed[-1]
+                    print(json.dumps({'fixture_catalog_ready': completed[-1]}), flush=True)
+                    break
+                assert not any(record.get('message') == 'model Catalog pass unavailable'
+                               for record in records), 'fixture catalog initialization failed'
+                assert time.monotonic() < deadline, 'fixture catalog initialization timed out'
+                time.sleep(.1)
             subprocess.run([sys.executable, str(repo / 'scripts/acceptance/prism-agent-roundtrip.py'),
                             str(receipt)], cwd=repo, check=True, timeout=90)
             subprocess.run([sys.executable, str(repo / 'scripts/acceptance/prism-request-chain.py'),

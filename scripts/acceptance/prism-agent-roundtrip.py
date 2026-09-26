@@ -16,7 +16,8 @@ data = f"http://127.0.0.1:{info['data_port']}"
 admin = f"http://127.0.0.1:{info['admin_port']}"
 client_headers = {'Authorization': 'Bearer ' + (root / 'client-key').read_text(),
                   'Content-Type': 'application/json'}
-admin_headers = {'X-Management-Key': (root / 'credentials/management-key').read_text()}
+admin_headers = {'X-Management-Key': (root / 'credentials/management-key').read_text(),
+                 'X-Config-Version': 'local-accepted'}
 
 
 def request(path, body=None, management=False):
@@ -53,9 +54,11 @@ for stream, stored in ((False, False), (True, False), (False, True), (True, True
             except ValueError:
                 code = None
             _, _, availability = request('/admin/runtime/availability', management=True)
+            _, _, pools = request('/admin/operations/provider-account-pools?limit=100', management=True)
             diagnostic = {'stream': stream, 'stored': stored, 'turn': turn + 1,
                           'status': status, 'code': code,
-                          'availability': json.loads(availability)}
+                          'availability': json.loads(availability),
+                          'runtime_pools': json.loads(pools)}
             (out / 'agent-failure.json').write_text(json.dumps(diagnostic, indent=2) + '\n')
             print(json.dumps({'agent_failure': diagnostic}), flush=True)
             raise AssertionError((stream, stored, turn, status, code))
