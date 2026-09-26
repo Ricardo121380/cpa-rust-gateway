@@ -1282,13 +1282,44 @@ impl GrokBuildResponsesDecodeState {
         item: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
+        let mut stage = "identity";
+        let result = self.complete_output_item(item, events, &mut stage);
+        if result.is_err() {
+            let item_type = match item.get("type").and_then(Value::as_str) {
+                Some("reasoning") => "reasoning",
+                Some("message") => "message",
+                Some("function_call") => "function_call",
+                _ => "other",
+            };
+            // Fixed stage/type labels and a presence bit, never ciphertext, IDs, or text.
+            let encrypted_content_present =
+                item.get("encrypted_content").is_some_and(|v| !v.is_null());
+            tracing::warn!(
+                stage,
+                item_type,
+                encrypted_content_present,
+                "Grok Build item completion rejected"
+            );
+        }
+        result
+    }
+
+    fn complete_output_item(
+        &mut self,
+        item: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+        stage: &mut &'static str,
+    ) -> Result<(), GatewayError> {
+        *stage = "identity";
         let item_id = required_identifier(item, "id", stream_protocol_error())?;
         let Some(kind) = self.item_kinds.get(item_id).copied() else {
             return Err(stream_protocol_error());
         };
+        *stage = "already_done";
         if self.done_item_ids.contains(item_id) {
             return Err(stream_protocol_error());
         }
+        *stage = "open_content_part";
         if self.active_text_content_item_ids.contains(item_id) {
             return Err(stream_protocol_error());
         }
@@ -1297,9 +1328,11 @@ impl GrokBuildResponsesDecodeState {
             OutputItemKind::Reasoning => "reasoning",
             OutputItemKind::FunctionCall => "function_call",
         };
+        *stage = "item_type";
         if required_string(item, "type", stream_protocol_error())? != expected_kind {
             return Err(stream_protocol_error());
         }
+        *stage = "item_status";
         let status = required_string(item, "status", stream_protocol_error())?;
         if status != "completed"
             && !(status == "incomplete" && kind != OutputItemKind::FunctionCall)
@@ -1311,6 +1344,7 @@ impl GrokBuildResponsesDecodeState {
             OutputItemKind::Message | OutputItemKind::Reasoning => {
                 for field in ["content", "summary"] {
                     if let Some(parts) = item.get(field) {
+                        *stage = "parts_shape";
                         for (index, part) in parts
                             .as_array()
                             .ok_or_else(stream_protocol_error)?
@@ -1318,27 +1352,34 @@ impl GrokBuildResponsesDecodeState {
                             .enumerate()
                         {
                             let part = part.as_object().ok_or_else(stream_protocol_error)?;
+                            *stage = "part_text";
                             let text = required_string(part, "text", stream_protocol_error())?;
+                            *stage = "part_end";
                             self.finish_part(item_id, field, index, text, events)?;
                         }
                     }
                 }
             }
             OutputItemKind::FunctionCall => {
+                *stage = "call_identity";
                 let call_id = required_identifier(item, "call_id", stream_protocol_error())?;
                 if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id) {
                     return Err(stream_protocol_error());
                 }
+                *stage = "call_name";
                 let name = required_identifier(item, "name", stream_protocol_error())?;
                 if self.function_call_names.get(item_id).map(String::as_str) != Some(name) {
                     return Err(stream_protocol_error());
                 }
+                *stage = "arguments";
                 let arguments = required_string(item, "arguments", stream_protocol_error())?;
                 self.finish_function_call(call_id, arguments, events)?;
             }
         }
         let mut completed = item.clone();
+        *stage = "parts_snapshot";
         self.reconcile_completed_parts(item_id, kind, &mut completed)?;
+        *stage = "normalized_arguments";
         if kind == OutputItemKind::FunctionCall {
             let call_id = required_identifier(item, "call_id", stream_protocol_error())?;
             completed.insert(
@@ -1351,10 +1392,12 @@ impl GrokBuildResponsesDecodeState {
                 ),
             );
         }
+        *stage = "metadata";
         let metadata = protocol_openai_responses::native_item_metadata(
             &Value::Object(completed.clone()),
             true,
         )?;
+        *stage = "canonical_item_end";
         self.emit(events, CanonicalEvent::OutputItemEnd(metadata))?;
         self.completed_items
             .insert(item_id.to_owned(), Value::Object(completed));
@@ -2131,4 +2174,69 @@ const fn stream_truncated_error() -> GatewayError {
 
 const fn internal_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+}
+
+#[cfg(test)]
+mod completion_diagnostics_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn completion_diagnostics_identify_the_rejecting_boundary_without_admitting_bad_items()
+    -> Result<(), GatewayError> {
+        for (item, expected) in [
+            (
+                json!({"id":"missing","type":"reasoning","status":"completed"}),
+                "identity",
+            ),
+            (
+                json!({"id":"item","type":"message","status":"completed"}),
+                "item_type",
+            ),
+            (
+                json!({"id":"item","type":"reasoning","status":"in_progress"}),
+                "item_status",
+            ),
+            (
+                json!({"id":"item","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":5}]}),
+                "part_text",
+            ),
+            (
+                json!({"id":"item","type":"reasoning","status":"completed","encrypted_content":"private-synthetic-cipher"}),
+                "metadata",
+            ),
+            (
+                json!({"id":"item","type":"reasoning","status":"completed","private-synthetic-field":true}),
+                "metadata",
+            ),
+        ] {
+            let mut decoder = GrokBuildResponsesDecodeState::default();
+            let mut events = Vec::new();
+            decoder.handle_response_created(
+                json!({"id":"response"})
+                    .as_object()
+                    .ok_or_else(stream_protocol_error)?,
+                &mut events,
+            )?;
+            decoder.handle_output_item_added(
+                json!({"id":"item","type":"reasoning"})
+                    .as_object()
+                    .ok_or_else(stream_protocol_error)?,
+                &mut events,
+            )?;
+            let mut stage = "unobserved";
+            let error = decoder
+                .complete_output_item(
+                    item.as_object().ok_or_else(stream_protocol_error)?,
+                    &mut events,
+                    &mut stage,
+                )
+                .err()
+                .ok_or_else(stream_protocol_error)?;
+            assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
+            assert_eq!(stage, expected);
+            assert!(!decoder.done_item_ids.contains("item"));
+        }
+        Ok(())
+    }
 }
