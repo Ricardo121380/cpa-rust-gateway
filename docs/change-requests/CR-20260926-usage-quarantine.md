@@ -1,6 +1,8 @@
 # CR: explicit incomplete historical usage and immutable conflict quarantine
 
-Status: accepted and implemented locally; release verification pending.
+Status: accepted, implemented and released as signed `b154396` on2026-09-26 18:08 (Asia/Shanghai).
+Formal gates, signed artifact, isolated production-copy rollback and production API verification
+passed. [Delivery evidence](../reports/cpar-usage-quarantine-20260926.md).
 
 User decision (2026-09-26): retain and isolate the 11 ambiguous historical Usage events, restore
 queries with an explicit incomplete-total notice. These events span four reused request IDs;

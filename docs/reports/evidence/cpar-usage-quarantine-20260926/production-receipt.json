@@ -1,0 +1,113 @@
+{
+  "passed": true,
+  "usage_checks": {
+    "checks": [
+      {
+        "range": "24h",
+        "status": 200,
+        "usage_requests": 28,
+        "ledger_records": 28,
+        "excluded_usage_events": 0,
+        "excluded_request_groups": 0,
+        "groups": 1,
+        "pages": 1,
+        "observed_through_ms": 1790389917830
+      },
+      {
+        "range": "7d",
+        "status": 200,
+        "usage_requests": 30,
+        "ledger_records": 30,
+        "excluded_usage_events": 0,
+        "excluded_request_groups": 0,
+        "groups": 1,
+        "pages": 1,
+        "observed_through_ms": 1790389917830
+      },
+      {
+        "range": "30d",
+        "status": 200,
+        "usage_requests": 491,
+        "ledger_records": 491,
+        "excluded_usage_events": 0,
+        "excluded_request_groups": 0,
+        "groups": 5,
+        "pages": 3,
+        "observed_through_ms": 1790389917830
+      },
+      {
+        "range": "all",
+        "status": 200,
+        "usage_requests": 699,
+        "ledger_records": 699,
+        "excluded_usage_events": 11,
+        "excluded_request_groups": 4,
+        "groups": 21,
+        "pages": 11,
+        "observed_through_ms": 1790389917830
+      }
+    ],
+    "strict_default_status": 500,
+    "quarantined_failures": 11,
+    "retry_attempts_unchanged": true,
+    "real_provider_requests": 0
+  },
+  "revision": "b15439636e3c3c0467d7735f480f4ea7b7cfdba7",
+  "fallback_revision": "3a164322c5731747cceb268e26249349953281d6",
+  "schema": 28,
+  "stop_to_ready_ms": 1324,
+  "binary_sha256": "eca8cce785b7621995c4d74ced11fa4991bb20d31a334707f59767376b375709",
+  "frontend_assets": {
+    "/admin-ui/": "b68d02d7e1db3c49319fa428e5e649b205042c0341605a3eb34f7585c3e8c947",
+    "/admin-ui/assets/index.css": "c406b1814cb0b5d4275329bfb73021010ff0ef513da2e7fc2e62e9bbcc0926dc",
+    "/admin-ui/assets/vendor.js": "29a0a30425bd5cae979f34a67b9575223b83f10e04271cf444c1838c4c9231a9",
+    "/admin-ui/assets/main.js": "c03774b577bc9be66db7087aa1d862c4b8cba1d08fe313dd134b4439b9df6c1a"
+  },
+  "historical_rows_retained": {
+    "upstreams": 45,
+    "upstream_endpoints": 58,
+    "endpoint_credential_bindings": 46,
+    "grok_accounts": 5,
+    "upstream_credentials": 33,
+    "gateway_event_log": 2356,
+    "billing_ledger_entries": 699,
+    "native_account_identity_observations": 0,
+    "native_account_management_events": 0,
+    "access_groups": 29,
+    "access_group_routes": 79,
+    "client_keys": 29,
+    "public_models": 73,
+    "model_aliases": 8
+  },
+  "effective_permissions_preserved": true,
+  "accounts": 7,
+  "existing_administrator_store_retained": true,
+  "public_https_csp_auth_verified": true,
+  "real_provider_inference_requests": 0,
+  "dns_caddy_autoreg_changed": false,
+  "legacy_billing_before": {
+    "target_events": 87,
+    "ledger_rows": 76,
+    "resolved_failures": 76,
+    "statuses": {
+      "unpriced": 76
+    },
+    "null_cost_rows": 76,
+    "total_ledger": 699,
+    "pending_failures": 11,
+    "checkpoint": 2356
+  },
+  "legacy_billing_recovered": {
+    "target_events": 87,
+    "ledger_rows": 76,
+    "resolved_failures": 76,
+    "statuses": {
+      "unpriced": 76
+    },
+    "null_cost_rows": 76,
+    "total_ledger": 699,
+    "pending_failures": 11,
+    "checkpoint": 2356
+  },
+  "completed_at_utc": "2026-09-26T10:08:05Z"
+}

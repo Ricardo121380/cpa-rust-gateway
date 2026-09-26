@@ -3269,3 +3269,21 @@ Usage groups stop automatic retries; missing late events remain retryable. No hi
 strict by default. Schema28, four-file assets and six Token confidence fields unchanged. Partial
 results must always display exclusions; quarantine is not successful billing. Release evidence will
 be recorded in `docs/reports/cpar-usage-quarantine-20260926.md`.
+
+## 2026-09-26 - Codex - Historical usage quarantine production release
+
+**What:** Signed `b154396` deployed to the existing Oracle service at18:08 (Asia/Shanghai).
+Schema28, accounts, administrator store, permissions,2,356 events and699 ledger rows retained.
+Production partial all-history query200:699 verified requests,11 exclusions across4 groups;
+recent24h/7d/30d counts28/30/491 remain complete for their observed scope. Cutover1,324ms.
+
+**Why:** User approved retained quarantine after missing per-call evidence made exact backfill
+unrecoverable. Strict API default still rejects ambiguous groups; Prism explicitly opts into
+partial reads and shows verified subtotals/incompleteness.11 unresolved events are quarantined,
+not falsely resolved, and their automatic retry attempts no longer grow.
+
+**Other side:** FYI. Final formal and supply-chain gates, ARM64/x86_64 signing, exact-artifact
+mock checks, disconnected production-copy rollback and live API readback passed. No new real
+inference, history deletion or DNS/Caddy/Autoreg changes. New UI checked in local EgoLite; production
+reload locks correctly and awaits user login for authenticated visual recheck. Evidence:
+`docs/reports/cpar-usage-quarantine-20260926.md`.
