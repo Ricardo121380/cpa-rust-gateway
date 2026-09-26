@@ -277,6 +277,7 @@ async fn run_servers(
     let management_resources = web::Data::new(resources);
     let management_lifecycle = web::Data::new(lifecycle);
     let management_backup = web::Data::new(backup);
+    let storage_capacity = observability.storage_monitor();
     let management_observability = web::Data::new(observability);
     let management_server = HttpServer::new(move || {
         App::new()
@@ -304,6 +305,14 @@ async fn run_servers(
     let maintenance_worker = crate::maintenance_worker::MaintenanceWorker::start(
         command.state_directory.join(CONTROL_DATABASE_FILE),
     );
+    let capacity_worker = crate::storage_capacity::CapacityWorker::start(
+        command.state_directory.join(CONTROL_DATABASE_FILE),
+        storage_capacity.clone(),
+    )
+    .ok();
+    if capacity_worker.is_none() {
+        storage_capacity.observe(None);
+    }
     let runtime_workers = reload.start_workers(credential_refresh_worker, model_catalog_worker);
     let server_result = try_join(data_server, management_server).await;
     runtime_workers.stop().await;
@@ -331,6 +340,11 @@ async fn run_servers(
             }
         }
     };
+    if let Some(capacity_worker) = capacity_worker
+        && capacity_worker.stop().await.is_err()
+    {
+        tracing::warn!(target: "storage_capacity", "capacity sampler stop incomplete");
+    }
     let (billing_result, maintenance_result) =
         futures_util::future::join(billing_worker.stop(), maintenance_worker.stop()).await;
     let billing_result = billing_result.map_err(|()| DeploymentError::BillingWorkerStopIncomplete);

@@ -18,6 +18,90 @@ impl Drop for File {
         let _ = std::fs::remove_file(&self.0);
     }
 }
+
+#[test]
+fn batch_billing_and_late_attempts_keep_both_cursor_snapshots() -> Result<(), Box<dyn Error>> {
+    let file = File(std::env::temp_dir().join(format!(
+        "request-batch-{}-{}.sqlite",
+        std::process::id(),
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos()
+    )));
+    let repository = SqliteControlPlaneRepository::open(&file.0)?;
+    let reader = repository.resource_inventory_reader().ok_or("reader")?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute_batch("WITH n(id) AS (VALUES('older'),('newer'))
+      INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json)
+      SELECT 'request',id,id,json_object('request',json_object('request_id',id,'public_model','model','client_key_id','key')) FROM n;
+      WITH n(id,duration) AS (VALUES('older',100),('newer',300))
+      INSERT INTO gateway_event_log(event_type,event_id,request_id,occurred_at_ms,payload_json)
+      SELECT 'request_finished',id,id,120000,json_object('request_finished',json_object('outcome','succeeded','duration_ms',duration,'first_content_ms',NULL,'finished_at_ms',120000)) FROM n;
+      INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json)
+      VALUES('attempt','original-attempt','older','{\"attempt\":{\"attempt_number\":1,\"upstream_id\":\"original\"}}');")?;
+    let insert_ledger = |id: &str,
+                         cost: Option<i64>,
+                         confidence: &str|
+     -> Result<(), Box<dyn Error>> {
+        db.execute("INSERT INTO billing_ledger_entries(source_event_id,source_fingerprint,request_id,response_id,provider_id,channel_id,account_id,model,occurred_at_ms,cost_microunits,cost_confidence,billing_status,retention_expires_at_ms,recorded_at_ms)
+          VALUES(?1,?2,'older','response','provider','channel','account','model',120000,?3,?4,?4,999999,120000)", rusqlite::params![id,"a".repeat(64),cost,confidence])?;
+        Ok(())
+    };
+    insert_ledger("known", Some(500), "partial")?;
+    let only_partial = reader.requests(&RequestHistoryQuery {
+        request_id: Some("older".into()),
+        limit: 1,
+        bucket_ms: 60000,
+        ..Default::default()
+    })?;
+    assert_eq!(only_partial.items[0]["cost_confidence"], "partial");
+    insert_ledger("unknown-usage", None, "unknown")?;
+    let unknown = reader.requests(&RequestHistoryQuery {
+        request_id: Some("older".into()),
+        limit: 1,
+        bucket_ms: 60000,
+        ..Default::default()
+    })?;
+    assert_eq!(unknown.items[0]["cost_confidence"], "unknown");
+    insert_ledger("missing-price", None, "unpriced")?;
+    let query = RequestHistoryQuery {
+        limit: 1,
+        summary: true,
+        bucket_ms: 60000,
+        ..Default::default()
+    };
+    let first = reader.requests(&query)?;
+    assert_eq!(first.items[0]["request_id"], "newer");
+    assert_eq!(first.items[0]["ledger_records"], 0);
+    assert!(first.items[0]["cost_confidence"].is_null());
+    assert_eq!(
+        first.summary.as_ref().ok_or("summary")?["p50_duration_ms"],
+        100
+    );
+    assert!(first.summary.as_ref().ok_or("summary")?["average_first_content_ms"].is_null());
+    insert_ledger("late-bill", Some(700), "partial")?;
+    db.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES('attempt','late-attempt','older','{\"attempt\":{\"attempt_number\":2,\"upstream_id\":\"late\"}}')", [])?;
+    let frozen = reader.requests(&RequestHistoryQuery {
+        snapshot: Some(first.snapshot),
+        ledger_snapshot: Some(first.ledger_snapshot),
+        after: first.next_after,
+        ..query.clone()
+    })?;
+    assert_eq!(frozen.items[0]["request_id"], "older");
+    assert_eq!(frozen.items[0]["upstream_id"], "original");
+    assert_eq!(frozen.items[0]["attempt_count"], 1);
+    assert_eq!(frozen.items[0]["ledger_records"], 3);
+    assert_eq!(frozen.items[0]["cost_microunits"], 500);
+    assert_eq!(frozen.items[0]["cost_confidence"], "unpriced");
+    assert_eq!(frozen.summary, first.summary);
+    let fresh = reader.requests(&RequestHistoryQuery {
+        request_id: Some("older".into()),
+        ..query
+    })?;
+    assert_eq!(fresh.items[0]["attempt_count"], 2);
+    assert_eq!(fresh.items[0]["upstream_id"], "late");
+    assert_eq!(fresh.items[0]["ledger_records"], 4);
+    assert_eq!(fresh.items[0]["cost_microunits"], 1200);
+    Ok(())
+}
 #[test]
 #[allow(clippy::too_many_lines)] // One persisted scenario brackets indexed activity, snapshots and unknown history.
 fn request_counts_snapshot_percentiles_and_unknown_history_are_distinct()
@@ -112,6 +196,8 @@ fn request_counts_snapshot_percentiles_and_unknown_history_are_distinct()
             .get::<_, i64>(0))?,
         7
     );
+    // Restore the current query indexes after the explicit rollback-preservation check.
+    gateway_store::migrate(&mut db)?;
     // A narrow window remains complete above the old 100,000-row global ceiling.
     db.execute_batch("BEGIN;
       WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<100001)

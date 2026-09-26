@@ -3331,3 +3331,22 @@ secret-persistence change. Rust 1,352 and frontend 413 tests passed; real embedd
 and EgoLite local acceptance are distinct from supplementary Vite fixture fault tests.
 No production change or real inference; M4 and the new 0/12 call allowance remain outstanding.
 Evidence: `docs/reports/cpar-reliability-m3-20260926.md`.
+
+## 2026-09-26 - Codex - M4 query cost and capacity observations
+
+**What:** `docs/openapi/management-v1.json` documents additional bounded Prometheus gauges;
+`web/prism/contracts/management-v1.json` follows `sync-contract`. Overview metrics, its new
+`StorageCapacity.tsx` panel, and billing `ProcessingStatus.tsx` expose capacity and watermark age.
+The store request-history reader batches billing and reuses exact filtered aggregates; schema31
+adds partial attempt and terminal-fact indexes. One dedicated thread samples capacity separately from TTL maintenance.
+
+**Why:** M4 requires complete million-request queries and visible storage/queue/materialization
+pressure, without changing permissions, inventing missing observations or deleting history.
+
+**Other side:** FYI under unified implementation authorization. No new JSON DTO, dependency,
+secret persistence, CSP or chunk. Storage sampling stays outside HTTP/SQLite hot paths; missing
+metrics remain unknown. Index-only31→30 does not make schema28 readers compatible with M1 events.
+Implementation and acceptance remain in progress; production and the 0/12 allowance are unchanged.
+See `docs/change-requests/CR-20260926-query-capacity.md` and the M4 report.
+
+Local M4 validation: 1,357 Rust tests, 415 frontend tests, strict Clippy, serve assembly, agent roundtrip, contract, source boundaries and deterministic four-file embed passed. Final exact-revision release and production acceptance remain separately tracked. ProcessingStatus regression covers visible stale/backlog warnings.

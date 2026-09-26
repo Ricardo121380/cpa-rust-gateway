@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { growthSince, readCounters, successRate } from "./metrics";
+import { capacityWarnings, growthSince, readCounters, successRate } from "./metrics";
 
 const P = "gateway_observability_";
 
@@ -127,4 +127,18 @@ describe("growthSince", () => {
 it("preserves missing recording telemetry as unknown and exposes storage admission separately",()=>{
   expect(readCounters("").recording.accepting).toBeNull();
   expect(readCounters("gateway_recording_accepting_requests 0\ngateway_recording_state 2\ngateway_recording_pending_required 3\ngateway_recording_last_commit_ms 1234").recording).toMatchObject({accepting:false,state:2,pending:3,lastCommit:1234});
+});
+
+it("keeps missing capacity unknown and warns on stale observations without hiding pressure", () => {
+  const missing = readCounters("").capacity;
+  expect(missing.availableBytes).toBeNull();
+  expect(capacityWarnings(missing, 100)).toEqual(["存储容量尚未观测"]);
+  const capacity = readCounters([
+    "gateway_storage_observed_at_ms 1000", "gateway_storage_collection_failed 1",
+    "gateway_storage_available_bytes 0", "gateway_storage_disk_low 1", "gateway_storage_wal_high 1",
+    "gateway_recording_queue_used 8", "gateway_recording_queue_capacity 10",
+  ].join("\n")).capacity;
+  expect(capacity.availableBytes).toBe(0);
+  expect(capacityWarnings(capacity, 182000)).toEqual(["容量采样失败，保留上次观测", "容量观测已超过 3 分钟", "磁盘剩余空间偏低，请安排扩容或离线维护", "WAL 较大，请检查长时间读取及写入积压", "记录队列占用已达 80%"]);
+  expect(capacityWarnings({ ...capacity, collectionFailed: 0, diskLow: 0, walHigh: 0, queueUsed: 0 }, 2000)).toEqual([]);
 });

@@ -15,6 +15,7 @@ mod maintenance_worker;
 mod provider_account_pool_adapter;
 mod provider_egress_status_adapter;
 mod runtime;
+mod storage_capacity;
 
 use std::{collections::BTreeMap, env, error::Error, fmt, process::ExitCode};
 

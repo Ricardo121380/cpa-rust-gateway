@@ -1,0 +1,414 @@
+{
+  "passed": true,
+  "environment": {
+    "machine": "Mac16,10",
+    "memory_gib": 16,
+    "cpu_logical": 10,
+    "os": "27.0"
+  },
+  "seed": 20260926,
+  "warmups": 1,
+  "samples": 5,
+  "all_cursor_pages_verified": true,
+  "source_sha256": "a71a305d38aea44573f96bf0b9dc826f24eeb809ad4c1ce7f29a0ee44a5b39dc",
+  "datasets": [
+    {
+      "requests": 100000,
+      "seed": 20260926,
+      "start_ms": 1700000000000,
+      "span_ms": 2592000000,
+      "counts": {
+        "gateway_event_log": 398571,
+        "billing_ledger_entries": 108571
+      },
+      "synthetic": true
+    },
+    {
+      "requests": 1000000,
+      "seed": 20260926,
+      "start_ms": 1700000000000,
+      "span_ms": 2592000000,
+      "counts": {
+        "gateway_event_log": 3985715,
+        "billing_ledger_entries": 1085715
+      },
+      "synthetic": true
+    }
+  ],
+  "results": [
+    {
+      "scale": "100k",
+      "case": "narrow",
+      "median_ms": 2.387375,
+      "max_ms": 3.152958,
+      "correct": true,
+      "matching_requests": 11,
+      "attempts": 13,
+      "warmup_ms": 12.876541,
+      "samples_ms": [
+        3.152958,
+        2.507584,
+        2.200292,
+        2.387375,
+        2.037833
+      ],
+      "all_pages": {
+        "pages": 1,
+        "rows": 11,
+        "sha256": "5421a053cc272ef154a88dfcfa5ead423eba9615a37a2aad02cb703e279235bd"
+      },
+      "max_rss_bytes": 6176768,
+      "query": {
+        "from_ms": 1701296000000,
+        "to_ms": 1701296300000
+      }
+    },
+    {
+      "scale": "100k",
+      "case": "day",
+      "median_ms": 20.525208,
+      "max_ms": 20.935458,
+      "correct": true,
+      "matching_requests": 3167,
+      "attempts": 3621,
+      "warmup_ms": 86.402416,
+      "samples_ms": [
+        20.525208,
+        19.98375,
+        20.935458,
+        20.538166,
+        19.615542
+      ],
+      "all_pages": {
+        "pages": 32,
+        "rows": 3167,
+        "sha256": "9eb46b67c1f47f3fad524c9e6e040aa7f43022c78bb28fbde2f319639b569d2e"
+      },
+      "max_rss_bytes": 11665408,
+      "query": {
+        "from_ms": 1701296000000,
+        "to_ms": 1701382400000
+      }
+    },
+    {
+      "scale": "100k",
+      "case": "all",
+      "median_ms": 165.59279199999997,
+      "max_ms": 177.243458,
+      "correct": true,
+      "matching_requests": 95000,
+      "attempts": 108571,
+      "warmup_ms": 1676.411292,
+      "samples_ms": [
+        168.27241600000002,
+        164.097084,
+        165.59279199999997,
+        164.09420899999998,
+        177.243458
+      ],
+      "all_pages": {
+        "pages": 950,
+        "rows": 95000,
+        "sha256": "465762f0537fda75698cc9192a051dbe70563ccb2b7c054c7a1de0e61fca461b"
+      },
+      "max_rss_bytes": 26017792,
+      "query": {}
+    },
+    {
+      "scale": "100k",
+      "case": "all-page",
+      "median_ms": 1.664541,
+      "max_ms": 1.851,
+      "correct": true,
+      "matching_requests": 95000,
+      "attempts": 108571,
+      "warmup_ms": 1.879833,
+      "samples_ms": [
+        1.645875,
+        1.664541,
+        1.801334,
+        1.594916,
+        1.851
+      ],
+      "all_pages": {
+        "pages": 950,
+        "rows": 95000,
+        "sha256": "465762f0537fda75698cc9192a051dbe70563ccb2b7c054c7a1de0e61fca461b"
+      },
+      "max_rss_bytes": 8667136,
+      "query": {
+        "summary": false
+      }
+    },
+    {
+      "scale": "100k",
+      "case": "unknown",
+      "median_ms": 229.333,
+      "max_ms": 232.99112499999998,
+      "correct": true,
+      "matching_requests": 100000,
+      "attempts": 108571,
+      "warmup_ms": 229.082167,
+      "samples_ms": [
+        232.99112499999998,
+        229.333,
+        227.353209,
+        226.890167,
+        230.497417
+      ],
+      "all_pages": {
+        "pages": 1000,
+        "rows": 100000,
+        "sha256": "54a3ea90ee0522837d4532b987c425a3141534e79e695e543c9face6a059cb85"
+      },
+      "max_rss_bytes": 24166400,
+      "query": {
+        "include_unknown": true
+      }
+    },
+    {
+      "scale": "100k",
+      "case": "model",
+      "median_ms": 106.144667,
+      "max_ms": 106.8885,
+      "correct": true,
+      "matching_requests": 2796,
+      "attempts": 3195,
+      "warmup_ms": 106.254959,
+      "samples_ms": [
+        106.8885,
+        104.117334,
+        105.205917,
+        106.144667,
+        106.572708
+      ],
+      "all_pages": {
+        "pages": 28,
+        "rows": 2796,
+        "sha256": "4eb854fb3a2221416598fd67777382fd6202253c8bc12ebc869ec094fbf9f017"
+      },
+      "max_rss_bytes": 16056320,
+      "query": {
+        "model": "model-6"
+      }
+    },
+    {
+      "scale": "100k",
+      "case": "combined",
+      "median_ms": 156.698167,
+      "max_ms": 157.485,
+      "correct": true,
+      "matching_requests": 0,
+      "attempts": 0,
+      "warmup_ms": 156.510791,
+      "samples_ms": [
+        156.58545800000002,
+        157.485,
+        156.09816700000002,
+        156.698167,
+        156.820583
+      ],
+      "all_pages": {
+        "pages": 1,
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "max_rss_bytes": 12976128,
+      "query": {
+        "model": "model-6",
+        "credential_id": "account-46",
+        "client_key_id": "key-30"
+      }
+    },
+    {
+      "scale": "1m",
+      "case": "narrow",
+      "median_ms": 2.538708,
+      "max_ms": 2.5865,
+      "correct": true,
+      "matching_requests": 110,
+      "attempts": 126,
+      "warmup_ms": 11.014167,
+      "samples_ms": [
+        2.5865,
+        2.538708,
+        2.422792,
+        2.5729580000000003,
+        2.426542
+      ],
+      "all_pages": {
+        "pages": 2,
+        "rows": 110,
+        "sha256": "cde0be8791c23d3476db473ad83bddcd06ab5f4164a37ebe690ed765413fca98"
+      },
+      "max_rss_bytes": 7667712,
+      "query": {
+        "from_ms": 1701296000000,
+        "to_ms": 1701296300000
+      }
+    },
+    {
+      "scale": "1m",
+      "case": "day",
+      "median_ms": 168.842917,
+      "max_ms": 170.51554099999998,
+      "correct": true,
+      "matching_requests": 31667,
+      "attempts": 36191,
+      "warmup_ms": 446.80683300000004,
+      "samples_ms": [
+        170.298,
+        170.51554099999998,
+        168.842917,
+        168.74670799999998,
+        168.697917
+      ],
+      "all_pages": {
+        "pages": 317,
+        "rows": 31667,
+        "sha256": "30f12386679723a677fe88eba72b6d5af048159f502e7ca4f37fc3f8e715235d"
+      },
+      "max_rss_bytes": 16220160,
+      "query": {
+        "from_ms": 1701296000000,
+        "to_ms": 1701382400000
+      }
+    },
+    {
+      "scale": "1m",
+      "case": "all",
+      "median_ms": 1908.978834,
+      "max_ms": 2186.086416,
+      "correct": true,
+      "matching_requests": 950000,
+      "attempts": 1085715,
+      "warmup_ms": 12417.521541,
+      "samples_ms": [
+        2027.208458,
+        1816.788333,
+        1815.452292,
+        1908.978834,
+        2186.086416
+      ],
+      "all_pages": {
+        "pages": 9500,
+        "rows": 950000,
+        "sha256": "658aa9ca76ee53efbd1480cb4a5b2147dc7580207d3d0fbc82b084a64a37483d"
+      },
+      "max_rss_bytes": 23756800,
+      "query": {}
+    },
+    {
+      "scale": "1m",
+      "case": "all-page",
+      "median_ms": 1.786291,
+      "max_ms": 1.872625,
+      "correct": true,
+      "matching_requests": 950000,
+      "attempts": 1085715,
+      "warmup_ms": 2.9446670000000004,
+      "samples_ms": [
+        1.872625,
+        1.872166,
+        1.786291,
+        1.695333,
+        1.61125
+      ],
+      "all_pages": {
+        "pages": 9500,
+        "rows": 950000,
+        "sha256": "658aa9ca76ee53efbd1480cb4a5b2147dc7580207d3d0fbc82b084a64a37483d"
+      },
+      "max_rss_bytes": 8060928,
+      "query": {
+        "summary": false
+      }
+    },
+    {
+      "scale": "1m",
+      "case": "unknown",
+      "median_ms": 2594.683,
+      "max_ms": 2728.262542,
+      "correct": true,
+      "matching_requests": 1000000,
+      "attempts": 1085715,
+      "warmup_ms": 5191.813625,
+      "samples_ms": [
+        2534.84475,
+        2591.592291,
+        2594.683,
+        2728.262542,
+        2684.035458
+      ],
+      "all_pages": {
+        "pages": 10000,
+        "rows": 1000000,
+        "sha256": "f74a013baf610a68f6d5b700800c744fe244682a1d761249cad315fa0643e580"
+      },
+      "max_rss_bytes": 23609344,
+      "query": {
+        "include_unknown": true
+      }
+    },
+    {
+      "scale": "1m",
+      "case": "model",
+      "median_ms": 1250.6416250000002,
+      "max_ms": 1515.2454579999999,
+      "correct": true,
+      "matching_requests": 45573,
+      "attempts": 52083,
+      "warmup_ms": 13383.254375,
+      "samples_ms": [
+        1515.2454579999999,
+        1197.056334,
+        1230.546666,
+        1269.517209,
+        1250.6416250000002
+      ],
+      "all_pages": {
+        "pages": 456,
+        "rows": 45573,
+        "sha256": "ece9a9687cf873e5509176b810c9bfbd0880ee3b9f6accc0f9ce95febdb69e10"
+      },
+      "max_rss_bytes": 20414464,
+      "query": {
+        "model": "model-6"
+      }
+    },
+    {
+      "scale": "1m",
+      "case": "combined",
+      "median_ms": 1784.368375,
+      "max_ms": 2181.448084,
+      "correct": true,
+      "matching_requests": 4,
+      "attempts": 5,
+      "warmup_ms": 2651.817208,
+      "samples_ms": [
+        1784.368375,
+        2181.448084,
+        2014.6527500000002,
+        1702.071792,
+        1714.459583
+      ],
+      "all_pages": {
+        "pages": 1,
+        "rows": 4,
+        "sha256": "00fcd70eb7857aa2118337d2bc7709dcfa1b350d32f57c61f0bfdfa27e0e52b9"
+      },
+      "max_rss_bytes": 13254656,
+      "query": {
+        "model": "model-6",
+        "credential_id": "account-46",
+        "client_key_id": "key-30"
+      }
+    }
+  ],
+  "prior_failures_retained": {
+    "baseline_1m_full_median_ms": 13340,
+    "v5_max_full_ms": 15378.87,
+    "v6": "deep cursor scan exposed by full traversal; interrupted; corrected competing ordinal bounds"
+  },
+  "real_provider_calls": 0
+}

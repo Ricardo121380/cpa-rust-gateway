@@ -6,10 +6,10 @@
 
 #![deny(unsafe_code)]
 
-use std::sync::Arc;
+use std::{fmt::Write, sync::Arc};
 
 use actix_web::{HttpResponse, web};
-use gateway_observability::{BoundedEventQueue, PrometheusMetrics};
+use gateway_observability::{BoundedEventQueue, PrometheusMetrics, StorageCapacityMonitor};
 
 use crate::management_security::configure_management;
 
@@ -30,6 +30,7 @@ pub struct ManagementObservabilityHttpState {
     metrics: Arc<PrometheusMetrics>,
     event_queue: Arc<BoundedEventQueue>,
     durability: Option<Arc<dyn DurabilityMetricsSource>>,
+    storage: Arc<StorageCapacityMonitor>,
 }
 
 impl ManagementObservabilityHttpState {
@@ -44,6 +45,7 @@ impl ManagementObservabilityHttpState {
             metrics,
             event_queue,
             durability: None,
+            storage: Arc::default(),
         }
     }
 
@@ -56,6 +58,12 @@ impl ManagementObservabilityHttpState {
     pub fn with_durability(mut self, durability: Arc<dyn DurabilityMetricsSource>) -> Self {
         self.durability = Some(durability);
         self
+    }
+
+    /// Shared publication handle for the capacity sampler; HTTP never samples the filesystem.
+    #[must_use]
+    pub fn storage_monitor(&self) -> Arc<StorageCapacityMonitor> {
+        Arc::clone(&self.storage)
     }
 }
 
@@ -81,6 +89,7 @@ async fn metrics_exposition(state: web::Data<ManagementObservabilityHttpState>) 
     let (recording_state, pending, last_commit, confirmation_failures, recovered) =
         state.event_queue.recording_health().snapshot();
     let mut body = state.metrics.render_prometheus();
+    let (capacity, remaining) = state.event_queue.required_capacity();
     for (name, kind, value) in [
         (
             "gateway_recording_accepting_requests",
@@ -96,9 +105,46 @@ async fn metrics_exposition(state: web::Data<ManagementObservabilityHttpState>) 
             confirmation_failures,
         ),
         ("gateway_recording_recovered_unknown", "gauge", recovered),
+        ("gateway_recording_queue_capacity", "gauge", capacity as u64),
+        (
+            "gateway_recording_queue_remaining",
+            "gauge",
+            remaining as u64,
+        ),
+        (
+            "gateway_recording_queue_used",
+            "gauge",
+            capacity.saturating_sub(remaining) as u64,
+        ),
     ] {
-        use std::fmt::Write;
         let _ = writeln!(body, "# TYPE {name} {kind}\n{name} {value}");
+    }
+    let (storage, failed) = state.storage.snapshot();
+    let _ = writeln!(
+        body,
+        "# TYPE gateway_storage_collection_failed gauge\ngateway_storage_collection_failed {}",
+        u8::from(failed)
+    );
+    let _ = writeln!(
+        body,
+        "# TYPE gateway_storage_observed gauge\ngateway_storage_observed {}",
+        u8::from(storage.is_some())
+    );
+    if let Some(storage) = storage {
+        for (name, value) in [
+            ("observed_at_ms", storage.observed_at_ms),
+            ("database_bytes", storage.database_bytes),
+            ("wal_bytes", storage.wal_bytes),
+            ("available_bytes", storage.available_bytes),
+            ("total_bytes", storage.total_bytes),
+            ("disk_low", u64::from(storage.disk_low())),
+            ("wal_high", u64::from(storage.wal_high())),
+        ] {
+            let _ = writeln!(
+                body,
+                "# TYPE gateway_storage_{name} gauge\ngateway_storage_{name} {value}"
+            );
+        }
     }
     HttpResponse::Ok()
         .content_type(PROMETHEUS_TEXT_CONTENT_TYPE)

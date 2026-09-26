@@ -67,13 +67,12 @@ async fn metrics_exposition_serves_bounded_counters_after_traffic_and_overflow()
         EventEmission::RequiredQueueFull
     );
     metrics.observe_event(&request_event("one")?);
+    let state = ManagementObservabilityHttpState::new(Arc::clone(&metrics), Arc::clone(&queue));
+    let storage = state.storage_monitor();
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security_state()?))
-            .app_data(web::Data::new(ManagementObservabilityHttpState::new(
-                Arc::clone(&metrics),
-                Arc::clone(&queue),
-            )))
+            .app_data(web::Data::new(state))
             .configure(configure_management_observability),
     )
     .await;
@@ -113,10 +112,44 @@ async fn metrics_exposition_serves_bounded_counters_after_traffic_and_overflow()
         "gateway_recording_last_commit_ms 0",
         "gateway_recording_confirmation_failures_total 1",
         "gateway_recording_recovered_unknown 0",
+        "gateway_recording_queue_capacity 1",
+        "gateway_recording_queue_remaining 0",
+        "gateway_recording_queue_used 1",
+        "gateway_storage_collection_failed 0",
+        "gateway_storage_observed 0",
     ] {
         assert!(body.contains(expected), "missing {expected}");
     }
     assert!(!body.contains("p12-metrics-request-one"));
     assert!(!body.contains("p12-metrics-requested-model"));
+    assert!(!body.contains("gateway_storage_available_bytes"));
+    storage.observe(Some(gateway_observability::StorageCapacitySnapshot {
+        observed_at_ms: 1234,
+        database_bytes: 100,
+        wal_bytes: 300 * 1024 * 1024,
+        available_bytes: 0,
+        total_bytes: 1024 * 1024 * 1024,
+    }));
+    storage.observe(None);
+    let response = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/admin/observability/metrics")
+            .peer_addr(loopback())
+            .insert_header((MANAGEMENT_KEY_HEADER, MANAGEMENT_KEY))
+            .to_request(),
+    )
+    .await;
+    let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+    for expected in [
+        "gateway_storage_observed_at_ms 1234",
+        "gateway_storage_collection_failed 1",
+        "gateway_storage_observed 1",
+        "gateway_storage_available_bytes 0",
+        "gateway_storage_disk_low 1",
+        "gateway_storage_wal_high 1",
+    ] {
+        assert!(body.contains(expected), "missing {expected}");
+    }
     Ok(())
 }

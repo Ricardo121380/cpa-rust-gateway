@@ -23,6 +23,7 @@ import {
   type ConfigVersionSummary,
 } from "../config-versions/versionStore";
 import { growthSince, readCounters, successRate, type GatewayCounters } from "./metrics";
+import { StorageCapacity } from "./StorageCapacity";
 
 const METRICS_POLL_MS = 15_000;
 
@@ -137,6 +138,7 @@ function LiveCountersSection() {
         <p className="stat-sub">最后成功写入：{counters.recording.lastCommit?new Date(counters.recording.lastCommit).toLocaleString():"未观测"} · 确认失败 {counters.recording.confirmationFailures??"未观测"} 次 · 启动恢复为终态未知 {counters.recording.recoveredUnknown??"未观测"} 条</p>
         {counters.recording.accepting===false?<p>记录系统恢复后才会接受新请求。请检查运行日志与存储状态；普通服务健康不代表记录可用。</p>:null}
       </section>
+      <StorageCapacity capacity={counters.capacity}/>
       <details className="overview-telemetry"><summary>进程计数与运行事件</summary>
       <h3 className="overview-metrics-title" data-gap="top">
         网关实时计数 <span className="badge badge-muted">自进程启动累计</span>

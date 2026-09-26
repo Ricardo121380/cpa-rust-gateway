@@ -301,7 +301,10 @@ mod tests {
             1
         );
         crate::migrate(&mut store.connection)?;
-        assert_eq!(crate::schema_version(&store.connection)?, Some(30));
+        assert_eq!(
+            crate::schema_version(&store.connection)?,
+            Some(crate::CURRENT_SCHEMA_VERSION)
+        );
         assert!(
             store
                 .claim(&version, &credential, 2, B, 1002, 60000)?

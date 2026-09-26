@@ -1,0 +1,2 @@
+DROP INDEX gateway_attempt_request_snapshot;
+DROP INDEX gateway_terminal_history_cover;

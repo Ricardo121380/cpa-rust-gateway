@@ -5,8 +5,10 @@
 
 #![deny(unsafe_code)]
 
+mod capacity;
 mod log_safety;
 mod telemetry;
+pub use capacity::{StorageCapacityMonitor, StorageCapacitySnapshot};
 
 use std::{
     sync::{
@@ -212,6 +214,12 @@ impl BoundedEventQueue {
 }
 
 impl BoundedEventQueue {
+    /// Reads `(capacity, remaining)` without consuming queue entries or doing storage I/O.
+    #[must_use]
+    pub fn required_capacity(&self) -> (usize, usize) {
+        (self.required.max_capacity(), self.required.capacity())
+    }
+
     /// Reads recording health without storage I/O.
     pub fn recording_health(&self) -> &RecordingHealth {
         &self.health

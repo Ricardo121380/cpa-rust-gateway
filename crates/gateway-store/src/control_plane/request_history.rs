@@ -121,35 +121,32 @@ impl ResourceInventoryReader {
         if snapshot > maximum {
             return Err(StoreError::ConfigVersionRevisionConflict);
         }
-        // t is unique per request. Scalar attempt/usage lookups are request-indexed and snapshot-bound.
-        let cte="WITH matches AS (
-          SELECT request_id FROM gateway_event_log WHERE event_type='request_finished' AND event_ordinal<=?1 AND occurred_at_ms>=?2 AND occurred_at_ms<=?3
-          UNION ALL
-          SELECT r.request_id FROM gateway_event_log r WHERE ?4 AND r.event_type='request' AND r.event_ordinal<=?1
-            AND NOT EXISTS(SELECT 1 FROM gateway_event_log t WHERE t.event_type='request_finished' AND t.request_id=r.request_id AND t.event_ordinal<=?1)
-        ), source AS (
-          SELECT r.event_ordinal ordinal,r.request_id,r.payload_json r,t.payload_json t,
+        let columns="r.event_ordinal ordinal,r.request_id,r.payload_json r,
             (SELECT a.payload_json FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=r.request_id AND a.event_ordinal<=?1 ORDER BY json_extract(a.payload_json,'$.attempt.attempt_number') DESC LIMIT 1) a,
             (SELECT COUNT(*) FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=r.request_id AND a.event_ordinal<=?1) attempts,
-            (SELECT u.payload_json FROM gateway_event_log u WHERE u.event_type='usage' AND u.request_id=r.request_id AND u.event_ordinal<=?1 ORDER BY u.event_ordinal DESC LIMIT 1) u
-          FROM matches m JOIN gateway_event_log r ON r.request_id=m.request_id LEFT JOIN gateway_event_log t ON t.event_type='request_finished' AND t.request_id=r.request_id AND t.event_ordinal<=?1
-          WHERE r.event_type='request' AND r.event_ordinal<=?1
-            AND ((t.occurred_at_ms>=?2 AND t.occurred_at_ms<=?3) OR (?4 AND t.event_ordinal IS NULL))
-        ), projected AS (
+            (SELECT u.payload_json FROM gateway_event_log u WHERE u.event_type='usage' AND u.request_id=r.request_id AND u.event_ordinal<=?1 ORDER BY u.event_ordinal DESC LIMIT 1) u";
+        let projection = "), projected AS (
           SELECT *,json_extract(r,'$.request.public_model') model,
             json_extract(r,'$.request.client_key_id') client_key,
             json_extract(a,'$.attempt.upstream_id') upstream,
             json_extract(a,'$.attempt.credential_id') credential,
-            COALESCE(json_extract(t,'$.request_finished.outcome'),'unknown') outcome,
-            json_extract(t,'$.request_finished.duration_ms') duration,
-            json_extract(t,'$.request_finished.first_content_ms') first_content,
-            json_extract(t,'$.request_finished.finished_at_ms') finished
+            COALESCE(terminal_outcome,'unknown') outcome
           FROM source
         ), filtered AS (
           SELECT * FROM projected WHERE (?5 IS NULL OR model=?5) AND (?6 IS NULL OR upstream=?6)
             AND (?7 IS NULL OR credential=?7) AND (?8 IS NULL OR client_key=?8)
             AND (?9 IS NULL OR outcome=?9) AND (?10 IS NULL OR request_id=?10)
         ) ";
+        // Read narrow indexed terminal facts for aggregation; payloads are loaded only for the page.
+        let cte=format!("WITH matches AS (
+          SELECT request_id,event_ordinal terminal, json_extract(payload_json,'$.request_finished.outcome') terminal_outcome, json_extract(payload_json,'$.request_finished.duration_ms') duration, json_extract(payload_json,'$.request_finished.first_content_ms') first_content, json_extract(payload_json,'$.request_finished.finished_at_ms') finished FROM gateway_event_log INDEXED BY gateway_terminal_history_cover WHERE event_type='request_finished' AND event_ordinal<=?1 AND occurred_at_ms>=?2 AND occurred_at_ms<=?3
+          UNION ALL
+          SELECT r.request_id,NULL,NULL,NULL,NULL,NULL FROM gateway_event_log r WHERE ?4 AND r.event_type='request' AND r.event_ordinal<=?1
+            AND NOT EXISTS(SELECT 1 FROM gateway_event_log t WHERE t.event_type='request_finished' AND t.event_id=r.request_id AND t.event_ordinal<=?1)
+        ), source AS (
+          SELECT {columns},m.terminal,m.terminal_outcome,m.duration,m.first_content,m.finished FROM matches m CROSS JOIN gateway_event_log r ON r.event_id=m.request_id
+          WHERE r.event_type='request' AND r.event_ordinal<=?1
+        {projection}");
         let values: Vec<rusqlite::types::Value> = vec![
             snapshot.into(),
             query.from_ms.unwrap_or(0).into(),
@@ -162,12 +159,43 @@ impl ResourceInventoryReader {
             query.outcome.clone().into(),
             query.request_id.clone().into(),
         ];
+        // A wide page walks newest Request ordinals directly, stopping at limit+1.
+        // Narrow windows keep the terminal-time index so old windows never scan newer history.
+        let wide_page_cte;
+        let page_cte = if query
+            .to_ms
+            .unwrap_or(i64::MAX)
+            .saturating_sub(query.from_ms.unwrap_or(0))
+            > 86_400_000
+        {
+            wide_page_cte = format!("WITH source AS (
+              SELECT {columns},t.event_ordinal terminal, json_extract(t.payload_json,'$.request_finished.outcome') terminal_outcome, json_extract(t.payload_json,'$.request_finished.duration_ms') duration, json_extract(t.payload_json,'$.request_finished.first_content_ms') first_content, json_extract(t.payload_json,'$.request_finished.finished_at_ms') finished FROM gateway_event_log r INDEXED BY gateway_event_log_type_ordinal
+              LEFT JOIN gateway_event_log t ON t.event_type='request_finished' AND t.event_id=r.request_id AND t.event_ordinal<=?1
+              WHERE r.event_type='request' AND r.event_ordinal<?11
+                AND ((t.occurred_at_ms>=?2 AND t.occurred_at_ms<=?3) OR (?4 AND t.event_ordinal IS NULL))
+              {projection}");
+            &wide_page_cte
+        } else {
+            &cte
+        };
         let sql = format!(
-            "{cte} SELECT ordinal,r,t,a,attempts,u FROM filtered WHERE ordinal<?11 ORDER BY ordinal DESC LIMIT ?12"
+            "{page_cte}, page AS MATERIALIZED (SELECT ordinal,request_id,r,terminal,a,attempts,u FROM filtered WHERE ordinal<?11 ORDER BY ordinal DESC LIMIT ?12),
+             billing AS (SELECT l.request_id,COUNT(*) records,SUM(l.cost_microunits) cost,
+               CASE WHEN SUM(l.cost_confidence='unpriced')>0 THEN 'unpriced' WHEN SUM(l.cost_confidence='unknown')>0 THEN 'unknown' WHEN SUM(l.cost_confidence='partial')>0 THEN 'partial' ELSE 'exact' END confidence
+               FROM page p CROSS JOIN billing_ledger_entries l INDEXED BY billing_ledger_request_idx ON l.request_id=p.request_id AND l.ledger_id<=?13 GROUP BY l.request_id)
+             SELECT p.ordinal,p.r,(SELECT payload_json FROM gateway_event_log WHERE event_ordinal=p.terminal),p.a,p.attempts,p.u,COALESCE(b.records,0),b.cost,b.confidence
+             FROM page p LEFT JOIN billing b ON b.request_id=p.request_id ORDER BY p.ordinal DESC"
         );
         let mut page_values = values.clone();
-        page_values.push(query.after.unwrap_or(i64::MAX).into());
+        page_values.push(
+            query
+                .after
+                .unwrap_or(i64::MAX)
+                .min(snapshot.saturating_add(1))
+                .into(),
+        );
         page_values.push((i64::from(query.limit) + 1).into());
+        page_values.push(ledger_snapshot.into());
         let mut stmt = tx.prepare(&sql)?;
         let entries = stmt
             .query_map(params_from_iter(page_values), |row| {
@@ -178,13 +206,18 @@ impl ResourceInventoryReader {
                     row.get::<_, Option<String>>(3)?,
                     row.get::<_, i64>(4)?,
                     row.get::<_, Option<String>>(5)?,
+                    row.get::<_, i64>(6)?,
+                    row.get::<_, Option<i64>>(7)?,
+                    row.get::<_, Option<String>>(8)?,
                 ))
             })?
             .collect::<Result<Vec<_>, _>>()?;
         let has_more = entries.len() > usize::from(query.limit);
         let mut items = Vec::new();
         let mut last = None;
-        for (ordinal, r, t, a, attempts, u) in entries.into_iter().take(usize::from(query.limit)) {
+        for (ordinal, r, t, a, attempts, u, records, cost, confidence) in
+            entries.into_iter().take(usize::from(query.limit))
+        {
             let parse = |s: &str| {
                 serde_json::from_str::<Value>(s)
                     .map_err(|_| StoreError::InvalidPersistedGatewayEvent)
@@ -196,55 +229,40 @@ impl ResourceInventoryReader {
             let r = &request["request"];
             let t = &terminal["request_finished"];
             let a = &attempt["attempt"];
-            let billing=tx.query_row("SELECT COUNT(*),SUM(cost_microunits),CASE WHEN SUM(cost_confidence='unpriced')>0 THEN 'unpriced' WHEN SUM(cost_confidence='unknown')>0 THEN 'unknown' WHEN SUM(cost_confidence='partial')>0 THEN 'partial' ELSE 'exact' END FROM billing_ledger_entries WHERE request_id=?1 AND ledger_id<=?2",rusqlite::params![r["request_id"].as_str(),ledger_snapshot],|row|Ok((row.get::<_,i64>(0)?,row.get::<_,Option<i64>>(1)?,row.get::<_,String>(2)?)))?;
-            items.push(json!({"request_id":r["request_id"],"client_key_id":r["client_key_id"],"model":r["public_model"],"requested_model":r["requested_model"],"protocol":r["protocol"],"streaming":r["streaming"],"upstream_id":a["upstream_id"],"endpoint_id":a["endpoint_id"],"credential_id":a["credential_id"],"attempt_count":attempts,"outcome":t["outcome"].as_str().unwrap_or("unknown"),"started_at_ms":t["started_at_ms"],"finished_at_ms":t["finished_at_ms"],"duration_ms":t["duration_ms"],"first_content_ms":t["first_content_ms"],"error_code":t["error_code"],"usage":usage["usage"]["usage"],"cost_microunits":billing.1,"cost_confidence":if billing.0==0 {None}else{Some(billing.2)},"ledger_records":billing.0}));
+            items.push(json!({"request_id":r["request_id"],"client_key_id":r["client_key_id"],"model":r["public_model"],"requested_model":r["requested_model"],"protocol":r["protocol"],"streaming":r["streaming"],"upstream_id":a["upstream_id"],"endpoint_id":a["endpoint_id"],"credential_id":a["credential_id"],"attempt_count":attempts,"outcome":t["outcome"].as_str().unwrap_or("unknown"),"started_at_ms":t["started_at_ms"],"finished_at_ms":t["finished_at_ms"],"duration_ms":t["duration_ms"],"first_content_ms":t["first_content_ms"],"error_code":t["error_code"],"usage":usage["usage"]["usage"],"cost_microunits":cost,"cost_confidence":confidence,"ledger_records":records}));
             last = Some(ordinal);
         }
         let mut summary = None;
         let mut series = Vec::new();
         if query.summary {
-            let sql = format!(
-                "{cte} SELECT COUNT(*),COALESCE(SUM(outcome='succeeded'),0),COALESCE(SUM(outcome='failed'),0),COALESCE(SUM(outcome='cancelled'),0),COALESCE(SUM(outcome='unknown'),0),COALESCE(SUM(attempts),0),AVG(duration),AVG(first_content),SUM(outcome='succeeded')*1.0/NULLIF(SUM(outcome<>'unknown'),0) FROM filtered"
-            );
-            let (
-                count,
-                success,
-                failed,
-                cancelled,
-                unknown,
-                attempts,
-                average,
-                first,
-                success_rate,
-            ) = tx.query_row(&sql, params_from_iter(values.clone()), |r| {
-                Ok((
-                    r.get::<_, i64>(0)?,
-                    r.get::<_, i64>(1)?,
-                    r.get::<_, i64>(2)?,
-                    r.get::<_, i64>(3)?,
-                    r.get::<_, i64>(4)?,
-                    r.get::<_, i64>(5)?,
-                    r.get::<_, Option<f64>>(6)?,
-                    r.get::<_, Option<f64>>(7)?,
-                    r.get::<_, Option<f64>>(8)?,
-                ))
-            })?;
-            let quantiles = format!(
-                "{cte}, ranked AS (SELECT duration,ROW_NUMBER() OVER(ORDER BY duration) n,COUNT(*) OVER() total FROM filtered WHERE duration IS NOT NULL) SELECT MAX(CASE WHEN n=(total+1)/2 THEN duration END),MAX(CASE WHEN n=(total*95+99)/100 THEN duration END) FROM ranked"
-            );
-            let (p50, p95) = tx.query_row(&quantiles, params_from_iter(values.clone()), |r| {
-                Ok((r.get::<_, Option<i64>>(0)?, r.get::<_, Option<i64>>(1)?))
-            })?;
+            // Materialize only narrow scalar columns once, on SQLite's temporary store.
+            // Percentiles remain exact and unknown historical durations remain null.
+            let sql = format!("{cte}, aggregate_rows AS MATERIALIZED (
+                SELECT outcome,attempts,duration,first_content,finished FROM filtered
+              ), duration_counts AS (
+                SELECT duration,COUNT(*) frequency FROM aggregate_rows WHERE duration IS NOT NULL GROUP BY duration
+              ), ranked AS (
+                SELECT duration,SUM(frequency) OVER(ORDER BY duration) n,SUM(frequency) OVER() total FROM duration_counts
+              ), quantiles AS (
+                SELECT MIN(CASE WHEN n>=(total+1)/2 THEN duration END) p50,MIN(CASE WHEN n>=(total*95+99)/100 THEN duration END) p95 FROM ranked
+              ), buckets AS (
+                SELECT (finished/?11)*?11 at_ms,COUNT(*) requests,SUM(outcome='succeeded') succeeded,SUM(outcome='failed') failed,SUM(outcome='cancelled') cancelled,AVG(duration) average_duration_ms,AVG(first_content) average_first_content_ms
+                FROM aggregate_rows WHERE finished IS NOT NULL GROUP BY finished/?11 ORDER BY finished/?11 LIMIT 1001
+              ) SELECT json_object('requests',COUNT(*),'succeeded',COALESCE(SUM(outcome='succeeded'),0),'failed',COALESCE(SUM(outcome='failed'),0),'cancelled',COALESCE(SUM(outcome='cancelled'),0),'unknown',COALESCE(SUM(outcome='unknown'),0),'attempts',COALESCE(SUM(attempts),0),'success_rate',SUM(outcome='succeeded')*1.0/NULLIF(SUM(outcome<>'unknown'),0),'average_duration_ms',AVG(duration),'average_first_content_ms',AVG(first_content),'p50_duration_ms',(SELECT p50 FROM quantiles),'p95_duration_ms',(SELECT p95 FROM quantiles)),
+                (SELECT json_group_array(json_object('at_ms',at_ms,'requests',requests,'succeeded',succeeded,'failed',failed,'cancelled',cancelled,'average_duration_ms',average_duration_ms,'average_first_content_ms',average_first_content_ms)) FROM buckets)
+              FROM aggregate_rows");
+            let mut aggregate_values = values;
+            aggregate_values.push(query.bucket_ms.into());
+            let (stats, trend): (String, String) =
+                tx.query_row(&sql, params_from_iter(aggregate_values), |r| {
+                    Ok((r.get(0)?, r.get(1)?))
+                })?;
             summary = Some(
-                json!({"requests":count,"succeeded":success,"failed":failed,"cancelled":cancelled,"unknown":unknown,"attempts":attempts,"success_rate":success_rate,"average_duration_ms":average,"average_first_content_ms":first,"p50_duration_ms":p50,"p95_duration_ms":p95}),
+                serde_json::from_str(&stats)
+                    .map_err(|_| StoreError::InvalidPersistedGatewayEvent)?,
             );
-            let sql = format!(
-                "{cte} SELECT (finished/?11)*?11,COUNT(*),SUM(outcome='succeeded'),SUM(outcome='failed'),SUM(outcome='cancelled'),AVG(duration),AVG(first_content) FROM filtered WHERE finished IS NOT NULL GROUP BY finished/?11 ORDER BY finished/?11 LIMIT 1001"
-            );
-            let mut trend_values = values;
-            trend_values.push(query.bucket_ms.into());
-            let mut stmt = tx.prepare(&sql)?;
-            series=stmt.query_map(params_from_iter(trend_values),|r|Ok(json!({"at_ms":r.get::<_,i64>(0)?,"requests":r.get::<_,i64>(1)?,"succeeded":r.get::<_,i64>(2)?,"failed":r.get::<_,i64>(3)?,"cancelled":r.get::<_,i64>(4)?,"average_duration_ms":r.get::<_,Option<f64>>(5)?,"average_first_content_ms":r.get::<_,Option<f64>>(6)?})))?.collect::<Result<Vec<_>,_>>()?;
+            series = serde_json::from_str(&trend)
+                .map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
             if series.len() > 1000 {
                 return Err(StoreError::InvalidPersistedGatewayEvent);
             }

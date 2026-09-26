@@ -71,6 +71,13 @@ export type GatewayCounters = Readonly<{
   /** Required events still sitting in the writer's one bounded pending batch. */
   pendingRequired: number;
   recording: Readonly<{accepting:boolean|null;state:number|null;pending:number|null;lastCommit:number|null;confirmationFailures:number|null;recoveredUnknown:number|null}>;
+  capacity: Readonly<{
+    queueCapacity: number | null; queueUsed: number | null;
+    observedAt: number | null; collectionFailed: number | null;
+    databaseBytes: number | null; walBytes: number | null;
+    availableBytes: number | null; totalBytes: number | null;
+    diskLow: number | null; walHigh: number | null;
+  }>;
 }>;
 
 export function readCounters(exposition: string): GatewayCounters {
@@ -97,7 +104,13 @@ export function readCounters(exposition: string): GatewayCounters {
 
   const observed=(name:string):number|null=>samples.find(sample=>sample.name===`gateway_recording_${name}`)?.value??null;
   const accepting=observed("accepting_requests");
+  const storage = (name: string): number | null => samples.find(sample => sample.name === `gateway_storage_${name}`)?.value ?? null;
   return {
+    capacity: { queueCapacity: observed("queue_capacity"), queueUsed: observed("queue_used"),
+      observedAt: storage("observed_at_ms"), collectionFailed: storage("collection_failed"),
+      databaseBytes: storage("database_bytes"), walBytes: storage("wal_bytes"),
+      availableBytes: storage("available_bytes"), totalBytes: storage("total_bytes"),
+      diskLow: storage("disk_low"), walHigh: storage("wal_high") },
     recording:{accepting:accepting===1?true:accepting===0?false:null,state:observed("state"),pending:observed("pending_required"),lastCommit:observed("last_commit_ms"),confirmationFailures:observed("confirmation_failures_total"),recoveredUnknown:observed("recovered_unknown")},
     events,
     eventsTotal: EVENT_KINDS.reduce((sum, kind) => sum + events[kind], 0),
@@ -108,6 +121,18 @@ export function readCounters(exposition: string): GatewayCounters {
     diagnosticLoss: bySeverity("diagnostic"),
     pendingRequired: pick(samples, `${P}durable_pending_required`),
   };
+}
+
+/** Capacity warnings do not change request admission or delete retained history. */
+export function capacityWarnings(capacity: GatewayCounters["capacity"], now: number): readonly string[] {
+  const warnings: string[] = [];
+  if (capacity.collectionFailed === 1) warnings.push("容量采样失败，保留上次观测");
+  if (capacity.observedAt === null) warnings.push("存储容量尚未观测");
+  else if (now - capacity.observedAt > 180_000) warnings.push("容量观测已超过 3 分钟");
+  if (capacity.diskLow === 1) warnings.push("磁盘剩余空间偏低，请安排扩容或离线维护");
+  if (capacity.walHigh === 1) warnings.push("WAL 较大，请检查长时间读取及写入积压");
+  if (capacity.queueCapacity !== null && capacity.queueCapacity > 0 && capacity.queueUsed !== null && capacity.queueUsed / capacity.queueCapacity >= 0.8) warnings.push("记录队列占用已达 80%");
+  return warnings;
 }
 
 /** Attempt success ratio, or undefined while no attempt has been observed. */

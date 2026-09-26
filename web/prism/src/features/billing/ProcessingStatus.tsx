@@ -46,12 +46,14 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
       call<BillingProcessingStatus>("getBillingProcessingStatus", {}),
     retry: false,
     refetchInterval: (query) =>
-      query.state.status === "error" ? false : 5_000,
+      query.state.status === "error" ? 30_000 : 5_000,
   });
   const data = query.data;
   const quarantined = data?.quarantined_failures ?? 0;
   const retryable = data?.unresolved_failures == null || data.quarantined_failures === null
     ? null : Math.max(0, data.unresolved_failures - data.quarantined_failures);
+  const lag = data?.source_ordinal == null ? null : Math.max(0, data.source_ordinal - (data.checkpoint_ordinal ?? 0));
+  const stale = data?.observed_at_ms != null && Date.now() - data.observed_at_ms > 60_000;
   const panel = (
     <aside className={`data-panel data-panel--padded${compact ? " billing-processing-compact" : ""}`} aria-label="计费处理状态" data-state={data?.state} data-gap="top">
       <header className="page-head">
@@ -77,9 +79,11 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
               ? `${quarantined} 条冲突事件已保留并隔离，不再自动重试；账本未包含这些事件。${retryable ? `另有 ${retryable} 条事件等待重试。` : ""}`
               : copy[data.state][1]}
           </p>
+          {stale || (lag !== null && lag >= 4096) ? <p role="status">{stale ? "处理观测已超过 1 分钟，请核对后台任务。" : "待处理序号跨度较大，请检查物化是否持续推进。"}</p> : null}
           <details>
             <summary>处理水位与观测</summary>
             <dl className="fact-grid">
+              <div><dt>待处理序号跨度</dt><dd>{lag ?? "未观测"}</dd></div>
               <div>
                 <dt>已处理事件序号</dt>
                 <dd>{data.checkpoint_ordinal ?? "未观测"}</dd>
@@ -112,5 +116,5 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
       ) : null}
     </aside>
   );
-  return compact && data?.state==="current" && !query.error ? <details className="processing-fold"><summary>计费处理已追平 · 查看详情</summary>{panel}</details> : panel;
+  return compact && data?.state==="current" && !query.error && !stale && (lag === null || lag < 4096) ? <details className="processing-fold"><summary>计费处理已追平 · 查看详情</summary>{panel}</details> : panel;
 }
