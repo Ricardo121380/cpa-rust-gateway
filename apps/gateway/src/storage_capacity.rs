@@ -1,9 +1,7 @@
 //! Minute-scale local filesystem sampling on one dedicated thread, separate from TTL cleanup.
 use gateway_observability::StorageCapacitySnapshot;
 use std::{
-    io::Read,
     path::Path,
-    process::{Command, Stdio},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
@@ -61,41 +59,14 @@ pub(crate) fn sample(database: &Path) -> Option<StorageCapacitySnapshot> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0,
         Err(_) => return None,
     };
-    // POSIX df is already part of the supported host images. No shell or user command is run.
-    // A missing command, stalled filesystem or output/parse failure means unobserved capacity.
-    let mut child = Command::new("/bin/df")
-        .args(["-Pk"])
-        .arg(database)
-        .env("LC_ALL", "C")
-        .stdin(Stdio::null())
-        .stderr(Stdio::null())
-        .stdout(Stdio::piped())
-        .spawn()
-        .ok()?;
-    let deadline = Instant::now() + Duration::from_secs(2);
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) if status.success() => break,
-            Ok(Some(_)) => return None,
-            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(10)),
-            _ => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return None;
-            }
-        }
-    }
-    let mut output = String::new();
-    child
-        .stdout
-        .take()?
-        .take(8193)
-        .read_to_string(&mut output)
-        .ok()?;
-    if output.len() > 8192 {
+    // Safe native filesystem query. Avoid spawning df: Rust's process implementation on the
+    // ARM build host links newer glibc symbols than the supported Debian runtime provides.
+    let space = rustix::fs::statvfs(database).ok()?;
+    let total_bytes = space.f_blocks.checked_mul(space.f_frsize)?;
+    let available_bytes = space.f_bavail.checked_mul(space.f_frsize)?;
+    if total_bytes == 0 {
         return None;
     }
-    let (total_bytes, available_bytes) = parse_df(&output)?;
     Some(StorageCapacitySnapshot {
         observed_at_ms: u64::try_from(
             SystemTime::now()
@@ -109,31 +80,6 @@ pub(crate) fn sample(database: &Path) -> Option<StorageCapacitySnapshot> {
         available_bytes,
         total_bytes,
     })
-}
-
-fn parse_df(text: &str) -> Option<(u64, u64)> {
-    let row: Vec<_> = text.lines().nth(1)?.split_whitespace().collect();
-    // Locate the percent field: filesystem and mount point may contain spaces.
-    let capacity = row.iter().position(|field| {
-        field
-            .strip_suffix('%')
-            .is_some_and(|value| value.parse::<u64>().is_ok())
-    })?;
-    let total = row
-        .get(capacity.checked_sub(3)?)?
-        .parse::<u64>()
-        .ok()?
-        .checked_mul(1024)?;
-    // On a full reserved filesystem df can report negative availability. It means no allocatable bytes.
-    let available = row
-        .get(capacity.checked_sub(1)?)?
-        .parse::<i64>()
-        .ok()?
-        .max(0);
-    if total == 0 {
-        return None;
-    }
-    Some((total, u64::try_from(available).ok()?.checked_mul(1024)?))
 }
 
 #[cfg(test)]
@@ -155,25 +101,6 @@ mod tests {
         worker.stop().await.map_err(|()| "sampler stop failed")?;
         std::fs::remove_file(path)?;
         Ok(())
-    }
-    #[test]
-    fn parse_capacity_never_invents_space_on_full_or_invalid_filesystems() {
-        assert_eq!(
-            parse_df(
-                "Filesystem 1024-blocks Used Available Capacity Mounted\n/dev/test 1000 800 200 80% /\n"
-            ),
-            Some((1_024_000, 204_800))
-        );
-        assert_eq!(
-            parse_df("header\n/dev/test 1000 1001 -1 100% /\n"),
-            Some((1_024_000, 0))
-        );
-        assert_eq!(
-            parse_df("header\nvolume with spaces 1000 800 200 80% /mount with spaces\n"),
-            Some((1_024_000, 204_800))
-        );
-        assert_eq!(parse_df("header\nbroken"), None);
-        assert_eq!(parse_df("header\n/dev/test 0 0 0 0% /\n"), None);
     }
     #[test]
     fn local_capacity_reads_only_file_metadata_and_keeps_missing_files_unknown()

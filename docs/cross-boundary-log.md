@@ -3350,3 +3350,12 @@ Implementation and acceptance remain in progress; production and the 0/12 allowa
 See `docs/change-requests/CR-20260926-query-capacity.md` and the M4 report.
 
 Local M4 validation: 1,357 Rust tests, 415 frontend tests, strict Clippy, serve assembly, agent roundtrip, contract, source boundaries and deterministic four-file embed passed. Final exact-revision release and production acceptance remain separately tracked. ProcessingStatus regression covers visible stale/backlog warnings.
+
+
+## 2026-09-26 - Codex - M4 ARM runtime compatibility
+
+**What:** apps/gateway capacity sampling uses pinned rustix filesystem metadata instead of an external df process; Cargo manifests/lock and capacity documentation updated.
+
+**Why:** c50e11a ARM artifact smoke failed against the existing Debian image with a GLIBC_2.39 requirement. Keep the existing runtime baseline and safe-code rule; validate the replacement using the same release smoke rather than bypassing the gate.
+
+**Other side:** No frontend/contract/query/permission change. Existing four embedded assets remain the visual acceptance target. The failed candidate was never deployed; exact follow-up signing and production-copy rehearsal remain required.
