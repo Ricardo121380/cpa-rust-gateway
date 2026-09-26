@@ -82,6 +82,8 @@ pub struct StoredGatewayEvent {
 #[derive(Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct UsageEventQuery<'query> {
+    /// Explicit opt-in to exclude conflicting historical usages with coverage metadata.
+    pub allow_partial: bool,
     pub from_ms: Option<i64>,
     pub to_ms: Option<i64>,
     pub provider_id: Option<&'query str>,
@@ -101,6 +103,8 @@ pub struct UsageEventQuery<'query> {
 pub struct UsageEventRead {
     pub snapshot_ordinal: Option<i64>,
     pub observed_through_ms: Option<i64>,
+    pub excluded_usage_events: u64,
+    pub excluded_request_groups: u64,
 }
 
 /// Bounded newest-first Attempt-failure selection for management reads.
@@ -506,10 +510,10 @@ impl SqliteEventStore {
             SELECT u.request_id,
             (SELECT r.payload_json FROM gateway_event_log r WHERE r.event_type='request' AND r.request_id=u.request_id AND r.event_ordinal<=?1 LIMIT 1) AS r,
             (SELECT a.payload_json FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=u.request_id AND a.event_ordinal<=?1 ORDER BY json_extract(a.payload_json, '$.attempt.attempt_number') DESC LIMIT 1) AS a,
-            MIN(u.payload_json) AS u, COUNT(DISTINCT u.payload_json) AS usage_count
+            MIN(u.payload_json) AS u, COUNT(DISTINCT u.payload_json) AS usage_count, COUNT(*) AS usage_events
             FROM gateway_event_log u WHERE u.event_type='usage' AND u.event_ordinal<=?1 GROUP BY u.request_id
         ), projected AS (
-            SELECT r,a,u,usage_count,
+            SELECT request_id,r,a,u,usage_count,usage_events,
             json_extract(a,'$.attempt.ended_at_ms') AS observed,
             json_extract(a,'$.attempt.upstream_id') AS provider,
             json_extract(a,'$.attempt.endpoint_id') AS channel,
@@ -518,7 +522,7 @@ impl SqliteEventStore {
             json_extract(r,'$.request.protocol') AS protocol,
             json_extract(r,'$.request.client_key_id') AS client,
             COALESCE(json_extract(r,'$.request.access_group_id'),'') AS access_group,
-            (r IS NULL OR a IS NULL OR usage_count<>1 OR json_extract(a,'$.attempt.outcome')<>'succeeded') AS invalid
+            (r IS NULL OR a IS NULL OR usage_count<>1 OR COALESCE(json_extract(a,'$.attempt.outcome')<>'succeeded',1)) AS invalid
             FROM lineages
         ), filtered AS (
             SELECT * FROM projected WHERE (observed IS NULL OR (observed>=?2 AND observed<=?3))
@@ -533,8 +537,11 @@ impl SqliteEventStore {
         // Reject ambiguous lineages only when they may belong to this query. A known
         // nonmatching dimension excludes a row; missing metadata cannot establish exclusion.
         // Validate before applying the page cursor so an invalid group is never skipped.
-        let (observed, invalid): (Option<i64>, Option<i64>) = transaction.query_row(
-            &format!("{cte} SELECT MAX(observed), MAX(invalid) FROM filtered"),
+        let (observed, invalid, excluded_usage_events, excluded_request_groups): (Option<i64>, Option<i64>, i64, i64) = transaction.query_row(
+            &format!("{cte} SELECT MAX(CASE WHEN NOT invalid THEN observed END),
+                MAX(CASE WHEN usage_count>1 AND r IS NOT NULL AND a IS NOT NULL THEN 0 ELSE invalid END),
+                COALESCE(SUM(CASE WHEN usage_count>1 THEN usage_events ELSE 0 END),0),
+                COALESCE(SUM(CASE WHEN usage_count>1 THEN 1 ELSE 0 END),0) FROM filtered"),
             rusqlite::params![
                 snapshot.unwrap_or(0),
                 from,
@@ -547,15 +554,39 @@ impl SqliteEventStore {
                 query.access_group_id,
                 query.protocol,
             ],
-            |row| Ok((row.get(0)?, row.get(1)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )?;
-        if invalid.is_some_and(|value| value != 0) {
+        if invalid.is_some_and(|value| value != 0)
+            || (!query.allow_partial && excluded_usage_events > 0)
+        {
             return Err(StoreError::InvalidPersistedGatewayEvent);
+        }
+        if excluded_usage_events > 0 {
+            // Isolation is limited to well-formed conflicting observations. Decode every
+            // excluded payload so damaged history cannot be silently reclassified as partial.
+            let mut statement = transaction.prepare(&format!("{cte} SELECT f.r,f.a,e.payload_json FROM filtered f
+                JOIN gateway_event_log e ON e.request_id=f.request_id AND e.event_type='usage' AND e.event_ordinal<=?1
+                WHERE f.usage_count>1"))?;
+            let mut rows = statement.query(rusqlite::params![
+                snapshot.unwrap_or(0),
+                from,
+                to,
+                query.provider_id,
+                query.channel_id,
+                query.account_id,
+                query.public_model,
+                query.client_key_id,
+                query.access_group_id,
+                query.protocol
+            ])?;
+            while let Some(row) = rows.next()? {
+                decode_usage_lineage(row)?;
+            }
         }
         {
             let after = query.after.unwrap_or([""; 7]);
             let mut statement = transaction.prepare(&format!("{cte} SELECT r,a,u FROM filtered
-                WHERE (?11=0 OR (provider,channel,account,model,protocol,client,access_group)>(?12,?13,?14,?15,?16,?17,?18))
+                WHERE NOT invalid AND (?11=0 OR (provider,channel,account,model,protocol,client,access_group)>(?12,?13,?14,?15,?16,?17,?18))
                 ORDER BY provider,channel,account,model,protocol,client,access_group"))?;
             let mut rows = statement.query(rusqlite::params![
                 snapshot.unwrap_or(0),
@@ -578,24 +609,7 @@ impl SqliteEventStore {
                 after[6]
             ])?;
             while let Some(row) = rows.next()? {
-                let decode = |column| -> StoreResult<GatewayEvent> {
-                    let value: String = row.get(column)?;
-                    serde_json::from_str(&value)
-                        .map_err(|_| StoreError::InvalidPersistedGatewayEvent)
-                };
-                let (
-                    GatewayEvent::Request(request),
-                    GatewayEvent::Attempt(attempt),
-                    GatewayEvent::Usage(usage),
-                ) = (decode(0)?, decode(1)?, decode(2)?)
-                else {
-                    return Err(StoreError::InvalidPersistedGatewayEvent);
-                };
-                if request.request_id() != attempt.request_id()
-                    || request.request_id() != usage.request_id()
-                {
-                    return Err(StoreError::InvalidPersistedGatewayEvent);
-                }
+                let (request, attempt, usage) = decode_usage_lineage(row)?;
                 if !visitor(&request, &attempt, &usage)? {
                     break;
                 }
@@ -605,6 +619,10 @@ impl SqliteEventStore {
         Ok(UsageEventRead {
             snapshot_ordinal: snapshot,
             observed_through_ms: observed,
+            excluded_usage_events: u64::try_from(excluded_usage_events)
+                .map_err(|_| StoreError::InvalidPersistedGatewayEvent)?,
+            excluded_request_groups: u64::try_from(excluded_request_groups)
+                .map_err(|_| StoreError::InvalidPersistedGatewayEvent)?,
         })
     }
 
@@ -1199,6 +1217,31 @@ impl fmt::Debug for AsyncSqliteEventWriter {
     }
 }
 
+fn decode_usage_lineage(
+    row: &rusqlite::Row<'_>,
+) -> StoreResult<(
+    gateway_core::RequestEvent,
+    gateway_core::AttemptEvent,
+    gateway_core::UsageEvent,
+)> {
+    let decode = |column| -> StoreResult<GatewayEvent> {
+        let value: String = row.get(column)?;
+        serde_json::from_str(&value).map_err(|_| StoreError::InvalidPersistedGatewayEvent)
+    };
+    let (
+        GatewayEvent::Request(request),
+        GatewayEvent::Attempt(attempt),
+        GatewayEvent::Usage(usage),
+    ) = (decode(0)?, decode(1)?, decode(2)?)
+    else {
+        return Err(StoreError::InvalidPersistedGatewayEvent);
+    };
+    if request.request_id() != attempt.request_id() || request.request_id() != usage.request_id() {
+        return Err(StoreError::InvalidPersistedGatewayEvent);
+    }
+    Ok((request, attempt, usage))
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -1489,6 +1532,40 @@ mod tests {
             assert_eq!(seen, vec![(current_id.clone(), Some(9))]);
             assert_eq!(metadata.observed_through_ms, Some(200));
         }
+        let partial_query = super::UsageEventQuery {
+            allow_partial: true,
+            ..Default::default()
+        };
+        let partial = store.visit_usage_lineages(&partial_query, |request, _, usage| {
+            assert_eq!(request.request_id(), &current_id);
+            assert_eq!(usage.usage().input_tokens, Some(9));
+            Ok(true)
+        })?;
+        assert_eq!(partial.excluded_usage_events, 2);
+        assert_eq!(partial.excluded_request_groups, 1);
+        assert_eq!(partial.observed_through_ms, Some(200));
+        // Coverage is global to the filtered snapshot, never reset by an exhausted cursor.
+        let after_all = super::UsageEventQuery {
+            after: Some(["zzzz"; 7]),
+            snapshot_ordinal: partial.snapshot_ordinal,
+            ..partial_query.clone()
+        };
+        assert_eq!(
+            store.visit_usage_lineages(&after_all, |_, _, _| Err(
+                crate::StoreError::InvalidPersistedGatewayEvent
+            ))?,
+            partial
+        );
+        let only_conflicts = store.visit_usage_lineages(
+            &super::UsageEventQuery {
+                from_ms: Some(25),
+                to_ms: Some(25),
+                ..partial_query.clone()
+            },
+            |_, _, _| Err(crate::StoreError::InvalidPersistedGatewayEvent),
+        )?;
+        assert_eq!(only_conflicts.excluded_usage_events, 2);
+        assert_eq!(only_conflicts.observed_through_ms, None);
         assert!(
             store
                 .visit_usage_lineages(&super::UsageEventQuery::default(), |_, _, _| Ok(true))
@@ -1528,6 +1605,59 @@ mod tests {
                     .is_err()
             );
         }
+        assert!(
+            store
+                .visit_usage_lineages(&partial_query, |_, _, _| Ok(true))
+                .is_err()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn usage_lineage_missing_outcome_never_disappears_from_strict_or_partial_results() -> TestResult
+    {
+        let (_, events) = sample_events()?;
+        let mut store = SqliteEventStore::open_in_memory()?;
+        for event in events {
+            if let GatewayEvent::Attempt(attempt) = &event {
+                store.connection.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('attempt','damaged-attempt',?1,json_remove(?2,'$.attempt.outcome'))", rusqlite::params![attempt.request_id().as_str(), serde_json::to_string(&event)?])?;
+            } else {
+                store.append_batch(&[event])?;
+            }
+        }
+        for allow_partial in [false, true] {
+            assert!(
+                store
+                    .visit_usage_lineages(
+                        &super::UsageEventQuery {
+                            allow_partial,
+                            ..Default::default()
+                        },
+                        |_, _, _| Ok(true)
+                    )
+                    .is_err()
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn usage_lineage_partial_mode_rejects_malformed_conflicting_payload() -> TestResult {
+        let (request_id, events) = sample_events()?;
+        let mut store = SqliteEventStore::open_in_memory()?;
+        store.append_batch(&events)?;
+        store.connection.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage','damaged-usage',?1,'{}')", [request_id.as_str()])?;
+        assert!(
+            store
+                .visit_usage_lineages(
+                    &super::UsageEventQuery {
+                        allow_partial: true,
+                        ..Default::default()
+                    },
+                    |_, _, _| Ok(true)
+                )
+                .is_err()
+        );
         Ok(())
     }
 

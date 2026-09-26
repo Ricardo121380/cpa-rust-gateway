@@ -16,6 +16,7 @@ export type BillingProcessingStatus = Readonly<{
   checkpoint_ordinal: number | null;
   checkpoint_updated_at_ms: number | null;
   unresolved_failures: number | null;
+  quarantined_failures: number | null;
   failure_code: "batch_unavailable" | null;
 }>;
 
@@ -48,6 +49,9 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
       query.state.status === "error" ? false : 5_000,
   });
   const data = query.data;
+  const quarantined = data?.quarantined_failures ?? 0;
+  const retryable = data?.unresolved_failures == null || data.quarantined_failures === null
+    ? null : Math.max(0, data.unresolved_failures - data.quarantined_failures);
   const panel = (
     <aside className={`data-panel data-panel--padded${compact ? " billing-processing-compact" : ""}`} aria-label="计费处理状态" data-state={data?.state} data-gap="top">
       <header className="page-head">
@@ -69,7 +73,9 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
       {data !== undefined ? (
         <>
           <p className="processing-summary">
-            <strong>{copy[data.state][0]}</strong> · {copy[data.state][1]}
+            <strong>{data.state === "needs_repair" && quarantined > 0 ? "历史用量不完整" : copy[data.state][0]}</strong> · {data.state === "needs_repair" && quarantined > 0
+              ? `${quarantined} 条冲突事件已保留并隔离，不再自动重试；账本未包含这些事件。${retryable ? `另有 ${retryable} 条事件等待重试。` : ""}`
+              : copy[data.state][1]}
           </p>
           <details>
             <summary>处理水位与观测</summary>
@@ -83,9 +89,11 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
                 <dd>{data.source_ordinal ?? "未观测"}</dd>
               </div>
               <div>
-                <dt>待修复事件</dt>
+                <dt>未入账事件</dt>
                 <dd>{data.unresolved_failures ?? "未观测"}</dd>
               </div>
+              <div><dt>已隔离</dt><dd>{data.quarantined_failures ?? "未观测"}</dd></div>
+              <div><dt>等待重试</dt><dd>{retryable ?? "未观测"}</dd></div>
               <div>
                 <dt>上次成功观测</dt>
                 <dd>

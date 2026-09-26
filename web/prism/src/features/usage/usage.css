@@ -246,3 +246,7 @@
 @media(max-width:720px) { .usage-headline-metrics > div { padding:12px; border:0; } .usage-headline-metrics strong { font-size:23px; } }
 
 .usage-filter-disclosure { margin-top:16px; }
+
+/* A prose notice must wrap as text, not squeeze its heading into a flex column. */
+.usage-page .usage-integrity { display:block; line-height:1.65; margin:12px 0; }
+.usage-integrity strong { white-space:nowrap; }

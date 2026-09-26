@@ -3254,3 +3254,18 @@ Post-restart old browser session correctly locks. After user login, EgoLite veri
 usage-bearing requests, model grouping and desktop/mobile layouts; all-history error remains.
 Two Build accounts remain expired, two Console identities missing; neither is disguised by counts.
 Evidence: `docs/reports/cpar-usage-scope-production-20260926.md`.
+
+## 2026-09-26 - Codex - Explicit partial usage and retained conflict quarantine
+
+**What:** `docs/openapi/management-v1.json`, store/control/HTTP usage and billing projections,
+Prism usage and processing-status views, generated client and fixtures. New optional `allow_partial`
+and snapshot-wide exclusion counts; processing status adds `quarantined_failures`.
+
+**Why:** User approved retaining and isolating 11 uncorrelatable historical events so all-history
+queries can show verifiable subtotals with a clear incomplete-total warning. Immutable conflicting
+Usage groups stop automatic retries; missing late events remain retryable. No history or ledger rewrite.
+
+**Other side:** FYI under unified repair authorization. Contract synchronized; old callers remain
+strict by default. Schema28, four-file assets and six Token confidence fields unchanged. Partial
+results must always display exclusions; quarantine is not successful billing. Release evidence will
+be recorded in `docs/reports/cpar-usage-quarantine-20260926.md`.

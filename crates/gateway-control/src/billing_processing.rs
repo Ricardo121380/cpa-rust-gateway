@@ -119,6 +119,7 @@ mod tests {
             checkpoint_ordinal: Some(2),
             checkpoint_updated_at_ms: Some(100),
             unresolved_failures: 0,
+            quarantined_failures: 0,
         };
         monitor.observe(progress.clone(), 100);
         assert_eq!(

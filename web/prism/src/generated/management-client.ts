@@ -2044,6 +2044,11 @@ export const managementOperations = {
         "name": "cursor",
         "in": "query",
         "required": false
+      },
+      {
+        "name": "allow_partial",
+        "in": "query",
+        "required": false
       }
     ],
     "requiresAuthentication": true,

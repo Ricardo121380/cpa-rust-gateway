@@ -162,8 +162,14 @@ fn authorized(request: test::TestRequest, version: &str) -> test::TestRequest {
         .insert_header(("X-Config-Version", version))
 }
 
-#[allow(clippy::too_many_lines)]
 fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
+    resource_state_with_conflict(false)
+}
+
+#[allow(clippy::too_many_lines)]
+fn resource_state_with_conflict(
+    conflict: bool,
+) -> Result<ManagementResourceHttpState, Box<dyn Error>> {
     let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
     let key_version = KeyVersion::try_new(1)?;
     let key_ring = MasterKeyRing::try_new(
@@ -246,7 +252,19 @@ fn resource_state() -> Result<ManagementResourceHttpState, Box<dyn Error>> {
         GatewayEvent::Request(failed_request),
         GatewayEvent::Attempt(failed_attempt),
     ])?;
-    let usage_events = event_store.list_events()?;
+    let mut usage_events = event_store.list_events()?;
+    if conflict {
+        let mut conflicting = SqliteEventStore::open_in_memory()?;
+        conflicting.append_batch(&[GatewayEvent::Usage(UsageEvent::from_usage(
+            gateway_core::RequestId::try_new("usage-http-request")?,
+            ResponseId::try_new("other-usage-http-response")?,
+            &Usage {
+                input_tokens: Some(29),
+                ..Usage::default()
+            },
+        ))])?;
+        usage_events.extend(conflicting.list_events()?);
+    }
     let billing_entries = vec![BillingLedgerEntry {
         ledger_id: 1,
         source_event_id: "billing-source-1".to_owned(),
@@ -1010,5 +1028,52 @@ async fn slow_operations_are_bounded_and_do_not_block_other_management_reads() -
     for task in tasks {
         assert_eq!(task.await?, StatusCode::INTERNAL_SERVER_ERROR);
     }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn usage_partial_results_require_opt_in_and_expose_excluded_events() -> TestResult {
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state_with_conflict(true)?))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let strict = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/usage"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(strict.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/usage?allow_partial=true"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["excluded_usage_events"], 2);
+    assert_eq!(body["excluded_request_groups"], 1);
+    assert_eq!(body["items"], serde_json::json!([]));
+    assert!(body["observed_through_ms"].is_null());
+    let invalid = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/operations/usage?allow_partial=maybe"),
+            "inventory-v1",
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
     Ok(())
 }

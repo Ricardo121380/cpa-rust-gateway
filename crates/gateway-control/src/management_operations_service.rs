@@ -559,6 +559,8 @@ impl OperationalUsageCursor {
 /// Typed query for the durable usage/cost operations projection.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationalUsageQuery {
+    /// Explicit permission to return verified usage while reporting conflicting history.
+    pub allow_partial: bool,
     /// Inclusive lower bound applied to the selected successful Attempt's end time.
     pub from_ms: Option<i64>,
     /// Inclusive upper bound applied to the selected successful Attempt's end time.
@@ -586,6 +588,7 @@ pub struct OperationalUsageQuery {
 impl Default for OperationalUsageQuery {
     fn default() -> Self {
         Self {
+            allow_partial: false,
             from_ms: None,
             to_ms: None,
             provider_id: None,
@@ -644,6 +647,7 @@ impl OperationalUsageQuery {
             protocol,
             limit,
             cursor,
+            allow_partial: false,
         })
     }
 }
@@ -709,6 +713,10 @@ impl OperationalUsageItem {
 /// One page from the durable usage/cost read model.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationalUsagePage {
+    /// Usage events excluded for conflicting historical request associations, before paging.
+    pub excluded_usage_events: u64,
+    /// Ambiguous request-ID groups, not a count of actual external requests.
+    pub excluded_request_groups: u64,
     /// Latest selected successful Attempt end time among all filtered groups.
     pub observed_through_ms: Option<i64>,
     /// Stable sorted usage groups.
@@ -1650,7 +1658,7 @@ pub fn compile_operational_usage_page(
 
     let mut requests = BTreeMap::<String, RequestEvent>::new();
     let mut attempts = BTreeMap::<String, AttemptEvent>::new();
-    let mut usages = BTreeMap::<String, UsageEvent>::new();
+    let mut usages = BTreeMap::<String, (UsageEvent, u64, bool)>::new();
     for stored in events {
         match stored.event() {
             GatewayEvent::Request(event) => {
@@ -1666,12 +1674,11 @@ pub fn compile_operational_usage_page(
             GatewayEvent::Attempt(event) => insert_attempt_event(&mut attempts, event)?,
             GatewayEvent::Usage(event) => {
                 let key = event.request_id().as_str().to_owned();
-                if let Some(existing) = usages.get(&key) {
-                    if existing != event {
-                        return Err(ManagementOperationsError::InconsistentConfiguration);
-                    }
+                if let Some((existing, count, conflicting)) = usages.get_mut(&key) {
+                    *count += 1;
+                    *conflicting |= existing != event;
                 } else {
-                    usages.insert(key, event.clone());
+                    usages.insert(key, (event.clone(), 1, false));
                 }
             }
             GatewayEvent::RequestFinished(_)
@@ -1682,20 +1689,27 @@ pub fn compile_operational_usage_page(
 
     let mut groups = BTreeMap::<OperationalUsageSortKey, UsageAccumulator>::new();
     let mut observed_through_ms: Option<i64> = None;
-    for (request_id, usage) in usages {
+    let mut excluded_usage_events = 0;
+    let mut excluded_request_groups = 0;
+    for (request_id, (usage, count, conflicting)) in usages {
         let request = requests
             .get(&request_id)
             .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
         let attempt = attempts
             .get(&request_id)
             .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
-        if !matches!(attempt.outcome(), AttemptOutcome::Succeeded) {
-            return Err(ManagementOperationsError::InconsistentConfiguration);
-        }
         let mut accumulator = UsageAccumulator::new(request, attempt)?;
         let candidate = accumulator.clone().into_item();
         if !usage_item_matches_query(&candidate, query) {
             continue;
+        }
+        if conflicting && query.allow_partial {
+            excluded_usage_events += count;
+            excluded_request_groups += 1;
+            continue;
+        }
+        if conflicting || !matches!(attempt.outcome(), AttemptOutcome::Succeeded) {
+            return Err(ManagementOperationsError::InconsistentConfiguration);
         }
         observed_through_ms = Some(
             observed_through_ms.map_or(candidate.observed_at_ms, |current| {
@@ -1736,6 +1750,8 @@ pub fn compile_operational_usage_page(
         });
 
     Ok(OperationalUsagePage {
+        excluded_usage_events,
+        excluded_request_groups,
         observed_through_ms,
         items,
         next_cursor,
@@ -1782,6 +1798,7 @@ pub fn read_operational_usage_page(
     let metadata = store
         .visit_usage_lineages(
             &gateway_store::event_store::UsageEventQuery {
+                allow_partial: query.allow_partial,
                 from_ms: query.from_ms,
                 to_ms: query.to_ms,
                 provider_id: query.provider_id.as_ref().map(UpstreamId::as_str),
@@ -1844,6 +1861,8 @@ pub fn read_operational_usage_page(
     };
     Ok(OperationalUsagePage {
         observed_through_ms: metadata.observed_through_ms,
+        excluded_usage_events: metadata.excluded_usage_events,
+        excluded_request_groups: metadata.excluded_request_groups,
         items,
         next_cursor,
     })

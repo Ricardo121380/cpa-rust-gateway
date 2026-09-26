@@ -475,6 +475,77 @@ mod tests {
     }
 
     #[test]
+    fn conflicting_legacy_events_are_quarantined_without_retries_or_ledger_writes()
+    -> Result<(), Box<dyn Error>> {
+        let (source, _) = events()?;
+        let original = source
+            .list_events()?
+            .into_iter()
+            .map(|row| row.event().clone())
+            .collect::<Vec<_>>();
+        let (other, _) = events_for("request-1", "other-response")?;
+        let other = other.list_events()?.pop().ok_or("missing second usage")?;
+        let database = std::env::temp_dir().join(format!(
+            "cpar-quarantine-{}-{}.sqlite",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let mut events = SqliteEventStore::open(&database)?;
+        events.append_batch(&original)?;
+        let connection = gateway_store::open(&database)?;
+        connection.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage','other-response','request-1',?1)", [serde_json::to_string(other.event())?])?;
+        drop(connection);
+        let before = events.list_events()?;
+        let mut ledger = SqliteBillingLedger::open(&database)?;
+        let first = materialize_billing_events(
+            &events,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            2_000,
+        )?;
+        assert_eq!(first.failed_events, 2);
+        assert_eq!(first.inserted_rows, 0);
+        let progress = ledger.materialization_progress(BILLING_MATERIALIZER_ID)?;
+        assert_eq!(progress.unresolved_failures, 2);
+        assert_eq!(progress.quarantined_failures, 2);
+        let retry = materialize_billing_events(
+            &events,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            64_000,
+        )?;
+        assert_eq!(retry.retried_events, 0);
+        assert_eq!(retry.failed_events, 0);
+        assert!(ledger.list_bounded(10)?.is_empty());
+        assert_eq!(events.list_events()?, before);
+        let partial = crate::management_operations_service::OperationalUsageQuery {
+            allow_partial: true,
+            ..Default::default()
+        };
+        let read =
+            crate::management_operations_service::read_operational_usage_page(&events, &partial)?;
+        assert_eq!(read.excluded_usage_events, 2);
+        assert_eq!(read.excluded_request_groups, 1);
+        assert!(read.items.is_empty());
+        assert_eq!(
+            crate::management_operations_service::compile_operational_usage_page(
+                &before, &partial
+            )?,
+            read
+        );
+        drop(ledger);
+        drop(events);
+        std::fs::remove_file(database)?;
+        Ok(())
+    }
+
+    #[test]
     fn legacy_usage_retry_preserves_source_identity_and_existing_ledger()
     -> Result<(), Box<dyn Error>> {
         let (source, _) = events()?;

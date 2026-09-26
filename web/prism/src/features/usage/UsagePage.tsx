@@ -78,6 +78,7 @@ async function fetchAll(
         ...range,
         ...filters,
         limit: PAGE_LIMIT,
+        allow_partial: true,
         ...(cursor === null ? {} : { cursor }),
       },
     });
@@ -158,6 +159,7 @@ export function UsagePage() {
   );
   const totalRequests = groups.reduce((sum, group) => sum + group.request_count, 0);
   const rows = usage.data?.rows ?? [];
+  const excluded = usage.data?.excluded_usage_events ?? 0;
 
   function patch(next: Readonly<Record<string, string | null>>): void {
     const merged = new URLSearchParams(params);
@@ -254,11 +256,19 @@ export function UsagePage() {
         </label>
       </div>
 
+      {excluded > 0 && !usage.isError ? (
+        <p role="status" className="action-notice usage-integrity">
+          <strong>历史用量不完整</strong> · {formatCount(excluded)} 条事件因调用关联冲突未计入，
+          涉及 {formatCount(usage.data?.excluded_request_groups ?? 0)} 组历史标识。原记录已保留并隔离。
+          下方仅显示可核验小计，未计入的用量不代表零消费。
+        </p>
+      ) : null}
+
       {usage.data && !usage.isError ? (
           <div className="card usage-summary">
             <div className="usage-kpi">
               <span className="usage-kpi-value mono">{formatCount(totalRequests)}</span>
-              <span className="usage-kpi-label">有用量记录的请求</span>
+              <span className="usage-kpi-label">{excluded > 0 ? "已核验用量请求" : "有用量记录的请求"}</span>
             </div>
             <div className="usage-kpi">
               <span className="usage-kpi-value mono">{formatCount(rows.length)}</span>
@@ -299,11 +309,10 @@ export function UsagePage() {
           {rows.length === 0 ? (
             <div className="card empty-state" data-kind="empty">
               <p>
-                该窗口内没有用量记录。
+                {excluded > 0 ? "该窗口内没有可核验的用量记录。" : "该窗口内没有用量记录。"}
                 <br />
                 <small className="muted-3">
-                  用量来自已完成请求的持久化观测,配置本身不产生用量 ——
-                  一个从未接过流量的版本在这里就是空的。
+                  {excluded > 0 ? "冲突事件未计入，不能将此处的空结果理解为没有消费。" : "用量来自已完成请求的持久化观测，配置本身不产生用量。"}
                 </small>
               </p>
             </div>
@@ -337,7 +346,7 @@ export function UsagePage() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th scope="row">合计</th>
+                    <th scope="row">{excluded > 0 ? "已核验小计" : "合计"}</th>
                     <td className="mono usage-num" data-label="请求">{formatCount(totalRequests)}</td>
                     {TOKEN_FAMILIES.map((family) => (
                       <FamilyCell key={family} label={familyLabel(family)} total={sumFamily(rows, family)} />

@@ -729,6 +729,7 @@ async fn billing_processing_is_protected_unscoped_and_preserves_unknown_observat
             checkpoint_ordinal: Some(4),
             checkpoint_updated_at_ms: Some(100),
             unresolved_failures: 1,
+            quarantined_failures: 1,
         },
         100,
     );
@@ -749,5 +750,6 @@ async fn billing_processing_is_protected_unscoped_and_preserves_unknown_observat
     assert_eq!(body["failure_code"], "batch_unavailable");
     assert_eq!(body["observed_at_ms"], 100);
     assert_eq!(body["unresolved_failures"], 1);
+    assert_eq!(body["quarantined_failures"], 1);
     Ok(())
 }

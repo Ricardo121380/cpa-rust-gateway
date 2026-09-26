@@ -1257,7 +1257,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (route === "GET /admin/operations/billing-processing") {
       return json(200, {state: "needs_repair", observed_at_ms: Date.now() - 2000,
         source_ordinal: 246, checkpoint_ordinal: 246, checkpoint_updated_at_ms: Date.now() - 2000,
-        unresolved_failures: 1, failure_code: null});
+        unresolved_failures: 1, quarantined_failures: 0, failure_code: null});
     }
 
     if (route === "GET /admin/models/effective") {
@@ -1986,6 +1986,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const nextOffset = offset + slice.length;
       return json(200, {
         observed_through_ms: filtered.length === 0 ? null : 1787000600000,
+        excluded_usage_events: 0, excluded_request_groups: 0,
         items: slice,
         next_cursor: nextOffset < filtered.length ? String(nextOffset) : null,
       });

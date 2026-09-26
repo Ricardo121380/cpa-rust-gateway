@@ -70,6 +70,8 @@ export type UsageRow = Readonly<{
   Readonly<Record<TokenFamilyName, TokenFamily>>;
 
 export type UsageResponse = Readonly<{
+  excluded_usage_events: number;
+  excluded_request_groups: number;
   observed_through_ms: number | null;
   items: readonly UsageRow[];
   next_cursor: string | null;
@@ -378,6 +380,8 @@ export const PAGE_LIMIT = 100;
 export const MAX_PAGES = 20;
 
 export type Collected = Readonly<{
+  excluded_usage_events: number;
+  excluded_request_groups: number;
   rows: readonly UsageRow[];
   observed_through_ms: number | null;
   /** true when MAX_PAGES was reached with a cursor still outstanding */
@@ -395,6 +399,9 @@ export type Collected = Readonly<{
 export function collect(pages: readonly UsageResponse[]): Collected {
   const last = pages.at(-1);
   return {
+    // Snapshot-wide metadata is repeated per page, never summed.
+    excluded_usage_events: pages[0]?.excluded_usage_events ?? 0,
+    excluded_request_groups: pages[0]?.excluded_request_groups ?? 0,
     rows: pages.flatMap((page) => [...page.items]),
     // Every page carries the same watermark; the last read is the freshest.
     observed_through_ms: last?.observed_through_ms ?? null,

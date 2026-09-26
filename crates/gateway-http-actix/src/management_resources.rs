@@ -3932,6 +3932,8 @@ struct OperationalAccountPoolCursorWire {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct OperationalUsageQueryParams {
+    #[serde(default)]
+    allow_partial: bool,
     from_ms: Option<i64>,
     to_ms: Option<i64>,
     provider_id: Option<String>,
@@ -3947,6 +3949,8 @@ struct OperationalUsageQueryParams {
 
 #[derive(Serialize)]
 struct OperationalUsagePageResponse {
+    excluded_usage_events: u64,
+    excluded_request_groups: u64,
     observed_through_ms: Option<i64>,
     items: Vec<OperationalUsageItemResponse>,
     next_cursor: Option<String>,
@@ -4217,7 +4221,7 @@ async fn list_operational_usage(
     if limit == 0 || limit > MAX_USAGE_LIMIT {
         return invalid_input();
     }
-    let query = match OperationalUsageQuery::try_new(
+    let mut query = match OperationalUsageQuery::try_new(
         params.from_ms,
         params.to_ms,
         provider_id,
@@ -4233,6 +4237,7 @@ async fn list_operational_usage(
         Ok(query) => query,
         Err(error) => return management_error(ManagementResourceError::from(error)),
     };
+    query.allow_partial = params.allow_partial;
     let usage_source = std::sync::Arc::clone(&state.usage);
     match read_operations(&state, move || usage_source.list_usage(&query)).await {
         Ok(page) => match operational_usage_page_response(page) {
@@ -7591,6 +7596,7 @@ async fn get_billing_processing(
         "checkpoint_ordinal": progress.and_then(|value| value.checkpoint_ordinal),
         "checkpoint_updated_at_ms": progress.and_then(|value| value.checkpoint_updated_at_ms),
         "unresolved_failures": progress.map(|value| value.unresolved_failures),
+        "quarantined_failures": progress.map(|value| value.quarantined_failures),
         "failure_code": if status.phase == gateway_control::billing_processing::BillingProcessingPhase::Failed { Some("batch_unavailable") } else { None },
     }))
 }
@@ -10291,6 +10297,8 @@ fn operational_usage_page_response(
         .map(encode_operational_usage_cursor)
         .transpose()?;
     Ok(OperationalUsagePageResponse {
+        excluded_usage_events: value.excluded_usage_events,
+        excluded_request_groups: value.excluded_request_groups,
         observed_through_ms: value.observed_through_ms,
         items: value
             .items

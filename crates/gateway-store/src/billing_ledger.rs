@@ -82,6 +82,14 @@ const LEDGER_ROW_SELECT: &str = "SELECT ledger_id, source_event_id, source_finge
          cached_tokens, cost_microunits, cost_confidence, retention_expires_at_ms, recorded_at_ms \
          FROM billing_ledger_entries";
 
+// Conflicting immutable Usage observations cannot become unambiguous by retrying. Keep the
+// failure unresolved and the source untouched; derive quarantine without changing stored history.
+const QUARANTINED_FAILURE: &str = "f.reason='invalid_lineage' AND EXISTS (
+    SELECT 1 FROM gateway_event_log original JOIN gateway_event_log other
+    ON other.request_id=original.request_id AND other.event_type='usage'
+    WHERE original.event_ordinal=f.event_ordinal AND original.event_type='usage'
+    AND other.payload_json<>original.payload_json)";
+
 /// Durable high-water mark for one billing materializer.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BillingMaterializerCheckpoint {
@@ -104,6 +112,8 @@ pub struct BillingMaterializationProgress {
     pub checkpoint_updated_at_ms: Option<u64>,
     /// Number of failures awaiting repair, including failures behind the checkpoint.
     pub unresolved_failures: u64,
+    /// Subset of unresolved failures with conflicting immutable usages, excluded from retries.
+    pub quarantined_failures: u64,
 }
 
 /// Value-free durable retry evidence for a materialization failure.
@@ -394,9 +404,13 @@ impl SqliteBillingLedger {
         materializer_id: &str,
     ) -> StoreResult<BillingMaterializationProgress> {
         validate_short_id(materializer_id)?;
-        let (source, checkpoint, updated, failures): (i64, Option<i64>, Option<i64>, i64) = self.connection.query_row(
-            "SELECT COALESCE((SELECT MAX(event_ordinal) FROM gateway_event_log), 0),              (SELECT event_ordinal FROM billing_materializer_checkpoints WHERE materializer_id = ?1),              (SELECT updated_at_ms FROM billing_materializer_checkpoints WHERE materializer_id = ?1),              (SELECT COUNT(*) FROM billing_materializer_failures WHERE materializer_id = ?1 AND resolved_at_ms IS NULL)",
-            [materializer_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?;
+        let (source, checkpoint, updated, failures, quarantined): (i64, Option<i64>, Option<i64>, i64, i64) = self.connection.query_row(
+            &format!("SELECT COALESCE((SELECT MAX(event_ordinal) FROM gateway_event_log), 0),
+            (SELECT event_ordinal FROM billing_materializer_checkpoints WHERE materializer_id = ?1),
+            (SELECT updated_at_ms FROM billing_materializer_checkpoints WHERE materializer_id = ?1),
+            (SELECT COUNT(*) FROM billing_materializer_failures WHERE materializer_id = ?1 AND resolved_at_ms IS NULL),
+            (SELECT COUNT(*) FROM billing_materializer_failures f WHERE materializer_id = ?1 AND resolved_at_ms IS NULL AND {QUARANTINED_FAILURE})"),
+            [materializer_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)))?;
         if source < 0
             || checkpoint.is_some_and(|value| value < 0 || value > source)
             || checkpoint.is_some() != updated.is_some()
@@ -408,6 +422,7 @@ impl SqliteBillingLedger {
             checkpoint_ordinal: checkpoint,
             checkpoint_updated_at_ms: updated.map(u64_from_i64).transpose()?,
             unresolved_failures: u64_from_i64(failures)?,
+            quarantined_failures: u64_from_i64(quarantined)?,
         })
     }
 
@@ -519,7 +534,7 @@ impl SqliteBillingLedger {
         Ok(())
     }
 
-    /// Reads up to 1024 unresolved failures due for retry in stable oldest-attempt order.
+    /// Reads up to 1024 retryable failures in oldest-attempt order; immutable conflicts stay retained.
     ///
     /// # Errors
     /// Returns an error for invalid bounds, malformed rows or unavailable storage.
@@ -533,8 +548,11 @@ impl SqliteBillingLedger {
         if !(1..=1024).contains(&limit) {
             return Err(StoreError::InvalidPersistedBillingRecord);
         }
-        let mut statement = self.connection.prepare(
-            "SELECT event_ordinal, reason, first_seen_at_ms, last_attempt_at_ms, attempts              FROM billing_materializer_failures WHERE materializer_id = ?1 AND resolved_at_ms IS NULL              AND last_attempt_at_ms <= ?2 ORDER BY last_attempt_at_ms, event_ordinal LIMIT ?3")?;
+        let mut statement = self.connection.prepare(&format!(
+            "SELECT event_ordinal, reason, first_seen_at_ms, last_attempt_at_ms, attempts
+             FROM billing_materializer_failures f WHERE materializer_id = ?1 AND resolved_at_ms IS NULL
+             AND NOT ({QUARANTINED_FAILURE}) AND last_attempt_at_ms <= ?2
+             ORDER BY last_attempt_at_ms, event_ordinal LIMIT ?3"))?;
         let mut rows = statement.query(params![
             materializer_id,
             i64_from_u64(attempted_before_ms)?,
@@ -1414,6 +1432,52 @@ mod tests {
         assert_eq!(retained, 1);
         drop(store);
         std::fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn conflicting_usage_is_retained_but_never_retried() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteBillingLedger::open_in_memory()?;
+        store.connection.execute(
+            r#"INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json)
+             VALUES ('usage','first','reused','{"usage":1}'),
+                    ('usage','second','reused','{"usage":2}'),
+                    ('usage','late','incomplete','{"usage":3}')"#,
+            [],
+        )?;
+        for ordinal in 1..=3 {
+            store.record_materialization_failure("billing-v1", ordinal, "invalid_lineage", 1000)?;
+        }
+        let before: Vec<(i64, String)> = store
+            .connection
+            .prepare(
+                "SELECT event_ordinal,payload_json FROM gateway_event_log ORDER BY event_ordinal",
+            )?
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<Result<_, _>>()?;
+        store.save_checkpoint("billing-v1", 3, 1000)?;
+        let progress = store.materialization_progress("billing-v1")?;
+        assert_eq!(progress.unresolved_failures, 3);
+        assert_eq!(progress.quarantined_failures, 2);
+        for now in [2_000, 100_000] {
+            let due = store.list_materialization_failures_due("billing-v1", now, 100)?;
+            assert_eq!(due.len(), 1);
+            assert_eq!(due[0].event_ordinal, 3);
+        }
+        // Quarantine is not resolution and does not increment attempts or rewrite source rows.
+        let failures: (i64, i64) = store.connection.query_row(
+            "SELECT COUNT(*),SUM(attempts) FROM billing_materializer_failures WHERE resolved_at_ms IS NULL",
+            [], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        assert_eq!(failures, (3, 3));
+        let after: Vec<(i64, String)> = store
+            .connection
+            .prepare(
+                "SELECT event_ordinal,payload_json FROM gateway_event_log ORDER BY event_ordinal",
+            )?
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<Result<_, _>>()?;
+        assert_eq!(before, after);
+        assert!(store.list_bounded(10)?.is_empty());
         Ok(())
     }
 

@@ -1,0 +1,70 @@
+{
+  "passed": true,
+  "real_gateway": true,
+  "mock_provider_calls": 1,
+  "real_provider_calls": 0,
+  "strict_status": 500,
+  "partial": {
+    "excluded_usage_events": 11,
+    "excluded_request_groups": 4,
+    "observed_through_ms": 1790416011527,
+    "items": [
+      {
+        "provider_id": "local-provider",
+        "channel_id": "local-responses",
+        "account_id": "local-account",
+        "public_model": "Exact/Model-v2",
+        "protocol": "openai_responses",
+        "client_key_id": "local-client",
+        "access_group_id": "local-group",
+        "request_count": 1,
+        "usage_observations": 1,
+        "input_tokens": {
+          "total": 10,
+          "confidence": "exact"
+        },
+        "output_tokens": {
+          "total": 3,
+          "confidence": "exact"
+        },
+        "reasoning_tokens": {
+          "total": null,
+          "confidence": "unknown"
+        },
+        "cache_read_tokens": {
+          "total": null,
+          "confidence": "unknown"
+        },
+        "cache_creation_tokens": {
+          "total": null,
+          "confidence": "unknown"
+        },
+        "cached_tokens": {
+          "total": null,
+          "confidence": "unknown"
+        },
+        "observed_at_ms": 1790416011527,
+        "cost_microunits": null,
+        "cost_confidence": "unpriced"
+      }
+    ],
+    "next_cursor": null
+  },
+  "conflicts_only": {
+    "excluded_usage_events": 11,
+    "excluded_request_groups": 4,
+    "observed_through_ms": null,
+    "items": [],
+    "next_cursor": null
+  },
+  "processing": {
+    "checkpoint_ordinal": 23,
+    "checkpoint_updated_at_ms": 1790416012473,
+    "failure_code": null,
+    "observed_at_ms": 1790416012482,
+    "quarantined_failures": 11,
+    "source_ordinal": 23,
+    "state": "needs_repair",
+    "unresolved_failures": 11
+  }
+}

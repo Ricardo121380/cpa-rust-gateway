@@ -157,9 +157,18 @@ describe("groupBy", () => {
 describe("collect", () => {
   const page = (over: Partial<UsageResponse> = {}): UsageResponse => ({
     observed_through_ms: 1_700_000_000_000,
+    excluded_usage_events: 0, excluded_request_groups: 0,
     items: [row()],
     next_cursor: null,
     ...over,
+  });
+
+  it("keeps snapshot exclusions once across pages, including an all-quarantined result", () => {
+    const partial = { excluded_usage_events: 11, excluded_request_groups: 4 };
+    expect(collect([page(partial), page(partial)]).excluded_usage_events).toBe(11);
+    expect(collect([page({ ...partial, items: [], observed_through_ms: null })])).toMatchObject({
+      rows: [], observed_through_ms: null, ...partial,
+    });
   });
 
   it("concatenates every page's rows", () => {

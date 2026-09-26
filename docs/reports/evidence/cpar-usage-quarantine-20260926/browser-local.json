@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "browser": "EgoLite",
+  "realGateway": true,
+  "syntheticHistory": true,
+  "layouts": [
+    {
+      "width": 1440,
+      "warning": "历史用量不完整 · 11 条事件因调用关联冲突未计入， 涉及 4 组历史标识。原记录已保留并隔离。 下方仅显示可核验小计，未计入的用量不代表零消费。",
+      "subtotal": "已核验小计110精确3精确—未知≥—未知≥—未知≥—未知≥",
+      "overflow": false,
+      "clippedNotice": false
+    },
+    {
+      "width": 1280,
+      "warning": "历史用量不完整 · 11 条事件因调用关联冲突未计入， 涉及 4 组历史标识。原记录已保留并隔离。 下方仅显示可核验小计，未计入的用量不代表零消费。",
+      "subtotal": "已核验小计110精确3精确—未知≥—未知≥—未知≥—未知≥",
+      "overflow": false,
+      "clippedNotice": false
+    },
+    {
+      "width": 390,
+      "warning": "历史用量不完整 · 11 条事件因调用关联冲突未计入， 涉及 4 组历史标识。原记录已保留并隔离。 下方仅显示可核验小计，未计入的用量不代表零消费。",
+      "subtotal": "已核验小计110精确3精确—未知≥—未知≥—未知≥—未知≥",
+      "overflow": false,
+      "clippedNotice": false
+    }
+  ],
+  "conflictsOnly": {
+    "text": "该窗口内没有可核验的用量记录。冲突事件未计入，不能将此处的空结果理解为没有消费。",
+    "warning": "历史用量不完整 · 11 条事件因调用关联冲突未计入， 涉及 4 组历史标识。原记录已保留并隔离。 下方仅显示可核验小计，未计入的用量不代表零消费。"
+  },
+  "mobileNoticeRecheck": {
+    "display": "block",
+    "headingWidth": 91,
+    "viewport": 390,
+    "noClipping": true
+  }
+}
