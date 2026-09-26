@@ -78,6 +78,10 @@ async function run(messages,required,turn) {
   if(offline){assert.equal(row.result,'client_stream_error');return;}
   assert(result,'No completed Pi message');
   row.stopReason=result.stopReason;row.outputTokens=result.usage.output;
+  row.terminalStatus=result.rawStopReason === 'completed' ? 'completed' : 'not_completed';
+  persist();
+  assert.equal(result.rawStopReason,'completed','Incomplete response cannot pass multi-turn acceptance');
+  assert.equal(result.stopReason,required?'toolUse':'stop','Expected completed tool or final-text turn');
   assert(result.usage.output<=512,'Reported output exceeds authorized cap');
   row.result='completed';persist();return result;
 }

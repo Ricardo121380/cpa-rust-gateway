@@ -54,3 +54,5 @@
 - 首次Pi发送前的外部preflight误把public-models数组当分页，失败后主线程仍启动了1次受控请求，这是验收编排缺陷。现补发送器内强制前置校验：精确revision、10分钟内观测、目标route max_attempts=1；缺失/格式/版本/陈旧/未来/次数/缺route七种错误均零SDK调用、零额度预留。实际请求回读确认只有1个attempt；本次计入1/12，不重置。
 - [Pi结果](evidence/cpar-reliability-m4-20260926/pi-live-receipt.json)、[持久回读](evidence/cpar-reliability-m4-20260926/pi-first-readback.json)：HTTP200，首内容2309ms，总2999ms，终态failed/UpstreamProtocolError；未观测usage/账本，不记零。attempt仅表示HTTP建立成功(stage=http_status)，不冒充整次请求成功。旧11隔离事件仍保留，水位已追平。
 - 离线发现Build未处理response.incomplete。现补JSON/SSE明确max_output_tokens/content_filter终态、实际usage和不完整文本状态，保留错误身份、未知原因及残缺工具参数的拒绝；19个Build专项、两相关crate共264项通过(5既有ignored)。该缺口有[xAI Responses状态规范](https://docs.x.ai/developers/rest-api-reference/inference/responses)依据，但**没有原始上游帧证据证明它就是本次失败原因**。补安全固定标签日志用于后续定位，不输出上游正文/标识。
+
+独立复核另发现验收器不能仅以Pi的done事件算通过：已在本地验收工具补严格rawStopReason=completed及对应toolUse/stop要求，两个合成incomplete done用例均停止首轮并保持passed=false；加上七个前置检查，共9项脚本测试通过。该工具修订不改变a49c491的网关二进制。

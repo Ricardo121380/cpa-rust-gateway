@@ -28,3 +28,17 @@ for(const scenario of ['missing','malformed','wrong_revision','stale','future','
     } finally {fs.rmSync(dir,{recursive:true,force:true});}
   });
 }
+for(const [stopReason,rawStopReason] of [['length','incomplete.max_output_tokens'],['toolUse','incomplete.content_filter']]) {
+  test(`SDK done with ${rawStopReason} cannot pass despite matching tool payload`,()=>{
+    const dir=fs.mkdtempSync(path.join(os.tmpdir(),'cpar-terminal-test-'));
+    try {
+      const names=Object.fromEntries(['config','ledger','receipt','preflight','client'].map(n=>[n,path.join(dir,n+(n==='client'?'.mjs':'.json'))]));
+      fs.writeFileSync(names.config,JSON.stringify({baseUrl:'https://cpar.142857142.xyz/v1',model:'grok-4.5',apiKey:'synthetic-test-only'}),{mode:0o600});
+      fs.writeFileSync(names.ledger,JSON.stringify({plan:'cpar-reliability-20260926',allowance:12,maxOutputTokens:512,attempts:[]}));
+      fs.writeFileSync(names.preflight,JSON.stringify({candidate_revision:revision,observed_at_ms:Date.now(),routes:{'grok-4.5':{max_attempts:1}}}));
+      fs.writeFileSync(names.client,`globalThis.fetch=async()=>new Response('',{status:200});export async function* stream(model,context,options){await options.fetch(model.baseUrl+'/responses',{method:'POST',body:JSON.stringify({model:model.id,max_output_tokens:512,stream:true,reasoning:{effort:'low'}})});yield {type:'done',message:${JSON.stringify({stopReason,rawStopReason,usage:{output:512},content:[{type:'toolCall',id:'c',name:'diagnostic_echo',arguments:{value:'CPAR_TOOL_OK'}}]})}};}`);
+      const run=spawnSync(process.execPath,[script.pathname,'--execute',names.client,names.config,names.ledger,names.receipt,names.preflight,revision],{encoding:'utf8',timeout:5000});
+      assert.equal(run.status,1);const receipt=JSON.parse(fs.readFileSync(names.receipt));assert.equal(receipt.passed,false);assert.equal(receipt.turns.length,1);assert.equal(receipt.turns[0].terminalStatus,'not_completed');assert.equal(JSON.parse(fs.readFileSync(names.ledger)).attempts.length,1);
+    } finally {fs.rmSync(dir,{recursive:true,force:true});}
+  });
+}
