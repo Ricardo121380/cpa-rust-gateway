@@ -1,6 +1,6 @@
 # CPAR M4：容量、真实验收与发布
 
-状态：进行中。实施基线 `fa5f280fe897158aac5130c7d7f6324f1aa2c550`。
+状态：约定范围验收完成（2026-09-27）；保留非阻断文案 M4-UI-01 和明确的渠道真实验证限制。实施基线 `fa5f280fe897158aac5130c7d7f6324f1aa2c550`。
 对应[计划](../handoffs/cpar-reliability-alignment-plan-20260926.md)和[验收清单](../handoffs/cpar-reliability-alignment-acceptance-20260926.md)。
 
 ## 当前进度
@@ -11,8 +11,8 @@
 - M4-05：完整生产副本28→31→兼容30→31通过；新格式事件/checkpoint、管理员、历史、轮转密文和权限保留，演练无网络。
 - M4-06：真实推理 **10/12**，最新Pi/Build四轮完成并逐条核对请求、attempts、usage和账本；各渠道真实边界见验收矩阵，不能宣称全部渠道均通过。
 - M4-07：当前 `a715d6b` /schema31，完整门禁、签名产物、独立校验、无网络副本升级/回退/重升级及生产发布通过；切换646ms，管理员/账号/权限/历史保留。DNS/Caddy/Autoreg未改变。
-- M4-08：生产EgoLite空间13仍交给用户（本次确认agentDelegatedToUser），等待本人登录并交回控制；不能用登录页或本地矩阵代替生产登录态验收。
-- M4-09：本报告和计划/当前状态/验收清单已更新；**M4尚未完成**，剩余主要阻塞为生产登录态复验，以及各渠道官方授权的明确依赖。
+- M4-08：生产登录态48布局、18弹窗、8数据就绪页面、主要深链/筛选/历史提示及刷新锁定通过；见[生产UI报告](cpar-reliability-m4-production-ui-20260927.md)。
+- M4-09：本报告、计划、当前状态和验收清单已同步收口；M4-UI-01仍待修，其他渠道缺授权/未推理的边界保留，不宣称全部渠道真实通过。
 
 ## 测量与安全边界
 
@@ -113,3 +113,7 @@ Pi原始SDK默认加密reasoning路径：第5次工具调用成功，HTTP200、c
 [客户端](evidence/cpar-reliability-m4-20260926/pi-four-turn-receipt.json)、[请求/attempts回读](evidence/cpar-reliability-m4-20260926/pi-four-turn-readback.json)、[账本](evidence/cpar-reliability-m4-20260926/pi-four-turn-ledger.json)逐项一致。每轮1attempt、succeeded、1条账本；处理checkpoint/source均2391。费用未配置，明确unpriced/null，绝不记成零；原11隔离保留。客户端没有x-request-id响应头，因此用冻结发送时窗、模型/Key及唯一四条记录按时间匹配，并核对每轮输出计数，再按准确request_id重读；未将未知历史纳入本轮。
 
 最新复验通过证明当前标准客户端的四轮链路有效；它不补造第6次未记录的原始字段，也不替代所有渠道官方登录。Codex过期、Console被拒SSO、Claude/Kimi/Kiro缺有效grant、Krill当前开放模型/目录/测试Key不匹配等边界继续保留。生产EgoLite最终页面验收待本人登录空间13并交回控制；现有空间不另建、不绕过管理员认证。概览见[安全汇总](evidence/cpar-reliability-m4-20260926/live-acceptance-summary.json)。
+
+## 2026-09-27 生产登录复验收口
+
+用户登录后完成[生产UI验收](cpar-reliability-m4-production-ui-20260927.md)。上文各次发布时的“待登录/未完成”为历史状态，当前以本节及顶部为准。本次新增推理0次，累计10/12。M4约定范围验收完成；非阻断文案与各渠道真实依赖保留。

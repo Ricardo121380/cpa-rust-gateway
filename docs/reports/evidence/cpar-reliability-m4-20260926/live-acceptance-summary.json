@@ -22,8 +22,10 @@
   "retained_quarantine": 11,
   "production_browser": {
     "space": 13,
-    "ownership": "agentDelegatedToUser",
-    "status": "awaiting_user_login_and_return_of_control"
+    "status": "passed_with_nonblocking_finding",
+    "result_page_retained": true,
+    "session_locked_after_refresh": true,
+    "evidence": "production-ui-summary.json"
   },
   "all_channels_real_passed": false
 }
