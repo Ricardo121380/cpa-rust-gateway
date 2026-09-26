@@ -30,9 +30,9 @@ pub use canonical_request::CanonicalRequest;
 pub use error::{ErrorScope, GatewayError, GatewayErrorCode};
 pub use gateway_event::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, DiagnosticEvent, EventEmission,
-    GatewayEvent, GatewayEventPriority, GatewayEventSink, GatewayProtocol, HealthEvent,
-    HealthEventKind, NoopGatewayEventSink, RequestEvent, RequestFinishedEvent, RequestOutcome,
-    UsageEvent, UsageSummary,
+    EventEmissionFuture, GatewayEvent, GatewayEventPriority, GatewayEventSink, GatewayProtocol,
+    HealthEvent, HealthEventKind, NoopGatewayEventSink, RequestEvent, RequestFinishedEvent,
+    RequestOutcome, UsageEvent, UsageSummary,
 };
 pub use id::{
     AccessGroupId, AttemptId, AuthId, ClientKeyId, CredentialId, EgressPolicyId, EndpointId,

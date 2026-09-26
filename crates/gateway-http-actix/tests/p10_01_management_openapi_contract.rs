@@ -11,6 +11,22 @@ type TestResult = Result<(), Box<dyn Error>>;
 const CONTRACT: &str = include_str!("../../../docs/openapi/management-v1.json");
 
 #[test]
+fn management_failure_codes_cover_the_core_error_contract() -> TestResult {
+    let document = document()?;
+    let actual =
+        document["components"]["schemas"]["ProviderAccountFailureItem"]["properties"]["error_code"]
+            ["enum"]
+            .as_array()
+            .ok_or("missing failure codes")?;
+    let expected = gateway_core::GatewayErrorCode::ALL;
+    assert_eq!(actual.len(), expected.len());
+    for code in expected {
+        assert!(actual.contains(&serde_json::to_value(code)?));
+    }
+    Ok(())
+}
+
+#[test]
 fn management_contract_has_the_versioned_complete_resource_surface() -> TestResult {
     let document = document()?;
     assert_eq!(document["openapi"], "3.1.0");

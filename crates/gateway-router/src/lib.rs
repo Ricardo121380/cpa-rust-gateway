@@ -26,8 +26,8 @@ mod token_count;
 use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use gateway_core::{
-    CanonicalEvent, CanonicalRequest, GatewayError, ProviderId, RequestContext, RouteId,
-    TransparentRetryGate,
+    CanonicalEvent, CanonicalRequest, GatewayError, GatewayEventSink, ProviderId, RequestContext,
+    RouteId, TransparentRetryGate,
 };
 use gateway_provider::{
     CanonicalEventSource, DeterministicMockProvider, InferenceAdapter, MockEmission, MockFixture,
@@ -193,9 +193,22 @@ pub struct ResponsesExecution {
     retry_gate: Arc<dyn TransparentRetryGate>,
     lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
     continuation_pin: Option<ResponsesContinuationPin>,
+    event_sink: Option<Arc<dyn GatewayEventSink>>,
 }
 
 impl ResponsesExecution {
+    /// Shares the ingress-owned durable event scope with the concrete router.
+    #[must_use]
+    pub fn with_event_sink(mut self, sink: Arc<dyn GatewayEventSink>) -> Self {
+        self.event_sink = Some(sink);
+        self
+    }
+    /// Optional request-local sink; legacy embeddings use their configured sink.
+    #[must_use]
+    pub fn event_sink(&self) -> Option<&Arc<dyn GatewayEventSink>> {
+        self.event_sink.as_ref()
+    }
+
     /// Creates one execution handoff after HTTP authentication, decoding, and model resolution.
     #[must_use]
     pub fn new(
@@ -218,6 +231,7 @@ impl ResponsesExecution {
             retry_gate,
             lineage_recorder: None,
             continuation_pin: None,
+            event_sink: None,
         }
     }
 
@@ -248,6 +262,7 @@ impl ResponsesExecution {
             retry_gate,
             lineage_recorder: None,
             continuation_pin: None,
+            event_sink: None,
         }
     }
 
@@ -392,6 +407,7 @@ impl fmt::Debug for ResponsesExecution {
             .field("retry_gate", &"<downstream-owned>")
             .field("lineage_recorder", &self.lineage_recorder.is_some())
             .field("continuation_pin", &self.continuation_pin.is_some())
+            .field("event_sink", &self.event_sink.is_some())
             .finish()
     }
 }

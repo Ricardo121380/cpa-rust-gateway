@@ -2,10 +2,10 @@
 //!
 //! These types deliberately describe only structured lifecycle metadata. They retain no request
 //! body, response text, raw headers, URL, presented Client Key, or Credential secret. The
-//! [`GatewayEventSink`] port is synchronous and non-blocking; durable persistence and exporters
-//! remain outside the request path.
+//! [`GatewayEventSink`] port supports bounded asynchronous confirmation; persistence and exporters
+//! execute outside the request runtime threads.
 
-use std::fmt;
+use std::{fmt, future::Future, pin::Pin};
 
 use serde::{Deserialize, Serialize};
 
@@ -43,6 +43,10 @@ pub enum GatewayEventPriority {
 pub enum EventEmission {
     /// The event entered the receiving implementation's bounded queue.
     Enqueued,
+    /// The durable transaction committed.
+    Persisted,
+    /// Persistence failed or was not confirmed before the bounded deadline.
+    PersistenceUnavailable,
     /// The configured sink intentionally records nothing.
     Disabled,
     /// A required-record queue was saturated; the implementation must expose this loss explicitly.
@@ -53,10 +57,34 @@ pub enum EventEmission {
     SinkClosed,
 }
 
-/// A secret-safe event port that never waits for a database, network exporter, or queue slot.
+impl EventEmission {
+    /// Checks an explicitly acknowledged event port result; production uses `Persisted`.
+    ///
+    /// # Errors
+    /// Returns a safe recording error when required admission or persistence failed.
+    pub fn into_result(self) -> Result<(), crate::GatewayError> {
+        match self {
+            Self::Persisted | Self::Enqueued | Self::Disabled => Ok(()),
+            _ => Err(crate::GatewayError::new(
+                crate::GatewayErrorCode::RecordingUnavailable,
+                crate::ErrorScope::Internal,
+            )),
+        }
+    }
+}
+
+/// Bounded asynchronous confirmation without a database dependency in core.
+pub type EventEmissionFuture<'a> = Pin<Box<dyn Future<Output = EventEmission> + Send + 'a>>;
+
+/// Secret-safe event port; production confirmations await the background writer.
 pub trait GatewayEventSink: Send + Sync {
     /// Attempts to admit one event without blocking the request path.
     fn try_emit(&self, event: GatewayEvent) -> EventEmission;
+
+    /// Confirms required persistence. In-memory embeddings retain their explicit admission result.
+    fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
+        Box::pin(async move { self.try_emit(event) })
+    }
 }
 
 /// Default event sink for embeddings that have not yet attached an event consumer.
@@ -145,9 +173,24 @@ pub struct RequestEvent {
     public_model: String,
     route_alias: Option<String>,
     streaming: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    started_at_ms: Option<i64>,
 }
 
 impl RequestEvent {
+    /// Marks a new, durably admitted lifecycle. Legacy records keep an unknown start.
+    #[must_use]
+    pub fn with_started_at_ms(mut self, started_at_ms: i64) -> Self {
+        self.started_at_ms = Some(started_at_ms);
+        self
+    }
+
+    /// Returns the observed ingress time, never inferred for legacy records.
+    #[must_use]
+    pub const fn started_at_ms(&self) -> Option<i64> {
+        self.started_at_ms
+    }
+
     /// Creates one accepted-request event from already-authenticated, decoded metadata.
     #[must_use]
     #[allow(clippy::too_many_arguments)] // Mirrors the frozen Request record fields without a mutable builder.
@@ -170,6 +213,7 @@ impl RequestEvent {
             public_model,
             route_alias,
             streaming,
+            started_at_ms: None,
         }
     }
 
@@ -234,6 +278,7 @@ impl fmt::Debug for RequestEvent {
             .field("public_model", &"<redacted>")
             .field("route_alias_present", &self.route_alias.is_some())
             .field("streaming", &self.streaming)
+            .field("started_at_ms", &self.started_at_ms)
             .finish()
     }
 }
@@ -460,9 +505,23 @@ pub struct UsageEvent {
     request_id: RequestId,
     response_id: ResponseId,
     usage: UsageSummary,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    attempt_id: Option<AttemptId>,
 }
 
 impl UsageEvent {
+    /// Associates usage with the exact confirmed attempt in this request lifetime.
+    #[must_use]
+    pub fn with_attempt_id(mut self, attempt_id: AttemptId) -> Self {
+        self.attempt_id = Some(attempt_id);
+        self
+    }
+    /// Returns explicit new-event lineage; absent only in legacy or non-routed embeddings.
+    #[must_use]
+    pub fn attempt_id(&self) -> Option<&AttemptId> {
+        self.attempt_id.as_ref()
+    }
+
     /// Creates a final Usage event while intentionally dropping protocol-specific extensions.
     #[must_use]
     pub fn from_usage(request_id: RequestId, response_id: ResponseId, usage: &Usage) -> Self {
@@ -470,6 +529,7 @@ impl UsageEvent {
             request_id,
             response_id,
             usage: UsageSummary::from(usage),
+            attempt_id: None,
         }
     }
 

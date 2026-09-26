@@ -106,3 +106,17 @@ The management facade additionally opens a read-only `SqliteEventStore` connecti
 Attempt listing (ADR-0032). The append-only triggers from migration `0005` remain unchanged, so
 serve-time retention is impossible today; that bounded-growth risk is accepted explicitly and any
 trimming requires a new migration plus a revision of this ADR.
+
+## Amendment (2026-09-26, reliability M1)
+
+The user's confirmed reliability choice supersedes the earlier "requests never wait and continue
+after required loss" behavior. Required request admission now waits asynchronously for the bounded
+writer's commit before invoking upstream; Attempt/final Usage/successful delivery also use bounded
+confirmation. Actix still performs no synchronous SQL, and no chunk causes a database write.
+Storage failure rejects new inference with RecordingUnavailable; existing uncertain requests stay
+explicitly unknown. Schema29 records lifecycle recovery and persistent poison evidence. Queue and
+batch caps remain unchanged, and observability still has no store dependency.
+
+See [M1 CR](../change-requests/CR-20260926-required-event-durability.md) and the amended BC-OBS-001/002
+for exact semantics, tests and rollback limits. Counter-only poison dropping is superseded by
+persistent quarantine. Older reports describe their historical builds, not the new acceptance bar.

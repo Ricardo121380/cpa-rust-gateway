@@ -1004,6 +1004,7 @@ const fn anthropic_error_type(error: &GatewayError) -> &'static str {
         | GatewayErrorCode::ProviderTransient
         | GatewayErrorCode::UpstreamProtocolError
         | GatewayErrorCode::StreamTruncated
+        | GatewayErrorCode::RecordingUnavailable
         | GatewayErrorCode::InternalError
         | GatewayErrorCode::Cancelled => "overloaded_error",
     }

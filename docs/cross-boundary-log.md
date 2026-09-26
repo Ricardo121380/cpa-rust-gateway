@@ -3287,3 +3287,26 @@ mock checks, disconnected production-copy rollback and live API readback passed.
 inference, history deletion or DNS/Caddy/Autoreg changes. New UI checked in local EgoLite; production
 reload locks correctly and awaits user login for authenticated visual recheck. Evidence:
 `docs/reports/cpar-usage-quarantine-20260926.md`.
+
+
+## 2026-09-26 - Codex - M1 required-record durability (local only)
+
+**What:** `docs/openapi/management-v1.json` clarifies the existing protected metrics endpoint and
+adds `RecordingUnavailable` to the safe failure-code enum;
+`web/prism/contracts/management-v1.json` was synchronized with `npm --prefix web/prism run sync-contract`.
+Core/observability/store/router/HTTP/runtime now support bounded asynchronous commit receipts,
+request-local Usage-to-Attempt association, schema29 interrupted-request state and durable quarantine.
+No management JSON object-field, generated DTO, frontend source, dependency or chunk change.
+The failure-code enum is now checked against the core error inventory to prevent drift.
+
+**Why:** The confirmed M1 plan requires refusing new upstream work when required recording cannot
+be guaranteed, preserving unknown outcomes after crashes, and exposing safe recording health.
+An enqueued event is not a durable receipt; missing usage/price is never zero.
+
+**Other side:** FYI under unified frontend/backend implementation authorization. Metrics add state,
+accepting-admission, pending, last commit, confirmation failures and recovered-unknown gauges/counter.
+`healthz` remains liveness only. M3 may consume diagnostics later; this does not claim UI work done.
+New core error `RecordingUnavailable` maps to HTTP503 before headers. Schema28 old readers reject
+new optional event fields, so a future production rollback needs the tested pre-upgrade snapshot;
+changing only the binary is unsafe. Production and the new 12-call allowance remain untouched.
+Evidence is tracked by `docs/handoffs/cpar-reliability-alignment-acceptance-20260926.md`.

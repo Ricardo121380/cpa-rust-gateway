@@ -106,6 +106,16 @@ async fn metrics_exposition_serves_bounded_counters_after_traffic_and_overflow()
     assert!(body.contains(
         "gateway_observability_queue_admission_total{outcome=\"required_queue_full\"} 1"
     ));
+    for expected in [
+        "gateway_recording_accepting_requests 0",
+        "gateway_recording_state 0",
+        "gateway_recording_pending_required 1",
+        "gateway_recording_last_commit_ms 0",
+        "gateway_recording_confirmation_failures_total 1",
+        "gateway_recording_recovered_unknown 0",
+    ] {
+        assert!(body.contains(expected), "missing {expected}");
+    }
     assert!(!body.contains("p12-metrics-request-one"));
     assert!(!body.contains("p12-metrics-requested-model"));
     Ok(())

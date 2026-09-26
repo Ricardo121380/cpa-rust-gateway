@@ -27,7 +27,6 @@ mod stored_response_continuity;
 
 use std::{
     collections::VecDeque,
-    convert::Infallible,
     fmt,
     pin::Pin,
     sync::{
@@ -1458,18 +1457,26 @@ async fn execute_responses_websocket_turn(
         Arc::clone(&state.event_sink),
         request_start,
     );
-    let _request_event = state
+    let admission = usage_observer
         .event_sink
-        .try_emit(GatewayEvent::Request(RequestEvent::new(
-            request_id.clone(),
-            client_key_id.clone(),
-            access_group_id,
-            GatewayProtocol::OpenAiResponses,
-            requested_model,
-            public_model.clone(),
-            route_alias,
-            true,
-        )));
+        .emit_confirmed(GatewayEvent::Request(
+            RequestEvent::new(
+                request_id.clone(),
+                client_key_id.clone(),
+                access_group_id,
+                GatewayProtocol::OpenAiResponses,
+                requested_model,
+                public_model.clone(),
+                route_alias,
+                true,
+            )
+            .with_started_at_ms(request_start.1),
+        ))
+        .await;
+    if let Err(error) = admission.into_result() {
+        usage_observer.fail(&error);
+        return Err(error);
+    }
     let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
     let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
     let normalized_body =
@@ -1492,10 +1499,14 @@ async fn execute_responses_websocket_turn(
     execution = execution.with_client_transport(ResponsesClientTransport::WebSocket);
     let mut source = state
         .executor
-        .execute_routed(execution)
+        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
         .await
         .inspect_err(|error| usage_observer.fail(error))?;
-    let Some(first @ CanonicalEvent::ResponseStart(_)) = source.next_event().await? else {
+    let Some(first @ CanonicalEvent::ResponseStart(_)) = source
+        .next_event()
+        .await
+        .inspect_err(|error| usage_observer.fail(error))?
+    else {
         usage_observer.fail(&stream_protocol_error());
         return Err(stream_protocol_error());
     };
@@ -1538,7 +1549,7 @@ async fn execute_responses_websocket_turn(
     match &result {
         Ok(()) => {
             if let Some(guard) = &mut guard {
-                guard.complete();
+                guard.complete_confirmed().await?;
             }
         }
         Err(error) => observation.fail(error),
@@ -1706,7 +1717,7 @@ async fn send_websocket_error(
 /// Record authenticated ingress rejections without retaining request text, tool arguments or
 /// arbitrary model strings. Empty model denotes unavailable/unresolved metadata, never an
 /// invented route. No provider Attempt/Usage is emitted for a request rejected before routing.
-fn observe_ingress_rejection(
+async fn observe_ingress_rejection(
     state: &ResponsesHttpState,
     client: &AuthenticatedResponsesClient,
     protocol: GatewayProtocol,
@@ -1740,18 +1751,29 @@ fn observe_ingress_rejection(
         .and_then(|value| value.get("stream"))
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false);
-    let _ = state
+    let admission = state
         .event_sink
-        .try_emit(GatewayEvent::Request(RequestEvent::new(
-            id.clone(),
-            client_key,
-            group,
-            protocol,
-            requested,
-            public,
-            alias,
-            streaming,
-        )));
+        .emit_confirmed(GatewayEvent::Request(
+            RequestEvent::new(
+                id.clone(),
+                client_key,
+                group,
+                protocol,
+                requested,
+                public,
+                alias,
+                streaming,
+            )
+            .with_started_at_ms(start.1),
+        ))
+        .await;
+    if let Err(error) = admission.into_result() {
+        return match protocol {
+            GatewayProtocol::OpenAiChatCompletions => pre_header_chat_error(&error),
+            GatewayProtocol::OpenAiResponses => pre_header_error(&error),
+            GatewayProtocol::AnthropicMessages => pre_header_anthropic_error(&error),
+        };
+    }
     let observer = UsageEventObserver::new(id.clone(), Arc::clone(&state.event_sink), start);
     observer.fail(error);
     if let Ok(value) = header::HeaderValue::from_str(id.as_str()) {
@@ -1785,7 +1807,8 @@ async fn chat_completions(
                 request_start,
                 &client_request_error(),
                 chat_request_body_error(error),
-            );
+            )
+            .await;
         }
     };
     let Ok(body) = std::str::from_utf8(&body) else {
@@ -1797,7 +1820,8 @@ async fn chat_completions(
             request_start,
             &client_request_error(),
             pre_header_chat_error(&client_request_error()),
-        );
+        )
+        .await;
     };
     let decoded = match decode_chat_request(body) {
         Ok(decoded) => decoded,
@@ -1810,7 +1834,8 @@ async fn chat_completions(
                 request_start,
                 &error,
                 pre_header_chat_error(&error),
-            );
+            )
+            .await;
         }
     };
     let requested_model = decoded.request.requested_model.clone();
@@ -1834,18 +1859,26 @@ async fn chat_completions(
         Arc::clone(&state.event_sink),
         request_start,
     );
-    let _request_event = state
+    let admission = usage_observer
         .event_sink
-        .try_emit(GatewayEvent::Request(RequestEvent::new(
-            request_id.clone(),
-            client_key_id,
-            access_group_id,
-            GatewayProtocol::OpenAiChatCompletions,
-            requested_model,
-            public_model.clone(),
-            route_alias,
-            decoded.mode == ChatResponseMode::Streaming,
-        )));
+        .emit_confirmed(GatewayEvent::Request(
+            RequestEvent::new(
+                request_id.clone(),
+                client_key_id,
+                access_group_id,
+                GatewayProtocol::OpenAiChatCompletions,
+                requested_model,
+                public_model.clone(),
+                route_alias,
+                decoded.mode == ChatResponseMode::Streaming,
+            )
+            .with_started_at_ms(request_start.1),
+        ))
+        .await;
+    if let Err(error) = admission.into_result() {
+        usage_observer.fail(&error);
+        return pre_header_chat_error(&error);
+    }
     let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
     let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
     let response_mode = match decoded.mode {
@@ -1863,7 +1896,11 @@ async fn chat_completions(
     )
     .with_exact_upstream_model(route.exact_upstream_model)
     .with_route_snapshot(route.snapshot);
-    let mut source = match state.executor.execute_routed(execution).await {
+    let mut source = match state
+        .executor
+        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+        .await
+    {
         Ok(source) => source,
         Err(error) => {
             usage_observer.fail(&error);
@@ -1926,7 +1963,8 @@ async fn responses(
                 request_start,
                 &client_request_error(),
                 request_body_error(error),
-            );
+            )
+            .await;
         }
     };
     let Ok(body) = std::str::from_utf8(&body) else {
@@ -1938,7 +1976,8 @@ async fn responses(
             request_start,
             &client_request_error(),
             pre_header_error(&client_request_error()),
-        );
+        )
+        .await;
     };
     let decoded = match decode_request(body) {
         Ok(decoded) => decoded,
@@ -1951,7 +1990,8 @@ async fn responses(
                 request_start,
                 &error,
                 pre_header_error(&error),
-            );
+            )
+            .await;
         }
     };
     if decoded.store
@@ -1992,18 +2032,26 @@ async fn responses(
         Arc::clone(&state.event_sink),
         request_start,
     );
-    let _request_event = state
+    let admission = usage_observer
         .event_sink
-        .try_emit(GatewayEvent::Request(RequestEvent::new(
-            request_id.clone(),
-            client_key_id.clone(),
-            access_group_id,
-            GatewayProtocol::OpenAiResponses,
-            requested_model,
-            public_model.clone(),
-            route_alias,
-            decoded.mode == ResponseMode::Streaming,
-        )));
+        .emit_confirmed(GatewayEvent::Request(
+            RequestEvent::new(
+                request_id.clone(),
+                client_key_id.clone(),
+                access_group_id,
+                GatewayProtocol::OpenAiResponses,
+                requested_model,
+                public_model.clone(),
+                route_alias,
+                decoded.mode == ResponseMode::Streaming,
+            )
+            .with_started_at_ms(request_start.1),
+        ))
+        .await;
+    if let Err(error) = admission.into_result() {
+        usage_observer.fail(&error);
+        return pre_header_error(&error);
+    }
     let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
     let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
     let PreparedResponsesExecution {
@@ -2020,7 +2068,11 @@ async fn responses(
         owned_continuation,
         false,
     );
-    let mut source = match state.executor.execute_routed(execution).await {
+    let mut source = match state
+        .executor
+        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+        .await
+    {
         Ok(source) => source,
         Err(error) => {
             usage_observer.fail(&error);
@@ -2184,18 +2236,26 @@ async fn compact_responses(
         Arc::clone(&state.event_sink),
         request_start,
     );
-    let _request_event = state
+    let admission = usage_observer
         .event_sink
-        .try_emit(GatewayEvent::Request(RequestEvent::new(
-            request_id.clone(),
-            client_key_id.clone(),
-            access_group_id,
-            GatewayProtocol::OpenAiResponses,
-            requested_model,
-            public_model.clone(),
-            route_alias,
-            false,
-        )));
+        .emit_confirmed(GatewayEvent::Request(
+            RequestEvent::new(
+                request_id.clone(),
+                client_key_id.clone(),
+                access_group_id,
+                GatewayProtocol::OpenAiResponses,
+                requested_model,
+                public_model.clone(),
+                route_alias,
+                false,
+            )
+            .with_started_at_ms(request_start.1),
+        ))
+        .await;
+    if let Err(error) = admission.into_result() {
+        usage_observer.fail(&error);
+        return pre_header_stored_response_error(&error);
+    }
     let compact_request = match compaction_request(stored.payload()) {
         Ok(request) => request,
         Err(error) => {
@@ -2222,7 +2282,11 @@ async fn compact_responses(
     )
     .with_continuation_pin(pin)
     .with_route_snapshot(route.snapshot);
-    let mut source = match state.executor.execute_routed(execution).await {
+    let mut source = match state
+        .executor
+        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+        .await
+    {
         Ok(source) => source,
         Err(error) => {
             usage_observer.fail(&error);
@@ -2428,7 +2492,8 @@ async fn messages(
                 request_start,
                 &client_request_error(),
                 anthropic_request_body_error(error),
-            );
+            )
+            .await;
         }
     };
     let Ok(body) = std::str::from_utf8(&body) else {
@@ -2440,7 +2505,8 @@ async fn messages(
             request_start,
             &client_request_error(),
             pre_header_anthropic_error(&client_request_error()),
-        );
+        )
+        .await;
     };
     let decoded = match decode_anthropic_request(body) {
         Ok(decoded) => decoded,
@@ -2453,7 +2519,8 @@ async fn messages(
                 request_start,
                 &error,
                 pre_header_anthropic_error(&error),
-            );
+            )
+            .await;
         }
     };
     let requested_model = decoded.request.requested_model.clone();
@@ -2477,18 +2544,26 @@ async fn messages(
         Arc::clone(&state.event_sink),
         request_start,
     );
-    let _request_event = state
+    let admission = usage_observer
         .event_sink
-        .try_emit(GatewayEvent::Request(RequestEvent::new(
-            request_id.clone(),
-            client_key_id,
-            access_group_id,
-            GatewayProtocol::AnthropicMessages,
-            requested_model,
-            public_model.clone(),
-            route_alias,
-            decoded.mode == AnthropicResponseMode::Streaming,
-        )));
+        .emit_confirmed(GatewayEvent::Request(
+            RequestEvent::new(
+                request_id.clone(),
+                client_key_id,
+                access_group_id,
+                GatewayProtocol::AnthropicMessages,
+                requested_model,
+                public_model.clone(),
+                route_alias,
+                decoded.mode == AnthropicResponseMode::Streaming,
+            )
+            .with_started_at_ms(request_start.1),
+        ))
+        .await;
+    if let Err(error) = admission.into_result() {
+        usage_observer.fail(&error);
+        return pre_header_anthropic_error(&error);
+    }
     let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
     let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
     let response_mode = match decoded.mode {
@@ -2506,7 +2581,11 @@ async fn messages(
     )
     .with_exact_upstream_model(route.exact_upstream_model)
     .with_route_snapshot(route.snapshot);
-    let mut source = match state.executor.execute_routed(execution).await {
+    let mut source = match state
+        .executor
+        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+        .await
+    {
         Ok(source) => source,
         Err(error) => {
             usage_observer.fail(&error);
@@ -3033,7 +3112,7 @@ async fn start_bounded_transport(
         .send(first.clone())
         .await
         .inspect_err(|error| usage_observer.fail(error))?;
-    usage_observer.observe(&first);
+    usage_observer.observe(&first).await?;
     let cancellation = sender.cancellation();
 
     tokio::spawn(async move {
@@ -3059,6 +3138,12 @@ async fn pump_source(
     stored_response: Option<StoredResponseWriteContext>,
     first: CanonicalEvent,
 ) {
+    let mut lifecycle = gateway_core::CanonicalEventState::default();
+    if let Err(error) = lifecycle.apply(&first) {
+        usage_observer.fail(&error);
+        send_terminal_failure(&mut sender, error, &cancellation).await;
+        return;
+    }
     let mut stored_capture = match stored_response {
         Some(context) => match StoredResponseCapture::try_new(context, first) {
             Ok(capture) => Some(capture),
@@ -3109,6 +3194,16 @@ async fn pump_source(
                         }
                     }
                 }
+                if let Err(error) = lifecycle.apply(&event) {
+                    usage_observer.fail(&error);
+                    send_terminal_failure(&mut sender, error, &cancellation).await;
+                    return;
+                }
+                if let Err(error) = usage_observer.observe(&event).await {
+                    usage_observer.fail(&error);
+                    send_terminal_failure(&mut sender, error, &cancellation).await;
+                    return;
+                }
                 if let Err(error) = sender.send(event.clone()).await {
                     if cancellation.is_cancelled() {
                         return;
@@ -3117,7 +3212,6 @@ async fn pump_source(
                     send_terminal_failure(&mut sender, error, &cancellation).await;
                     return;
                 }
-                usage_observer.observe(&event);
                 if terminal {
                     return;
                 }
@@ -3178,7 +3272,7 @@ async fn collect_bounded_source(
     let mut lifecycle = gateway_core::CanonicalEventState::default();
     while let Some(event) = source.next_event().await? {
         lifecycle.apply(&event)?;
-        observer.observe(&event);
+        observer.observe(&event).await?;
         if events.len() >= MAX_STORED_RESPONSE_EVENTS {
             return Err(internal_error());
         }
@@ -3284,6 +3378,8 @@ impl UsageEventObserver {
         event_sink: Arc<dyn GatewayEventSink>,
         start: (std::time::Instant, i64),
     ) -> Self {
+        let event_sink: Arc<dyn GatewayEventSink> =
+            Arc::new(gateway_observability::RequestEventSink::new(event_sink));
         let guard = RequestGuard::new_at(request_id.clone(), event_sink.clone(), start);
         Self {
             request_id,
@@ -3300,7 +3396,7 @@ impl UsageEventObserver {
     fn fail(&self, error: &GatewayError) {
         self.observation.fail(error);
     }
-    fn observe(&mut self, event: &CanonicalEvent) {
+    async fn observe(&mut self, event: &CanonicalEvent) -> Result<(), GatewayError> {
         self.observation.observe(event);
         match event {
             CanonicalEvent::ResponseStart(start) => {
@@ -3309,17 +3405,19 @@ impl UsageEventObserver {
             CanonicalEvent::UsageDelta(delta) if delta.is_final && !self.final_usage_emitted => {
                 self.final_usage_emitted = true;
                 if let Some(response_id) = self.response_id.clone() {
-                    let _usage_event =
-                        self.event_sink
-                            .try_emit(GatewayEvent::Usage(UsageEvent::from_usage(
-                                self.request_id.clone(),
-                                response_id,
-                                &delta.usage,
-                            )));
+                    self.event_sink
+                        .emit_confirmed(GatewayEvent::Usage(UsageEvent::from_usage(
+                            self.request_id.clone(),
+                            response_id,
+                            &delta.usage,
+                        )))
+                        .await
+                        .into_result()?;
                 }
             }
             _ => {}
         }
+        Ok(())
     }
 }
 
@@ -3439,7 +3537,9 @@ where
             finished: false,
             keepalive_deadline: next_keepalive_deadline(),
         };
-        let chunks = Box::pin(stream::unfold(state, next_sse_chunk));
+        // Terminal persistence may yield after the source has ended; a later body poll must not
+        // poll a completed `unfold` again (it panics), so retain its exhausted state.
+        let chunks = Box::pin(stream::unfold(state, next_sse_chunk).fuse());
 
         Self {
             guard,
@@ -3454,7 +3554,7 @@ impl<E> MessageBody for ProtocolSseBody<E>
 where
     E: CanonicalSseEncoder + Unpin + 'static,
 {
-    type Error = Infallible;
+    type Error = GatewayError;
 
     fn size(&self) -> BodySize {
         BodySize::Stream
@@ -3477,7 +3577,11 @@ where
             }
             Poll::Ready(None) => {
                 if let Some(guard) = &mut body.guard {
-                    guard.complete_if_ready();
+                    match guard.poll_complete(context, true) {
+                        Poll::Pending => return Poll::Pending,
+                        Poll::Ready(Err(error)) => return Poll::Ready(Some(Err(error))),
+                        Poll::Ready(Ok(())) => {}
+                    }
                 }
                 Poll::Ready(None)
             }
@@ -3634,7 +3738,7 @@ impl JsonDeliveryBody {
 }
 
 impl MessageBody for JsonDeliveryBody {
-    type Error = Infallible;
+    type Error = GatewayError;
 
     fn size(&self) -> BodySize {
         self.bytes
@@ -3644,20 +3748,25 @@ impl MessageBody for JsonDeliveryBody {
 
     fn poll_next(
         self: Pin<&mut Self>,
-        _context: &mut Context<'_>,
+        context: &mut Context<'_>,
     ) -> Poll<Option<Result<web::Bytes, Self::Error>>> {
         let body = self.get_mut();
-        match body.bytes.take() {
-            Some(bytes) => {
-                let _first_delivery = body.tracker.mark_delivered(&body.delivery_event);
-                if let Some(guard) = &mut body.guard {
-                    guard.observation.delivered_json();
-                    guard.complete();
-                }
-                Poll::Ready(Some(Ok(bytes)))
+        if let Some(bytes) = body.bytes.take() {
+            let _first_delivery = body.tracker.mark_delivered(&body.delivery_event);
+            if let Some(guard) = &mut body.guard {
+                guard.observation.delivered_json();
+                guard.delivered_complete();
             }
-            None => Poll::Ready(None),
+            return Poll::Ready(Some(Ok(bytes)));
         }
+        if let Some(guard) = &mut body.guard {
+            match guard.poll_complete(context, false) {
+                Poll::Pending => return Poll::Pending,
+                Poll::Ready(Err(error)) => return Poll::Ready(Some(Err(error))),
+                Poll::Ready(Ok(())) => {}
+            }
+        }
+        Poll::Ready(None)
     }
 }
 
@@ -3845,7 +3954,8 @@ const fn error_status(error: &GatewayError) -> StatusCode {
         }
         GatewayErrorCode::ProviderTransient
         | GatewayErrorCode::EgressUnavailable
-        | GatewayErrorCode::CredentialUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+        | GatewayErrorCode::CredentialUnavailable
+        | GatewayErrorCode::RecordingUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         GatewayErrorCode::ProviderPermanent
         | GatewayErrorCode::UpstreamProtocolError
         | GatewayErrorCode::StreamTruncated
@@ -4949,7 +5059,7 @@ mod tests {
     #[actix_web::test]
     async fn non_streaming_chat_uses_bounded_transport_and_emits_chat_request_protocol()
     -> TestResult {
-        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(3, 1)?)?;
         let event_sink: Arc<dyn GatewayEventSink> = Arc::new(queue);
         let state = mock_state_with_event_sink(text_events_with_final_usage()?, event_sink)?;
         let app = test::init_service(
@@ -4984,6 +5094,11 @@ mod tests {
         assert_eq!(event.protocol(), GatewayProtocol::OpenAiChatCompletions);
         assert!(!event.streaming());
         assert!(matches!(receiver.try_recv(), Some(GatewayEvent::Usage(_))));
+        let Some(GatewayEvent::RequestFinished(terminal)) = receiver.try_recv() else {
+            return Err("missing terminal confirmation".into());
+        };
+        assert_eq!(terminal.outcome, gateway_core::RequestOutcome::Succeeded);
+        assert!(receiver.try_recv().is_none());
         Ok(())
     }
 
@@ -5262,7 +5377,7 @@ mod tests {
 
     #[actix_web::test]
     async fn snapshot_messages_force_map_alias_and_emit_anthropic_request_protocol() -> TestResult {
-        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(3, 1)?)?;
         let event_sink: Arc<dyn GatewayEventSink> = Arc::new(queue);
         let (state, presented_key) =
             snapshot_auth_state_with_event_sink(anthropic_events()?, event_sink)?;
@@ -5294,6 +5409,12 @@ mod tests {
         assert_eq!(event.requested_model(), SNAPSHOT_MODEL_ALIAS);
         assert_eq!(event.public_model(), SNAPSHOT_PUBLIC_MODEL);
         assert!(!event.streaming());
+        assert!(matches!(receiver.try_recv(), Some(GatewayEvent::Usage(_))));
+        let Some(GatewayEvent::RequestFinished(terminal)) = receiver.try_recv() else {
+            return Err("missing terminal confirmation".into());
+        };
+        assert_eq!(terminal.outcome, gateway_core::RequestOutcome::Succeeded);
+        assert!(receiver.try_recv().is_none());
         Ok(())
     }
 
@@ -5411,34 +5532,158 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn saturated_event_queue_cannot_block_a_streaming_response() -> TestResult {
+    async fn saturated_usage_queue_cannot_report_success() -> TestResult {
         let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
         let queue = Arc::new(queue);
-        let event_sink: Arc<dyn GatewayEventSink> = queue.clone();
-        let state = mock_state_with_event_sink(text_events_with_final_usage()?, event_sink)?;
+        let state = mock_state_with_event_sink(text_events_with_final_usage()?, queue.clone())?;
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(state))
                 .configure(configure),
         )
         .await;
-        let request = authorized(
-            test::TestRequest::post()
-                .uri("/v1/responses")
-                .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+        let response = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .set_payload(r#"{"model":"mock-model","input":"hello","stream":true}"#),
+            )
+            .to_request(),
         )
-        .to_request();
-
-        let response = test::call_service(&app, request).await;
+        .await;
         assert_eq!(response.status(), StatusCode::OK);
-        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
-        assert!(body.contains("response.completed"));
-        assert_eq!(queue.metrics().required_queue_full, 2);
+        let mut body = response.into_body();
+        let mut bytes = Vec::new();
+        let mut recording_failed = false;
+        while let Some(chunk) =
+            std::future::poll_fn(|cx| std::pin::Pin::new(&mut body).poll_next(cx)).await
+        {
+            if let Ok(chunk) = chunk {
+                bytes.extend_from_slice(&chunk);
+            } else {
+                recording_failed = true;
+                break;
+            }
+        }
+        let text = String::from_utf8(bytes)?;
+        assert!(!text.contains("response.completed"));
+        assert!(recording_failed || text.contains("RecordingUnavailable"));
+        assert!(queue.metrics().required_queue_full >= 1);
         assert!(matches!(
             receiver.try_recv(),
             Some(GatewayEvent::Request(_))
         ));
         assert!(receiver.try_recv().is_none());
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn required_admission_full_rejects_every_http_protocol_before_executor() -> TestResult {
+        let (queue, _receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let queue = Arc::new(queue);
+        let seed = GatewayEvent::Request(gateway_core::RequestEvent::new(
+            RequestId::try_new("occupy")?,
+            ClientKeyId::try_new("client")?,
+            None,
+            gateway_core::GatewayProtocol::OpenAiResponses,
+            "model".into(),
+            "model".into(),
+            None,
+            false,
+        ));
+        assert_eq!(queue.try_emit(seed), gateway_core::EventEmission::Enqueued);
+        let calls = Arc::new(AtomicUsize::new(0));
+        let state = ResponsesHttpState::with_metadata_and_event_sink(
+            Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            queue,
+            StreamCapacity::try_new(2)?,
+        );
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        for (path, body) in [
+            ("/v1/responses", r#"{"model":"mock-model","input":"hello"}"#),
+            (
+                "/v1/chat/completions",
+                r#"{"model":"mock-model","messages":[{"role":"user","content":"hello"}]}"#,
+            ),
+            (
+                "/v1/messages",
+                r#"{"model":"mock-model","max_tokens":8,"messages":[{"role":"user","content":"hello"}]}"#,
+            ),
+        ] {
+            let response = test::call_service(
+                &app,
+                authorized(test::TestRequest::post().uri(path).set_payload(body)).to_request(),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE, "{path}");
+            let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+            assert!(body.contains("recording"));
+        }
+        assert_eq!(calls.load(Ordering::Acquire), 0);
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn unavailable_sqlite_writer_rejects_http_before_executor() -> TestResult {
+        let file =
+            std::env::temp_dir().join(format!("cpar-m1-not-directory-{}", std::process::id()));
+        std::fs::write(&file, b"fixture")?;
+        let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(4, 1)?)?;
+        let queue = Arc::new(queue);
+        let writer = gateway_store::event_store::AsyncSqliteEventWriter::new(
+            file.join("state.sqlite"),
+            receiver,
+            gateway_store::event_store::EventWriterConfig::default(),
+        );
+        let task = tokio::spawn(writer.run());
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while queue.recording_health().snapshot().0 != 2 {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await?;
+        let calls = Arc::new(AtomicUsize::new(0));
+        let state = ResponsesHttpState::with_metadata_and_event_sink(
+            Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }),
+            Arc::new(FixedMetadata),
+            test_authenticator()?,
+            queue.clone(),
+            StreamCapacity::try_new(2)?,
+        );
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let response = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .set_payload(r#"{"model":"mock-model","input":"hello"}"#),
+            )
+            .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(calls.load(Ordering::Acquire), 0);
+        assert!(!queue.accepts_requests());
+        task.abort();
+        let _ = task.await;
+        std::fs::remove_file(file)?;
         Ok(())
     }
 
@@ -5559,7 +5804,7 @@ mod tests {
     #[actix_web::test]
     async fn snapshot_request_event_retains_access_group_and_force_mapped_public_model()
     -> TestResult {
-        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(2, 1)?)?;
         let event_sink: Arc<dyn GatewayEventSink> = Arc::new(queue);
         let (state, presented_key) =
             snapshot_auth_state_with_event_sink(text_events()?, event_sink)?;
@@ -5592,6 +5837,11 @@ mod tests {
         assert_eq!(event.requested_model(), SNAPSHOT_MODEL_ALIAS);
         assert_eq!(event.public_model(), SNAPSHOT_PUBLIC_MODEL);
         assert_eq!(event.route_alias(), Some(SNAPSHOT_MODEL_ALIAS));
+        let Some(GatewayEvent::RequestFinished(terminal)) = receiver.try_recv() else {
+            return Err("missing terminal confirmation".into());
+        };
+        assert_eq!(terminal.outcome, gateway_core::RequestOutcome::Succeeded);
+        assert!(receiver.try_recv().is_none());
         Ok(())
     }
 
@@ -5949,16 +6199,23 @@ mod tests {
     async fn completed_json_commits_fse_only_when_actix_polls_the_body() -> TestResult {
         let tracker = FirstSemanticEventTracker::default();
         let event = response_start()?;
-        let mut body = Box::pin(JsonDeliveryBody::new(
-            web::Bytes::from_static(b"{}"),
-            tracker.clone(),
-            event,
-        ));
+        let (queue, mut receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(1, 1)?)?;
+        let guard = super::RequestGuard::new(RequestId::try_new("json-handoff")?, Arc::new(queue));
+        let mut body = Box::pin(
+            JsonDeliveryBody::new(web::Bytes::from_static(b"{}"), tracker.clone(), event)
+                .with_request_guard(Some(guard)),
+        );
         assert!(!tracker.is_committed());
 
         let first = poll_fn(|context| body.as_mut().poll_next(context)).await;
         assert!(matches!(first, Some(Ok(bytes)) if bytes.as_ref() == b"{}"));
         assert!(tracker.is_committed());
+        assert!(receiver.try_recv().is_none());
+        drop(body);
+        let Some(GatewayEvent::RequestFinished(event)) = receiver.try_recv() else {
+            return Err("missing JSON terminal".into());
+        };
+        assert_eq!(event.outcome, gateway_core::RequestOutcome::Succeeded);
         Ok(())
     }
 
@@ -5980,6 +6237,50 @@ mod tests {
             Some(Ok(bytes)) if String::from_utf8_lossy(&bytes).contains("event: response.created")
         ));
         assert!(tracker.is_committed());
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn sse_end_can_be_polled_again_while_terminal_commit_is_pending() -> TestResult {
+        struct DelayedTerminal(Arc<AtomicUsize>);
+        impl GatewayEventSink for DelayedTerminal {
+            fn try_emit(&self, _: GatewayEvent) -> gateway_core::EventEmission {
+                gateway_core::EventEmission::Disabled
+            }
+            fn emit_confirmed(&self, event: GatewayEvent) -> gateway_core::EventEmissionFuture<'_> {
+                Box::pin(async move {
+                    assert!(matches!(event, GatewayEvent::RequestFinished(_)));
+                    self.0.fetch_add(1, Ordering::AcqRel);
+                    tokio::task::yield_now().await;
+                    gateway_core::EventEmission::Persisted
+                })
+            }
+        }
+        let (mut sender, stream) = bounded_canonical_stream(StreamCapacity::try_new(32)?);
+        let tracker = stream.control().first_semantic_event_tracker();
+        for event in text_events()? {
+            sender.send(event).await?;
+        }
+        drop(sender);
+        let confirmations = Arc::new(AtomicUsize::new(0));
+        let guard = super::RequestGuard::new(
+            RequestId::try_new("delayed-terminal")?,
+            Arc::new(DelayedTerminal(confirmations.clone())),
+        );
+        let mut body = Box::pin(super::ProtocolSseBody::observed(
+            stream,
+            OpenAiResponsesSseEncoder::new(OpenAiResponseMetadata::try_new("mock-model", 1)?),
+            tracker,
+            Some(guard),
+        ));
+        let mut bytes = Vec::new();
+        while let Some(chunk) = poll_fn(|cx| body.as_mut().poll_next(cx)).await {
+            bytes.extend_from_slice(&chunk?);
+        }
+        assert!(String::from_utf8(bytes)?.contains("response.completed"));
+        assert_eq!(confirmations.load(Ordering::Acquire), 1);
+        assert!(poll_fn(|cx| body.as_mut().poll_next(cx)).await.is_none());
+        assert_eq!(confirmations.load(Ordering::Acquire), 1);
         Ok(())
     }
 

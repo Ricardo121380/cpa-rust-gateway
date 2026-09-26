@@ -1,20 +1,29 @@
 //! Structured event and metrics boundary outside the request hot path.
 //!
-//! P3 provides only the bounded non-blocking producer and its consumer-facing receiver. P4 owns
-//! `SQLite` batching, persistence, exporters, and production metrics; no data-path caller waits on
-//! those future consumers.
+//! The producer has finite priority queues and optional asynchronous commit receipts. The store
+//! owns persistence on its blocking worker; no database dependency enters this crate.
 
 #![deny(unsafe_code)]
 
 mod log_safety;
 mod telemetry;
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, AtomicU64, Ordering},
+    },
+    time::Duration,
+};
 
 use gateway_core::{
-    DiagnosticEvent, EventEmission, GatewayEvent, GatewayEventPriority, GatewayEventSink,
+    AttemptId, DiagnosticEvent, EventEmission, EventEmissionFuture, GatewayEvent,
+    GatewayEventPriority, GatewayEventSink,
 };
-use tokio::sync::mpsc::{self, error::TrySendError};
+use tokio::sync::{
+    mpsc::{self, error::TrySendError},
+    oneshot,
+};
 
 pub use log_safety::{
     BodyOmissionReason, BodySamplingPolicy, BodySamplingPolicyError, HTTP_LOG_SCHEMA_VERSION,
@@ -151,11 +160,12 @@ pub struct EventQueueMetrics {
 /// deliberately visible to the later P4 writer/metrics path rather than silently waiting or
 /// fabricating unbounded storage.
 pub struct BoundedEventQueue {
-    required: mpsc::Sender<GatewayEvent>,
-    diagnostic: mpsc::Sender<GatewayEvent>,
+    required: mpsc::Sender<QueuedEvent>,
+    diagnostic: mpsc::Sender<QueuedEvent>,
     required_queue_full: AtomicU64,
     diagnostics_dropped: AtomicU64,
     sink_closed: AtomicU64,
+    health: Arc<RecordingHealth>,
 }
 
 impl BoundedEventQueue {
@@ -172,6 +182,7 @@ impl BoundedEventQueue {
         let (required, required_receiver) = mpsc::channel(config.required_capacity());
         let (diagnostic, diagnostic_receiver) = mpsc::channel(config.diagnostic_capacity());
 
+        let health = Arc::new(RecordingHealth::default());
         Ok((
             Self {
                 required,
@@ -179,10 +190,12 @@ impl BoundedEventQueue {
                 required_queue_full: AtomicU64::new(0),
                 diagnostics_dropped: AtomicU64::new(0),
                 sink_closed: AtomicU64::new(0),
+                health: health.clone(),
             },
             EventQueueReceiver {
                 required: required_receiver,
                 diagnostic: diagnostic_receiver,
+                health,
             },
         ))
     }
@@ -198,41 +211,265 @@ impl BoundedEventQueue {
     }
 }
 
-impl GatewayEventSink for BoundedEventQueue {
-    fn try_emit(&self, event: GatewayEvent) -> EventEmission {
-        let (sender, is_required) = match event.priority() {
-            GatewayEventPriority::Required => (&self.required, true),
-            GatewayEventPriority::Diagnostic => (&self.diagnostic, false),
-        };
+impl BoundedEventQueue {
+    /// Reads recording health without storage I/O.
+    pub fn recording_health(&self) -> &RecordingHealth {
+        &self.health
+    }
 
-        match sender.try_send(event) {
+    /// Whether a new confirmed request can currently be admitted.
+    pub fn accepts_requests(&self) -> bool {
+        self.health.state.load(Ordering::Acquire) == 1
+            && !self.required.is_closed()
+            && self.required.capacity() > 0
+    }
+
+    fn enqueue(
+        &self,
+        event: GatewayEvent,
+        receipt: Option<oneshot::Sender<EventEmission>>,
+    ) -> EventEmission {
+        let required = event.priority() == GatewayEventPriority::Required;
+        let sender = if required {
+            &self.required
+        } else {
+            &self.diagnostic
+        };
+        if required {
+            self.health.pending.fetch_add(1, Ordering::AcqRel);
+        }
+        let entry = QueuedEvent {
+            event,
+            receipt,
+            health: self.health.clone(),
+            required,
+        };
+        match sender.try_send(entry) {
             Ok(()) => EventEmission::Enqueued,
-            Err(TrySendError::Full(_)) if is_required => {
-                self.required_queue_full.fetch_add(1, Ordering::Relaxed);
-                EventEmission::RequiredQueueFull
-            }
-            Err(TrySendError::Full(_)) => {
-                self.diagnostics_dropped.fetch_add(1, Ordering::Relaxed);
-                EventEmission::DiagnosticDropped
-            }
-            Err(TrySendError::Closed(_)) => {
-                self.sink_closed.fetch_add(1, Ordering::Relaxed);
-                EventEmission::SinkClosed
+            Err(error) => {
+                if required {
+                    self.health.pending.fetch_sub(1, Ordering::AcqRel);
+                    self.health
+                        .confirmation_failures
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+                match error {
+                    TrySendError::Full(_) if required => {
+                        self.required_queue_full.fetch_add(1, Ordering::Relaxed);
+                        EventEmission::RequiredQueueFull
+                    }
+                    TrySendError::Full(_) => {
+                        self.diagnostics_dropped.fetch_add(1, Ordering::Relaxed);
+                        EventEmission::DiagnosticDropped
+                    }
+                    TrySendError::Closed(_) => {
+                        self.sink_closed.fetch_add(1, Ordering::Relaxed);
+                        EventEmission::SinkClosed
+                    }
+                }
             }
         }
     }
 }
 
+impl GatewayEventSink for BoundedEventQueue {
+    fn try_emit(&self, event: GatewayEvent) -> EventEmission {
+        self.enqueue(event, None)
+    }
+
+    fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
+        Box::pin(async move {
+            // Queue-only embeddings explicitly acknowledge admission, not persistence.
+            if !self.health.writer_attached.load(Ordering::Acquire) {
+                return self.try_emit(event);
+            }
+            if matches!(event, GatewayEvent::Request(_))
+                && self.health.state.load(Ordering::Acquire) >= 2
+            {
+                return EventEmission::PersistenceUnavailable;
+            }
+            let (send, receive) = oneshot::channel();
+            let result = self.enqueue(event, Some(send));
+            if result != EventEmission::Enqueued {
+                return result;
+            }
+            if let Ok(Ok(result)) = tokio::time::timeout(Duration::from_secs(2), receive).await {
+                result
+            } else {
+                self.health
+                    .confirmation_failures
+                    .fetch_add(1, Ordering::Relaxed);
+                EventEmission::PersistenceUnavailable
+            }
+        })
+    }
+}
+
+/// Shared bounded recording status. State: 0 starting, 1 ready, 2 storage unavailable, 3 closed.
+#[derive(Default)]
+pub struct RecordingHealth {
+    writer_attached: AtomicBool,
+    state: AtomicU64,
+    pending: AtomicU64,
+    last_commit_ms: AtomicU64,
+    confirmation_failures: AtomicU64,
+    recovered_unknown: AtomicU64,
+}
+
+impl RecordingHealth {
+    /// Returns (state, pending confirmations, last commit ms, confirmation failures, recovered unknown).
+    pub fn snapshot(&self) -> (u64, u64, u64, u64, u64) {
+        (
+            self.state.load(Ordering::Acquire),
+            self.pending.load(Ordering::Acquire),
+            self.last_commit_ms.load(Ordering::Acquire),
+            self.confirmation_failures.load(Ordering::Acquire),
+            self.recovered_unknown.load(Ordering::Acquire),
+        )
+    }
+    /// Published only by the background writer after a storage result.
+    pub fn set_state(&self, state: u64) {
+        self.state.store(state, Ordering::Release);
+    }
+    /// Marks records left unsettled by a previous process; does not invent terminal usage.
+    pub fn recovered(&self, count: u64) {
+        self.recovered_unknown.store(count, Ordering::Release);
+    }
+}
+
+/// One finite queue slot plus its optional durable acknowledgement.
+pub struct QueuedEvent {
+    /// Sanitized event, never request/response bodies or credential material.
+    pub event: GatewayEvent,
+    receipt: Option<oneshot::Sender<EventEmission>>,
+    health: Arc<RecordingHealth>,
+    required: bool,
+}
+impl QueuedEvent {
+    /// Releases a pending confirmation only after commit or persistent quarantine.
+    pub fn complete(mut self, outcome: EventEmission) {
+        if self.required {
+            self.health.pending.fetch_sub(1, Ordering::AcqRel);
+        }
+        if outcome == EventEmission::Persisted {
+            let ms = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |v| u64::try_from(v.as_millis()).unwrap_or(u64::MAX));
+            self.health.last_commit_ms.store(ms, Ordering::Release);
+        } else if self.required && outcome != EventEmission::Enqueued {
+            self.health
+                .confirmation_failures
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if let Some(receipt) = self.receipt.take() {
+            let _ = receipt.send(outcome);
+        }
+    }
+    fn into_event(self) -> GatewayEvent {
+        let event = self.event.clone();
+        self.complete(EventEmission::Enqueued);
+        event
+    }
+}
+
+/// Request-local lineage: never uses a process-global evictable identity lookup.
+pub struct RequestEventSink {
+    inner: Arc<dyn GatewayEventSink>,
+    attempt: Mutex<Option<AttemptId>>,
+}
+impl RequestEventSink {
+    /// Shares one confirmed-attempt identity between router and final usage observer.
+    pub fn new(inner: Arc<dyn GatewayEventSink>) -> Self {
+        Self {
+            inner,
+            attempt: Mutex::new(None),
+        }
+    }
+    fn attach(&self, event: GatewayEvent) -> Result<GatewayEvent, EventEmission> {
+        if let GatewayEvent::Usage(usage) = event {
+            let attempt = self
+                .attempt
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone();
+            if let (Some(explicit), Some(confirmed)) = (usage.attempt_id(), attempt.as_ref())
+                && explicit != confirmed
+            {
+                return Err(EventEmission::PersistenceUnavailable);
+            }
+            Ok(GatewayEvent::Usage(match (usage.attempt_id(), attempt) {
+                (None, Some(id)) => usage.with_attempt_id(id),
+                _ => usage,
+            }))
+        } else {
+            Ok(event)
+        }
+    }
+}
+impl GatewayEventSink for RequestEventSink {
+    fn try_emit(&self, event: GatewayEvent) -> EventEmission {
+        match self.attach(event) {
+            Ok(event) => self.inner.try_emit(event),
+            Err(error) => error,
+        }
+    }
+    fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
+        Box::pin(async move {
+            let attempt = if let GatewayEvent::Attempt(ref attempt) = event {
+                Some(attempt.attempt_id().clone())
+            } else {
+                None
+            };
+            let event = match self.attach(event) {
+                Ok(event) => event,
+                Err(error) => return error,
+            };
+            let result = self.inner.emit_confirmed(event).await;
+            if result.into_result().is_ok()
+                && let Some(attempt) = attempt
+            {
+                *self
+                    .attempt
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(attempt);
+            }
+            result
+        })
+    }
+}
+
 /// Single-consumer endpoint for a [`BoundedEventQueue`].
 pub struct EventQueueReceiver {
-    required: mpsc::Receiver<GatewayEvent>,
-    diagnostic: mpsc::Receiver<GatewayEvent>,
+    required: mpsc::Receiver<QueuedEvent>,
+    diagnostic: mpsc::Receiver<QueuedEvent>,
+    health: Arc<RecordingHealth>,
 }
 
 impl EventQueueReceiver {
+    /// True when all producers have gone away.
+    #[must_use]
+    pub fn is_closed(&self) -> bool {
+        self.required.is_closed() && self.diagnostic.is_closed()
+    }
+
+    /// Enables durable acknowledgements before this receiver is moved into its writer.
+    #[must_use]
+    pub fn attach_writer(&self) -> Arc<RecordingHealth> {
+        self.health.writer_attached.store(true, Ordering::Release);
+        self.health.clone()
+    }
+    /// Queue-only consumer; acknowledges admission only.
+    pub fn try_recv(&mut self) -> Option<GatewayEvent> {
+        self.try_recv_entry().map(QueuedEvent::into_event)
+    }
+    /// Queue-only asynchronous consumer.
+    pub async fn recv(&mut self) -> Option<GatewayEvent> {
+        self.recv_entry().await.map(QueuedEvent::into_event)
+    }
+
     /// Returns the next available event without waiting, preferring required records.
     #[must_use]
-    pub fn try_recv(&mut self) -> Option<GatewayEvent> {
+    pub fn try_recv_entry(&mut self) -> Option<QueuedEvent> {
         self.required
             .try_recv()
             .ok()
@@ -240,8 +477,8 @@ impl EventQueueReceiver {
     }
 
     /// Waits for the next event, preferring required records when both queues are ready.
-    pub async fn recv(&mut self) -> Option<GatewayEvent> {
-        if let Some(event) = self.try_recv() {
+    pub async fn recv_entry(&mut self) -> Option<QueuedEvent> {
+        if let Some(event) = self.try_recv_entry() {
             return Some(event);
         }
 

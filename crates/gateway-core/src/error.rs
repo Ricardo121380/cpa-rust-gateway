@@ -38,6 +38,8 @@ pub enum GatewayErrorCode {
     UpstreamProtocolError,
     /// A stream ended before its required semantic sequence completed.
     StreamTruncated,
+    /// Required request observations cannot be durably confirmed.
+    RecordingUnavailable,
     /// The gateway encountered an unexpected internal failure.
     InternalError,
     /// The request was cancelled before completion.
@@ -46,7 +48,7 @@ pub enum GatewayErrorCode {
 
 impl GatewayErrorCode {
     /// All frozen gateway error categories in stable snapshot order.
-    pub const ALL: [Self; 17] = [
+    pub const ALL: [Self; 18] = [
         Self::ClientRequestError,
         Self::ClientUnauthorized,
         Self::RouteNotFound,
@@ -62,6 +64,7 @@ impl GatewayErrorCode {
         Self::TokenCountUnsupported,
         Self::UpstreamProtocolError,
         Self::StreamTruncated,
+        Self::RecordingUnavailable,
         Self::InternalError,
         Self::Cancelled,
     ];
@@ -85,6 +88,7 @@ impl GatewayErrorCode {
             Self::TokenCountUnsupported => "TokenCountUnsupported",
             Self::UpstreamProtocolError => "UpstreamProtocolError",
             Self::StreamTruncated => "StreamTruncated",
+            Self::RecordingUnavailable => "RecordingUnavailable",
             Self::InternalError => "InternalError",
             Self::Cancelled => "Cancelled",
         }
@@ -202,6 +206,7 @@ impl GatewayError {
             }
             GatewayErrorCode::UpstreamProtocolError => "the upstream protocol was invalid",
             GatewayErrorCode::StreamTruncated => "the stream ended before completion",
+            GatewayErrorCode::RecordingUnavailable => "request recording is unavailable",
             GatewayErrorCode::InternalError => "the gateway encountered an internal error",
             GatewayErrorCode::Cancelled => "the request was cancelled",
         }

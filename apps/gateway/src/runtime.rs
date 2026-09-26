@@ -1052,6 +1052,14 @@ impl P12FanoutEventSink {
 }
 
 impl GatewayEventSink for P12FanoutEventSink {
+    fn emit_confirmed(&self, event: GatewayEvent) -> gateway_core::EventEmissionFuture<'_> {
+        Box::pin(async move {
+            if let GatewayEvent::Attempt(attempt) = &event {
+                let _ = self.attempts.record_terminal(attempt);
+            }
+            self.queue.emit_confirmed(event).await
+        })
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         if let GatewayEvent::Attempt(attempt) = &event {
             let _stage_projection = self.attempts.record_terminal(attempt);
@@ -1801,7 +1809,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let compatible_endpoints = Arc::clone(&self.compatible_endpoints);
         let client_pool = Arc::clone(&self.client_pool);
         let attempt_stages = Arc::clone(&self.attempt_stages);
-        let event_sink = Arc::clone(&self.event_sink);
+        let event_sink = Arc::clone(execution.event_sink().unwrap_or(&self.event_sink));
         let context = execution.context().clone();
         let request = execution.request().clone();
         let client_protocol = execution.client_protocol();
@@ -10910,9 +10918,10 @@ mod tests {
             Box::pin(async move {
                 self.attempt_stages
                     .record_stage(&request_id, ManagementRequestAttemptStage::HttpTransport);
-                let _emission = self
-                    .event_sink
-                    .try_emit(GatewayEvent::Attempt(AttemptEvent::new(
+                execution
+                    .event_sink()
+                    .unwrap_or(&self.event_sink)
+                    .emit_confirmed(GatewayEvent::Attempt(AttemptEvent::new(
                         request_id,
                         1,
                         self.route_id.clone(),
@@ -10925,7 +10934,9 @@ mod tests {
                         25,
                         AttemptOutcome::Succeeded,
                         AttemptRetryDecision::Completed,
-                    )));
+                    )))
+                    .await
+                    .into_result()?;
                 Ok(Box::new(FiniteEventSource::new(self.events.clone()))
                     as Box<dyn ResponsesEventSource>)
             })
@@ -10962,6 +10973,115 @@ mod tests {
                 extensions: RawExtensions::default(),
             }),
         ])
+    }
+
+    // Compares queue-admission semantics with durable acknowledgements in one test binary.
+    // Both modes retain the real SQLite writer; only the acknowledgement boundary differs.
+    #[actix_web::test]
+    #[ignore = "isolated M1 timing run, five samples per mode; no provider network"]
+    async fn m1_mock_request_confirmation_timing() -> Result<(), Box<dyn Error>> {
+        struct AdmissionOnly(Arc<dyn GatewayEventSink>);
+        impl GatewayEventSink for AdmissionOnly {
+            fn try_emit(&self, event: GatewayEvent) -> EventEmission {
+                self.0.try_emit(event)
+            }
+        }
+        let mut medians = Vec::new();
+        for durable in [false, true] {
+            let directory = TemporaryDirectory::new()?;
+            let database = directory.join("timing.sqlite3");
+            let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::default())?;
+            let queue = Arc::new(queue);
+            let writer =
+                AsyncSqliteEventWriter::new(&database, receiver, EventWriterConfig::default());
+            let writer = tokio::spawn(writer.run());
+            tokio::time::timeout(Duration::from_secs(5), async {
+                while !queue.accepts_requests() {
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await?;
+            let stages = Arc::new(P12AttemptStageStore::new());
+            let sink: Arc<dyn GatewayEventSink> =
+                Arc::new(P12FanoutEventSink::new(stages.clone(), queue.clone()));
+            let sink: Arc<dyn GatewayEventSink> = if durable {
+                sink
+            } else {
+                Arc::new(AdmissionOnly(sink))
+            };
+            let executor = P12ObservedAttemptExecutor {
+                events: p12_observed_canonical_events()?,
+                event_sink: sink.clone(),
+                attempt_stages: stages,
+                route_id: RouteId::try_new("timing-route")?,
+                candidate_id: RouteCandidateId::try_new("timing-candidate")?,
+                credential_id: CredentialId::try_new("timing-account")?,
+                endpoint_id: EndpointId::try_new("timing-endpoint")?,
+                upstream_id: UpstreamId::try_new("timing-provider")?,
+            };
+            let key = InMemoryClientKey::try_new(
+                "timing-client-key",
+                ClientKeyId::try_new("timing-client")?,
+                true,
+            )?;
+            let state = ResponsesHttpState::with_metadata_and_event_sink(
+                Arc::new(executor),
+                Arc::new(SystemResponsesMetadataFactory::new()),
+                Arc::new(InMemoryClientKeyAuthenticator::try_new([key])?),
+                sink,
+                default_stream_capacity()?,
+            );
+            let app = actix_test::init_service(
+                App::new()
+                    .app_data(web::Data::new(state))
+                    .configure(configure),
+            )
+            .await;
+            let mut samples = Vec::new();
+            for sample in 0..6 {
+                let request = actix_test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .insert_header((header::AUTHORIZATION, "Bearer timing-client-key"))
+                    .set_payload(r#"{"model":"timing-model","input":"synthetic timing"}"#)
+                    .to_request();
+                let started = std::time::Instant::now();
+                let response = actix_test::call_service(&app, request).await;
+                assert_eq!(response.status(), StatusCode::OK);
+                let body = actix_test::read_body(response).await;
+                let elapsed = started.elapsed().as_secs_f64() * 1000.0;
+                let body: Value = serde_json::from_slice(&body)?;
+                assert_eq!(body["status"], "completed");
+                if sample > 0 {
+                    samples.push(elapsed);
+                }
+                // Flush outside the measurement to keep identical pre-request queue occupancy.
+                tokio::time::timeout(Duration::from_secs(5), async {
+                    while queue.recording_health().snapshot().1 != 0 {
+                        tokio::time::sleep(Duration::from_millis(1)).await;
+                    }
+                })
+                .await?;
+            }
+            samples.sort_by(f64::total_cmp);
+            eprintln!(
+                "M1 mock in-process Actix durable={durable}: sorted_ms={samples:?}; median_ms={}",
+                samples[2]
+            );
+            medians.push(samples[2]);
+            drop(app);
+            drop(queue);
+            let metrics = tokio::time::timeout(Duration::from_secs(5), writer).await??;
+            assert_eq!(metrics.rows_inserted, 24);
+            assert_eq!(metrics.pending_required, 0);
+            let store = SqliteEventStore::open_read_only(&database)?;
+            assert_eq!(store.list_events()?.iter().filter(|e| matches!(e.event(), GatewayEvent::RequestFinished(v) if v.outcome == gateway_core::RequestOutcome::Succeeded)).count(), 6);
+        }
+        let increase = medians[1] - medians[0];
+        assert!(
+            !(increase > 50.0 && medians[1] > medians[0] * 1.10),
+            "confirmation regression exceeds frozen 10% and 50ms threshold"
+        );
+        Ok(())
     }
 
     #[actix_web::test]
@@ -11014,6 +11134,7 @@ mod tests {
             default_stream_capacity()?,
         );
         drop(event_sink);
+        let writer = tokio::spawn(writer.run());
         let app = actix_test::init_service(
             App::new()
                 .app_data(web::Data::new(state))
@@ -11032,7 +11153,7 @@ mod tests {
         drop(response);
         drop(app);
 
-        let reported = writer.run().await;
+        let reported = writer.await?;
         assert_eq!(reported.required_events_committed, 4);
         assert_eq!(reported.rows_inserted, 4);
         assert_eq!(reported.pending_required, 0);
@@ -11047,6 +11168,14 @@ mod tests {
         let store = SqliteEventStore::open(&database)?;
         let stored = store.list_events()?;
         assert_eq!(stored.len(), 4);
+        let observed_attempt = stored
+            .iter()
+            .find_map(|row| match row.event() {
+                GatewayEvent::Attempt(attempt) => Some(attempt.attempt_id()),
+                _ => None,
+            })
+            .ok_or("missing attempt")?;
+        assert!(stored.iter().any(|row| matches!(row.event(), GatewayEvent::Usage(usage) if usage.attempt_id() == Some(observed_attempt))));
         assert!(stored.iter().any(|event| matches!(event.event(), GatewayEvent::RequestFinished(terminal) if terminal.outcome==gateway_core::RequestOutcome::Cancelled)));
         let request_id = stored
             .iter()

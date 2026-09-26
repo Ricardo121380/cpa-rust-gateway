@@ -13,7 +13,7 @@
 
 ## 兼容与验证
 
-管理 JSON 响应不改变；Prometheus 是增量指标，不产生前端 DTO。事件内部持久契约新增可选字段；核心错误分类增加 RecordingUnavailable，协议错误映射/快照同步。若实施需要管理 JSON 新字段，先改权威 OpenAPI 再生成。
+管理 JSON 对象字段不改变；ProviderAccountFailureItem.error_code 增补 RecordingUnavailable 枚举值，并用核心 ALL 枚举校验防止漂移。Prometheus 是增量指标，不产生新前端 DTO。事件内部持久契约新增可选字段；核心错误分类增加 RecordingUnavailable，协议错误映射/快照同步。若实施需要管理 JSON 新字段，先改权威 OpenAPI 再生成。
 
 schema29 回退只能在隔离副本演练后使用：新状态/隔离证据先保留，新增事件字段在旧程序拒绝 unknown_fields 的情况下不能直接交给旧二进制。生产回退使用升级前完整快照，不删除当前历史来伪装兼容；M1 本地回退测试不授权生产数据回滚。
 

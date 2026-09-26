@@ -2056,6 +2056,7 @@ fn openai_error_type(error: &GatewayError) -> &'static str {
         | GatewayErrorCode::ProviderPermanent
         | GatewayErrorCode::UpstreamProtocolError
         | GatewayErrorCode::StreamTruncated
+        | GatewayErrorCode::RecordingUnavailable
         | GatewayErrorCode::InternalError => "server_error",
     }
 }

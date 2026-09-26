@@ -78,7 +78,29 @@ async fn metrics_exposition(state: web::Data<ManagementObservabilityHttpState>) 
             .metrics
             .observe_durability(quarantined, write_failures, pending);
     }
+    let (recording_state, pending, last_commit, confirmation_failures, recovered) =
+        state.event_queue.recording_health().snapshot();
+    let mut body = state.metrics.render_prometheus();
+    for (name, kind, value) in [
+        (
+            "gateway_recording_accepting_requests",
+            "gauge",
+            u64::from(state.event_queue.accepts_requests()),
+        ),
+        ("gateway_recording_state", "gauge", recording_state),
+        ("gateway_recording_pending_required", "gauge", pending),
+        ("gateway_recording_last_commit_ms", "gauge", last_commit),
+        (
+            "gateway_recording_confirmation_failures_total",
+            "counter",
+            confirmation_failures,
+        ),
+        ("gateway_recording_recovered_unknown", "gauge", recovered),
+    ] {
+        use std::fmt::Write;
+        let _ = writeln!(body, "# TYPE {name} {kind}\n{name} {value}");
+    }
     HttpResponse::Ok()
         .content_type(PROMETHEUS_TEXT_CONTENT_TYPE)
-        .body(state.metrics.render_prometheus())
+        .body(body)
 }

@@ -57,7 +57,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 28;
+pub const CURRENT_SCHEMA_VERSION: i64 = 29;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -206,6 +206,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 28,
         up: include_str!("../migrations/0028_client_key_request_index.up.sql"),
         down: include_str!("../migrations/0028_client_key_request_index.down.sql"),
+    },
+    Migration {
+        version: 29,
+        up: include_str!("../migrations/0029_required_event_recording.up.sql"),
+        down: include_str!("../migrations/0029_required_event_recording.down.sql"),
     },
 ];
 
@@ -684,6 +689,8 @@ mod tests {
                 "egress_policies",
                 "endpoint_credential_bindings",
                 "gateway_event_log",
+                "gateway_event_quarantine",
+                "gateway_request_recording",
                 "grok_account_entitlements",
                 "grok_account_import_batches",
                 "grok_account_links",

@@ -1,8 +1,7 @@
 //! Append-only durable storage for bounded gateway lifecycle observations.
 //!
-//! The request path only calls the synchronous, non-blocking event sink in `gateway-core`.
-//! This module consumes already-admitted observations after that boundary. It never gives the
-//! queue, `SQLite`, or its retry loop back to Router or HTTP callers.
+//! The request path awaits bounded commit receipts through the core event port. This module
+//! alone owns SQLite work on a blocking worker; no synchronous SQL enters Actix or Router.
 
 use std::{
     collections::VecDeque,
@@ -15,8 +14,8 @@ use std::{
     time::Duration,
 };
 
-use gateway_core::{GatewayEvent, GatewayEventPriority, RequestId};
-use gateway_observability::{EventQueueReceiver, TelemetryPipeline};
+use gateway_core::{EventEmission, GatewayEvent, GatewayEventPriority, RequestId};
+use gateway_observability::{EventQueueReceiver, QueuedEvent, RecordingHealth, TelemetryPipeline};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use sha2::{Digest, Sha256};
 
@@ -181,7 +180,7 @@ impl EventRecord {
                 GatewayEventLogKind::Request,
                 value.request_id().as_str().to_owned(),
                 Some(value.request_id().as_str().to_owned()),
-                None,
+                value.started_at_ms(),
                 true,
             ),
             GatewayEvent::RequestFinished(value) => (
@@ -384,10 +383,64 @@ impl SqliteEventStore {
                     record.payload_json,
                 ],
             )?;
+            match event {
+                GatewayEvent::Request(request) if request.started_at_ms().is_some() => {
+                    transaction.execute(
+                        "INSERT OR IGNORE INTO gateway_request_recording(request_id,started_at_ms,state)
+                         VALUES (?1,?2,CASE WHEN EXISTS(SELECT 1 FROM gateway_event_log WHERE event_type='request_finished' AND request_id=?1) THEN 'finished' ELSE 'active' END)",
+                        params![request.request_id().as_str(),request.started_at_ms()])?;
+                }
+                GatewayEvent::RequestFinished(finished) => {
+                    transaction.execute(
+                        "UPDATE gateway_request_recording SET state='finished' WHERE request_id=?1",
+                        [finished.request_id.as_str()],
+                    )?;
+                }
+                _ => {}
+            }
             inserted += 1;
         }
         transaction.commit()?;
         Ok(inserted)
+    }
+
+    /// Marks durably admitted requests without a terminal record from the previous process.
+    /// No terminal event, token count, or charge is synthesized.
+    ///
+    /// # Errors
+    /// Returns a storage error if lifecycle recovery or its count cannot be persisted/read.
+    pub fn recover_interrupted_requests(&mut self) -> StoreResult<u64> {
+        self.connection.execute(
+            "UPDATE gateway_request_recording SET state='interrupted' WHERE state='active'",
+            [],
+        )?;
+        let count: i64 = self.connection.query_row(
+            "SELECT COUNT(*) FROM gateway_request_recording WHERE state='interrupted'",
+            [],
+            |r| r.get(0),
+        )?;
+        u64::try_from(count).map_err(|_| StoreError::InvalidPersistedGatewayEvent)
+    }
+
+    /// Retains deterministic poison evidence before the writer releases its bounded pending slot.
+    fn quarantine_event(&mut self, event: &GatewayEvent) -> StoreResult<()> {
+        let payload =
+            serde_json::to_string(event).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+        let fingerprint = format!("{:x}", Sha256::digest(payload.as_bytes()));
+        let kind = match event {
+            GatewayEvent::Request(_) => "request",
+            GatewayEvent::RequestFinished(_) => "request_finished",
+            GatewayEvent::Attempt(_) => "attempt",
+            GatewayEvent::Usage(_) => "usage",
+            GatewayEvent::Health(_) => "health",
+            GatewayEvent::Diagnostic(_) => "diagnostic",
+        };
+        let ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX));
+        self.connection.execute("INSERT OR IGNORE INTO gateway_event_quarantine(fingerprint,event_kind,reason,payload_json,quarantined_at_ms) VALUES (?1,?2,'invalid_or_conflicting_event',?3,?4)",
+            params![fingerprint, kind, (payload.len() <= 65536).then_some(payload), ms])?;
+        Ok(())
     }
 
     /// Returns one request-correlated Request/Attempt/Usage timeline in durable append order.
@@ -509,7 +562,7 @@ impl SqliteEventStore {
         let cte = "WITH lineages AS (
             SELECT u.request_id,
             (SELECT r.payload_json FROM gateway_event_log r WHERE r.event_type='request' AND r.request_id=u.request_id AND r.event_ordinal<=?1 LIMIT 1) AS r,
-            (SELECT a.payload_json FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=u.request_id AND a.event_ordinal<=?1 ORDER BY json_extract(a.payload_json, '$.attempt.attempt_number') DESC LIMIT 1) AS a,
+            (SELECT a.payload_json FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=u.request_id AND a.event_ordinal<=?1 AND (json_extract(u.payload_json,'$.usage.attempt_id') IS NULL OR a.event_id=json_extract(u.payload_json,'$.usage.attempt_id')) ORDER BY json_extract(a.payload_json, '$.attempt.attempt_number') DESC LIMIT 1) AS a,
             MIN(u.payload_json) AS u, COUNT(DISTINCT u.payload_json) AS usage_count, COUNT(*) AS usage_events
             FROM gateway_event_log u WHERE u.event_type='usage' AND u.event_ordinal<=?1 GROUP BY u.request_id
         ), projected AS (
@@ -879,9 +932,9 @@ pub struct EventWriterMetrics {
     pub diagnostics_not_persisted: u64,
     /// Retryable `SQLite` open, migration, transaction, or blocking-worker failures.
     pub sqlite_write_failures: u64,
-    /// Required events dropped because their stable durable identity can never append.
+    /// Required events persistently quarantined because their durable identity cannot append.
     pub required_events_quarantined: u64,
-    /// Required events retained in the writer's one bounded pending transaction.
+    /// Required events still unconfirmed across the finite queue and pending transaction.
     pub pending_required: u64,
 }
 
@@ -973,7 +1026,8 @@ pub struct AsyncSqliteEventWriter {
     receiver: EventQueueReceiver,
     config: EventWriterConfig,
     store: Option<SqliteEventStore>,
-    pending: Vec<GatewayEvent>,
+    pending: Vec<QueuedEvent>,
+    health: Arc<RecordingHealth>,
     metrics: EventWriterMetricsHandle,
     telemetry: Option<Arc<TelemetryPipeline>>,
     #[cfg(test)]
@@ -990,6 +1044,7 @@ impl AsyncSqliteEventWriter {
     ) -> Self {
         Self {
             database_path: database_path.as_ref().to_path_buf(),
+            health: receiver.attach_writer(),
             receiver,
             config,
             store: None,
@@ -1036,17 +1091,37 @@ impl AsyncSqliteEventWriter {
     /// Shutdown code must therefore observe the metrics or cancel the task explicitly; the writer
     /// never fabricates a successful flush.
     pub async fn run(mut self) -> EventWriterMetrics {
+        // Open/recover before admitting upstream work. All I/O stays on the blocking worker.
+        loop {
+            if self.initialize().await.is_ok() {
+                self.health.set_state(1);
+                break;
+            }
+            self.health.set_state(2);
+            self.metrics
+                .state
+                .sqlite_write_failures
+                .fetch_add(1, Ordering::Relaxed);
+            if self.receiver.is_closed() && self.health.snapshot().1 == 0 {
+                return self.metrics.snapshot();
+            }
+            self.update_pending_metric();
+            tokio::time::sleep(self.config.retry_delay()).await;
+        }
         loop {
             self.drain_ready_events();
             if self.pending.is_empty() {
-                let Some(event) = self.receiver.recv().await else {
+                let Some(event) = self.receiver.recv_entry().await else {
                     return self.metrics.snapshot();
                 };
                 self.accept_event(event);
                 continue;
             }
 
-            match self.write_events(self.pending.clone()).await {
+            match self
+                .write_events(self.pending.iter().map(|v| v.event.clone()).collect())
+                .await
+            {
                 Ok(inserted) => {
                     let committed = u64::try_from(self.pending.len()).unwrap_or(u64::MAX);
                     self.metrics
@@ -1057,10 +1132,14 @@ impl AsyncSqliteEventWriter {
                         .state
                         .rows_inserted
                         .fetch_add(inserted, Ordering::Relaxed);
-                    self.pending.clear();
+                    for entry in self.pending.drain(..) {
+                        entry.complete(EventEmission::Persisted);
+                    }
+                    self.health.set_state(1);
                     self.update_pending_metric();
                 }
                 Err(EventWriteFailure::Transient) => {
+                    self.health.set_state(2);
                     self.metrics
                         .state
                         .sqlite_write_failures
@@ -1077,7 +1156,7 @@ impl AsyncSqliteEventWriter {
     /// Replays the pending batch one event per transaction after a deterministic record failure.
     ///
     /// Healthy events commit durably and leave the batch; a record that can never append is
-    /// dropped and counted in `required_events_quarantined`. A transient failure stops this pass
+    /// persistently quarantined and counted in `required_events_quarantined`. A transient failure stops this pass
     /// with the interrupted event and the unprocessed suffix retained as the pending batch, so a
     /// store outage during the replay never drops a healthy event.
     async fn quarantine_poisoned_pending(&mut self) {
@@ -1086,11 +1165,8 @@ impl AsyncSqliteEventWriter {
             // The gauge must track what is still owed while the replay runs: an event already
             // committed or quarantined below is no longer pending, and leaving the pre-pass value
             // in place would double-count it as both durable and outstanding.
-            self.metrics
-                .state
-                .pending_required
-                .store(remaining.len() as u64 + 1, Ordering::Relaxed);
-            match self.write_events(vec![event.clone()]).await {
+            self.update_pending_metric();
+            match self.write_events(vec![event.event.clone()]).await {
                 Ok(inserted) => {
                     self.metrics
                         .state
@@ -1100,14 +1176,31 @@ impl AsyncSqliteEventWriter {
                         .state
                         .rows_inserted
                         .fetch_add(inserted, Ordering::Relaxed);
+                    event.complete(EventEmission::Persisted);
+                    self.health.set_state(1);
                 }
                 Err(EventWriteFailure::PoisonedRecord) => {
+                    if self.persist_quarantine(event.event.clone()).await.is_err() {
+                        self.health.set_state(2);
+                        self.pending.push(event);
+                        self.pending.extend(remaining);
+                        self.update_pending_metric();
+                        self.metrics
+                            .state
+                            .sqlite_write_failures
+                            .fetch_add(1, Ordering::Relaxed);
+                        tokio::time::sleep(self.config.retry_delay()).await;
+                        return;
+                    }
+                    event.complete(EventEmission::PersistenceUnavailable);
+                    self.health.set_state(1);
                     self.metrics
                         .state
                         .required_events_quarantined
                         .fetch_add(1, Ordering::Relaxed);
                 }
                 Err(EventWriteFailure::Transient) => {
+                    self.health.set_state(2);
                     self.pending.push(event);
                     self.pending.extend(remaining);
                     self.update_pending_metric();
@@ -1125,18 +1218,18 @@ impl AsyncSqliteEventWriter {
 
     fn drain_ready_events(&mut self) {
         while self.pending.len() < self.config.batch_size() {
-            let Some(event) = self.receiver.try_recv() else {
+            let Some(event) = self.receiver.try_recv_entry() else {
                 break;
             };
             self.accept_event(event);
         }
     }
 
-    fn accept_event(&mut self, event: GatewayEvent) {
+    fn accept_event(&mut self, event: QueuedEvent) {
         if let Some(telemetry) = &self.telemetry {
-            let _ = telemetry.observe_event(&event);
+            let _ = telemetry.observe_event(&event.event);
         }
-        match event.priority() {
+        match event.event.priority() {
             GatewayEventPriority::Required => {
                 self.pending.push(event);
                 self.update_pending_metric();
@@ -1146,16 +1239,50 @@ impl AsyncSqliteEventWriter {
                     .state
                     .diagnostics_not_persisted
                     .fetch_add(1, Ordering::Relaxed);
+                event.complete(EventEmission::DiagnosticDropped);
             }
         }
     }
 
     fn update_pending_metric(&self) {
-        let pending = u64::try_from(self.pending.len()).unwrap_or(u64::MAX);
+        let pending = self.health.snapshot().1;
         self.metrics
             .state
             .pending_required
             .store(pending, Ordering::Relaxed);
+    }
+
+    async fn initialize(&mut self) -> Result<(), EventWriteFailure> {
+        let path = self.database_path.clone();
+        let (store, recovered) = tokio::task::spawn_blocking(move || {
+            let mut store = SqliteEventStore::open(path)?;
+            let recovered = store.recover_interrupted_requests()?;
+            Ok::<_, StoreError>((store, recovered))
+        })
+        .await
+        .map_err(|_| EventWriteFailure::Transient)?
+        .map_err(|_| EventWriteFailure::Transient)?;
+        self.store = Some(store);
+        self.health.recovered(recovered);
+        Ok(())
+    }
+
+    async fn persist_quarantine(&mut self, event: GatewayEvent) -> Result<(), EventWriteFailure> {
+        let path = self.database_path.clone();
+        let store = self.store.take();
+        let (store, result) = tokio::task::spawn_blocking(move || {
+            let mut store = match store {
+                Some(store) => store,
+                None => SqliteEventStore::open(path)?,
+            };
+            let result = store.quarantine_event(&event);
+            Ok::<_, StoreError>((store, result))
+        })
+        .await
+        .map_err(|_| EventWriteFailure::Transient)?
+        .map_err(|_| EventWriteFailure::Transient)?;
+        self.store = Some(store);
+        result.map_err(|_| EventWriteFailure::Transient)
     }
 
     async fn write_events(&mut self, events: Vec<GatewayEvent>) -> Result<u64, EventWriteFailure> {
@@ -1206,6 +1333,12 @@ impl AsyncSqliteEventWriter {
     }
 }
 
+impl Drop for AsyncSqliteEventWriter {
+    fn drop(&mut self) {
+        self.health.set_state(3);
+    }
+}
+
 impl fmt::Debug for AsyncSqliteEventWriter {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -1236,7 +1369,12 @@ fn decode_usage_lineage(
     else {
         return Err(StoreError::InvalidPersistedGatewayEvent);
     };
-    if request.request_id() != attempt.request_id() || request.request_id() != usage.request_id() {
+    if request.request_id() != attempt.request_id()
+        || request.request_id() != usage.request_id()
+        || usage
+            .attempt_id()
+            .is_some_and(|id| id != attempt.attempt_id())
+    {
         return Err(StoreError::InvalidPersistedGatewayEvent);
     }
     Ok((request, attempt, usage))
@@ -2469,3 +2607,7 @@ mod tests {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "event_durability_tests.rs"]
+mod durability_tests;

@@ -286,11 +286,13 @@ fn compile_usage_entry(
         return Err(BillingMaterializationError::InvalidLineage);
     }
     let request = request.ok_or(BillingMaterializationError::InvalidLineage)?;
-    let attempt = attempts
-        .into_iter()
-        .next_back()
-        .map(|(_, value)| value)
-        .ok_or(BillingMaterializationError::InvalidLineage)?;
+    let attempt = match usage.attempt_id() {
+        Some(id) => attempts
+            .into_values()
+            .find(|attempt| attempt.attempt_id() == id),
+        None => attempts.into_iter().next_back().map(|(_, value)| value),
+    }
+    .ok_or(BillingMaterializationError::InvalidLineage)?;
     if !matches!(attempt.outcome(), AttemptOutcome::Succeeded)
         || attempt.request_id() != request.request_id()
         || usage.request_id() != request.request_id()
@@ -424,6 +426,54 @@ mod tests {
                 cached_microunits_per_million: 0,
             }],
         }
+    }
+
+    #[test]
+    fn explicit_usage_attempt_does_not_follow_a_later_attempt() -> Result<(), Box<dyn Error>> {
+        let (source, request_id) = events()?;
+        let original = source.list_events()?;
+        let GatewayEvent::Attempt(first) = original[1].event() else {
+            return Err("missing first attempt".into());
+        };
+        let GatewayEvent::Usage(usage) = original[2].event() else {
+            return Err("missing usage".into());
+        };
+        let later = AttemptEvent::new(
+            request_id,
+            2,
+            RouteId::try_new("route-2")?,
+            RouteCandidateId::try_new("candidate-2")?,
+            CredentialId::try_new("account-2")?,
+            EndpointId::try_new("channel-2")?,
+            UpstreamId::try_new("provider-2")?,
+            "different-model".into(),
+            1100,
+            1200,
+            AttemptOutcome::Succeeded,
+            gateway_core::AttemptRetryDecision::Completed,
+        );
+        let mut store = SqliteEventStore::open_in_memory()?;
+        store.append_batch(&[
+            original[0].event().clone(),
+            GatewayEvent::Attempt(first.clone()),
+            GatewayEvent::Attempt(later),
+            GatewayEvent::Usage(usage.clone().with_attempt_id(first.attempt_id().clone())),
+        ])?;
+        let mut ledger = SqliteBillingLedger::open_in_memory()?;
+        let receipt = materialize_billing_events(
+            &store,
+            &mut ledger,
+            BILLING_MATERIALIZER_ID,
+            16,
+            100_000,
+            2000,
+        )?;
+        assert_eq!(receipt.inserted_rows, 1);
+        let row = ledger.list_bounded(1)?.pop().ok_or("missing ledger row")?;
+        assert_eq!(row.account_id, "account-1");
+        assert_eq!(row.channel_id, "channel-1");
+        assert_eq!(row.occurred_at_ms, 1000);
+        Ok(())
     }
 
     #[test]
