@@ -6,12 +6,13 @@
 ## 当前进度
 
 - M4-01/02：10万/100万精确查询、容量采样及告警通过本轮本地验收。
-- M4-03/04：`3de0319` 正式fast/supply-chain通过，Rust 1,356项、前端415项；双架构签名与独立校验通过。EgoLite真实嵌入应用48个工作区状态、18个弹窗状态及模型→受限Key→mock请求→账本通过。
+- M4-03：EgoLite真实嵌入应用48个工作区状态、18个弹窗状态及模型→受限Key→mock请求→账本通过。
+- M4-04：当前`a715d6b`完整fast/supply-chain、双架构签名和独立验证通过；具体运行与历史候选分开列于下文。
 - M4-05：完整生产副本28→31→兼容30→31通过；新格式事件/checkpoint、管理员、历史、轮转密文和权限保留，演练无网络。
-- M4-06：真实推理 **6/12**，Build首轮工具调用成功并入账；续轮文本metadata拒绝，四轮闭环未完成。每次均1attempt，无自动重试。真实目录读取单独记录为元数据验证。
-- M4-07：`3de0319` 已部署，schema31，切换到就绪1,031ms；公网4资源hash/CSP/鉴权、7账号、原有2,356事件/699账本与权限保留核验通过。DNS/Caddy/Autoreg未改变。
-- M4-08：生产EgoLite登录页已交给用户，等待本人登录；不能用登录页或本地矩阵代替生产登录态验收。
-- M4-09：报告持续更新；8916032加密reasoning修复已发布；新增文本metadata拒绝及生产登录复验未完成，**M4未完成**。
+- M4-06：真实推理 **10/12**，最新Pi/Build四轮完成并逐条核对请求、attempts、usage和账本；各渠道真实边界见验收矩阵，不能宣称全部渠道均通过。
+- M4-07：当前 `a715d6b` /schema31，完整门禁、签名产物、独立校验、无网络副本升级/回退/重升级及生产发布通过；切换646ms，管理员/账号/权限/历史保留。DNS/Caddy/Autoreg未改变。
+- M4-08：生产EgoLite空间13仍交给用户（本次确认agentDelegatedToUser），等待本人登录并交回控制；不能用登录页或本地矩阵代替生产登录态验收。
+- M4-09：本报告和计划/当前状态/验收清单已更新；**M4尚未完成**，剩余主要阻塞为生产登录态复验，以及各渠道官方授权的明确依赖。
 
 ## 测量与安全边界
 
@@ -94,3 +95,21 @@ Pi原始SDK默认加密reasoning路径：第5次工具调用成功，HTTP200、c
 限定日志精确确认第6次为metadata/message、encrypted_content_present=false，不能由此推断具体字段。新增固定枚举的metadata拒绝分类（顶层扩展、part类型/扩展、logprobs形状、annotations形状等），只记固定标签，不记录动态字段名、正文、密文；保留原校验策略。两相关crate回归通过，新增分类回归及严格Clippy通过；诊断候选尚待发布。回执pi-fifth-sixth-*及pi-sixth-diagnostic.json。持久处理水位2375已追平，原11隔离保持。
 
 官方xAI Responses当前示例明确包含output_text.logprobs=null，现有闭集此前会拒绝这种合法空值。补充null/空数组的原样保留，JSON/SSE/最终快照/请求回读专项通过；非空或类型错误仍拒绝。此为有规范依据的兼容修复，不以它反推第6次实际字段。8cc2c76仅诊断候选的两项CI主动取消、未部署，改为诊断与空值修复合并验收，避免额外发布和推理消耗。
+
+
+## 2026-09-27 最终候选发布与真实四轮通过
+
+当前生产为`a715d6b952042d2e7c2775c0c7ab91895ee26e59`。完整门禁[36263833385](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36263833385)、双架构签名[36263836176](https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36263836176)及独立验证通过；8cc纯诊断候选未部署。证据[产物](evidence/cpar-reliability-m4-20260926/message-fix-artifact.json)、[演练](evidence/cpar-reliability-m4-20260926/message-fix-rehearsal.json)、[登录](evidence/cpar-reliability-m4-20260926/message-fix-auth.json)、[生产切换](evidence/cpar-reliability-m4-20260926/message-fix-production.json)。schema31，回退点8916032，切换646ms；部署前2375事件、700账本、7账号、11隔离记录与权限均保留，四个前端资源hash未变化。
+
+第7–10次均由实际安装的Pi 0.84.3 Responses SDK发往生产域名，grok-4.5/low/512上限/无重试，保留SDK默认encrypted reasoning行为。两组“工具调用→合成结果回传→文本回答”完整结束，两个工具均仅本地固定echo，不执行模型选择的代码。各轮输出150/31/55/6 token，均低于上限。累计10/12，剩余2未使用；没有消耗单独文本诊断。
+
+| 轮次 | 终态 | 网关耗时ms | 首内容ms | 输入/输出/reasoning | 账本 |
+|---|---|---:|---:|---|---|
+| 1 | completed/toolUse | 2750 | 1982 | 327/150/134 | 1条unpriced |
+| 2 | completed/stop | 1211 | 1130 | 480/31/25 | 1条unpriced |
+| 3 | completed/toolUse | 1857 | 1850 | 560/55/39 | 1条unpriced |
+| 4 | completed/stop | 883 | 839 | 618/6/0 | 1条unpriced |
+
+[客户端](evidence/cpar-reliability-m4-20260926/pi-four-turn-receipt.json)、[请求/attempts回读](evidence/cpar-reliability-m4-20260926/pi-four-turn-readback.json)、[账本](evidence/cpar-reliability-m4-20260926/pi-four-turn-ledger.json)逐项一致。每轮1attempt、succeeded、1条账本；处理checkpoint/source均2391。费用未配置，明确unpriced/null，绝不记成零；原11隔离保留。客户端没有x-request-id响应头，因此用冻结发送时窗、模型/Key及唯一四条记录按时间匹配，并核对每轮输出计数，再按准确request_id重读；未将未知历史纳入本轮。
+
+最新复验通过证明当前标准客户端的四轮链路有效；它不补造第6次未记录的原始字段，也不替代所有渠道官方登录。Codex过期、Console被拒SSO、Claude/Kimi/Kiro缺有效grant、Krill当前开放模型/目录/测试Key不匹配等边界继续保留。生产EgoLite最终页面验收待本人登录空间13并交回控制；现有空间不另建、不绕过管理员认证。概览见[安全汇总](evidence/cpar-reliability-m4-20260926/live-acceptance-summary.json)。

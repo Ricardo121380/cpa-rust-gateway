@@ -1,0 +1,29 @@
+{
+  "production_revision": "a715d6b952042d2e7c2775c0c7ab91895ee26e59",
+  "allowance": 12,
+  "consumed": 10,
+  "remaining": 2,
+  "max_output_tokens_per_attempt": 512,
+  "automatic_retries": 0,
+  "latest_client": "Pi 0.84.3",
+  "latest_four_turn_passed": true,
+  "request_ids": [
+    "p1-request-87370a23eabd3925e5024c6b5e4ad972-0",
+    "p1-request-87370a23eabd3925e5024c6b5e4ad972-1",
+    "p1-request-87370a23eabd3925e5024c6b5e4ad972-2",
+    "p1-request-87370a23eabd3925e5024c6b5e4ad972-3"
+  ],
+  "all_latest_requests_succeeded": true,
+  "one_attempt_each": true,
+  "four_exact_usage_ledger_matches": true,
+  "cost_confidence": "unpriced",
+  "processing_source": 2391,
+  "processing_checkpoint": 2391,
+  "retained_quarantine": 11,
+  "production_browser": {
+    "space": 13,
+    "ownership": "agentDelegatedToUser",
+    "status": "awaiting_user_login_and_return_of_control"
+  },
+  "all_channels_real_passed": false
+}
