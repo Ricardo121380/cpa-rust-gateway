@@ -5,6 +5,9 @@
 /// Strict Kiro credential import, encrypted sealing, and injected refresh boundary.
 pub mod credential;
 
+/// Fixed metadata request and paginated catalog boundary.
+pub mod catalog;
+
 /// Per-Credential dynamic Kiro model and subscription capability snapshots.
 pub mod dynamic_catalog;
 

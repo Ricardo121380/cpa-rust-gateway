@@ -34,6 +34,8 @@ pub struct ClaudeOAuthCredential {
     expires_at_ms: i64,
     account_id: Option<Zeroizing<String>>,
     entitlement: Option<ProviderAccountEntitlement>,
+    plan: Option<String>,
+    email: Option<String>,
 }
 
 /// Secret-owning refresh handoff for an explicitly composed DNS-pinned worker.
@@ -152,6 +154,8 @@ impl ClaudeRuntimeCredential {
                 .plan
                 .as_deref()
                 .and_then(|plan| claude_entitlement_from_imported_plan(plan, observed_at_ms)),
+            plan: document.plan,
+            email: document.email,
         }))
     }
 
@@ -203,12 +207,19 @@ impl ClaudeRuntimeCredential {
         input: &[u8],
         now_ms: i64,
     ) -> Result<(), ClaudeRuntimeCredentialError> {
+        if now_ms < 0 || input.len() > MAX_CREDENTIAL_BYTES {
+            return Err(ClaudeRuntimeCredentialError::Invalid);
+        }
         reject_duplicate_json_names(input)?;
         let response: ClaudeRefreshResponse =
             serde_json::from_slice(input).map_err(|_| ClaudeRuntimeCredentialError::Invalid)?;
         if response.access_token.trim().is_empty()
             || response.refresh_token.trim().is_empty()
-            || response.expires_in <= 0
+            || !(1..=31_536_000).contains(&response.expires_in)
+            || response
+                .token_type
+                .as_deref()
+                .is_some_and(|value| !value.eq_ignore_ascii_case("bearer"))
         {
             return Err(ClaudeRuntimeCredentialError::Invalid);
         }
@@ -223,6 +234,30 @@ impl ClaudeRuntimeCredential {
         let Self::OAuth(current) = self else {
             return Err(ClaudeRuntimeCredentialError::NotRefreshable);
         };
+        if let Some(id) = response
+            .account
+            .as_ref()
+            .and_then(|account| account.uuid.as_ref())
+            && (id.is_empty()
+                || id.len() > 512
+                || id.chars().any(char::is_control)
+                || current.account_id.as_deref().is_some_and(|old| old != id))
+        {
+            return Err(ClaudeRuntimeCredentialError::Invalid);
+        }
+        // Account UUID is binding evidence; email is display only and never authorizes rotation.
+        if let Some(account) = response.account {
+            if let Some(id) = account.uuid {
+                current.account_id = Some(Zeroizing::new(id));
+            }
+            if let Some(email) = account.email_address
+                && email.len() <= 320
+                && email.contains('@')
+                && !email.chars().any(char::is_control)
+            {
+                current.email = Some(email);
+            }
+        }
         current.access_token.zeroize();
         current.refresh_token.zeroize();
         current.access_token = Zeroizing::new(response.access_token);
@@ -235,6 +270,36 @@ impl ClaudeRuntimeCredential {
     #[must_use]
     pub fn has_account_binding(&self) -> bool {
         matches!(self, Self::OAuth(value) if value.account_id.is_some())
+    }
+
+    /// Absolute token expiry; API keys do not invent a lifetime.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> Option<i64> {
+        match self {
+            Self::OAuth(value) => Some(value.expires_at_ms),
+            Self::ApiKey(_) => None,
+        }
+    }
+
+    /// Serializes the complete refreshed envelope, retaining imported identity and plan.
+    ///
+    /// # Errors
+    /// Rejects non-OAuth material or serialization failure. The result must never be logged.
+    pub fn export_oauth_json(&self) -> Result<Zeroizing<Vec<u8>>, ClaudeRuntimeCredentialError> {
+        let Self::OAuth(value) = self else {
+            return Err(ClaudeRuntimeCredentialError::NotRefreshable);
+        };
+        serde_json::to_vec(&ClaudeOAuthExport {
+            kind: "claude_oauth",
+            access_token: &value.access_token,
+            refresh_token: &value.refresh_token,
+            expires_at_ms: value.expires_at_ms,
+            account_id: value.account_id.as_deref().map(String::as_str),
+            plan: value.plan.as_deref(),
+            email: value.email.as_deref(),
+        })
+        .map(Zeroizing::new)
+        .map_err(|_| ClaudeRuntimeCredentialError::Invalid)
     }
 
     /// Returns the non-secret normalized Claude plan observation, when explicitly supplied.
@@ -273,8 +338,19 @@ struct ClaudeOAuthDocument {
     account_id: Option<String>,
     #[serde(default, alias = "plan_type", alias = "subscription_tier")]
     plan: Option<String>,
-    #[serde(default, rename = "email")]
-    _email: Option<String>,
+    #[serde(default)]
+    email: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ClaudeOAuthExport<'a> {
+    kind: &'a str,
+    access_token: &'a str,
+    refresh_token: &'a str,
+    expires_at_ms: i64,
+    account_id: Option<&'a str>,
+    plan: Option<&'a str>,
+    email: Option<&'a str>,
 }
 
 #[derive(Deserialize)]
@@ -283,12 +359,17 @@ struct ClaudeRefreshResponse {
     access_token: String,
     refresh_token: String,
     expires_in: i64,
-    #[serde(default, rename = "token_type")]
-    _token_type: Option<String>,
-    #[serde(default, rename = "account")]
-    _account: Option<de::IgnoredAny>,
+    token_type: Option<String>,
+    account: Option<ClaudeRefreshAccount>,
     #[serde(default, rename = "organization")]
     _organization: Option<de::IgnoredAny>,
+}
+
+#[derive(Deserialize)]
+struct ClaudeRefreshAccount {
+    uuid: Option<String>,
+    #[serde(alias = "email")]
+    email_address: Option<String>,
 }
 
 /// Value-free credential import/refresh failure.
@@ -460,6 +541,25 @@ mod tests {
             br#"{"kind":"claude_oauth","access_token":"a","refresh_token":"r","expires_at_ms":100,"plan":" max5x"}"#,
             42,
         ).is_err());
+        Ok(())
+    }
+    #[test]
+    fn refresh_rejects_different_account_without_mutation_and_preserves_identity()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut credential = ClaudeRuntimeCredential::import_at(br#"{"kind":"claude_oauth","access_token":"old","refresh_token":"old-refresh","expires_at_ms":1000,"account_id":"owner","email":"owner@example.test","plan":"max"}"#, 0)?;
+        let before = credential.export_oauth_json()?;
+        for body in [
+            br#"{"access_token":"new","refresh_token":"new-refresh","expires_in":3600,"account":{"uuid":"foreign","email_address":"owner@example.test"}}"#.as_slice(),
+            br#"{"access_token":"new","refresh_token":"new-refresh","expires_in":3600,"token_type":"Basic"}"#,
+        ] {
+            assert!(credential.apply_refresh_response(body, 2000).is_err());
+            assert_eq!(*credential.export_oauth_json()?, *before);
+        }
+        credential.apply_refresh_response(br#"{"access_token":"new","refresh_token":"new-refresh","expires_in":3600,"account":{"uuid":"owner","email_address":"updated@example.test"}}"#, 2000)?;
+        let output: serde_json::Value = serde_json::from_slice(&credential.export_oauth_json()?)?;
+        assert_eq!(output["email"], "updated@example.test");
+        assert_eq!(output["account_id"], "owner");
+        assert_eq!(output["plan"], "max");
         Ok(())
     }
 }

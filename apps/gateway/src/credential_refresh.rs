@@ -9,24 +9,16 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     io::Read,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use gateway_control::{
-    control_plane_service::credential_associated_data,
-    management_mutation_service::{ConfigRevision, ManagementMutationService},
-    management_service::ManagementActor,
-};
+use gateway_control::control_plane_service::credential_associated_data;
 use gateway_core::{CredentialId, EndpointId};
-use gateway_http_actix::management_resources::{
-    ManagementCodexOAuthExchange, OpenAiCodexOAuthExchange,
-};
 use gateway_router::{RuntimeHealthAccountRecoveryResult, RuntimeHealthRegistry};
 use gateway_store::{
     control_plane::{
-        ConfigVersionId, ControlPlaneConfiguration, CredentialConfiguration, CredentialStatus,
-        SqliteControlPlaneRepository,
+        ConfigVersionId, ControlPlaneConfiguration, CredentialStatus, SqliteControlPlaneRepository,
     },
     secret_store::SecretStore,
 };
@@ -54,10 +46,9 @@ const OAUTH_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const OAUTH_REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 const RECOVERY_TICKET_MS: i64 = 30_000;
 const CODEX_REFRESH_SKEW_MS: i64 = 8 * 60 * 1_000;
-const CODEX_REFRESH_INITIAL_BACKOFF_MS: i64 = 60 * 1_000;
-const CODEX_REFRESH_MAX_BACKOFF_MS: i64 = 60 * 60 * 1_000;
 const CODEX_RESPONSES_ADAPTER_ID: &str = "openai-compatible.responses";
-const KIMI_REFRESH_MAX_RESPONSE_BYTES: u64 = 64 * 1024;
+mod ordinary;
+use ordinary::{Channel, Pass};
 
 /// A redacted result from one runtime refresh pass.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -68,50 +59,39 @@ pub(crate) struct RuntimeCredentialRefreshSummary {
     pub(crate) reauth_required: usize,
     pub(crate) panicked: usize,
     pub(crate) runtime_replaced: usize,
-    pub(crate) codex_due: usize,
-    pub(crate) codex_succeeded: usize,
-    pub(crate) codex_backed_off: usize,
-    pub(crate) kimi_due: usize,
-    pub(crate) kimi_succeeded: usize,
-    pub(crate) kimi_backed_off: usize,
+    pub(crate) oauth_due: usize,
+    pub(crate) oauth_succeeded: usize,
+    pub(crate) oauth_backed_off: usize,
+    pub(crate) oauth_conflicted: usize,
 }
-
 impl RuntimeCredentialRefreshSummary {
-    fn with_runtime_replaced(
+    fn combined(
         summary: GrokAccountWorkerRunSummary,
         runtime_replaced: usize,
-        codex: CodexRefreshSummary,
-        kimi: CodexRefreshSummary,
+        oauth: OAuthRefreshSummary,
     ) -> Self {
         Self {
             claimed: summary.claimed,
             succeeded: summary.succeeded,
             backed_off: summary.backed_off,
-            reauth_required: summary.reauth_required,
+            reauth_required: summary.reauth_required + oauth.reauth_required,
             panicked: summary.panicked,
-            runtime_replaced,
-            codex_due: codex.due,
-            codex_succeeded: codex.succeeded,
-            codex_backed_off: codex.backed_off,
-            kimi_due: kimi.due,
-            kimi_succeeded: kimi.succeeded,
-            kimi_backed_off: kimi.backed_off,
+            runtime_replaced: runtime_replaced + oauth.runtime_replaced,
+            oauth_due: oauth.due,
+            oauth_succeeded: oauth.succeeded,
+            oauth_backed_off: oauth.backed_off,
+            oauth_conflicted: oauth.conflicted,
         }
     }
 }
-
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-struct CodexRefreshSummary {
+struct OAuthRefreshSummary {
     due: usize,
     succeeded: usize,
     backed_off: usize,
     runtime_replaced: usize,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct CodexRefreshBackoff {
-    failure_count: u32,
-    retry_after_ms: i64,
+    reauth_required: usize,
+    conflicted: usize,
 }
 
 /// Runs one startup catch-up before immutable graph metadata is compiled.
@@ -121,11 +101,10 @@ pub(crate) fn refresh_due_credentials_before_compile(
     codex_proxy: UpstreamProxy,
 ) -> Result<RuntimeCredentialRefreshSummary, GrokAccountWorkerError> {
     let Some(scope) = active_refresh_scope(database)? else {
-        return Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
+        return Ok(RuntimeCredentialRefreshSummary::combined(
             empty_grok_summary(),
             0,
-            CodexRefreshSummary::default(),
-            CodexRefreshSummary::default(),
+            OAuthRefreshSummary::default(),
         ));
     };
     let store = Arc::new(
@@ -144,32 +123,18 @@ pub(crate) fn refresh_due_credentials_before_compile(
     } else {
         empty_grok_summary()
     };
-    let codex = refresh_codex_credentials(
+    let oauth = Pass {
         database,
-        secret_store,
-        codex_proxy,
-        &scope.config_version_id,
-        &scope.codex_credential_ids,
-        None,
-        None,
-        None,
-        observed_at_ms,
-        None,
-    )?;
-    let kimi = refresh_kimi_credentials(
-        database,
-        secret_store,
-        &scope.config_version_id,
-        &scope.kimi_credential_ids,
-        None,
-        None,
-        None,
-        observed_at_ms,
-        None,
-    )?;
-    Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
-        summary, 0, codex, kimi,
-    ))
+        secrets: secret_store,
+        version: &scope.config_version_id,
+        channels: &scope.channels,
+        pools: None,
+        health: None,
+        guard: None,
+        stopped: None,
+    }
+    .run(codex_proxy)?;
+    Ok(RuntimeCredentialRefreshSummary::combined(summary, 0, oauth))
 }
 
 /// Periodic refresh owner bound to one running data-plane pool set.
@@ -187,10 +152,9 @@ pub(crate) struct RuntimeCredentialRefreshWorker {
     secret_store: SecretStore,
     codex_proxy: UpstreamProxy,
     config_version_id: ConfigVersionId,
-    codex_credential_ids: BTreeSet<CredentialId>,
-    codex_backoff: Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>,
-    kimi_credential_ids: BTreeSet<CredentialId>,
-    kimi_backoff: Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>,
+    channels: BTreeMap<CredentialId, Channel>,
+    stopped: Arc<std::sync::atomic::AtomicBool>,
+    stop_notify: Arc<tokio::sync::Notify>,
 }
 
 impl RuntimeCredentialRefreshWorker {
@@ -205,12 +169,7 @@ impl RuntimeCredentialRefreshWorker {
         config_version_id: ConfigVersionId,
     ) -> Result<Option<Self>, GrokAccountWorkerError> {
         let scope = refresh_scope_for_configuration(database, &config_version_id)?;
-        let codex_credential_ids = scope.codex_credential_ids;
-        let kimi_credential_ids = scope.kimi_credential_ids;
-        if build_endpoints.is_empty()
-            && codex_credential_ids.is_empty()
-            && kimi_credential_ids.is_empty()
-        {
+        if build_endpoints.is_empty() && scope.channels.is_empty() {
             return Ok(None);
         }
         let store = GrokAccountPoolStore::try_open(database, secret_store.clone())
@@ -226,10 +185,9 @@ impl RuntimeCredentialRefreshWorker {
             secret_store,
             codex_proxy,
             config_version_id,
-            codex_credential_ids,
-            codex_backoff: Mutex::new(BTreeMap::new()),
-            kimi_credential_ids,
-            kimi_backoff: Mutex::new(BTreeMap::new()),
+            channels: scope.channels,
+            stopped: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            stop_notify: Arc::new(tokio::sync::Notify::new()),
         }))
     }
 
@@ -242,14 +200,25 @@ impl RuntimeCredentialRefreshWorker {
         self
     }
 
+    pub(crate) fn stop_signal(&self) -> RefreshStop {
+        RefreshStop {
+            stopped: Arc::clone(&self.stopped),
+            notify: Arc::clone(&self.stop_notify),
+        }
+    }
+
     /// Runs until the process runtime stops. Each network/store pass stays on the blocking pool.
     pub(crate) async fn run(self) {
+        let _stop = StopOnDrop(Arc::clone(&self.stopped));
         let worker = Arc::new(self);
         let start_at = tokio::time::Instant::now() + REFRESH_INTERVAL;
         let mut interval = actix_web::rt::time::interval_at(start_at, REFRESH_INTERVAL);
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         loop {
-            interval.tick().await;
+            if worker.stopped.load(std::sync::atomic::Ordering::Acquire) {
+                break;
+            }
+            tokio::select! { _ = interval.tick() => {}, () = worker.stop_notify.notified() => break }
             let worker = Arc::clone(&worker);
             let result = actix_web::rt::task::spawn_blocking(move || worker.run_once()).await;
             if let Ok(Ok(summary)) = result {
@@ -262,12 +231,10 @@ impl RuntimeCredentialRefreshWorker {
                     reauth_required = summary.reauth_required,
                     panicked = summary.panicked,
                     runtime_replaced = summary.runtime_replaced,
-                    codex_due = summary.codex_due,
-                    codex_succeeded = summary.codex_succeeded,
-                    codex_backed_off = summary.codex_backed_off,
-                    kimi_due = summary.kimi_due,
-                    kimi_succeeded = summary.kimi_succeeded,
-                    kimi_backed_off = summary.kimi_backed_off,
+                    oauth_due = summary.oauth_due,
+                    oauth_succeeded = summary.oauth_succeeded,
+                    oauth_backed_off = summary.oauth_backed_off,
+                    oauth_conflicted = summary.oauth_conflicted,
                     "credential refresh pass completed"
                 );
             } else {
@@ -281,17 +248,25 @@ impl RuntimeCredentialRefreshWorker {
     }
 
     fn run_once(&self) -> Result<RuntimeCredentialRefreshSummary, GrokAccountWorkerError> {
+        if self.stopped.load(std::sync::atomic::Ordering::Acquire) {
+            return Ok(RuntimeCredentialRefreshSummary::combined(
+                empty_grok_summary(),
+                0,
+                OAuthRefreshSummary::default(),
+            ));
+        }
         // Publication waits for any refresh exchange and durable CAS already in progress.
         // A retired worker can never start another exchange after the serving pointer changes.
         let guard = match &self.generation_guard {
             Some((gate, active)) => {
                 let guard = gate.blocking_lock();
-                if !active.load(std::sync::atomic::Ordering::Acquire) {
-                    return Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
+                if !active.load(std::sync::atomic::Ordering::Acquire)
+                    || self.stopped.load(std::sync::atomic::Ordering::Acquire)
+                {
+                    return Ok(RuntimeCredentialRefreshSummary::combined(
                         empty_grok_summary(),
                         0,
-                        CodexRefreshSummary::default(),
-                        CodexRefreshSummary::default(),
+                        OAuthRefreshSummary::default(),
                     ));
                 }
                 Some(guard)
@@ -310,53 +285,38 @@ impl RuntimeCredentialRefreshWorker {
                 &self.executor,
             )?
         };
-        let mut runtime_replaced = self.sync_runtime_material(observed_at_ms)?;
+        let runtime_replaced = self.sync_runtime_material(observed_at_ms)?;
         drop(guard);
-        let codex = refresh_codex_credentials(
-            &self.database,
-            &self.secret_store,
-            self.codex_proxy.clone(),
-            &self.config_version_id,
-            &self.codex_credential_ids,
-            Some(self.pools.as_ref()),
-            Some(self.runtime_health.as_ref()),
-            Some(&self.codex_backoff),
-            observed_at_ms,
-            self.generation_guard.as_ref(),
-        )?;
-        runtime_replaced = runtime_replaced.saturating_add(codex.runtime_replaced);
-        let kimi = refresh_kimi_credentials(
-            &self.database,
-            &self.secret_store,
-            &self.config_version_id,
-            &self.kimi_credential_ids,
-            Some(self.pools.as_ref()),
-            Some(self.runtime_health.as_ref()),
-            Some(&self.kimi_backoff),
-            observed_at_ms,
-            self.generation_guard.as_ref(),
-        )?;
-        runtime_replaced = runtime_replaced.saturating_add(kimi.runtime_replaced);
-        Ok(RuntimeCredentialRefreshSummary::with_runtime_replaced(
+        let oauth = Pass {
+            database: &self.database,
+            secrets: &self.secret_store,
+            version: &self.config_version_id,
+            channels: &self.channels,
+            pools: Some(self.pools.as_ref()),
+            health: Some(self.runtime_health.as_ref()),
+            guard: self.generation_guard.as_ref(),
+            stopped: Some(&self.stopped),
+        }
+        .run(self.codex_proxy.clone())?;
+        Ok(RuntimeCredentialRefreshSummary::combined(
             summary,
             runtime_replaced,
-            codex,
-            kimi,
+            oauth,
         ))
     }
 
     fn sync_runtime_material(&self, observed_at_ms: i64) -> Result<usize, GrokAccountWorkerError> {
         let mut replaced = 0_usize;
+        let ranges = self
+            .store
+            .build_continuation_ranges()
+            .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
         for account in self
             .store
             .list_accounts()
             .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?
             .into_iter()
-            .filter(|account| {
-                account.provider == GrokAccountProvider::Build
-                    && account.enabled
-                    && account.auth_status == GrokAccountAuthStatus::Active
-            })
+            .filter(|account| account.provider == GrokAccountProvider::Build)
         {
             let runtime_revision = account
                 .revision
@@ -364,6 +324,14 @@ impl RuntimeCredentialRefreshWorker {
                 .ok_or(GrokAccountWorkerError::InvalidPersistedState)?;
             let credential_id = gateway_core::CredentialId::try_new(account.id.clone())
                 .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+            if !account.enabled || account.auth_status != GrokAccountAuthStatus::Active {
+                for endpoint in &self.build_endpoints {
+                    self.runtime_health
+                        .mark_credential_unauthorized(endpoint.clone(), credential_id.clone())
+                        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+                }
+                continue;
+            }
             let targets = self
                 .build_endpoints
                 .iter()
@@ -377,6 +345,19 @@ impl RuntimeCredentialRefreshWorker {
                 })
                 .filter(|(_, current)| current.credential_revision() != runtime_revision)
                 .collect::<Vec<_>>();
+            if let Some((floor, current)) = ranges.get(&account.id) {
+                for endpoint in &self.build_endpoints {
+                    if let Some(pool) = self.pools.pool(endpoint)
+                        && pool.diagnostic_entries().iter().any(|row| {
+                            row.credential_id() == &credential_id
+                                && row.credential_revision() == *current
+                        })
+                    {
+                        pool.set_build_continuation_range(&credential_id, *floor, *current)
+                            .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+                    }
+                }
+            }
             if targets.is_empty() {
                 // An old expired account may remain disabled by runtime expiry while its durable
                 // revision is unchanged. Do not reopen or reject that retired material merely to
@@ -418,6 +399,12 @@ impl RuntimeCredentialRefreshWorker {
                         observed_at_ms,
                     )?;
                 }
+                if let Some((floor, current)) = ranges.get(&account.id)
+                    && let Some(pool) = self.pools.pool(endpoint_id)
+                {
+                    pool.set_build_continuation_range(&credential_id, *floor, *current)
+                        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
+                }
             }
         }
         Ok(replaced)
@@ -427,8 +414,7 @@ impl RuntimeCredentialRefreshWorker {
 struct RefreshScope {
     config_version_id: ConfigVersionId,
     has_build: bool,
-    codex_credential_ids: BTreeSet<CredentialId>,
-    kimi_credential_ids: BTreeSet<CredentialId>,
+    channels: BTreeMap<CredentialId, Channel>,
 }
 
 fn active_refresh_scope(database: &Path) -> Result<Option<RefreshScope>, GrokAccountWorkerError> {
@@ -454,15 +440,23 @@ fn refresh_scope_for_configuration(
 }
 
 fn refresh_scope(configuration: &ControlPlaneConfiguration) -> RefreshScope {
-    let has_build = configuration
-        .endpoints
+    let enabled_upstreams: BTreeSet<_> = configuration
+        .upstreams
         .iter()
-        .any(|endpoint| endpoint.enabled && endpoint.adapter_id == "grok.build.responses");
+        .filter(|u| u.enabled)
+        .map(|u| &u.id)
+        .collect();
+    let has_build = configuration.endpoints.iter().any(|endpoint| {
+        endpoint.enabled
+            && enabled_upstreams.contains(&endpoint.upstream_id)
+            && endpoint.adapter_id == "grok.build.responses"
+    });
     let codex_endpoints = configuration
         .endpoints
         .iter()
         .filter(|endpoint| {
             endpoint.enabled
+                && enabled_upstreams.contains(&endpoint.upstream_id)
                 && endpoint.adapter_id == CODEX_RESPONSES_ADAPTER_ID
                 && endpoint.base_url.trim_end_matches('/') == CODEX_RESPONSES_BASE_URL
                 && endpoint.inference_path == CODEX_RESPONSES_PATH
@@ -478,7 +472,7 @@ fn refresh_scope(configuration: &ControlPlaneConfiguration) -> RefreshScope {
         })
         .map(|binding| &binding.credential_id)
         .collect::<BTreeSet<_>>();
-    let codex_credential_ids = configuration
+    let codex_credential_ids: BTreeSet<_> = configuration
         .credentials
         .iter()
         .filter(|credential| {
@@ -491,7 +485,7 @@ fn refresh_scope(configuration: &ControlPlaneConfiguration) -> RefreshScope {
     let kimi_upstreams = configuration
         .upstreams
         .iter()
-        .filter(|upstream| upstream.kind == "kimi-coding")
+        .filter(|upstream| upstream.enabled && upstream.kind == "kimi-coding")
         .map(|upstream| &upstream.id)
         .collect::<BTreeSet<_>>();
     let kimi_endpoints = configuration
@@ -515,7 +509,7 @@ fn refresh_scope(configuration: &ControlPlaneConfiguration) -> RefreshScope {
         })
         .map(|binding| &binding.credential_id)
         .collect::<BTreeSet<_>>();
-    let kimi_credential_ids = configuration
+    let kimi_credential_ids: BTreeSet<_> = configuration
         .credentials
         .iter()
         .filter(|credential| {
@@ -526,399 +520,94 @@ fn refresh_scope(configuration: &ControlPlaneConfiguration) -> RefreshScope {
         })
         .map(|credential| credential.id.clone())
         .collect();
+    let mut channels: BTreeMap<_, _> = codex_credential_ids
+        .into_iter()
+        .map(|id| (id, Channel::Codex))
+        .chain(
+            kimi_credential_ids
+                .into_iter()
+                .map(|id| (id, Channel::Kimi)),
+        )
+        .collect();
+    extend_bearer_channels(configuration, &mut channels);
     RefreshScope {
         config_version_id: configuration.version.id.clone(),
         has_build,
-        codex_credential_ids,
-        kimi_credential_ids,
+        channels,
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
-fn refresh_codex_credentials(
-    database: &Path,
-    secret_store: &SecretStore,
-    codex_proxy: UpstreamProxy,
-    config_version_id: &ConfigVersionId,
-    codex_credential_ids: &BTreeSet<CredentialId>,
-    pools: Option<&EndpointCredentialPools>,
-    runtime_health: Option<&RuntimeHealthRegistry>,
-    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
-    observed_at_ms: i64,
-    generation_guard: Option<&(
-        Arc<tokio::sync::Mutex<()>>,
-        Arc<std::sync::atomic::AtomicBool>,
-    )>,
-) -> Result<CodexRefreshSummary, GrokAccountWorkerError> {
-    let mut repository = SqliteControlPlaneRepository::open(database)
-        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
-    let Some(configuration) = repository
-        .load_configuration(config_version_id)
-        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?
-    else {
-        return Ok(CodexRefreshSummary::default());
-    };
-    let config_revision = ConfigRevision::try_new(configuration.version.revision)
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-    let actor = ManagementActor::try_new("runtime-credential-refresh")
-        .map_err(|_| GrokAccountWorkerError::InvalidRequest)?;
-    let mutation_repository = SqliteControlPlaneRepository::open(database)
-        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
-    let mut mutation_service =
-        ManagementMutationService::new(mutation_repository, secret_store.clone());
-    let mut exchange = OpenAiCodexOAuthExchange::new(codex_proxy);
-    let refresh_cutoff = observed_at_ms
-        .checked_add(CODEX_REFRESH_SKEW_MS)
-        .ok_or(GrokAccountWorkerError::InvalidRequest)?;
-    let mut summary = CodexRefreshSummary::default();
-
-    for credential in configuration
-        .credentials
-        .iter()
-        .filter(|credential| codex_credential_ids.contains(&credential.id))
-    {
-        let _guard = match generation_guard {
-            Some((gate, active)) => {
-                let guard = gate.blocking_lock();
-                if !active.load(std::sync::atomic::Ordering::Acquire) {
-                    return Ok(summary);
-                }
-                Some(guard)
-            }
-            None => None,
-        };
-        let (mut runtime_bytes, mut runtime_credential, mut runtime_revision) =
-            open_codex_runtime_credential(
-                &configuration,
-                credential,
-                secret_store,
-                observed_at_ms,
-            )?;
-
-        if runtime_credential
-            .expires_at_ms()
-            .is_some_and(|expires_at_ms| expires_at_ms <= refresh_cutoff)
-        {
-            summary.due += 1;
-            if codex_refresh_is_deferred(backoff, &credential.id, observed_at_ms)? {
-                summary.backed_off += 1;
-                continue;
-            }
-            let Some(refreshed) = exchange.refresh(
-                &credential.id,
-                Zeroizing::new(runtime_bytes.to_vec()),
-                observed_at_ms,
-            ) else {
-                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
-                summary.backed_off += 1;
-                continue;
-            };
-            let Ok(refreshed_credential) = OpenAiCompatibleRuntimeCredential::import_compatible(
-                refreshed.as_slice(),
-                observed_at_ms,
-            ) else {
-                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
-                summary.backed_off += 1;
-                continue;
-            };
-            if mutation_service
-                .persist_oauth_credential_if_revision(
-                    &actor,
-                    &configuration.version.id,
-                    config_revision,
-                    credential.id.clone(),
-                    credential.revision,
-                    refreshed.as_slice(),
-                )
-                .is_err()
-            {
-                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
-                summary.backed_off += 1;
-                continue;
-            }
-            clear_codex_refresh_backoff(backoff, &credential.id)?;
-            runtime_revision = runtime_revision
-                .checked_add(1)
-                .ok_or(GrokAccountWorkerError::InvalidPersistedState)?;
-            runtime_bytes = refreshed;
-            runtime_credential = refreshed_credential;
-            summary.succeeded += 1;
-        }
-
-        summary.runtime_replaced =
-            summary
-                .runtime_replaced
-                .saturating_add(sync_codex_runtime_material(
-                    &configuration,
-                    &credential.id,
-                    runtime_bytes.as_slice(),
-                    &runtime_credential,
-                    runtime_revision,
-                    pools,
-                    runtime_health,
-                    observed_at_ms,
-                )?);
-    }
-    Ok(summary)
-}
-
-#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
-fn refresh_kimi_credentials(
-    database: &Path,
-    secret_store: &SecretStore,
-    config_version_id: &ConfigVersionId,
-    kimi_credential_ids: &BTreeSet<CredentialId>,
-    pools: Option<&EndpointCredentialPools>,
-    runtime_health: Option<&RuntimeHealthRegistry>,
-    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
-    observed_at_ms: i64,
-    generation_guard: Option<&(
-        Arc<tokio::sync::Mutex<()>>,
-        Arc<std::sync::atomic::AtomicBool>,
-    )>,
-) -> Result<CodexRefreshSummary, GrokAccountWorkerError> {
-    let mut repository = SqliteControlPlaneRepository::open(database)
-        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
-    let Some(configuration) = repository
-        .load_configuration(config_version_id)
-        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?
-    else {
-        return Ok(CodexRefreshSummary::default());
-    };
-    let config_revision = ConfigRevision::try_new(configuration.version.revision)
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-    let actor = ManagementActor::try_new("runtime-credential-refresh")
-        .map_err(|_| GrokAccountWorkerError::InvalidRequest)?;
-    let mutation_repository = SqliteControlPlaneRepository::open(database)
-        .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;
-    let mut mutation_service =
-        ManagementMutationService::new(mutation_repository, secret_store.clone());
-    let refresh_cutoff = observed_at_ms
-        .checked_add(CODEX_REFRESH_SKEW_MS)
-        .ok_or(GrokAccountWorkerError::InvalidRequest)?;
-    let mut summary = CodexRefreshSummary::default();
-
-    for credential in configuration
-        .credentials
-        .iter()
-        .filter(|credential| kimi_credential_ids.contains(&credential.id))
-    {
-        let _guard = match generation_guard {
-            Some((gate, active)) => {
-                let guard = gate.blocking_lock();
-                if !active.load(std::sync::atomic::Ordering::Acquire) {
-                    return Ok(summary);
-                }
-                Some(guard)
-            }
-            None => None,
-        };
-        let (mut runtime_bytes, mut runtime_credential, mut runtime_revision) =
-            open_codex_runtime_credential(
-                &configuration,
-                credential,
-                secret_store,
-                observed_at_ms,
-            )?;
-        if !matches!(
-            runtime_credential,
-            OpenAiCompatibleRuntimeCredential::KimiOAuth(_)
-        ) {
-            return Err(GrokAccountWorkerError::InvalidPersistedState);
-        }
-        if runtime_credential
-            .expires_at_ms()
-            .is_some_and(|expires_at_ms| expires_at_ms <= refresh_cutoff)
-        {
-            summary.due += 1;
-            if codex_refresh_is_deferred(backoff, &credential.id, observed_at_ms)? {
-                summary.backed_off += 1;
-                continue;
-            }
-            let Ok(refreshed) = refresh_kimi_credential(&mut runtime_credential, observed_at_ms)
-            else {
-                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
-                summary.backed_off += 1;
-                continue;
-            };
-            if mutation_service
-                .persist_oauth_credential_if_revision(
-                    &actor,
-                    &configuration.version.id,
-                    config_revision,
-                    credential.id.clone(),
-                    credential.revision,
-                    refreshed.as_slice(),
-                )
-                .is_err()
-            {
-                back_off_codex_refresh(backoff, &credential.id, observed_at_ms)?;
-                summary.backed_off += 1;
-                continue;
-            }
-            clear_codex_refresh_backoff(backoff, &credential.id)?;
-            runtime_revision = runtime_revision
-                .checked_add(1)
-                .ok_or(GrokAccountWorkerError::InvalidPersistedState)?;
-            runtime_bytes = refreshed;
-            summary.succeeded += 1;
-        }
-        summary.runtime_replaced =
-            summary
-                .runtime_replaced
-                .saturating_add(sync_codex_runtime_material(
-                    &configuration,
-                    &credential.id,
-                    runtime_bytes.as_slice(),
-                    &runtime_credential,
-                    runtime_revision,
-                    pools,
-                    runtime_health,
-                    observed_at_ms,
-                )?);
-    }
-    Ok(summary)
-}
-
-fn refresh_kimi_credential(
-    credential: &mut OpenAiCompatibleRuntimeCredential,
-    observed_at_ms: i64,
-) -> Result<Zeroizing<Vec<u8>>, ()> {
-    let request = credential.kimi_refresh_request().map_err(|_| ())?;
-    let body = request.form_body();
-    let client = reqwest::blocking::Client::builder()
-        .no_proxy()
-        .redirect(reqwest::redirect::Policy::none())
-        .connect_timeout(OAUTH_CONNECT_TIMEOUT)
-        .timeout(OAUTH_REQUEST_TIMEOUT)
-        .build()
-        .map_err(|_| ())?;
-    let response = client
-        .post(KIMI_OAUTH_TOKEN_URL)
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .header("Accept", "application/json")
-        .header("User-Agent", "cpa-rust-gateway/kimi-oauth")
-        .header("X-Msh-Platform", "CPAR")
-        .header("X-Msh-Device-Name", "CPAR Gateway")
-        .header("X-Msh-Device-Model", "gateway")
-        .header("X-Msh-Device-Id", request.device_id())
-        .body(body.as_bytes().to_vec())
-        .send()
-        .map_err(|_| ())?;
-    if !response.status().is_success()
-        || response
-            .content_length()
-            .is_some_and(|length| length > KIMI_REFRESH_MAX_RESPONSE_BYTES)
-    {
-        return Err(());
-    }
-    let mut response_body = Zeroizing::new(Vec::new());
-    response
-        .take(KIMI_REFRESH_MAX_RESPONSE_BYTES + 1)
-        .read_to_end(&mut response_body)
-        .map_err(|_| ())?;
-    if u64::try_from(response_body.len()).unwrap_or(u64::MAX) > KIMI_REFRESH_MAX_RESPONSE_BYTES {
-        return Err(());
-    }
-    credential
-        .apply_kimi_refresh_response(response_body.as_slice(), observed_at_ms)
-        .map_err(|_| ())?;
-    credential.export_kimi_oauth_json().map_err(|_| ())
-}
-
-fn open_codex_runtime_credential(
+fn extend_bearer_channels(
     configuration: &ControlPlaneConfiguration,
-    credential: &CredentialConfiguration,
-    secret_store: &SecretStore,
-    observed_at_ms: i64,
-) -> Result<(Zeroizing<Vec<u8>>, OpenAiCompatibleRuntimeCredential, u64), GrokAccountWorkerError> {
-    let associated_data = credential_associated_data(
-        &configuration.version.id,
-        &credential.id,
-        &credential.upstream_id,
-    )
-    .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-    let plaintext = secret_store
-        .open(&credential.encrypted_secret, &associated_data)
-        .map_err(|_| GrokAccountWorkerError::SecretStoreFailure)?;
-    let runtime_bytes = Zeroizing::new(plaintext.as_bytes().to_vec());
-    let runtime_credential = OpenAiCompatibleRuntimeCredential::import_compatible(
-        runtime_bytes.as_slice(),
-        observed_at_ms,
-    )
-    .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-    let runtime_revision = u64::try_from(credential.revision)
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-    Ok((runtime_bytes, runtime_credential, runtime_revision))
+    channels: &mut BTreeMap<CredentialId, Channel>,
+) {
+    for upstream in configuration.upstreams.iter().filter(|u| u.enabled) {
+        let channel = match upstream.kind.as_str() {
+            "claude" => Channel::Claude,
+            "kiro" => Channel::Kiro,
+            _ => continue,
+        };
+        for endpoint in configuration
+            .endpoints
+            .iter()
+            .filter(|e| e.enabled && e.upstream_id == upstream.id)
+        {
+            let supported = match channel {
+                Channel::Claude => {
+                    endpoint.adapter_id == "anthropic-compatible.messages"
+                        && endpoint.base_url.trim_end_matches('/') == "https://api.anthropic.com/v1"
+                        && endpoint.inference_path == "/messages"
+                }
+                Channel::Kiro => endpoint.adapter_id == "kiro.messages",
+                _ => false,
+            };
+            if !supported {
+                continue;
+            }
+            for binding in configuration
+                .endpoint_credential_bindings
+                .iter()
+                .filter(|b| {
+                    b.enabled && b.endpoint_id == endpoint.id && b.upstream_id == upstream.id
+                })
+            {
+                if let Some(credential) = configuration.credentials.iter().find(|c| {
+                    c.id == binding.credential_id
+                        && c.upstream_id == upstream.id
+                        && c.status == CredentialStatus::Active
+                        && c.kind == "bearer"
+                }) {
+                    channels.insert(credential.id.clone(), channel);
+                }
+            }
+        }
+    }
 }
 
-fn codex_refresh_is_deferred(
-    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
-    credential_id: &CredentialId,
-    observed_at_ms: i64,
-) -> Result<bool, GrokAccountWorkerError> {
-    let Some(backoff) = backoff else {
-        return Ok(false);
-    };
-    let states = backoff
-        .lock()
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-    Ok(states
-        .get(credential_id)
-        .is_some_and(|state| observed_at_ms < state.retry_after_ms))
+pub(crate) struct RefreshStop {
+    stopped: Arc<std::sync::atomic::AtomicBool>,
+    notify: Arc<tokio::sync::Notify>,
 }
-
-fn back_off_codex_refresh(
-    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
-    credential_id: &CredentialId,
-    observed_at_ms: i64,
-) -> Result<(), GrokAccountWorkerError> {
-    let Some(backoff) = backoff else {
-        return Ok(());
-    };
-    let mut states = backoff
-        .lock()
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?;
-    let state = states
-        .entry(credential_id.clone())
-        .or_insert(CodexRefreshBackoff {
-            failure_count: 0,
-            retry_after_ms: observed_at_ms,
-        });
-    state.failure_count = state.failure_count.saturating_add(1);
-    state.retry_after_ms = observed_at_ms
-        .checked_add(codex_refresh_backoff_delay_ms(state.failure_count))
-        .ok_or(GrokAccountWorkerError::InvalidRequest)?;
-    Ok(())
+impl RefreshStop {
+    pub(crate) fn stop(&self) {
+        self.stopped
+            .store(true, std::sync::atomic::Ordering::Release);
+        self.notify.notify_one();
+    }
 }
-
-fn clear_codex_refresh_backoff(
-    backoff: Option<&Mutex<BTreeMap<CredentialId, CodexRefreshBackoff>>>,
-    credential_id: &CredentialId,
-) -> Result<(), GrokAccountWorkerError> {
-    let Some(backoff) = backoff else {
-        return Ok(());
-    };
-    backoff
-        .lock()
-        .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?
-        .remove(credential_id);
-    Ok(())
-}
-
-fn codex_refresh_backoff_delay_ms(failure_count: u32) -> i64 {
-    let exponent = failure_count.saturating_sub(1).min(6);
-    CODEX_REFRESH_INITIAL_BACKOFF_MS
-        .saturating_mul(1_i64 << exponent)
-        .min(CODEX_REFRESH_MAX_BACKOFF_MS)
+struct StopOnDrop(Arc<std::sync::atomic::AtomicBool>);
+impl Drop for StopOnDrop {
+    fn drop(&mut self) {
+        self.0.store(true, std::sync::atomic::Ordering::Release);
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn sync_codex_runtime_material(
+fn sync_runtime_material(
     configuration: &ControlPlaneConfiguration,
     credential_id: &CredentialId,
     runtime_bytes: &[u8],
-    runtime_credential: &OpenAiCompatibleRuntimeCredential,
+    expires_at_ms: Option<i64>,
     runtime_revision: u64,
     pools: Option<&EndpointCredentialPools>,
     runtime_health: Option<&RuntimeHealthRegistry>,
@@ -954,7 +643,7 @@ fn sync_codex_runtime_material(
                 CredentialMaterialReplacement {
                     credential_revision: i64::try_from(runtime_revision)
                         .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?,
-                    expires_at_ms: runtime_credential.expires_at_ms(),
+                    expires_at_ms,
                     secret: CredentialSecret::try_new(runtime_bytes.to_vec())
                         .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?,
                 },
@@ -1051,7 +740,7 @@ impl GrokAccountWorkerExecutor for GrokBuildRefreshExecutor {
         };
         let transport = GrokBuildRefreshTransport {
             client: self.client.clone(),
-            status: Cell::new(None),
+            reauth_required: Cell::new(false),
         };
         match GrokBuildOAuthFlow::default().refresh(&transport, &current, observed_at_ms) {
             Ok(refreshed) => {
@@ -1067,9 +756,7 @@ impl GrokAccountWorkerExecutor for GrokBuildRefreshExecutor {
             Err(GrokBuildOAuthError::TransportUnavailable) => {
                 GrokAccountWorkerResult::TransientFailure
             }
-            Err(_) if matches!(transport.status.get(), Some(400 | 401 | 403)) => {
-                GrokAccountWorkerResult::ReauthRequired
-            }
+            Err(_) if transport.reauth_required.get() => GrokAccountWorkerResult::ReauthRequired,
             Err(_) => GrokAccountWorkerResult::TransientFailure,
         }
     }
@@ -1077,7 +764,7 @@ impl GrokAccountWorkerExecutor for GrokBuildRefreshExecutor {
 
 struct GrokBuildRefreshTransport {
     client: reqwest::blocking::Client,
-    status: Cell<Option<u16>>,
+    reauth_required: Cell<bool>,
 }
 
 impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
@@ -1118,7 +805,6 @@ impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
             .send()
             .map_err(|_| GrokBuildOAuthTransportError::Unavailable)?;
         let status = response.status().as_u16();
-        self.status.set(Some(status));
         if status == 429 || status >= 500 {
             return Err(GrokBuildOAuthTransportError::Unavailable);
         }
@@ -1138,6 +824,10 @@ impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
         if response_body.len() > MAX_GROK_BUILD_OAUTH_HTTP_RESPONSE_BYTES {
             return Err(GrokBuildOAuthTransportError::Unavailable);
         }
+        self.reauth_required.set(
+            ordinary::classify_rejection(status, &response_body)
+                == gateway_store::credential_refresh::RefreshFailure::ReauthRequired,
+        );
         GrokBuildOAuthHttpResponse::try_new(status, response_body)
             .map_err(|_| GrokBuildOAuthTransportError::Unavailable)
     }
@@ -1145,7 +835,7 @@ impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, error::Error, sync::Mutex};
+    use std::error::Error;
 
     use gateway_core::{CredentialId, EndpointId, UpstreamId};
     use gateway_store::{
@@ -1157,48 +847,8 @@ mod tests {
         secret_store::{KeyVersion, MasterKey, MasterKeyRing, SecretStore},
     };
 
-    use super::{
-        CODEX_REFRESH_INITIAL_BACKOFF_MS, CODEX_REFRESH_MAX_BACKOFF_MS, CODEX_RESPONSES_ADAPTER_ID,
-        CODEX_RESPONSES_BASE_URL, back_off_codex_refresh, clear_codex_refresh_backoff,
-        codex_refresh_backoff_delay_ms, codex_refresh_is_deferred, refresh_scope,
-    };
-
+    use super::{CODEX_RESPONSES_ADAPTER_ID, CODEX_RESPONSES_BASE_URL, Channel, refresh_scope};
     type TestResult = Result<(), Box<dyn Error>>;
-
-    #[test]
-    fn codex_refresh_backoff_grows_is_bounded_and_can_be_cleared() -> TestResult {
-        let credential_id = CredentialId::try_new("codex-backoff-test")?;
-        let states = Mutex::new(BTreeMap::new());
-        let observed_at_ms = 10_000_i64;
-
-        assert!(!codex_refresh_is_deferred(
-            Some(&states),
-            &credential_id,
-            observed_at_ms,
-        )?);
-        back_off_codex_refresh(Some(&states), &credential_id, observed_at_ms)?;
-        assert!(codex_refresh_is_deferred(
-            Some(&states),
-            &credential_id,
-            observed_at_ms,
-        )?);
-        assert_eq!(
-            codex_refresh_backoff_delay_ms(1),
-            CODEX_REFRESH_INITIAL_BACKOFF_MS
-        );
-        assert_eq!(
-            codex_refresh_backoff_delay_ms(u32::MAX),
-            CODEX_REFRESH_MAX_BACKOFF_MS
-        );
-
-        clear_codex_refresh_backoff(Some(&states), &credential_id)?;
-        assert!(!codex_refresh_is_deferred(
-            Some(&states),
-            &credential_id,
-            observed_at_ms,
-        )?);
-        Ok(())
-    }
 
     #[test]
     #[allow(clippy::too_many_lines)]
@@ -1313,10 +963,74 @@ mod tests {
 
         let scope = refresh_scope(&configuration);
         assert!(scope.has_build);
-        assert_eq!(scope.codex_credential_ids.len(), 1);
-        assert!(scope.codex_credential_ids.contains(&codex_credential));
-        assert_eq!(scope.kimi_credential_ids.len(), 1);
-        assert!(scope.kimi_credential_ids.contains(&kimi_oauth));
+        assert_eq!(scope.channels.len(), 2);
+        assert_eq!(scope.channels.get(&codex_credential), Some(&Channel::Codex));
+        assert_eq!(scope.channels.get(&kimi_oauth), Some(&Channel::Kimi));
+        Ok(())
+    }
+
+    #[test]
+    fn claude_and_kiro_scope_requires_enabled_exact_owner_binding() -> TestResult {
+        let secrets = secret_store()?;
+        for (kind, adapter, base, path, channel) in [
+            (
+                "claude",
+                "anthropic-compatible.messages",
+                "https://api.anthropic.com/v1",
+                "/messages",
+                Channel::Claude,
+            ),
+            (
+                "kiro",
+                "kiro.messages",
+                "https://q.us-east-1.amazonaws.com",
+                "/generateAssistantResponse",
+                Channel::Kiro,
+            ),
+        ] {
+            let mut config = ControlPlaneConfiguration::new(ConfigVersion {
+                id: ConfigVersionId::try_new("scope")?,
+                parent_id: None,
+                status: ConfigVersionStatus::Active,
+                revision: 1,
+                created_at_ms: 0,
+                description: String::new(),
+            });
+            let owner = UpstreamId::try_new("owner")?;
+            let endpoint_id = EndpointId::try_new("endpoint")?;
+            let credential_id = CredentialId::try_new("credential")?;
+            let mut upstream = upstream(owner.clone(), kind);
+            upstream.kind = kind.into();
+            config.upstreams.push(upstream);
+            let mut endpoint = endpoint(endpoint_id.clone(), owner.clone(), adapter, base, true);
+            endpoint.inference_path = path.into();
+            config.endpoints.push(endpoint);
+            config.credentials.push(credential(
+                &config,
+                &secrets,
+                credential_id.clone(),
+                owner.clone(),
+                "bearer",
+            )?);
+            config.endpoint_credential_bindings.push(binding(
+                endpoint_id,
+                credential_id.clone(),
+                owner,
+                true,
+            ));
+            assert_eq!(
+                refresh_scope(&config).channels.get(&credential_id),
+                Some(&channel)
+            );
+            config.endpoint_credential_bindings[0].enabled = false;
+            assert!(refresh_scope(&config).channels.is_empty());
+            config.endpoint_credential_bindings[0].enabled = true;
+            config.credentials[0].status = CredentialStatus::Unauthorized;
+            assert!(refresh_scope(&config).channels.is_empty());
+            config.credentials[0].status = CredentialStatus::Active;
+            config.upstreams[0].enabled = false;
+            assert!(refresh_scope(&config).channels.is_empty());
+        }
         Ok(())
     }
 

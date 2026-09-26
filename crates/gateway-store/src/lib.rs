@@ -12,6 +12,8 @@ pub mod backup;
 pub mod billing_ledger;
 /// AEAD Secret storage, external Master Key loading, and key-rotation primitives.
 pub mod control_plane;
+/// Revision-guarded durable claims and outcomes for ordinary OAuth refresh workers.
+pub mod credential_refresh;
 /// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.
 pub mod event_store;
 pub mod secret_store;
@@ -57,7 +59,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 29;
+pub const CURRENT_SCHEMA_VERSION: i64 = 30;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -211,6 +213,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 29,
         up: include_str!("../migrations/0029_required_event_recording.up.sql"),
         down: include_str!("../migrations/0029_required_event_recording.down.sql"),
+    },
+    Migration {
+        version: 30,
+        up: include_str!("../migrations/0030_credential_refresh.up.sql"),
+        down: include_str!("../migrations/0030_credential_refresh.down.sql"),
     },
 ];
 
@@ -686,6 +693,7 @@ mod tests {
                 "compatible_egress_proxy_pools",
                 "config_versions",
                 "configuration_edit_origins",
+                "credential_refresh_state",
                 "egress_policies",
                 "endpoint_credential_bindings",
                 "gateway_event_log",

@@ -306,8 +306,7 @@ async fn run_servers(
     );
     let runtime_workers = reload.start_workers(credential_refresh_worker, model_catalog_worker);
     let server_result = try_join(data_server, management_server).await;
-    runtime_workers.abort();
-    let _ = runtime_workers.await;
+    runtime_workers.stop().await;
     drop(reload);
     let server_result = server_result
         .map(|_| ())
@@ -474,9 +473,9 @@ fn build_application_state_with_refresh(
             backed_off = startup_refresh.backed_off,
             reauth_required = startup_refresh.reauth_required,
             panicked = startup_refresh.panicked,
-            codex_due = startup_refresh.codex_due,
-            codex_succeeded = startup_refresh.codex_succeeded,
-            codex_backed_off = startup_refresh.codex_backed_off,
+            oauth_due = startup_refresh.oauth_due,
+            oauth_succeeded = startup_refresh.oauth_succeeded,
+            oauth_backed_off = startup_refresh.oauth_backed_off,
             "startup credential refresh pass completed"
         );
     }

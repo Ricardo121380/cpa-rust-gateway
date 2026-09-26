@@ -25,12 +25,30 @@ remain authoritative for encrypted stored responses and create/retrieve/delete d
 - The immutable pin contains Config Version, Provider, Upstream, Channel, Route, Candidate,
   Credential ID, and Credential revision from the encrypted record.
 - Immediately before leasing, the current runtime must match every field and revalidate hard
-  eligibility, capability, Health, Quota, expiry, and capacity.
+  eligibility, capability, Health, Quota, expiry, and capacity. The sole revision exception is the
+  durable same-grant Build refresh range below; every other pin field remains exact.
 - Selection is direct by Candidate/Credential and does not advance ordinary weighted cursors.
 - One admitted continuation starts at most one Attempt. Transparent retry, sibling fallback,
   quota recovery, cross-egress, cross-Provider, and credential conversion are prohibited.
 - The exact Attempt continues to use the normal canonical response lifecycle, value-free event
   projection, runtime failure ownership, lease RAII, and downstream cancellation boundary.
+
+## Proven Grok Build refresh continuity (M2, schema30)
+
+- Only the fixed-issuer Build refresh worker may prove a contiguous revision range. Old and new
+  access tokens must expose the same non-empty subject, client ID and equal scope sets. Email is
+  display metadata, never ownership proof. Missing or changed evidence clears the range.
+- The encrypted replacement, account revision and range commit in the same durable claim/CAS
+  transaction. An expired claim, concurrent replacement or revoked account cannot commit it.
+- Runtime loads or publishes that range only for active, enabled Build material at its exact current
+  revision. An old stored revision may lease current material only inside the proven range; expiry,
+  Health, Quota, capacity, Client Key, configuration and all other lineage checks still apply.
+- Reauthorization/manual replacement is not a refresh proof. Its revision breaks the old range;
+  a later proved refresh starts a new range. No cross-account, sibling or cross-Provider retry.
+- Existing in-flight leases retain their immutable material. API keys, SSO and ordinary OAuth keep
+  strict revision equality; absent Provider evidence never broadens continuity.
+- See [M2 change request](../change-requests/CR-20260926-channel-refresh-lifecycle.md) for migration
+  and local validation. This is not evidence of deployment or real-provider acceptance.
 
 ## Canonical history
 

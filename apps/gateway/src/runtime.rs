@@ -1157,7 +1157,11 @@ impl P12RoutedResponsesExecutor {
             observed_at_ms,
         );
         let pools = CredentialPoolCompiler::new(secret_store)
-            .compile_excluding_endpoints(configuration, &native_endpoint_ids)
+            .compile_with_expiry(
+                configuration,
+                &native_endpoint_ids,
+                ordinary_credential_expiry,
+            )
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::CredentialPool))?;
         let pools = if native_endpoint_providers.is_empty() {
             pools
@@ -3518,10 +3522,35 @@ struct EndpointRuntime {
     web_statsig: OnceLock<Result<Arc<GrokWebStatsigRuntime>, GatewayError>>,
 }
 
+// Provider-owned parsers retain absolute expiry at publication, even after a failed startup
+// refresh. Expired preferred credentials then cannot obscure a fresh sibling during selection.
+fn ordinary_credential_expiry(
+    endpoint: &gateway_store::control_plane::EndpointConfiguration,
+    bytes: &[u8],
+) -> Option<i64> {
+    match endpoint.adapter_id.as_str() {
+        "openai-compatible.responses" | "openai-compatible.chat-completions" => {
+            OpenAiCompatibleRuntimeCredential::import_compatible(bytes, 0)
+                .ok()
+                .and_then(|value| value.expires_at_ms())
+        }
+        "anthropic-compatible.messages" => {
+            provider_anthropic_compatible::ClaudeRuntimeCredential::import_at(bytes, 0)
+                .ok()
+                .and_then(|value| value.expires_at_ms())
+        }
+        "kiro.messages" => KiroCredential::import_for_refresh(bytes)
+            .ok()
+            .and_then(|value| value.expires_at_ms()),
+        _ => None,
+    }
+}
+
 const MODEL_CATALOG_RUNTIME_INTERVAL: Duration = Duration::from_hours(1);
 
 #[derive(Clone)]
 enum RuntimeCatalogProvider {
+    Kiro(KiroEndpointPolicy),
     GrokBuild,
     Codex,
     Compatible {
@@ -3572,6 +3601,9 @@ impl RuntimeModelCatalogWorker {
                 continue;
             };
             let provider = match &runtime.adapter {
+                EndpointAdapter::KiroMessages(policy) if policy.kind() == KiroEndpointKind::Ide => {
+                    RuntimeCatalogProvider::Kiro(policy.clone())
+                }
                 EndpointAdapter::GrokBuildResponses => RuntimeCatalogProvider::GrokBuild,
                 EndpointAdapter::OpenAiResponses(_)
                     if endpoint.adapter_id == "openai-compatible.responses"
@@ -3747,6 +3779,10 @@ impl RuntimeModelCatalogWorker {
         observed_at_ms: i64,
     ) -> Result<Vec<gateway_catalog::DiscoveredModel>, GatewayError> {
         match &target.provider {
+            RuntimeCatalogProvider::Kiro(policy) => {
+                self.discover_kiro(target, policy, lease, observed_at_ms)
+                    .await
+            }
             RuntimeCatalogProvider::Compatible { url, anthropic } => {
                 self.discover_compatible(target, url, *anthropic, lease, observed_at_ms)
                     .await
@@ -11361,6 +11397,28 @@ mod tests {
     }
 
     #[test]
+    fn oauth_expiry_is_published_even_if_startup_refresh_cannot_complete()
+    -> Result<(), Box<dyn Error>> {
+        let secrets = test_secret_store()?;
+        let mut config = p12_configuration(&secrets)?;
+        for (adapter, material) in [
+            ("openai-compatible.responses", br#"{"auth_mode":"chatgpt","tokens":{"access_token":"old","refresh_token":"r","expires_at_ms":1000}}"#.as_slice()),
+            ("anthropic-compatible.messages", br#"{"kind":"claude_oauth","access_token":"old","refresh_token":"r","expires_at_ms":1000}"#),
+            ("kiro.messages", br#"{"kind":"social","access_token":"old","refresh_token":"r","expires_at_ms":1000}"#),
+        ] {
+            config.endpoints[0].adapter_id=adapter.into();
+            let row=&mut config.credentials[0];
+            row.encrypted_secret=secrets.seal(material,&credential_associated_data(&config.version.id,&row.id,&row.upstream_id)?)?;
+            let pools=CredentialPoolCompiler::new(&secrets).compile_with_expiry(&config,&BTreeSet::new(),super::ordinary_credential_expiry)?;
+            let pool=pools.pool(&config.endpoints[0].id).ok_or("pool")?;
+            assert_eq!(pool.diagnostic_entries()[0].expires_at_ms(),Some(1000));
+            assert!(pool.try_lease_exact_eligible_at(&config.credentials[0].id,1000,|_|true).is_none());
+            assert!(pool.try_lease_exact_eligible_at(&config.credentials[0].id,999,|_|true).is_some());
+        }
+        Ok(())
+    }
+
+    #[test]
     fn p12_composition_admits_normalized_codex_oauth_credentials() -> Result<(), Box<dyn Error>> {
         let secret_store = test_secret_store()?;
         let mut configuration = p12_configuration(&secret_store)?;
@@ -14658,3 +14716,6 @@ mod tests {
         Ok(configuration)
     }
 }
+
+#[cfg(test)]
+mod m2_continuity;

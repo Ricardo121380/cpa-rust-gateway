@@ -6,6 +6,7 @@ use std::{
     fmt,
     sync::Arc,
     thread,
+    time::Instant,
 };
 
 use gateway_store::secret_store::{EncryptedSecret, KeyVersion, PlaintextSecret};
@@ -368,6 +369,7 @@ impl GrokAccountWorkerCoordinator {
         observed_at_ms: i64,
         executor: &E,
     ) -> Result<GrokAccountWorkerRunSummary, GrokAccountWorkerError> {
+        let started = Instant::now();
         let jobs = store.claim_due_worker_jobs_inner(
             kind,
             provider,
@@ -391,35 +393,57 @@ impl GrokAccountWorkerCoordinator {
             reauth_required: 0,
             panicked: 0,
         };
+        let completed_at_ms = observed_at_ms
+            .saturating_add(i64::try_from(started.elapsed().as_millis()).unwrap_or(i64::MAX));
+        let mut first_error = None;
         for completed_job in completed {
             let Ok((result, job)) = completed_job else {
                 summary.panicked += 1;
                 continue;
             };
-            match result {
-                GrokAccountWorkerResult::Refreshed {
-                    credential,
-                    expires_at_ms,
-                } => {
-                    store.complete_refresh_job(&job, &credential, expires_at_ms, observed_at_ms)?;
-                    summary.succeeded += 1;
+            let outcome = (|| {
+                match result {
+                    GrokAccountWorkerResult::Refreshed {
+                        credential,
+                        expires_at_ms,
+                    } => {
+                        store.complete_refresh_job(
+                            &job,
+                            &credential,
+                            expires_at_ms,
+                            completed_at_ms,
+                        )?;
+                        summary.succeeded += 1;
+                    }
+                    GrokAccountWorkerResult::QuotaSynchronized {
+                        windows,
+                        next_due_at_ms,
+                    } => {
+                        store.complete_quota_job(
+                            &job,
+                            &windows,
+                            next_due_at_ms,
+                            completed_at_ms,
+                        )?;
+                        summary.succeeded += 1;
+                    }
+                    GrokAccountWorkerResult::TransientFailure => {
+                        store.complete_worker_failure(&job, false, completed_at_ms)?;
+                        summary.backed_off += 1;
+                    }
+                    GrokAccountWorkerResult::ReauthRequired => {
+                        store.complete_worker_failure(&job, true, completed_at_ms)?;
+                        summary.reauth_required += 1;
+                    }
                 }
-                GrokAccountWorkerResult::QuotaSynchronized {
-                    windows,
-                    next_due_at_ms,
-                } => {
-                    store.complete_quota_job(&job, &windows, next_due_at_ms, observed_at_ms)?;
-                    summary.succeeded += 1;
-                }
-                GrokAccountWorkerResult::TransientFailure => {
-                    store.complete_worker_failure(&job, false, observed_at_ms)?;
-                    summary.backed_off += 1;
-                }
-                GrokAccountWorkerResult::ReauthRequired => {
-                    store.complete_worker_failure(&job, true, observed_at_ms)?;
-                    summary.reauth_required += 1;
-                }
+                Ok::<_, GrokAccountWorkerError>(())
+            })();
+            if let Err(error) = outcome {
+                first_error.get_or_insert(error);
             }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
         }
         Ok(summary)
     }
@@ -569,6 +593,20 @@ impl GrokAccountPoolStore {
             .and_then(|value| i64::try_from(value).ok())
             .ok_or(GrokAccountWorkerError::InvalidPersistedState)?;
         let refresh_due_at_ms = deterministic_refresh_due_at(&job.account_id, expires_at_ms)?;
+        let same_owner = job.provider == GrokAccountProvider::Build
+            && crate::GrokBuildCredential::import_refreshable_runtime(
+                job.credential_bytes(),
+                observed_at_ms,
+            )
+            .ok()
+            .zip(
+                crate::GrokBuildCredential::import_active_runtime(
+                    credential.as_bytes(),
+                    observed_at_ms,
+                )
+                .ok(),
+            )
+            .is_some_and(|(before, after)| after.same_refresh_owner(&before));
         let encrypted = self
             .secret_store
             .seal(
@@ -586,7 +624,9 @@ impl GrokAccountPoolStore {
                         revision = ?3, auth_status = 'active', refresh_due_at_ms = ?4, \
                         last_refresh_at_ms = ?5, refresh_failure_count = 0, \
                         worker_claim_kind = NULL, worker_claim_id = NULL, \
-                        worker_claim_expires_at_ms = NULL, updated_at_ms = ?5 \
+                        worker_claim_expires_at_ms = NULL, updated_at_ms = ?5, \
+                        continuation_floor_revision = CASE WHEN ?9=1 THEN CASE WHEN continuation_current_revision=revision+1 THEN continuation_floor_revision ELSE revision+1 END ELSE NULL END, \
+                        continuation_current_revision = CASE WHEN ?9=1 THEN ?3+1 ELSE NULL END \
                  WHERE id = ?6 AND revision = ?7 AND worker_claim_kind = 'refresh' \
                        AND worker_claim_id = ?8 AND worker_claim_expires_at_ms > ?5",
                 params![
@@ -599,6 +639,7 @@ impl GrokAccountPoolStore {
                     i64::try_from(job.expected_revision)
                         .map_err(|_| GrokAccountWorkerError::InvalidPersistedState)?,
                     job.claim_id,
+                    i64::from(same_owner),
                 ],
             )
             .map_err(|_| GrokAccountWorkerError::StoreUnavailable)?;

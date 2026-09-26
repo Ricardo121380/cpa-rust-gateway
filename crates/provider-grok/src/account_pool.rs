@@ -1179,17 +1179,53 @@ impl GrokAccountPoolStore {
         }
         let quota_bootstrap = load_quota_bootstrap(&connection, &runtime_bindings_by_account)?;
         drop(connection);
+        let continuation_ranges = self.build_continuation_ranges()?;
         let pools = inputs_by_endpoint
             .into_iter()
             .map(|(endpoint_id, inputs)| EndpointCredentialPool::try_new(endpoint_id, inputs))
             .collect::<Result<Vec<_>, _>>()?;
+        let credential_pools = Arc::new(EndpointCredentialPools::try_new(pools)?);
+        for (id, (floor, current)) in continuation_ranges {
+            if let Some((endpoint, credential)) = runtime_bindings_by_account.get(&id)
+                && let Some(pool) = credential_pools.pool(endpoint)
+            {
+                pool.set_build_continuation_range(credential, floor, current)?;
+            }
+        }
         Ok(GrokNativeAccountPoolCompilation {
-            credential_pools: Arc::new(EndpointCredentialPools::try_new(pools)?),
+            credential_pools,
             account_metadata,
             providers_by_credential,
             health_bootstrap,
             quota_bootstrap,
         })
+    }
+
+    /// Proven contiguous refresh revisions for enabled Build grants, using one-based runtime IDs.
+    /// Reauthorization, replacement and revocation invalidate the range automatically.
+    /// # Errors
+    /// Returns a safe storage error; no identities or token contents are projected.
+    pub fn build_continuation_ranges(
+        &self,
+    ) -> Result<BTreeMap<String, (u64, u64)>, GrokAccountPoolError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let mut statement = connection.prepare("SELECT id,continuation_floor_revision,continuation_current_revision FROM grok_accounts WHERE provider='build' AND enabled=1 AND auth_status='active' AND continuation_current_revision=revision+1 AND continuation_floor_revision>0 AND continuation_floor_revision<=continuation_current_revision").map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    (
+                        row.get::<_, i64>(1)?.cast_unsigned(),
+                        row.get::<_, i64>(2)?.cast_unsigned(),
+                    ),
+                ))
+            })
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        rows.collect::<Result<BTreeMap<_, _>, _>>()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)
     }
 
     /// Opens one exact credential for an authorized native runtime caller.

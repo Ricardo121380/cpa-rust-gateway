@@ -71,6 +71,19 @@ impl<'store> CredentialPoolCompiler<'store> {
         configuration: &ControlPlaneConfiguration,
         excluded_endpoints: &BTreeSet<EndpointId>,
     ) -> Result<EndpointCredentialPools, CredentialPoolCompileError> {
+        self.compile_with_expiry(configuration, excluded_endpoints, |_, _| None)
+    }
+
+    /// Compiles with provider-owned expiry parsing supplied by the composition root.
+    /// This keeps provider imports outside the control crate and expiry in the lease boundary.
+    /// # Errors
+    /// Returns the same validation and decryption failures as `compile_excluding_endpoints`.
+    pub fn compile_with_expiry(
+        &self,
+        configuration: &ControlPlaneConfiguration,
+        excluded_endpoints: &BTreeSet<EndpointId>,
+        expiry: impl Fn(&EndpointConfiguration, &[u8]) -> Option<i64>,
+    ) -> Result<EndpointCredentialPools, CredentialPoolCompileError> {
         let upstreams = index_upstreams(&configuration.upstreams)?;
         let endpoints = index_endpoints(&configuration.endpoints, &upstreams)?;
         let credentials = index_credentials(&configuration.credentials, &upstreams)?;
@@ -124,7 +137,7 @@ impl<'store> CredentialPoolCompiler<'store> {
                 priority: binding.priority,
                 weight: binding.weight,
                 concurrency: binding.concurrency,
-                expires_at_ms: None,
+                expires_at_ms: expiry(endpoint, plaintext.as_bytes()),
                 secret,
             };
             inputs_by_endpoint

@@ -350,6 +350,116 @@ fn coordinator_never_exceeds_configured_parallelism() -> TestResult {
     Ok(())
 }
 
+#[test]
+fn proven_build_rotation_survives_reload_and_rejects_unknown_or_changed_owner() -> TestResult {
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+    fn material(
+        subject: Option<&str>,
+        scope: &str,
+    ) -> Result<GrokAccountCredential, Box<dyn Error>> {
+        let token = match subject {
+            Some(sub) => format!(
+                "e30.{}.synthetic",
+                URL_SAFE_NO_PAD.encode(serde_json::to_vec(&serde_json::json!({"sub": sub}))?)
+            ),
+            None => "opaque-unknown-subject".into(),
+        };
+        let credential = provider_grok::GrokBuildCredential::import_json(
+            &serde_json::to_vec(
+                &serde_json::json!({"access_token":token,"refresh_token":"synthetic-refresh","expires_in":3600,"token_type":"Bearer","scope":scope}),
+            )?,
+            NOW_MS,
+        )?;
+        Ok(GrokAccountCredential::try_from_build_credential(
+            &credential,
+        )?)
+    }
+    let database = TemporaryDatabase::new()?;
+    let store = Arc::new(open_store(database.path())?);
+    let mut imported = account("continuation", NOW_MS, NOW_MS)?;
+    let scope = provider_grok::GROK_BUILD_OAUTH_SCOPE;
+    imported.credential = material(Some("same-subject"), scope)?;
+    store.import_batch("continuation", &[imported], NOW_MS)?;
+    let id = store.single_import_account("continuation")?;
+    let coordinator = GrokAccountWorkerCoordinator::try_new(1, CLAIM_LEASE_MS)?;
+    for (index, subject, next_scope, expected) in [
+        (0, Some("same-subject"), scope, Some((1, 2))),
+        (1, Some("same-subject"), scope, Some((1, 3))),
+        (2, Some("another-subject"), scope, None),
+        (3, None, scope, None),
+    ] {
+        Connection::open(database.path())?.execute(
+            "UPDATE grok_accounts SET refresh_due_at_ms=?1 WHERE id=?2",
+            rusqlite::params![NOW_MS, &id],
+        )?;
+        coordinator.run_once(
+            &store,
+            GrokAccountWorkerKind::Refresh,
+            NOW_MS,
+            &OneResult::new(GrokAccountWorkerResult::Refreshed {
+                credential: material(subject, next_scope)?,
+                expires_at_ms: NOW_MS + 3_600_000,
+            }),
+        )?;
+        assert_eq!(store.list_accounts()?[0].revision, index + 1);
+        assert_eq!(
+            store.build_continuation_ranges()?.get(&id).copied(),
+            expected
+        );
+        assert_eq!(
+            open_store(database.path())?
+                .build_continuation_ranges()?
+                .get(&id)
+                .copied(),
+            expected
+        );
+        if expected.is_some() {
+            let compilation = store.compile_native_runtime(&bindings()?, NOW_MS)?;
+            let endpoint = EndpointId::try_new(ENDPOINT)?;
+            let pools = compilation.credential_pools();
+            let pool = pools.pool(&endpoint).ok_or("pool")?;
+            assert!(
+                pool.try_lease_exact_revision_eligible_at(
+                    &CredentialId::try_new(id.clone())?,
+                    1,
+                    NOW_MS,
+                    |_| true
+                )
+                .is_some()
+            );
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn completion_cannot_commit_after_claim_deadline() -> TestResult {
+    struct Slow;
+    impl GrokAccountWorkerExecutor for Slow {
+        fn execute(&self, _: &GrokAccountWorkerJob) -> GrokAccountWorkerResult {
+            thread::sleep(Duration::from_millis(1050));
+            GrokAccountWorkerResult::ReauthRequired
+        }
+    }
+    let database = TemporaryDatabase::new()?;
+    let store = Arc::new(open_store(database.path())?);
+    store.import_batch("deadline", &[account("deadline", NOW_MS, NOW_MS)?], NOW_MS)?;
+    assert_eq!(
+        GrokAccountWorkerCoordinator::try_new(1, 1000)?.run_once(
+            &store,
+            GrokAccountWorkerKind::Refresh,
+            NOW_MS,
+            &Slow
+        ),
+        Err(GrokAccountWorkerError::StaleClaim)
+    );
+    assert_eq!(
+        store.list_accounts()?[0].auth_status,
+        GrokAccountAuthStatus::Active
+    );
+    Ok(())
+}
+
 fn account(
     identity: &str,
     refresh_due_at_ms: i64,

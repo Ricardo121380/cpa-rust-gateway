@@ -262,6 +262,7 @@ impl EndpointCredentialPool {
                     secret: entry.secret,
                 }),
                 active_leases: Arc::new(AtomicUsize::new(0)),
+                continuation_range: Mutex::new(None),
             }));
             credentials_by_priority
                 .entry(priority)
@@ -385,8 +386,8 @@ impl EndpointCredentialPool {
     /// Attempts to lease one exact Credential revision without touching the weighted cursor.
     ///
     /// This is the stored-continuity counterpart to [`Self::try_lease_exact_eligible_at`]. A
-    /// rotated Credential is a different durable owner and therefore fails before capacity is
-    /// reserved, even when its stable Credential ID is unchanged.
+    /// rotated Credential fails unless its provider published a durable same-grant range.
+    /// All health, expiry and capacity checks still apply to the current material.
     #[must_use]
     pub fn try_lease_exact_revision_eligible_at<F>(
         &self,
@@ -403,7 +404,17 @@ impl EndpointCredentialPool {
             .iter()
             .find(|credential| &credential.credential_id == credential_id)?;
         let material = credential.material.load_full();
-        if material.credential_revision != credential_revision
+        let same_grant = credential
+            .continuation_range
+            .lock()
+            .ok()
+            .is_some_and(|range| {
+                range.is_some_and(|(floor, current)| {
+                    current == material.credential_revision
+                        && (floor..=current).contains(&credential_revision)
+                })
+            });
+        if (material.credential_revision != credential_revision && !same_grant)
             || material
                 .expires_at_ms
                 .is_some_and(|expires_at_ms| expires_at_ms <= now_ms)
@@ -519,6 +530,36 @@ impl EndpointCredentialPool {
         }
     }
 
+    /// Installs a provider-proven same-grant range for the current Grok Build material only.
+    /// Reauthorization/replacement advances the revision without inheriting this proof.
+    /// # Errors
+    /// Rejects missing slots, foreign credential kinds and invalid revision ranges.
+    pub fn set_build_continuation_range(
+        &self,
+        id: &CredentialId,
+        floor: u64,
+        current: u64,
+    ) -> Result<(), CredentialPoolBuildError> {
+        let slot = self
+            .credentials
+            .iter()
+            .find(|slot| &slot.credential_id == id)
+            .ok_or(CredentialPoolBuildError::InconsistentCredentialPool)?;
+        if slot.credential_kind != "grok_build_oauth"
+            || floor == 0
+            || floor > current
+            || slot.material.load().credential_revision != current
+        {
+            return Err(CredentialPoolBuildError::InvalidCredentialRevision);
+        }
+        *slot
+            .continuation_range
+            .lock()
+            .map_err(|_| CredentialPoolBuildError::InconsistentCredentialPool)? =
+            Some((floor, current));
+        Ok(())
+    }
+
     /// Peeks one currently eligible Credential using an explicit diagnostic schedule start.
     ///
     /// Unlike [`Self::try_lease_eligible`], this never advances a cursor or reserves capacity.
@@ -608,6 +649,12 @@ impl EndpointCredentialPools {
                     maximum_concurrency: credential.maximum_concurrency,
                     material: ArcSwap::from(credential.material.load_full()),
                     active_leases: counter,
+                    continuation_range: Mutex::new(
+                        *credential
+                            .continuation_range
+                            .lock()
+                            .map_err(|_| CredentialPoolBuildError::InconsistentCredentialPool)?,
+                    ),
                 }));
             }
             pools.insert(
@@ -855,6 +902,7 @@ struct CredentialSlot {
     maximum_concurrency: usize,
     material: ArcSwap<CredentialMaterial>,
     active_leases: Arc<AtomicUsize>,
+    continuation_range: Mutex<Option<(u64, u64)>>,
 }
 
 struct CredentialMaterial {
@@ -1442,6 +1490,94 @@ mod tests {
                 secret: CredentialSecret::try_new(b"stale-secret".to_vec())?,
             },
         )?);
+        Ok(())
+    }
+
+    #[test]
+    fn proven_build_rotation_preserves_history_but_reauthorization_revokes_it() -> TestResult {
+        let credential = CredentialId::try_new("build-account")?;
+        let pool = EndpointCredentialPool::try_new(
+            EndpointId::try_new("build-endpoint")?,
+            [EndpointCredentialInput {
+                credential_id: credential.clone(),
+                credential_kind: "grok_build_oauth".into(),
+                credential_revision: 1,
+                priority: 0,
+                weight: 1,
+                concurrency: 2,
+                expires_at_ms: Some(100),
+                secret: CredentialSecret::try_new(b"old".to_vec())?,
+            }],
+        )?;
+        let old = pool
+            .try_lease_exact_revision_eligible_at(&credential, 1, 50, |_| true)
+            .ok_or("missing old lease")?;
+        assert!(pool.replace_credential_if_revision(
+            &credential,
+            1,
+            CredentialMaterialReplacement {
+                credential_revision: 2,
+                expires_at_ms: Some(500),
+                secret: CredentialSecret::try_new(b"rotated".to_vec())?
+            }
+        )?);
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(&credential, 1, 200, |_| true)
+                .is_none()
+        );
+        pool.set_build_continuation_range(&credential, 1, 2)?;
+        let current = pool
+            .try_lease_exact_revision_eligible_at(&credential, 1, 200, |_| true)
+            .ok_or("missing proven continuation")?;
+        assert_eq!(current.credential_revision(), 2);
+        assert_eq!(current.secret_bytes(), b"rotated");
+        assert_eq!(old.secret_bytes(), b"old");
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(&credential, 1, 200, |_| true)
+                .is_none(),
+            "capacity still applies"
+        );
+        drop(current);
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(&credential, 1, 500, |_| true)
+                .is_none(),
+            "expiry still applies"
+        );
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(&credential, 1, 200, |_| false)
+                .is_none(),
+            "revoked health still applies"
+        );
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(
+                &CredentialId::try_new("foreign")?,
+                1,
+                200,
+                |_| true
+            )
+            .is_none()
+        );
+        assert!(pool.replace_credential_if_revision(
+            &credential,
+            2,
+            CredentialMaterialReplacement {
+                credential_revision: 3,
+                expires_at_ms: Some(900),
+                secret: CredentialSecret::try_new(b"reauthorized".to_vec())?
+            }
+        )?);
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(&credential, 1, 300, |_| true)
+                .is_none()
+        );
+        assert!(
+            pool.try_lease_exact_revision_eligible_at(&credential, 2, 300, |_| true)
+                .is_none()
+        );
+        assert!(
+            pool.set_build_continuation_range(&credential, 1, 2)
+                .is_err()
+        );
         Ok(())
     }
 

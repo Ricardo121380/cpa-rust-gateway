@@ -291,11 +291,13 @@ impl RuntimePublicationController {
         &self,
         refresh: Option<RuntimeCredentialRefreshWorker>,
         catalog: Option<RuntimeModelCatalogWorker>,
-    ) -> tokio::task::JoinHandle<()> {
+    ) -> RuntimeWorkersTask {
+        let (stop, mut stopped) = tokio::sync::oneshot::channel();
         let mut updates = self.workers.subscribe();
-        actix_web::rt::spawn(async move {
+        let task = actix_web::rt::spawn(async move {
             let mut running = RunningWorkers::start(Workers { refresh, catalog });
-            while updates.changed().await.is_ok() {
+            loop {
+                tokio::select! { _ = &mut stopped => break, changed = updates.changed() => { if changed.is_err() { break; } } }
                 let next = updates.borrow_and_update().clone();
                 if let Some(next) = next {
                     let workers = next.lock().ok().and_then(|mut value| value.take());
@@ -305,14 +307,34 @@ impl RuntimePublicationController {
                     }
                 }
             }
-        })
+            running.stop().await;
+        });
+        RuntimeWorkersTask { stop, task }
     }
 }
 
-struct RunningWorkers(Vec<tokio::task::JoinHandle<()>>);
+pub(crate) struct RuntimeWorkersTask {
+    stop: tokio::sync::oneshot::Sender<()>,
+    task: tokio::task::JoinHandle<()>,
+}
+impl RuntimeWorkersTask {
+    pub(crate) async fn stop(self) {
+        let _ = self.stop.send(());
+        let _ = self.task.await;
+    }
+}
+
+struct RunningWorkers {
+    handles: Vec<tokio::task::JoinHandle<()>>,
+    refresh_stop: Option<crate::credential_refresh::RefreshStop>,
+}
 impl RunningWorkers {
     fn start(workers: Workers) -> Self {
         let mut handles = Vec::new();
+        let refresh_stop = workers
+            .refresh
+            .as_ref()
+            .map(RuntimeCredentialRefreshWorker::stop_signal);
         if let Some(worker) = workers.refresh {
             handles.push(actix_web::rt::spawn(async move {
                 worker.run().await;
@@ -323,20 +345,31 @@ impl RunningWorkers {
                 worker.run().await;
             }));
         }
-        Self(handles)
+        Self {
+            handles,
+            refresh_stop,
+        }
     }
     async fn stop(&mut self) {
-        for worker in &self.0 {
-            worker.abort();
+        if let Some(stop) = &self.refresh_stop {
+            stop.stop();
         }
-        while let Some(worker) = self.0.pop() {
+        for (index, worker) in self.handles.iter().enumerate() {
+            if index != 0 || self.refresh_stop.is_none() {
+                worker.abort();
+            }
+        }
+        for worker in self.handles.drain(..) {
             let _ = worker.await;
         }
     }
 }
 impl Drop for RunningWorkers {
     fn drop(&mut self) {
-        for worker in &self.0 {
+        if let Some(stop) = &self.refresh_stop {
+            stop.stop();
+        }
+        for worker in &self.handles {
             worker.abort();
         }
     }

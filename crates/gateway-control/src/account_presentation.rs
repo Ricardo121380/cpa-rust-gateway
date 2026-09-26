@@ -36,7 +36,8 @@ pub fn ordinary_channel<'a>(
     }
     if kimi {
         ("kimi", "Kimi")
-    } else if kind == "oauth_json" {
+    } else if kind == "oauth_json" && ["codex", "chatgpt", "openai-compatible"].contains(&upstream)
+    {
         (
             "codex",
             if upstream == "chatgpt" {
@@ -49,7 +50,38 @@ pub fn ordinary_channel<'a>(
         ("kiro", "Kiro")
     } else if claude {
         ("claude", "Claude")
+    } else if upstream == "grok.official" {
+        ("api", "Grok Official")
     } else {
         ("api", "API")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn channel_names_do_not_depend_on_opaque_credential_ids_or_oauth_storage_kind() {
+        assert_eq!(
+            ordinary_channel("oauth_json", "kimi-coding", []),
+            ("kimi", "Kimi")
+        );
+        assert_eq!(ordinary_channel("oauth_json", "kiro", []), ("kiro", "Kiro"));
+        assert_eq!(
+            ordinary_channel("oauth_json", "claude", []),
+            ("claude", "Claude")
+        );
+        assert_eq!(
+            ordinary_channel("oauth_json", "codex", []),
+            ("codex", "Codex")
+        );
+        assert_eq!(
+            ordinary_channel("bearer", "grok.official", []),
+            ("api", "Grok Official")
+        );
+        assert_eq!(
+            ordinary_channel("bearer", "openai-compatible", []),
+            ("api", "API")
+        );
     }
 }

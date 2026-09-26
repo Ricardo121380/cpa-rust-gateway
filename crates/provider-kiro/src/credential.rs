@@ -91,6 +91,75 @@ pub struct KiroApiKeyCredential {
 }
 
 impl KiroCredential {
+    /// Reads encrypted OAuth material for a worker even after access-token expiry.
+    /// Request-time imports remain strict and cannot use this to admit expired tokens.
+    ///
+    /// # Errors
+    /// Rejects malformed, non-OAuth or non-positive expiry input.
+    pub fn import_for_refresh(input: &[u8]) -> Result<Self, KiroCredentialError> {
+        let object = strict_object(input)?;
+        let expires = object
+            .get("expires_at_ms")
+            .and_then(Value::as_i64)
+            .filter(|value| *value > 0)
+            .ok_or(KiroCredentialError::InvalidTimestamp)?;
+        Self::import_json(input, expires - 1)
+    }
+
+    /// Absolute OAuth expiry. API keys have no refresh lifecycle.
+    #[must_use]
+    pub const fn expires_at_ms(&self) -> Option<i64> {
+        match self {
+            Self::Social(value) => Some(value.expires_at_ms),
+            Self::Enterprise(value) => Some(value.oauth.expires_at_ms),
+            Self::ApiKey(_) => None,
+        }
+    }
+
+    /// Exports the control-plane OAuth envelope for encrypted CAS persistence.
+    ///
+    /// # Errors
+    /// Rejects API keys or serialization failures. Output contains secrets and must not be logged.
+    pub fn export_oauth_json(&self) -> Result<Zeroizing<Vec<u8>>, KiroCredentialError> {
+        #[derive(serde::Serialize)]
+        struct Document<'a> {
+            kind: &'a str,
+            access_token: &'a str,
+            refresh_token: &'a str,
+            expires_at_ms: i64,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            client_id: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            client_secret: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            auth_region: Option<&'a str>,
+        }
+        let (kind, oauth, client_id, client_secret, auth_region) = match self {
+            Self::Social(v) => ("social", v, None, None, None),
+            Self::Enterprise(v) => (
+                "enterprise",
+                &v.oauth,
+                Some(v.client_id()),
+                Some(v.client_secret()),
+                Some(v.auth_region()),
+            ),
+            Self::ApiKey(_) => return Err(KiroCredentialError::NotRefreshable),
+        };
+        let access = oauth.access_token();
+        let refresh = oauth.refresh_token();
+        serde_json::to_vec(&Document {
+            kind,
+            access_token: access,
+            refresh_token: refresh,
+            expires_at_ms: oauth.expires_at_ms,
+            client_id,
+            client_secret,
+            auth_region,
+        })
+        .map(Zeroizing::new)
+        .map_err(|_| KiroCredentialError::InvalidPersistedCredential)
+    }
+
     /// Imports one request-time runtime lease without discovering any ambient credential source.
     ///
     /// Existing P12 deployments store headless `ksk_` material directly, while Social and
@@ -816,6 +885,42 @@ pub struct KiroRefreshRequest {
 }
 
 impl KiroRefreshRequest {
+    /// Fixed provider destination, independent of arbitrary imported URLs.
+    #[must_use]
+    pub fn token_url(&self) -> String {
+        match &self.auth_region {
+            Some(region) => format!("https://oidc.{region}.amazonaws.com/token"),
+            None => "https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken".to_owned(),
+        }
+    }
+
+    /// Encodes the provider's camel-case refresh request without exposing fields to callers.
+    ///
+    /// # Errors
+    /// Returns a safe serialization error. The zeroizing body contains secrets.
+    pub fn json_body(&self) -> Result<Zeroizing<Vec<u8>>, KiroCredentialError> {
+        #[derive(serde::Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Body<'a> {
+            refresh_token: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            grant_type: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            client_id: Option<&'a str>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            client_secret: Option<&'a str>,
+        }
+        let secret = self.client_secret.as_deref().map(String::as_str);
+        serde_json::to_vec(&Body {
+            refresh_token: &self.refresh_token,
+            grant_type: self.auth_region.as_ref().map(|_| "refresh_token"),
+            client_id: self.client_id.as_deref(),
+            client_secret: secret,
+        })
+        .map(Zeroizing::new)
+        .map_err(|_| KiroCredentialError::InvalidField)
+    }
+
     fn social(refresh_token: &str) -> Self {
         Self {
             kind: KiroRefreshKind::Social,

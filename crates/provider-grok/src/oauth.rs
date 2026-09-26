@@ -324,6 +324,18 @@ impl GrokBuildCredential {
         self.identity.retain_missing(&previous.identity);
     }
 
+    /// Whether a fixed-issuer refresh preserved a known subject, client and grant scope.
+    /// Email/display metadata is deliberately excluded from authorization continuity.
+    #[must_use]
+    pub fn same_refresh_owner(&self, previous: &Self) -> bool {
+        self.client_id == previous.client_id
+            && scope_contains(&self.scope, &previous.scope)
+            && scope_contains(&previous.scope, &self.scope)
+            && token_subject(self.access_token())
+                .zip(token_subject(previous.access_token()))
+                .is_some_and(|(next, old)| next == old)
+    }
+
     /// Retrieves missing identity once from the fixed issuer using the existing OAuth grant.
     /// # Errors
     /// Returns a closed error for unavailable, malformed or wrong-subject profile responses.
