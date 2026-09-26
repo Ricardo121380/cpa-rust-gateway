@@ -92,3 +92,5 @@ f1e576cf07593f648852dce718b8ad4a9102e43a通过正式门禁36259338866、双架�
 Pi原始SDK默认加密reasoning路径：第5次工具调用成功，HTTP200、completed/toolUse，输出115token；持久记录succeeded/1attempt、2585ms、首内容1956ms，327输入/115输出/99reasoning，1条unpriced账本。第6次工具结果回传后收到文本，但终态failed/UpstreamProtocolError，1160ms、首内容1120ms，1attempt，无可靠usage或账本。已停止剩余两轮，不把HTTP200或局部文本算成功。累计6/12，余6。
 
 限定日志精确确认第6次为metadata/message、encrypted_content_present=false，不能由此推断具体字段。新增固定枚举的metadata拒绝分类（顶层扩展、part类型/扩展、logprobs形状、annotations形状等），只记固定标签，不记录动态字段名、正文、密文；保留原校验策略。两相关crate回归通过，新增分类回归及严格Clippy通过；诊断候选尚待发布。回执pi-fifth-sixth-*及pi-sixth-diagnostic.json。持久处理水位2375已追平，原11隔离保持。
+
+官方xAI Responses当前示例明确包含output_text.logprobs=null，现有闭集此前会拒绝这种合法空值。补充null/空数组的原样保留，JSON/SSE/最终快照/请求回读专项通过；非空或类型错误仍拒绝。此为有规范依据的兼容修复，不以它反推第6次实际字段。8cc2c76仅诊断候选的两项CI主动取消、未部署，改为诊断与空值修复合并验收，避免额外发布和推理消耗。

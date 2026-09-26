@@ -200,7 +200,15 @@ fn validate_parts(value: &Value, kind: &str, stage: &mut &'static str) -> Result
         };
         if part
             .keys()
-            .any(|key| !matches!(key.as_str(), "type" | "text" | "annotations"))
+            .any(|key| !matches!(key.as_str(), "type" | "text" | "annotations" | "logprobs"))
+        {
+            return Err(stream_protocol_error());
+        }
+        // xAI emits null when log probabilities were not requested. Preserve that
+        // representation (or an empty array), without admitting opaque token metadata.
+        if part
+            .get("logprobs")
+            .is_some_and(|v| kind != "output_text" || (!v.is_null() && v != &json!([])))
         {
             return Err(stream_protocol_error());
         }
@@ -574,8 +582,6 @@ mod diagnostic_tests {
         let base = json!({"id":"message", "type":"message", "role":"assistant", "status":"completed", "content":[{"type":"output_text","text":"synthetic","annotations":[]}]});
         assert!(native_item_metadata_rejection(&base, true).is_none());
         for (key, value, expected) in [
-            ("logprobs", Value::Null, "part_logprobs_null"),
-            ("logprobs", json!([]), "part_logprobs_empty"),
             ("logprobs", json!([{}]), "part_logprobs_value"),
             ("annotations", Value::Null, "part_annotations_null"),
             ("annotations", json!([{}]), "part_annotations_value"),

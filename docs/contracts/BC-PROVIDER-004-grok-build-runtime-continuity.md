@@ -44,3 +44,11 @@ exact lease selection; the original credential/revision or independently proven 
 remains required. Existing stored/compaction/WebSocket capability checks remain additive.
 The public canonical syntax accepts only bounded gateway tokens, never raw provider ciphertext;
 syntax recognition is not an ownership proof. The owning Build adapter alone unwraps after lease.
+
+## Empty text log probabilities (M4)
+
+The [xAI Responses example](https://docs.x.ai/developers/rest-api-reference/inference/responses)
+includes `logprobs: null` on `output_text`. Native JSON/SSE preserves null or an empty array
+on text parts, including final snapshots and replay. Non-empty log probabilities, malformed
+values, and reasoning-part log probabilities remain unsupported and fail closed. This does
+not permit arbitrary extension fields or drop terminal snapshot consistency checks.

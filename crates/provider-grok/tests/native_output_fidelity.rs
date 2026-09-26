@@ -231,3 +231,44 @@ fn interleaved_items_complete_in_reverse_order_without_reordering_output() -> Re
     assert_eq!(encoded["output"], upstream["output"]);
     Ok(())
 }
+
+#[test]
+fn empty_logprobs_preserve_native_json_sse_and_request_replay() -> Result {
+    for empty in [Value::Null, json!([])] {
+        let mut upstream = response();
+        upstream["output"][3]["content"][0]["logprobs"] = empty;
+        upstream["output"][3]["content"][0]["annotations"] = json!([]);
+        for source in [
+            GrokBuildResponsesDecoder::decode_non_streaming(upstream.to_string().as_bytes())?,
+            decode_stream(&stream(&upstream, true))?,
+        ] {
+            let metadata = OpenAiResponseMetadata::try_new("exact-model", 0)?;
+            let reply = encode_response(&source, metadata.clone())?;
+            assert_eq!(reply["output"], upstream["output"]);
+            decode_request(&json!({"model":"exact-model","input":reply["output"]}).to_string())?;
+            let mut encoder = OpenAiResponsesSseEncoder::new(metadata);
+            let mut frames = Vec::new();
+            for event in source.events() {
+                frames.extend(encoder.encode_event(event)?);
+            }
+            assert_eq!(
+                frames.last().ok_or("terminal")?.data()["response"]["output"],
+                upstream["output"]
+            );
+        }
+    }
+    for invalid in [
+        json!(true),
+        json!({}),
+        json!([{"private-synthetic-field":"value"}]),
+    ] {
+        let mut upstream = response();
+        upstream["output"][3]["content"][0]["logprobs"] = invalid;
+        assert!(
+            GrokBuildResponsesDecoder::decode_non_streaming(upstream.to_string().as_bytes())
+                .is_err()
+        );
+        assert!(decode_stream(&stream(&upstream, false)).is_err());
+    }
+    Ok(())
+}
