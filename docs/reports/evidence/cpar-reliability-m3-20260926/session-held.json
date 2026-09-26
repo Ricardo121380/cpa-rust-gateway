@@ -1,0 +1,174 @@
+{
+  "browser": "EgoLite",
+  "mode": "held",
+  "realGateway": true,
+  "heldTransport": true,
+  "revocationStatus": 204,
+  "loginVisible": true,
+  "passed": true,
+  "hash": "#/unlock",
+  "protectedContent": false,
+  "appChildren": 1,
+  "events": [
+    {
+      "t": 25,
+      "type": "DOMContentLoaded",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 28,
+      "type": "pageshow",
+      "detail": "#/unlock"
+    },
+    {
+      "t": 2970,
+      "type": "fetch",
+      "detail": "/admin/auth/login"
+    },
+    {
+      "t": 3256,
+      "type": "response",
+      "detail": {
+        "path": "/admin/auth/login",
+        "status": 200
+      }
+    },
+    {
+      "t": 3309,
+      "type": "fetch",
+      "detail": "/admin/config-versions"
+    },
+    {
+      "t": 3311,
+      "type": "response",
+      "detail": {
+        "path": "/admin/config-versions",
+        "status": 200
+      }
+    },
+    {
+      "t": 3311,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 3326,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 3326,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 3331,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 200
+      }
+    },
+    {
+      "t": 3331,
+      "type": "fetch",
+      "detail": "/admin/operations/provider-account-pools"
+    },
+    {
+      "t": 3333,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/provider-account-pools",
+        "status": 200
+      }
+    },
+    {
+      "t": 3333,
+      "type": "fetch",
+      "detail": "/admin/operations/billing-processing"
+    },
+    {
+      "t": 3334,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing-processing",
+        "status": 200
+      }
+    },
+    {
+      "t": 3335,
+      "type": "fetch",
+      "detail": "/admin/observability/metrics"
+    },
+    {
+      "t": 3336,
+      "type": "response",
+      "detail": {
+        "path": "/admin/observability/metrics",
+        "status": 200
+      }
+    },
+    {
+      "t": 3336,
+      "type": "fetch",
+      "detail": "/admin/requests/summary"
+    },
+    {
+      "t": 3343,
+      "type": "revoked",
+      "detail": 204
+    },
+    {
+      "t": 3345,
+      "type": "popstate",
+      "detail": "#/settings"
+    },
+    {
+      "t": 3349,
+      "type": "hashchange",
+      "detail": "#/settings"
+    },
+    {
+      "t": 3353,
+      "type": "response",
+      "detail": {
+        "path": "/admin/requests/summary",
+        "status": 200
+      }
+    },
+    {
+      "t": 3353,
+      "type": "fetch",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 3354,
+      "type": "response",
+      "detail": {
+        "path": "/admin/operations/billing",
+        "status": 404
+      }
+    },
+    {
+      "t": 3407,
+      "type": "released",
+      "detail": "/admin/operations/billing"
+    },
+    {
+      "t": 3408,
+      "type": "fetch",
+      "detail": "/admin/operations/provider-account-pools"
+    },
+    {
+      "t": 3410,
+      "type": "fetch-error",
+      "detail": {
+        "path": "/admin/operations/provider-account-pools",
+        "error": "AbortError"
+      }
+    }
+  ]
+}

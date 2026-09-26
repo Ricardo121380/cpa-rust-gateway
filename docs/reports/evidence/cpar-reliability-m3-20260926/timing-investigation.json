@@ -1,0 +1,15 @@
+{
+  "observed_browser": "EgoLite",
+  "fixture_only": true,
+  "provider_calls": 0,
+  "candidate_probe": {
+    "dom_rendered_ms": 4.9,
+    "animation_finished_ms": 1255.8,
+    "first_following_animation_frame_ms": 1003.6,
+    "focused": true,
+    "visible": true,
+    "css_sheet_duration_ms": 240
+  },
+  "baseline_and_candidate_modal_css_unchanged": true,
+  "conclusion": "First-run regression was not reproduced by second five-sample comparison; both revisions exhibit roughly one-second frame/animation wait variation. No production performance or speedup claim."
+}

@@ -1,0 +1,48 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "realProviderCalls": 0,
+  "passed": true,
+  "checks": [
+    {
+      "label": "账号状态",
+      "hash": "#/accounts?view=runtime&account_id=local-account-1&provider=local-provider&channel_id=local-responses",
+      "exactAccount": "local-account-1",
+      "runtimeRows": [
+        "local-account-1"
+      ],
+      "providerOpen": false,
+      "target": false,
+      "errors": []
+    },
+    {
+      "label": "提供商",
+      "hash": "#/upstreams?upstream_id=local-provider",
+      "exactAccount": null,
+      "runtimeRows": [],
+      "providerOpen": true,
+      "target": false,
+      "errors": []
+    },
+    {
+      "label": "模型目录",
+      "hash": "#/catalog?endpoint_id=local-responses&credential_id=local-account-1&account_id=local-account-1",
+      "exactAccount": "local-account-1",
+      "runtimeRows": [],
+      "providerOpen": false,
+      "catalogOpen": true,
+      "catalogRows": 1,
+      "target": false,
+      "errors": []
+    },
+    {
+      "label": "运行诊断",
+      "hash": "#/runtime?endpoint_id=local-responses&credential_id=local-account-1&account_id=local-account-1",
+      "exactAccount": "local-account-1",
+      "runtimeRows": [],
+      "providerOpen": false,
+      "target": true,
+      "errors": []
+    }
+  ]
+}

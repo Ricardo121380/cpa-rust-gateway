@@ -1,3 +1,4 @@
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { useAccountDirectory } from "../accounts/useAccountDirectory";
 import { accountGroups } from "../accounts/presentation";
 import type { PoolSnapshot } from "../runtime/model";
@@ -69,10 +70,10 @@ function PipelineHealth({ counters }: Readonly<{ counters: GatewayCounters }>) {
       <h3>
         观测管道健康{" "}
         {counters.requiredLoss === 0 ? (
-          <span className="badge badge-good">必需事件无丢失</span>
+          <span className="badge badge-good">本进程未见记录告警</span>
         ) : (
           <span className="badge badge-critical">
-            {formatCount(counters.requiredLoss)} 条必需事件丢失
+            {formatCount(counters.requiredLoss)} 次记录告警
           </span>
         )}
       </h3>
@@ -88,7 +89,7 @@ function PipelineHealth({ counters }: Readonly<{ counters: GatewayCounters }>) {
           </tbody>
         </table>
       ) : (
-        <p className="stat-sub">队列未拒绝必需事件,写入器未隔离也未写失败 —— 事件日志完整。</p>
+        <p className="stat-sub">本进程计数中未见队列拒绝、隔离或写入失败；这不证明全部历史记录完整。</p>
       )}
       <p className="stat-sub">
         待写入 <span className="mono">{counters.pendingRequired}</span> 条
@@ -115,27 +116,7 @@ function LiveCountersSection() {
   // claim about a window that never happened. After one, "+0" is real news.
   const baseline = useRef<{ counters: GatewayCounters; at: number } | undefined>(undefined);
 
-  if (metrics.isError) {
-    return (
-      <div className="card empty-state" data-kind="unwired" data-gap="top">
-        <p>
-          网关未提供观测指标
-          <br />
-          <small className="muted">
-            <span className="mono">GET /admin/observability/metrics</span>{" "}
-            不可用，请检查网关是否提供观测接口。
-          </small>
-        </p>
-      </div>
-    );
-  }
-  if (metrics.data === undefined) {
-    return (
-      <div className="card empty-state" data-kind="empty" data-gap="top">
-        <p>读取网关计数器…</p>
-      </div>
-    );
-  }
+  if (metrics.data === undefined) return <PagedReadStatus query={metrics}/>;
 
   const counters = readCounters(metrics.data);
   baseline.current ??= { counters, at: metrics.dataUpdatedAt };
@@ -149,6 +130,14 @@ function LiveCountersSection() {
 
   return (
     <>
+      <PagedReadStatus query={metrics}/>
+      <section className="card" aria-label="请求记录状态" role={counters.recording.accepting===false?"alert":undefined}>
+        <h3>请求记录 · {counters.recording.accepting===null?"状态未观测":counters.recording.accepting?"可接收新请求":"暂停接收新请求"}</h3>
+        <p>{({0:"正在启动恢复",1:"持久化可用",2:"存储暂不可用",3:"记录系统已关闭"} as Record<number,string>)[counters.recording.state??-1]??"记录系统状态未知"} · 待确认 {counters.recording.pending??"未观测"}</p>
+        <p className="stat-sub">最后成功写入：{counters.recording.lastCommit?new Date(counters.recording.lastCommit).toLocaleString():"未观测"} · 确认失败 {counters.recording.confirmationFailures??"未观测"} 次 · 启动恢复为终态未知 {counters.recording.recoveredUnknown??"未观测"} 条</p>
+        {counters.recording.accepting===false?<p>记录系统恢复后才会接受新请求。请检查运行日志与存储状态；普通服务健康不代表记录可用。</p>:null}
+      </section>
+      <details className="overview-telemetry"><summary>进程计数与运行事件</summary>
       <h3 className="overview-metrics-title" data-gap="top">
         网关实时计数 <span className="badge badge-muted">自进程启动累计</span>
       </h3>
@@ -187,6 +176,7 @@ function LiveCountersSection() {
         </div>
         <PipelineHealth counters={counters} />
       </div>
+      </details>
       </details>
     </>
   );
@@ -340,7 +330,7 @@ export function OverviewPage() {
           )}
           </div>
       </details>
-      <details className="overview-telemetry"><summary>进程计数与运行事件</summary><LiveCountersSection/></details>
+      <LiveCountersSection/>
     </section>
   );
 }

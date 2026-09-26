@@ -1,0 +1,61 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "passed": true,
+  "states": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "emptyPassword": true,
+      "protectedContent": false,
+      "screenshot": "unlock-light-1440.png"
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "overflow": false,
+      "emptyPassword": true,
+      "protectedContent": false,
+      "screenshot": "unlock-light-1280.png"
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "emptyPassword": true,
+      "protectedContent": false,
+      "screenshot": "unlock-light-390.png"
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "emptyPassword": true,
+      "protectedContent": false,
+      "screenshot": "unlock-dark-1440.png"
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "overflow": false,
+      "emptyPassword": true,
+      "protectedContent": false,
+      "screenshot": "unlock-dark-1280.png"
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "emptyPassword": true,
+      "protectedContent": false,
+      "screenshot": "unlock-dark-390.png"
+    }
+  ]
+}

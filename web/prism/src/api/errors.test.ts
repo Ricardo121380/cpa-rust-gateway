@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyStatus, isRuntimeConflict, shouldRetryManagementRead, toAppError, type AppError } from "./errors";
+import { classifyStatus, requiresWriteReconciliation, isRuntimeConflict, shouldRetryManagementRead, toAppError, type AppError } from "./errors";
 
 function conflict(code: string): AppError {
   return { kind: "conflict", code, message: "", status: 409 };
@@ -72,4 +72,12 @@ describe("shouldRetryManagementRead", () => {
     expect(shouldRetryManagementRead(3, unavailable)).toBe(false);
     expect(shouldRetryManagementRead(0, { ...unavailable, kind: "conflict" })).toBe(false);
   });
+});
+
+it("401 expires a session and ambiguous writes require reconciliation",()=>{
+  expect(classifyStatus(401,"unknown")).toBe("session_invalid");
+  expect(isRuntimeConflict(conflict("management_account_inventory_conflict"))).toBe(true);
+  expect(isRuntimeConflict(conflict("management_request_cursor_conflict"))).toBe(true);
+  for(const kind of ["network","conflict","unavailable","unknown"])expect(requiresWriteReconciliation({kind})).toBe(true);
+  expect(requiresWriteReconciliation({kind:"invalid_request"})).toBe(false);
 });

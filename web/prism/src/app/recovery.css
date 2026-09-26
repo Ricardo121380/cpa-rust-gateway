@@ -1,0 +1,8 @@
+.route-recovery { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--canvas); color: var(--ink); }
+.route-recovery-panel { width: min(100%, 560px); padding: 28px; overflow-wrap: anywhere; }
+.route-recovery-brand { color: var(--ink-2); font-weight: 600; }
+.route-recovery-panel h1 { font-size: 24px; letter-spacing: -.025em; margin: 18px 0 12px; }
+.route-recovery-panel p { line-height: 1.65; color: var(--ink-2); }
+.route-recovery-panel .page-actions { margin: 24px 0; flex-wrap: wrap; gap: 10px; }
+.route-recovery-panel small { display: block; line-height: 1.6; }
+@media (max-width: 720px) { .route-recovery { padding: 12px; } .route-recovery-panel { padding: 22px; } .route-recovery-panel button { min-height: 44px; } }

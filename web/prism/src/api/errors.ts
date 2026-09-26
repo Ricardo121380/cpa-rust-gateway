@@ -21,7 +21,7 @@ export type AppError = Readonly<{
 type ErrorEnvelope = Readonly<{ error?: { code?: string; message?: string } | string }>;
 
 export function classifyStatus(status: number, code: string): AppErrorKind {
-  if (status === 404 && code === "management_access_denied") {
+  if (status === 401 || (status === 404 && code === "management_access_denied")) {
     return "session_invalid";
   }
   if (status === 400) {
@@ -79,6 +79,8 @@ export async function toAppError(response: Response): Promise<AppError> {
  */
 const RUNTIME_CONFLICT_CODES: ReadonlySet<string> = new Set([
   "management_inventory_cursor_conflict",
+  "management_account_inventory_conflict",
+  "management_request_cursor_conflict",
   "management_catalog_cursor_conflict",
   "management_native_account_conflict",
   "management_operations_cursor_conflict",
@@ -116,4 +118,10 @@ export function asAppError(error: unknown): AppError {
 /** A capacity rejection happens before a management read begins. */
 export function shouldRetryManagementRead(failures: number, error: unknown): boolean {
   return asAppError(error).kind === "unavailable" && failures < 3;
+}
+
+/** A rejected validation is safe to correct. A conflict or lost response must
+ * be reconciled by reading the server before another write is offered. */
+export function requiresWriteReconciliation(error: unknown): boolean {
+  return asAppError(error).kind !== "invalid_request";
 }

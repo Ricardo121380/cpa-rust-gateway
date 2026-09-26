@@ -1,3 +1,4 @@
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { AccountRuntimeSummary, useAccountRuntimeSummary } from "./AccountRuntimeSummary";
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
 import { KimiDeviceDialog } from "./KimiDeviceDialog";
@@ -6,7 +7,6 @@ import { useModelConnections } from "../models/useModelConnections";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { asAppError } from "../../api/errors";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { IdentityDetails } from "../../components/ResourceIdentity";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -105,7 +105,6 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     return next;
   });
   const startAction=(row:ManagedCredential,action:AccountAction)=>{setMore(undefined);setAuthorizations(undefined);setBatch({targets:[ordinaryTarget(row)],action});};
-  const error = inventory.isError ? asAppError(inventory.error) : undefined;
   const actions = (row: ManagedCredential) => <div className="page-actions">
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setDetail(row.credential.id);}}>详情</button>
               {directory.find(item=>item.id===row.credential.id&&!item.native)?.operations.includes("reauthorize") ? <button className="secondary" onClick={() => {setAuthorizations(undefined);if(row.category==="claude")setClaudeOauth(row);else if(row.category==="kiro")setKiroOauth(row);else if(row.category==="kimi")setKimiOauth(row);else setOauth(row.credential.id);}}>重新授权</button> : null}
@@ -149,7 +148,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
       </div>
     </header>
     {navigation}
-    {inventory.data&&!inventory.isError?<div className="account-inventory-summary" aria-label="账号目录摘要"><span><strong>{inventory.data.pages[0]?.total.toLocaleString()}</strong>匹配授权</span><span><strong>{Object.keys(inventory.data.pages[0]?.category_totals??{}).filter(key=>(inventory.data?.pages[0]?.category_totals[key]??0)>0).length}</strong>账号类别</span><span><strong>{inventory.data.pages[0]?.unobserved_plan_total.toLocaleString()}</strong>套餐未观测</span></div>:null}
+    {inventory.data?<div className="account-inventory-summary" aria-label="账号目录摘要"><span><strong>{inventory.data.pages[0]?.total.toLocaleString()}</strong>匹配授权</span><span><strong>{Object.keys(inventory.data.pages[0]?.category_totals??{}).filter(key=>(inventory.data?.pages[0]?.category_totals[key]??0)>0).length}</strong>账号类别</span><span><strong>{inventory.data.pages[0]?.unobserved_plan_total.toLocaleString()}</strong>套餐未观测</span></div>:null}
     {notice ? <p role="status">{notice}</p> : null}
     {selecting?<div className="account-batch-toolbar" aria-label="批量账号操作"><span>已选 {selectedTargets.length} / 20 份授权</span><div className="page-actions">{(["enable","disable","remove"] as const).map((action)=><button key={action} className="secondary" disabled={!selectedTargets.length} onClick={()=>setBatch({targets:selectedTargets,action})}>{({enable:"启用",disable:"停用",remove:"移除"})[action]}</button>)}<button className="secondary" disabled={!selection.size} onClick={()=>setSelection(new Set())}>清除选择</button></div></div>:null}
     <div className="account-status-tabs" role="group" aria-label="授权状态筛选">
@@ -167,7 +166,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
       {provider?<button className="secondary" onClick={()=>update("provider","")}>清除提供商筛选</button>:null}
       </div>
     </div>
-    {error?<div role="alert" className="empty-state">{error.message}<button onClick={()=>void refresh()}>重新读取账号</button></div>:null}
+    <PagedReadStatus query={inventory}/>
     {inventory.isPending?<p role="status">正在读取账号…</p>:!inventory.isError&&inventory.data?.pages[0]?.total===0?<p className="empty-state">没有匹配的账号。</p>:null}
     <div className="account-directory">
       {accountGroups.filter((group)=>(!selectedCategory||selectedCategory===group.id)&&directory.some(row=>row.category===group.id)).map((group)=>{
@@ -175,7 +174,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
         const identities=groupManagedIdentities(ordinary);
         const grok=provider?[]:nativeRows;
         const loading=group.id==="grok"?native.isPending:!!context&&inventory.isPending;
-        const failed=group.id==="grok"?native.isError:inventory.isError;
+        const failed=inventory.data===undefined && (group.id==="grok"?native.isError:inventory.isError);
         return <section className="account-group" key={group.id} aria-label={`${group.name} 账号`}>
           <header className="account-directory-head"><div><h3>{group.name}</h3><span className="entity-meta">{group.description}</span></div><span className="account-group-count">{loading?"读取中":failed?"读取失败":`${inventory.data?.pages[0]?.category_totals[group.id]??0} 份授权`}</span></header>
           {loading?<p className="account-group-empty">读取账号…</p>:failed?<p className="account-group-empty">暂时无法显示此类别</p>:group.id==="grok"?

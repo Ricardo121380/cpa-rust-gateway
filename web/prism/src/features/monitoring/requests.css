@@ -28,6 +28,8 @@
 .request-attempts li::before { content:""; position:absolute; left:-4px; top:5px; width:7px; height:7px; border-radius:50%; background:var(--tint); }
 .request-attempts li:last-child { padding-bottom:0; border-left-color:transparent; }
 .request-attempts li > * { display:block; margin-bottom:6px; }
+.request-attempts li > .request-facts { display:grid; margin:12px 0; }
+.request-attempts li > .page-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
 @media(max-width:1000px) { .request-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 @media(max-width:720px) {
  .request-metrics { grid-template-columns:1fr 1fr; }

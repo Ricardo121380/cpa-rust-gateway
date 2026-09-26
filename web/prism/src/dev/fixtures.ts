@@ -2125,7 +2125,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(200, [
         {
           attempt_id: `${requestId}-a0`,
-          outcome: "provider_rate_limited",
+          outcome: "failed",
+          observation:{attempt_number:1,upstream_id:"relay-a",started_at_ms:fixtureRequestAnchor-200,ended_at_ms:fixtureRequestAnchor-100,duration_ms:100,error_code:"ProviderRateLimited",error_scope:"provider",retry_decision:"retry_eligible"},
           stage: "http_status",
           endpoint_id: "ep-relay-a-responses",
           credential_id: "cred-relay-key",

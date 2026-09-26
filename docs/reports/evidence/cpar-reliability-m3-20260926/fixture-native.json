@@ -1,0 +1,12 @@
+{
+  "browser": "EgoLite",
+  "realGateway": false,
+  "fixtureOnly": true,
+  "realProviderCalls": 0,
+  "checks": [
+    "accepted write with lost response has one submission, reconciliation reads disabled state",
+    "409 keeps the account disabled and requires explicit reread without write replay",
+    "saved-but-unapplied result remains explicit; apply uses only the runtime operation"
+  ],
+  "passed": true
+}

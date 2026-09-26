@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useMessages } from "../../i18n/messages";
@@ -35,6 +35,8 @@ export function CatalogPage() {
   const rows = (catalog.data ?? []).filter(
     (row) =>
       (!state || row.freshness === state) &&
+      (!params.get("endpoint_id")||row.endpoint_id===params.get("endpoint_id"))&&
+      (!params.get("credential_id")||row.credential_id===params.get("credential_id"))&&
       `${row.endpoint_id} ${row.credential_id}`
         .toLowerCase()
         .includes(query.toLowerCase()),
@@ -68,7 +70,7 @@ export function CatalogPage() {
       <WorkspaceTabs />
       <UpstreamModelBrowser />
       <details className="card" data-gap="top"><summary>检查客户端可用模型</summary><EffectiveModels /></details>
-      <details className="card" data-gap="top"><summary>目录状态与诊断</summary>
+      <details className="card" data-gap="top" open={params.has("endpoint_id")||params.has("credential_id")?true:undefined}><summary>目录状态与诊断</summary>
       <div className="stat-row">
         {FRESHNESS_STATES.map((state) => (
           <div className="stat-tile" key={state}>
@@ -103,17 +105,8 @@ export function CatalogPage() {
             ))}
           </select>
         </div>
-        {scope === undefined ? (
-          <div className="empty-state">选择配置版本后查看目录证据。</div>
-        ) : catalog.isError ? (
-          <div className="empty-state" role="alert">
-            {asAppError(catalog.error).kind === "unavailable"
-              ? t.state.unavailable
-              : asAppError(catalog.error).code}
-          </div>
-        ) : catalog.isPending ? (
-          <div className="empty-state">读取目录…</div>
-        ) : rows.length === 0 ? (
+        <PagedReadStatus query={catalog}/>
+        {scope === undefined ? <div className="empty-state">读取当前配置后查看目录证据。</div> : catalog.data===undefined ? null : rows.length === 0 ? (
           <div className="empty-state">
             {query || state ? t.state.filteredEmpty : t.state.empty}
           </div>

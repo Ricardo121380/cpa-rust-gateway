@@ -1,0 +1,19 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "passed": true,
+  "checks": [
+    {
+      "tab": "ledger",
+      "initialRecovery": true,
+      "retainedSnapshot": true,
+      "rows": 54
+    },
+    {
+      "tab": "failures",
+      "initialRecovery": true,
+      "retainedSnapshot": true,
+      "rows": 1
+    }
+  ]
+}

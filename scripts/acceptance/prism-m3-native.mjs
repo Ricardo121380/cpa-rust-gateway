@@ -1,0 +1,61 @@
+// Supplemental UI fault tests only: Vite fixture backend, never real authorization.
+// Prepend PRISM_M3={spaceId,receipts,fixtureOrigin}; reuse the task's p2.
+const fs=await import("node:fs/promises");
+const path=await import("node:path");
+const {spaceId,receipts,fixtureOrigin}=globalThis.PRISM_M3;
+const origin=new URL(fixtureOrigin);
+if(origin.hostname!=="127.0.0.1"||origin.protocol!=="http:")throw Error("Loopback fixture required");
+const page=(await taskSpace(spaceId)).page("p2");
+await page.goto(origin.origin+"/#/unlock");await page.reload();
+await page.fill('input[name="password"]',"Prism-demo-2026");
+await page.keyboard.press("Escape");await page.click('loc=role:heading[name="管理员登录"]');
+await page.click('loc=role:button[name="登录"]');await page.waitForSelector("main.canvas",{state:"visible"});
+await page.goto(origin.origin+"/#/accounts");
+await page.click('loc=role:button[name="授权 / 导入账号"]');
+await page.click('loc=role:button[name*="Grok Console"]');
+await page.fill('textarea[name="secret"]',"fixture-only-sso-no-provider-call");
+await page.click('loc=role:button[name="导入账号"]');
+await page.waitForSelector('loc=role:dialog[name="导入结果"]',{state:"visible"});
+await page.click('loc=role:button[name="完成"]');
+await page.evaluate(async()=>{
+ const {ManagementApi}=await import("/src/generated/management-client.ts");
+ const original=ManagementApi.prototype.request;
+ window.__m3Native={mode:"lost",writes:0,apply:0};
+ ManagementApi.prototype.request=async function(operation,request){
+  const state=window.__m3Native;
+  if(operation==="applyRuntimeConfiguration")state.apply++;
+  if(operation!=="updateNativeAccount")return original.call(this,operation,request);
+  state.writes++;
+  if(state.mode==="conflict")return new Response(JSON.stringify({error:{code:"management_revision_conflict",message:"Synthetic concurrent update"}}),{status:409,headers:{"Content-Type":"application/json"}});
+  const response=await original.call(this,operation,request);
+  if(state.mode==="lost")throw Error("Synthetic lost response");
+  if(state.mode==="pending"){const body=await response.json();return new Response(JSON.stringify({...body,runtime_applied:false}),{status:response.status,headers:response.headers});}
+  return response;
+ };
+});
+const open=async(action)=>{await page.click('loc=role:button[name="详情"]');await page.click('loc=role:button[name="配置"]');await page.click(`loc=role:button[name="${action}"]`);await page.click('loc=role:button[name="确认"]');};
+const checks=[];
+await open("停用");await page.waitForFunction(()=>document.body.innerText.includes("未能确认操作结果"));
+let observation=await page.evaluate(()=>({writes:window.__m3Native.writes,submit:!!document.querySelector('[role="dialog"] button[type="submit"]')}));
+if(observation.writes!==1||observation.submit)throw Error("Lost response may replay");
+await page.click('loc=role:button[name="重新读取账号"]');
+await page.waitForFunction(()=>!document.querySelector('[role="dialog"]')&&document.body.innerText.includes("已停用"));
+checks.push("accepted write with lost response has one submission, reconciliation reads disabled state");
+await page.evaluate(()=>{window.__m3Native.mode="conflict";});
+await open("启用");await page.waitForFunction(()=>document.body.innerText.includes("账号状态已变化，请重新读取后核对"));
+observation=await page.evaluate(()=>({writes:window.__m3Native.writes,submit:!!document.querySelector('[role="dialog"] button[type="submit"]')}));
+if(observation.writes!==2||observation.submit)throw Error("Conflict may replay");
+await page.click('loc=role:button[name="重新读取账号"]');
+await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));
+checks.push("409 keeps the account disabled and requires explicit reread without write replay");
+await page.evaluate(()=>{window.__m3Native.mode="pending";});
+await open("启用");await page.waitForFunction(()=>document.body.innerText.includes("修改已保存，运行配置暂未应用"));
+await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});
+await page.screenshot({path:path.join(receipts,"fixture-native-pending-apply.png")});
+await page.click('loc=role:button[name="应用运行配置"]');
+await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));
+observation=await page.evaluate(()=>window.__m3Native);
+if(observation.writes!==3||observation.apply!==1)throw Error("Apply replayed the mutation");
+checks.push("saved-but-unapplied result remains explicit; apply uses only the runtime operation");
+await fs.writeFile(path.join(receipts,"fixture-native.json"),JSON.stringify({browser:"EgoLite",realGateway:false,fixtureOnly:true,realProviderCalls:0,checks,passed:true},null,2));
+console.log({passed:true,checks});

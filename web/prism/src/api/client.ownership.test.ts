@@ -269,3 +269,14 @@ describe("administrator login ownership", () => {
     } finally { vi.useRealTimers(); }
   });
 });
+
+it("a 401 clears credentials and cached data without replaying the read",async()=>{
+  queryClient.setQueryData(["private"],"private");
+  transport.mockResolvedValueOnce(new Response(JSON.stringify({error:{code:"session_expired"}}),{status:401}));
+  await expect(scopedRead()).rejects.toMatchObject({kind:"session_invalid"});
+  expect(useSessionStore.getState().unlocked).toBe(false);
+  expect(readManagementKey()).toBeUndefined();
+  expect(readCsrfToken()).toBeUndefined();
+  expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+  expect(transport).toHaveBeenCalledOnce();
+});

@@ -1,0 +1,370 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "passed": true,
+  "states": [
+    {
+      "route": "accounts",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "layout": {
+        "left": 460,
+        "right": 980,
+        "top": 104.359375,
+        "bottom": 795.640625,
+        "width": 1440,
+        "height": 900,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-accounts-light-1440.png"
+    },
+    {
+      "route": "models",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "layout": {
+        "left": 460,
+        "right": 980,
+        "top": 77.984375,
+        "bottom": 822,
+        "width": 1440,
+        "height": 900,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-models-light-1440.png"
+    },
+    {
+      "route": "access",
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "layout": {
+        "left": 460,
+        "right": 980,
+        "top": 178.703125,
+        "bottom": 721.28125,
+        "width": 1440,
+        "height": 900,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-access-light-1440.png"
+    },
+    {
+      "route": "accounts",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "layout": {
+        "left": 380,
+        "right": 900,
+        "top": 24,
+        "bottom": 696,
+        "width": 1280,
+        "height": 720,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-accounts-light-1280.png"
+    },
+    {
+      "route": "models",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "layout": {
+        "left": 380,
+        "right": 900,
+        "top": 24,
+        "bottom": 696,
+        "width": 1280,
+        "height": 720,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-models-light-1280.png"
+    },
+    {
+      "route": "access",
+      "theme": "light",
+      "width": 1280,
+      "height": 720,
+      "layout": {
+        "left": 380,
+        "right": 900,
+        "top": 88.703125,
+        "bottom": 631.28125,
+        "width": 1280,
+        "height": 720,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-access-light-1280.png"
+    },
+    {
+      "route": "accounts",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "layout": {
+        "left": 12,
+        "right": 378,
+        "top": 12,
+        "bottom": 832,
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-accounts-light-390.png"
+    },
+    {
+      "route": "models",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "layout": {
+        "left": 12,
+        "right": 378,
+        "top": 79.796875,
+        "bottom": 832,
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-models-light-390.png"
+    },
+    {
+      "route": "access",
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "layout": {
+        "left": 12,
+        "right": 378,
+        "top": 208.921875,
+        "bottom": 832,
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-access-light-390.png"
+    },
+    {
+      "route": "accounts",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "layout": {
+        "left": 460,
+        "right": 980,
+        "top": 104.359375,
+        "bottom": 795.640625,
+        "width": 1440,
+        "height": 900,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-accounts-dark-1440.png"
+    },
+    {
+      "route": "models",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "layout": {
+        "left": 460,
+        "right": 980,
+        "top": 77.984375,
+        "bottom": 822,
+        "width": 1440,
+        "height": 900,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-models-dark-1440.png"
+    },
+    {
+      "route": "access",
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "layout": {
+        "left": 460,
+        "right": 980,
+        "top": 178.703125,
+        "bottom": 721.28125,
+        "width": 1440,
+        "height": 900,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-access-dark-1440.png"
+    },
+    {
+      "route": "accounts",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "layout": {
+        "left": 380,
+        "right": 900,
+        "top": 24,
+        "bottom": 696,
+        "width": 1280,
+        "height": 720,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-accounts-dark-1280.png"
+    },
+    {
+      "route": "models",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "layout": {
+        "left": 380,
+        "right": 900,
+        "top": 24,
+        "bottom": 696,
+        "width": 1280,
+        "height": 720,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-models-dark-1280.png"
+    },
+    {
+      "route": "access",
+      "theme": "dark",
+      "width": 1280,
+      "height": 720,
+      "layout": {
+        "left": 380,
+        "right": 900,
+        "top": 88.703125,
+        "bottom": 631.28125,
+        "width": 1280,
+        "height": 720,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-access-dark-1280.png"
+    },
+    {
+      "route": "accounts",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "layout": {
+        "left": 12,
+        "right": 378,
+        "top": 12,
+        "bottom": 832,
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-accounts-dark-390.png"
+    },
+    {
+      "route": "models",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "layout": {
+        "left": 12,
+        "right": 378,
+        "top": 79.796875,
+        "bottom": 832,
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-models-dark-390.png"
+    },
+    {
+      "route": "access",
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "layout": {
+        "left": 12,
+        "right": 378,
+        "top": 208.921875,
+        "bottom": 832,
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "dialogOverflow": false
+      },
+      "keyboard": true,
+      "screenshot": "dialog-access-dark-390.png"
+    }
+  ],
+  "preferences": {
+    "attributes": [
+      [
+        "data-lens",
+        "on"
+      ],
+      [
+        "data-theme",
+        "dark"
+      ],
+      [
+        "data-transparency",
+        "reduce"
+      ],
+      [
+        "data-contrast",
+        "more"
+      ],
+      [
+        "data-motion",
+        "reduce"
+      ]
+    ],
+    "switches": [
+      {
+        "label": "减少透明度",
+        "checked": null
+      },
+      {
+        "label": "增强对比度",
+        "checked": null
+      },
+      {
+        "label": "减少动态效果",
+        "checked": null
+      }
+    ]
+  },
+  "emptyState": true
+}

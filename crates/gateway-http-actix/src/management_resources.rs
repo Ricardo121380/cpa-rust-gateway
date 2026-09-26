@@ -1154,10 +1154,24 @@ pub struct ManagementRequestAttempt {
     stage: Option<ManagementRequestAttemptStage>,
     endpoint_id: Option<EndpointId>,
     credential_id: Option<CredentialId>,
+    observation: Option<ManagementAttemptObservation>,
+}
+
+/// Closed persisted evidence for one actual upstream invocation.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ManagementAttemptObservation {
+    attempt_number: u64,
+    upstream_id: String,
+    started_at_ms: i64,
+    ended_at_ms: i64,
+    duration_ms: i64,
+    error_code: Option<gateway_core::GatewayErrorCode>,
+    error_scope: Option<gateway_core::ErrorScope>,
+    retry_decision: gateway_core::AttemptRetryDecision,
 }
 
 impl ManagementRequestAttempt {
-    /// Creates a bounded Attempt view without model, route, timing, or Provider diagnostics.
+    /// Creates a bounded Attempt view without arbitrary Provider diagnostics.
     ///
     /// # Errors
     ///
@@ -1180,9 +1194,48 @@ impl ManagementRequestAttempt {
             attempt_id,
             outcome,
             stage: None,
+            observation: None,
             endpoint_id,
             credential_id,
         })
+    }
+
+    /// Enriches a view only from matching durable evidence with valid timing.
+    #[must_use]
+    pub fn with_observation(mut self, event: &gateway_core::AttemptEvent) -> Self {
+        if self.attempt_id != event.attempt_id().as_str()
+            || self.endpoint_id.as_ref() != Some(event.endpoint_id())
+            || self.credential_id.as_ref() != Some(event.credential_id())
+            || event.attempt_number() == 0
+            || event.started_at_ms() < 0
+            || event.ended_at_ms() < event.started_at_ms()
+        {
+            return self;
+        }
+        let (outcome, error) = match event.outcome() {
+            gateway_core::AttemptOutcome::Succeeded => ("succeeded", None),
+            gateway_core::AttemptOutcome::Failed(error) => ("failed", Some(error)),
+        };
+        if self.outcome != outcome {
+            return self;
+        }
+        self.observation = Some(ManagementAttemptObservation {
+            attempt_number: event.attempt_number(),
+            upstream_id: event.upstream_id().as_str().to_owned(),
+            started_at_ms: event.started_at_ms(),
+            ended_at_ms: event.ended_at_ms(),
+            duration_ms: event.ended_at_ms() - event.started_at_ms(),
+            error_code: error.map(gateway_core::GatewayError::code),
+            error_scope: error.map(gateway_core::GatewayError::scope),
+            retry_decision: event.retry_decision(),
+        });
+        self
+    }
+
+    /// Returns the optional durable observation without private upstream values.
+    #[must_use]
+    pub fn observation(&self) -> Option<&ManagementAttemptObservation> {
+        self.observation.as_ref()
     }
 
     /// Adds the optional closed execution-stage projection.
@@ -3646,6 +3699,8 @@ struct RouteExplainPricePolicyResponse {
 
 #[derive(Serialize)]
 struct RequestAttemptResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    observation: Option<ManagementAttemptObservation>,
     attempt_id: String,
     outcome: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -8488,6 +8543,7 @@ fn request_attempt_response(
                 return Err(ManagementRuntimeError::Unavailable);
             }
             Ok(RequestAttemptResponse {
+                observation: attempt.observation.clone(),
                 attempt_id: attempt.attempt_id().to_owned(),
                 outcome: attempt.outcome(),
                 stage: attempt.stage().map(ManagementRequestAttemptStage::as_str),

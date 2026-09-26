@@ -1,0 +1,15 @@
+{
+  "rust": {
+    "passed": 1352,
+    "failed": 0,
+    "ignored": 12
+  },
+  "rust_suites": 121,
+  "frontend": {
+    "passed": 413,
+    "files": 56,
+    "summary": "Test Files  56 passed (56)\n      Tests  413 passed (413)\n   Start at  21:22:10\n   Duration  2.57s (transform 1.65s, setup 0ms, collect 5.67s, tests 799ms, environment 8ms, prepare 4.42s)"
+  },
+  "full_fast_gate": "fast-check.md",
+  "real_provider_inference_calls": 0
+}

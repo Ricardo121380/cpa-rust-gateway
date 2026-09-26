@@ -1,0 +1,61 @@
+{
+  "browser": "EgoLite",
+  "fixtureOnly": true,
+  "realProviderCalls": 0,
+  "passed": true,
+  "before": {
+    "calls": 1,
+    "alert": "轮换结果未确认，请先重新读取账号状态，不要重复轮换。",
+    "buttons": [
+      {
+        "text": "×",
+        "disabled": false
+      },
+      {
+        "text": "概览",
+        "disabled": false
+      },
+      {
+        "text": "额度",
+        "disabled": false
+      },
+      {
+        "text": "配置",
+        "disabled": false
+      },
+      {
+        "text": "模型",
+        "disabled": false
+      },
+      {
+        "text": "诊断",
+        "disabled": false
+      },
+      {
+        "text": "复制内部引用",
+        "disabled": false
+      },
+      {
+        "text": "复制内部引用",
+        "disabled": false
+      },
+      {
+        "text": "重新读取账号",
+        "disabled": false
+      },
+      {
+        "text": "轮换令牌",
+        "disabled": true
+      },
+      {
+        "text": "重新授权",
+        "disabled": true
+      },
+      {
+        "text": "关闭",
+        "disabled": false
+      }
+    ]
+  },
+  "afterReads": 1
+}

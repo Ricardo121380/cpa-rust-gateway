@@ -38,6 +38,51 @@ The controller supports a `restart-request` marker in its own temporary root aft
 Terminate only the controller belonging to this receipt; its cleanup stops its gateway and mock.
 These checks do not prove real provider authorization or model-directory completeness.
 
+## M3 V2 recovery and operations (EgoLite)
+
+Use one owned EgoLite TaskSpace for the task. Its `p1` is the real synthetic gateway;
+its `p2` is the optional local Vite fixture (`VITE_PRISM_FIXTURES=1`). Never point
+fault-injection scripts at production, use real credentials, or claim fixture authorization
+as an official login. Preserve the same space between scripts; no Playwright browser is used.
+
+After the real first-login password change, save only the synthetic QA password in
+`<temporary-root>/qa-password` with mode 0600. Keep the existing controller running. Run
+`prism-request-chain.py` once and `prism-m3-seed.py <receipt-directory>` once; this gives
+57 requests and 54 ledger rows for the fixed pagination assertions. Re-running the seed
+changes that fixture and invalidates the exact-count assertions.
+
+Run each `.mjs` through `ego-browser nodejs`, prepending a JavaScript assignment:
+
+```js
+globalThis.PRISM_M3 = { spaceId: 12, receipts: "/absolute/path/to/receipt-directory" };
+// Follow with the exact contents of the selected script; use the task's actual space ID.
+```
+
+- `prism-m3-recovery.mjs`: true gateway reads with local response faults; first page,
+  next cursor, background refresh, render exception, attempt detail, target deep link and
+  overview time ownership. It reloads and signs in using the private synthetic password.
+- `prism-m3-monitoring.mjs`: initial and background failures in ledger/failure tabs.
+- `prism-m3-diagnostic-links.mjs`: click all four persisted-attempt links and verify
+  exact account, expanded provider, scoped catalog and runtime diagnosis destinations.
+- `prism-m3-matrix.mjs`: eight workspaces × three sizes × two themes, real gateway.
+- `prism-m3-dialogs.mjs`: account chooser/model/key dialogs, keyboard, long input, preferences.
+- `prism-m3-batch.mjs`: first real draft mutation, second locally injected conflict,
+  third unexecuted; no publication. Run after other data-dependent matrix checks.
+- `prism-m3-unlock.mjs`: six login layouts, real logout, no retained password or protected content.
+- `prism-session-navigation.mjs`: separate `PRISM_SESSION_QA={spaceId,root,origin,mode,output}`;
+  `mode` is `immediate`, `settled` or `held`. Run each once on the same synthetic gateway.
+- `prism-m3-native.mjs`: supplemental fixture-only unknown write/409/pending runtime apply;
+  additionally set `fixtureOrigin` to the local Vite URL. These are synthetic management
+  responses, not upstream authorization or production evidence.
+- `prism-m3-ui-timing.mjs`: fixture UI comparison; set `baselineOrigin` and `candidateOrigin`
+  to two owned loopback Vite servers. Uses the same p2, viewport and data, one warm-up and
+  five samples. It does not measure gateway latency or production Core Web Vitals.
+
+Do not run browser scripts against p1 and p2 simultaneously: background rendering/timer
+throttling makes retry and animation measurements unreliable. Store script failures as well
+as successes. Keep raw screenshots locally and record which representative images are tracked.
+At completion, finish only the owned TaskSpace and stop only the owned fixture/controller.
+
 ## Agent multi-turn regression
 
 `python3 scripts/test-agent-roundtrip.py` launches and cleans up a fresh owned gateway/mock,

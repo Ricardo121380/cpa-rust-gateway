@@ -1,0 +1,15 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "realProviderCalls": 0,
+  "passed": true,
+  "checks": [
+    "Provider inline editor: cancel requires discard; continue editing retains input",
+    "Create restricted key: select current open exact model, save and apply, receipt cleared, server reread lists new key",
+    "Model long exact ID form: dirty Escape requires discard",
+    "Kimi authorization pre-start: channel-owned, no unrelated provider or endpoint selectors, official start not invoked",
+    "Price import: required fields prevent preview; unsaved model input prompts discard",
+    "Settings accessibility preferences applied through controls"
+  ],
+  "invalidPriceFields": 11
+}

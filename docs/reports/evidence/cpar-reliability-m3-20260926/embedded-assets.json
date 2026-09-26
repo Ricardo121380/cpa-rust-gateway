@@ -1,0 +1,34 @@
+{
+  "real_gateway": true,
+  "passed": true,
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "f9e6e1318ea42281257fb0d7ee1e824d426c847bf040dd313a58cd8a3378d4ec",
+      "matches_dist": true,
+      "csp": "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
+      "cache_control": "no-store"
+    },
+    {
+      "path": "assets/main.js",
+      "sha256": "b79520db3916dd5bef62a5e9c5c3b3e32bd2acd10b48ea1ca63d771b0befa473",
+      "matches_dist": true,
+      "csp": "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
+      "cache_control": "no-store"
+    },
+    {
+      "path": "assets/vendor.js",
+      "sha256": "0f92904e88ae5b1387e17fd25b5a2004768bc6802bbc3616c33d17c76c5e9c27",
+      "matches_dist": true,
+      "csp": "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
+      "cache_control": "no-store"
+    },
+    {
+      "path": "assets/index.css",
+      "sha256": "895d22a12fbb529753fb53f27b47dacfab6f7f8f49e090ccdd3a3ba4387d2c04",
+      "matches_dist": true,
+      "csp": "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
+      "cache_control": "no-store"
+    }
+  ]
+}

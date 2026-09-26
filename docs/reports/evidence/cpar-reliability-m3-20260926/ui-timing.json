@@ -1,0 +1,61 @@
+{
+  "browser": "EgoLite",
+  "fixtureOnly": true,
+  "viewport": "1440x900",
+  "theme": "light",
+  "warmup": 1,
+  "samples": 5,
+  "timing": "browser click to settled render including finite animations; Vite fixture, not production network latency or Core Web Vitals",
+  "threshold": "regression requires both >10% and >50ms",
+  "results": {
+    "baseline": {
+      "navigation_ms": [
+        1160,
+        1172.5999999046326,
+        1214.5999999046326,
+        205.89999997615814,
+        1158
+      ],
+      "dialog_ms": [
+        2205.5,
+        276.7000000476837,
+        284.2999999523163,
+        2229.399999976158,
+        2225.399999976158
+      ]
+    },
+    "candidate": {
+      "navigation_ms": [
+        1192.2999999523163,
+        129.10000002384186,
+        142.79999995231628,
+        185.79999995231628,
+        190.59999990463257
+      ],
+      "dialog_ms": [
+        1258.8000000715256,
+        269.89999997615814,
+        297.5,
+        283.60000002384186,
+        2225.5
+      ]
+    }
+  },
+  "comparisons": [
+    {
+      "metric": "navigation_ms",
+      "baseline_median_ms": 1160,
+      "candidate_median_ms": 185.79999995231628,
+      "delta_ms": -974.2000000476837,
+      "regression": false
+    },
+    {
+      "metric": "dialog_ms",
+      "baseline_median_ms": 2205.5,
+      "candidate_median_ms": 297.5,
+      "delta_ms": -1908,
+      "regression": false
+    }
+  ],
+  "passed": true
+}

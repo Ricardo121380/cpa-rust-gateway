@@ -123,3 +123,8 @@ describe("growthSince", () => {
     expect(growthSince(later, first)).toBeUndefined();
   });
 });
+
+it("preserves missing recording telemetry as unknown and exposes storage admission separately",()=>{
+  expect(readCounters("").recording.accepting).toBeNull();
+  expect(readCounters("gateway_recording_accepting_requests 0\ngateway_recording_state 2\ngateway_recording_pending_required 3\ngateway_recording_last_commit_ms 1234").recording).toMatchObject({accepting:false,state:2,pending:3,lastCommit:1234});
+});

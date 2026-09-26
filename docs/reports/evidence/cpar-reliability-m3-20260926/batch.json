@@ -1,0 +1,21 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "syntheticSecondConflict": true,
+  "passed": true,
+  "result": {
+    "writes": 2,
+    "accepted": 1,
+    "publications": 0,
+    "outcomes": [
+      "saved_unapplied",
+      "rejected",
+      "unexecuted"
+    ]
+  },
+  "reread": {
+    "context": "edit-22b99cfd-cbc9-4aa3-81d6-5413d8579707",
+    "disabled": true,
+    "pending": true
+  }
+}

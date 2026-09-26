@@ -62,14 +62,15 @@ export type GatewayCounters = Readonly<{
   eventsTotal: number;
   attempts: Readonly<{ succeeded: number; failed: number; total: number }>;
   tokens: TokenSummary;
-  /** Only the non-zero loss counters, Required before Diagnostic. Empty means nothing dropped. */
+  /** Only the non-zero loss counters, Required before Diagnostic. Empty means no alarms in these process counters; not proof of complete history. */
   loss: readonly LossSignal[];
-  /** Events the durable log was meant to keep and did not. Non-zero is an alarm. */
+  /** Sum of recording alarms, which can describe retries of the same event. Not a count of lost records. */
   requiredLoss: number;
   /** Diagnostics shed under pressure. Non-zero is the backpressure design working. */
   diagnosticLoss: number;
   /** Required events still sitting in the writer's one bounded pending batch. */
   pendingRequired: number;
+  recording: Readonly<{accepting:boolean|null;state:number|null;pending:number|null;lastCommit:number|null;confirmationFailures:number|null;recoveredUnknown:number|null}>;
 }>;
 
 export function readCounters(exposition: string): GatewayCounters {
@@ -94,7 +95,10 @@ export function readCounters(exposition: string): GatewayCounters {
   const bySeverity = (severity: LossSeverity) =>
     loss.filter((signal) => signal.severity === severity).reduce((sum, s) => sum + s.value, 0);
 
+  const observed=(name:string):number|null=>samples.find(sample=>sample.name===`gateway_recording_${name}`)?.value??null;
+  const accepting=observed("accepting_requests");
   return {
+    recording:{accepting:accepting===1?true:accepting===0?false:null,state:observed("state"),pending:observed("pending_required"),lastCommit:observed("last_commit_ms"),confirmationFailures:observed("confirmation_failures_total"),recoveredUnknown:observed("recovered_unknown")},
     events,
     eventsTotal: EVENT_KINDS.reduce((sum, kind) => sum + events[kind], 0),
     attempts: { succeeded, failed, total: succeeded + failed },

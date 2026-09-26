@@ -7983,12 +7983,15 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                 AttemptOutcome::Succeeded => "succeeded",
                 AttemptOutcome::Failed(_) => "failed",
             };
-            attempts.push(ManagementRequestAttempt::try_new(
-                attempt.attempt_id().as_str().to_owned(),
-                outcome,
-                Some(attempt.endpoint_id().clone()),
-                Some(attempt.credential_id().clone()),
-            )?);
+            attempts.push(
+                ManagementRequestAttempt::try_new(
+                    attempt.attempt_id().as_str().to_owned(),
+                    outcome,
+                    Some(attempt.endpoint_id().clone()),
+                    Some(attempt.credential_id().clone()),
+                )?
+                .with_observation(attempt),
+            );
         }
         // The in-process ledger records per-attempt terminals and one request-level stage that
         // describes the newest attempt. It is enrichment, but it is also the only evidence that
@@ -11241,6 +11244,10 @@ mod tests {
             .map_err(|_| std::io::Error::other("management listing unavailable"))?;
         assert_eq!(attempts.len(), 1);
         assert_eq!(attempts[0].outcome(), "succeeded");
+        let observation = serde_json::to_value(attempts[0].observation())?;
+        assert_eq!(observation["duration_ms"], 15);
+        assert_eq!(observation["attempt_number"], 1);
+        assert_eq!(observation["retry_decision"], "completed");
         assert_eq!(
             attempts[0].stage(),
             Some(ManagementRequestAttemptStage::HttpTransport)

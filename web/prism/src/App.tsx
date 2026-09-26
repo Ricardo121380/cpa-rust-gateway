@@ -17,12 +17,14 @@ import { UpstreamsPage } from "./features/upstreams/UpstreamsPage";
 import { UsagePage } from "./features/usage/UsagePage";
 import { AccountsPage } from "./features/accounts/AccountsPage";
 import { CatalogPage } from "./features/catalog/CatalogPage";
+import { RouteRecovery } from "./app/RouteRecovery";
 
 export const router = createHashRouter([
-  { path: "/unlock", element: <UnlockPage /> },
+  { path: "/unlock", element: <UnlockPage />, errorElement: <RouteRecovery /> },
   {
     path: "/",
     element: <AppShell />,
+    errorElement: <RouteRecovery />,
     children: [
       { index: true, element: <OverviewPage /> },
       { path: "overview", element: <OverviewPage /> },

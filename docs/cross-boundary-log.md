@@ -3310,3 +3310,24 @@ New core error `RecordingUnavailable` maps to HTTP503 before headers. Schema28 o
 new optional event fields, so a future production rollback needs the tested pre-upgrade snapshot;
 changing only the binary is unsafe. Production and the new 12-call allowance remain untouched.
 Evidence is tracked by `docs/handoffs/cpar-reliability-alignment-acceptance-20260926.md`.
+
+## 2026-09-26 - Codex - Reliability M3 safe diagnostics and V2 recovery
+
+**What:** `apps/gateway/src/runtime.rs`, `crates/gateway-http-actix/src/management_resources.rs`,
+its M3 projection tests, authoritative `docs/openapi/management-v1.json`, generated-by-sync
+`web/prism/contracts/management-v1.json`, and Prism recovery/account/monitoring/overview UI.
+
+**Why:** Expose only matched persisted Attempt timing and closed error/retry categories;
+keep missing observations unknown. Recover render failures without showing raw stacks,
+retain successful data/filter/time snapshots after read failures, and prevent unknown or
+conflicting account writes from being replayed. Actual loopback browser acceptance reproduced
+a concurrent session-lock navigation blank page; key the lock redirect by location to recover.
+Diagnostic links retain exact target ownership, not display-name matching.
+
+**Other side:** Unified frontend/backend work is authorized for this plan. M3 adds no schema
+migration or write API; local schema remains 30. The optional observation is contract-first,
+then `sync-contract`; no hand-edited generated client, dependency, CSP, four-file artifact or
+secret-persistence change. Rust 1,352 and frontend 413 tests passed; real embedded gateway
+and EgoLite local acceptance are distinct from supplementary Vite fixture fault tests.
+No production change or real inference; M4 and the new 0/12 call allowance remain outstanding.
+Evidence: `docs/reports/cpar-reliability-m3-20260926.md`.

@@ -4,9 +4,9 @@ import { useVersionStore } from "../config-versions/versionStore";
 import { IdentityDetails } from "../../components/ResourceIdentity";
 // Shared account inspector for complete inventory and runtime projections.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { call } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { asAppError, requiresWriteReconciliation } from "../../api/errors";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
 import { OAuthWizard } from "./OAuthWizard";
@@ -53,7 +53,9 @@ export function CredentialSheet({
   const [oauthOpen, setOauthOpen] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [rotated, setRotated] = useState<number | undefined>();
-  useEffect(()=>{setRotated(undefined);setError(undefined);setOauthOpen(false);},[scope,credentialId]);
+  const [reconcile,setReconcile]=useState(false);
+  const submitted=useRef(false);
+  useEffect(()=>{setRotated(undefined);setError(undefined);setOauthOpen(false);setReconcile(false);submitted.current=false;},[scope,credentialId]);
 
   const credential = useQuery({
     queryKey: ["credential", scope, credentialId],
@@ -85,13 +87,16 @@ export function CredentialSheet({
         { path: { credential_id: credentialId } },
         { versionScoped: true },
       ),
-    onSuccess: (operation) => {
+    onSuccess: async (operation) => {
       setError(undefined);
       setRotated(operation.revision);
-      void queryClient.invalidateQueries({ queryKey: ["credential", scope, credentialId] });
-      void queryClient.invalidateQueries({ queryKey: ["credential-metadata", scope, credentialId] });
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ["credential", scope, credentialId] }),queryClient.invalidateQueries({ queryKey: ["credential-metadata", scope, credentialId] })]);
+      submitted.current=false;
     },
-    onError: (cause) => setError(asAppError(cause).message),
+    onError: (cause) => {
+      if(requiresWriteReconciliation(cause)){setReconcile(true);setError("轮换结果未确认，请先重新读取账号状态，不要重复轮换。");}
+      else{submitted.current=false;setError(asAppError(cause).message);}
+    },
   });
 
   const row = credential.data;
@@ -118,7 +123,7 @@ export function CredentialSheet({
   const authenticationLabel=isKimiOAuth?"Kimi Coding 授权":isCodexOAuth?"Codex / ChatGPT 授权":row?.kind==="bearer"?"API Key / Token":"已保存渠道凭据";
 
   return (
-    <Sheet title="账号详情" layout="inspector" onEscape={onClose} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
+    <Sheet title="账号详情" layout="inspector" onEscape={onClose} busy={refresh.isPending} footer={<SheetDismissButton disabled={refresh.isPending}>关闭</SheetDismissButton>}>
       <AccountIdentityHeader name={accountName ?? meta?.email} provider={providerName??"未观测渠道"} method={authenticationLabel} status={row?<StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>:<span className="muted">读取中</span>}/>
       {credential.isError?<p role="alert">{asAppError(credential.error).message}</p>:null}
       <AccountEvidenceTabs accountId={credentialId} onNavigate={onClose} overview={<section className="account-overview-facts"><h4>授权与套餐</h4><dl className="fact-grid"><dt>接入方式</dt><dd>{authenticationLabel}</dd><dt>套餐</dt><dd>{plan??meta?.plan??"未观测"}</dd><dt>配额声明</dt><dd>{meta?.quota??"未观测"}</dd><dt>授权资料</dt><dd>{row?row.secret_present?"已保存":"未配置":"读取中"}</dd></dl><p className="account-evidence-note">运行调度与剩余额度以各自观测为准。</p></section>} configuration={<>
@@ -190,24 +195,25 @@ export function CredentialSheet({
 
       {rotated !== undefined ? (
         <p className="action-notice">
-          令牌已轮换并已从服务端重新读取。
+          {row&&row.revision>=rotated&&!credential.isError?"令牌已轮换，已读取最新凭据状态。":"令牌已轮换；最新状态尚待读取确认。"}
         </p>
       ) : null}
 
       <IdentityDetails entries={[["账号", credentialId, accountName ?? meta?.email ?? "未提供账号身份"], ...(row ? [["提供商", row.upstream_id, providerName] as const] : [])]} />
 
       <div className="sheet-actions">
+        {reconcile?<button type="button" disabled={credential.isFetching} onClick={async()=>{const result=await credential.refetch();if(!result.isError){setReconcile(false);submitted.current=false;setError("已读取最新凭据状态，请核对后再决定下一步。");}}}>重新读取账号</button>:null}
         {isCodexOAuth ? (
           <>
             <button
               type="button"
               className="secondary"
-              disabled={refresh.isPending}
-              onClick={() => refresh.mutate()}
+              disabled={refresh.isPending||reconcile}
+              onClick={() => {if(submitted.current)return;submitted.current=true;refresh.mutate();}}
             >
               {refresh.isPending ? "轮换中…" : "轮换令牌"}
             </button>
-            <button type="button" className="secondary" onClick={() => setOauthOpen(true)}>
+            <button type="button" className="secondary" disabled={refresh.isPending||reconcile} onClick={() => setOauthOpen(true)}>
               重新授权
             </button>
           </>

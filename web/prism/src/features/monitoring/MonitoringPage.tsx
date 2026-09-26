@@ -1,3 +1,5 @@
+import { AttemptTimeline } from "./AttemptTimeline";
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { ResourcePicker, resourceFilterKinds } from "../../components/ResourcePicker";
 import { resourceName } from "../../utils/resourceNames";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
@@ -7,7 +9,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
-import { asAppError, shouldRetryManagementRead } from "../../api/errors";
+import { shouldRetryManagementRead } from "../../api/errors";
 import { editedExpiry, toLocalInput } from "../access/model";
 import { Sheet } from "../../components/Sheet";
 import { useMessages } from "../../i18n/messages";
@@ -35,7 +37,6 @@ import {
   retryDetail,
   retryLabel,
   retryTone,
-  stageLabel,
   summaryIsPartitioned,
   tally,
   type AttemptRow,
@@ -138,47 +139,9 @@ function AttemptsSheet({
 
   return (
     <Sheet title={`请求 ${requestId} 的尝试`} layout="inspector" onEscape={onClose}>
-      <p className="stat-sub">
-        此请求的上游尝试记录，跨配置版本读取。执行结果保留上游原始标识；未观测的阶段或对象显示为“—”。
-      </p>
-      {attempts.isError ? (
-        <p role="alert" className="action-error">
-          {asAppError(attempts.error).message}
-        </p>
-      ) : attempts.isPending ? (
-        <p className="stat-sub">读取中…</p>
-      ) : attempts.data.length === 0 ? (
-        <p className="stat-sub">该请求没有尝试记录。</p>
-      ) : (
-        <table className="mon-attempts">
-          <thead>
-            <tr>
-              <th scope="col">attempt</th>
-              <th scope="col">outcome(原样)</th>
-              <th scope="col">阶段</th>
-              <th scope="col">endpoint</th>
-              <th scope="col">credential</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attempts.data.map((attempt) => (
-              <tr key={attempt.attempt_id}>
-                <td className="mono">{attempt.attempt_id}</td>
-                <td className="mono">{attempt.outcome}</td>
-                <td>
-                  {attempt.stage === null || attempt.stage === undefined
-                    ? "—"
-                    : stageLabel(attempt.stage)}
-                </td>
-                <td>{attempt.endpoint_id ? <ResourceIdentity id={attempt.endpoint_id} kind="endpoint" /> : "—"}</td>
-                <td>{attempt.credential_id ? <ResourceIdentity id={attempt.credential_id} kind="account" /> : "—"}
-                  {attempt.endpoint_id && attempt.credential_id ? <div><Link to={diagnosticTarget(attempt.endpoint_id, attempt.credential_id)}>诊断此绑定</Link></div> : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <p className="stat-sub">同一次外部请求的上游尝试，跨配置版本读取。尝试完成不代表请求最终成功；未观测时间保持未知。</p>
+      <PagedReadStatus query={attempts}/>
+      {attempts.data?<AttemptTimeline items={attempts.data} onNavigate={onClose}/>:null}
       <div className="sheet-actions">
         <button type="button" onClick={onClose}>
           关闭
@@ -216,25 +179,10 @@ function LedgerPanel({
     retryDelay: (attempt) => 250 * (attempt + 1),
   });
 
-  if (ledger.isError) {
-    return (
-      <div className="card empty-state" data-kind="error">
-        <p>{asAppError(ledger.error).message}</p>
-      </div>
-    );
-  }
-  if (ledger.isPending) {
-    return (
-      <div className="card empty-state" data-kind="loading">
-        <p>读取账本…</p>
-      </div>
-    );
-  }
-
-  const rows = ledger.data.pages.flatMap((page) => page.items);
+  const rows = ledger.data?.pages.flatMap((page) => page.items) ?? [];
   // Every page carries the same summary — the backend computes it over the
   // whole filtered set BEFORE the cursor applies — so page one is authoritative.
-  const summary = ledger.data.pages[0]?.summary;
+  const summary = ledger.data?.pages[0]?.summary;
 
   function onExport(): void {
     const meta: ExportMeta = {
@@ -254,6 +202,8 @@ function LedgerPanel({
   return (
     <>
       <FilterForm keys={LEDGER_FILTER_KEYS} values={filters} onApply={onApply} onClear={onClear} />
+      <PagedReadStatus query={ledger}/>
+      <div className="request-read-actions"><button className="secondary" disabled={ledger.isFetching} onClick={()=>void ledger.refetch()}>重新读取账本</button></div>
 
       {summary === undefined ? null : (
         <div className="card mon-summary">
@@ -303,7 +253,7 @@ function LedgerPanel({
         </div>
       )}
 
-      {rows.length === 0 ? (
+      {ledger.data === undefined ? null : rows.length === 0 ? (
         <div className="card empty-state" data-kind="empty">
           <p>该筛选下没有账本记录。</p>
         </div>
@@ -364,7 +314,7 @@ function LedgerPanel({
               <button
                 type="button"
                 className="secondary"
-                disabled={ledger.isFetchingNextPage}
+                disabled={ledger.isFetching || ledger.isError}
                 onClick={() => void ledger.fetchNextPage()}
               >
                 {ledger.isFetchingNextPage ? "读取中…" : "再读一页"}
@@ -429,22 +379,7 @@ function FailurePanel({
       </div>
     );
   }
-  if (failures.isError) {
-    return (
-      <div className="card empty-state" data-kind="error">
-        <p>{asAppError(failures.error).message}</p>
-      </div>
-    );
-  }
-  if (failures.isPending) {
-    return (
-      <div className="card empty-state" data-kind="loading">
-        <p>读取失败归因…</p>
-      </div>
-    );
-  }
-
-  const rows = failures.data.pages.flatMap((page) => page.items);
+  const rows = failures.data?.pages.flatMap((page) => page.items) ?? [];
   const byCode = tally(rows, "error_code");
   const byScope = tally(rows, "error_scope");
 
@@ -452,8 +387,10 @@ function FailurePanel({
     <>
       {drill === undefined ? null : <AttemptsSheet requestId={drill} onClose={() => setDrill(undefined)} />}
       <FilterForm keys={FAILURE_FILTER_KEYS} values={filters} onApply={onApply} onClear={onClear} />
+      <PagedReadStatus query={failures}/>
+      <div className="request-read-actions"><button className="secondary" disabled={failures.isFetching} onClick={()=>void failures.refetch()}>重新读取失败记录</button></div>
 
-      <div className="card mon-summary">
+      {failures.data ? <div className="card mon-summary">
         <div className="mon-kpi">
           <span className="mon-kpi-value mono">{formatCount(rows.length)}</span>
           <span className="mon-kpi-label">已加载失败尝试</span>
@@ -464,9 +401,9 @@ function FailurePanel({
           <br />
           一次请求可以产生<strong>多条</strong>失败尝试,所以行数不是失败请求数。
         </p>
-      </div>
+      </div> : null}
 
-      {rows.length === 0 ? (
+      {failures.data === undefined ? null : rows.length === 0 ? (
         <div className="card empty-state" data-kind="empty">
           <p>该配置版本下没有归因到账号的失败尝试。</p>
         </div>
@@ -548,7 +485,7 @@ function FailurePanel({
                 <button
                   type="button"
                   className="secondary"
-                  disabled={failures.isFetchingNextPage}
+                  disabled={failures.isFetching || failures.isError}
                   onClick={() => void failures.fetchNextPage()}
                 >
                   {failures.isFetchingNextPage ? "读取中…" : "再读一页"}

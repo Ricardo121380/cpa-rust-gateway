@@ -63,7 +63,7 @@ export function AppShell() {
   const conflict = useVersionStore((s) => s.conflict);
   const clearConflict = useVersionStore((s) => s.clearConflict);
   const t = useMessages();
-  const { pathname } = useLocation();
+  const { pathname, key: locationKey } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const choice = useThemeStore((s) => s.choice);
   const setChoice = useThemeStore((s) => s.setChoice);
@@ -91,7 +91,10 @@ export function AppShell() {
   }, [menuOpen]);
 
   if (!unlocked || passwordChangeRequired) {
-    return <Navigate to="/unlock" replace />;
+    // A concurrent workspace navigation can supersede the lock redirect.
+    // Navigate's absolute target does not change, so remount it for that new
+    // location rather than leaving its effect consumed and a blank outlet.
+    return <Navigate key={locationKey} to="/unlock" replace />;
   }
 
   const material = context?.status ?? "active";

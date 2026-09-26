@@ -1,8 +1,10 @@
+import { AttemptTimeline } from "./AttemptTimeline";
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useId, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
-import { asAppError, shouldRetryManagementRead } from "../../api/errors";
+import { shouldRetryManagementRead } from "../../api/errors";
 import { useOverviewBilling } from "../overview/useOverviewBilling";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -117,19 +119,24 @@ function Metrics({data,link}:Readonly<{data:Summary;link:string}>) {
   ].map(([label,value,outcome])=><Link key={label} to={(()=>{const [path,query]=link.split("?");const params=new URLSearchParams(query);if(outcome)params.set("outcome",outcome);return `${path}?${params}`;})()}><span title={label==="平均首内容延迟"?"仅统计已观测到内容的请求，分母与总耗时不同。":label==="请求数"?"按已受理的推理请求计数，上游重试不重复计数。":undefined}>{label}</span><strong>{value}</strong></Link>)}</div>;
 }
 export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:(range:{from_ms:number;to_ms:number})=>void;title?:string}>) {
-  const [hours,setHours]=useState(24),[anchor,setAnchor]=useState(Date.now());
-  const range={from_ms:anchor-hours*3_600_000,to_ms:anchor,bucket_ms:hours>24?86_400_000:3_600_000};
+  const [hours,setHours]=useState<(typeof RANGE_PRESETS)[number]>(24),[anchor,setAnchor]=useState(Date.now());
+  const requestedRange=requestRange(new URLSearchParams(),anchor,hours);
+  const query=useQuery({queryKey:["request-summary",requestedRange],queryFn:async()=>{
+    const readRange=requestRange(new URLSearchParams(),Date.now(),hours);
+    const page=await call<Page>("summarizeRequests",{query:{...readRange,limit:1}});
+    return {...page,readRange};
+  },retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1)});
+  const range=query.data?.readRange??requestedRange;
   const billingRange={from_ms:range.from_ms,to_ms:range.to_ms};
   useEffect(()=>{onRangeChange?.({from_ms:range.from_ms,to_ms:range.to_ms});},[onRangeChange,range.from_ms,range.to_ms]);
-  const query=useQuery({queryKey:["request-summary",range],queryFn:()=>call<Page>("summarizeRequests",{query:{...range,limit:1}}),retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1)});
   const billing=useOverviewBilling(billingRange);
   const link=`/monitoring?tab=requests&from_ms=${range.from_ms}&to_ms=${range.to_ms}`;
   const ledger=`/monitoring?tab=ledger&from_ms=${range.from_ms}&to_ms=${range.to_ms}`;
   const summary=query.data?.summary;
-  const costs=billing.isError?undefined:billing.data?.summary;
+  const costs=billing.data?.summary;
   return <section className="request-overview">
-    <header className="page-head"><div><p className="overview-eyebrow">YOUR GATEWAY, AT A GLANCE</p><h2>{title ? "运行概览" : "请求概览"}</h2><p className="page-description">请求、账号与费用，汇集于同一工作台。</p></div><div className="overview-range-context"><div className="overview-range" role="group" aria-label="请求时间范围">{([[24,"24 小时"],[168,"7 天"],[720,"30 天"]] as const).map(([value,label])=><button key={value} type="button" aria-pressed={hours===value} onClick={()=>{setHours(value);setAnchor(Date.now());}}>{label}</button>)}<button type="button" aria-label="刷新请求概览" onClick={()=>setAnchor(Date.now())}>刷新</button></div><p className="overview-range-note">截至 {new Date(anchor).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</p></div></header>
-    {query.isError?<p role="alert">{asAppError(query.error).message}</p>:summary?<>
+    <header className="page-head"><div><p className="overview-eyebrow">YOUR GATEWAY, AT A GLANCE</p><h2>{title ? "运行概览" : "请求概览"}</h2><p className="page-description">请求、账号与费用，汇集于同一工作台。</p></div><div className="overview-range-context"><div className="overview-range" role="group" aria-label="请求时间范围">{([[24,"24 小时"],[168,"7 天"],[720,"30 天"]] as const).map(([value,label])=><button key={value} type="button" aria-pressed={hours===value} onClick={()=>{setHours(value);setAnchor(Date.now());}}>{label}</button>)}<button type="button" aria-label="刷新请求概览" disabled={query.isFetching} onClick={()=>void query.refetch()}>刷新</button></div><p className="overview-range-note">截至 {new Date(range.to_ms).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</p></div></header>
+    <PagedReadStatus query={query}/>{summary?<>
       <div className="request-metrics overview-kpis">
         <Link to={link}><span>请求数</span><strong>{summary.requests.toLocaleString()}</strong><small>上游重试不重复计数</small></Link>
         <Link to={`${link}&outcome=succeeded`}><span>成功率</span><strong>{summary.success_rate===null?"—":<>{(summary.success_rate*100).toFixed(1)}<small className="metric-unit">%</small></>}</strong><small>{summary.failed} 失败 · {summary.cancelled} 取消</small></Link>
@@ -145,7 +152,7 @@ export function RequestOverview({onRangeChange, title}:Readonly<{onRangeChange?:
           <details><summary>更多请求指标</summary><p>P50：{milliseconds(summary.p50_duration_ms)}</p><p>平均首内容延迟：{milliseconds(summary.average_first_content_ms)}</p><p>{summary.attempts} 次上游尝试 · {summary.unknown} 条终态未知</p></details>
         </aside>
       </div>
-    </>:<p role="status">读取请求统计…</p>}
+    </>:!query.isError?<p role="status">读取请求统计…</p>:null}
   </section>;
 }
 
@@ -155,7 +162,7 @@ function RequestDetail({row,onClose}:Readonly<{row:RequestRow;onClose:()=>void}>
     <header className="request-inspector-header"><h3>{row.model}</h3><StatusBadge status={row.outcome==="succeeded"?"active":row.outcome==="failed"?"unauthorized":"disabled"}>{outcomeLabel[row.outcome]}</StatusBadge><p>{protocolName(row.protocol)} · {row.streaming?"流式请求":"非流式请求"}</p></header>
     <section className="request-inspector-section"><h4>时间与计价</h4><dl className="request-facts"><dt>开始</dt><dd>{time(row.started_at_ms)}</dd><dt>结束</dt><dd>{time(row.finished_at_ms)}</dd><dt>总耗时</dt><dd>{milliseconds(row.duration_ms)}</dd><dt>首内容延迟</dt><dd>{milliseconds(row.first_content_ms)}</dd><dt>费用（微单位）</dt><dd>{row.ledger_records?`${row.cost_microunits===null?"—":formatMicrounits(row.cost_microunits)} · ${row.cost_confidence?costConfidenceLabel(row.cost_confidence):""}`:"尚无账本记录"}</dd>{row.error_code?<><dt>错误</dt><dd>{errorCodeLabel(row.error_code)}</dd></>:null}</dl></section>
     {row.usage?<details className="request-inspector-section"><summary>Token 用量</summary><dl className="request-facts">{Object.entries(row.usage).map(([name,value])=><div key={name}><dt>{name}</dt><dd>{value??"未观测"}</dd></div>)}</dl></details>:null}
-    <section className="request-inspector-section"><h4>上游尝试 <span>{row.attempt_count} 次</span></h4>{attempts.isError?<p role="alert">{asAppError(attempts.error).message}</p>:attempts.isPending?<p role="status">读取尝试…</p>:!attempts.data.length?<p className="muted">暂无可读取的尝试记录。</p>:<ol className="request-attempts">{attempts.data.map((attempt,index)=><li key={attempt.attempt_id}><strong>尝试 {index+1} · {attempt.outcome==="succeeded"?"已建立上游响应":attempt.outcome}</strong>{attempt.credential_id?<ResourceIdentity id={attempt.credential_id} kind="account"/>:null}{attempt.endpoint_id&&attempt.credential_id?<Link to={`/runtime?${new URLSearchParams({endpoint_id:attempt.endpoint_id,credential_id:attempt.credential_id})}`} onClick={onClose}>查看诊断</Link>:null}</li>)}</ol>}</section>
+    <section className="request-inspector-section"><h4>上游尝试 <span>{row.attempt_count} 次</span></h4><p className="stat-sub">一次外部请求可包含多次尝试；上游响应建立后仍可能发生流中断。</p><PagedReadStatus query={attempts}/>{attempts.data?<AttemptTimeline items={attempts.data} onNavigate={onClose}/>:null}</section>
     <details className="request-reference request-inspector-section"><summary>请求标识</summary><code>{row.request_id}</code></details>
   </Sheet>;
 }
@@ -163,12 +170,20 @@ export function RequestHistoryPanel() {
   const [params,setParams]=useSearchParams();const [anchor,setAnchor]=useState(Date.now());
   const preset=selectedRequestPreset(params);const hours=typeof preset==="number"?preset:24;const range=requestRange(params,anchor,hours);const filters=queryFilters(params);
   const query={...range,...filters,include_unknown:params.get("include_unknown")==="true",limit:50};
-  const requests=useInfiniteQuery({queryKey:["requests",query],initialPageParam:undefined as string|undefined,queryFn:({pageParam})=>call<Page>("summarizeRequests",{query:{...query,...(pageParam?{cursor:pageParam}:{})}}),getNextPageParam:page=>page.next_cursor??undefined,retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1)});
+  // A manual re-read advances relative time only after success. Cursor pages
+  // keep their first page's bounds; failed reads leave the old snapshot intact.
+  type PageCursor={cursor:string;range:ReturnType<typeof requestRange>};
+  const requests=useInfiniteQuery({queryKey:["requests",query],initialPageParam:undefined as PageCursor|undefined,queryFn:async({pageParam})=>{
+    const readRange=pageParam?.range??requestRange(params,Date.now(),hours);
+    const page=await call<Page>("summarizeRequests",{query:{...query,...readRange,...(pageParam?{cursor:pageParam.cursor}:{})}});
+    return {...page,readRange};
+  },getNextPageParam:page=>page.next_cursor?{cursor:page.next_cursor,range:page.readRange}:undefined,retry:shouldRetryManagementRead,retryDelay:(attempt)=>250*(attempt+1)});
   const summary=requests.data?.pages[0];
   const [detail,setDetail]=useState<RequestRow>();
   const rows=requests.data?.pages.flatMap(page=>page.items)??[];
   function apply(event:FormEvent<HTMLFormElement>) {event.preventDefault();const data=new FormData(event.currentTarget);setAnchor(Date.now());setParams(requestSearchAfterFilter(params,data.entries()));}
-  const link=`/monitoring?${new URLSearchParams({...Object.fromEntries(params),tab:"requests",from_ms:String(range.from_ms),to_ms:String(range.to_ms)})}`;
+  const observedRange=summary?.readRange??range;
+  const link=`/monitoring?${new URLSearchParams({...Object.fromEntries(params),tab:"requests",from_ms:String(observedRange.from_ms),to_ms:String(observedRange.to_ms)})}`;
   return <section className="request-history"><form className="request-filters" key={params.toString()} onSubmit={apply}>
     <label>时间<select name="hours" defaultValue={preset}>{preset==="custom"?<option value="custom" disabled>当前链接范围</option>:null}<option value={24}>最近24小时</option><option value={168}>最近7天</option><option value={720}>最近30天</option></select></label>
     <label>模型<input name="model" defaultValue={params.get("model")??""} placeholder="原始模型 ID"/></label>
@@ -183,9 +198,10 @@ export function RequestHistoryPanel() {
   </form>
   <div className="request-results-toolbar">
     {summary?.summary?<details className="request-summary-disclosure"><summary>{summary.summary.requests.toLocaleString()} 个请求 · {summary.summary.failed.toLocaleString()} 个失败 <span>统计与延迟</span></summary><Metrics data={summary.summary} link={link}/><p className="stat-sub">重试单列：{summary.summary.attempts} 次上游尝试 · {summary.summary.unknown} 条终态未知 · {summary.summary.cancelled} 条已取消</p></details>:<span/>}
-    <div className="request-read-actions"><button className="secondary" onClick={()=>{setAnchor(Date.now());void requests.refetch();}}>重新读取</button><button className="secondary" disabled={!rows.length} onClick={()=>downloadText(`requests-${Date.now()}.jsonl`,rows.map(row=>JSON.stringify(row)).join("\n"))}>导出已载入记录（{rows.length}）</button></div>
+    <div className="request-read-actions"><button className="secondary" disabled={requests.isFetching} onClick={()=>void requests.refetch()}>重新读取</button><button className="secondary" disabled={!rows.length} onClick={()=>downloadText(`requests-${Date.now()}.jsonl`,rows.map(row=>JSON.stringify(row)).join("\n"))}>导出已载入记录（{rows.length}）</button></div>
   </div>
-  {requests.isError?<p role="alert">{asAppError(requests.error).message}</p>:requests.isPending?<p role="status">读取请求记录…</p>:!rows.length?<p className="empty-state">此筛选下没有请求记录。</p>:<div className="tablewrap request-records-panel"><table className="request-table"><thead><tr><th>模型 / 时间</th><th>渠道 / 账号</th><th>结果</th><th>耗时 / 首内容</th><th>费用（微单位）</th><th>操作</th></tr></thead><tbody>{rows.map(row=><tr key={row.request_id}><td><strong>{row.model}</strong><small>{time(row.finished_at_ms)}</small></td><td><div>{row.upstream_id?<ResourceIdentity id={row.upstream_id} kind="upstream"/>:"—"}</div>{row.credential_id?<small><ResourceIdentity id={row.credential_id} kind="account"/></small>:null}</td><td><StatusBadge status={row.outcome==="succeeded"?"active":row.outcome==="failed"?"unauthorized":"disabled"}>{outcomeLabel[row.outcome]}</StatusBadge><small>{row.attempt_count} 次尝试</small></td><td>{milliseconds(row.duration_ms)}<small>{milliseconds(row.first_content_ms)}</small></td><td>{row.ledger_records?row.cost_microunits===null?(row.cost_confidence?costConfidenceLabel(row.cost_confidence):"金额未观测"):formatMicrounits(row.cost_microunits):"无账本记录"}</td><td><button className="secondary" onClick={()=>setDetail(row)}>详情</button></td></tr>)}</tbody></table></div>}
+  <PagedReadStatus query={requests}/>
+  {requests.data===undefined?null:!rows.length?<p className="empty-state">此筛选下没有请求记录。</p>:<div className="tablewrap request-records-panel"><table className="request-table"><thead><tr><th>模型 / 时间</th><th>渠道 / 账号</th><th>结果</th><th>耗时 / 首内容</th><th>费用（微单位）</th><th>操作</th></tr></thead><tbody>{rows.map(row=><tr key={row.request_id}><td><strong>{row.model}</strong><small>{time(row.finished_at_ms)}</small></td><td><div>{row.upstream_id?<ResourceIdentity id={row.upstream_id} kind="upstream"/>:"—"}</div>{row.credential_id?<small><ResourceIdentity id={row.credential_id} kind="account"/></small>:null}</td><td><StatusBadge status={row.outcome==="succeeded"?"active":row.outcome==="failed"?"unauthorized":"disabled"}>{outcomeLabel[row.outcome]}</StatusBadge><small>{row.attempt_count} 次尝试</small></td><td>{milliseconds(row.duration_ms)}<small>{milliseconds(row.first_content_ms)}</small></td><td>{row.ledger_records?row.cost_microunits===null?(row.cost_confidence?costConfidenceLabel(row.cost_confidence):"金额未观测"):formatMicrounits(row.cost_microunits):"无账本记录"}</td><td><button className="secondary" onClick={()=>setDetail(row)}>详情</button></td></tr>)}</tbody></table></div>}
   {requests.hasNextPage?<button className="secondary" disabled={requests.isFetchingNextPage||requests.isError} onClick={()=>void requests.fetchNextPage()}>加载更多</button>:null}
   {detail?<RequestDetail row={detail} onClose={()=>setDetail(undefined)}/>:null}
   </section>;

@@ -63,6 +63,8 @@ try {
   await p.waitForSelector('input[name="password"]', { state: "visible" });
   await p.fill('input[name="username"]', "admin");
   await p.fill('input[name="password"]', (await fs.readFile(passwordPath, "utf8")).trim());
+  await p.keyboard.press("Escape");
+  await p.click('loc=role:heading[name="管理员登录"]');
   await p.click('loc=role:button[name="登录"]');
   await p.waitForSelector("main.canvas", { state: "visible" });
   if (mode === "settled") await p.waitForFunction(() =>

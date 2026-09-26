@@ -1,3 +1,4 @@
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { IdentityDetails } from "../../components/ResourceIdentity";
 import {accountName, accountGroups, protocolName} from "./presentation";
 import {
@@ -66,8 +67,10 @@ export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNo
   const auth = params.get("auth") ?? "";
   const runtime = params.get("runtime") ?? "";
   const query = params.get("q") ?? "";
+  const exactAccount=params.get("account_id")??"";
+  const exactChannel=params.get("channel_id")??"";
   const category=params.get("category")??"";
-  const key = ["accounts", provider, auth, runtime];
+  const key = ["accounts", provider, auth, runtime, exactChannel];
   const act = useMutation({
     mutationFn: ({body}: {target:RuntimeActionTarget;body:Readonly<Record<string, unknown>>}) =>
       call<ActionReceipt>(
@@ -104,6 +107,7 @@ export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNo
         query: {
           limit: 100,
           ...(provider ? { provider_id: provider } : {}),
+          ...(exactChannel?{channel_id:exactChannel}:{}),
           ...(auth ? { auth_status: auth } : {}),
           ...(runtime ? { runtime_status: runtime } : {}),
           ...(pageParam ? { cursor: pageParam } : {}),
@@ -158,8 +162,12 @@ export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNo
     setCredential(undefined);
   },[credential,nativeMatch,nativeInventory.isError,ordinaryCredential.data,ordinaryCredential.isError,resolvingCredential,selectedNativeProvider]);
   const loaded = pools.data?.pages.flatMap((page) => page.items) ?? [];
-  const rows = loaded.filter((row) => (!category||row.presentation?.category===category) &&
+  const rows = loaded.filter((row) => (!exactAccount||row.account_id===exactAccount) && (!category||row.presentation?.category===category) &&
     [runtimeName(row),runtimeProvider(row),runtimeConnection(row),row.account_id,row.channel_id].join(" ").toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  const findingTarget=!!exactAccount&&!loaded.some(row=>row.account_id===exactAccount)&&pools.hasNextPage&&!pools.isError&&(pools.data?.pages.length??0)<100;
+  useEffect(()=>{
+    if(findingTarget&&!pools.isFetching)void pools.fetchNextPage();
+  },[findingTarget,pools.isFetching,pools.fetchNextPage]);
   // Each runtime row remains one exact binding even when several rows share a human identity.
   const groups = new Map<string, PoolAccount[]>();
   for (const row of rows) {
@@ -178,7 +186,6 @@ export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNo
     setTab("runtime");
   };
   const observed = pools.data?.pages[0]?.observed_at_ms;
-  const error = pools.isError ? asAppError(pools.error) : undefined;
 
   return (
     <section className="accounts-page">
@@ -193,7 +200,7 @@ export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNo
           className="secondary"
           onClick={() => {
             setSelected(undefined);
-            void queryClient.resetQueries({ queryKey: key, exact: true });
+            void pools.refetch();
           }}
         >
           刷新账号
@@ -283,18 +290,12 @@ export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNo
             ))}
           </select>
         </div>
-        {error !== undefined ? (
-          <div className="empty-state" role="alert">
-            {error.kind === "unavailable"
-              ? t.state.unavailable
-              : `${error.code} · ${error.message}`}
-            <p>刷新列表后再继续；未把旧快照显示为最新结果。</p>
-          </div>
-        ) : pools.isPending ? (
-          <div className="empty-state">读取账号…</div>
-        ) : rows.length === 0 ? (
+        <PagedReadStatus query={pools}/>
+        {exactAccount?<p className="scope-row">当前定位请求关联的账号与接口。<button className="secondary" onClick={()=>{const next=new URLSearchParams(params);next.delete("account_id");next.delete("channel_id");setParams(next);}}>查看全部绑定</button></p>:null}
+        {findingTarget?<p role="status">正在分页定位账号…</p>:null}
+        {pools.data === undefined ? null : rows.length === 0 ? (
           <div className="empty-state">
-            {provider || auth || runtime || query
+            {findingTarget?"正在定位，请稍候。":exactAccount&&pools.hasNextPage?"尚未在已读页找到此账号，可继续加载更多。":provider || auth || runtime || query || exactAccount
               ? t.state.filteredEmpty
               : t.state.empty}
           </div>

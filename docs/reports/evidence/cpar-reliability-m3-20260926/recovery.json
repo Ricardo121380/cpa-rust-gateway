@@ -1,0 +1,15 @@
+{
+  "browser": "EgoLite",
+  "realGateway": true,
+  "readFaultInjection": true,
+  "realProviderCalls": 0,
+  "checks": [
+    "next-page failure retains 50 rows and retries exactly its cursor to 57",
+    "background refresh retains snapshot, timestamp and filters then recovers",
+    "first-read failure retains entered filter and recovers",
+    "render exception shows safe reference, reopening same route recovers without writes",
+    "persisted attempt timing and exact account deep link render",
+    "overview refresh preserves observed statistics and deep-link bounds on failure, advances only after success"
+  ],
+  "passed": true
+}

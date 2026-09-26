@@ -145,6 +145,7 @@ const ERROR_CODE_LABEL: Readonly<Record<string, string>> = {
   StreamTruncated: "流被截断",
   InternalError: "网关内部错误",
   Cancelled: "已取消",
+  RecordingUnavailable: "请求记录暂不可用",
 };
 
 export function errorCodeLabel(code: string): string | undefined {
@@ -174,7 +175,7 @@ export function errorScopeLabel(scope: string): string {
  *  the request may still have succeeded on another attempt, while
  *  `non_retryable` means it did not. */
 const RETRY_META: Readonly<Record<string, { label: string; tone: Tone; detail: string }>> = {
-  completed: { label: "已完成", tone: "good", detail: "该尝试之后请求走完了流程" },
+  completed: { label: "尝试已完成", tone: "good", detail: "该次上游尝试完成；请求终态单独判断，后续流仍可能失败" },
   retry_eligible: { label: "可重试", tone: "warn", detail: "允许再试 —— 请求可能仍然成功了" },
   non_retryable: { label: "不可重试", tone: "critical", detail: "失败终止,不再尝试" },
   retry_closed: { label: "重试已关闭", tone: "serious", detail: "重试预算或首字节边界已用尽" },
@@ -240,7 +241,23 @@ export type AttemptRow = Readonly<{
   stage?: string | null;
   endpoint_id?: string | null;
   credential_id?: string | null;
+  observation?: Readonly<{
+    attempt_number:number;upstream_id:string;started_at_ms:number;ended_at_ms:number;duration_ms:number;
+    error_code:string|null;error_scope:string|null;retry_decision:string;
+  }>;
 }>;
+
+export function attemptRecovery(code: string | null | undefined): string | undefined {
+  switch(code) {
+    case "CredentialUnauthorized":case "CredentialForbidden": return "检查账号授权；确认失效后重新授权或更新凭据。";
+    case "CredentialUnavailable": return "检查账号认证、并发、冷却和目录状态；无可用凭据不一定代表授权已过期。";
+    case "CredentialQuotaExceeded":case "ProviderRateLimited": return "查看额度与冷却观测，恢复可用后再发起新请求。";
+    case "StreamTruncated":case "UpstreamProtocolError": return "查看接口协议与请求诊断；不要把已建立响应视为完整成功。";
+    case "RecordingUnavailable": return "查看仪表盘的请求记录状态，恢复接收后再发起新请求。";
+    case "ProviderTransient":case "EgressUnavailable": return "检查提供商与出口状态，确认恢复后再发起新请求。";
+    default:return code ? "查看此账号及接口的运行诊断，核对错误归属。" : undefined;
+  }
+}
 
 const STAGE_LABEL: Readonly<Record<string, string>> = {
   request_conversion: "请求转换",
