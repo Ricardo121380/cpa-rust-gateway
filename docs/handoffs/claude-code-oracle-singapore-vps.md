@@ -1,5 +1,19 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-27: channel metadata repair deployed
+
+Production serves signed `333eae57ce33e3417bb6218410021cdfe4683201`, schema31.
+Formal Fast/supply-chain gates, both signed targets, independent verification,
+network-isolated production-copy fallback roundtrip, and auth acceptance passed.
+Stop-to-ready639ms. Eight accounts/admin,2391 events,704 ledger rows and effective
+permissions retained. Fallback `a715d6b952042d2e7c2775c0c7ab91895ee26e59` retains current data.
+No DNS/Caddy/Autoreg change or inference. One Build quota read succeeded; Console
+and two other Build reads returned unauthorized. Kimi still needs its missing
+production binding; Codex quota returned busy. Production browser login pending.
+See [current release evidence](../reports/cpar-channel-metadata-production-20260927.md).
+Earlier entries are historical. This receipt grants no new authority.
+
+
 ## 2026-09-26 16:24: scoped usage query repair deployed
 
 Production serves signed `3a164322c5731747cceb268e26249349953281d6`, schema28. Known

@@ -1,0 +1,128 @@
+{
+  "revision": "333eae57ce33e3417bb6218410021cdfe4683201",
+  "accounts": [
+    {
+      "channel": "Grok Console",
+      "identity_present_before": false,
+      "quota_error": "unauthorized",
+      "quota_windows": null,
+      "partial": null,
+      "adapter_model_count": 6,
+      "identity_present_after": false
+    },
+    {
+      "channel": "Grok Console",
+      "identity_present_before": false,
+      "quota_error": "unauthorized",
+      "quota_windows": null,
+      "partial": null,
+      "adapter_model_count": 6,
+      "identity_present_after": false
+    },
+    {
+      "channel": "Kimi",
+      "identity_present_before": false,
+      "kimi_error": "not_connected",
+      "quota_error": null,
+      "quota_windows": null,
+      "identity_observed": false,
+      "configured_connections": 0,
+      "identity_present_after": false
+    },
+    {
+      "channel": "API",
+      "identity_present_before": false,
+      "quota": "not_applicable_api_key",
+      "configured_connections": 2,
+      "identity_present_after": false
+    },
+    {
+      "channel": "Grok Build",
+      "identity_present_before": true,
+      "quota_error": null,
+      "quota_windows": 3,
+      "partial": false,
+      "adapter_model_count": null,
+      "identity_present_after": true
+    },
+    {
+      "channel": "Codex",
+      "identity_present_before": true,
+      "kimi_error": null,
+      "quota_error": "busy",
+      "quota_windows": null,
+      "identity_observed": false,
+      "configured_connections": 1,
+      "identity_present_after": true
+    },
+    {
+      "channel": "Grok Build",
+      "identity_present_before": true,
+      "quota_error": "unauthorized",
+      "quota_windows": null,
+      "partial": null,
+      "adapter_model_count": null,
+      "identity_present_after": true
+    },
+    {
+      "channel": "Grok Build",
+      "identity_present_before": true,
+      "quota_error": "unauthorized",
+      "quota_windows": null,
+      "partial": null,
+      "adapter_model_count": null,
+      "identity_present_after": true
+    }
+  ],
+  "catalog": [
+    {
+      "freshness": "missing",
+      "observed_at_ms": 1790435250602,
+      "model_count": null,
+      "last_failure_class": "authentication",
+      "channel": "Codex"
+    },
+    {
+      "freshness": "stale",
+      "observed_at_ms": 1790367766000,
+      "model_count": 1,
+      "last_failure_class": null,
+      "channel": "Grok Build",
+      "saved_entries": 1,
+      "pages": 1,
+      "current_model_count": 1
+    },
+    {
+      "freshness": "stale",
+      "observed_at_ms": 1790456391475,
+      "model_count": 4,
+      "last_failure_class": null,
+      "channel": "Grok Build",
+      "saved_entries": 4,
+      "pages": 1,
+      "current_model_count": 4
+    },
+    {
+      "freshness": "fresh",
+      "observed_at_ms": 1790481377240,
+      "model_count": 21,
+      "last_failure_class": null,
+      "channel": "API",
+      "saved_entries": 21,
+      "pages": 1,
+      "current_model_count": 21
+    },
+    {
+      "freshness": "fresh",
+      "observed_at_ms": 1790481377305,
+      "model_count": 21,
+      "last_failure_class": null,
+      "channel": "API",
+      "saved_entries": 21,
+      "pages": 1,
+      "current_model_count": 21
+    }
+  ],
+  "manual_inference_requests": 0,
+  "configuration_changes": 0
+}

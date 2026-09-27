@@ -1,0 +1,21 @@
+{
+  "revision": "a715d6b952042d2e7c2775c0c7ab91895ee26e59",
+  "run_id": 36263836176,
+  "signature_verified": true,
+  "artifact_and_sbom_verified": true,
+  "binary_sha256": "e5738b44adc310a9b73e4f45de6e0c4101024967a83deff5594f299a575ad5bf",
+  "architectures": [
+    {
+      "target": "aarch64-unknown-linux-gnu",
+      "binary_sha256": "e5738b44adc310a9b73e4f45de6e0c4101024967a83deff5594f299a575ad5bf",
+      "signature_verified": true,
+      "artifact_and_sbom_verified": true
+    },
+    {
+      "target": "x86_64-unknown-linux-gnu",
+      "binary_sha256": "6ffc6ff79f1a6ba9797912226b2bf0ff06e35ee99b3442546362970603f75fd3",
+      "signature_verified": true,
+      "artifact_and_sbom_verified": true
+    }
+  ]
+}
