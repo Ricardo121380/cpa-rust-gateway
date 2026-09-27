@@ -21,7 +21,8 @@ describe("Kimi quota failure diagnostics",()=>{
  });
  it("shows an upstream empty result without a fake zero balance",()=>{
   const html=renderToStaticMarkup(<KimiQuotaEvidence loading={false} onRefresh={()=>{}} observation={{observed_at_ms:100,profile_available:true,quota_available:false,identity:{email:null,phone:null,username:null},plan:null,quota_windows:[],quota_error:{code:"empty_response"}}}/>);
-  expect(html).toContain("官方接口本次未返回额度数据");
+  expect(html).toContain("上游暂未提供额度数据");
+  expect(html).toContain('role="status"');expect(html).not.toContain('role="alert"');
   expect(html).not.toContain("已使用 0%");
  });
  it("distinguishes transport, timeout, and unrecognized payloads",()=>{
@@ -30,5 +31,10 @@ describe("Kimi quota failure diagnostics",()=>{
   expect(kimiQuotaFailure({code:"invalid_json"})).toContain("无法解析");
   expect(kimiQuotaFailure({code:"unrecognized_response"})).toContain("没有可识别");
   expect(kimiMetadataError("busy")).toContain("续期");
+ });
+ it("keeps a new request error visible over an earlier empty observation",()=>{
+  const html=renderToStaticMarkup(<KimiQuotaEvidence loading={false} error="timeout" onRefresh={()=>{}} observation={{observed_at_ms:100,profile_available:true,quota_available:false,identity:{email:null,phone:null,username:null},plan:null,quota_windows:[],quota_error:{code:"empty_response"}}}/>);
+  expect(html).toContain('role="alert"');expect(html).toContain("超时");
+  expect(html).not.toContain("上游暂未提供额度数据");
  });
 });

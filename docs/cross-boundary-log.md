@@ -3441,3 +3441,11 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** Isolated real-adapter reads return an empty object from usages despite working identity/catalog; unknown must not become a zero balance. Both official count/ratio formats need coverage.
 
 **Other side:** FYI under unified repair scope; sync-contract performed. No schema, grant, secret, chunk or request-flow change. No production cutover. Device-header experiment did not help and was removed. See `docs/reports/cpar-kimi-isolated-verification-20260927.md`; actual quota and final release remain blocked on official account evidence.
+
+## 2026-09-27 - Codex - Kimi successful empty quota is informational
+
+**What:** `web/prism/src/features/accounts/KimiAccountEvidence{.tsx,.test.tsx}`.
+
+**Why:** Successful empty usage responses are normal empty states in the reference management UI. Show a status rather than an alert; preserve real HTTP/transport failures and error precedence. Do not infer account tier or a zero balance.
+
+**Other side:** FYI. This supersedes the preceding numeric-quota release blocker after the user's Free-account clarification and approval. Signed release gates and isolated rollback rehearsal remain required. No contract/schema or permissions change; account deletion will ship in the same batch without deleting production accounts.

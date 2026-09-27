@@ -20,8 +20,12 @@ produce ratios; absent used/remaining does not imply zero. Preferred ratio
 windows suppress duplicate counted windows. This does not fix an empty upstream
 payload or prove the current account has an available quota.
 
-Frontend: retain existing evidence panel; explicitly say the provider supplied
-no quota data. No new request, login flow, storage, schema migration or model grant.
+Frontend: retain existing evidence panel; successful empty responses use a normal
+status saying the provider supplied no quota data. HTTP/transport/parse errors
+remain alerts; a new request error overrides a cached empty result. Do not infer
+Free plan or zero quota from emptiness. No new request, login flow, storage,
+schema migration or model grant. Numeric quota from this live account is not a
+release prerequisite following the user's Free-account clarification and CPA comparison.
 
 Sources checked 2026-09-27:
 - https://github.com/MoonshotAI/kimi-cli/blob/main/src/kimi_cli/ui/shell/usage.py

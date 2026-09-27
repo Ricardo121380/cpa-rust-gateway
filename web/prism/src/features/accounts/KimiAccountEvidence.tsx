@@ -36,16 +36,17 @@ export function kimiQuotaFailure(error:KimiMetadataFailure|undefined|null):strin
     timeout:"Kimi 额度接口读取超时，未取得额度。",
     response_too_large:"Kimi 额度响应超过安全大小限制，未读取其内容。",
     invalid_json:"Kimi 额度接口返回了无法解析的数据。",
-    empty_response:"Kimi 官方接口本次未返回额度数据。身份与模型读取正常不代表已取得额度，请核对官方控制台。",
+    empty_response:"上游暂未提供额度数据。",
     unrecognized_response:"Kimi 额度响应没有可识别的额度窗口，不能据此判断剩余额度。",
   };
   return messages[error.code];
 }
 export function KimiQuotaEvidence({observation,error,loading,onRefresh}:{observation?: KimiObservation|null;error?: string|null;loading:boolean;onRefresh:()=>void}) {
   const message = kimiMetadataError(error)??kimiQuotaFailure(observation?.quota_error);
+  const informational = !error && (observation?.quota_error?.code === "empty_response" || observation?.quota_error?.code === "not_observed");
   return <section className="account-evidence-card" aria-label="Kimi 官方额度">
     <h4>Kimi Coding 额度</h4>
-    {loading ? <p role="status">正在读取官方额度…</p> : message ? <p role="alert">{message}</p> : !observation?.quota_available ? <p>暂未取得可识别的额度数据，不能据此判断剩余额度。</p> : <dl className="fact-grid kimi-quota-facts">
+    {loading ? <p role="status">正在读取官方额度…</p> : message ? <p role={informational ? "status" : "alert"}>{message}</p> : !observation?.quota_available ? <p>暂未取得可识别的额度数据，不能据此判断剩余额度。</p> : <dl className="fact-grid kimi-quota-facts">
       {observation.quota_windows.map(window => <Fragment key={window.window}><dt>{windows[window.window]??window.window}</dt><dd>已使用 {(window.used_ratio*100).toLocaleString(undefined,{maximumFractionDigits:1})}%{window.reset_at ? <span className="kimi-quota-reset">重置：{Number.isFinite(Date.parse(window.reset_at))?new Date(window.reset_at).toLocaleString():window.reset_at}</span> : null}</dd></Fragment>)}
     </dl>}
     {observation ? <p className="muted">观测时间：{formatObservedAt(observation.observed_at_ms)} · 官方用量比例，不是 Token 余额</p> : null}
