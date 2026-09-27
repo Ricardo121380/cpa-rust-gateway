@@ -3433,3 +3433,11 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** `.ok()` discarded the actual usage failure; successful profile and failed quota looked like a generic unknown. Preserve independent safe error codes/HTTP status and show them without exposing provider bodies or secrets.
 
 **Other side:** FYI under unified repair scope. sync-contract performed; no schema/new endpoint/model grant changes. Local provider/HTTP/frontend regressions pass; production quota remains pending explicit release and real metadata verification. See `docs/reports/cpar-kimi-quota-diagnostics-20260927.md`.
+
+## 2026-09-27 - Codex - Isolated Kimi evidence and empty quota semantics
+
+**What:** authoritative/vendored OpenAPI and `web/prism/src/features/accounts/KimiAccountEvidence{.tsx,.test.tsx}`. Provider parser adds empty-response classification and official OAuth count-format compatibility.
+
+**Why:** Isolated real-adapter reads return an empty object from usages despite working identity/catalog; unknown must not become a zero balance. Both official count/ratio formats need coverage.
+
+**Other side:** FYI under unified repair scope; sync-contract performed. No schema, grant, secret, chunk or request-flow change. No production cutover. Device-header experiment did not help and was removed. See `docs/reports/cpar-kimi-isolated-verification-20260927.md`; actual quota and final release remain blocked on official account evidence.

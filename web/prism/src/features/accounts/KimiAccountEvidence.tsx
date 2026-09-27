@@ -2,7 +2,7 @@ import "./accountMetadata.css";
 import {Fragment} from "react";
 import {formatObservedAt} from "../runtime/model";
 
-export type KimiMetadataFailure = Readonly<{code:"not_observed"|"egress_denied"|"transport"|"timeout"|"http"|"response_too_large"|"invalid_json"|"unrecognized_response";status?:number}>;
+export type KimiMetadataFailure = Readonly<{code:"not_observed"|"egress_denied"|"transport"|"timeout"|"http"|"response_too_large"|"invalid_json"|"empty_response"|"unrecognized_response";status?:number}>;
 export type KimiObservation = Readonly<{
   observed_at_ms: number;
   profile_available: boolean;
@@ -36,6 +36,7 @@ export function kimiQuotaFailure(error:KimiMetadataFailure|undefined|null):strin
     timeout:"Kimi 额度接口读取超时，未取得额度。",
     response_too_large:"Kimi 额度响应超过安全大小限制，未读取其内容。",
     invalid_json:"Kimi 额度接口返回了无法解析的数据。",
+    empty_response:"Kimi 官方接口本次未返回额度数据。身份与模型读取正常不代表已取得额度，请核对官方控制台。",
     unrecognized_response:"Kimi 额度响应没有可识别的额度窗口，不能据此判断剩余额度。",
   };
   return messages[error.code];

@@ -23,6 +23,8 @@ pub enum KimiMetadataFailure {
     ResponseTooLarge,
     /// Response body was not JSON.
     InvalidJson,
+    /// Upstream returned a successful but empty JSON object.
+    EmptyResponse,
     /// JSON contained no recognized identity or quota observation.
     UnrecognizedResponse,
 }
@@ -70,6 +72,63 @@ pub struct KimiAccountObservation {
 fn text(value: &Value) -> Option<String> {
     let s = value.as_str()?.trim();
     (!s.is_empty() && s.len() <= 254 && !s.chars().any(char::is_control)).then(|| s.to_owned())
+}
+// Older Kimi OAuth responses report counts instead of ratios. Missing/invalid
+// values and a zero denominator must remain unknown, never become a zero balance.
+fn quota_number(value: &Value) -> Option<f64> {
+    value
+        .as_f64()
+        .or_else(|| value.as_str()?.parse().ok())
+        .filter(|number| number.is_finite() && *number >= 0.0)
+}
+fn counted_quota(entry: &Value, window: &str) -> Option<KimiQuotaWindow> {
+    let limit = quota_number(&entry["limit"]).filter(|limit| *limit > 0.0)?;
+    let used = if entry.get("used").is_some() {
+        quota_number(&entry["used"])?
+    } else {
+        limit - quota_number(&entry["remaining"]).filter(|remaining| *remaining <= limit)?
+    };
+    let used_ratio = used / limit;
+    used_ratio.is_finite().then(|| KimiQuotaWindow {
+        window: window.to_owned(),
+        used_ratio,
+        reset_at: text(&entry["resetTime"]).or_else(|| text(&entry["reset_time"])),
+    })
+}
+fn counted_windows(usage: &Value, windows: &mut Vec<KimiQuotaWindow>) {
+    // The official Python Kimi CLI defines the top-level usage as the weekly summary.
+    let mut candidates = Vec::new();
+    if let Some(summary) = counted_quota(&usage["usage"], "limit_7d") {
+        candidates.push(summary);
+    }
+    if let Some(limits) = usage["limits"].as_array() {
+        for item in limits.iter().take(32) {
+            let duration = quota_number(&item["window"]["duration"]);
+            let seconds = match item["window"]["timeUnit"].as_str() {
+                Some("TIME_UNIT_SECOND") => duration,
+                Some("TIME_UNIT_MINUTE") => duration.map(|n| n * 60.0),
+                Some("TIME_UNIT_HOUR") => duration.map(|n| n * 3600.0),
+                Some("TIME_UNIT_DAY") => duration.map(|n| n * 86_400.0),
+                _ => None,
+            };
+            let window = match seconds {
+                Some(seconds) if (seconds - 18_000.0).abs() < f64::EPSILON => "limit_5h",
+                Some(seconds) if (seconds - 604_800.0).abs() < f64::EPSILON => "limit_7d",
+                _ => continue,
+            };
+            if let Some(value) = counted_quota(&item["detail"], window) {
+                candidates.push(value);
+            }
+        }
+    }
+    for candidate in candidates {
+        if !windows
+            .iter()
+            .any(|window| window.window == candidate.window)
+        {
+            windows.push(candidate);
+        }
+    }
 }
 impl KimiAccountObservation {
     /// Retains independent safe failures while projecting any successful counterpart.
@@ -141,6 +200,9 @@ impl KimiAccountObservation {
                 }
             }
         }
+        if let Some(usage) = usage {
+            counted_windows(usage, &mut quota_windows);
+        }
         Self {
             observed_at_ms,
             profile_available: profile.is_some(),
@@ -155,11 +217,17 @@ impl KimiAccountObservation {
                 })
             },
             quota_error: if quota_windows.is_empty() {
-                Some(if usage.is_some() {
-                    KimiMetadataFailure::UnrecognizedResponse
-                } else {
-                    KimiMetadataFailure::NotObserved
-                })
+                Some(
+                    if usage.is_some_and(|value| {
+                        value.as_object().is_some_and(serde_json::Map::is_empty)
+                    }) {
+                        KimiMetadataFailure::EmptyResponse
+                    } else if usage.is_some() {
+                        KimiMetadataFailure::UnrecognizedResponse
+                    } else {
+                        KimiMetadataFailure::NotObserved
+                    },
+                )
             } else {
                 None
             },
@@ -244,9 +312,50 @@ mod tests {
         );
     }
     #[test]
+    fn parses_oauth_counts_and_remaining_without_inventing_missing_usage() {
+        let usage = json!({"usage":{"limit":"100","remaining":"75","resetTime":"2026-10-01T00:00:00Z"},
+            "limits":[{"window":{"duration":300,"timeUnit":"TIME_UNIT_MINUTE"},
+                "detail":{"limit":"200","used":"0"}}]});
+        let observation = KimiAccountObservation::from_payloads(None, Some(&usage), 100);
+        assert!(observation.quota_available);
+        assert_eq!(observation.quota_windows.len(), 2);
+        assert_eq!(observation.quota_windows[0].window, "limit_7d");
+        assert!((observation.quota_windows[0].used_ratio - 0.25).abs() < f64::EPSILON);
+        assert_eq!(
+            observation.quota_windows[0].reset_at.as_deref(),
+            Some("2026-10-01T00:00:00Z")
+        );
+        assert!(observation.quota_windows[1].used_ratio.abs() < f64::EPSILON);
+        for invalid in [
+            json!({"limit":0,"used":0}),
+            json!({"limit":100}),
+            json!({"limit":100,"remaining":101}),
+            json!({"limit":100,"used":"NaN"}),
+            json!({"limit":100,"used":null,"remaining":100}),
+        ] {
+            let invalid = json!({"usage":invalid});
+            assert!(
+                !KimiAccountObservation::from_payloads(None, Some(&invalid), 100).quota_available
+            );
+        }
+    }
+    #[test]
+    fn ratio_format_wins_over_duplicate_counted_window() {
+        let usage =
+            json!({"usages":{"limit_7d":{"used_ratio":0.5}},"usage":{"limit":100,"used":25}});
+        let observation = KimiAccountObservation::from_payloads(None, Some(&usage), 100);
+        assert_eq!(observation.quota_windows.len(), 1);
+        assert!((observation.quota_windows[0].used_ratio - 0.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
     fn failures_and_unrecognized_usage_are_not_zero_balances() {
         let observation = KimiAccountObservation::from_payloads(None, Some(&json!({})), 100);
         assert!(!observation.profile_available && !observation.quota_available);
         assert!(observation.identity.email.is_none() && observation.quota_windows.is_empty());
+        assert_eq!(
+            observation.quota_error,
+            Some(KimiMetadataFailure::EmptyResponse)
+        );
     }
 }

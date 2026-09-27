@@ -19,6 +19,11 @@ describe("Kimi quota failure diagnostics",()=>{
   const html=renderToStaticMarkup(<KimiQuotaEvidence loading={false} onRefresh={()=>{}} observation={{observed_at_ms:100,profile_available:true,quota_available:false,identity:{email:null,phone:null,username:null},plan:null,quota_windows:[],quota_error:{code:"http",status}}}/>);
   expect(html).toContain(`HTTP ${status}`);expect(html).toContain('role="alert"');expect(html).not.toContain("0%");
  });
+ it("shows an upstream empty result without a fake zero balance",()=>{
+  const html=renderToStaticMarkup(<KimiQuotaEvidence loading={false} onRefresh={()=>{}} observation={{observed_at_ms:100,profile_available:true,quota_available:false,identity:{email:null,phone:null,username:null},plan:null,quota_windows:[],quota_error:{code:"empty_response"}}}/>);
+  expect(html).toContain("官方接口本次未返回额度数据");
+  expect(html).not.toContain("已使用 0%");
+ });
  it("distinguishes transport, timeout, and unrecognized payloads",()=>{
   expect(kimiQuotaFailure({code:"timeout"})).toContain("超时");
   expect(kimiQuotaFailure({code:"transport"})).toContain("连接");

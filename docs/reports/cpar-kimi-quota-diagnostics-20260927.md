@@ -47,3 +47,10 @@ exercise deletion only with synthetic local accounts. The new isolated
 existing explicit-copy marker, suppresses renewal and returns only counts,
 identity presence and closed error classes. Do not bypass egress or export
 secrets to obtain evidence. Production cutover is pending successful verification.
+
+## Isolated follow-up
+
+See [isolated verification and remaining gate](cpar-kimi-isolated-verification-20260927.md).
+Real quota JSON is empty; production has not been switched. Both documented
+formats and the empty-response state are now covered locally, not a claim of
+real quota success.

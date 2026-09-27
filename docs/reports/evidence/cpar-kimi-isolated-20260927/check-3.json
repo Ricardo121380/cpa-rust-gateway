@@ -1,0 +1,25 @@
+{
+  "background_workers_started": false,
+  "credential_refresh_attempted": false,
+  "inference_requests": 0,
+  "kimi": {
+    "identity_present": true,
+    "profile_available": true,
+    "profile_error": null,
+    "quota_available": false,
+    "quota_error": {
+      "code": "unrecognized_response"
+    },
+    "quota_window_count": 0
+  },
+  "metadata_only": true,
+  "model_count": 4,
+  "observed_at_ms": 1790514770591,
+  "quota_schema": {},
+  "exit_code": 0,
+  "production_pid_unchanged": true,
+  "production_release_unchanged": true,
+  "production_configuration_unchanged": true,
+  "candidate_sha256": "5453179f039ab1fd450c86e39d681dc2550ded2de5244751534028e9cf2b5576",
+  "checked_at_ms": 1790514770910
+}
