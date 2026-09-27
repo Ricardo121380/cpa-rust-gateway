@@ -1,0 +1,24 @@
+{
+  "previous_version": "production-grok-reasoning-20260925",
+  "version": "krill-model-alignment-7dbddb26-0eb9-45b6-8fd2-2c5976e70198",
+  "model_id": "model-9f828e8b-a0c1-4db5-87ce-a39b3138fd5e",
+  "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+  "group_id": "group-eb1d81ec-c8fb-4ab1-84c2-37bbb0864b65",
+  "key_id": "key-3ae45544-988d-44ae-994b-2ca59576422b",
+  "expires_at_ms": 1791086540553,
+  "state": "published_verified",
+  "existing_key_permissions_unchanged": true,
+  "new_key_models": [
+    "gpt-6-sol"
+  ],
+  "runtime_applied": true,
+  "inference_calls": 0,
+  "data_plane": {
+    "data_plane_models": [
+      "gpt-6-sol"
+    ],
+    "inference_calls": 0,
+    "passed": true
+  },
+  "key_delivery": "owner-only local file, not committed"
+}
