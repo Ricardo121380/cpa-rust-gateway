@@ -13,7 +13,7 @@ export function AttemptTimeline({items,onNavigate}:{items:readonly AttemptRow[];
       <dl className="request-facts"><dt>耗时</dt><dd>{observed?`${observed.duration_ms.toLocaleString()} ms`:"未观测"}</dd><dt>观测时间</dt><dd>{observed?formatTime(observed.ended_at_ms):"未观测"}</dd>
       {observed?.error_code?<><dt>原因</dt><dd>{errorCodeLabel(observed.error_code)??"未分类错误"}{observed.error_scope?` · ${errorScopeLabel(observed.error_scope)}`:""}</dd></>:null}
       {observed?<><dt>调度决定</dt><dd>{retryLabel(observed.retry_decision)}</dd></>:null}
-      {attempt.stage?<><dt>失败阶段</dt><dd>{stageLabel(attempt.stage)}</dd></>:null}
+      {attempt.stage?<><dt>观测阶段</dt><dd>{stageLabel(attempt.stage)}</dd></>:null}
       {attempt.credential_id?<><dt>账号</dt><dd><ResourceIdentity id={attempt.credential_id} kind="account"/></dd></>:null}</dl>
       {recovery?<p>{recovery}</p>:null}
       <div className="page-actions">

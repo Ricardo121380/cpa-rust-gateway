@@ -3359,3 +3359,12 @@ Local M4 validation: 1,357 Rust tests, 415 frontend tests, strict Clippy, serve 
 **Why:** c50e11a ARM artifact smoke failed against the existing Debian image with a GLIBC_2.39 requirement. Keep the existing runtime baseline and safe-code rule; validate the replacement using the same release smoke rather than bypassing the gate.
 
 **Other side:** No frontend/contract/query/permission change. Existing four embedded assets remain the visual acceptance target. The failed candidate was never deployed; exact follow-up signing and production-copy rehearsal remain required.
+
+
+## 2026-09-27 - Codex - Neutral attempt observation label
+
+**What:** web/prism/src/features/monitoring/AttemptTimeline.tsx changes the shared stage label from failure stage to observation stage.
+
+**Why:** M4-UI-01 showed a successful HTTP attempt under a misleading failure label.
+
+**Other side:** FYI under unified frontend authorization. Copy only; outcome, error, stage values and API contracts unchanged. Monitoring tests (25), type/build and deterministic four-file gates pass. Local fix only; production remains a715d6b.
