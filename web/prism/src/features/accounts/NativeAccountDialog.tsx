@@ -15,7 +15,7 @@ import type { NativeAccount } from "./NativeAccounts";
 export type NativeReceipt = Readonly<{account_id:string;revision:number;removed:boolean;runtime_applied:boolean;identity_state?:"observed"|"unavailable"}>;
 type Event = Readonly<{id:number;action:string;occurred_at_ms:number}>;
 const names = {grok_web:"Grok Web",grok_console:"Grok Console",grok_build:"Grok Build"};
-const actions: Record<string,string> = {enabled:"启用账号",disabled:"停用账号",credential_updated:"更新凭据",removed:"移除授权"};
+const actions: Record<string,string> = {enabled:"启用账号",disabled:"停用账号",credential_updated:"更新凭据",removed:"删除账号"};
 
 export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Readonly<{
   account:NativeAccount;onClose:()=>void;onChanged:(notice:string)=>void;onAuthorize:()=>void;
@@ -33,7 +33,7 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
   const finish=(receipt:NativeReceipt)=>{
     setSaved(receipt);
     setMode("details");
-    if(receipt.runtime_applied) onChanged(receipt.removed?"授权已移除。":receipt.identity_state==="unavailable"?"凭据已更新，渠道暂未返回身份。":"账号修改已应用。");
+    if(receipt.runtime_applied) onChanged(receipt.removed?"账号已删除，历史请求与账本保留。":receipt.identity_state==="unavailable"?"凭据已更新，渠道暂未返回身份。":"账号修改已应用。");
   };
   const change=useMutation({gcTime:0,mutationFn:async(material?:string)=>{
     const path={account_id:account.id};
@@ -56,8 +56,8 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
     if(secret.current)secret.current.value="";
     change.mutate(material);
   };
-  const title=saved&&!saved.runtime_applied?"账号修改已保存":mode==="credential"?"更新 SSO 凭据":mode==="remove"?"移除授权":mode==="status"?account.enabled?"停用账号":"启用账号":"账号详情";
-  const footer=reconcile?<button onClick={()=>onChanged("请核对重新读取的账号状态；上一操作没有自动重试。")}>重新读取账号</button>:saved&&!saved.runtime_applied?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:mode==="details"?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy} onDismiss={()=>select("details")}>返回</SheetDismissButton><button type="submit" form={formId} className={mode==="remove"?"danger":undefined} disabled={busy}>{mode==="credential"?"保存并应用":"确认"}</button></>;
+  const title=saved&&!saved.runtime_applied?"账号修改已保存":mode==="credential"?"更新 SSO 凭据":mode==="remove"?"删除账号":mode==="status"?account.enabled?"停用账号":"启用账号":"账号详情";
+  const footer=reconcile?<button onClick={()=>onChanged("请核对重新读取的账号状态；上一操作没有自动重试。")}>重新读取账号</button>:saved&&!saved.runtime_applied?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:mode==="details"?<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy} onDismiss={()=>select("details")}>返回</SheetDismissButton><button type="submit" form={formId} className={mode==="remove"?"danger":undefined} disabled={busy}>{mode==="credential"?"保存并应用":mode==="remove"?"确认删除":"确认"}</button></>;
   return <Sheet title={title} description={mode==="details"?undefined:mode==="credential"?"替换当前账号的 SSO 凭据；身份与接口连接会保留。":"确认这项账号维护操作及其影响。"} layout={mode==="details"?"inspector":mode==="remove"||saved&&!saved.runtime_applied?"confirm":"form"} tone={mode==="remove"?"danger":"default"} onEscape={()=>!busy&&onClose()} busy={busy} footer={footer}>
     <AccountIdentityHeader name={accountName(account.identity)} provider={names[account.provider]} method={account.provider==="grok_build"?"OAuth 授权":"SSO 授权"} status={<StatusBadge status={account.enabled?account.auth_status:"disabled"}>{!account.enabled?"已停用":account.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>}/>
     {saved&&!saved.runtime_applied?<div role="alert"><p>修改已保存，运行配置暂未应用。新请求已暂停。</p><button disabled={busy} onClick={()=>apply.mutate()}>应用运行配置</button></div>:mode==="details"?<AccountEvidenceTabs models={account.adapter_models?<section className="account-evidence-card"><h4>适配器支持的模型</h4><p>此渠道未提供已核实的账号级动态目录。以下是当前适配器支持的原始 ID，不代表本账号已获授权或模型已开放。</p><ul>{account.adapter_models.map(id=><li key={id}><code>{id}</code></li>)}</ul></section>:undefined} quota={<NativeQuotaEvidence account={account}/>} accountId={account.id} onNavigate={onClose} overview={<section className="account-overview-facts"><h4>接口连接</h4>{topology.isError?<p role="alert">接口读取失败</p>:topology.isPending?<p role="status">读取接口…</p>:connections.length?<ul className="account-overview-connections">{connections.map(c=><li key={c.id}><div><strong>{protocolName(c.api_format)}</strong><span>{c.host}</span></div><StatusBadge status={c.enabled?"active":"disabled"}>{c.enabled?"已启用":"已停用"}</StatusBadge></li>)}</ul>:<p>尚未连接接口</p>}<p className="account-evidence-note">认证、额度和模型目录分别校验。已保存授权不等于当前可调度。</p></section>} configuration={<>
@@ -65,7 +65,7 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
       <div className="sheet-actions">
         <button onClick={()=>account.provider==="grok_build"?onAuthorize():select("credential")}>{account.provider==="grok_build"?"重新授权":"更新凭据"}</button>
         <button className="secondary" onClick={()=>select("status")}>{account.enabled?"停用":"启用"}</button>
-        <button className="secondary" onClick={()=>select("remove")}>移除</button>
+        <button className="secondary" onClick={()=>select("remove")}>删除账号</button>
       </div>
       <h3>接口协议</h3>{topology.isError?<p role="alert">接口读取失败</p>:topology.isPending?<p>读取接口…</p>:!connections.length?<p>尚未配置接口</p>:<ul className="account-connections">{connections.map(c=><li key={c.id}><span>{protocolName(c.api_format)}</span><span>{c.host}</span><span>{c.enabled?"已启用":"已停用"}</span></li>)}</ul>}
       <details><summary>调度方式</summary><p>已启用的账号参与对应渠道的请求调度；认证、额度与模型目录仍分别校验。</p></details>
@@ -82,7 +82,7 @@ export function NativeAccountDialog({account,onClose,onChanged,onAuthorize}:Read
           const target=secret.current;
           try{const value=await file.text();if(target&&target===secret.current){target.value=value;target.dispatchEvent(new Event("input",{bubbles:true}));}}catch{setError("无法读取文件。");}
         }}/></label>
-      </>:<p>{mode==="remove"?"移除此授权，历史请求和费用保留。":account.enabled?"停用后，新请求不再选择此账号。":"启用此账号；认证和额度仍按渠道实际状态判断。"}</p>}
+      </>:<p>{mode==="remove"?"从 CPAR 删除此账号授权，历史请求与账本保留。这不会注销上游账号；再次使用需要重新授权或导入。":account.enabled?"停用后，新请求不再选择此账号。":"启用此账号；认证和额度仍按渠道实际状态判断。"}</p>}
     </form>}
     {error?<p role="alert">{error}</p>:null}
   </Sheet>;

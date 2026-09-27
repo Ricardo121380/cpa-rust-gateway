@@ -1,0 +1,1 @@
+{"state": "published_verified", "version": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75", "previous_version": "edit-a6c59457-4925-4ff2-9d4b-ea2147efbc89", "plan": {"accounts": 1, "official_same_owner_endpoints": 1, "missing_bindings": 1, "credential_replacement": false, "model_or_key_grant_change": false}, "effective_permissions_preserved": true, "inference_requests": 0}

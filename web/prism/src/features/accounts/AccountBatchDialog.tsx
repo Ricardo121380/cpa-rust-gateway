@@ -12,7 +12,7 @@ import { accountActionOutcomeLabel, type AccountActionOutcome } from "./accountA
 
 export type AccountTarget=Readonly<{id:string;native:boolean;nativeProvider?:string;upstreamId?:string;name:string;provider:string;enabled:boolean;revision:number}>;
 export type AccountAction="enable"|"disable"|"remove";
-const labels={enable:"启用",disable:"停用",remove:"移除"};
+const labels={enable:"启用",disable:"停用",remove:"删除"};
 const pending=():AccountActionOutcome=>({kind:"pending"});
 const unexecuted=():AccountActionOutcome=>({kind:"unexecuted"});
 function knownRejection(cause:unknown):boolean { const error=asAppError(cause); return error.kind==="invalid_request"||error.kind==="conflict"||error.kind==="session_invalid"; }
@@ -111,7 +111,7 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
   const review=useMutation({mutationFn:()=>call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}}),onSuccess:(next)=>onCompleted("请核对已保存的账号修改。",next)});
   const busy=change.isPending||review.isPending||nativeApplying;
   const close=()=>{if(busy)return;if(completed)onCompleted(needsApply?"账号修改已保存，运行配置暂未应用。":"账号操作已处理，请查看各项结果。",version);else onClose();};
-  return <Sheet title={`${labels[action]} ${targets.length} 份授权`} description={action==="remove"?"历史请求与费用保留；选中的授权和连接将被移除。":"仅改变所选授权的启停状态，不改变其他渠道。"} layout="confirm" tone={action==="remove"?"danger":"default"} onEscape={close} busy={busy} footer={<><SheetDismissButton className="secondary" disabled={busy}>{completed?"完成":"取消"}</SheetDismissButton>{!completed?<button disabled={busy} onClick={()=>change.mutate()}>确认{labels[action]}</button>:null}</>}>
+  return <Sheet title={`${labels[action]} ${targets.length} 份授权`} description={action==="remove"?"从 CPAR 删除选中的账号授权及其连接，历史请求与账本保留。这不会注销上游账号；再次使用需要重新授权或导入。":"仅改变所选授权的启停状态，不改变其他渠道。"} layout="confirm" tone={action==="remove"?"danger":"default"} onEscape={close} busy={busy} footer={<><SheetDismissButton className="secondary" disabled={busy}>{completed?"完成":"取消"}</SheetDismissButton>{!completed?<button disabled={busy} onClick={()=>change.mutate()}>确认{labels[action]}</button>:null}</>}>
     <div className="operation-summary" role="status"><span>{completed?"处理结果":change.isPending?"正在处理":"已选择"}</span><strong>{targets.length} 份授权</strong><small>{outcomes.filter(item=>item.kind!=="pending"&&item.kind!=="unexecuted").length} 项已处理</small></div>
     <ul className="operation-items" aria-label="账号操作结果">{targets.map((target,index)=><li key={`${target.native}:${target.id}`}><div><strong>{target.name}</strong><span>{target.provider}</span></div><p data-outcome={outcomes[index]?.kind??"unexecuted"}>{accountActionOutcomeLabel(outcomes[index]??unexecuted())}</p></li>)}</ul>
     {needsApply?<RuntimeApplyNotice onBusyChange={setNativeApplying} onApplied={()=>{setNeedsApply(false);setOutcomes((items)=>items.map((outcome,index)=>targets[index]?.native&&outcome.kind==="saved_unapplied"?{kind:"applied"}:outcome));}}/>:null}

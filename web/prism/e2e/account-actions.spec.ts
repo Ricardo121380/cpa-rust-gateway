@@ -204,7 +204,7 @@ for (const changedRead of [1, 2]) test(`batch removal rejects a recreated ID und
   await page.getByRole("textbox", {name:"搜索账号",exact:true}).fill("alex@example.test");
   await expect(page.locator(".account-list tbody tr")).toHaveCount(1);
   await page.locator(".account-list tbody tr").getByRole("button", {name:"更多",exact:true}).click();
-  await page.getByRole("dialog", {name:"账号操作"}).getByRole("button", {name:"移除授权",exact:true}).click();
+  await page.getByRole("dialog", {name:"账号操作"}).getByRole("button", {name:"删除账号",exact:true}).click();
   await page.evaluate(async (changedRead) => {
     const {ManagementApi}=await import("/src/generated/management-client.ts");
     const original=ManagementApi.prototype.request;
@@ -220,8 +220,8 @@ for (const changedRead of [1, 2]) test(`batch removal rejects a recreated ID und
       return new Response(JSON.stringify({...value,upstream_id:"other-provider"}),{status:response.status,headers:response.headers});
     };
   },changedRead);
-  const confirm=page.getByRole("dialog", {name:"移除 1 份授权"});
-  await confirm.getByRole("button", {name:"确认移除",exact:true}).click();
+  const confirm=page.getByRole("dialog", {name:"删除 1 份授权"});
+  await confirm.getByRole("button", {name:"确认删除",exact:true}).click();
   await expect(confirm).toContainText("账号授权已变化");
   expect(await page.evaluate(()=>Number(Reflect.get(globalThis,"__recreatedWrites")))).toBe(0);
   const retained=await page.evaluate(async()=>{

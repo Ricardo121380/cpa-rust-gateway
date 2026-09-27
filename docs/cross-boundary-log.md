@@ -3417,3 +3417,11 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** Native account detail/list had no real quota source; all Grok channels were indistinguishable from missing runtime evidence. Kiro CLI directory was excluded and trial/bonus usage omitted. Static adapter support must not be presented as observed account grants.
 
 **Other side:** FYI under unified repair scope. sync-contract performed. No schema migration, new dependencies, production writes, inference, browser credential persistence, or extra output chunks. Local evidence and remaining live gates are in `docs/reports/cpar-channel-repair-20260927.md`. UI uses the existing V2 detail layout. Missing Kiro profiles/API-key catalog and Web partial quota are explicit, not fabricated success.
+
+## 2026-09-27 - Codex - Visible account deletion and completion refresh
+
+**What:** `web/prism/src/features/accounts/{AccountsPage,AccountBatchDialog,NativeAccountDialog}.tsx`, `web/prism/e2e/{account-actions,account-deletion}.spec.ts`.
+
+**Why:** Existing removal was hidden in secondary maintenance surfaces. Expose consistent row deletion for managed/native accounts, explicit confirmation retaining historical requests/ledger, and select the completed config before refreshing to avoid cancellation leaving the directory fetching.
+
+**Other side:** FYI under unified implementation authorization. Existing deletion APIs and revision/conflict protections retained; no contract/schema change. EgoLite uses local synthetic accounts; no production account deletion. Kimi production binding repair is separately authorized and recorded in `docs/reports/cpar-account-deletion-20260927.md`; quota remains unverified. New frontend is not deployed.
