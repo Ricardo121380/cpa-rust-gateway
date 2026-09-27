@@ -1,0 +1,13 @@
+{
+  "result": "passed",
+  "real_gateway": true,
+  "provider_requests": 0,
+  "checks": [
+    "one-time owner-only bootstrap, existing credentials preserved",
+    "all four embedded assets match the locally accepted channel-management build",
+    "exact origin, wrong password, first-session restriction, legacy CLI",
+    "first password change, automatic CSRF, revoked initial password/session, real draft write/read",
+    "server logout revocation",
+    "restart persists changed password and discards sessions"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "revision": "f28349406b7645572e85c95d411a769720092751",
+  "kimi_accounts": [
+    {
+      "identity_present": true,
+      "profile_available": true,
+      "quota_available": false,
+      "quota_error": {
+        "code": "empty_response"
+      },
+      "request_error": null,
+      "quota_windows": 0,
+      "configured_connections": 1
+    }
+  ],
+  "account_count": 8,
+  "configuration_changes": 0,
+  "manual_inference_requests": 0
+}

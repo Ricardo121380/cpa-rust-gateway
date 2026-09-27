@@ -1,5 +1,21 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-27: Kimi quota semantics and visible account deletion deployed
+
+Production serves signed `f28349406b7645572e85c95d411a769720092751`, schema31.
+Formal gates, both signed targets, independent verification, production-copy
+rollback roundtrip and isolated admin lifecycle passed. Stop-to-ready641ms.
+Eight accounts/admin,2391 events,704 ledger rows and effective permissions retained.
+Fallback is `333eae57ce33e3417bb6218410021cdfe4683201`, retaining latest data.
+Kimi binding is repaired; identity and four catalog models are observed. Live
+quota returns a successful empty object, displayed as an informational empty
+state, not zero or an authorization failure. Numeric quota remains unobserved.
+EgoLite19 user-login verification passed for this scope: quota, models, ordinary/
+native deletion confirmations followed by cancel, three sizes and both themes.
+No production deletion, inference, DNS/Caddy/Autoreg change. Page kept on Kimi quota.
+See [release evidence](../reports/cpar-kimi-quota-release-20260927.md).
+Earlier entries are historical; this receipt grants no new authority.
+
 ## 2026-09-27: channel metadata repair deployed
 
 Production serves signed `333eae57ce33e3417bb6218410021cdfe4683201`, schema31.

@@ -1,0 +1,61 @@
+{
+  "browser": "EgoLite",
+  "space": 19,
+  "revision": "f28349406b7645572e85c95d411a769720092751",
+  "user_login": true,
+  "kimi_identity_present": true,
+  "kimi_observed_plan": "Free",
+  "kimi_saved_catalog_models": [
+    "k3",
+    "k3-256k",
+    "kimi-for-coding",
+    "kimi-for-coding-highspeed"
+  ],
+  "quota_empty_role": "status",
+  "quota_alert_count": 0,
+  "managed_delete_confirmation_cancelled": true,
+  "native_delete_confirmation_cancelled": true,
+  "production_accounts_deleted": 0,
+  "themes": [
+    "dark",
+    "light"
+  ],
+  "keyboard_focus_in_dialog": true,
+  "layout": [
+    {
+      "width": 1440,
+      "height": 900,
+      "dialog": {
+        "x": 904,
+        "width": 520,
+        "right": 1424
+      },
+      "overflow": false,
+      "dialogOverflow": false
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "dialog": {
+        "x": 744,
+        "width": 520,
+        "right": 1264
+      },
+      "overflow": false,
+      "dialogOverflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "dialog": {
+        "x": 12,
+        "width": 366,
+        "right": 378
+      },
+      "overflow": false,
+      "dialogOverflow": false
+    }
+  ],
+  "scope": "Kimi metadata and account deletion UI; not all-workspace or inference acceptance",
+  "retained_page": "Kimi quota"
+}

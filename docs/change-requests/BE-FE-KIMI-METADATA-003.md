@@ -1,6 +1,8 @@
 # BE-FE-KIMI-METADATA-003 — Empty usage result and OAuth count compatibility
 
-Status: implemented locally; not released. User requires verified repair before cutover.
+Status: released in f283494 after formal gates and isolated rollback rehearsal.
+Production metadata confirms a successful empty quota result with identity present.
+See docs/reports/cpar-kimi-quota-release-20260927.md for layered acceptance status.
 
 Evidence: three isolated real-adapter checks on 2026-09-27. Identity present and
 four models observed; `/coding/v1/usages` supplied valid JSON with no recognized

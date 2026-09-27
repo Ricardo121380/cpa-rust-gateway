@@ -2,6 +2,10 @@
 
 ## Result
 
+Follow-up: isolated checks identified a successful empty usage object. The complete
+repair is released as f283494; see [current evidence](cpar-kimi-quota-release-20260927.md).
+The following describes the earlier diagnostic stage.
+
 Implemented locally. Quota root cause remains under investigation. The user
 requires isolated verification before deployment: build a separate candidate,
 read metadata from a private on-host state copy with no listeners/background
