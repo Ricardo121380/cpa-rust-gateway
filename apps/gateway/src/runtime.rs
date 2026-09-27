@@ -3615,6 +3615,7 @@ pub(crate) struct RuntimeModelCatalogWorker {
     scheduler: Arc<RouteCredentialScheduler>,
     pools: Arc<EndpointCredentialPools>,
     targets: Vec<RuntimeCatalogTarget>,
+    metadata_targets: Vec<RuntimeCatalogTarget>,
     client_pool: UpstreamClientPool,
 }
 
@@ -3629,6 +3630,7 @@ impl RuntimeModelCatalogWorker {
         client_pool: UpstreamClientPool,
     ) -> Result<Option<Self>, RuntimeCompositionError> {
         let mut targets = Vec::new();
+        let mut metadata_targets = Vec::new();
         for endpoint in configuration
             .endpoints
             .iter()
@@ -3637,6 +3639,17 @@ impl RuntimeModelCatalogWorker {
             let Some(runtime) = endpoints.get(&endpoint.id) else {
                 continue;
             };
+            if let EndpointAdapter::KiroMessages(policy) = &runtime.adapter
+                && pools.pool(&endpoint.id).is_some()
+            {
+                metadata_targets.push(RuntimeCatalogTarget {
+                    endpoint_id: endpoint.id.clone(),
+                    provider: RuntimeCatalogProvider::Kiro(policy.clone()),
+                    policy: runtime.policy.clone(),
+                    resolver: Arc::clone(&runtime.resolver),
+                    profile: runtime.transports.non_streaming.clone(),
+                });
+            }
             let provider = match &runtime.adapter {
                 EndpointAdapter::KiroMessages(policy) if policy.kind() == KiroEndpointKind::Ide => {
                     RuntimeCatalogProvider::Kiro(policy.clone())
@@ -3696,12 +3709,13 @@ impl RuntimeModelCatalogWorker {
                 scheduler,
                 pools,
                 targets,
+                metadata_targets,
                 client_pool,
             };
         // Stored evidence applies even when this build has no automatic discovery adapter
         // for the channel. Exact expiry admission lives in the pinned serving snapshot.
         worker.publish_durable(system_now_ms_runtime()?)?;
-        Ok((!worker.targets.is_empty()).then_some(worker))
+        Ok((!worker.targets.is_empty() || !worker.metadata_targets.is_empty()).then_some(worker))
     }
 
     /// Runs one immediate pass, then refreshes and re-evaluates expiry hourly.

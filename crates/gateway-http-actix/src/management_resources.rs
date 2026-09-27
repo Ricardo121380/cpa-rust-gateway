@@ -6845,21 +6845,27 @@ async fn get_credential_metadata(
     HttpResponse::Ok()
         .insert_header(("Cache-Control", "no-store"))
         .json(CredentialMetadataResponse {
-            live_quota,
+            live_quota: live_quota.clone(),
             live_quota_error,
             kimi,
             kimi_error,
             credential_id: view.id.to_string(),
             kind: view.kind,
             revision: view.revision,
-            plan: metadata.and_then(|value| value.plan.clone()),
+            plan: live_quota
+                .as_ref()
+                .and_then(|v| v.plan.clone())
+                .or_else(|| metadata.and_then(|value| value.plan.clone())),
             quota: metadata.and_then(|value| value.quota.clone()),
             platform: if is_kimi {
                 Some("kimi".to_owned())
             } else {
                 metadata.and_then(|value| value.platform.clone())
             },
-            email: metadata.and_then(|value| value.email.clone()),
+            email: live_quota
+                .as_ref()
+                .and_then(|v| v.email.clone())
+                .or_else(|| metadata.and_then(|value| value.email.clone())),
             source_format: metadata.and_then(|value| value.source_format.clone()),
         })
 }

@@ -2710,6 +2710,38 @@ async fn kiro_target_preparation_is_region_owned_and_uses_the_fixed_runtime_shap
     assert_eq!(repeat.status(), StatusCode::OK);
     let repeat: Value = test::read_body_json(repeat).await;
     assert_eq!(repeat["prepared"], false);
+    let hosts: String = db.query_row("SELECT allowed_hosts_json FROM egress_policies WHERE config_version_id=?1 AND id='kiro-ap-southeast-1-egress'",[VERSION],|r|r.get(0))?;
+    assert_eq!(
+        serde_json::from_str::<Value>(&hosts)?,
+        serde_json::json!([
+            "runtime.ap-southeast-1.kiro.dev",
+            "q.ap-southeast-1.amazonaws.com"
+        ])
+    );
+    db.execute("UPDATE egress_policies SET allowed_hosts_json=?1 WHERE config_version_id=?2 AND id='kiro-ap-southeast-1-egress'", [r#"["runtime.ap-southeast-1.kiro.dev"]"#,VERSION])?;
+    let repaired = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kiro/prepare-target"))
+            .insert_header(("If-Match", "rev-4"))
+            .set_json(serde_json::json!({"region":"ap-southeast-1"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(repaired.status(), StatusCode::OK);
+    let repaired: Value = test::read_body_json(repaired).await;
+    assert_eq!(repaired["prepared"], true);
+    let hosts: String = db.query_row("SELECT allowed_hosts_json FROM egress_policies WHERE config_version_id=?1 AND id='kiro-ap-southeast-1-egress'",[VERSION],|r|r.get(0))?;
+    assert!(hosts.contains("q.ap-southeast-1.amazonaws.com"));
+    db.execute("UPDATE egress_policies SET allowed_hosts_json=?1 WHERE config_version_id=?2 AND id='kiro-ap-southeast-1-egress'", [r#"["operator.example"]"#,VERSION])?;
+    let conflict = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/kiro/prepare-target"))
+            .insert_header(("If-Match", "rev-5"))
+            .set_json(serde_json::json!({"region":"ap-southeast-1"}))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(conflict.status(), StatusCode::CONFLICT);
     Ok(())
 }
 
@@ -3314,6 +3346,23 @@ impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFa
             Ok(gateway_http_actix::management_resources::account_quota::AccountQuotaObservation::parse("claude", &serde_json::json!({"five_hour":{"utilization":25}}), 1234))
         })
     }
+    fn account_quota_cached(
+        &self,
+        version: &ConfigVersionId,
+        credential: &CredentialId,
+    ) -> Option<gateway_http_actix::management_resources::account_quota::AccountQuotaObservation>
+    {
+        if version.as_str() != VERSION || credential.as_str() != "account-002" {
+            return None;
+        }
+        Some(
+            gateway_http_actix::management_resources::account_quota::AccountQuotaObservation::parse(
+                "kiro",
+                &serde_json::json!({"userInfo":{"email":"kiro@example.test"},"subscriptionInfo":{"subscriptionTitle":"KIRO PRO"}}),
+                1234,
+            ),
+        )
+    }
     fn kimi_metadata(
         &self,
         version: ConfigVersionId,
@@ -3395,6 +3444,21 @@ async fn kimi_metadata_is_protected_searchable_and_invalidates_inventory_cursors
     .await;
     assert_eq!(found["total"], 1);
     assert_eq!(found["items"][0]["plan"], "Vivace");
+    let kiro: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::get().uri("/admin/accounts/inventory?q=kiro%40example.test"),
+            )
+            .to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(kiro["total"], 1);
+    assert_eq!(kiro["items"][0]["identity"]["email"], "kiro@example.test");
+    assert_eq!(kiro["items"][0]["plan"], "KIRO PRO");
+    assert_eq!(kiro["items"][0]["plan_source"], "provider_metadata");
     let first: Value = test::read_body_json(
         test::call_service(
             &app,

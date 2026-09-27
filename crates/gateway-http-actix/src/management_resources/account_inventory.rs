@@ -245,6 +245,18 @@ fn with_kimi_observations(
             display.plan = observed.plan;
             display.plan_source = display.plan.as_ref().map(|_| "provider_metadata");
         }
+        if let Some(observed) = profile_source
+            .as_ref()
+            .and_then(|s| s.account_quota_cached(version, &credential.id))
+        {
+            if observed.email.is_some() {
+                display.identity.email = observed.email;
+            }
+            if observed.plan.is_some() {
+                display.plan = observed.plan;
+                display.plan_source = Some("provider_metadata");
+            }
+        }
         display
     })
 }

@@ -57,7 +57,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const runtimeSnapshot=useAccountRuntimeSummary();
   const topology = useModelConnections();
   const directory=inventory.data?.pages.flatMap(p=>p.items)??[];
-  const kimiRows=directory.filter(row=>["kimi","codex","claude"].includes(row.category)&&!row.native&&row.status==="enabled");
+  const kimiRows=directory.filter(row=>["kimi","codex","claude","kiro"].includes(row.category)&&!row.native&&row.status==="enabled");
   const kimiMetadata=useQueries({queries:kimiRows.map(row=>({
     queryKey:["credential-metadata",context?.configVersionId,row.id],
     queryFn:({signal}:{signal:AbortSignal})=>readAccountMetadata(signal,()=>call<KimiMetadata & {live_quota?:AccountQuota|null}>("getCredentialMetadata",{path:{credential_id:row.id},signal},{versionScoped:true})),

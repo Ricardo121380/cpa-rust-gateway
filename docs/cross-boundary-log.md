@@ -3400,3 +3400,12 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** Named-channel imports discarded the prepared endpoint. Default Claude authorization missed discovery. Codex/Claude quotas lacked real service wiring. Vitest omitted TSX evidence tests. Use exact owned target, preserve disabled bindings, fixed usage URLs and bounded metadata only.
 
 **Other side:** FYI under unified repair authorization. sync-contract performed; no manual generated client, secret persistence, schema migration, dependency or new chunks. Local 81 frontend, 40 management HTTP, 2 quota parser tests pass; EgoLite used fixtures only. No production change or inference. Cross-channel task remains incomplete: Kiro/Grok quota, real metadata acceptance and finer capability states are tracked in `docs/reports/cpar-channel-repair-20260927.md`.
+
+
+## 2026-09-27 - Codex - Kiro identity and base usage observations
+
+**What:** `web/prism/src/features/accounts/AccountsPage.tsx`, `AccountQuotaEvidence{.tsx,.test.tsx}`, authoritative/vendored management contract; Kiro request builder, runtime metadata targets/cache, account inventory projection and canonical egress preparation.
+
+**Why:** Kiro CLI authorization targets were absent from the metadata worker; cached provider email/plan was never projected into inventory. Add fixed region/channel usage reads and explicitly partial base quota display without inventing model catalog or remaining balance.
+
+**Other side:** FYI under unified repair scope. sync-contract followed; no new operation, dependencies, database schema, inference or production writes. Existing production Kiro policy still needs a reviewed draft preparation and publication. Real metadata acceptance and remaining Grok readers stay incomplete; see `docs/reports/cpar-channel-repair-20260927.md`.

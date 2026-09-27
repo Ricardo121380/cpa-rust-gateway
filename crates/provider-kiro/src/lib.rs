@@ -5,6 +5,9 @@
 /// Strict Kiro credential import, encrypted sealing, and injected refresh boundary.
 pub mod credential;
 
+/// Fixed account usage request boundary.
+pub mod account_usage;
+
 /// Fixed metadata request and paginated catalog boundary.
 pub mod catalog;
 

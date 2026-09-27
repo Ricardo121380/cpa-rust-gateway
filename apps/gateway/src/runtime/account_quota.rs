@@ -1,4 +1,4 @@
-//! Read-only, exact-account quota queries for verified Codex and Claude endpoints.
+//! Read-only, exact-account quota queries for fixed Codex, Claude and Kiro endpoints.
 use super::{
     CredentialId, OpenAiCompatibleRuntimeCredential, Ordering, RuntimeCatalogProvider,
     RuntimeModelCatalogWorker, system_now_ms_runtime,
@@ -15,8 +15,8 @@ impl RuntimeModelCatalogWorker {
         &self,
         credential_id: CredentialId,
     ) -> Result<AccountQuotaObservation, CatalogRefreshError> {
-        let target = self.targets.iter().find(|target| {
-            let supported = matches!(&target.provider, RuntimeCatalogProvider::Codex)
+        let target = self.metadata_targets.iter().chain(self.targets.iter()).find(|target| {
+            let supported = matches!(&target.provider, RuntimeCatalogProvider::Codex | RuntimeCatalogProvider::Kiro(_))
                 || matches!(&target.provider, RuntimeCatalogProvider::Compatible {url, anthropic:true} if url.as_url().as_str() == "https://api.anthropic.com/v1/models");
             supported && self.pools.pool(&target.endpoint_id).is_some_and(|pool|pool.diagnostic_entries().iter().any(|entry| entry.credential_id() == &credential_id))
         }).ok_or(CatalogRefreshError::Unsupported)?;
@@ -67,7 +67,21 @@ impl RuntimeModelCatalogWorker {
                 "user-agent".into(),
                 provider_openai_compatible::CODEX_USER_AGENT.into(),
             ));
-            ("codex", "https://chatgpt.com/backend-api/wham/usage")
+            (
+                "codex",
+                "https://chatgpt.com/backend-api/wham/usage".to_owned(),
+            )
+        } else if let RuntimeCatalogProvider::Kiro(policy) = &target.provider {
+            let credential = provider_kiro::credential::KiroCredential::import_runtime_secret(
+                lease.secret_bytes(),
+                now,
+            )
+            .map_err(|_| CatalogRefreshError::Upstream)?;
+            let (url, request_headers) =
+                provider_kiro::account_usage::usage_request(policy, &credential, now)
+                    .map_err(|_| CatalogRefreshError::Unsupported)?;
+            headers = request_headers;
+            ("kiro", url)
         } else {
             let credential = ClaudeRuntimeCredential::import_at(lease.secret_bytes(), now)
                 .map_err(|_| CatalogRefreshError::Upstream)?;
@@ -82,11 +96,14 @@ impl RuntimeModelCatalogWorker {
                 auth.header_value().to_owned(),
             ));
             headers.push(("anthropic-beta".into(), "oauth-2025-04-20".into()));
-            ("claude", "https://api.anthropic.com/api/oauth/usage")
+            (
+                "claude",
+                "https://api.anthropic.com/api/oauth/usage".to_owned(),
+            )
         };
         let admitted = target
             .policy
-            .admit_url(url, target.resolver.as_ref())
+            .admit_url(&url, target.resolver.as_ref())
             .map_err(|_| CatalogRefreshError::Upstream)?;
         let request =
             UpstreamHttpRequest::try_new(admitted, UpstreamHttpMethod::Get, headers, Vec::new())
@@ -118,13 +135,19 @@ impl RuntimeModelCatalogWorker {
         .map_err(|_| CatalogRefreshError::Upstream)??;
         let observed_at = system_now_ms_runtime().map_err(|_| CatalogRefreshError::Upstream)?;
         let observation = AccountQuotaObservation::parse(source, &payload, observed_at);
-        if observation.windows.is_empty() {
+        if observation.windows.is_empty()
+            && observation.email.is_none()
+            && observation.plan.is_none()
+        {
             return Err(CatalogRefreshError::Upstream);
         }
-        self.account_quotas
+        let mut cache = self
+            .account_quotas
             .lock()
-            .map_err(|_| CatalogRefreshError::Upstream)?
-            .insert(credential_id, observation.clone());
+            .map_err(|_| CatalogRefreshError::Upstream)?;
+        cache.insert(credential_id, observation.clone());
+        self.metadata_revision.fetch_add(1, Ordering::AcqRel);
+        drop(cache);
         Ok(observation)
     }
 }

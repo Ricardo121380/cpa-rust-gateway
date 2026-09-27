@@ -65,6 +65,15 @@ pub trait CatalogRefreshFacade: Send + Sync {
         Box::pin(async { Err(CatalogRefreshError::Unsupported) })
     }
 
+    /// Returns already observed account usage and identity without network I/O.
+    fn account_quota_cached(
+        &self,
+        _version: &ConfigVersionId,
+        _credential: &CredentialId,
+    ) -> Option<super::account_quota::AccountQuotaObservation> {
+        None
+    }
+
     /// Reads bounded Kimi metadata, retaining a short lived per-generation cache.
     fn kimi_metadata(
         &self,

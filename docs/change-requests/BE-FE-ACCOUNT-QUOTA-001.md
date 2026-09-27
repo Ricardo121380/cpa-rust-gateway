@@ -7,3 +7,9 @@ Extend existing protected getCredentialMetadata with nullable live_quota and liv
 The authoritative schema was changed before sync-contract. No new endpoint, browser secret, schema migration or runtime quota enforcement. Unsupported/unconnected, conflict and read failure remain distinct from observed quota (unsupported vs disconnected are currently combined and remain a follow-up).
 
 Source protocol evidence: upstream Management Center src/utils/quota/constants.ts and features/quota/providers/{claude,codex}/data.ts, inspected 2026-09-27. These private account endpoints require live validation; imported plan labels are not live quota.
+
+## 2026-09-27 Kiro extension
+
+`source` adds `kiro`; optional nullable email/plan are allowlisted display evidence. Windows add nullable used/limit/unit. `partial` explicitly marks omitted/uninterpreted quota components, including trial/bonus information. The frontend must not present these base resource counters as the complete remaining balance. No new operation; generated contract follows sync-contract. CLI metadata targets are distinct from discovery support. Canonical preparation permits only the regional metadata host, with revisioned repair of CPAR-owned old policies. Custom egress remains operator-owned.
+
+References: https://github.com/QiXia881/xkiro.rs/blob/master/src/kiro/endpoint/ide.rs and https://github.com/QiXia881/xkiro.rs/blob/master/src/kiro/endpoint/cli.rs (third-party implementation; live validation pending).

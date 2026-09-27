@@ -671,6 +671,19 @@ impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFa
             worker.read_kimi_metadata(credential).await
         })
     }
+    fn account_quota_cached(
+        &self,
+        version: &ConfigVersionId,
+        credential: &gateway_core::CredentialId,
+    ) -> Option<gateway_http_actix::management_resources::account_quota::AccountQuotaObservation>
+    {
+        let generation = self.current.load_full();
+        let worker = generation.catalog.as_ref()?;
+        if worker.config_version_id != version.as_str() {
+            return None;
+        }
+        worker.account_quotas.lock().ok()?.get(credential).cloned()
+    }
     fn kimi_metadata_cached(
         &self,
         version: &ConfigVersionId,
