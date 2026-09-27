@@ -2,6 +2,31 @@
 use serde::Serialize;
 use serde_json::Value;
 
+/// Safe metadata failure classification; never carries provider bodies or credentials.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(tag = "code", rename_all = "snake_case")]
+pub enum KimiMetadataFailure {
+    /// No request result was supplied.
+    NotObserved,
+    /// The configured egress boundary rejected the destination.
+    EgressDenied,
+    /// Connection or response streaming failed.
+    Transport,
+    /// The bounded request deadline elapsed.
+    Timeout,
+    /// The upstream returned a non-success HTTP status.
+    Http {
+        /// Numeric HTTP status only; no response text.
+        status: u16,
+    },
+    /// Response exceeded the metadata size limit.
+    ResponseTooLarge,
+    /// Response body was not JSON.
+    InvalidJson,
+    /// JSON contained no recognized identity or quota observation.
+    UnrecognizedResponse,
+}
+
 /// Provider-returned human identity; masked phone numbers remain masked.
 #[derive(Clone, Default, Serialize)]
 pub struct KimiIdentity {
@@ -31,6 +56,10 @@ pub struct KimiAccountObservation {
     pub profile_available: bool,
     /// Usage read succeeded and supplied at least one recognized quota window.
     pub quota_available: bool,
+    /// Independent profile failure, when present.
+    pub profile_error: Option<KimiMetadataFailure>,
+    /// Independent quota failure, when present.
+    pub quota_error: Option<KimiMetadataFailure>,
     /// Explicitly observed identity.
     pub identity: KimiIdentity,
     /// Official plan label, when supplied.
@@ -43,6 +72,24 @@ fn text(value: &Value) -> Option<String> {
     (!s.is_empty() && s.len() <= 254 && !s.chars().any(char::is_control)).then(|| s.to_owned())
 }
 impl KimiAccountObservation {
+    /// Retains independent safe failures while projecting any successful counterpart.
+    #[must_use]
+    pub fn from_results(
+        profile: Result<Value, KimiMetadataFailure>,
+        usage: Result<Value, KimiMetadataFailure>,
+        observed_at_ms: i64,
+    ) -> Self {
+        let mut observation =
+            Self::from_payloads(profile.as_ref().ok(), usage.as_ref().ok(), observed_at_ms);
+        if let Err(error) = profile {
+            observation.profile_error = Some(error);
+        }
+        if let Err(error) = usage {
+            observation.quota_error = Some(error);
+        }
+        observation
+    }
+
     /// Projects only human identity and quota fields from the two official metadata APIs.
     #[must_use]
     pub fn from_payloads(
@@ -50,6 +97,7 @@ impl KimiAccountObservation {
         usage: Option<&Value>,
         observed_at_ms: i64,
     ) -> Self {
+        let profile_supplied = profile.is_some();
         let profile = profile.filter(|p| text(&p["user_id"]).is_some());
         let identity = profile.map_or_else(KimiIdentity::default, |p| {
             let phone = text(&p["phone"]["number"])
@@ -97,6 +145,24 @@ impl KimiAccountObservation {
             observed_at_ms,
             profile_available: profile.is_some(),
             quota_available: !quota_windows.is_empty(),
+            profile_error: if profile.is_some() {
+                None
+            } else {
+                Some(if profile_supplied {
+                    KimiMetadataFailure::UnrecognizedResponse
+                } else {
+                    KimiMetadataFailure::NotObserved
+                })
+            },
+            quota_error: if quota_windows.is_empty() {
+                Some(if usage.is_some() {
+                    KimiMetadataFailure::UnrecognizedResponse
+                } else {
+                    KimiMetadataFailure::NotObserved
+                })
+            } else {
+                None
+            },
             identity,
             plan: profile
                 .and_then(|p| text(&p["user_level_name"]))
@@ -124,6 +190,58 @@ mod tests {
         let encoded = serde_json::to_string(&observation)?;
         assert!(!encoded.contains("opaque-id") && !encoded.contains("never expose"));
         Ok(())
+    }
+    #[test]
+    fn keeps_usage_failure_without_discarding_profile() -> Result<(), serde_json::Error> {
+        for failure in [
+            KimiMetadataFailure::Timeout,
+            KimiMetadataFailure::Http { status: 403 },
+            KimiMetadataFailure::Transport,
+            KimiMetadataFailure::EgressDenied,
+            KimiMetadataFailure::InvalidJson,
+            KimiMetadataFailure::ResponseTooLarge,
+        ] {
+            let observation = KimiAccountObservation::from_results(
+                Ok(json!({"user_id":"subject","email":"member@example.test"})),
+                Err(failure.clone()),
+                100,
+            );
+            assert!(observation.profile_available);
+            assert_eq!(observation.profile_error, None);
+            assert_eq!(observation.quota_error, Some(failure));
+            assert!(!observation.quota_available);
+            assert_eq!(
+                observation.identity.email.as_deref(),
+                Some("member@example.test")
+            );
+        }
+        let encoded = serde_json::to_string(&KimiMetadataFailure::Http { status: 429 })?;
+        assert_eq!(encoded, r#"{"code":"http","status":429}"#);
+        Ok(())
+    }
+    #[test]
+    fn preserves_zero_usage_when_profile_fails_and_distinguishes_missing_shape() {
+        let observation = KimiAccountObservation::from_results(
+            Err(KimiMetadataFailure::Timeout),
+            Ok(json!({"usages":{"limit_5h":{"used_ratio":0}}})),
+            100,
+        );
+        assert!(observation.quota_available);
+        assert_eq!(observation.quota_error, None);
+        assert_eq!(
+            observation.profile_error,
+            Some(KimiMetadataFailure::Timeout)
+        );
+        let empty =
+            KimiAccountObservation::from_results(Ok(json!({})), Ok(json!({"usages":{}})), 100);
+        assert_eq!(
+            empty.quota_error,
+            Some(KimiMetadataFailure::UnrecognizedResponse)
+        );
+        assert_eq!(
+            empty.profile_error,
+            Some(KimiMetadataFailure::UnrecognizedResponse)
+        );
     }
     #[test]
     fn failures_and_unrecognized_usage_are_not_zero_balances() {

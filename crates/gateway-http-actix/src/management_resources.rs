@@ -6829,9 +6829,11 @@ async fn get_credential_metadata(
                     Ok(Err(catalog_refresh::CatalogRefreshError::Conflict)) => {
                         (None, Some("configuration_changed"))
                     }
+                    Ok(Err(catalog_refresh::CatalogRefreshError::Busy)) => (None, Some("busy")),
+                    Err(_) => (None, Some("timeout")),
                     _ => (None, Some("unavailable")),
                 },
-                Err(_) => (None, Some("unavailable")),
+                Err(_) => (None, Some("busy")),
             },
             None => (None, Some("unavailable")),
         }

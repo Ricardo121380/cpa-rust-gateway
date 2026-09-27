@@ -3425,3 +3425,11 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** Existing removal was hidden in secondary maintenance surfaces. Expose consistent row deletion for managed/native accounts, explicit confirmation retaining historical requests/ledger, and select the completed config before refreshing to avoid cancellation leaving the directory fetching.
 
 **Other side:** FYI under unified implementation authorization. Existing deletion APIs and revision/conflict protections retained; no contract/schema change. EgoLite uses local synthetic accounts; no production account deletion. Kimi production binding repair is separately authorized and recorded in `docs/reports/cpar-account-deletion-20260927.md`; quota remains unverified. New frontend is not deployed.
+
+## 2026-09-27 - Codex - Preserve Kimi quota failure evidence
+
+**What:** authoritative/vendored `management-v1.json`, `web/prism/src/features/accounts/KimiAccountEvidence{.tsx,.test.tsx}`; provider observation, runtime transport and management boundary changes accompany the contract.
+
+**Why:** `.ok()` discarded the actual usage failure; successful profile and failed quota looked like a generic unknown. Preserve independent safe error codes/HTTP status and show them without exposing provider bodies or secrets.
+
+**Other side:** FYI under unified repair scope. sync-contract performed; no schema/new endpoint/model grant changes. Local provider/HTTP/frontend regressions pass; production quota remains pending explicit release and real metadata verification. See `docs/reports/cpar-kimi-quota-diagnostics-20260927.md`.

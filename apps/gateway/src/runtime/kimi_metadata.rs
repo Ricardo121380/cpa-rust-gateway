@@ -5,7 +5,7 @@ use super::{
 };
 use gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError;
 use gateway_upstream::{UpstreamHttpMethod, UpstreamHttpRequest};
-use provider_openai_compatible::KimiAccountObservation;
+use provider_openai_compatible::{KimiAccountObservation, KimiMetadataFailure};
 use std::time::Duration;
 
 impl RuntimeModelCatalogWorker {
@@ -75,11 +75,7 @@ impl RuntimeModelCatalogWorker {
             self.read_kimi_document(target, bearer, "usages")
         );
         let completed = system_now_ms_runtime().map_err(|_| CatalogRefreshError::Upstream)?;
-        let observation = KimiAccountObservation::from_payloads(
-            profile.as_ref().ok(),
-            usages.as_ref().ok(),
-            completed,
-        );
+        let observation = KimiAccountObservation::from_results(profile, usages, completed);
         let mut cache = self
             .kimi_metadata
             .lock()
@@ -95,13 +91,13 @@ impl RuntimeModelCatalogWorker {
         target: &RuntimeCatalogTarget,
         bearer: &str,
         path: &str,
-    ) -> Result<serde_json::Value, CatalogRefreshError> {
+    ) -> Result<serde_json::Value, KimiMetadataFailure> {
         tokio::time::timeout(Duration::from_secs(8), async {
             let url = format!("https://api.kimi.com/coding/v1/{path}");
             let admitted = target
                 .policy
                 .admit_url(&url, target.resolver.as_ref())
-                .map_err(|_| CatalogRefreshError::Upstream)?;
+                .map_err(|_| KimiMetadataFailure::EgressDenied)?;
             let request = UpstreamHttpRequest::try_new(
                 admitted,
                 UpstreamHttpMethod::Get,
@@ -111,29 +107,31 @@ impl RuntimeModelCatalogWorker {
                 ],
                 Vec::new(),
             )
-            .map_err(|_| CatalogRefreshError::Upstream)?;
+            .map_err(|_| KimiMetadataFailure::Transport)?;
             let mut response = self
                 .client_pool
                 .send(request, &target.profile)
                 .await
-                .map_err(|_| CatalogRefreshError::Upstream)?;
+                .map_err(|_| KimiMetadataFailure::Transport)?;
             if !(200..300).contains(&response.status()) {
-                return Err(CatalogRefreshError::Upstream);
+                return Err(KimiMetadataFailure::Http {
+                    status: response.status(),
+                });
             }
             let mut bytes = zeroize::Zeroizing::new(Vec::new());
             while let Some(chunk) = response
                 .next_chunk()
                 .await
-                .map_err(|_| CatalogRefreshError::Upstream)?
+                .map_err(|_| KimiMetadataFailure::Transport)?
             {
                 if bytes.len().saturating_add(chunk.len()) > 65_536 {
-                    return Err(CatalogRefreshError::Upstream);
+                    return Err(KimiMetadataFailure::ResponseTooLarge);
                 }
                 bytes.extend_from_slice(&chunk);
             }
-            serde_json::from_slice(&bytes).map_err(|_| CatalogRefreshError::Upstream)
+            serde_json::from_slice(&bytes).map_err(|_| KimiMetadataFailure::InvalidJson)
         })
         .await
-        .map_err(|_| CatalogRefreshError::Upstream)?
+        .map_err(|_| KimiMetadataFailure::Timeout)?
     }
 }

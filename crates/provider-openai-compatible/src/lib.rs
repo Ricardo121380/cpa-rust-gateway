@@ -6,7 +6,9 @@ mod account_entitlement;
 mod catalog;
 mod kimi_metadata;
 pub use catalog::{CompatibleCatalogPage, parse_compatible_catalog};
-pub use kimi_metadata::{KimiAccountObservation, KimiIdentity, KimiQuotaWindow};
+pub use kimi_metadata::{
+    KimiAccountObservation, KimiIdentity, KimiMetadataFailure, KimiQuotaWindow,
+};
 mod codex_catalog;
 mod oauth_transport;
 mod openai_chat_completions;

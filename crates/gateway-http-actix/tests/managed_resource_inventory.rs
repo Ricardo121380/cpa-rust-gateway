@@ -3421,6 +3421,15 @@ impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFa
         if version.as_str() != VERSION || credential.as_str() != "account-000" {
             return None;
         }
+        if self.0.load(std::sync::atomic::Ordering::Acquire) == 3 {
+            return Some(
+                provider_openai_compatible::KimiAccountObservation::from_results(
+                    Ok(serde_json::json!({"user_id":"subject","email":"kimi@example.test"})),
+                    Err(provider_openai_compatible::KimiMetadataFailure::Http { status: 403 }),
+                    1234,
+                ),
+            );
+        }
         Some(
             provider_openai_compatible::KimiAccountObservation::from_payloads(
                 Some(
@@ -3471,6 +3480,23 @@ async fn kimi_metadata_is_protected_searchable_and_invalidates_inventory_cursors
     assert_eq!(body["kimi"]["identity"]["phone"], "+86 176****0000");
     assert_eq!(body["kimi"]["quota_windows"][0]["used_ratio"], 0.4);
     assert!(!body.to_string().contains("must-not-leak"));
+    revision.store(3, std::sync::atomic::Ordering::Release);
+    let failed_quota: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(path)).to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(failed_quota["kimi"]["profile_available"], true);
+    assert_eq!(failed_quota["kimi"]["quota_available"], false);
+    assert_eq!(
+        failed_quota["kimi"]["quota_error"],
+        serde_json::json!({"code":"http","status":403})
+    );
+    assert!(!failed_quota.to_string().contains("must-not-leak"));
+    revision.store(1, std::sync::atomic::Ordering::Release);
     let found: Value = test::read_body_json(
         test::call_service(
             &app,
