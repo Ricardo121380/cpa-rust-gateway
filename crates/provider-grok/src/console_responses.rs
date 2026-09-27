@@ -416,33 +416,27 @@ struct ConsoleModelSpec {
     search_tools: bool,
 }
 
+const CONSOLE_MODELS: [(&str, u64, Option<&str>); 6] = [
+    ("grok-4.3", 1_000_000, Some("medium")),
+    ("grok-4.20-0309", 1_000_000, None),
+    ("grok-4.20-0309-reasoning", 1_000_000, None),
+    ("grok-4.20-0309-non-reasoning", 1_000_000, None),
+    ("grok-4.20-multi-agent-0309", 2_000_000, Some("medium")),
+    ("grok-build-0.1", 256_000, None),
+];
+/// Adapter-supported identifiers, not an account-specific upstream discovery or grant.
+#[must_use]
+pub fn grok_console_supported_models() -> Vec<&'static str> {
+    CONSOLE_MODELS.iter().map(|(id, _, _)| *id).collect()
+}
 fn console_model(model: &str) -> Option<ConsoleModelSpec> {
-    let spec = match model {
-        "grok-4.3" => ConsoleModelSpec {
-            maximum_output_tokens: 1_000_000,
-            default_reasoning_effort: Some("medium"),
+    CONSOLE_MODELS.iter().find(|(id, _, _)| *id == model).map(
+        |(_, maximum_output_tokens, default_reasoning_effort)| ConsoleModelSpec {
+            maximum_output_tokens: *maximum_output_tokens,
+            default_reasoning_effort: *default_reasoning_effort,
             search_tools: true,
         },
-        "grok-4.20-0309" | "grok-4.20-0309-reasoning" | "grok-4.20-0309-non-reasoning" => {
-            ConsoleModelSpec {
-                maximum_output_tokens: 1_000_000,
-                default_reasoning_effort: None,
-                search_tools: true,
-            }
-        }
-        "grok-4.20-multi-agent-0309" => ConsoleModelSpec {
-            maximum_output_tokens: 2_000_000,
-            default_reasoning_effort: Some("medium"),
-            search_tools: true,
-        },
-        "grok-build-0.1" => ConsoleModelSpec {
-            maximum_output_tokens: 256_000,
-            default_reasoning_effort: None,
-            search_tools: true,
-        },
-        _ => return None,
-    };
-    Some(spec)
+    )
 }
 
 fn normalize_console_body(

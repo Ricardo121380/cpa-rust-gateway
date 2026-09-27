@@ -10,17 +10,17 @@ import {EntitlementEvidence} from "../runtime/EntitlementEvidence";
 import {authStatusMeta,runtimeStatusMeta,freshnessMeta,formatObservedAt,type PoolAccount,type PoolSnapshot,type CatalogRow} from "../runtime/model";
 
 const tabs=[['overview','概览'],['quota','额度'],['configuration','配置'],['models','模型'],['diagnostics','诊断']] as const;
-export function AccountEvidenceTabs({accountId,overview,configuration,onNavigate,quota}:{accountId:string;overview:ReactNode;configuration:ReactNode;onNavigate:()=>void;quota?:ReactNode}) {
+export function AccountEvidenceTabs({accountId,overview,configuration,onNavigate,quota,models}:{accountId:string;overview:ReactNode;configuration:ReactNode;onNavigate:()=>void;quota?:ReactNode;models?:ReactNode}) {
  const [tab,setTab]=useState<(typeof tabs)[number][0]>('overview');
  const scope=useVersionStore(s=>s.context?.configVersionId);
  const runtime=useQuery({queryKey:['account-evidence',scope,accountId],enabled:!!scope&&((tab==='quota'&&!quota)||tab==='diagnostics'),retry:false,queryFn:async({signal})=>{
   const rows:PoolAccount[]=[];let cursor:string|undefined;let count=0;let snapshot:string|undefined;let observedAt:number|undefined;
   do {const page=await call<PoolSnapshot>('listProviderAccountPools',{query:{limit:100,...(cursor?{cursor}:{})},signal});if(snapshot&&snapshot!==page.snapshot_id)throw new Error('运行快照已改变，请重新读取');snapshot=page.snapshot_id;observedAt=page.observed_at_ms;rows.push(...page.items.filter(row=>row.account_id===accountId));count+=page.items.length;cursor=page.next_cursor??undefined;if(cursor&&count>=10000)throw new Error('运行目录超出本次读取范围，请在运行状态中按渠道筛选');}while(cursor);return {items:rows,observedAt};
  }});
- const catalog=useQuery({queryKey:['catalog-status',scope],enabled:!!scope&&tab==='models',retry:false,queryFn:({signal})=>call<CatalogRow[]>('getCatalogStatus',{signal},{versionScoped:true})});
+ const catalog=useQuery({queryKey:['catalog-status',scope],enabled:!!scope&&tab==='models'&&!models,retry:false,queryFn:({signal})=>call<CatalogRow[]>('getCatalogStatus',{signal},{versionScoped:true})});
  const observed=(catalog.data??[]).filter(row=>row.credential_id===accountId);
  return <div className="account-evidence"><nav className="workspace-navigation" aria-label="账号详情分类">{tabs.map(([value,label])=><button type="button" key={value} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}</nav>
-  <div className="account-evidence-body">{tab==='overview'?overview:tab==='configuration'?configuration:tab==='quota'&&quota?quota:tab==='models'?<>
+  <div className="account-evidence-body">{tab==='overview'?overview:tab==='configuration'?configuration:tab==='quota'&&quota?quota:tab==='models'&&models?models:tab==='models'?<>
    <PagedReadStatus query={catalog}/>{catalog.data===undefined?null:!observed.length?<p>此账号尚无成功目录观测；不据套餐推断可用模型。</p>:observed.map(row=><section key={row.endpoint_id} className="account-evidence-card"><ResourceIdentity id={row.endpoint_id} kind="endpoint"/><p>{freshnessMeta(row.freshness).label} · 上游模型 {row.model_count??'未观测'}</p><p>观测时间：{row.freshness==='missing'?'未观测':formatObservedAt(row.observed_at_ms)}</p><AccountCatalogModels endpointId={row.endpoint_id} credentialId={accountId}/><Link to={`/catalog?${new URLSearchParams({endpoint_id:row.endpoint_id,credential_id:accountId})}`} onClick={onNavigate}>查看完整目录与开放模型</Link></section>)}
    <button className="secondary" disabled={catalog.isFetching} onClick={()=>void catalog.refetch()}>重新读取目录状态</button>
   </>:<>

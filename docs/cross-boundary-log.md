@@ -3409,3 +3409,11 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** Kiro CLI authorization targets were absent from the metadata worker; cached provider email/plan was never projected into inventory. Add fixed region/channel usage reads and explicitly partial base quota display without inventing model catalog or remaining balance.
 
 **Other side:** FYI under unified repair scope. sync-contract followed; no new operation, dependencies, database schema, inference or production writes. Existing production Kiro policy still needs a reviewed draft preparation and publication. Real metadata acceptance and remaining Grok readers stay incomplete; see `docs/reports/cpar-channel-repair-20260927.md`.
+
+## 2026-09-27 - Codex - Native quota and remaining channel metadata
+
+**What:** `web/prism/src/features/accounts/{AccountsPage,AccountEvidenceTabs,AccountQuotaEvidence,NativeAccountDialog,NativeAccounts,NativeQuotaEvidence}.tsx`, quota tests, development fixtures, authoritative/vendored OpenAPI and generated client. Backend adds revision-bound native usage transport and deployment wiring, Kiro CLI profile/catalog reads and active additional quota projection, clearer quota error categories, and adapter-owned Web/Console model lists.
+
+**Why:** Native account detail/list had no real quota source; all Grok channels were indistinguishable from missing runtime evidence. Kiro CLI directory was excluded and trial/bonus usage omitted. Static adapter support must not be presented as observed account grants.
+
+**Other side:** FYI under unified repair scope. sync-contract performed. No schema migration, new dependencies, production writes, inference, browser credential persistence, or extra output chunks. Local evidence and remaining live gates are in `docs/reports/cpar-channel-repair-20260927.md`. UI uses the existing V2 detail layout. Missing Kiro profiles/API-key catalog and Web partial quota are explicit, not fabricated success.

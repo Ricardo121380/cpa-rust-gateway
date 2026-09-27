@@ -104,7 +104,7 @@ impl RuntimeModelCatalogWorker {
         let admitted = target
             .policy
             .admit_url(&url, target.resolver.as_ref())
-            .map_err(|_| CatalogRefreshError::Upstream)?;
+            .map_err(|_| CatalogRefreshError::EgressDenied)?;
         let request =
             UpstreamHttpRequest::try_new(admitted, UpstreamHttpMethod::Get, headers, Vec::new())
                 .map_err(|_| CatalogRefreshError::Upstream)?;
@@ -114,8 +114,12 @@ impl RuntimeModelCatalogWorker {
                 .send(request, &target.profile)
                 .await
                 .map_err(|_| CatalogRefreshError::Upstream)?;
-            if !(200..300).contains(&response.status()) {
-                return Err(CatalogRefreshError::Upstream);
+            match response.status() {
+                200..=299 => {}
+                401 => return Err(CatalogRefreshError::Unauthorized),
+                403 => return Err(CatalogRefreshError::Forbidden),
+                429 => return Err(CatalogRefreshError::Busy),
+                _ => return Err(CatalogRefreshError::Upstream),
             }
             let mut bytes = zeroize::Zeroizing::new(Vec::new());
             while let Some(chunk) = response
@@ -129,7 +133,7 @@ impl RuntimeModelCatalogWorker {
                 bytes.extend_from_slice(&chunk);
             }
             serde_json::from_slice::<serde_json::Value>(&bytes)
-                .map_err(|_| CatalogRefreshError::Upstream)
+                .map_err(|_| CatalogRefreshError::InvalidResponse)
         })
         .await
         .map_err(|_| CatalogRefreshError::Upstream)??;
@@ -139,7 +143,7 @@ impl RuntimeModelCatalogWorker {
             && observation.email.is_none()
             && observation.plan.is_none()
         {
-            return Err(CatalogRefreshError::Upstream);
+            return Err(CatalogRefreshError::InvalidResponse);
         }
         let mut cache = self
             .account_quotas

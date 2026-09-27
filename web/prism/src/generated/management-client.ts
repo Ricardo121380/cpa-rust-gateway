@@ -1247,6 +1247,25 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "getNativeAccountUsage": {
+    "method": "GET",
+    "path": "/admin/native-accounts/{account_id}/usage",
+    "parameters": [
+      {
+        "name": "account_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "revision",
+        "in": "query",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "getObservabilityMetrics": {
     "method": "GET",
     "path": "/admin/observability/metrics",
@@ -3731,6 +3750,10 @@ export class ManagementApi {
 
   getEndpoint(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getEndpoint", request);
+  }
+
+  getNativeAccountUsage(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getNativeAccountUsage", request);
   }
 
   getObservabilityMetrics(request: ManagementRequest = {}): Promise<Response> {

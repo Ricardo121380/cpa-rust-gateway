@@ -12,6 +12,7 @@ mod credential_refresh;
 mod deployment;
 mod grok_admin;
 mod maintenance_worker;
+mod native_account_usage;
 mod provider_account_pool_adapter;
 mod provider_egress_status_adapter;
 mod runtime;

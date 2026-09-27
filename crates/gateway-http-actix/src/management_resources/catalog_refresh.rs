@@ -29,6 +29,14 @@ pub enum CatalogRefreshError {
     Busy,
     /// Configuration was replaced while reading.
     Conflict,
+    /// Provider rejected credentials.
+    Unauthorized,
+    /// Provider or its access protection rejected the read.
+    Forbidden,
+    /// Configured egress does not admit the metadata destination.
+    EgressDenied,
+    /// Metadata has an unsupported or malformed response shape.
+    InvalidResponse,
     /// Authenticated metadata read failed.
     Upstream,
 }
@@ -184,7 +192,11 @@ fn failure(error: CatalogRefreshError) -> HttpResponse {
             "management_catalog_refresh_conflict",
             "配置或账号已改变，请重新读取",
         ),
-        CatalogRefreshError::Upstream => (
+        CatalogRefreshError::Upstream
+        | CatalogRefreshError::Unauthorized
+        | CatalogRefreshError::Forbidden
+        | CatalogRefreshError::EgressDenied
+        | CatalogRefreshError::InvalidResponse => (
             StatusCode::BAD_GATEWAY,
             "management_catalog_refresh_failed",
             "上游目录读取失败，保留上次成功观测",

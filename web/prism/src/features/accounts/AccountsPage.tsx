@@ -1,3 +1,4 @@
+import {nativeQuotaQuery} from "./NativeQuotaEvidence";
 import {accountQuotaSummary, type AccountQuota} from "./AccountQuotaEvidence";
 import {readAccountMetadata} from "./accountMetadataQueue";
 import {call} from "../../api/client";
@@ -67,6 +68,8 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const metadataReceipt=kimiMetadata.map(query=>query.dataUpdatedAt).join(":");
   useEffect(()=>{if(metadataReceipt.split(":").some(value=>Number(value)>0))void client.invalidateQueries({queryKey:["account-directory",context?.configVersionId]});},[metadataReceipt,client,context?.configVersionId]);
   const nativeRows=directory.flatMap(row=>row.native_account?[row.native_account]:[]);
+  const nativeQuotas=useQueries({queries:nativeRows.map(row=>({...nativeQuotaQuery(row),enabled:row.enabled&&row.auth_status==="active"}))});
+  const nativeQuotaById=new Map(nativeRows.map((row,index)=>[row.id,nativeQuotas[index]?.data?.observation]));
   const [nativeDetail,setNativeDetail] = useState<NativeAccount>();
   const [nativeOauth,setNativeOauth] = useState<NativeAccount>();
   const [connections,setConnections] = useState<ManagedCredential>();
@@ -136,7 +139,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     connection:<button className="account-connection-link" onClick={()=>setConnections(row)}>{row.binding_count===0?"未连接接口":[...new Set(row.connections.map((c)=>protocolName(c.api_format)))].join(" · ")||"查看连接"}<span className="entity-meta">{row.binding_count?`${row.binding_count} 个已配置连接 · 查看`:"添加连接后用于请求"}</span></button>,actions:actions(row),
   });
   const nativeView=(row:NativeAccount):AccountListRow=>({key:row.id,name:accountName(row.identity,row.import_batch_id),source:accountSource(row.import_batch_id),provider:nativeNames[row.provider],authentication:row.provider==="grok_build"?"OAuth 授权":"SSO 授权",
-    runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.id]} nativeKind={{grok_build:"grok_build_oauth",grok_web:"grok_web_sso",grok_console:"grok_console_sso"}[row.provider]}/>,
+    runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.id]} quota={accountQuotaSummary(nativeQuotaById.get(row.id))} nativeKind={{grok_build:"grok_build_oauth",grok_web:"grok_web_sso",grok_console:"grok_console_sso"}[row.provider]}/>,
     plan:directory.find(item=>item.native&&item.id===row.id)?.plan,planSource:directory.find(item=>item.native&&item.id===row.id)?.plan_source,
     selected:selection.has(`native:${row.id}`),onSelect:selecting?()=>toggle([`native:${row.id}`]):undefined,
     status:<StatusBadge status={!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"active":"unauthorized"}>{!row.enabled||row.auth_status==="disabled"?"已停用":row.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>,

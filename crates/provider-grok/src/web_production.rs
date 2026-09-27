@@ -280,14 +280,22 @@ impl GrokWebProductionRequestBuilder {
     }
 }
 
+const WEB_MODELS: [(&str, &str); 4] = [
+    ("grok-chat-fast", "fast"),
+    ("grok-chat-auto", "auto"),
+    ("grok-chat-expert", "expert"),
+    ("grok-chat-heavy", "heavy"),
+];
+/// Adapter-supported identifiers, not an account-specific upstream discovery or grant.
+#[must_use]
+pub fn grok_web_supported_models() -> Vec<&'static str> {
+    WEB_MODELS.iter().map(|(id, _)| *id).collect()
+}
 fn web_mode(model: &str) -> Option<&'static str> {
-    match model {
-        "grok-chat-fast" => Some("fast"),
-        "grok-chat-auto" => Some("auto"),
-        "grok-chat-expert" => Some("expert"),
-        "grok-chat-heavy" => Some("heavy"),
-        _ => None,
-    }
+    WEB_MODELS
+        .iter()
+        .find(|(id, _)| *id == model)
+        .map(|(_, mode)| *mode)
 }
 
 fn normalized_message(request: &CanonicalRequest) -> Result<String, GrokWebProductionRequestError> {

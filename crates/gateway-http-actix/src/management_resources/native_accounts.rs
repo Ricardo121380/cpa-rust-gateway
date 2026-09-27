@@ -1,5 +1,6 @@
 //! Native Grok account enrollment uses the same encrypted store as the serving runtime.
 mod maintenance;
+pub mod usage;
 use super::{ManagementResourceHttpState, invalid_input, parse_json, principal, read_operations};
 use actix_web::{HttpRequest, HttpResponse, http::StatusCode, web};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -13,6 +14,7 @@ use zeroize::Zeroizing;
 pub struct NativeAccountManagement {
     pub(super) store: Arc<GrokAccountPoolStore>,
     pub(super) device: super::grok_device::DeviceSessions,
+    usage_transport: Option<Arc<dyn usage::NativeUsageTransport>>,
     identity_transport: Option<Arc<dyn provider_grok::GrokSessionIdentityTransport>>,
     epoch: String,
     runtime: Option<Arc<dyn NativeAccountRuntime>>,
@@ -53,6 +55,12 @@ impl NativeAccountManagement {
         self.identity_transport = Some(transport);
         self
     }
+    /// Attaches fixed-target quota reads without changing native runtime state.
+    #[must_use]
+    pub fn with_usage_transport(mut self, transport: Arc<dyn usage::NativeUsageTransport>) -> Self {
+        self.usage_transport = Some(transport);
+        self
+    }
     /// Replaces the fixed OAuth transport for controlled local tests or explicit deployment wiring.
     #[must_use]
     pub fn with_device_oauth_transport(
@@ -73,6 +81,7 @@ impl NativeAccountManagement {
             store,
             device: super::grok_device::DeviceSessions::new(),
             identity_transport: None,
+            usage_transport: None,
             epoch: URL_SAFE_NO_PAD.encode(bytes),
             runtime: None,
         })
@@ -272,7 +281,7 @@ pub(super) async fn list(
         let page=native.store.managed_account_page(limit,cursor.as_ref().map_or("",|c|c.after.as_str()),&search,cursor.as_ref().map(|c|c.stamp));
         Ok(page.and_then(|page| {
             let next=if page.has_more {page.items.last().and_then(|last|serde_json::to_vec(&Cursor {epoch:native.epoch.clone(),after:last.id.clone(),search,limit,stamp:page.stamp}).ok()).map(|bytes|URL_SAFE_NO_PAD.encode(bytes))} else {None};
-            let items=page.items.into_iter().map(|row| { let identity=native.store.observed_identity(&row.id,now_ms().unwrap_or(0)).unwrap_or_default(); serde_json::json!({"id":row.id,"provider":match row.provider {provider_grok::GrokAccountProvider::Build=>"grok_build",provider_grok::GrokAccountProvider::Console=>"grok_console",provider_grok::GrokAccountProvider::Web=>"grok_web"},"auth_status":match row.auth_status {provider_grok::GrokAccountAuthStatus::Active=>"active",provider_grok::GrokAccountAuthStatus::ReauthRequired=>"reauth_required",provider_grok::GrokAccountAuthStatus::Disabled=>"disabled"},"enabled":row.enabled,"revision":row.revision,"import_batch_id":row.import_batch_id,"identity":identity})}).collect::<Vec<_>>();
+            let items=page.items.into_iter().map(|row| { let identity=native.store.observed_identity(&row.id,now_ms().unwrap_or(0)).unwrap_or_default(); serde_json::json!({"id":row.id,"provider":match row.provider {provider_grok::GrokAccountProvider::Build=>"grok_build",provider_grok::GrokAccountProvider::Console=>"grok_console",provider_grok::GrokAccountProvider::Web=>"grok_web"},"auth_status":match row.auth_status {provider_grok::GrokAccountAuthStatus::Active=>"active",provider_grok::GrokAccountAuthStatus::ReauthRequired=>"reauth_required",provider_grok::GrokAccountAuthStatus::Disabled=>"disabled"},"enabled":row.enabled,"revision":row.revision,"import_batch_id":row.import_batch_id,"identity":identity,"adapter_models":match row.provider {provider_grok::GrokAccountProvider::Build=>None,provider_grok::GrokAccountProvider::Console=>Some(provider_grok::grok_console_supported_models()),provider_grok::GrokAccountProvider::Web=>Some(provider_grok::grok_web_supported_models())}})}).collect::<Vec<_>>();
             native.store.managed_account_page(1,"","",Some(page.stamp))?;
             Ok(serde_json::json!({"items":items,"next_cursor":next}))
         }))

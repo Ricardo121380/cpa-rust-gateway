@@ -470,6 +470,17 @@ impl gateway_http_actix::management_resources::native_accounts::NativeAccountRun
     }
 }
 
+struct NativeUsageFixture;
+impl gateway_http_actix::management_resources::native_accounts::usage::NativeUsageTransport
+    for NativeUsageFixture
+{
+    fn read(&self, _: provider_grok::GrokAccountIdentitySnapshot) -> std::pin::Pin<Box<dyn std::future::Future<Output=Result<gateway_http_actix::management_resources::account_quota::AccountQuotaObservation,gateway_http_actix::management_resources::native_accounts::usage::NativeUsageError>> + Send + '_>>{
+        Box::pin(async {
+            Ok(gateway_http_actix::management_resources::account_quota::AccountQuotaObservation::parse("claude", &serde_json::json!({"five_hour":{"utilization":25}}), 100))
+        })
+    }
+}
+
 #[actix_web::test]
 #[allow(clippy::too_many_lines)]
 async fn native_account_http_actions_are_guarded_audited_and_report_saved_vs_applied() -> TestResult
@@ -490,7 +501,8 @@ async fn native_account_http_actions_are_guarded_audited_and_report_saved_vs_app
         .with_identity_transport(std::sync::Arc::new(SessionIdentityFixture(
             std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         )))
-        .with_runtime(std::sync::Arc::new(RuntimeApplyFixture(ready.clone())));
+        .with_runtime(std::sync::Arc::new(RuntimeApplyFixture(ready.clone())))
+        .with_usage_transport(std::sync::Arc::new(NativeUsageFixture));
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(security()?))
@@ -513,6 +525,27 @@ async fn native_account_http_actions_are_guarded_audited_and_report_saved_vs_app
     .await;
     let id = rows["items"][0]["id"].as_str().ok_or("account")?;
     let path = format!("/admin/native-accounts/{id}");
+    let quota_path = format!("{path}/usage?revision=0");
+    let quota_denied =
+        test::call_service(&app, test::TestRequest::get().uri(&quota_path).to_request()).await;
+    assert_eq!(quota_denied.status(), StatusCode::NOT_FOUND);
+    let quota = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&quota_path)).to_request(),
+    )
+    .await;
+    assert_eq!(quota.status(), StatusCode::OK);
+    assert_eq!(
+        quota
+            .headers()
+            .get("cache-control")
+            .and_then(|v| v.to_str().ok()),
+        Some("no-store")
+    );
+    let observed: Value = test::read_body_json(quota).await;
+    assert_eq!(observed["observation"]["windows"][0]["used_percent"], 25.0);
+    assert_eq!(observed["error"], Value::Null);
+
     let denied = test::call_service(
         &app,
         test::TestRequest::patch()
@@ -532,6 +565,12 @@ async fn native_account_http_actions_are_guarded_audited_and_report_saved_vs_app
     assert_eq!(response.status(), StatusCode::OK);
     let changed: Value = test::read_body_json(response).await;
     assert_eq!(changed["revision"], 1);
+    let stale_quota = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&quota_path)).to_request(),
+    )
+    .await;
+    assert_eq!(stale_quota.status(), StatusCode::CONFLICT);
     assert_eq!(changed["runtime_applied"], false);
     let stale = test::call_service(
         &app,
@@ -2715,7 +2754,8 @@ async fn kiro_target_preparation_is_region_owned_and_uses_the_fixed_runtime_shap
         serde_json::from_str::<Value>(&hosts)?,
         serde_json::json!([
             "runtime.ap-southeast-1.kiro.dev",
-            "q.ap-southeast-1.amazonaws.com"
+            "q.ap-southeast-1.amazonaws.com",
+            "management.ap-southeast-1.kiro.dev"
         ])
     );
     db.execute("UPDATE egress_policies SET allowed_hosts_json=?1 WHERE config_version_id=?2 AND id='kiro-ap-southeast-1-egress'", [r#"["runtime.ap-southeast-1.kiro.dev"]"#,VERSION])?;
@@ -3528,5 +3568,81 @@ async fn live_account_quota_requires_management_auth_and_keeps_unsupported_unkno
         value["live_quota_error"],
         "not_implemented_or_not_connected"
     );
+    Ok(())
+}
+
+struct MovingNativeUsage(std::sync::Arc<provider_grok::GrokAccountPoolStore>);
+impl gateway_http_actix::management_resources::native_accounts::usage::NativeUsageTransport
+    for MovingNativeUsage
+{
+    fn read(&self, snapshot:provider_grok::GrokAccountIdentitySnapshot)->std::pin::Pin<Box<dyn std::future::Future<Output=Result<gateway_http_actix::management_resources::account_quota::AccountQuotaObservation,gateway_http_actix::management_resources::native_accounts::usage::NativeUsageError>>+Send+'_>>{
+        Box::pin(async move {
+            let now = i64::try_from(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis(),
+            )
+            .unwrap_or(i64::MAX);
+            let changed = self.0.manage_account(
+                &snapshot.account_id,
+                snapshot.revision,
+                provider_grok::GrokManagedAccountChange::SetEnabled(false),
+                "test",
+                now,
+            );
+            assert!(
+                changed.is_ok(),
+                "synthetic concurrent modification must succeed"
+            );
+            Ok(gateway_http_actix::management_resources::account_quota::AccountQuotaObservation::parse("claude",&serde_json::json!({"five_hour":{"utilization":25}}),100))
+        })
+    }
+}
+#[actix_web::test]
+async fn native_quota_rejects_late_response_after_account_changed() -> TestResult {
+    let (file, resources) = fixture(false)?;
+    let version = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        version,
+        [(version, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let store = std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+        &file.0, secrets,
+    )?);
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            store.clone(),
+        )?
+        .with_usage_transport(std::sync::Arc::new(MovingNativeUsage(store)));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources.with_native_accounts(native)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let imported=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":"late-quota","channel":"grok.console","secret":"synthetic-session"})).to_request()).await;
+    assert_eq!(imported.status(), StatusCode::CREATED);
+    let rows: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/native-accounts")).to_request(),
+        )
+        .await,
+    )
+    .await;
+    let id = rows["items"][0]["id"].as_str().ok_or("account")?;
+    let response = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!("/admin/native-accounts/{id}/usage?revision=0")),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+    let body: Value = test::read_body_json(response).await;
+    assert!(body.get("observation").is_none());
     Ok(())
 }

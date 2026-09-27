@@ -227,50 +227,50 @@ impl RuntimeModelCatalogWorker {
                 ErrorScope::Credential,
             )
         })?;
-        kiro_catalog_pages(policy, &credential, now, |url, headers| async move {
-            let admitted = target
-                .policy
-                .admit_url(&url, target.resolver.as_ref())
-                .map_err(gateway_upstream::EgressAdmissionError::gateway_error)?;
-            let request = UpstreamHttpRequest::try_new(
-                admitted,
-                UpstreamHttpMethod::Get,
-                headers,
-                Vec::new(),
-            )
-            .map_err(|_| invalid())?;
-            let mut response = self.client_pool.send(request, &target.profile).await?;
-            match response.status() {
-                200..=299 => {}
-                401 => {
-                    return Err(GatewayError::new(
-                        GatewayErrorCode::CredentialUnauthorized,
-                        ErrorScope::Credential,
-                    ));
+        kiro_catalog_pages(
+            policy,
+            &credential,
+            now,
+            |url, headers, method, body| async move {
+                let admitted = target
+                    .policy
+                    .admit_url(&url, target.resolver.as_ref())
+                    .map_err(gateway_upstream::EgressAdmissionError::gateway_error)?;
+                let request = UpstreamHttpRequest::try_new(admitted, method, headers, body)
+                    .map_err(|_| invalid())?;
+                let mut response = self.client_pool.send(request, &target.profile).await?;
+                match response.status() {
+                    200..=299 => {}
+                    401 => {
+                        return Err(GatewayError::new(
+                            GatewayErrorCode::CredentialUnauthorized,
+                            ErrorScope::Credential,
+                        ));
+                    }
+                    403 => {
+                        return Err(GatewayError::new(
+                            GatewayErrorCode::CredentialForbidden,
+                            ErrorScope::Credential,
+                        ));
+                    }
+                    429 => {
+                        return Err(GatewayError::new(
+                            GatewayErrorCode::ProviderRateLimited,
+                            ErrorScope::Provider,
+                        ));
+                    }
+                    _ => return Err(invalid()),
                 }
-                403 => {
-                    return Err(GatewayError::new(
-                        GatewayErrorCode::CredentialForbidden,
-                        ErrorScope::Credential,
-                    ));
+                let mut bytes = Vec::new();
+                while let Some(chunk) = response.next_chunk().await? {
+                    if bytes.len().saturating_add(chunk.len()) > 1024 * 1024 {
+                        return Err(invalid());
+                    }
+                    bytes.extend_from_slice(&chunk);
                 }
-                429 => {
-                    return Err(GatewayError::new(
-                        GatewayErrorCode::ProviderRateLimited,
-                        ErrorScope::Provider,
-                    ));
-                }
-                _ => return Err(invalid()),
-            }
-            let mut bytes = Vec::new();
-            while let Some(chunk) = response.next_chunk().await? {
-                if bytes.len().saturating_add(chunk.len()) > 1024 * 1024 {
-                    return Err(invalid());
-                }
-                bytes.extend_from_slice(&chunk);
-            }
-            Ok(bytes)
-        })
+                Ok(bytes)
+            },
+        )
         .await
     }
 }
@@ -284,7 +284,7 @@ async fn kiro_catalog_pages<F, Fut>(
     mut fetch: F,
 ) -> Result<Vec<gateway_catalog::DiscoveredModel>, GatewayError>
 where
-    F: FnMut(String, Vec<(String, String)>) -> Fut,
+    F: FnMut(String, Vec<(String, String)>, UpstreamHttpMethod, Vec<u8>) -> Fut,
     Fut: std::future::Future<Output = Result<Vec<u8>, GatewayError>>,
 {
     let invalid = || {
@@ -293,13 +293,44 @@ where
             ErrorScope::Provider,
         )
     };
+    let profile = if policy.kind() == provider_kiro::endpoint_policy::KiroEndpointKind::Cli {
+        let request =
+            provider_kiro::catalog::cli_catalog_request(policy, credential, now, None, None)?;
+        let bytes = fetch(
+            request.url,
+            request.headers,
+            UpstreamHttpMethod::Post,
+            request.body,
+        )
+        .await?;
+        Some(provider_kiro::catalog::parse_cli_profile(&bytes, policy)?)
+    } else {
+        None
+    };
     let mut next = None;
     let mut seen = BTreeSet::new();
     let mut models = BTreeMap::new();
     for _ in 0..100 {
-        let (url, headers) =
-            provider_kiro::catalog::catalog_request(policy, credential, now, next.as_deref())?;
-        let bytes = fetch(url, headers).await?;
+        let bytes = if let Some(profile) = profile.as_deref() {
+            let request = provider_kiro::catalog::cli_catalog_request(
+                policy,
+                credential,
+                now,
+                Some(profile),
+                next.as_deref(),
+            )?;
+            fetch(
+                request.url,
+                request.headers,
+                UpstreamHttpMethod::Post,
+                request.body,
+            )
+            .await?
+        } else {
+            let (url, headers) =
+                provider_kiro::catalog::catalog_request(policy, credential, now, next.as_deref())?;
+            fetch(url, headers, UpstreamHttpMethod::Get, Vec::new()).await?
+        };
         let page = provider_kiro::catalog::parse_catalog_page(&bytes)?;
         for model in page.models {
             models.insert(model.upstream_model().to_owned(), model);
@@ -331,6 +362,49 @@ mod tests {
     type TestResult = Result<(), Box<dyn std::error::Error>>;
 
     #[actix_web::test]
+    async fn kiro_cli_profiles_then_pages_are_exact_and_do_not_fallback() -> TestResult {
+        let policy = KiroEndpointPolicy::try_new(
+            KiroEndpointKind::Cli,
+            KiroApiRegion::try_new("us-east-1")?,
+        )?;
+        let credential=KiroCredential::import_json(br#"{"kind":"social","access_token":"synthetic","refresh_token":"synthetic","expires_at_ms":2000}"#,1000)?;
+        let pages=RefCell::new(VecDeque::from([
+            br#"{"profiles":[{"profileType":"KIRO","status":"ACTIVE","arn":"arn:aws:codewhisperer:us-east-1:123456789012:profile/observed"}]}"#.to_vec(),
+            br#"{"models":[{"modelId":"Exact-v1"}],"nextToken":"second"}"#.to_vec(),
+            br#"{"models":[{"modelId":"Exact-v2"}]}"#.to_vec(),
+        ]));
+        let calls = RefCell::new(Vec::new());
+        let models =
+            kiro_catalog_pages(&policy, &credential, 1000, |url, headers, method, body| {
+                calls.borrow_mut().push((url, headers, method, body));
+                std::future::ready(pages.borrow_mut().pop_front().ok_or_else(|| {
+                    GatewayError::new(
+                        GatewayErrorCode::UpstreamProtocolError,
+                        ErrorScope::Provider,
+                    )
+                }))
+            })
+            .await?;
+        assert_eq!(models.len(), 2);
+        assert_eq!(calls.borrow().len(), 3);
+        for (url, headers, method, _) in calls.borrow().iter() {
+            assert!(url.starts_with("https://management.us-east-1.kiro.dev/"));
+            assert_eq!(*method, UpstreamHttpMethod::Post);
+            assert!(headers.contains(&("authorization".into(), "Bearer synthetic".into())));
+        }
+        let body: serde_json::Value = serde_json::from_slice(&calls.borrow()[2].3)?;
+        assert_eq!(body["nextToken"], "second");
+        let mut calls = 0;
+        let failed = kiro_catalog_pages(&policy, &credential, 1000, |_, _, _, _| {
+            calls += 1;
+            std::future::ready(Ok(br#"{"profiles":[]}"#.to_vec()))
+        })
+        .await;
+        assert!(failed.is_err());
+        assert_eq!(calls, 1);
+        Ok(())
+    }
+    #[actix_web::test]
     async fn kiro_pages_keep_exact_identity_ids_and_cursor_until_complete() -> TestResult {
         let policy = KiroEndpointPolicy::try_new(
             KiroEndpointKind::Ide,
@@ -346,7 +420,7 @@ mod tests {
                 br#"{"models":[{"modelId":"Exact/Model-1"},{"modelId":"other-v2"}]}"#.to_vec(),
             ]));
             let requests = RefCell::new(Vec::new());
-            let models = kiro_catalog_pages(&policy, &credential, 1000, |url, headers| {
+            let models = kiro_catalog_pages(&policy, &credential, 1000, |url, headers, _, _| {
                 requests.borrow_mut().push((url, headers));
                 let result = pages.borrow_mut().pop_front().ok_or_else(|| {
                     GatewayError::new(
@@ -395,7 +469,7 @@ mod tests {
                 Some(br#"{"models":[{"modelId":"partial"}],"nextToken":"same"}"#.to_vec()),
                 last,
             ]));
-            let result = kiro_catalog_pages(&policy, &credential, 1000, |_, _| {
+            let result = kiro_catalog_pages(&policy, &credential, 1000, |_, _, _, _| {
                 std::future::ready(pages.borrow_mut().pop_front().flatten().ok_or_else(|| {
                     GatewayError::new(
                         GatewayErrorCode::UpstreamProtocolError,

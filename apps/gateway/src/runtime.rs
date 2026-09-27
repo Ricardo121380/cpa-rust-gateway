@@ -3651,7 +3651,7 @@ impl RuntimeModelCatalogWorker {
                 });
             }
             let provider = match &runtime.adapter {
-                EndpointAdapter::KiroMessages(policy) if policy.kind() == KiroEndpointKind::Ide => {
+                EndpointAdapter::KiroMessages(policy) => {
                     RuntimeCatalogProvider::Kiro(policy.clone())
                 }
                 EndpointAdapter::GrokBuildResponses => RuntimeCatalogProvider::GrokBuild,

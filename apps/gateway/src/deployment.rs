@@ -560,6 +560,10 @@ fn build_application_state_with_refresh(
         crate::account_identity::SessionIdentityTransport::new(command.grok_web_proxy.clone())
             .map_err(|_| DeploymentError::RuntimeUnavailable)?,
     ));
+    let native_accounts = native_accounts.with_usage_transport(Arc::new(
+        crate::native_account_usage::NativeUsageReader::new(command.grok_web_proxy.clone())
+            .map_err(|_| DeploymentError::RuntimeUnavailable)?,
+    ));
     let resources = resources
         .with_native_accounts(native_accounts.with_runtime(reload.clone()))
         .with_catalog_refresh(reload.clone());

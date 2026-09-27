@@ -583,6 +583,7 @@ pub(super) async fn prepare_kiro_target(
     let egress_name = format!("{upstream_name}-egress");
     let host = format!("runtime.{region}.kiro.dev");
     let metadata_host = format!("q.{region}.amazonaws.com");
+    let management_host = format!("management.{region}.kiro.dev");
     let configured = configuration
         .upstreams
         .iter()
@@ -610,7 +611,13 @@ pub(super) async fn prepare_kiro_target(
     let mut revision = context.revision;
     let mut prepared = false;
     let upstream_id = if let Some(upstream) = configured.first() {
-        if !valid_kiro_egress(&configuration, &upstream.id, &host, &metadata_host) {
+        if !valid_kiro_egress(
+            &configuration,
+            &upstream.id,
+            &host,
+            &metadata_host,
+            &management_host,
+        ) {
             return conflict_kiro_target();
         }
         if let Some(policy) = configuration
@@ -619,15 +626,15 @@ pub(super) async fn prepare_kiro_target(
             .find(|p| Some(&p.id) == upstream.egress_policy_id.as_ref())
             && serde_json::from_str::<Vec<String>>(&policy.allowed_hosts_json)
                 .ok()
-                .as_deref()
-                == Some(std::slice::from_ref(&host))
+                .is_some_and(|hosts| !hosts.contains(&management_host))
         {
             // Expand only CPAR's exact legacy canonical policy inside this draft.
             if policy.id.as_str() != egress_name {
                 return conflict_kiro_target();
             }
             let mut repaired = policy.clone();
-            repaired.allowed_hosts_json = serde_json::json!([host, metadata_host]).to_string();
+            repaired.allowed_hosts_json =
+                serde_json::json!([host, metadata_host, management_host]).to_string();
             let result =
                 match service.update_egress_policy(&actor, &context.version, revision, repaired) {
                     Ok(value) => value,
@@ -648,7 +655,8 @@ pub(super) async fn prepare_kiro_target(
             id: policy_id.clone(),
             name: "Kiro".to_owned(),
             allowed_schemes_json: "[\"https\"]".to_owned(),
-            allowed_hosts_json: serde_json::json!([host, metadata_host]).to_string(),
+            allowed_hosts_json: serde_json::json!([host, metadata_host, management_host])
+                .to_string(),
             allowed_ports_json: "[443]".to_owned(),
             allowed_cidrs_json: "[]".to_owned(),
             redirect_mode: StoredEgressRedirectMode::Deny,
@@ -830,6 +838,7 @@ fn valid_kiro_egress(
     upstream_id: &UpstreamId,
     host: &str,
     metadata_host: &str,
+    management_host: &str,
 ) -> bool {
     let Some(upstream) = configuration
         .upstreams
@@ -852,7 +861,7 @@ fn valid_kiro_egress(
     let hosts = serde_json::from_str::<Vec<String>>(&policy.allowed_hosts_json);
     let ports = serde_json::from_str::<Vec<u16>>(&policy.allowed_ports_json);
     matches!(schemes, Ok(values) if values == ["https"])
-        && matches!(hosts, Ok(values) if values == [host] || values == [host,metadata_host])
+        && matches!(hosts, Ok(values) if values == [host] || values == [host,metadata_host] || values == [host,metadata_host,management_host])
         && matches!(ports, Ok(values) if values == [443])
         && policy.redirect_mode == StoredEgressRedirectMode::Deny
         && policy.max_redirects == 0

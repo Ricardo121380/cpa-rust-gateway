@@ -2706,6 +2706,10 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
         )
         .route("/native-accounts", web::get().to(native_accounts::list))
         .route(
+            "/native-accounts/{account_id}/usage",
+            web::get().to(native_accounts::usage::usage),
+        )
+        .route(
             "/native-accounts/{account_id}",
             web::patch().to(native_accounts::set_enabled),
         )

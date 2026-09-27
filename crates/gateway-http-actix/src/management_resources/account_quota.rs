@@ -24,7 +24,7 @@ pub struct AccountQuotaWindow {
     /// Stable upstream window identity; no inferred 5h/weekly positional naming.
     pub name: String,
     /// Used percentage, not remaining tokens or dollars.
-    pub used_percent: f64,
+    pub used_percent: Option<f64>,
     /// Provider numerical usage and limit, when both are observed.
     pub used: Option<f64>,
     /// Numerical limit in the stated unit, not a monetary balance.
@@ -50,7 +50,7 @@ impl AccountQuotaObservation {
                     if let Some(used_percent) = percentage(&entry["used_percent"]) {
                         windows.push(AccountQuotaWindow {
                             name: format!("{group}.{name}"),
-                            used_percent,
+                            used_percent: Some(used_percent),
                             used: None,
                             limit: None,
                             unit: None,
@@ -79,7 +79,7 @@ impl AccountQuotaObservation {
                 if let Some(used_percent) = percentage(&entry["utilization"]) {
                     windows.push(AccountQuotaWindow {
                         name: name.to_owned(),
-                        used_percent,
+                        used_percent: Some(used_percent),
                         used: None,
                         limit: None,
                         unit: None,
@@ -93,21 +93,11 @@ impl AccountQuotaObservation {
                 }
             }
         }
-        let (email, plan) = if source == "kiro" {
+        let (email, plan, partial) = if source == "kiro" {
             kiro_usage(value, &mut windows)
         } else {
-            (None, None)
+            (None, None, false)
         };
-        let partial = source == "kiro"
-            && value["usageBreakdownList"]
-                .as_array()
-                .is_none_or(|entries| {
-                    entries.len() != windows.len()
-                        || entries.iter().any(|v| {
-                            !v["freeTrialInfo"].is_null()
-                                || v["bonuses"].as_array().is_some_and(|a| !a.is_empty())
-                        })
-                });
         Self {
             partial,
             email,
@@ -121,36 +111,74 @@ impl AccountQuotaObservation {
 fn kiro_usage(
     value: &Value,
     windows: &mut Vec<AccountQuotaWindow>,
-) -> (Option<String>, Option<String>) {
+) -> (Option<String>, Option<String>, bool) {
+    let mut partial = false;
     if let Some(entries) = value["usageBreakdownList"].as_array() {
+        partial |= entries.len() > 6;
         for (index, entry) in entries.iter().take(6).enumerate() {
-            let used = entry
-                .get("currentUsageWithPrecision")
-                .or_else(|| entry.get("currentUsage"))
-                .and_then(percentage);
-            let limit = entry
-                .get("usageLimitWithPrecision")
-                .or_else(|| entry.get("usageLimit"))
-                .and_then(percentage);
-            if let (Some(used), Some(limit)) = (used, limit) {
-                let used_percent = used / limit * 100.0;
-                if limit > 0.0 && used_percent.is_finite() {
-                    windows.push(AccountQuotaWindow {
-                        name: format!("kiro.resource.{index}"),
-                        used_percent,
-                        used: Some(used),
-                        limit: Some(limit),
-                        unit: bounded_text(&entry["unit"]),
-                        reset_at: bounded_text(&value["nextDateReset"]).filter(|v| v.len() <= 64),
-                        reset_at_ms: value["nextDateReset"]
-                            .as_i64()
-                            .filter(|v| *v >= 0)
-                            .and_then(|v| v.checked_mul(1000)),
-                        duration_seconds: None,
-                    });
+            let reset = entry
+                .get("nextDateReset")
+                .unwrap_or(&value["nextDateReset"]);
+            partial |= !push_kiro_window(
+                windows,
+                format!("kiro.resource.{index}"),
+                entry,
+                &entry["unit"],
+                reset,
+            );
+            let trial = &entry["freeTrialInfo"];
+            if !trial.is_null() {
+                match trial["freeTrialStatus"].as_str() {
+                    Some("ACTIVE") => {
+                        partial |= !push_kiro_window(
+                            windows,
+                            format!("kiro.trial.{index}"),
+                            trial,
+                            &entry["unit"],
+                            &Value::Null,
+                        );
+                    }
+                    Some("EXPIRED") => {}
+                    _ => partial = true,
                 }
             }
+            if let Some(bonuses) = entry["bonuses"].as_array() {
+                partial |= bonuses.len() > 6;
+                for (bonus_index, bonus) in bonuses.iter().take(6).enumerate() {
+                    match bonus["status"].as_str() {
+                        Some("ACTIVE") => {
+                            partial |= !push_kiro_window(
+                                windows,
+                                format!("kiro.bonus.{index}.{bonus_index}"),
+                                bonus,
+                                &entry["unit"],
+                                &Value::Null,
+                            );
+                        }
+                        Some("EXPIRED") => {}
+                        _ => partial = true,
+                    }
+                }
+            } else if !entry["bonuses"].is_null() {
+                partial = true;
+            }
+            // Overage is a distinct, optional pool; never add it to prepaid credits.
+            if entry.get("currentOverages").is_some()
+                || entry.get("overageCap").is_some()
+                || entry.get("overageCapWithPrecision").is_some()
+            {
+                let overage = serde_json::json!({"currentUsage":entry["currentOverages"],"usageLimit":entry.get("overageCapWithPrecision").unwrap_or(&entry["overageCap"])});
+                partial |= !push_kiro_window(
+                    windows,
+                    format!("kiro.overage.{index}"),
+                    &overage,
+                    &entry["unit"],
+                    reset,
+                );
+            }
         }
+    } else {
+        partial = true;
     }
     let identity =
         serde_json::json!({"email":value["userInfo"].get("email").unwrap_or(&value["email"])});
@@ -159,8 +187,49 @@ fn kiro_usage(
     );
     (
         display.identity.email,
-        bounded_text(&value["subscriptionInfo"]["subscriptionTitle"]),
+        bounded_text(&value["subscriptionInfo"]["subscriptionTitle"])
+            .or_else(|| bounded_text(&value["subscriptionInfo"]["subscriptionName"])),
+        partial,
     )
+}
+fn push_kiro_window(
+    windows: &mut Vec<AccountQuotaWindow>,
+    name: String,
+    entry: &Value,
+    unit: &Value,
+    reset: &Value,
+) -> bool {
+    if windows.len() >= 6 {
+        return false;
+    }
+    let used = entry
+        .get("currentUsageWithPrecision")
+        .or_else(|| entry.get("currentUsage"))
+        .and_then(percentage);
+    let limit = entry
+        .get("usageLimitWithPrecision")
+        .or_else(|| entry.get("usageLimit"))
+        .and_then(percentage);
+    let (Some(used), Some(limit)) = (used, limit) else {
+        return false;
+    };
+    let used_percent = (limit > 0.0)
+        .then_some(used / limit * 100.0)
+        .filter(|v| v.is_finite());
+    windows.push(AccountQuotaWindow {
+        name,
+        used_percent,
+        used: Some(used),
+        limit: Some(limit),
+        unit: bounded_text(unit),
+        reset_at: bounded_text(reset).filter(|v| v.len() <= 64),
+        reset_at_ms: reset
+            .as_i64()
+            .filter(|v| *v >= 0)
+            .and_then(|v| v.checked_mul(1000)),
+        duration_seconds: None,
+    });
+    true
 }
 fn bounded_text(value: &Value) -> Option<String> {
     value
@@ -194,6 +263,19 @@ pub(super) async fn read(
                 Ok(Err(super::catalog_refresh::CatalogRefreshError::Conflict)) => {
                     (None, Some("configuration_changed"))
                 }
+                Ok(Err(super::catalog_refresh::CatalogRefreshError::Unauthorized)) => {
+                    (None, Some("unauthorized"))
+                }
+                Ok(Err(super::catalog_refresh::CatalogRefreshError::Forbidden)) => {
+                    (None, Some("forbidden"))
+                }
+                Ok(Err(super::catalog_refresh::CatalogRefreshError::EgressDenied)) => {
+                    (None, Some("egress_denied"))
+                }
+                Ok(Err(super::catalog_refresh::CatalogRefreshError::InvalidResponse)) => {
+                    (None, Some("invalid_response"))
+                }
+                Ok(Err(super::catalog_refresh::CatalogRefreshError::Busy)) => (None, Some("busy")),
                 _ => (None, Some("unavailable")),
             },
             Err(_) => (None, Some("unavailable")),
@@ -229,10 +311,37 @@ mod tests {
             &json!({"usageBreakdownList":[{"usageLimit":100},{"currentUsage":0,"usageLimit":0}]}),
             10,
         );
-        assert!(missing.windows.is_empty());
+        assert_eq!(missing.windows.len(), 1);
+        assert_eq!(missing.windows[0].used_percent, None);
         assert!(missing.partial);
         assert!(missing.email.is_none());
         Ok(())
+    }
+    #[test]
+    fn kiro_projects_active_pools_without_summing_or_fabricating_unknowns() {
+        let result = AccountQuotaObservation::parse(
+            "kiro",
+            &json!({"usageBreakdownList":[{
+                "currentUsage":0,"usageLimit":100,"unit":"CREDITS",
+                "freeTrialInfo":{"freeTrialStatus":"ACTIVE","currentUsage":3,"usageLimit":10},
+                "bonuses":[{"status":"ACTIVE","currentUsage":2,"usageLimit":20},{"status":"EXPIRED","currentUsage":5,"usageLimit":5}],
+                "currentOverages":0,"overageCap":0
+            }]}),
+            1,
+        );
+        assert_eq!(result.windows.len(), 4);
+        assert!(!result.partial);
+        assert_eq!(result.windows[1].used, Some(3.0));
+        assert_eq!(result.windows[2].limit, Some(20.0));
+        assert_eq!(result.windows[3].used_percent, None);
+        assert!(result.windows[1].reset_at.is_none());
+        let missing = AccountQuotaObservation::parse(
+            "kiro",
+            &json!({"usageBreakdownList":[{"currentUsage":0,"usageLimit":10,"bonuses":[{"status":"ACTIVE","usageLimit":5}]}]}),
+            1,
+        );
+        assert!(missing.partial);
+        assert_eq!(missing.windows.len(), 1);
     }
     #[test]
     fn codex_missing_window_is_not_zero_or_assumed_weekly() {
@@ -253,7 +362,7 @@ mod tests {
             1,
         );
         assert_eq!(result.windows.len(), 1);
-        assert!((result.windows[0].used_percent - 25.0).abs() < f64::EPSILON);
+        assert!((result.windows[0].used_percent.unwrap_or(-1.0) - 25.0).abs() < f64::EPSILON);
         assert!(
             AccountQuotaObservation::parse("claude", &json!({}), 1)
                 .windows

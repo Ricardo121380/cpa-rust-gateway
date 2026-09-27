@@ -99,6 +99,7 @@ pub use console_responses::{
     GrokConsoleResponsesRequestBuilder, GrokConsoleResponsesStreamDecoder, GrokConsoleSsoToken,
     GrokConsoleTransport, GrokConsoleTransportResponse, GrokConsoleUpstreamTransport,
     classify_grok_console_http_failure, grok_console_retry_after_due_at,
+    grok_console_supported_models,
 };
 pub use continuity_state::{
     GrokBuildAffinityBindOutcome, GrokBuildAffinityBreak, GrokBuildAffinityBreakInput,
@@ -216,7 +217,7 @@ pub use web_production::{
     GrokWebProductionRequestBuilder, GrokWebProductionRequestError, GrokWebProductionResponseBody,
     GrokWebProductionStreamDecoder, GrokWebProductionTransport, GrokWebProductionTransportResponse,
     GrokWebProductionUpstreamTransport, MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES,
-    MAX_GROK_WEB_PRODUCTION_REQUEST_BYTES,
+    MAX_GROK_WEB_PRODUCTION_REQUEST_BYTES, grok_web_supported_models,
 };
 pub use web_provider_egress::{
     GrokWebProviderEgressAttempt, GrokWebProviderEgressAttemptError,

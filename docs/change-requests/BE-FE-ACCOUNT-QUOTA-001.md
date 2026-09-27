@@ -13,3 +13,22 @@ Source protocol evidence: upstream Management Center src/utils/quota/constants.t
 `source` adds `kiro`; optional nullable email/plan are allowlisted display evidence. Windows add nullable used/limit/unit. `partial` explicitly marks omitted/uninterpreted quota components, including trial/bonus information. The frontend must not present these base resource counters as the complete remaining balance. No new operation; generated contract follows sync-contract. CLI metadata targets are distinct from discovery support. Canonical preparation permits only the regional metadata host, with revisioned repair of CPAR-owned old policies. Custom egress remains operator-owned.
 
 References: https://github.com/QiXia881/xkiro.rs/blob/master/src/kiro/endpoint/ide.rs and https://github.com/QiXia881/xkiro.rs/blob/master/src/kiro/endpoint/cli.rs (third-party implementation; live validation pending).
+
+## 2026-09-27 native quota and catalog follow-up
+
+Add protected `GET /admin/native-accounts/{account_id}/usage?revision=`. Authentication remains mandatory; opaque native credentials never reach the browser. Read before/after revision checks reject late success and failure after account mutation with 409. The result is an observation or a closed error code; no-store, four-slot admission, 20s request bound, fixed provider destinations, bounded response bodies, no inference or retry fallback. Build uses OAuth billing credits; Console exchanges SSO for DPoP and signs its usage request; Web reads REST windows and an optional bounded gRPC-Web Credits aggregate. `used_percent` is nullable for unknown percentages/zero denominators. Web remains explicitly partial; media pools and product breakdowns are not represented.
+
+Native list and unified account projection add optional nullable `adapter_models`. For Web/Console this comes from the same tables used by the actual request adapters; it is not upstream discovery, account entitlement, or a serving grant. Build remains on its dynamic directory path. Frontend list/detail quota queries share exact account/revision keys, cancellation and two concurrent readers. Unknown or failed metadata never becomes zero.
+
+Kiro active trial/bonus and observed overage counters are separately projected, bounded to six windows; malformed/omitted/truncated components retain `partial`. CLI OAuth discovery now requests actual profiles and then paginated models at the selected region's management host; missing/ambiguous profiles fail without hardcoded ARN fallback. API-key directory discovery remains unsupported because no verified protocol is available. Existing canonical egress hosts are expanded only in an explicit revisioned draft prepare; custom policies are never silently expanded.
+
+Ordinary live quota failures additionally distinguish unauthorized, forbidden, egress denial, invalid response and busy. Administrator login's explicit empty security requirement is retained; its ownership regression tests cover unauthenticated password login.
+
+Protocol sources (implementation evidence, not upstream service guarantees):
+- https://github.com/seakee/CPA-Manager-Plus/blob/main/apps/manager-server/internal/service/codexinspection/xai_probe.go
+- https://github.com/chenyme/grok2api/blob/main/backend/internal/infra/provider/console/quota.go
+- https://github.com/chenyme/grok2api/blob/main/backend/internal/infra/provider/web/quota.go
+- https://github.com/QiXia881/xkiro.rs/blob/master/src/kiro/model/usage_limits.rs
+- https://github.com/javargasm/opencode-kiro-auth/blob/main/src/models.ts
+
+All claims above describe implementation. Actual account availability, private API/WAF compatibility and production acceptance remain separate gates.

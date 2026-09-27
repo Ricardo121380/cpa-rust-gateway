@@ -682,6 +682,7 @@ const fixtureRequestAnchor=Date.now();
 let fixturePassword = "Prism-demo-2026";
 let fixtureSequence = 0;
 
+function fixtureAdapterModels(provider:string):string[]|null {return provider==="grok_console"?["grok-4.3","grok-4.20-0309","grok-4.20-0309-reasoning","grok-4.20-0309-non-reasoning","grok-4.20-multi-agent-0309","grok-build-0.1"]:provider==="grok_web"?["grok-chat-fast","grok-chat-auto","grok-chat-expert","grok-chat-heavy"]:null;}
 type NativeFixtureAccount = {id:string;provider:string;auth_status:string;enabled:boolean;revision:number;import_batch_id:string;identity?:{email:string|null;phone:string|null;username:string|null}};
 function fixtureBuildIdentity(material:string):{email:string|null;phone:null;username:null} {
   let email:string|null=null;
@@ -1611,6 +1612,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if(cursor){const decoded=JSON.parse(atob(cursor)) as {generation:number;q:string;offset:number};if(decoded.generation!==nativeFixtureGeneration||decoded.q!==q)return errorResponse(409,"management_native_account_conflict","账号列表已改变");offset=decoded.offset;}
       const rows=nativeFixtureAccounts.filter((r)=>`${r.id} ${r.import_batch_id} ${r.provider}`.toLowerCase().includes(q.toLowerCase()));
       return json(200,{items:rows.slice(offset,offset+limit).map((row)=>({...row,identity:row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null}})),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({generation:nativeFixtureGeneration,q,offset:offset+limit})):null});
+    }
+    const nativeUsage=/^GET \/admin\/native-accounts\/([^/]+)\/usage$/u.exec(route);
+    if(nativeUsage){
+      const row=nativeFixtureAccounts.find(row=>row.id===nativeUsage[1]);
+      if(!row||row.revision!==Number(url.searchParams.get("revision")))return errorResponse(409,"management_native_account_conflict","账号已变化");
+      return json(200,{observation:{source:row.provider,observed_at_ms:Date.now(),partial:row.provider==="grok_web",windows:[{name:row.provider==="grok_build"?"build.credits":row.provider==="grok_console"?"console.chat":"web.auto",used_percent:25,used:null,limit:null,unit:"percent",reset_at:null,reset_at_ms:null,duration_seconds:null}]},error:null});
     }
     const nativeAction=/^(PATCH|PUT|DELETE) \/admin\/native-accounts\/([^/?]+)(?:\/credential)?$/u.exec(route);
     if(nativeAction){
@@ -2552,7 +2559,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         const category=kimi?"kimi":credential.kind==="oauth_json"?"codex":"api",provider=kimi?"Kimi":category==="codex"?"Codex":"API";
         return {id:credential.id,native:false,identity,name:identity.email??"",category,provider,status:credential.status==="active"?"enabled":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(["codex","kimi"].includes(category)?["reauthorize"]:[])],plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,managed:{credential,identity,authentication:category==="codex"?"oauth":"api_key",plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,category,provider,connections,binding_count:bindings.length},native_account:null};
       });
-      const native=owner?[]:nativeFixtureAccounts.map(row=>{const identity=row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null};return {id:row.id,native:true,identity,name:identity.email??identity.phone??identity.username??"",category:"grok",provider:row.provider==="grok_build"?"Grok Build":row.provider==="grok_console"?"Grok Console":"Grok Web",status:!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"enabled":"reauth_required",operations:["details","update_credential","enable","disable","remove","models",...(row.provider==="grok_build"?["reauthorize"]:[])],plan:null,plan_source:null,managed:null,native_account:{...row,identity}};});
+      const native=owner?[]:nativeFixtureAccounts.map(row=>{const identity=row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null};return {id:row.id,native:true,identity,name:identity.email??identity.phone??identity.username??"",category:"grok",provider:row.provider==="grok_build"?"Grok Build":row.provider==="grok_console"?"Grok Console":"Grok Web",status:!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"enabled":"reauth_required",operations:["details","update_credential","enable","disable","remove","models",...(row.provider==="grok_build"?["reauthorize"]:[])],plan:null,plan_source:null,managed:null,native_account:{...row,identity,adapter_models:fixtureAdapterModels(row.provider)}};});
       let rows=[...ordinary,...native].filter(r=>(!category||r.category===category)&&(!status||r.status===status)&&[r.name,r.provider,r.category,r.identity.email,r.identity.phone,r.identity.username].join(" ").toLowerCase().includes(q));
       const plan=url.searchParams.get("plan"),withoutPlan=url.searchParams.get("without_plan");
       if((plan!==null&&(!plan||plan.length>128))||(withoutPlan!==null&&!['true','false'].includes(withoutPlan))||(plan!==null&&withoutPlan==='true'))return errorResponse(400,"invalid_management_request","invalid plan filter");
