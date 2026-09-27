@@ -9,7 +9,9 @@ Stop-to-ready639ms. Eight accounts/admin,2391 events,704 ledger rows and effecti
 permissions retained. Fallback `a715d6b952042d2e7c2775c0c7ab91895ee26e59` retains current data.
 No DNS/Caddy/Autoreg change or inference. One Build quota read succeeded; Console
 and two other Build reads returned unauthorized. Kimi still needs its missing
-production binding; Codex quota returned busy. Production browser login pending.
+production binding; Codex quota returned busy. User-login EgoLite account/details
+checks passed at three sizes, including light quota and dark model views; whole-workspace
+acceptance is not claimed. Build quota page retained for user.
 See [current release evidence](../reports/cpar-channel-metadata-production-20260927.md).
 Earlier entries are historical. This receipt grants no new authority.
 

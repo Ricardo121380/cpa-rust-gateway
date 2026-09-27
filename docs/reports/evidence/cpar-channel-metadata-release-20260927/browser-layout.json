@@ -1,0 +1,32 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "dialog": {
+      "x": 904,
+      "width": 520,
+      "right": 1424
+    },
+    "pageOverflow": false
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "dialog": {
+      "x": 744,
+      "width": 520,
+      "right": 1264
+    },
+    "pageOverflow": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "dialog": {
+      "x": 12,
+      "width": 366,
+      "right": 378
+    },
+    "pageOverflow": false
+  }
+]
