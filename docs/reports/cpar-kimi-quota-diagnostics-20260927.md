@@ -2,9 +2,11 @@
 
 ## Result
 
-Implemented locally. Production quota root cause remains unverified until the
-new binary is explicitly approved for release and the bounded real metadata
-read is repeated. No production writes or inference calls in this change.
+Implemented locally. Quota root cause remains under investigation. The user
+requires isolated verification before deployment: build a separate candidate,
+read metadata from a private on-host state copy with no listeners/background
+renewal/inference, fix and verify, then release the complete fix. Do not deploy
+a diagnostics-only patch to investigate production.
 
 The previous implementation converted both request results through `.ok()`,
 losing transport/status/timeout evidence. It then mapped a successful but
@@ -38,8 +40,10 @@ explaining the recorded `profile_available=true, quota_available=false`.
   Existing production receipt proving identity/four-model catalog remains in
   `evidence/cpar-account-deletion-20260927/`; it does not prove quota success.
 
-Next release must include this patch and predecessor be5f30e (account deletion
-entry/refresh). Keep all production accounts and history; exercise deletion
-only with synthetic local accounts. After release, one management metadata
-observation is enough to select the next fix; do not bypass egress or export
-secrets merely to retrieve the upstream payload.
+The final release must include the verified quota fix and predecessor be5f30e
+(account deletion entry/refresh). Keep all production accounts and history;
+exercise deletion only with synthetic local accounts. The new isolated
+`kimi-metadata-check` command reuses the real catalog/runtime adapters and
+existing explicit-copy marker, suppresses renewal and returns only counts,
+identity presence and closed error classes. Do not bypass egress or export
+secrets to obtain evidence. Production cutover is pending successful verification.

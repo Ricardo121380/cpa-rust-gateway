@@ -75,8 +75,9 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
     match command {
         GatewayCommand::Admin(command) => execute_admin(command),
         GatewayCommand::Serve(command) => deployment::run(command).map_err(CliError::Deployment),
-        GatewayCommand::CatalogCheck(command, endpoint, credential) => {
-            deployment::check_catalog(&command, endpoint, credential).map_err(CliError::Deployment)
+        GatewayCommand::CatalogCheck(command, endpoint, credential, kimi_metadata) => {
+            deployment::check_catalog(&command, endpoint, credential, kimi_metadata)
+                .map_err(CliError::Deployment)
         }
         GatewayCommand::AdminLogin(command) => {
             admin_login::run(&command).map_err(CliError::AdminLogin)
@@ -225,7 +226,7 @@ fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
 enum GatewayCommand {
     Admin(AdminCommand),
     Serve(deployment::ServeCommand),
-    CatalogCheck(deployment::ServeCommand, String, String),
+    CatalogCheck(deployment::ServeCommand, String, String, bool),
     AdminLogin(admin_login::InitCommand),
 }
 
@@ -322,7 +323,7 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
     let top_level = arguments.next().ok_or(CliError::Usage)?;
     match top_level.as_str() {
         "admin" => parse_admin_command(arguments.collect()).map(GatewayCommand::Admin),
-        "catalog-check" => {
+        "catalog-check" | "kimi-metadata-check" => {
             let mut options = parse_options(arguments.collect())?;
             let endpoint = options.remove("--endpoint-id").ok_or(CliError::Usage)?;
             let credential = options.remove("--credential-id").ok_or(CliError::Usage)?;
@@ -339,7 +340,12 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
                     .collect(),
             )
             .map_err(CliError::Deployment)?;
-            Ok(GatewayCommand::CatalogCheck(command, endpoint, credential))
+            Ok(GatewayCommand::CatalogCheck(
+                command,
+                endpoint,
+                credential,
+                top_level == "kimi-metadata-check",
+            ))
         }
         "serve" => deployment::parse(arguments.collect())
             .map(GatewayCommand::Serve)
@@ -474,7 +480,7 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 
 fn print_usage() {
     println!(
-        "Metadata acceptance: gateway catalog-check --state-dir <marked-isolated-copy> --credential-dir <absolute-dir> --endpoint-id <id> --credential-id <id> (no listeners, inference or background renewal)"
+        "Metadata acceptance: gateway <catalog-check|kimi-metadata-check> --state-dir <marked-isolated-copy> --credential-dir <absolute-dir> --endpoint-id <id> --credential-id <id> (no listeners, inference or background renewal)"
     );
     println!(
         "Administrator bootstrap: gateway admin-login init --state-dir <absolute-dir> --password-file <new-private-file> [--username admin]"
@@ -565,6 +571,32 @@ mod tests {
         assert!(RELEASE_BUILD_METADATA.contains("gateway-release-revision=development"));
         assert!(RELEASE_BUILD_METADATA.contains("gateway-release-rust-version=development"));
         assert!(RELEASE_BUILD_METADATA.contains("gateway-release-target=development"));
+    }
+
+    #[test]
+    fn isolated_kimi_command_keeps_explicit_target_and_no_serve_mode() {
+        for (mode, expected) in [("catalog-check", false), ("kimi-metadata-check", true)] {
+            let command = parse_command(
+                [
+                    mode,
+                    "--state-dir",
+                    "/tmp/isolated-kimi",
+                    "--credential-dir",
+                    "/tmp/isolated-kimi-credentials",
+                    "--endpoint-id",
+                    "kimi-endpoint",
+                    "--credential-id",
+                    "kimi-account",
+                ]
+                .map(str::to_owned)
+                .to_vec(),
+            );
+            assert!(
+                matches!(command, Ok(GatewayCommand::CatalogCheck(_, endpoint, credential, kimi))
+                if endpoint == "kimi-endpoint" && credential == "kimi-account" && kimi == expected)
+            );
+        }
+        assert!(parse_command(vec!["kimi-metadata-check".into()]).is_err());
     }
 
     #[test]

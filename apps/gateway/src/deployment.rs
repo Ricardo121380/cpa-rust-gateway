@@ -200,6 +200,7 @@ pub(crate) fn check_catalog(
     command: &ServeCommand,
     endpoint: String,
     credential: String,
+    kimi_metadata: bool,
 ) -> Result<(), DeploymentError> {
     use gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFacade;
     let marker = command.state_directory.join("catalog-check.marker");
@@ -222,14 +223,34 @@ pub(crate) fn check_catalog(
         .into_iter()
         .find(|v| v.status == gateway_store::control_plane::ConfigVersionStatus::Active)
         .ok_or(DeploymentError::ControlPlaneUnavailable)?;
-    let result = actix_web::rt::System::new()
-        .block_on(application.reload.refresh(active.id, endpoint, credential));
+    let system = actix_web::rt::System::new();
+    let result = system.block_on(application.reload.refresh(
+        active.id.clone(),
+        endpoint,
+        credential.clone(),
+    ));
     match result {
         Ok(receipt) => {
-            println!(
-                "{}",
-                serde_json::json!({"metadata_only":true,"model_count":receipt.model_count,"observed_at_ms":receipt.observed_at_ms,"background_workers_started":false,"credential_refresh_attempted":false,"inference_requests":0})
-            );
+            let mut proof = serde_json::json!({"metadata_only":true,"model_count":receipt.model_count,"observed_at_ms":receipt.observed_at_ms,"background_workers_started":false,"credential_refresh_attempted":false,"inference_requests":0});
+            if kimi_metadata {
+                match system.block_on(application.reload.kimi_metadata(active.id, credential)) {
+                    Ok(observation) => {
+                        // Presence and closed errors only; no identity, bearer or provider bodies.
+                        proof["kimi"] = serde_json::json!({
+                            "profile_available": observation.profile_available,
+                            "identity_present": observation.identity.email.is_some()
+                                || observation.identity.phone.is_some()
+                                || observation.identity.username.is_some(),
+                            "profile_error": observation.profile_error,
+                            "quota_available": observation.quota_available,
+                            "quota_error": observation.quota_error,
+                            "quota_window_count": observation.quota_windows.len(),
+                        });
+                    }
+                    Err(error) => proof["kimi_error"] = serde_json::json!(format!("{error:?}")),
+                }
+            }
+            println!("{proof}");
             Ok(())
         }
         Err(error) => {
@@ -958,6 +979,29 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn kimi_check_rejects_unmarked_state_before_loading_credentials()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        let command = command(state.path(), credentials.path())?;
+        for marker in [None, Some("not-an-isolated-copy\n")] {
+            if let Some(contents) = marker {
+                fs::write(state.join("catalog-check.marker"), contents)?;
+            }
+            assert!(matches!(
+                super::check_catalog(
+                    &command,
+                    "kimi-endpoint".into(),
+                    "kimi-account".into(),
+                    true
+                ),
+                Err(DeploymentError::StateDirectoryUnavailable)
+            ));
+        }
+        Ok(())
     }
 
     fn write_required_credentials(
