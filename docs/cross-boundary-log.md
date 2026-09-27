@@ -3449,3 +3449,11 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** Successful empty usage responses are normal empty states in the reference management UI. Show a status rather than an alert; preserve real HTTP/transport failures and error precedence. Do not infer account tier or a zero balance.
 
 **Other side:** FYI. This supersedes the preceding numeric-quota release blocker after the user's Free-account clarification and approval. Signed release gates and isolated rollback rehearsal remain required. No contract/schema or permissions change; account deletion will ship in the same batch without deleting production accounts.
+
+## 2026-09-27 - Codex - Complete channel onboarding connection steps
+
+**What:** `web/prism/src/features/accounts/{AddAccountDialog,GrokDeviceWizard,KimiDeviceDialog}.tsx`, `web/prism/src/features/upstreams/ProviderDialog.tsx`, `web/prism/src/dev/fixtures.ts`, account tests/E2E; `crates/gateway-http-actix/src/management_resources/account_channels.rs` and managed resource integration tests; authoritative/vendored OpenAPI and generated client.
+
+**Why:** API channels had no zero-configuration creation path; native Grok saving did not provide the connection next step; multiple Kimi Coding services could not be explicitly selected. Configuration selection remounts also discarded onboarding continuation.
+
+**Other side:** FYI under unified repair authorization. Existing CRUD and configuration lifecycle reused; no schema, secret persistence, automatic model grants or production changes. Optional Kimi query documented in `docs/change-requests/BE-FE-KIMI-TARGET-SELECTION-002.md`. Evidence and live limits: `docs/reports/cpar-channel-onboarding-repair-20260927.md`.

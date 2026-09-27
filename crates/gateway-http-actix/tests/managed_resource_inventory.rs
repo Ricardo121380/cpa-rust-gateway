@@ -3317,6 +3317,35 @@ async fn kimi_target_preparation_keeps_existing_api_upstream_separate() -> TestR
     );
     let resolved: Value = test::read_body_json(resolved).await;
     assert!(!resolved["prepared"].as_bool().unwrap_or(true));
+    db.execute(
+        "UPDATE upstreams SET kind='kimi-coding' WHERE id='owner-a' AND config_version_id=?1",
+        [VERSION],
+    )?;
+    for suffix in ["", "?upstream_id=missing"] {
+        let rejected = test::call_service(
+            &app,
+            authorized(test::TestRequest::post().uri(&format!(
+                "/admin/account-channels/kimi/prepare-target{suffix}"
+            )))
+            .insert_header(("If-Match", "rev-4"))
+            .to_request(),
+        )
+        .await;
+        assert_eq!(rejected.status(), StatusCode::CONFLICT);
+    }
+    let selected = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/account-channels/kimi/prepare-target?upstream_id=kimi-coding"),
+        )
+        .insert_header(("If-Match", "rev-4"))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(selected.status(), StatusCode::OK);
+    let selected: Value = test::read_body_json(selected).await;
+    assert_eq!(selected["upstream_id"], "kimi-coding");
     Ok(())
 }
 

@@ -1684,7 +1684,9 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if(route === "POST /admin/account-channels/kimi/prepare-target") {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
-      const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.kind==="kimi-coding");
+      const upstreams=state.upstreams.get(version.id)??[];const chosen=url.searchParams.get("upstream_id");const candidates=upstreams.filter(row=>row.kind==="kimi-coding"&&(!chosen||row.id===chosen));
+      if(candidates.length>1||(chosen!==null&&!candidates.length))return errorResponse(409,"management_target_conflict","Kimi target is ambiguous or unavailable");
+      let upstream=candidates[0];
       if(!upstream){upstream={id:"kimi-coding",name:"Kimi Coding",kind:"kimi-coding",enabled:true,tags:["kimi","coding"],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
       const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.upstream_id===upstream.id&&row.api_format==="openai/responses");
       if(!endpoint){endpoint={id:"kimi-coding-responses",upstream_id:upstream.id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.kimi.com/coding",inference_path:"/v1/responses",models_path:"/v1/models",transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}

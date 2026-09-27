@@ -1,6 +1,8 @@
+import { useLocation, useNavigate } from "react-router-dom";
+import { ProviderDialog } from "../upstreams/ProviderDialog";
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
 import { KimiDeviceDialog } from "./KimiDeviceDialog";
-import { useMutation, useQuery, isCancelledError, CancelledError } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, isCancelledError, CancelledError } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -75,7 +77,7 @@ type ImportTask = Awaited<ReturnType<typeof beginConfigurationTask>>;
 export async function prepareImportConnection(task:ImportTask,channel:string,provider:string,endpoint:string,region?:string) {
   const operation=preparedImportOperation(channel);
   if(!operation)return {upstream_id:provider,endpoint_id:endpoint};
-  const target=await task.mutate<{upstream_id:string;endpoint_id:string}>(operation,preparedImportRequest(operation,region));
+  const target=await task.mutate<{upstream_id:string;endpoint_id:string}>(operation,operation==="prepareKimiAccountTarget"&&provider?{query:{upstream_id:provider}}:preparedImportRequest(operation,region));
   if(!target.upstream_id||!target.endpoint_id)throw new Error("渠道接入准备结果不完整，未开始导入。");
   return target;
 }
@@ -88,9 +90,15 @@ export async function connectImportedAccount(task:ImportTask,endpoint:string,cre
 }
 
 export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void}>) {
+  const location=useLocation(),navigate=useNavigate();
+  const [resume]=useState(()=>{const value=location.state?.accountConnection;return value?.version===useVersionStore.getState().context?.configVersionId?value:undefined;});
+
   const formId="account-import-form";
-  const [channelId,setChannelId]=useState("openai-compatible");
-  const [choosingChannel,setChoosingChannel]=useState(true);
+  const client=useQueryClient();
+  const [setupConnection,setSetupConnection]=useState(false);
+  const [connectionOwner,setConnectionOwner]=useState<{id:string;name:string}>();
+  const [channelId,setChannelId]=useState<string>(resume?.channel??"openai-compatible");
+  const [choosingChannel,setChoosingChannel]=useState(!resume);
   const [inputMode,setInputMode]=useState<"paste"|"files">("paste");
   const [oauth,setOauth]=useState(false);
   const [method,setMethod]=useState<"authorize"|"import">("authorize");
@@ -101,8 +109,14 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   const [finishedVersion,setFinishedVersion]=useState<ConfigVersionSummary>();
   const [workingId,setWorkingId]=useState<string>();
   const [reading,setReading]=useState(false);
-  const [providerId,setProviderId]=useState("");
-  const [endpointId,setEndpointId]=useState<string|null>(null);
+  const [providerId,setProviderId]=useState<string>(resume?.upstream_id??"");
+  const [endpointId,setEndpointId]=useState<string|null>(resume?.endpoint_id??null);
+  useEffect(()=>{
+    const value=location.state?.accountConnection;
+    if(!value||value.version!==useVersionStore.getState().context?.configVersionId)return;
+    setChannelId(value.channel);setProviderId(value.upstream_id);setEndpointId(value.endpoint_id);setChoosingChannel(false);setSetupConnection(false);
+    navigate(location.pathname+location.search,{replace:true,state:null});
+  },[location,navigate]);
   const materials=useRef<Material[]>([]);
   const readerGeneration=useRef(0);
   const submitting=useRef(false);
@@ -113,7 +127,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   const channels=useQuery({queryKey:["account-channels"],queryFn:()=>call<readonly Channel[]>("listAccountChannels")});
   // Channel-owned device flows prepare their own canonical target only after the operator starts.
   // They never need to enumerate arbitrary Providers just to render the chooser.
-  const providers=useQuery({queryKey:["account-providers",context?.configVersionId],enabled:!choosingChannel&&!!context&&!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId),
+  const providers=useQuery({queryKey:["account-providers",context?.configVersionId],enabled:!choosingChannel&&!!context&&!native&&(!CHANNEL_OWNED_AUTHORIZATION.has(channelId)||channelId==="kimi-coding"),
     queryFn:()=>call<readonly {id:string;name:string;kind:string}[]>("listUpstreams",{},{versionScoped:true})});
   const channel=channels.data?.find((row)=>row.id===channelId);
   const authorizing=channel?.authorization_available===true && method==="authorize";
@@ -188,8 +202,8 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
       const added=rows.filter((row)=>row.status==="已添加").length;
       const existing=rows.filter((row)=>row.status==="已存在").length;
       const remaining=rows.filter((row)=>!["已添加","已存在"].includes(row.status)).length;
-      onCreated(needsApply?"账号已保存，运行配置暂未应用。":workingId&&!finishedVersion?"账号修改已保存，请核对应用状态。":finishedVersion?.status==="draft"?"账号已保存到待应用配置。":`已添加 ${added} 个账号${existing?`，${existing} 个已存在`:""}${remaining?`，${remaining} 个未完成`:""}。`);
       if(finishedVersion)useVersionStore.getState().select(finishedVersion);
+      onCreated(needsApply?"账号已保存，运行配置暂未应用。":workingId&&!finishedVersion?"账号修改已保存，请核对应用状态。":finishedVersion?.status==="draft"?"账号已保存到待应用配置。":`已添加 ${added} 个账号${existing?`，${existing} 个已存在`:""}${remaining?`，${remaining} 个未完成`:""}。`);
     }
     else onClose();
   };
@@ -207,24 +221,29 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     setRows(items.map(({id,label})=>({id,label,status:"待导入"})));
     create.mutate({provider,endpoint,items,kiroRegion});
   };
+  if(setupConnection)return <ProviderDialog channel={channelId} existingUpstream={connectionOwner} onClose={()=>setSetupConnection(false)} onSaved={version=>{useVersionStore.getState().select(version);setSetupConnection(false);}} onConnectionCreated={(version,target)=>{void client.invalidateQueries({queryKey:["account-providers"]});void client.invalidateQueries({queryKey:["managed-inventory"]});navigate(native?"/upstreams":location.pathname+location.search,{replace:true,state:native?null:{accountConnection:{...target,channel:channelId,version:version.id}}});useVersionStore.getState().select(version);}}/>;
   if(oauth&&channelId==="kiro")return <KiroDeviceDialog onClose={()=>setOauth(false)} onComplete={onCreated}/>;
-  if(oauth&&channelId==="kimi-coding")return <KimiDeviceDialog onClose={()=>setOauth(false)} onComplete={onCreated}/>;
+  if(oauth&&channelId==="kimi-coding")return <KimiDeviceDialog providerId={selectedProvider||undefined} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth&&(channelId==="codex"||channelId==="claude"))return <AuthorizationCodeDialog channel={channelId} onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth&&channelId==="grok.build")return <GrokDeviceWizard name="" onClose={()=>setOauth(false)} onComplete={onCreated}/>;
   if(oauth)return <Sheet title="暂不支持的授权方式" layout="confirm" description="该渠道没有可用的授权流程，面板没有执行任何操作。" onEscape={()=>setOauth(false)}><p role="alert">请返回并选择支持的渠道接入方式。</p><div className="sheet-actions"><SheetDismissButton>返回</SheetDismissButton></div></Sheet>;
-  return <Sheet title={completed?"导入结果":choosingChannel?"添加账号":channel?.name??"添加账号"} description={choosingChannel?"选择要接入的渠道。":undefined} onEscape={close} busy={busy} footer={choosingChannel?<SheetDismissButton className="secondary">取消</SheetDismissButton>:completed?<SheetDismissButton disabled={busy}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type={authorizing?"button":"submit"} form={authorizing?undefined:formId} disabled={busy||(authorizing?(!native&&!selectedProvider&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)):(!importFormAvailable||(inputMode==="files"&&!materials.current.length)))} onClick={authorizing?()=>{resetInput();setOauth(true);}:undefined}>{authorizing?"授权登录":"导入账号"}</button></>}>
+  return <Sheet title={completed?"导入结果":choosingChannel?"添加账号":channel?.name??"添加账号"} description={choosingChannel?"选择要接入的渠道。":undefined} onEscape={close} busy={busy} footer={choosingChannel?<SheetDismissButton className="secondary">取消</SheetDismissButton>:completed?<SheetDismissButton disabled={busy}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type={authorizing?"button":"submit"} form={authorizing?undefined:formId} disabled={busy||(channelId==="kimi-coding"&&(providers.isPending||providers.isError||(matches.length>1&&!selectedProvider)))||(authorizing?(!native&&!selectedProvider&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)):(!importFormAvailable||(isApiChannel&&!selectedProvider)||(inputMode==="files"&&!materials.current.length)))} onClick={authorizing?()=>{resetInput();setOauth(true);}:undefined}>{authorizing?"授权登录":"导入账号"}</button></>}>
     {completed?<>
       {needsApply?<RuntimeApplyNotice onApplied={()=>setNeedsApply(false)}/>:null}
+      {native?<><p role="status">授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。</p><button className="secondary" onClick={()=>setSetupConnection(true)}>配置渠道接口</button><a href="#/upstreams" onClick={close}>查看已有服务与连接</a></>:null}
     </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:choosingChannel?<div className="account-channel-grid" aria-label="选择账号渠道">{channels.data?.map(entry=><button type="button" className="secondary account-channel-option" key={entry.id} onClick={()=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(entry.id);setMethod("authorize");setChoosingChannel(false);}}><span className="channel-symbol" aria-hidden="true">{entry.name.slice(0,1)}</span><span><strong>{entry.name}</strong><small>{entry.authorization_available?"官方授权":entry.import_available?"导入凭据":"暂不可接入"}</small></span></button>)}</div>:<>
       <SheetDismissButton className="secondary channel-back" disabled={busy} onDismiss={()=>{resetInput();setChoosingChannel(true);}}>更换渠道</SheetDismissButton>
       {channel?.authorization_available&&channel.import_available?<div className="account-onboarding"><div className="account-access-method" role="group" aria-label="接入方式">
         <SheetDismissButton className="secondary" aria-pressed={authorizing} disabled={busy} onClick={event=>{if(authorizing)event.preventDefault();}} onDismiss={()=>{resetInput();setMethod("authorize");}}>官方授权</SheetDismissButton>
         <SheetDismissButton className="secondary" aria-pressed={!authorizing} disabled={busy} onClick={event=>{if(!authorizing)event.preventDefault();}} onDismiss={()=>{resetInput();setMethod("import");}}>导入凭据</SheetDismissButton>
       </div></div>:null}
+      {channelId==="kimi-coding"&&matches.length>1?<label>接入服务<select value={selectedProvider} onChange={event=>setProviderId(event.target.value)} disabled={busy}><option value="">选择 Kimi Coding 服务</option>{matches.map(provider=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>:null}
+      {channelId==="kimi-coding"&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:null}
       {authorizing?<div className="account-authorization-summary"><h3>登录 {channel?.name}</h3><p>按下一步提示完成官方登录，再回到面板查看授权结果。</p></div>:<>
       {!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&providers.isError?<p role="alert">{asAppError(providers.error).message}</p>:!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!!context&&providers.isPending?<p>读取渠道配置…</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!matches.length?<p role="alert">此渠道尚未配置专用接入。账号授权不会借用其他渠道或兼容中转。</p>:requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&matches.length>1?<p role="alert">此渠道有多个专用接入，请在 AI 提供商中整理渠道配置后再授权。为避免错误绑定，面板不会自动选择其中一个。</p>:channel?.import_available?<form id={formId} className="sheet-form" onSubmit={submit} autoComplete="off">
-        {!native&&isApiChannel?<><label>服务<select name="provider" value={selectedProvider} onChange={(event)=>{setProviderId(event.target.value);setEndpointId(null);}} disabled={busy} required><option value="">选择已配置服务</option>{matches.map((provider)=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>
+        {!native&&isApiChannel?<><button type="button" className="secondary" disabled={busy} onClick={()=>{resetInput();setConnectionOwner(undefined);setSetupConnection(true);}}>创建服务与接口</button>{!matches.length?<p role="status">尚无此渠道的服务，请先创建服务与接口，再导入凭据。</p>:null}<label>服务<select name="provider" value={selectedProvider} onChange={(event)=>{setProviderId(event.target.value);setEndpointId(null);}} disabled={busy} required><option value="">选择已配置服务</option>{matches.map((provider)=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select></label>
           <label>接口连接<select name="endpoint" value={selectedEndpoint} onChange={(event)=>setEndpointId(event.target.value)} disabled={busy||endpoints.isFetching}><option value="">稍后连接</option>{connections.map((endpoint)=><option key={endpoint.id} value={endpoint.id}>{protocolName(endpoint.api_format)} · {new URL(endpoint.base_url).host}{endpoint.enabled?"":" · 已停用"}</option>)}</select></label>
+          {selectedProvider?<button type="button" className="secondary" disabled={busy} onClick={()=>{resetInput();setConnectionOwner(matches.find(provider=>provider.id===selectedProvider));setSetupConnection(true);}}>为此服务添加接口</button>:null}
           {endpoints.isError?<p role="alert">{asAppError(endpoints.error).message}。可以先保存账号，稍后连接接口。</p>:null}
           {endpoints.hasNextPage?<button type="button" className="secondary" disabled={busy||endpoints.isFetching} onClick={()=>void endpoints.fetchNextPage()}>加载更多接口</button>:null}
         </>:null}

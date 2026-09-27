@@ -4,15 +4,15 @@ import { navigate, selectDraft, unlock } from "./helpers";
 async function openAccounts(page: import("@playwright/test").Page): Promise<void> {
   await unlock(page);
   await selectDraft(page);
-  await navigate(page, "账号池");
+  await navigate(page, "账号管理");
   await expect(page.getByRole("button", { name: "授权 / 导入账号", exact: true })).toBeVisible();
 }
 
 test("account onboarding opens the channel-owned chooser without provider selection", async ({ page }) => {
   await openAccounts(page);
   await page.getByRole("button", { name: "授权 / 导入账号", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "授权或导入账号" });
-  await expect(dialog.getByLabel("渠道", { exact: true })).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", {name:/Kimi API/})).toBeVisible();
   await expect(dialog.getByLabel("提供商", { exact: true })).toHaveCount(0);
   await expect(dialog.getByLabel("接口连接", { exact: true })).toHaveCount(0);
 });
@@ -39,12 +39,9 @@ for (const width of [1440, 390]) {
 test("channel chooser exposes the supported channel families", async ({ page }) => {
   await openAccounts(page);
   await page.getByRole("button", { name: "授权 / 导入账号", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "授权或导入账号" });
-  const channel = dialog.getByRole("combobox", { name: "渠道", exact: true });
-  await expect(channel.locator('option[value="codex"]')).toHaveCount(1);
-  for (const id of ["grok.build", "grok.console", "grok.web"]) {
-    await channel.selectOption(id);
-    await expect(dialog.getByLabel("提供商", { exact: true })).toHaveCount(0);
+  const dialog = page.getByRole("dialog");
+  for (const name of ["Codex / ChatGPT", "Grok Build", "Grok Console", "Grok Web"]) {
+    await expect(dialog.getByRole("button", {name:new RegExp(name)})).toBeVisible();
   }
 });
 
@@ -63,8 +60,8 @@ test("an unbound API import is discoverable and can be disabled without resubmit
   await openAccounts(page);
   await page.evaluate(() => { Object.defineProperty(crypto, "randomUUID", {configurable:true,value:()=>"team-unbound"}); });
   await page.getByRole("button", { name: "授权 / 导入账号", exact: true }).click();
-  const dialog=page.getByRole("dialog", { name: "授权或导入账号" });
-  await dialog.getByLabel("渠道", {exact:true}).selectOption("openai-compatible");
+  const dialog=page.getByRole("dialog");
+  await dialog.getByRole("button", {name:/OpenAI 兼容/}).click();
   const service=dialog.getByRole("combobox", {name:"服务",exact:true});
   await expect(service).toBeVisible();
   await service.selectOption({label:"中转站 A"});
@@ -98,8 +95,8 @@ test("channel-owned Codex file import stays secret-free and API accounts cannot 
   const api=page.locator('.account-group[aria-label="API 账号"]');
   await expect(api.getByRole("button", {name:"重新授权",exact:true})).toHaveCount(0);
   await page.getByRole("button", { name: "授权 / 导入账号", exact: true }).click();
-  const dialog=page.getByRole("dialog", { name: "授权或导入账号" });
-  await dialog.getByLabel("渠道", {exact:true}).selectOption("codex");
+  const dialog=page.getByRole("dialog");
+  await dialog.getByRole("button", {name:/Codex \/ ChatGPT/}).click();
   await dialog.getByRole("button", {name:"选择文件",exact:true}).click();
   const material=JSON.stringify({kind:"codex_oauth",access_token:"fixture-token",refresh_token:"fixture-refresh",expires_at_ms:4102444800000,account_id:"synthetic-account"});
   await dialog.getByLabel("凭据文件", {exact:true}).setInputFiles({name:"synthetic.json",mimeType:"application/json",buffer:Buffer.from(material)});
@@ -123,8 +120,8 @@ test("a rejected channel import reports a failed item rather than a successful r
     };
   });
   await page.getByRole("button", {name:"授权 / 导入账号",exact:true}).click();
-  const dialog=page.getByRole("dialog", {name:"授权或导入账号"});
-  await dialog.getByLabel("渠道", {exact:true}).selectOption("openai-compatible");
+  const dialog=page.getByRole("dialog");
+  await dialog.getByRole("button", {name:/OpenAI 兼容/}).click();
   await dialog.getByRole("combobox", {name:"服务",exact:true}).selectOption({label:"中转站 A"});
   await dialog.getByLabel("API Key / Token", {exact:true}).fill("synthetic");
   await dialog.getByRole("button", {name:"导入账号",exact:true}).click();
@@ -132,3 +129,24 @@ test("a rejected channel import reports a failed item rather than a successful r
   await expect(dialog).toContainText("未添加");
   await expect(dialog).not.toContainText("已添加");
 });
+
+for (const channel of ["OpenAI 兼容 / 中转", "Anthropic 兼容 / 中转", "Kimi API", "Grok Official"]) {
+  test(`${channel} creates a connection and resumes credential import`, async ({ page }) => {
+    await openAccounts(page);
+    await page.getByRole("button", {name:"授权 / 导入账号",exact:true}).click();
+    await page.getByRole("dialog").getByRole("button", {name:new RegExp(channel)}).click();
+    await page.getByRole("button", {name:"创建服务与接口",exact:true}).click();
+    await expect(page.getByLabel("API Key / 授权文件")).toHaveCount(0);
+    await page.getByRole("button", {name:"保存连接",exact:true}).click();
+    await page.getByRole("button", {name:"返回账号接入",exact:true}).click();
+    const dialog=page.getByRole("dialog");
+    await expect(dialog.locator('select[name="provider"]')).not.toHaveValue("");
+    await expect(dialog.locator('select[name="endpoint"]')).not.toHaveValue("");
+    await dialog.locator('textarea[name="secret"]').fill("synthetic-channel-onboarding");
+    await dialog.getByRole("button", {name:"导入账号",exact:true}).click();
+    await expect(dialog).toContainText("已添加");
+    await expect(dialog).not.toContainText("synthetic-channel-onboarding");
+    await dialog.getByRole("button", {name:"完成",exact:true}).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+}

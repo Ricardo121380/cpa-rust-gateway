@@ -2491,6 +2491,11 @@ export const managementOperations = {
     "path": "/admin/account-channels/kimi/prepare-target",
     "parameters": [
       {
+        "name": "upstream_id",
+        "in": "query",
+        "required": false
+      },
+      {
         "name": "X-Config-Version",
         "in": "header",
         "required": true

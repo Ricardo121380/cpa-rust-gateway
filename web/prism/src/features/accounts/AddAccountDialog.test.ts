@@ -51,6 +51,11 @@ describe("channel-owned import connections",()=>{
     expect(target.upstream_id).toBe("owned");
     expect(tx.mutate).toHaveBeenLastCalledWith("createEndpointCredentialBinding",{path:{endpoint_id:"prepared"},body:{credential_id:"deduplicated-credential",enabled:true,priority:0,weight:1,concurrency:1}});
   });
+  it("passes an explicitly selected Kimi Coding service to server validation",async()=>{
+    const tx=task();
+    await prepareImportConnection(tx,"kimi-coding","chosen-kimi","");
+    expect(tx.mutate).toHaveBeenCalledWith("prepareKimiAccountTarget",{query:{upstream_id:"chosen-kimi"}});
+  });
   it("preserves an existing disabled binding on duplicate import",async()=>{
     const tx=task([{credential_id:"existing",enabled:false}]);
     await connectImportedAccount(tx,"prepared","existing");

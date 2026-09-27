@@ -171,6 +171,11 @@ const CLAUDE_TARGET: FixedAccountTarget = FixedAccountTarget {
     models_path: Some("/models"),
 };
 
+#[derive(Deserialize)]
+struct KimiTargetQuery {
+    upstream_id: Option<String>,
+}
+
 /// Resolves exactly one existing Kimi Coding target or prepares CPAR's canonical dedicated target.
 /// It never considers a compatible relay, visible name, or array position as channel ownership.
 #[allow(clippy::too_many_lines)]
@@ -203,12 +208,22 @@ pub(super) async fn prepare_kimi_target(
     {
         return conflict_target();
     }
+    let query = match web::Query::<KimiTargetQuery>::from_query(request.query_string()) {
+        Ok(value) => value,
+        Err(_) => return invalid_input(),
+    };
     let kimi_upstreams = configuration
         .upstreams
         .iter()
-        .filter(|upstream| upstream.kind == "kimi-coding")
+        .filter(|upstream| {
+            upstream.kind == "kimi-coding"
+                && query
+                    .upstream_id
+                    .as_ref()
+                    .is_none_or(|id| upstream.id.as_str() == id)
+        })
         .collect::<Vec<_>>();
-    if kimi_upstreams.len() > 1 {
+    if kimi_upstreams.len() > 1 || (query.upstream_id.is_some() && kimi_upstreams.is_empty()) {
         return conflict_target();
     }
     if kimi_upstreams.is_empty()

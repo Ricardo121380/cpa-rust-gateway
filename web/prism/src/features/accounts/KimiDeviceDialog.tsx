@@ -73,7 +73,7 @@ export function KimiDeviceDialog({
     mutationFn: async () => {
       const task = await beginConfigurationTask("授权 Kimi 账号");
       const id = credentialId ?? `kimi-${crypto.randomUUID()}`;
-      const target = existingKimiTarget(credentialId,providerId)??await task.mutate<PreparedTarget>("prepareKimiAccountTarget");
+      const target = existingKimiTarget(credentialId,providerId)??await task.mutate<PreparedTarget>("prepareKimiAccountTarget",providerId?{query:{upstream_id:providerId}}:undefined);
       if (!credentialId && !target.endpoint_id) throw new Error("Kimi 接口准备结果不完整，请重新读取配置。");
       current.current = {
         task,

@@ -1,3 +1,6 @@
+import { useNavigate } from "react-router-dom";
+import { ProviderDialog } from "../upstreams/ProviderDialog";
+import { useVersionStore } from "../config-versions/versionStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../../api/client";
@@ -9,6 +12,8 @@ import { safeExternalUrl } from "../upstreams/model";
 import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
 type View = Readonly<{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:AccountIdentity|null;identity_state:string;runtime_applied?:boolean|null}>;
 export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name:string;target?:{account_id:string;revision:number};onClose:()=>void;onComplete?:()=>void}>) {
+  const navigate=useNavigate();
+  const [setupConnection,setSetupConnection]=useState(false);
   const client=useQueryClient();
   const [session,setSession]=useState<View>();
   const key=["grok-device",session?.session_id];
@@ -30,6 +35,7 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
   const href=safeExternalUrl(view?.verification_uri);
   const busy=start.isPending||cancel.isPending;
   const footer=!view?<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" disabled={busy||start.isError} onClick={()=>start.mutate()}>开始 Grok 授权</button></>:view.state==="pending"?<SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton>:<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
+  if(setupConnection)return <ProviderDialog channel="grok.build" onClose={()=>setSetupConnection(false)} onSaved={version=>{useVersionStore.getState().select(version);setSetupConnection(false);}} onConnectionCreated={version=>{navigate("/upstreams");useVersionStore.getState().select(version);}}/>;
   return <Sheet title={target?"Grok 重新授权":"添加 Grok 授权账号"} description={target?"仅更新选中账号的官方授权，不改变其他账号或连接。":"在 Grok 官方页面输入设备验证码；保存后会读取授权身份。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={view?.state==="pending"} footer={footer}>
     <div className="operation-summary"><span>Grok Build · 设备授权</span><strong>{target&&name?name:"连接 Grok 账号"}</strong><small>获取验证码 → 官方确认 → 自动保存</small></div>
     {!view?<p>开始后在 Grok 官方页面完成授权；此窗口会保留验证码并读取身份。</p>:<>
@@ -42,7 +48,8 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
       {view.state==="complete"?<>
         {view.identity?<p className="authorized-account-identity"><strong>{accountName(view.identity)}</strong></p>:null}
         {view.identity_state==="unavailable"?<p role="status">授权已保存，但暂未取得账号身份。</p>:view.identity_state==="not_provided"?<p role="status">授权服务未返回邮箱、电话或用户名。</p>:null}
-        {view.runtime_applied===true?<p>新授权已应用。</p>:<RuntimeApplyNotice onApplied={()=>client.setQueryData(key,{...view,runtime_applied:true})}/>}
+        {view.runtime_applied===true?<p>授权已载入运行配置；接口连接及开放模型仍需单独核对。</p>:<RuntimeApplyNotice onApplied={()=>client.setQueryData(key,{...view,runtime_applied:true})}/>}
+        {!target?<><button className="secondary" onClick={()=>setSetupConnection(true)}>配置渠道接口</button><a href="#/upstreams" onClick={close}>查看已有服务与连接</a></>:null}
       </>:null}
     </>}
     {error?<p role="alert">{asAppError(error).message}</p>:null}
