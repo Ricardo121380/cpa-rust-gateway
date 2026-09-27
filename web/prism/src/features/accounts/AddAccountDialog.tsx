@@ -69,6 +69,24 @@ export function preparedImportRequest(
   return operation==="prepareKiroAccountTarget"?{body:{region:kiroRegion??"us-east-1"}}:undefined;
 }
 
+type ImportTask = Awaited<ReturnType<typeof beginConfigurationTask>>;
+
+/** Use only the endpoint returned by this task's channel-owned preparation. */
+export async function prepareImportConnection(task:ImportTask,channel:string,provider:string,endpoint:string,region?:string) {
+  const operation=preparedImportOperation(channel);
+  if(!operation)return {upstream_id:provider,endpoint_id:endpoint};
+  const target=await task.mutate<{upstream_id:string;endpoint_id:string}>(operation,preparedImportRequest(operation,region));
+  if(!target.upstream_id||!target.endpoint_id)throw new Error("渠道接入准备结果不完整，未开始导入。");
+  return target;
+}
+
+/** An existing connection, including a disabled one, belongs to the operator. */
+export async function connectImportedAccount(task:ImportTask,endpoint:string,credential:string) {
+  if(!endpoint)return;
+  const bindings=await task.read<{credential_id:string}[]>("listEndpointCredentialBindings",{path:{endpoint_id:endpoint}});
+  if(!bindings.some(binding=>binding.credential_id===credential))await task.mutate("createEndpointCredentialBinding",{path:{endpoint_id:endpoint},body:{credential_id:credential,enabled:true,priority:0,weight:1,concurrency:1}});
+}
+
 export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void}>) {
   const formId="account-import-form";
   const [channelId,setChannelId]=useState("openai-compatible");
@@ -125,9 +143,7 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     const assertOwner=()=>{if(owner!==useVersionStore.getState().selectionGeneration||session!==useSessionStore.getState().generation)throw new CancelledError({silent:true});};
     const task=native?undefined:await beginConfigurationTask("导入账号");
     if(task)setWorkingId(task.version.id);
-    let targetProvider=provider;
-    const preparation=preparedImportOperation(channelId);
-    if(task&&preparation)targetProvider=(await task.mutate<{upstream_id:string}>(preparation,preparedImportRequest(preparation,kiroRegion))).upstream_id;
+    const target=task?await prepareImportConnection(task,channelId,provider,endpoint,kiroRegion):undefined;
     const results:Result[]=items.map(({id,label})=>({id,label,status:"未执行"}));
     let saved=0;let canApply=true;
     for(const [index,item] of items.entries()) {
@@ -141,12 +157,9 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
           saved+=result.created;
           if(result.runtime_applied===false){setNeedsApply(true);canApply=false;setRows([...results]);break;}
         } else {
-          const imported=await task!.mutate<{id:string}>("importChannelAccount",{path:{upstream_id:targetProvider},body});
+          const imported=await task!.mutate<{id:string}>("importChannelAccount",{path:{upstream_id:target!.upstream_id},body});
           accountSaved=true;saved+=1;
-          if(endpoint){
-            const bindings=await task!.read<{credential_id:string}[]>("listEndpointCredentialBindings",{path:{endpoint_id:endpoint}});
-            if(!bindings.some((binding)=>binding.credential_id===imported.id))await task!.mutate("createEndpointCredentialBinding",{path:{endpoint_id:endpoint},body:{credential_id:imported.id,enabled:true,priority:0,weight:1,concurrency:1}});
-          }
+          await connectImportedAccount(task!,target!.endpoint_id,imported.id);
           results[index]={id:item.id,label:item.label,status:imported.id===item.id?"已添加":"已存在"};
         }
       } catch(cause) {

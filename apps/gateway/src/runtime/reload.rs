@@ -635,6 +635,24 @@ impl ManagementRuntimeFacade for RuntimePublicationController {
 impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFacade
     for RuntimePublicationController
 {
+    fn account_quota(
+        &self,
+        version: ConfigVersionId,
+        credential: gateway_core::CredentialId,
+    ) -> gateway_http_actix::management_resources::catalog_refresh::AccountQuotaFuture {
+        let generation = self.current.load_full();
+        Box::pin(async move {
+            use gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError;
+            let worker = generation
+                .catalog
+                .as_ref()
+                .ok_or(CatalogRefreshError::Unsupported)?;
+            if worker.config_version_id != version.as_str() {
+                return Err(CatalogRefreshError::Conflict);
+            }
+            worker.read_account_quota(credential).await
+        })
+    }
     fn kimi_metadata(
         &self,
         version: ConfigVersionId,

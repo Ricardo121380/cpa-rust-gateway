@@ -2820,6 +2820,27 @@ async fn codex_and_claude_targets_are_prepared_without_borrowing_compatible_upst
             "/messages".to_owned(),
         )
     );
+    let models: Option<String> = db.query_row(
+        "SELECT models_path FROM upstream_endpoints WHERE config_version_id=?1 AND id='claude-messages'",
+        [VERSION], |row| row.get(0),
+    )?;
+    assert_eq!(models.as_deref(), Some("/models"));
+    // Simulate an older canonical target without changing any credential or route.
+    db.execute("UPDATE upstream_endpoints SET models_path=NULL WHERE config_version_id=?1 AND id='claude-messages'", [VERSION])?;
+    let repaired = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/account-channels/claude/prepare-target"))
+            .insert_header(("If-Match", "rev-6"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(repaired.status(), StatusCode::OK);
+    let models: Option<String> = db.query_row(
+        "SELECT models_path FROM upstream_endpoints WHERE config_version_id=?1 AND id='claude-messages'",
+        [VERSION], |row| row.get(0),
+    )?;
+    assert_eq!(models.as_deref(), Some("/models"));
+
     Ok(())
 }
 
@@ -3281,6 +3302,18 @@ impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFa
             Err(gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError::Unsupported)
         })
     }
+    fn account_quota(
+        &self,
+        version: ConfigVersionId,
+        credential: CredentialId,
+    ) -> gateway_http_actix::management_resources::catalog_refresh::AccountQuotaFuture {
+        Box::pin(async move {
+            if version.as_str() != VERSION || credential.as_str() != "account-000" {
+                return Err(gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError::Unsupported);
+            }
+            Ok(gateway_http_actix::management_resources::account_quota::AccountQuotaObservation::parse("claude", &serde_json::json!({"five_hour":{"utilization":25}}), 1234))
+        })
+    }
     fn kimi_metadata(
         &self,
         version: ConfigVersionId,
@@ -3382,6 +3415,54 @@ async fn kimi_metadata_is_protected_searchable_and_invalidates_inventory_cursors
         .await
         .status(),
         StatusCode::CONFLICT
+    );
+    Ok(())
+}
+
+#[actix_web::test]
+async fn live_account_quota_requires_management_auth_and_keeps_unsupported_unknown() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state.with_catalog_refresh(
+                std::sync::Arc::new(KimiMetadataFixture(std::sync::Arc::new(
+                    std::sync::atomic::AtomicI64::new(0),
+                ))),
+            )))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let path = "/admin/credentials/account-000/metadata";
+    let denied = test::call_service(&app, test::TestRequest::get().uri(path).to_request()).await;
+    assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(path)).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .headers()
+            .get("Cache-Control")
+            .and_then(|v| v.to_str().ok()),
+        Some("no-store")
+    );
+    let value: Value = test::read_body_json(response).await;
+    assert_eq!(value["live_quota"]["windows"][0]["used_percent"], 25.0);
+    assert_eq!(value["live_quota_error"], Value::Null);
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials/account-001/metadata"))
+            .to_request(),
+    )
+    .await;
+    let value: Value = test::read_body_json(response).await;
+    assert_eq!(value["live_quota"], Value::Null);
+    assert_eq!(
+        value["live_quota_error"],
+        "not_implemented_or_not_connected"
     );
     Ok(())
 }

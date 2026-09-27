@@ -496,6 +496,7 @@ fn p13_channel_pin_request_id() -> Result<RequestId, ManagementChannelPinError> 
     .map_err(|_| ManagementChannelPinError::Unavailable)
 }
 
+mod account_quota;
 mod catalog_refresh;
 mod kimi_metadata;
 /// Production pieces that must be attached to the separate P12 listeners together.
@@ -3598,6 +3599,14 @@ pub(crate) struct RuntimeModelCatalogWorker {
             BTreeMap<CredentialId, provider_openai_compatible::KimiAccountObservation>,
         >,
     >,
+    account_quotas: Arc<
+        std::sync::Mutex<
+            BTreeMap<
+                CredentialId,
+                gateway_http_actix::management_resources::account_quota::AccountQuotaObservation,
+            >,
+        >,
+    >,
     metadata_revision: Arc<std::sync::atomic::AtomicI64>,
     generation_guard: Option<(Arc<tokio::sync::Mutex<()>>, Arc<AtomicBool>)>,
     config_version_id: String,
@@ -3676,6 +3685,7 @@ impl RuntimeModelCatalogWorker {
         let worker =
             Self {
                 kimi_metadata: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+                account_quotas: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
                 metadata_revision: Arc::new(std::sync::atomic::AtomicI64::new(0)),
                 generation_guard: None,
                 config_version_id: configuration.version.id.as_str().to_owned(),

@@ -6,6 +6,7 @@
 
 mod account_channels;
 mod account_inventory;
+pub mod account_quota;
 mod catalog_inventory;
 pub mod catalog_refresh;
 pub mod claude_authorization;
@@ -3554,6 +3555,8 @@ struct CredentialExportRequest {
 
 #[derive(Serialize)]
 struct CredentialMetadataResponse {
+    live_quota: Option<account_quota::AccountQuotaObservation>,
+    live_quota_error: Option<&'static str>,
     kimi: Option<provider_openai_compatible::KimiAccountObservation>,
     kimi_error: Option<&'static str>,
     credential_id: String,
@@ -6801,17 +6804,17 @@ async fn get_credential_metadata(
         .ok()
         .and_then(|value| i64::try_from(value.as_millis()).ok())
         .unwrap_or(0);
-    let Ok(credential) =
-        OpenAiCompatibleRuntimeCredential::import_compatible(plaintext.as_bytes(), now_ms)
-    else {
-        return invalid_input();
-    };
-    let (kimi, kimi_error) = if credential.kimi_device_id().is_some() {
+    let credential =
+        OpenAiCompatibleRuntimeCredential::import_compatible(plaintext.as_bytes(), now_ms).ok();
+    let is_kimi = credential
+        .as_ref()
+        .is_some_and(|value| value.kimi_device_id().is_some());
+    let (kimi, kimi_error) = if is_kimi {
         match state.catalog_refresh.as_ref() {
             Some(source) => match state.catalog_refresh_slots.clone().try_acquire_owned() {
                 Ok(_permit) => match tokio::time::timeout(
                     std::time::Duration::from_secs(10),
-                    source.kimi_metadata(context.version.clone(), credential_id),
+                    source.kimi_metadata(context.version.clone(), credential_id.clone()),
                 )
                 .await
                 {
@@ -6831,10 +6834,19 @@ async fn get_credential_metadata(
     } else {
         (None, None)
     };
-    let metadata = credential.metadata();
+    let (live_quota, live_quota_error) = if is_kimi {
+        (None, None)
+    } else {
+        account_quota::read(&state, context.version.clone(), credential_id).await
+    };
+    let metadata = credential
+        .as_ref()
+        .and_then(OpenAiCompatibleRuntimeCredential::metadata);
     HttpResponse::Ok()
         .insert_header(("Cache-Control", "no-store"))
         .json(CredentialMetadataResponse {
+            live_quota,
+            live_quota_error,
             kimi,
             kimi_error,
             credential_id: view.id.to_string(),
@@ -6842,7 +6854,7 @@ async fn get_credential_metadata(
             revision: view.revision,
             plan: metadata.and_then(|value| value.plan.clone()),
             quota: metadata.and_then(|value| value.quota.clone()),
-            platform: if credential.kimi_device_id().is_some() {
+            platform: if is_kimi {
                 Some("kimi".to_owned())
             } else {
                 metadata.and_then(|value| value.platform.clone())

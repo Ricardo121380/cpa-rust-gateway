@@ -3391,3 +3391,12 @@ model grants, CSP or output chunk. Local tests and EgoLite fixture evidence are 
 production acceptance. Existing production Kimi credential needs its missing binding repaired
 in a reviewed config transaction after release approval. No real inference or production write.
 See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-FE-KIMI-METADATA-001.md`.
+
+
+## 2026-09-27 - Codex - Channel import bindings and OAuth quota
+
+**What:** `web/prism/src/features/accounts/AddAccountDialog{.tsx,.test.ts}`, `AccountsPage.tsx`, new `AccountQuotaEvidence{.tsx,.test.tsx}` and `accountMetadataQueue{.ts,.test.ts}`, `web/prism/src/features/upstreams/CredentialSheet.tsx`, `web/prism/src/dev/fixtures.ts`, `web/prism/vite.config.ts`, authoritative/vendored management contracts. Backend fixed-target preparation, runtime quota reader and metadata response accompany these changes.
+
+**Why:** Named-channel imports discarded the prepared endpoint. Default Claude authorization missed discovery. Codex/Claude quotas lacked real service wiring. Vitest omitted TSX evidence tests. Use exact owned target, preserve disabled bindings, fixed usage URLs and bounded metadata only.
+
+**Other side:** FYI under unified repair authorization. sync-contract performed; no manual generated client, secret persistence, schema migration, dependency or new chunks. Local 81 frontend, 40 management HTTP, 2 quota parser tests pass; EgoLite used fixtures only. No production change or inference. Cross-channel task remains incomplete: Kiro/Grok quota, real metadata acceptance and finer capability states are tracked in `docs/reports/cpar-channel-repair-20260927.md`.

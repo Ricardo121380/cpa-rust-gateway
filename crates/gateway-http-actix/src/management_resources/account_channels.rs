@@ -168,7 +168,7 @@ const CLAUDE_TARGET: FixedAccountTarget = FixedAccountTarget {
     api_format: "anthropic/messages",
     base_url: "https://api.anthropic.com/v1",
     inference_path: "/messages",
-    models_path: None,
+    models_path: Some("/models"),
 };
 
 /// Resolves exactly one existing Kimi Coding target or prepares CPAR's canonical dedicated target.
@@ -466,7 +466,22 @@ fn prepare_fixed_target(
         return conflict_fixed_target(target);
     }
     let endpoint_id = if let Some(endpoint) = canonical.first() {
-        if !endpoint.enabled || endpoint.models_path.as_deref() != target.models_path {
+        if !endpoint.enabled {
+            return conflict_fixed_target(target);
+        }
+        if target.channel == "claude" && endpoint.models_path.is_none() {
+            // Repair the former canonical default only in this revisioned draft.
+            // Explicit custom discovery paths and disabled endpoints remain operator-owned.
+            let mut repaired = (*endpoint).clone();
+            repaired.models_path = target.models_path.map(str::to_owned);
+            let updated =
+                match service.update_endpoint(&actor, &context.version, revision, repaired) {
+                    Ok(value) => value,
+                    Err(error) => return management_error(error),
+                };
+            revision = updated.revision();
+            prepared = true;
+        } else if endpoint.models_path.as_deref() != target.models_path {
             return conflict_fixed_target(target);
         }
         endpoint.id.clone()

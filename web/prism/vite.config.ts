@@ -94,7 +94,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
     env: { VITE_PRISM_FIXTURES: "1" },
   },
 });

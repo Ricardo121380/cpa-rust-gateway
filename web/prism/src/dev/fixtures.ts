@@ -2900,6 +2900,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         source_format: rich ? "direct_oauth" : null,
         kimi: null,
         kimi_error: null,
+        live_quota: rich ? {source:"codex",observed_at_ms:Date.now(),windows:[{name:"rate_limit.primary_window",used_percent:25,reset_at:null,reset_at_ms:null,duration_seconds:18000}]} : null,
+        live_quota_error: rich ? null : "not_implemented_or_not_connected",
       });
     }
     const oauthRefresh = /^POST \/admin\/credentials\/([^/]+)\/oauth\/refresh$/u.exec(route);

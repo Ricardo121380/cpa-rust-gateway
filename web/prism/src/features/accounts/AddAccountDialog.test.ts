@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { importEndpointForChannel, importTargetForChannel, kiroImportRegion, preparedImportOperation, preparedImportRequest, selectedAccountProvider } from "./AddAccountDialog";
+import { describe, expect, it, vi } from "vitest";
+import { connectImportedAccount, prepareImportConnection, importEndpointForChannel, importTargetForChannel, kiroImportRegion, preparedImportOperation, preparedImportRequest, selectedAccountProvider } from "./AddAccountDialog";
 
 describe("account onboarding target ownership", () => {
   it("passes the one validated named-channel owner without requiring a hidden form field", () => {
@@ -36,5 +36,39 @@ describe("account onboarding target ownership", () => {
     expect(preparedImportRequest("prepareClaudeAccountTarget", undefined)).toBeUndefined();
     expect(preparedImportRequest("prepareKimiAccountTarget", undefined)).toBeUndefined();
     expect(preparedImportRequest("prepareKiroAccountTarget", "ap-southeast-1")).toEqual({body:{region:"ap-southeast-1"}});
+  });
+});
+
+
+describe("channel-owned import connections",()=>{
+  function task(bindings: {credential_id:string;enabled?:boolean}[]=[]) {
+    return {mutate:vi.fn().mockResolvedValue({upstream_id:"owned",endpoint_id:"prepared"}),read:vi.fn().mockResolvedValue(bindings)} as unknown as Parameters<typeof prepareImportConnection>[0];
+  }
+  it.each(["codex","claude","kimi-coding","kiro"])("connects %s to the prepared endpoint and returned credential",async(channel)=>{
+    const tx=task();
+    const target=await prepareImportConnection(tx,channel,"wrong-owner","wrong-endpoint","us-east-1");
+    await connectImportedAccount(tx,target.endpoint_id,"deduplicated-credential");
+    expect(target.upstream_id).toBe("owned");
+    expect(tx.mutate).toHaveBeenLastCalledWith("createEndpointCredentialBinding",{path:{endpoint_id:"prepared"},body:{credential_id:"deduplicated-credential",enabled:true,priority:0,weight:1,concurrency:1}});
+  });
+  it("preserves an existing disabled binding on duplicate import",async()=>{
+    const tx=task([{credential_id:"existing",enabled:false}]);
+    await connectImportedAccount(tx,"prepared","existing");
+    expect(tx.mutate).not.toHaveBeenCalled();
+  });
+  it("retains API operator choice including save without connection",async()=>{
+    const tx=task();
+    expect(await prepareImportConnection(tx,"openai-compatible","operator-owner","" )).toEqual({upstream_id:"operator-owner",endpoint_id:""});
+    await connectImportedAccount(tx,"","saved");
+    expect(tx.read).not.toHaveBeenCalled();expect(tx.mutate).not.toHaveBeenCalled();
+  });
+  it("rejects incomplete preparation before importing",async()=>{
+    const tx=task();vi.mocked(tx.mutate).mockResolvedValue({upstream_id:"owned"});
+    await expect(prepareImportConnection(tx,"claude","","")).rejects.toThrow("不完整");
+  });
+  it("propagates binding conflicts without replay",async()=>{
+    const tx=task();vi.mocked(tx.mutate).mockRejectedValue(new Error("conflict"));
+    await expect(connectImportedAccount(tx,"prepared","saved")).rejects.toThrow("conflict");
+    expect(tx.mutate).toHaveBeenCalledTimes(1);
   });
 });

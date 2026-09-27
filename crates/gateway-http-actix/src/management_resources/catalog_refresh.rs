@@ -47,7 +47,24 @@ pub type KimiMetadataFuture = Pin<
     >,
 >;
 /// Injected live-generation source, using server-owned credentials and egress policy.
+pub type AccountQuotaFuture = Pin<
+    Box<
+        dyn Future<
+            Output = Result<super::account_quota::AccountQuotaObservation, CatalogRefreshError>,
+        >,
+    >,
+>;
+/// Injected live generation metadata and discovery source.
 pub trait CatalogRefreshFacade: Send + Sync {
+    /// Reads an implemented account quota API without accepting browser-supplied URLs or secrets.
+    fn account_quota(
+        &self,
+        _version: ConfigVersionId,
+        _credential: CredentialId,
+    ) -> AccountQuotaFuture {
+        Box::pin(async { Err(CatalogRefreshError::Unsupported) })
+    }
+
     /// Reads bounded Kimi metadata, retaining a short lived per-generation cache.
     fn kimi_metadata(
         &self,
