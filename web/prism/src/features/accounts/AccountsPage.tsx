@@ -1,10 +1,12 @@
+import {call} from "../../api/client";
+import {kimiQuotaSummary, type KimiMetadata} from "./KimiAccountEvidence";
 import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { AccountRuntimeSummary, useAccountRuntimeSummary } from "./AccountRuntimeSummary";
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
 import { KimiDeviceDialog } from "./KimiDeviceDialog";
 import {useAccountDirectory} from "./useAccountDirectory";
 import { useModelConnections } from "../models/useModelConnections";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
@@ -53,6 +55,15 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const runtimeSnapshot=useAccountRuntimeSummary();
   const topology = useModelConnections();
   const directory=inventory.data?.pages.flatMap(p=>p.items)??[];
+  const kimiRows=directory.filter(row=>row.category==="kimi"&&!row.native&&row.status==="enabled");
+  const kimiMetadata=useQueries({queries:kimiRows.map(row=>({
+    queryKey:["credential-metadata",context?.configVersionId,row.id],
+    queryFn:({signal}:{signal:AbortSignal})=>call<KimiMetadata>("getCredentialMetadata",{path:{credential_id:row.id},signal},{versionScoped:true}),
+    retry:false,staleTime:300_000,refetchOnWindowFocus:false,
+  }))});
+  const kimiById=new Map(kimiRows.map((row,index)=>[row.id,kimiMetadata[index]?.data]));
+  const metadataReceipt=kimiMetadata.map(query=>query.dataUpdatedAt).join(":");
+  useEffect(()=>{if(metadataReceipt.split(":").some(value=>Number(value)>0))void client.invalidateQueries({queryKey:["account-directory",context?.configVersionId]});},[metadataReceipt,client,context?.configVersionId]);
   const nativeRows=directory.flatMap(row=>row.native_account?[row.native_account]:[]);
   const [nativeDetail,setNativeDetail] = useState<NativeAccount>();
   const [nativeOauth,setNativeOauth] = useState<NativeAccount>();
@@ -118,7 +129,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     key:row.credential.id,name:accountName(row.identity,row.credential.id),source:accountSource(row.credential.id),provider:row.provider,
     authentication:row.authentication==="oauth"||row.credential.kind==="oauth_json"?"OAuth 授权":row.authentication==="api_key"?"API Key":"渠道凭据",
     plan:row.plan,planSource:row.plan_source,
-    runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.credential.id]} providerId={row.credential.upstream_id}/>,
+    runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.credential.id]} providerId={row.credential.upstream_id} quota={kimiQuotaSummary(kimiById.get(row.credential.id)?.kimi)}/>,
     status:<StatusBadge status={ordinaryStatus(row)==="enabled"?"active":ordinaryStatus(row)==="reauth_required"?"unauthorized":"disabled"}>{ordinaryStatus(row)==="enabled"?"已启用":ordinaryStatus(row)==="reauth_required"?"需要重新授权":"已停用"}</StatusBadge>,
     connection:<button className="account-connection-link" onClick={()=>setConnections(row)}>{row.binding_count===0?"未连接接口":[...new Set(row.connections.map((c)=>protocolName(c.api_format)))].join(" · ")||"查看连接"}<span className="entity-meta">{row.binding_count?`${row.binding_count} 个已配置连接 · 查看`:"添加连接后用于请求"}</span></button>,actions:actions(row),
   });

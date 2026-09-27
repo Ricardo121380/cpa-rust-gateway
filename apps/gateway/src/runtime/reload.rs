@@ -503,7 +503,29 @@ impl ProviderAccountPoolFacade for RuntimePublicationController {
         &self,
         query: &pools::ProviderAccountPoolQuery,
     ) -> Result<pools::ProviderAccountPoolPage, pools::ProviderAccountPoolError> {
-        self.current.load().pools.list_provider_account_pools(query)
+        let generation = self.current.load();
+        let mut page = generation.pools.list_provider_account_pools(query)?;
+        if let Some(worker) = generation.catalog.as_ref() {
+            let observations = worker
+                .kimi_metadata
+                .lock()
+                .map_err(|_| pools::ProviderAccountPoolError::SourceUnavailable)?;
+            for row in &mut page.items {
+                if let Some(observation) = observations
+                    .get(&row.account_id)
+                    .filter(|o| o.profile_available)
+                    && let Some(presentation) = &mut row.presentation
+                    && presentation.category == "kimi"
+                {
+                    presentation.identity = gateway_store::account_identity::AccountIdentity {
+                        email: observation.identity.email.clone(),
+                        phone: observation.identity.phone.clone(),
+                        username: observation.identity.username.clone(),
+                    };
+                }
+            }
+        }
+        Ok(page)
     }
     fn apply_operator_action(
         &self,
@@ -613,6 +635,43 @@ impl ManagementRuntimeFacade for RuntimePublicationController {
 impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFacade
     for RuntimePublicationController
 {
+    fn kimi_metadata(
+        &self,
+        version: ConfigVersionId,
+        credential: gateway_core::CredentialId,
+    ) -> gateway_http_actix::management_resources::catalog_refresh::KimiMetadataFuture {
+        let generation = self.current.load_full();
+        Box::pin(async move {
+            use gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError;
+            let worker = generation
+                .catalog
+                .as_ref()
+                .ok_or(CatalogRefreshError::Unsupported)?;
+            if worker.config_version_id != version.as_str() {
+                return Err(CatalogRefreshError::Conflict);
+            }
+            worker.read_kimi_metadata(credential).await
+        })
+    }
+    fn kimi_metadata_cached(
+        &self,
+        version: &ConfigVersionId,
+        credential: &gateway_core::CredentialId,
+    ) -> Option<provider_openai_compatible::KimiAccountObservation> {
+        let generation = self.current.load_full();
+        let worker = generation.catalog.as_ref()?;
+        if worker.config_version_id != version.as_str() {
+            return None;
+        }
+        worker.kimi_metadata.lock().ok()?.get(credential).cloned()
+    }
+    fn metadata_revision(&self) -> i64 {
+        self.current.load().catalog.as_ref().map_or(0, |worker| {
+            worker
+                .metadata_revision
+                .load(std::sync::atomic::Ordering::Acquire)
+        })
+    }
     fn refresh(
         &self,
         version: ConfigVersionId,

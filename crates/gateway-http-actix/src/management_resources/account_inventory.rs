@@ -29,6 +29,8 @@ struct Cursor {
     revision: i64,
     audit: i64,
     native: Option<i64>,
+    #[serde(default)]
+    metadata: i64,
     filter: Params,
     offset: usize,
 }
@@ -51,6 +53,7 @@ fn identity_name(v: &Value) -> String {
         .to_owned()
 }
 
+#[allow(clippy::too_many_lines)] // Keep one snapshot-consistent inventory read transaction.
 pub(super) async fn list(
     request: HttpRequest,
     state: web::Data<ManagementResourceHttpState>,
@@ -74,6 +77,17 @@ pub(super) async fn list(
     let Some(reader) = reader else {
         return internal_error();
     };
+    let metadata_source = state.catalog_refresh.clone();
+    let metadata_revision = metadata_source
+        .as_ref()
+        .map_or(0, |s| s.metadata_revision());
+    if cursor
+        .as_ref()
+        .is_some_and(|c| c.metadata != metadata_revision)
+    {
+        return conflict();
+    }
+    let project = with_kimi_observations(project, metadata_source.clone());
     let native = state.native_accounts.clone();
     let kiro_authorization = state.kiro_workflow.is_some();
     let claude_authorization = state
@@ -120,6 +134,7 @@ pub(super) async fn list(
   }
   if reader.credentials(ResourceInventoryQuery{version:&context.version,upstream_id:None,search:"",limit:1,expected_snapshot:stamp,after:None}).is_err(){return Ok(Err("conflict"))}
   if cursor.as_ref().is_some_and(|c|c.native!=native_stamp){return Ok(Err("conflict"))}
+  if metadata_source.as_ref().is_some_and(|s|s.metadata_revision()!=metadata_revision){return Ok(Err("conflict"))}
   let query=params.q.as_deref().unwrap_or("").trim().to_lowercase();
   items.retain(|r| params.category.as_deref().is_none_or(|c|text(r,"category")==c)&&params.status.as_deref().is_none_or(|s|text(r,"status")==s)&&[text(r,"provider"),text(r,"category"),text(&r["identity"],"email"),text(&r["identity"],"phone"),text(&r["identity"],"username")].join(" ").to_lowercase().contains(&query));
   let mut plan_totals=std::collections::BTreeMap::<String,usize>::new();let mut unobserved_plan_total=0;
@@ -133,7 +148,7 @@ pub(super) async fn list(
   let mut counts=std::collections::BTreeMap::<String,usize>::new();for item in &items{*counts.entry(text(item,"category").to_owned()).or_default()+=1;}
   let total=items.len();let offset=cursor.as_ref().map_or(0,|c|c.offset);if offset>total{return Ok(Err("conflict"))}
   let end=(offset+usize::from(limit)).min(total);let (revision,audit)=stamp.unwrap_or((0,0));
-  let next=if end<total{serde_json::to_vec(&Cursor{version:context.version.to_string(),revision,audit,native:native_stamp,filter:params,offset:end}).ok().map(|b|URL_SAFE_NO_PAD.encode(b))}else{None};
+  let next=if end<total{serde_json::to_vec(&Cursor{version:context.version.to_string(),revision,audit,native:native_stamp,metadata:metadata_revision,filter:params,offset:end}).ok().map(|b|URL_SAFE_NO_PAD.encode(b))}else{None};
   Ok(Ok(json!({"config_version":context.version.to_string(),"revision":format!("rev-{revision}"),"total":total,"plan_totals":plan_totals,"unobserved_plan_total":unobserved_plan_total,"category_totals":counts,"items":items[offset..end],"next_cursor":next})))
  }).await;
     match result {
@@ -209,4 +224,27 @@ fn parse(request: &HttpRequest, version: &str) -> Result<(Params, Option<Cursor>
     }
 
     Ok((params, cursor))
+}
+
+fn with_kimi_observations(
+    project: std::sync::Arc<gateway_store::control_plane::CredentialIdentityProjector>,
+    profile_source: Option<std::sync::Arc<dyn super::catalog_refresh::CatalogRefreshFacade>>,
+) -> std::sync::Arc<gateway_store::control_plane::CredentialIdentityProjector> {
+    std::sync::Arc::new(move |version, credential| {
+        let mut display = project(version, credential);
+        if let Some(observed) = profile_source
+            .as_ref()
+            .and_then(|s| s.kimi_metadata_cached(version, &credential.id))
+            .filter(|o| o.profile_available)
+        {
+            display.identity = gateway_store::account_identity::AccountIdentity {
+                email: observed.identity.email,
+                phone: observed.identity.phone,
+                username: observed.identity.username,
+            };
+            display.plan = observed.plan;
+            display.plan_source = display.plan.as_ref().map(|_| "provider_metadata");
+        }
+        display
+    })
 }

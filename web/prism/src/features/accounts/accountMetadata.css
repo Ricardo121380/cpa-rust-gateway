@@ -1,0 +1,18 @@
+.kimi-quota-facts.fact-grid {
+  grid-template-columns: minmax(80px, .6fr) minmax(0, 1.4fr);
+  gap: 16px;
+}
+.kimi-quota-reset {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.account-model-list {
+  padding-inline-start: 20px;
+  line-height: 1.8;
+}
+.account-model-list code {
+  overflow-wrap: anywhere;
+}

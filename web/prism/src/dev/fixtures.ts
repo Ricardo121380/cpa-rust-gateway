@@ -2547,9 +2547,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const ordinary=(state.credentials.get(version.id)??[]).filter(c=>!owner||c.upstream_id===owner).map(credential=>{
         const bindings=(state.bindings.get(version.id)??[]).filter(b=>b.credential_id===credential.id);
         const connections=bindings.flatMap(b=>{const e=state.endpoints.get(version.id)?.find(e=>e.id===b.endpoint_id);return e?[{id:e.id,api_format:e.api_format,enabled:b.enabled&&e.enabled,host:new URL(e.base_url).hostname}]:[];});
-        const identity={email:credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null};
-        const category=credential.kind==="oauth_json"?"codex":"api",provider=category==="codex"?"Codex":"API";
-        return {id:credential.id,native:false,identity,name:identity.email??"",category,provider,status:credential.status==="active"?"enabled":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(category==="codex"?["reauthorize"]:[])],plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,managed:{credential,identity,authentication:category==="codex"?"oauth":"api_key",plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,category,provider,connections,binding_count:bindings.length},native_account:null};
+        const kimi=state.upstreams.get(version.id)?.some(upstream=>upstream.id===credential.upstream_id&&upstream.kind==="kimi-coding");
+        const identity={email:kimi?"kimi.member@example.test":credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null};
+        const category=kimi?"kimi":credential.kind==="oauth_json"?"codex":"api",provider=kimi?"Kimi":category==="codex"?"Codex":"API";
+        return {id:credential.id,native:false,identity,name:identity.email??"",category,provider,status:credential.status==="active"?"enabled":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(["codex","kimi"].includes(category)?["reauthorize"]:[])],plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,managed:{credential,identity,authentication:category==="codex"?"oauth":"api_key",plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,category,provider,connections,binding_count:bindings.length},native_account:null};
       });
       const native=owner?[]:nativeFixtureAccounts.map(row=>{const identity=row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null};return {id:row.id,native:true,identity,name:identity.email??identity.phone??identity.username??"",category:"grok",provider:row.provider==="grok_build"?"Grok Build":row.provider==="grok_console"?"Grok Console":"Grok Web",status:!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"enabled":"reauth_required",operations:["details","update_credential","enable","disable","remove","models",...(row.provider==="grok_build"?["reauthorize"]:[])],plan:null,plan_source:null,managed:null,native_account:{...row,identity}};});
       let rows=[...ordinary,...native].filter(r=>(!category||r.category===category)&&(!status||r.status===status)&&[r.name,r.provider,r.category,r.identity.email,r.identity.phone,r.identity.username].join(" ").toLowerCase().includes(q));
@@ -2884,6 +2885,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       // carries a full account identity; the api_key one carries almost
       // nothing — both are real shapes and the UI has to read honestly.
       const rich = row.kind === "oauth_json";
+      if (state.upstreams.get(version.id)?.some(upstream=>upstream.id===row.upstream_id&&upstream.kind==="kimi-coding")) {
+        return json(200,{credential_id:row.id,kind:row.kind,revision:row.revision,platform:"kimi",plan:null,quota:null,email:null,source_format:null,kimi_error:null,
+          kimi:{observed_at_ms:Date.now(),profile_available:true,quota_available:true,identity:{email:"kimi.member@example.test",phone:"+86 176****0000",username:"Kimi fixture"},plan:"Fixture plan",quota_windows:[{window:"limit_5h",used_ratio:0.25,reset_at:"2026-09-27T12:00:00Z"},{window:"limit_7d",used_ratio:0,reset_at:null}]}});
+      }
       return json(200, {
         credential_id: row.id,
         kind: row.kind,
@@ -2893,6 +2898,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         platform: rich ? "codex" : null,
         email: rich ? "ops@fixture.example" : null,
         source_format: rich ? "direct_oauth" : null,
+        kimi: null,
+        kimi_error: null,
       });
     }
     const oauthRefresh = /^POST \/admin\/credentials\/([^/]+)\/oauth\/refresh$/u.exec(route);
@@ -3091,9 +3098,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (route === "GET /admin/catalog/models") {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const endpoint=url.searchParams.get("endpoint_id"),credential=url.searchParams.get("credential_id");
-      if(endpoint!=="ep-relay-a-responses"||credential!=="cred-relay-key")return errorResponse(404,"management_resource_not_found","Catalog not observed");
+      const kimiBinding=(state.bindings.get(version.id)??[]).some(binding=>binding.endpoint_id===endpoint&&binding.credential_id===credential&&endpoint==="kimi-coding-responses");
+      if(!kimiBinding&&(endpoint!=="ep-relay-a-responses"||credential!=="cred-relay-key"))return errorResponse(404,"management_resource_not_found","Catalog not observed");
       const observed=1_784_880_000_000;
-      const all=["gpt-5.5","gpt-5.6-terra"].filter(model=>model.includes(url.searchParams.get("q")??""));
+      const all=(kimiBinding?["kimi-fixture-model-a","kimi-fixture-model-b"]:["gpt-5.5","gpt-5.6-terra"]).filter(model=>model.includes(url.searchParams.get("q")??""));
       return json(200,{config_version:version.id,revision:revisionToken(version),target:{endpoint_id:endpoint,credential_id:credential,snapshot_version:3,observed_at_ms:observed,stale_at_ms:Date.now()+3_600_000,expires_at_ms:Date.now()+7_200_000},current_model_count:2,total_count:all.length,items:all.map(model=>({model,present_in_last_success:true})),next_cursor:null},revisionToken(version));
     }
     if (route === "GET /admin/catalog/status") {
@@ -3103,6 +3111,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(
         200,
         [
+          ...(state.bindings.get(version.id)??[]).filter(binding=>binding.endpoint_id==="kimi-coding-responses"&&binding.enabled).map(binding=>({endpoint_id:binding.endpoint_id,credential_id:binding.credential_id,freshness:"fresh",observed_at_ms:now,snapshot_version:1,refresh_due:false,model_count:2})),
           { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", freshness: "fresh", observed_at_ms: now - 900_000, snapshot_version: 3, refresh_due: false, model_count: 2 },
           { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", freshness: "stale", observed_at_ms: now - 30 * 3_600_000, snapshot_version: 2, refresh_due: true, model_count: 1, last_failure_at_ms: now - 60_000, last_failure_class: "transport" },
           { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", freshness: "missing", observed_at_ms: 0, last_failure_at_ms: now - 120_000, last_failure_class: "authentication" },

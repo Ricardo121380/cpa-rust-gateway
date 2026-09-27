@@ -35,8 +35,40 @@ pub enum CatalogRefreshError {
 /// Bounded metadata request without holding the management database mutex.
 pub type CatalogRefreshFuture =
     Pin<Box<dyn Future<Output = Result<CatalogRefreshReceipt, CatalogRefreshError>>>>;
+/// Account observations use the same exact credential and serving generation as discovery.
+pub type KimiMetadataFuture = Pin<
+    Box<
+        dyn Future<
+            Output = Result<
+                provider_openai_compatible::KimiAccountObservation,
+                CatalogRefreshError,
+            >,
+        >,
+    >,
+>;
 /// Injected live-generation source, using server-owned credentials and egress policy.
 pub trait CatalogRefreshFacade: Send + Sync {
+    /// Reads bounded Kimi metadata, retaining a short lived per-generation cache.
+    fn kimi_metadata(
+        &self,
+        _version: ConfigVersionId,
+        _credential: CredentialId,
+    ) -> KimiMetadataFuture {
+        Box::pin(async { Err(CatalogRefreshError::Unsupported) })
+    }
+    /// Returns an already observed profile without network I/O.
+    fn kimi_metadata_cached(
+        &self,
+        _version: &ConfigVersionId,
+        _credential: &CredentialId,
+    ) -> Option<provider_openai_compatible::KimiAccountObservation> {
+        None
+    }
+    /// Changes when the generation's account observations change, for inventory pagination.
+    fn metadata_revision(&self) -> i64 {
+        0
+    }
+
     /// Refreshes only one explicitly selected target.
     fn refresh(
         &self,

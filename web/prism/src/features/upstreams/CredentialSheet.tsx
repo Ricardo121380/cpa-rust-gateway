@@ -1,3 +1,4 @@
+import {KimiQuotaEvidence, kimiMetadataError, type KimiMetadata} from "../accounts/KimiAccountEvidence";
 import { AccountIdentityHeader } from "../accounts/AccountIdentityHeader";
 import { AccountEvidenceTabs } from "../accounts/AccountEvidenceTabs";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -21,7 +22,7 @@ type Credential = Readonly<{
   secret_present: boolean;
 }>;
 
-type CredentialMetadata = Readonly<{
+type CredentialMetadata = KimiMetadata & Readonly<{
   credential_id: string;
   kind: string;
   revision: number;
@@ -124,9 +125,12 @@ export function CredentialSheet({
 
   return (
     <Sheet title="账号详情" layout="inspector" onEscape={onClose} busy={refresh.isPending} footer={<SheetDismissButton disabled={refresh.isPending}>关闭</SheetDismissButton>}>
-      <AccountIdentityHeader name={accountName ?? meta?.email} provider={providerName??"未观测渠道"} method={authenticationLabel} status={row?<StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>:<span className="muted">读取中</span>}/>
+      <AccountIdentityHeader name={meta?.kimi?.identity.email ?? meta?.kimi?.identity.phone ?? meta?.kimi?.identity.username ?? accountName ?? meta?.email} provider={providerName??"未观测渠道"} method={authenticationLabel} status={row?<StatusBadge status={row.status}>{row.status==="active"?"已启用":row.status==="disabled"?"已停用":row.status}</StatusBadge>:<span className="muted">读取中</span>}/>
       {credential.isError?<p role="alert">{asAppError(credential.error).message}</p>:null}
-      <AccountEvidenceTabs accountId={credentialId} onNavigate={onClose} overview={<section className="account-overview-facts"><h4>授权与套餐</h4><dl className="fact-grid"><dt>接入方式</dt><dd>{authenticationLabel}</dd><dt>套餐</dt><dd>{plan??meta?.plan??"未观测"}</dd><dt>配额声明</dt><dd>{meta?.quota??"未观测"}</dd><dt>授权资料</dt><dd>{row?row.secret_present?"已保存":"未配置":"读取中"}</dd></dl><p className="account-evidence-note">运行调度与剩余额度以各自观测为准。</p></section>} configuration={<>
+      {metadata.isError ? <p role="alert">{asAppError(metadata.error).message}</p> : null}
+      {meta?.kimi_error ? <p role="alert">{kimiMetadataError(meta.kimi_error)}</p> : null}
+      {meta?.kimi && !meta.kimi.profile_available ? <p role="alert">Kimi 身份读取失败；已保存的授权未受影响。</p> : null}
+      <AccountEvidenceTabs quota={isKimiOAuth ? <KimiQuotaEvidence observation={meta?.kimi} error={meta?.kimi_error ?? (metadata.isError ? "unavailable" : null)} loading={metadata.isFetching} onRefresh={()=>void metadata.refetch()}/> : undefined} accountId={credentialId} onNavigate={onClose} overview={<section className="account-overview-facts"><h4>授权与套餐</h4><dl className="fact-grid">{isKimiOAuth&&meta?.kimi?.profile_available?<><dt>邮箱</dt><dd>{meta.kimi.identity.email??"官方未返回"}</dd><dt>电话</dt><dd>{meta.kimi.identity.phone??"官方未返回"}</dd></>:null}<dt>接入方式</dt><dd>{authenticationLabel}</dd><dt>套餐</dt><dd>{meta?.kimi?.plan??plan??meta?.plan??"未观测"}</dd><dt>{isKimiOAuth?"官方额度":"配额声明"}</dt><dd>{isKimiOAuth?(meta?.kimi?.quota_available?"已观测，见额度页":"暂未取得额度数据"):meta?.quota??"未观测"}</dd><dt>授权资料</dt><dd>{row?row.secret_present?"已保存":"未配置":"读取中"}</dd></dl><p className="account-evidence-note">运行调度与剩余额度以各自观测为准。</p></section>} configuration={<>
       <h4>授权配置</h4>
       {error !== undefined ? (
         <p role="alert" className="reveal-warning">

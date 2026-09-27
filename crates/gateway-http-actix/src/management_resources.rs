@@ -3554,6 +3554,8 @@ struct CredentialExportRequest {
 
 #[derive(Serialize)]
 struct CredentialMetadataResponse {
+    kimi: Option<provider_openai_compatible::KimiAccountObservation>,
+    kimi_error: Option<&'static str>,
     credential_id: String,
     kind: String,
     revision: i64,
@@ -6779,17 +6781,20 @@ async fn get_credential_metadata(
     if let Err(response) = require_credential(&state, &context.version, &credential_id) {
         return response;
     }
-    let mut service = match service(&state) {
-        Ok(service) => service,
-        Err(response) => return response,
-    };
-    let view = match service.get_credential(&context.version, &credential_id) {
-        Ok(value) => value.value().clone(),
-        Err(error) => return management_error(error),
-    };
-    let plaintext = match service.open_credential_for_export(&context.version, &credential_id) {
-        Ok(value) => value,
-        Err(error) => return management_error(error),
+    let (view, plaintext) = {
+        let mut service = match service(&state) {
+            Ok(service) => service,
+            Err(response) => return response,
+        };
+        let view = match service.get_credential(&context.version, &credential_id) {
+            Ok(value) => value.value().clone(),
+            Err(error) => return management_error(error),
+        };
+        let plaintext = match service.open_credential_for_export(&context.version, &credential_id) {
+            Ok(value) => value,
+            Err(error) => return management_error(error),
+        };
+        (view, plaintext)
     };
     let now_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -6801,17 +6806,50 @@ async fn get_credential_metadata(
     else {
         return invalid_input();
     };
+    let (kimi, kimi_error) = if credential.kimi_device_id().is_some() {
+        match state.catalog_refresh.as_ref() {
+            Some(source) => match state.catalog_refresh_slots.clone().try_acquire_owned() {
+                Ok(_permit) => match tokio::time::timeout(
+                    std::time::Duration::from_secs(10),
+                    source.kimi_metadata(context.version.clone(), credential_id),
+                )
+                .await
+                {
+                    Ok(Ok(value)) => (Some(value), None),
+                    Ok(Err(catalog_refresh::CatalogRefreshError::Unsupported)) => {
+                        (None, Some("not_connected"))
+                    }
+                    Ok(Err(catalog_refresh::CatalogRefreshError::Conflict)) => {
+                        (None, Some("configuration_changed"))
+                    }
+                    _ => (None, Some("unavailable")),
+                },
+                Err(_) => (None, Some("unavailable")),
+            },
+            None => (None, Some("unavailable")),
+        }
+    } else {
+        (None, None)
+    };
     let metadata = credential.metadata();
-    HttpResponse::Ok().json(CredentialMetadataResponse {
-        credential_id: view.id.to_string(),
-        kind: view.kind,
-        revision: view.revision,
-        plan: metadata.and_then(|value| value.plan.clone()),
-        quota: metadata.and_then(|value| value.quota.clone()),
-        platform: metadata.and_then(|value| value.platform.clone()),
-        email: metadata.and_then(|value| value.email.clone()),
-        source_format: metadata.and_then(|value| value.source_format.clone()),
-    })
+    HttpResponse::Ok()
+        .insert_header(("Cache-Control", "no-store"))
+        .json(CredentialMetadataResponse {
+            kimi,
+            kimi_error,
+            credential_id: view.id.to_string(),
+            kind: view.kind,
+            revision: view.revision,
+            plan: metadata.and_then(|value| value.plan.clone()),
+            quota: metadata.and_then(|value| value.quota.clone()),
+            platform: if credential.kimi_device_id().is_some() {
+                Some("kimi".to_owned())
+            } else {
+                metadata.and_then(|value| value.platform.clone())
+            },
+            email: metadata.and_then(|value| value.email.clone()),
+            source_format: metadata.and_then(|value| value.source_format.clone()),
+        })
 }
 
 async fn list_endpoint_credential_bindings(

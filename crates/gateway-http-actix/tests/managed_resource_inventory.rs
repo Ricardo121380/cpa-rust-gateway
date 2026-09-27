@@ -3266,3 +3266,122 @@ async fn legacy_codex_oauth_endpoints_reject_kimi_credentials_without_mutation()
     assert_eq!(after, before);
     Ok(())
 }
+
+struct KimiMetadataFixture(std::sync::Arc<std::sync::atomic::AtomicI64>);
+impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFacade
+    for KimiMetadataFixture
+{
+    fn refresh(
+        &self,
+        _: ConfigVersionId,
+        _: EndpointId,
+        _: CredentialId,
+    ) -> gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFuture {
+        Box::pin(async {
+            Err(gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError::Unsupported)
+        })
+    }
+    fn kimi_metadata(
+        &self,
+        version: ConfigVersionId,
+        credential: CredentialId,
+    ) -> gateway_http_actix::management_resources::catalog_refresh::KimiMetadataFuture {
+        let value = self.kimi_metadata_cached(&version, &credential);
+        Box::pin(async {
+            value.ok_or(gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshError::Unsupported)
+        })
+    }
+    fn kimi_metadata_cached(
+        &self,
+        version: &ConfigVersionId,
+        credential: &CredentialId,
+    ) -> Option<provider_openai_compatible::KimiAccountObservation> {
+        if version.as_str() != VERSION || credential.as_str() != "account-000" {
+            return None;
+        }
+        Some(
+            provider_openai_compatible::KimiAccountObservation::from_payloads(
+                Some(
+                    &serde_json::json!({"user_id":"subject","email":"kimi@example.test","phone":{"country_code":"86","number":"176****0000"},"user_level_name":"Vivace"}),
+                ),
+                Some(&serde_json::json!({"usages":{"limit_5h":{"used_ratio":0.4}}})),
+                1234,
+            ),
+        )
+    }
+    fn metadata_revision(&self) -> i64 {
+        self.0.load(std::sync::atomic::Ordering::Acquire)
+    }
+}
+
+#[actix_web::test]
+async fn kimi_metadata_is_protected_searchable_and_invalidates_inventory_cursors() -> TestResult {
+    let (_file, state) = fixture(false)?;
+    let revision = std::sync::Arc::new(std::sync::atomic::AtomicI64::new(1));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state.with_catalog_refresh(
+                std::sync::Arc::new(KimiMetadataFixture(revision.clone())),
+            )))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let updated = test::call_service(&app, authorized(test::TestRequest::patch().uri("/admin/credentials/account-000"))
+        .insert_header(("If-Match","rev-0"))
+        .set_json(serde_json::json!({"id":"account-000","kind":"oauth_json","status":"active","secret":serde_json::json!({"kind":"kimi_oauth","access_token":"must-not-leak","refresh_token":"must-not-leak-refresh","expires_at_ms":4_102_444_800_000_i64,"device_id":"must-not-leak-device"}).to_string()})).to_request()).await;
+    assert_eq!(updated.status(), StatusCode::OK);
+    let path = "/admin/credentials/account-000/metadata";
+    assert_eq!(
+        test::call_service(&app, test::TestRequest::get().uri(path).to_request())
+            .await
+            .status(),
+        StatusCode::NOT_FOUND
+    );
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(path)).to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = test::read_body_json(response).await;
+    assert_eq!(body["kimi"]["identity"]["email"], "kimi@example.test");
+    assert_eq!(body["kimi"]["identity"]["phone"], "+86 176****0000");
+    assert_eq!(body["kimi"]["quota_windows"][0]["used_ratio"], 0.4);
+    assert!(!body.to_string().contains("must-not-leak"));
+    let found: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::get().uri("/admin/accounts/inventory?q=kimi%40example.test"),
+            )
+            .to_request(),
+        )
+        .await,
+    )
+    .await;
+    assert_eq!(found["total"], 1);
+    assert_eq!(found["items"][0]["plan"], "Vivace");
+    let first: Value = test::read_body_json(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri("/admin/accounts/inventory?limit=1"))
+                .to_request(),
+        )
+        .await,
+    )
+    .await;
+    let cursor = first["next_cursor"].as_str().ok_or("cursor missing")?;
+    revision.store(2, std::sync::atomic::Ordering::Release);
+    let next = format!("/admin/accounts/inventory?limit=1&cursor={cursor}");
+    assert_eq!(
+        test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&next)).to_request()
+        )
+        .await
+        .status(),
+        StatusCode::CONFLICT
+    );
+    Ok(())
+}

@@ -3368,3 +3368,26 @@ Local M4 validation: 1,357 Rust tests, 415 frontend tests, strict Clippy, serve 
 **Why:** M4-UI-01 showed a successful HTTP attempt under a misleading failure label.
 
 **Other side:** FYI under unified frontend authorization. Copy only; outcome, error, stage values and API contracts unchanged. Monitoring tests (25), type/build and deterministic four-file gates pass. Local fix only; production remains a715d6b.
+
+
+## 2026-09-27 - Codex - Kimi authorization binding and account observations
+
+**What:** `docs/openapi/management-v1.json`, synchronized `web/prism/contracts/management-v1.json`,
+`web/prism/src/features/accounts/{KimiDeviceDialog,AccountsPage,AccountList,AccountRuntimeSummary,AccountEvidenceTabs,AccountCatalogModels,KimiAccountEvidence}.tsx`,
+`web/prism/src/features/accounts/accountMetadata.css`, Kimi dialog/evidence tests,
+`web/prism/src/features/upstreams/CredentialSheet.tsx` and `web/prism/src/dev/fixtures.ts`.
+Runtime and HTTP metadata projection changes accompany the contract.
+
+**Why:** First Kimi authorization lost the prepared endpoint ID and published an unbound
+credential. Official profile/quota observations were not integrated, and account details
+linked to the catalog without listing its exact models. Bind only new enrollments before
+publication; preserve renewal bindings. Read allowlisted official metadata with bounded
+transport, exact credential ownership and generation-local caching; invalidate inventory
+cursors when metadata changes. Missing observations remain unknown.
+
+**Other side:** FYI under the user's unified implementation authorization. Contract follows
+sync-contract, no manual generated edits; no new dependencies, secret persistence, schema,
+model grants, CSP or output chunk. Local tests and EgoLite fixture evidence are distinct from
+production acceptance. Existing production Kimi credential needs its missing binding repaired
+in a reviewed config transaction after release approval. No real inference or production write.
+See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-FE-KIMI-METADATA-001.md`.

@@ -19,12 +19,29 @@ type Enrollment = Readonly<{
   task: Awaited<ReturnType<typeof beginConfigurationTask>>;
   id: string;
   providerId: string;
+  endpointId?: string;
 }>;
-type PreparedTarget = Readonly<{ upstream_id: string }>;
+type PreparedTarget = Readonly<{ upstream_id: string; endpoint_id?: string }>;
 
 /** Exact existing owner is required for renewal; first authorization alone may prepare a target. */
 export function existingKimiTarget(credentialId:string|undefined,providerId:string|undefined):PreparedTarget|undefined {
   return credentialId&&providerId?{upstream_id:providerId}:undefined;
+}
+
+/** Attach a newly authorized account before publication; never alter renewal bindings. */
+export async function finishKimiEnrollment(enrollment: Enrollment, credentialId: string) {
+  if (enrollment.endpointId) {
+    const bindings = await enrollment.task.read<{credential_id: string}[]>(
+      "listEndpointCredentialBindings", {path: {endpoint_id: enrollment.endpointId}},
+    );
+    if (!bindings.some(binding => binding.credential_id === credentialId)) {
+      await enrollment.task.mutate("createEndpointCredentialBinding", {
+        path: {endpoint_id: enrollment.endpointId},
+        body: {credential_id: credentialId, enabled: true, priority: 0, weight: 1, concurrency: 1},
+      });
+    }
+  }
+  return enrollment.task.finish();
 }
 
 /** Retains the one browser-visible challenge while the server returns compact poll states. */
@@ -57,10 +74,12 @@ export function KimiDeviceDialog({
       const task = await beginConfigurationTask("授权 Kimi 账号");
       const id = credentialId ?? `kimi-${crypto.randomUUID()}`;
       const target = existingKimiTarget(credentialId,providerId)??await task.mutate<PreparedTarget>("prepareKimiAccountTarget");
+      if (!credentialId && !target.endpoint_id) throw new Error("Kimi 接口准备结果不完整，请重新读取配置。");
       current.current = {
         task,
         id,
         providerId: target.upstream_id,
+        endpointId: target.endpoint_id,
       };
       setWorkingId(task.version.id);
       return task.mutate<Session>("startKimiEnrollment", {
@@ -84,7 +103,7 @@ export function KimiDeviceDialog({
       });
       if (result.state !== "completed" || !result.credential_id) return result;
       try {
-        setCompleted(await enrollment.task.finish());
+        setCompleted(await finishKimiEnrollment(enrollment, result.credential_id));
       } catch (error) {
         // The terminal poll already persisted the credential. Keep that
         // receipt terminal and offer configuration recovery; retrying poll

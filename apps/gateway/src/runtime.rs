@@ -497,6 +497,7 @@ fn p13_channel_pin_request_id() -> Result<RequestId, ManagementChannelPinError> 
 }
 
 mod catalog_refresh;
+mod kimi_metadata;
 /// Production pieces that must be attached to the separate P12 listeners together.
 mod reload;
 pub(crate) use reload::RuntimePublicationController;
@@ -3592,6 +3593,12 @@ struct RuntimeCatalogTarget {
 /// Background owner for P13-15C/D durable discovery and atomic route publication.
 #[derive(Clone)]
 pub(crate) struct RuntimeModelCatalogWorker {
+    kimi_metadata: Arc<
+        std::sync::Mutex<
+            BTreeMap<CredentialId, provider_openai_compatible::KimiAccountObservation>,
+        >,
+    >,
+    metadata_revision: Arc<std::sync::atomic::AtomicI64>,
     generation_guard: Option<(Arc<tokio::sync::Mutex<()>>, Arc<AtomicBool>)>,
     config_version_id: String,
     store: Arc<SqliteCatalogSnapshotStore>,
@@ -3668,6 +3675,8 @@ impl RuntimeModelCatalogWorker {
         let base_snapshot = Arc::new(base_snapshot.materialize_binding_counts(&binding_counts));
         let worker =
             Self {
+                kimi_metadata: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+                metadata_revision: Arc::new(std::sync::atomic::AtomicI64::new(0)),
                 generation_guard: None,
                 config_version_id: configuration.version.id.as_str().to_owned(),
                 store: Arc::new(SqliteCatalogSnapshotStore::open(database).map_err(|_| {
@@ -3721,6 +3730,10 @@ impl RuntimeModelCatalogWorker {
                 })
                 .unwrap_or_default();
             for credential_id in credential_ids {
+                // Profile failure does not suppress independent model discovery.
+                if Self::is_kimi_metadata_target(target) {
+                    let _ = self.read_kimi_metadata(credential_id.clone()).await;
+                }
                 // Yield publication between bounded discovery requests, even for large pools.
                 let _guard = match &self.generation_guard {
                     Some((gate, active)) => {
