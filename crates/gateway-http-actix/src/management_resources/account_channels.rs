@@ -208,9 +208,8 @@ pub(super) async fn prepare_kimi_target(
     {
         return conflict_target();
     }
-    let query = match web::Query::<KimiTargetQuery>::from_query(request.query_string()) {
-        Ok(value) => value,
-        Err(_) => return invalid_input(),
+    let Ok(query) = web::Query::<KimiTargetQuery>::from_query(request.query_string()) else {
+        return invalid_input();
     };
     let kimi_upstreams = configuration
         .upstreams
