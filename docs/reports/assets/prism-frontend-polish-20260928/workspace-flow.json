@@ -1,0 +1,244 @@
+{
+  "cleanEscape": {
+    "focus": "添加提供商",
+    "workspaceClosed": true
+  },
+  "dirtyGuard": {
+    "route": "#/upstreams",
+    "selected": "AI 提供商",
+    "indicatorDelta": 0,
+    "formValue": "视觉核对：很长的提供商名称用于确认文字不会破坏操作层级与布局",
+    "dialogs": 0,
+    "restoredFocus": "INPUT"
+  },
+  "rows": [
+    {
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ],
+      "gutter": [
+        24,
+        24
+      ],
+      "workspace": {
+        "x": 260,
+        "width": 1146,
+        "right": 1406
+      },
+      "footer": [
+        {
+          "text": "取消",
+          "class": "secondary",
+          "height": 44,
+          "bottom": 652,
+          "disabled": false,
+          "inert": false
+        },
+        {
+          "text": "保存到草稿",
+          "class": "primary",
+          "height": 44,
+          "bottom": 652,
+          "disabled": false,
+          "inert": false
+        }
+      ],
+      "inputSize": "12px",
+      "documentOverflow": false,
+      "dialogs": 0,
+      "errors": []
+    },
+    {
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ],
+      "gutter": [
+        24,
+        24
+      ],
+      "workspace": {
+        "x": 260,
+        "width": 1146,
+        "right": 1406
+      },
+      "footer": [
+        {
+          "text": "取消",
+          "class": "secondary",
+          "height": 44,
+          "bottom": 652,
+          "disabled": false,
+          "inert": false
+        },
+        {
+          "text": "保存到草稿",
+          "class": "primary",
+          "height": 44,
+          "bottom": 652,
+          "disabled": false,
+          "inert": false
+        }
+      ],
+      "inputSize": "12px",
+      "documentOverflow": false,
+      "dialogs": 0,
+      "errors": []
+    },
+    {
+      "theme": "light",
+      "viewport": [
+        1280,
+        720
+      ],
+      "gutter": [
+        24,
+        24
+      ],
+      "workspace": {
+        "x": 260,
+        "width": 986,
+        "right": 1246
+      },
+      "footer": [
+        {
+          "text": "取消",
+          "class": "secondary",
+          "height": 44,
+          "bottom": 472,
+          "disabled": false,
+          "inert": false
+        },
+        {
+          "text": "保存到草稿",
+          "class": "primary",
+          "height": 44,
+          "bottom": 472,
+          "disabled": false,
+          "inert": false
+        }
+      ],
+      "inputSize": "12px",
+      "documentOverflow": false,
+      "dialogs": 0,
+      "errors": []
+    },
+    {
+      "theme": "dark",
+      "viewport": [
+        1280,
+        720
+      ],
+      "gutter": [
+        24,
+        24
+      ],
+      "workspace": {
+        "x": 260,
+        "width": 986,
+        "right": 1246
+      },
+      "footer": [
+        {
+          "text": "取消",
+          "class": "secondary",
+          "height": 44,
+          "bottom": 472,
+          "disabled": false,
+          "inert": false
+        },
+        {
+          "text": "保存到草稿",
+          "class": "primary",
+          "height": 44,
+          "bottom": 472,
+          "disabled": false,
+          "inert": false
+        }
+      ],
+      "inputSize": "12px",
+      "documentOverflow": false,
+      "dialogs": 0,
+      "errors": []
+    },
+    {
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ],
+      "gutter": [
+        16,
+        16
+      ],
+      "workspace": {
+        "x": 12,
+        "width": 366,
+        "right": 378
+      },
+      "footer": [
+        {
+          "text": "取消",
+          "class": "secondary",
+          "height": 44,
+          "bottom": 423.703125,
+          "disabled": false,
+          "inert": false
+        },
+        {
+          "text": "保存到草稿",
+          "class": "primary",
+          "height": 44,
+          "bottom": 423.703125,
+          "disabled": false,
+          "inert": false
+        }
+      ],
+      "inputSize": "16px",
+      "documentOverflow": false,
+      "dialogs": 0,
+      "errors": []
+    },
+    {
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ],
+      "gutter": [
+        16,
+        16
+      ],
+      "workspace": {
+        "x": 12,
+        "width": 366,
+        "right": 378
+      },
+      "footer": [
+        {
+          "text": "取消",
+          "class": "secondary",
+          "height": 44,
+          "bottom": 423.703125,
+          "disabled": false,
+          "inert": false
+        },
+        {
+          "text": "保存到草稿",
+          "class": "primary",
+          "height": 44,
+          "bottom": 423.703125,
+          "disabled": false,
+          "inert": false
+        }
+      ],
+      "inputSize": "16px",
+      "documentOverflow": false,
+      "dialogs": 0,
+      "errors": []
+    }
+  ]
+}

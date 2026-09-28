@@ -7,6 +7,7 @@ import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-d
 import { call } from "../api/client";
 import { GlassSurface } from "../components/glass/GlassSurface";
 import { PrismLens } from "../components/glass/PrismLens";
+import { SelectionIndicator } from "../components/motion/SelectionIndicator";
 import {
   useVersionStore,
   type ConfigVersionSummary,
@@ -144,6 +145,7 @@ export function AppShell() {
       </div>
 
       <GlassSurface as="nav" className="rail" material={material} pane="rail" id="main-navigation" open={menuOpen}>
+        <SelectionIndicator activeKey={primaryRoute(pathname)} selector="a[aria-current='page']" layoutKey={menuOpen}/>
           <div className="brand">
             <svg className="brandmark" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="m14 2 12 21-12 4L2 23 14 2Z M14 2v25 M2 23l12-5 12 5 M14 2 8 21 M14 2l6 19" fill="currentColor" fillOpacity=".04" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>
             <span><strong>Prism</strong><small>CPAR CONSOLE</small></span>

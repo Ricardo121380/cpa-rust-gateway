@@ -43,8 +43,8 @@ export function CatalogRestoreDialog({action,onClose,onDone,onReview}:Readonly<{
   const done=()=>{if(receipt?.kind==="unconfirmed")onClose();else if(receipt)onDone(receipt);else onClose();};
   const footer=receipt?.kind==="unconfirmed"?<><SheetDismissButton className="secondary" disabled={review.isPending} onDismiss={onClose}>稍后核对</SheetDismissButton><button type="button" disabled={review.isPending} onClick={()=>review.mutate(receipt)}>核对工作配置</button></>
     :receipt?<SheetDismissButton onDismiss={done}>{receipt.kind==="catalog_unapplied"?"查看工作草稿":"完成"}</SheetDismissButton>
-    :prepared?<><button type="button" className="secondary" disabled={save.isPending} onClick={()=>setPrepared(undefined)}>返回修改</button><button type="button" disabled={save.isPending||submitted.current} onClick={commit}>创建新目录</button></>
-    :<><SheetDismissButton className="secondary">取消</SheetDismissButton><button type="submit" form={formId}>核对恢复内容</button></>;
+    :prepared?<><button type="button" className="secondary" disabled={save.isPending} onClick={()=>setPrepared(undefined)}>返回修改</button><button type="button" className="primary" disabled={save.isPending||submitted.current} onClick={commit}>创建新目录</button></>
+    :<><SheetDismissButton className="secondary">取消</SheetDismissButton><button type="submit" className="primary" form={formId}>核对恢复内容</button></>;
   return <Sheet title={receipt?"价格恢复结果":prepared?"确认创建恢复目录":"从历史目录恢复价格"}
     description={receipt?"新目录写入与配置应用分别显示。":"复制历史目录的全部条目，创建新的全局目录；旧目录与账本原样保留。"}
     layout={prepared||receipt?"confirm":"form"} onEscape={done} busy={save.isPending||review.isPending} isDirty={!receipt&&(!!effective||prepared!==undefined)} guardUnsaved={!receipt} footer={footer}>

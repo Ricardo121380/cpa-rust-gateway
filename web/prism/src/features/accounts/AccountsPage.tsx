@@ -160,7 +160,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   return <section className="accounts-page">
     <header className="page-head"><div><h2>账号管理</h2><p className="page-description">以账号身份为主线，查看授权、接口与运行状态。</p></div>
       <div className="page-actions">
-        <button onClick={() => update("add", "account")}>授权 / 导入账号</button>
+        <button className="primary" onClick={() => update("add", "account")}>授权 / 导入账号</button>
 
       </div>
     </header>

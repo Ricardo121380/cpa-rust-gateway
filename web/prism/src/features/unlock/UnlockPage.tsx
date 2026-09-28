@@ -74,7 +74,7 @@ export function UnlockPage() {
         {changing ? <><PasswordField label={t.unlock.newPassword} value={newPassword} onChange={setNewPassword} autoComplete="new-password" hint={t.unlock.passwordPlaceholder} errorId={errorId} /><PasswordField label={t.unlock.confirmPassword} value={confirm} onChange={setConfirm} autoComplete="new-password" errorId={errorId} /></> : null}
         {error === undefined ? null : <p id="login-error" role="alert" className="unlock-error">{error}</p>}
         {notice === undefined ? null : <p role="status" className="login-note">{notice}</p>}
-        <button type="submit" className="unlock-submit" disabled={busy}>{busy ? t.unlock.busy : changing ? t.unlock.savePassword : t.unlock.submit}</button>
+        <button type="submit" className="unlock-submit primary" disabled={busy}>{busy ? t.unlock.busy : changing ? t.unlock.savePassword : t.unlock.submit}</button>
         {changing ? <button type="button" className="login-back" disabled={busy} onClick={() => { void logoutAdministrator(); navigate("/unlock", { replace: true }); }}>{t.unlock.back}</button> : null}
       </form>
     </GlassSurface>

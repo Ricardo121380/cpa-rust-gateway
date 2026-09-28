@@ -173,6 +173,7 @@ export function EgressPage() {
         <div className="page-actions">
           <button
             type="button"
+            className="primary"
             disabled={!editable}
             title={editable ? undefined : t.version.readOnly}
             onClick={() => beginDraft(emptyDraft())}
@@ -198,7 +199,7 @@ export function EgressPage() {
           onClose={close}
           busy={save.isPending}
           dirty={!receipt&&draftDirty}
-          footer={receipt?<button onClick={close}>完成</button>:<><button type="button" className="secondary" disabled={save.isPending} onClick={()=>admission.request(close)}>取消</button><button type="submit" form="egress-policy-form" disabled={submitted.current||draft.hosts.length===0}>保存</button></>}
+          footer={receipt?<button onClick={close}>完成</button>:<><button type="button" className="secondary" disabled={save.isPending} onClick={()=>admission.request(close)}>取消</button><button type="submit" className="primary" form="egress-policy-form" disabled={submitted.current||draft.hosts.length===0}>保存</button></>}
         >
           {receipt?<p role="status">策略已保存到草稿，尚未应用。</p>:<><ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={review}/><form id="egress-policy-form" className="sheet-form" onChange={()=>setDraftDirty(true)} onSubmit={onSubmit}><fieldset disabled={submitted.current}>
             {draft.isNew ? (

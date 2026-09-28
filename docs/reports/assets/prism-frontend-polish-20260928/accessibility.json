@@ -1,0 +1,276 @@
+{
+  "switches": [
+    {
+      "name": "减少透明度",
+      "width": 38,
+      "height": 22,
+      "checked": false
+    },
+    {
+      "name": "增强对比度",
+      "width": 38,
+      "height": 22,
+      "checked": false
+    },
+    {
+      "name": "减少动态效果",
+      "width": 38,
+      "height": 22,
+      "checked": true
+    }
+  ],
+  "rows": [
+    {
+      "name": "session-time-range",
+      "session": "reduce",
+      "system": false,
+      "indicators": [
+        {
+          "host": "glass rail",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "overview-range",
+          "duration": "0ms",
+          "delta": 0.004375000000003126,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "trend-modes",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "session-trend-mode",
+      "session": "reduce",
+      "system": false,
+      "indicators": [
+        {
+          "host": "glass rail",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "overview-range",
+          "duration": "0ms",
+          "delta": 0.004375000000003126,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "trend-modes",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "session-navigation",
+      "session": "reduce",
+      "system": false,
+      "indicators": [
+        {
+          "host": "glass rail",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "system-time-range",
+      "session": null,
+      "system": true,
+      "indicators": [
+        {
+          "host": "glass rail",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "overview-range",
+          "duration": "0ms",
+          "delta": 0.004375000000003126,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "trend-modes",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "system-trend-mode",
+      "session": null,
+      "system": true,
+      "indicators": [
+        {
+          "host": "glass rail",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "overview-range",
+          "duration": "0ms",
+          "delta": 0.004375000000003126,
+          "hidden": "true",
+          "focusable": "false"
+        },
+        {
+          "host": "trend-modes",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "system-navigation",
+      "session": null,
+      "system": true,
+      "indicators": [
+        {
+          "host": "glass rail",
+          "duration": "0ms",
+          "delta": 0,
+          "hidden": "true",
+          "focusable": "false"
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "sessionGlass": [
+    {
+      "pane": "topbar",
+      "backdrop": "none"
+    },
+    {
+      "pane": "rail",
+      "backdrop": "none"
+    },
+    {
+      "pane": "dock",
+      "backdrop": "none"
+    }
+  ],
+  "systemGlass": [
+    {
+      "pane": "topbar",
+      "backdrop": "none"
+    },
+    {
+      "pane": "rail",
+      "backdrop": "none"
+    },
+    {
+      "pane": "dock",
+      "backdrop": "none"
+    }
+  ],
+  "forced": {
+    "active": true,
+    "indicators": [
+      {
+        "display": "none",
+        "ready": null
+      },
+      {
+        "display": "none",
+        "ready": null
+      },
+      {
+        "display": "none",
+        "ready": null
+      }
+    ],
+    "selection": [
+      {
+        "text": "仪表盘",
+        "border": "1px solid rgba(5, 0, 73, 0.8)",
+        "borderColor": "rgba(5, 0, 73, 0.8)"
+      },
+      {
+        "text": "30 天",
+        "border": "1px solid rgba(5, 0, 73, 0.8)",
+        "borderColor": "rgba(5, 0, 73, 0.8)"
+      },
+      {
+        "text": "平均耗时",
+        "border": "1px solid rgba(5, 0, 73, 0.8)",
+        "borderColor": "rgba(5, 0, 73, 0.8)"
+      }
+    ],
+    "errors": []
+  },
+  "focus": {
+    "tag": "BODY",
+    "svgTabStops": [
+      -1,
+      -1,
+      -1
+    ]
+  },
+  "switchLabels": [
+    {
+      "name": "减少透明度",
+      "track": [
+        38,
+        22
+      ],
+      "hitArea": [
+        1144,
+        85.6875
+      ]
+    },
+    {
+      "name": "增强对比度",
+      "track": [
+        38,
+        22
+      ],
+      "hitArea": [
+        1144,
+        85.6875
+      ]
+    },
+    {
+      "name": "减少动态效果",
+      "track": [
+        38,
+        22
+      ],
+      "hitArea": [
+        1144,
+        85.6875
+      ]
+    }
+  ]
+}

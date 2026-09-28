@@ -39,7 +39,7 @@ export function StatusBadge({
   children,
 }: Readonly<{ status: string; children?: ReactNode }>) {
   return (
-    <span className={`badge badge-${toneFor(status)}`}>
+    <span className={`badge badge-status badge-${toneFor(status)}`}>
       {children ?? status}
     </span>
   );

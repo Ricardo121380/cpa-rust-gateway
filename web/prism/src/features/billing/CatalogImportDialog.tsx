@@ -60,8 +60,8 @@ export function CatalogImportDialog({action,onClose,onDone,onReview}:Readonly<{
   const changes=prepared?compareCatalogEntries(prepared.baseline?.entries??[],prepared.entries):[];
   const footer=receipt?.kind==="unconfirmed"?<><button type="button" className="secondary" disabled={review.isPending} onClick={()=>boundary.request(onClose)}>稍后核对</button><button type="button" disabled={review.isPending} onClick={()=>review.mutate(receipt)}>核对工作配置</button></>
     :receipt?<button type="button" onClick={done}>{receipt.kind==="catalog_unapplied"?"查看工作草稿":"完成"}</button>
-    :prepared?<><button type="button" className="secondary" disabled={save.isPending} onClick={()=>{setPrepared(undefined);setError(undefined);}}>返回修改</button><button type="button" disabled={save.isPending||submitted.current} onClick={commit}>确认导入</button></>
-    :<><button type="button" className="secondary" onClick={()=>boundary.request(onClose)}>取消</button><button type="submit" form={formId} disabled={quotePending}>预览差异</button></>;
+    :prepared?<><button type="button" className="secondary" disabled={save.isPending} onClick={()=>{setPrepared(undefined);setError(undefined);}}>返回修改</button><button type="button" className="primary" disabled={save.isPending||submitted.current} onClick={commit}>确认导入</button></>
+    :<><button type="button" className="secondary" onClick={()=>boundary.request(onClose)}>取消</button><button type="submit" className="primary" form={formId} disabled={quotePending}>预览差异</button></>;
   return <InlineWorkspace title={receipt?"目录导入结果":prepared?"确认完整价格目录":action.template?"复制现有目录并调整":"导入价格目录"}
     description={receipt?"全局目录的写入与工作配置的发布分别显示。":prepared?"此目录会新增到全局价格历史；不会自动绑定路由策略。":"填写整份价目表；新目录对所有配置可见，历史目录和账本保留。"}
     onClose={done} busy={save.isPending||review.isPending} dirty={!receipt&&(dirty||prepared!==undefined)} footer={footer}>

@@ -1,0 +1,33 @@
+.selection-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+  z-index: 0;
+}
+.selection-indicator[data-visible="true"] { opacity: 1; }
+.selection-indicator rect { stroke: var(--pearl-edge); stroke-width: 1; }
+.selection-pearl-start { stop-color: var(--pearl-top); }
+.selection-pearl-end { stop-color: var(--pearl-end); }
+.rail > .selection-indicator { position: absolute; z-index: 1; }
+.rail > .rail-group { z-index: 2; }
+.rail[data-selection-ready="true"] a.on { background: transparent; box-shadow: none; }
+.rail > .selection-indicator rect { stroke: var(--panel-shine); }
+.overview-range, .trend-modes { position: relative; isolation: isolate; }
+.overview-range button, .trend-modes button { position: relative; z-index: 1; }
+.overview-range[data-selection-ready="true"] button[aria-pressed="true"],
+.trend-modes[data-selection-ready="true"] button[aria-pressed="true"] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+@media (forced-colors: active) {
+  .selection-indicator { display: none; }
+  :root .rail a[aria-current="page"],
+  :root .overview-range button[aria-pressed="true"],
+  :root .trend-modes button[aria-pressed="true"] { border: 1px solid Highlight; }
+}

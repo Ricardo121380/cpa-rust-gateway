@@ -471,19 +471,19 @@ export function OAuthWizard({
   ) : attempt === undefined ? (
     <>
       <SheetDismissButton className="secondary" disabled={busy}>关闭</SheetDismissButton>
-      <button type="button" disabled={busy} onClick={() => start.mutate()}>{start.isPending ? "正在启动…" : "启动授权"}</button>
+      <button type="button" className="primary" disabled={busy} onClick={() => start.mutate()}>{start.isPending ? "正在启动…" : "启动授权"}</button>
     </>
   ) : awaitingCallback ? (
     <>
       <SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton>
-      <button type="submit" form={formId} disabled={busy || callback.trim().length === 0}>完成授权</button>
+      <button type="submit" className="primary" form={formId} disabled={busy || callback.trim().length === 0}>完成授权</button>
     </>
   ) : phase === "completing" || phase === "cancelling" || phase === "verifying" ? (
     <SheetDismissButton disabled>正在确认…</SheetDismissButton>
   ) : (
     <>
       <SheetDismissButton className="secondary" disabled={busy}>关闭</SheetDismissButton>
-      <button type="button" disabled={busy} onClick={restart}>重新启动授权</button>
+      <button type="button" className="primary" disabled={busy} onClick={restart}>重新启动授权</button>
     </>
   );
 

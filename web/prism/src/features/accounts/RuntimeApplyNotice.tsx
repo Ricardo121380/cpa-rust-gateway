@@ -8,6 +8,6 @@ export function RuntimeApplyNotice({onApplied,onBusyChange}:Readonly<{onApplied:
   useEffect(()=>{onBusyChange?.(apply.isPending);return()=>onBusyChange?.(false);},[apply.isPending,onBusyChange]);
   return <div role="status"><p>修改已保存，运行配置暂未应用。</p>
     {apply.isError?<p role="alert">{asAppError(apply.error).message}</p>:apply.data?.runtime_applied===false?<p role="alert">暂时无法应用，请稍后重试。</p>:null}
-    <button type="button" disabled={apply.isPending} onClick={()=>apply.mutate()}>应用运行配置</button>
+    <button type="button" className="primary" disabled={apply.isPending} onClick={()=>apply.mutate()}>应用运行配置</button>
   </div>;
 }

@@ -34,7 +34,7 @@ export function GrokDeviceWizard({name,target,onClose,onComplete}:Readonly<{name
   const error=start.error??poll.error??cancel.error;
   const href=safeExternalUrl(view?.verification_uri);
   const busy=start.isPending||cancel.isPending;
-  const footer=!view?<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" disabled={busy||start.isError} onClick={()=>start.mutate()}>开始 Grok 授权</button></>:view.state==="pending"?<SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton>:<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
+  const footer=!view?<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" className="primary" disabled={busy||start.isError} onClick={()=>start.mutate()}>开始 Grok 授权</button></>:view.state==="pending"?<SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton>:<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
   if(setupConnection)return <ProviderDialog channel="grok.build" onClose={()=>setSetupConnection(false)} onSaved={version=>{useVersionStore.getState().select(version);setSetupConnection(false);}} onConnectionCreated={version=>{navigate("/upstreams");useVersionStore.getState().select(version);}}/>;
   return <Sheet title={target?"Grok 重新授权":"添加 Grok 授权账号"} description={target?"仅更新选中账号的官方授权，不改变其他账号或连接。":"在 Grok 官方页面输入设备验证码；保存后会读取授权身份。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={view?.state==="pending"} footer={footer}>
     <div className="operation-summary"><span>Grok Build · 设备授权</span><strong>{target&&name?name:"连接 Grok 账号"}</strong><small>获取验证码 → 官方确认 → 自动保存</small></div>

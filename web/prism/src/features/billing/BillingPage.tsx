@@ -92,7 +92,7 @@ export function BillingPage(){
       <div className="bill-actions"><button type="button" disabled={context?.status==="archived"||!policyKnown||!catalogsReady||!rows.some(row=>isEffective(row,Date.now()))} onClick={()=>boundary.request(()=>openPolicy("bind"))}>{policyUnset?"设置策略":"更换目录"}</button>{policyUnset?null:<button type="button" className="danger" disabled={context?.status==="archived"||!policyKnown} onClick={()=>boundary.request(()=>openPolicy("clear"))}>清除策略</button>}</div>
       {!rows.some(row=>isEffective(row,Date.now()))?<p className="muted">目前没有已生效且可绑定的目录。</p>:null}
     </div></details>
-    <section className="card bill-catalogs" aria-label="全局价格目录"><header className="page-head"><h3>价格目录 <span className="idchip mono">{catalogs.data?formatCount(rows.length):"—"}</span></h3><button type="button" disabled={context?.status==="archived"||!catalogsReady||rows.length>=MAX_CATALOGS} onClick={()=>boundary.request(()=>openImport())}>导入目录</button></header>
+    <section className="card bill-catalogs" aria-label="全局价格目录"><header className="page-head"><h3>价格目录 <span className="idchip mono">{catalogs.data?formatCount(rows.length):"—"}</span></h3><button type="button" className="primary" disabled={context?.status==="archived"||!catalogsReady||rows.length>=MAX_CATALOGS} onClick={()=>boundary.request(()=>openImport())}>导入目录</button></header>
       <p className="bill-note">导入整份目录会全局新增历史版本，对所有配置可见；不会自动绑定路由策略或修改历史账本。</p>
       {rows.length>=MAX_CATALOGS?<p role="status">价格目录已达到 {MAX_CATALOGS} 份上限，无法继续导入或恢复；现有目录保持可读。</p>:null}
       <ReadStatus pending={catalogs.isPending} error={catalogs.error} hasData={catalogs.data!==undefined} retry={()=>void catalogs.refetch()}/>

@@ -38,7 +38,7 @@ export function PoolActionSheet({
       tone={isCooldown ? "danger" : "default"}
       onEscape={onCancel}
       busy={pending}
-      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} className={isCooldown ? "danger" : undefined} disabled={pending}>{isCooldown ? "确认冷却" : "确认请求恢复"}</button></>}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} className={isCooldown ? "danger" : "primary"} disabled={pending}>{isCooldown ? "确认冷却" : "确认请求恢复"}</button></>}
     >
       <p className="reveal-warning">
         <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong>

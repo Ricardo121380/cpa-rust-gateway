@@ -229,6 +229,7 @@ export function UpstreamsPage() {
         <div className="page-actions">
           <button
             type="button"
+            className="primary"
             onClick={() => boundary.request(()=>{setExpanded(undefined);setAdding(true);})}
           >
             添加提供商
@@ -287,7 +288,7 @@ export function UpstreamsPage() {
       </ObjectInspector>}
 
       {receipt?<Sheet title="提供商修改结果" guardUnsaved={false} onEscape={()=>{setReceipt(undefined);setDraft(undefined);setConfirmDelete(undefined);}} footer={<><SheetDismissButton className="secondary">关闭</SheetDismissButton><button onClick={()=>{if(owned())useVersionStore.getState().select(receipt);}}>查看工作草稿</button></>}><p role="status">修改已保存到草稿，尚未应用到当前服务。</p><p>在待应用变更中统一核对、校验并应用。</p></Sheet>:draft !== undefined ? (
-        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${resourceName(draft.id,"upstream",draft.name)}`} description="维护服务名称、渠道类型与出口策略；账号授权和接口连接在各自工作区完成。" onEscape={() => !save.isPending&&setDraft(undefined)} busy={save.isPending} isDirty={draftDirty} footer={<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" form="provider-edit-form" disabled={submitted.current}>{save.isPending?"正在保存…":"保存到草稿"}</button></>}>
+        <Sheet title={draft.isNew ? "新建上游" : `编辑 ${resourceName(draft.id,"upstream",draft.name)}`} description="维护服务名称、渠道类型与出口策略；账号授权和接口连接在各自工作区完成。" onEscape={() => !save.isPending&&setDraft(undefined)} busy={save.isPending} isDirty={draftDirty} footer={<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" className="primary" form="provider-edit-form" disabled={submitted.current}>{save.isPending?"正在保存…":"保存到草稿"}</button></>}>
           <form id="provider-edit-form" className="sheet-form" onSubmit={onSubmit}>
             <ConfigurationTaskNotice workingId={workingId} error={save.error} onReview={(version)=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().select(version);}}}/>
             {save.isError?<p role="status">已确认 {confirmedWrites} 项写入；其他结果需读取工作草稿核对，不能在此重复提交。</p>:null}

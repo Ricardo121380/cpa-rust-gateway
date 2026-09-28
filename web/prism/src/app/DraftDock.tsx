@@ -1,19 +1,21 @@
-import {useNavigate} from "react-router-dom";
+import {useLocation,useNavigate} from "react-router-dom";
 import {GlassSurface} from "../components/glass/GlassSurface";
 import {useOperationBoundary} from "../components/OperationBoundary";
 import {useConfigurationLifecycle} from "../features/config-versions/ConfigurationLifecycleHost";
 import {useVersionStore} from "../features/config-versions/versionStore";
 
-/** Both entry points lead to the same reviewed configuration, never directly to a POST. */
+/** The dock only opens review; applying remains inside the reviewed workspace. */
 export function DraftDock(){
  const context=useVersionStore(state=>state.context);
  const pending=useVersionStore(state=>state.pending);
- const admission=useOperationBoundary();const lifecycle=useConfigurationLifecycle();const navigate=useNavigate();
+ const admission=useOperationBoundary();const lifecycle=useConfigurationLifecycle();const navigate=useNavigate();const location=useLocation();
  const target=context?.status==="draft"?context.configVersionId:pending?.id;
  if(!target)return null;
- const review=(apply:boolean)=>admission.request(()=>navigate(`/versions?${new URLSearchParams({review:target,...(apply?{intent:"apply"}:{})})}`));
+ const reviewing=location.pathname==="/versions"&&new URLSearchParams(location.search).get("review")===target;
+ const review=()=>admission.request(()=>navigate(`/versions?${new URLSearchParams({review:target})}`));
  return <GlassSurface as="footer" className="dock" material="draft" pane="dock">
-  <span>待应用草稿 <span className="muted">核对变更后统一生效</span></span>
-  <span className="dock-actions"><button type="button" className="secondary" disabled={lifecycle.active} onClick={()=>review(false)}>查看变更</button><button type="button" disabled={lifecycle.active} onClick={()=>review(true)}>校验并应用</button></span>
+  <span className="dock-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4H5v16h14v-4 M9 8h7 M9 12h4 M15 3v6 M12 6h6"/></svg></span>
+  <div className="dock-copy"><strong>待应用变更</strong><p><span className="dock-saved">草稿已保存 · </span>当前服务未改变</p></div>
+  <button type="button" className={reviewing?"secondary":"primary"} disabled={lifecycle.active||reviewing} onClick={review}>{reviewing?"正在核对":"查看变更"}</button>
  </GlassSurface>;
 }

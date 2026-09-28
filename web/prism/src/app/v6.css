@@ -143,6 +143,9 @@
 .canvas .row-actions:not(td) { display: flex; gap: 8px; flex-wrap: wrap; }
 @media(min-width:721px) { .canvas td.row-actions { display:table-cell; vertical-align:middle; } .canvas td.row-actions > .row-menu { display:inline-block; } }
 .canvas .row-actions button { font-size: 12px; white-space: nowrap; }
+/* Status text clears AA on both panel and hovered-row surfaces. */
+.badge-warn { color: color-mix(in srgb, var(--status-warn) 70%, var(--ink)); }
+.badge-critical, button.danger { color: color-mix(in srgb, var(--status-critical) 66%, var(--ink)); }
 .overview-grid { gap: 20px; }
 .overview-resources { margin: 20px 0; }
 .overview-resources .count-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
@@ -291,7 +294,7 @@
   .topbar { padding-inline: 12px; gap: 8px; }
   .brand { min-width: 0; font-size: 18px; }
   .topdeck { left: 0; right: 0; }
-  .dock { left: 50%; max-width: calc(100vw - 24px); }
+  .dock { left: 50%; width: calc(100vw - 24px); max-width: 860px; }
   .rail { top: calc(80px + var(--conflict-block)); }
   .shell .canvas > .workspace { padding: 8px 0 24px; }
   .published-configuration { align-items: flex-start; flex-direction: column; }

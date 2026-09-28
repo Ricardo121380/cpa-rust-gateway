@@ -42,7 +42,7 @@
   --rail-w: 200px;
   --rail-underlap: 12px;
   --card-shift: calc(var(--shell-gap) + var(--rail-underlap));
-  --dock-h: 58px; /* one-line dock; .dock keeps itself to one line */
+  --dock-h: 72px; /* two-line status and one review action */
   --dock-inset: 18px; /* == .dock bottom */
   --dock-clearance: 0px; /* -> derived below while drafting */
 
@@ -93,7 +93,7 @@
 .shell[data-conflict="true"] {
   --conflict-block: calc(var(--conflict-h) + var(--shell-gap));
 }
-/* Derived, not guessed: the dock is a fixed one-line pill, so the canvas can
+/* Derived, not guessed: the dock has a fixed footprint, so the canvas can
    reserve exactly its footprint plus a gutter. (Was a magic 96px, which left
    1px of slack once the dock wrapped to two lines under 720px.) */
 .shell[data-dock="true"] {
@@ -472,13 +472,19 @@ button {
   font-weight: 560;
   min-height: 38px;
   padding: 8px 14px;
-  border: 1px solid #00408b66;
+  border: 1px solid var(--pearl-edge);
   border-radius: 11px;
-  background: linear-gradient(165deg, var(--control-top), var(--control-end));
-  color: var(--tint-ink);
-  box-shadow: 0 2px 3px #00458516, 0 5px 12px -7px #004a9860, inset 0 1px 0 #ffffff61;
+  background: linear-gradient(180deg, var(--pearl-top), var(--pearl-end));
+  color: var(--ink);
+  box-shadow: 0 1px 2px #1b35590a, inset 0 1px 0 var(--panel-shine, #ffffff80);
   cursor: pointer;
   transition: transform var(--motion-press) var(--ease), box-shadow var(--motion-state), background-color var(--motion-state), border-color var(--motion-state);
+}
+button.primary {
+  background: linear-gradient(165deg, var(--control-top), var(--control-end));
+  color: var(--tint-ink);
+  border-color: #00408b66;
+  box-shadow: 0 2px 3px #00458516, 0 5px 12px -7px #004a9860, inset 0 1px 0 #ffffff61;
 }
 button.secondary {
   background: linear-gradient(180deg, var(--pearl-top), var(--pearl-end));
@@ -589,42 +595,43 @@ td.row-actions > * + * {
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 100px;
+  padding: 3px 8px;
+  border-radius: 7px;
   border: 1px solid transparent;
   white-space: nowrap;
 }
-.badge::before {
+.badge-status::before {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
+  flex: none;
   border-radius: 50%;
   background: currentColor;
 }
 .badge-good {
   color: var(--status-good);
   background: color-mix(in srgb, var(--status-good) 12%, transparent);
-  border-color: color-mix(in srgb, var(--status-good) 30%, transparent);
+  border-color: color-mix(in srgb, var(--status-good) 16%, transparent);
 }
 .badge-warn {
   color: var(--status-warn);
   background: color-mix(in srgb, var(--status-warn) 12%, transparent);
-  border-color: color-mix(in srgb, var(--status-warn) 30%, transparent);
+  border-color: color-mix(in srgb, var(--status-warn) 16%, transparent);
 }
 .badge-serious {
   color: var(--status-serious);
   background: color-mix(in srgb, var(--status-serious) 12%, transparent);
-  border-color: color-mix(in srgb, var(--status-serious) 30%, transparent);
+  border-color: color-mix(in srgb, var(--status-serious) 16%, transparent);
 }
 .badge-critical {
   color: var(--status-critical);
   background: color-mix(in srgb, var(--status-critical) 12%, transparent);
-  border-color: color-mix(in srgb, var(--status-critical) 30%, transparent);
+  border-color: color-mix(in srgb, var(--status-critical) 16%, transparent);
 }
 .badge-tint {
   color: var(--tint);
   background: color-mix(in srgb, var(--tint) 12%, transparent);
-  border-color: color-mix(in srgb, var(--tint) 30%, transparent);
+  border-color: color-mix(in srgb, var(--tint) 16%, transparent);
 }
 .badge-muted {
   color: var(--ink-2);
@@ -729,20 +736,37 @@ td.row-actions > * + * {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 10px 12px 10px 18px;
+  padding: 12px 14px 12px 18px;
   border-radius: 22px;
   font-size: 13px;
-  max-width: min(860px, calc(100vw - var(--canvas-left) - 32px));
+  width: min(860px, calc(100vw - var(--canvas-left) - 32px));
+  height: var(--dock-h);
 }
-/* The canvas reserves --dock-clearance from --dock-h, so the dock must not be
-   free to grow: its label ellipsises instead of wrapping to a second line
-   (which is what made it 77px tall — and 1px from covering the last card — at
-   700px). Height is now 58px at every width. */
-.dock > :first-child {
+.dock-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--status-warn) 20%, var(--separator));
+}
+.dock-mark svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.dock-copy { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.dock-copy strong, .dock-copy p {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.dock-copy strong { font-size: 13px; font-weight: 620; }
+.dock-copy p { margin: 0; font-size: 12px; color: var(--ink-2); }
+.dock > button { flex: none; }
+@media (max-width: 600px) {
+  .dock { gap: 10px; padding-inline: 12px; }
+  .dock-saved { display: none; }
 }
 .dock .idchip {
   margin-left: 6px;
@@ -1210,8 +1234,8 @@ td.row-actions > * + * {
 .shell {
   /* the dock's footprint as tokens, so the bottom edge is DERIVED from the
      pane it protects instead of being a magic number */
-  --dock-h: 58px;
-  --dock-inset: 18px;
+  --dock-h: 72px;
+  --dock-inset: max(18px, env(safe-area-inset-bottom));
 }
 .canvas {
   --edge-top: linear-gradient(to bottom,

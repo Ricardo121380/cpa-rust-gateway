@@ -43,7 +43,7 @@ export function VersionsPage(){
  const inspect=(version:ConfigVersionSummary)=>admission.request(()=>{removeParams("review","intent");setInspection(version);});
  return <section className="versions-page">
   <header className="page-head"><div><h2>{t.nav.versions}</h2><p className="page-subtitle">接续一份草稿，核对完整变更后统一应用。</p></div><div className="page-actions">
-   <button type="button" disabled={lifecycle.active||versions.isFetching} onClick={begin}>{pending?"接续待应用修改":"编辑当前配置"}</button>
+   <button type="button" className="primary" disabled={lifecycle.active||versions.isFetching} onClick={begin}>{pending?"接续待应用修改":"编辑当前配置"}</button>
    <button type="button" className="secondary" disabled={lifecycle.active||versions.isFetching} onClick={()=>admission.request(()=>setDialog({kind:"create"}))}>创建空草稿</button>
    <button type="button" className="secondary" disabled={lifecycle.active||!active||context?.configVersionId!==active.id} onClick={()=>active&&lifecycle.start(active,"rollback")}>回滚到上一版本</button>
   </div></header>

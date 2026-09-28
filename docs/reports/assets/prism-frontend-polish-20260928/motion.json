@@ -1,0 +1,90 @@
+{
+  "results": [
+    {
+      "name": "time-range",
+      "samples": [
+        {
+          "at": 747.9999998569547,
+          "x": 71.23,
+          "y": 4
+        }
+      ],
+      "delta": 0.00439453125,
+      "visible": "true"
+    },
+    {
+      "name": "trend-mode",
+      "samples": [
+        {
+          "at": 992.9999998569547,
+          "x": 60,
+          "y": 3
+        }
+      ],
+      "delta": 0,
+      "visible": "true"
+    },
+    {
+      "name": "sidebar",
+      "samples": [
+        {
+          "at": 816.3999998569489,
+          "x": 12,
+          "y": 378.5
+        }
+      ],
+      "delta": 0,
+      "visible": "true"
+    }
+  ],
+  "errors": [],
+  "inline": [
+    {
+      "tag": "DIV",
+      "class": null,
+      "properties": [
+        "z-index",
+        "padding-top",
+        "padding-right",
+        "padding-bottom",
+        "padding-left",
+        "margin-top",
+        "margin-right",
+        "margin-bottom",
+        "margin-left",
+        "border-top-left-radius",
+        "border-top-right-radius",
+        "border-bottom-right-radius",
+        "border-bottom-left-radius",
+        "position",
+        "color-scheme",
+        "box-shadow",
+        "border-top-width",
+        "border-right-width",
+        "border-bottom-width",
+        "border-left-width",
+        "border-top-style",
+        "border-right-style",
+        "border-bottom-style",
+        "border-left-style",
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+        "border-image-source",
+        "border-image-slice",
+        "border-image-width",
+        "border-image-outset",
+        "border-image-repeat",
+        "overflow-x",
+        "overflow-y",
+        "backdrop-filter",
+        "background-color",
+        "top",
+        "left",
+        "opacity",
+        "visibility"
+      ]
+    }
+  ]
+}

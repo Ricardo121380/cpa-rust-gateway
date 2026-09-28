@@ -1416,7 +1416,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
             ))}
           </select>
         </label>
-        <button type="submit" disabled={pin.isPending || scope === ""}>
+        <button type="submit" className="primary" disabled={pin.isPending || scope === ""}>
           {pin.isPending ? "调用中…" : "发一次真实请求"}
         </button>
       </form>

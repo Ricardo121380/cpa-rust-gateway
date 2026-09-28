@@ -135,7 +135,7 @@ export function ModelsPage() {
       <header className="page-head">
         <div><h2>{t.nav.models}</h2><p className="page-description">上游发现、对外开放与当前可用性，是三个不同状态。</p></div>
         <div className="page-actions">
-          <button onClick={()=>boundary.request(()=>{setConnectionSeed(undefined);setConnecting(true);})}>接入模型</button>
+          <button className="primary" onClick={()=>boundary.request(()=>{setConnectionSeed(undefined);setConnecting(true);})}>接入模型</button>
 
         </div>
       </header>

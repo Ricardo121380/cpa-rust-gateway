@@ -172,7 +172,7 @@ export function KimiDeviceDialog({
     expired: "授权已过期",
     failed: "授权未完成",
   };
-  const footer = completed ? <SheetDismissButton disabled={busy}>完成</SheetDismissButton> : !session ? <><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" disabled={busy || start.isError} onClick={() => start.mutate()}>开始授权</button></> : unresolvedResult ? <SheetDismissButton disabled={busy}>关闭并标记结果未确认</SheetDismissButton> : awaitingConsent ? <SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton> : <SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
+  const footer = completed ? <SheetDismissButton disabled={busy}>完成</SheetDismissButton> : !session ? <><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" className="primary" disabled={busy || start.isError} onClick={() => start.mutate()}>开始授权</button></> : unresolvedResult ? <SheetDismissButton disabled={busy}>关闭并标记结果未确认</SheetDismissButton> : awaitingConsent ? <SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton> : <SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
   return <Sheet title={credentialId ? "重新授权 Kimi 账号" : "授权 Kimi 账号"} description={credentialId ? "仅更新这个已有账号的授权；当前连接会保留。" : "开始后在 Kimi 官方页面完成设备授权，面板会自动核对结果。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={awaitingConsent} footer={footer}>
     <div className="operation-summary"><span>Kimi · 设备授权</span><strong>连接 Kimi 账号</strong><small>获取验证码 → 官方确认 → 自动保存</small></div>
     {completed ? <p className="operation-receipt" role="status">Kimi 账号已保存。</p> : !session ? <>

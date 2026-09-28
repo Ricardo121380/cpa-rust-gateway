@@ -1,0 +1,1842 @@
+[
+  {
+    "theme": "light",
+    "route": "/",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "24 小时",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "7 天",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "30 天",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "刷新",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "请求量",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "平均耗时",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看此范围请求 →",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "管理账号 →",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看运行状态 →",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看费用与计价详情 →",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "route": "/accounts",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "授权 / 导入账号",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "全部账号",
+        "ratio": 5.683,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "运行状态",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "全部授权",
+        "ratio": 15.006,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "需要授权",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "已启用",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "已停用",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "批量管理",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 5.65,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "被拒绝",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "account-connection-link",
+        "text": "Responses1 个已配置连接 · 查看",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "更多",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "删除",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 5.65,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "可用",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "account-connection-link",
+        "text": "Responses1 个已配置连接 · 查看",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "更多",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "删除",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 5.65,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "未观测运行连接",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "account-connection-link",
+        "text": "Responses1 个已配置连接 · 查看",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "重新授权",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "更多",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "删除",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "route": "/upstreams",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "添加提供商",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-muted",
+        "text": "3 个来源",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "目录与模型开放",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "接口与账号",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "目录与模型开放",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "接口与账号",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "目录与模型开放",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "接口与账号",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "route": "/models",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "接入模型",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "active",
+        "text": "已开放模型",
+        "ratio": 5.683,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "上游目录",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "浏览上游目录",
+        "ratio": 5.885,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 5.65,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "管理连接",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "route": "/access",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "创建客户端密钥",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 5.65,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看请求记录",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "编辑",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "danger",
+        "text": "吊销",
+        "ratio": 4.675,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-critical",
+        "text": "已吊销",
+        "ratio": 4.317,
+        "floor": 4.5,
+        "pass": false
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看请求记录",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "编辑",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "route": "/monitoring",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "请求记录",
+        "ratio": 5.683,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "计费账本",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "失败归因",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "应用筛选",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "重置",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "route": "/usage",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "24 小时",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "7 天",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "30 天",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "全部",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "active",
+        "text": "用量分析",
+        "ratio": 5.683,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "价格目录",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge",
+        "text": "运营者计价",
+        "ratio": 15.006,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-warn",
+        "text": "14 条未完整计价",
+        "ratio": 4.453,
+        "floor": 4.5,
+        "pass": false
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-warn",
+        "text": "14 条未完整计价",
+        "ratio": 4.453,
+        "floor": 4.5,
+        "pass": false
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-warn",
+        "text": "15 条未完整计价",
+        "ratio": 4.453,
+        "floor": 4.5,
+        "pass": false
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看同范围账本 →",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "usage-request-link",
+        "text": "查看同范围请求 →",
+        "ratio": 6.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "刷新处理状态",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "route": "/settings",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 6.089,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "active",
+        "text": "通用",
+        "ratio": 5.683,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "出口策略",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "运行诊断",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "配置版本",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "审计与备份",
+        "ratio": 5.173,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-on",
+        "text": "跟随系统",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-off",
+        "text": "浅色",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-off",
+        "text": "深色",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-on",
+        "text": "中文",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-off",
+        "text": "English",
+        "ratio": 5.357,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "设置新密码",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "settings-lock",
+        "text": "退出登录",
+        "ratio": 5.009,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "刷新",
+        "ratio": 13.982,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.879,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "24 小时",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "7 天",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "30 天",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "刷新",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "请求量",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "平均耗时",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看此范围请求 →",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "管理账号 →",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看运行状态 →",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看费用与计价详情 →",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/accounts",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "授权 / 导入账号",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "全部账号",
+        "ratio": 9.222,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "运行状态",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "全部授权",
+        "ratio": 13.586,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "需要授权",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "已启用",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "已停用",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "批量管理",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 7.788,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "被拒绝",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "account-connection-link",
+        "text": "Responses1 个已配置连接 · 查看",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "更多",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "删除",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 7.788,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "可用",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "account-connection-link",
+        "text": "Responses1 个已配置连接 · 查看",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "更多",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "删除",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 7.788,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "未观测运行连接",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "account-connection-link",
+        "text": "Responses1 个已配置连接 · 查看",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "重新授权",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "更多",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "删除",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/upstreams",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "添加提供商",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-muted",
+        "text": "3 个来源",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "目录与模型开放",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "接口与账号",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "目录与模型开放",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "接口与账号",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "目录与模型开放",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "接口与账号",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/models",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "接入模型",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "active",
+        "text": "已开放模型",
+        "ratio": 9.222,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "上游目录",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "浏览上游目录",
+        "ratio": 7.13,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 7.788,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "管理连接",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/access",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "创建客户端密钥",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-good",
+        "text": "已启用",
+        "ratio": 7.788,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看请求记录",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "编辑",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "danger",
+        "text": "吊销",
+        "ratio": 4.065,
+        "floor": 4.5,
+        "pass": false
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-critical",
+        "text": "已吊销",
+        "ratio": 3.892,
+        "floor": 4.5,
+        "pass": false
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看请求记录",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "详情",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "编辑",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/monitoring",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "请求记录",
+        "ratio": 9.222,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "计费账本",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "失败归因",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "应用筛选",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "重置",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/usage",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "24 小时",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "7 天",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "30 天",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "",
+        "text": "全部",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "active",
+        "text": "用量分析",
+        "ratio": 9.222,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "价格目录",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge",
+        "text": "运营者计价",
+        "ratio": 13.586,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-warn",
+        "text": "14 条未完整计价",
+        "ratio": 8.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-warn",
+        "text": "14 条未完整计价",
+        "ratio": 8.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "SPAN",
+        "class": "badge badge-status badge-warn",
+        "text": "15 条未完整计价",
+        "ratio": 8.207,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看同范围账本 →",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "usage-request-link",
+        "text": "查看同范围请求 →",
+        "ratio": 7.844,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "刷新处理状态",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "route": "/settings",
+    "rows": [
+      {
+        "element": "A",
+        "class": "",
+        "text": "查看配置上下文",
+        "ratio": 8.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "active",
+        "text": "通用",
+        "ratio": 9.222,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "出口策略",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "运行诊断",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "配置版本",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "A",
+        "class": "",
+        "text": "审计与备份",
+        "ratio": 9.156,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-on",
+        "text": "跟随系统",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-off",
+        "text": "浅色",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-off",
+        "text": "深色",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-on",
+        "text": "中文",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "chip-off",
+        "text": "English",
+        "ratio": 7.079,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "设置新密码",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "settings-lock",
+        "text": "退出登录",
+        "ratio": 6.573,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "secondary",
+        "text": "刷新",
+        "ratio": 8.918,
+        "floor": 4.5,
+        "pass": true
+      },
+      {
+        "element": "BUTTON",
+        "class": "primary",
+        "text": "查看变更",
+        "ratio": 5.804,
+        "floor": 4.5,
+        "pass": true
+      }
+    ]
+  }
+]

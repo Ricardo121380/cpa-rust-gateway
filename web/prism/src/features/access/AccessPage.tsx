@@ -138,7 +138,7 @@ function GroupRoutes({
       )}
 
       {adding&&receipt?<Sheet title="路由授权结果" guardUnsaved={false} onEscape={finishGrant} footer={<SheetDismissButton onDismiss={finishGrant}>完成</SheetDismissButton>}><p role="status">授权已保存到草稿，尚未应用。</p></Sheet>:adding ? (
-        <Sheet title={`授权路由 · ${resourceName(groupId,"group")}`} onEscape={() => setAdding(false)} busy={grant.isPending} footer={<><SheetDismissButton className="secondary" disabled={grant.isPending}>取消</SheetDismissButton><button type="submit" form="group-route-form" disabled={submitted.current||suggestions.isPending||suggestions.isError}>授权</button></>}>
+        <Sheet title={`授权路由 · ${resourceName(groupId,"group")}`} onEscape={() => setAdding(false)} busy={grant.isPending} footer={<><SheetDismissButton className="secondary" disabled={grant.isPending}>取消</SheetDismissButton><button type="submit" className="primary" form="group-route-form" disabled={submitted.current||suggestions.isPending||suggestions.isError}>授权</button></>}>
           <ConfigurationTaskNotice workingId={workingId} error={grant.error} onReview={version=>{if(owned()){useVersionStore.getState().rememberPending(version);useVersionStore.getState().select(version);}}}/>
           <form id="group-route-form" className="sheet-form" onSubmit={onGrantSubmit}><fieldset disabled={submitted.current}>
             <label>
@@ -230,7 +230,7 @@ export function AccessPage() {
       <header className="page-head">
         <div><h2>{t.nav.access}</h2><p className="page-description">每把密钥都有明确的模型边界。创建后秘密只显示一次。</p></div>
         <div className="page-actions">
-          <button onClick={()=>setCreating(true)}>创建客户端密钥</button>
+          <button className="primary" onClick={()=>setCreating(true)}>创建客户端密钥</button>
         </div>
       </header>
       {creating?<IssueKeyDialog onClose={()=>setCreating(false)} onSaved={(version)=>{setCreating(false);useVersionStore.getState().select(version);}}/>:null}

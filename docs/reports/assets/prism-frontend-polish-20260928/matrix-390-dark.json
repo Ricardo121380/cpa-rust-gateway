@@ -1,0 +1,261 @@
+[
+  {
+    "name": "overview",
+    "route": "#/",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "运行概览",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-overview-390-dark.png"
+  },
+  {
+    "name": "accounts",
+    "route": "#/accounts",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "账号管理",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [
+      "授权 / 导入账号"
+    ],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [
+      "7px",
+      "7px",
+      "7px"
+    ],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-accounts-390-dark.png"
+  },
+  {
+    "name": "upstreams",
+    "route": "#/upstreams",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "AI 提供商",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [
+      "添加提供商"
+    ],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [
+      "7px"
+    ],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-upstreams-390-dark.png"
+  },
+  {
+    "name": "models",
+    "route": "#/models",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "模型管理",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [
+      "接入模型"
+    ],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [
+      "7px"
+    ],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-models-390-dark.png"
+  },
+  {
+    "name": "access",
+    "route": "#/access",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "API 密钥",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [
+      "创建客户端密钥"
+    ],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [
+      "7px",
+      "7px"
+    ],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-access-390-dark.png"
+  },
+  {
+    "name": "monitoring",
+    "route": "#/monitoring",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "请求日志",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [
+      "7px",
+      "7px",
+      "7px"
+    ],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-monitoring-390-dark.png"
+  },
+  {
+    "name": "usage",
+    "route": "#/usage",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "用量与费用",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [
+      "7px",
+      "7px",
+      "7px"
+    ],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-usage-390-dark.png"
+  },
+  {
+    "name": "settings",
+    "route": "#/settings",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "heading": "设置",
+    "horizontalDocumentOverflow": false,
+    "clipped": [],
+    "primaryActions": [],
+    "dock": {
+      "x": 12,
+      "y": 754,
+      "width": 366,
+      "height": 72,
+      "buttons": [
+        {
+          "text": "查看变更",
+          "variant": "primary",
+          "disabled": false
+        }
+      ]
+    },
+    "badgeRadius": [],
+    "errors": [],
+    "screenshot": "/Users/huangrui/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/prism-frontend-polish-20260928/matrix-settings-390-dark.png"
+  }
+]

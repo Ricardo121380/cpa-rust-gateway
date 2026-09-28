@@ -202,7 +202,7 @@ function BindingSheet({
       description="将已有账号连接到接口，供该接口调度使用。"
       onEscape={onCancel}
       busy={pending}
-      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={pending || channels.length === 0 || accounts.length === 0}>保存连接</button></>}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" className="primary" form={formId} disabled={pending || channels.length === 0 || accounts.length === 0}>保存连接</button></>}
     >
       {feedback}
       <form
@@ -309,7 +309,7 @@ function ChannelSheet({
       description={editing === undefined ? "填写接口地址和请求格式；账号连接在保存后单独设置。" : "修改接口地址、协议或目录路径。保存后会重新读取配置。"}
       onEscape={onCancel}
       busy={pending}
-      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={pending}>{editing === undefined ? "创建接口" : "保存修改"}</button></>}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" className="primary" form={formId} disabled={pending}>{editing === undefined ? "创建接口" : "保存修改"}</button></>}
     >
       {feedback}
       <form
@@ -415,7 +415,7 @@ function AccountSheet({
       description="仅供高级维护使用。日常授权或导入请使用“添加账号”。"
       onEscape={onCancel}
       busy={pending}
-      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} disabled={pending}>{editing === undefined ? "保存原始凭据" : "保存凭据"}</button></>}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" className="primary" form={formId} disabled={pending}>{editing === undefined ? "保存原始凭据" : "保存凭据"}</button></>}
     >
       {feedback}
       <form

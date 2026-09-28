@@ -1,0 +1,268 @@
+{
+  "fixtureOnly": true,
+  "draftLens": [
+    {
+      "pane": "topbar",
+      "map": true,
+      "width": 1166,
+      "frost": 20,
+      "saturation": 1.2
+    },
+    {
+      "pane": "rail",
+      "map": true,
+      "width": 208,
+      "frost": 20,
+      "saturation": 1.2
+    },
+    {
+      "pane": "dock",
+      "map": true,
+      "width": 860,
+      "frost": 20,
+      "saturation": 1.2
+    }
+  ],
+  "review": {
+    "route": "#/versions?review=draft-2026-08",
+    "text": "待应用变更核对这一批配置的净变化；全局操作单独列出。关闭编辑当前正在编辑新增 grok.build 凭据池(演示数据)核对变化 → 校验 → 应用完整净变化：23 项重新比较客户端访问修改 · [\"team-batch\"]历史限制精确引用access_group · [\"team-batch\"]修改 · [\"team-default\"]历史限制精确引用access_group · [\"team-default\"]新增 · [\"team-default\",\"rt-minimax\"]资源整体变化精确引用route_grant · [\"team-default\",\"rt-minimax\"]提供商与账号新增 · [\"cred-codex-oauth\"]资源整体变化仅比较凭据存储记录，不判断秘密明文是否相同。精确引用credential · [\"cred-codex-oauth\"]新增 · [\"cred-grok-oauth\"]资源整体变化仅比较凭据存储记录，不判断秘密明文是否相同。精确引用credential · [\"cred-grok-oauth\"]新增 · [\"cred-relay-key\"]资源整体变化仅比较凭据存储记录，不判断秘密明文是否相同。精确引用credential · [\"cred-relay-key\"]新增 · [\"ep-grok-build\",\"cred-grok-oauth\"]资源整体变化精确引用credential_binding · [\"ep-grok-build\",\"cred-grok-oauth\"]新增 · [\"ep-relay-a-responses\",\"cred-codex-oauth\"]资源整体变化精确引用credential_binding · [\"ep-relay-a-responses\",\"cred-codex-oauth\"]新增 · [\"ep-relay-a-responses\",\"cred-relay-key\"]资源整体变化精确引用credential_binding · [\"ep-relay-a-responses\",\"cred-relay-key\"]新增 · [\"ep-grok-build\"]资源整体变化精确引用endpoint · [\"ep-grok-build\"]新增 · [\"ep-relay-a-responses\"]资源整体变化精确引用endpoint · [\"ep-relay-a-responses\"]新增 · [\"grok-build-pool\"]资源整体变化精确引用upstream · [\"grok-build-pool\"]新增 · [\"kiro-sub\"]资源整体变化精确引用upstream · [\"kiro-sub\"]新增 · [\"relay-a\"]资源整体变化精确引用upstream · [\"relay-a\"]出口策略新增 · [\"ep-grok-build\",\"cred-grok-oauth\"]资源整体变化精确引用egress_binding · [\"ep-grok-build\",\"cred-grok-oauth\"]新增 · [\"ep-relay-a-responses\",\"cred-relay-key\"]资源整体变化精确引用egress_binding · [\"ep-relay-a-responses\",\"cred-relay-key\"]新增 · [\"relay-only\"]资源整体变化精确引用egress_policy · [\"relay-only\"]新增 · [\"node-eu-1\"]资源整体变化精确引用proxy_node · [\"node-eu-1\"]新增 · [\"node-eu-2\"]资源整体变化精确引用proxy_node · [\"node-eu-2\"]新增 · [\"node-loose\"]资源整体变化精确引用proxy_node · [\"node-loose\"]新增 · [\"pool-empty\"]资源整体变化精确引用proxy_pool · [\"pool-empty\"]新增 · [\"pool-eu\"]资源整体变化精确引用proxy_pool · [\"pool-eu\"]模型与路由新增 · [\"pm-minimax\"]资源整体变化精确引用public_model · [\"pm-minimax\"]上一页1 / 1下一页应用影响已完整读取 23 项净变化。应用后使用新的服务配置；历史请求与账本保留。已独立保存的全局操作目录按自己的生效时间参与计价；应用、放弃或回滚配置不会删除这些目录，也不会改写历史账本。未查到这份草稿关联的目录导入或恢复记录。返回配置校验并应用",
+    "dock": [
+      {
+        "text": "正在核对",
+        "class": "secondary",
+        "disabled": true
+      }
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08/diff"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/resource-audit-events"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      }
+    ]
+  },
+  "confirm": {
+    "title": "确认应用配置",
+    "button": "确认应用",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08/diff"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/resource-audit-events"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/audit-events"
+      },
+      {
+        "method": "POST",
+        "path": "/admin/config-versions/draft-2026-08/validate"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08"
+      }
+    ],
+    "dockDisabled": true
+  },
+  "receipt": {
+    "text": "配置操作结果×配置：新增 grok.build 凭据池(演示数据)配置应用已确认。已核对：目标仍为当前活动配置。核对服务端状态完成",
+    "dockDisabled": true
+  },
+  "completed": {
+    "context": "active",
+    "dock": false,
+    "dialogs": 0,
+    "lens": {
+      "frost": 9,
+      "saturation": 1.85
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08/diff"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/resource-audit-events"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/audit-events"
+      },
+      {
+        "method": "POST",
+        "path": "/admin/config-versions/draft-2026-08/validate"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08"
+      },
+      {
+        "method": "POST",
+        "path": "/admin/config-versions/draft-2026-08/publish"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/draft-2026-08"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/audit-events"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions"
+      }
+    ],
+    "phases": [
+      {
+        "title": null,
+        "buttons": [
+          {
+            "text": "正在核对",
+            "class": "secondary",
+            "disabled": true
+          }
+        ]
+      },
+      {
+        "title": "正在校验配置",
+        "buttons": [
+          {
+            "text": "正在核对",
+            "class": "secondary",
+            "disabled": true
+          },
+          {
+            "text": "处理中…",
+            "class": "",
+            "disabled": true
+          }
+        ]
+      },
+      {
+        "title": "确认应用配置",
+        "buttons": [
+          {
+            "text": "正在核对",
+            "class": "secondary",
+            "disabled": true
+          },
+          {
+            "text": "取消",
+            "class": "secondary",
+            "disabled": false
+          },
+          {
+            "text": "确认应用",
+            "class": "primary",
+            "disabled": false
+          }
+        ]
+      },
+      {
+        "title": "正在应用配置",
+        "buttons": [
+          {
+            "text": "正在核对",
+            "class": "secondary",
+            "disabled": true
+          },
+          {
+            "text": "处理中…",
+            "class": "",
+            "disabled": true
+          }
+        ]
+      },
+      {
+        "title": "配置操作结果",
+        "buttons": [
+          {
+            "text": "正在核对",
+            "class": "secondary",
+            "disabled": true
+          },
+          {
+            "text": "核对服务端状态",
+            "class": "secondary",
+            "disabled": true
+          },
+          {
+            "text": "完成",
+            "class": "",
+            "disabled": true
+          }
+        ]
+      },
+      {
+        "title": "配置操作结果",
+        "buttons": [
+          {
+            "text": "正在核对",
+            "class": "secondary",
+            "disabled": true
+          },
+          {
+            "text": "核对服务端状态",
+            "class": "secondary",
+            "disabled": false
+          },
+          {
+            "text": "完成",
+            "class": "",
+            "disabled": false
+          }
+        ]
+      },
+      {
+        "title": null,
+        "buttons": []
+      }
+    ],
+    "errors": []
+  }
+}

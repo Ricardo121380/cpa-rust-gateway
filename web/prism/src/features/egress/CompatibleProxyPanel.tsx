@@ -122,7 +122,7 @@ function Section({
 
 function ProxyEditor({title,formId,label,pending,locked,onCancel,children}:Readonly<{title:string;formId:string;label:string;pending:boolean;locked:boolean;onCancel:()=>void;children:ReactNode}>){
  const [dirty,setDirty]=useState(false);const admission=useOperationBoundary();
- return <InlineWorkspace title={title} dirty={dirty} busy={pending} onClose={onCancel} footer={<><button type="button" className="secondary" disabled={pending} onClick={()=>admission.request(onCancel)}>取消</button><button type="submit" form={formId} disabled={locked}>{label}</button></>}><div onChange={()=>setDirty(true)}><fieldset disabled={locked}>{children}</fieldset></div></InlineWorkspace>;
+ return <InlineWorkspace title={title} dirty={dirty} busy={pending} onClose={onCancel} footer={<><button type="button" className="secondary" disabled={pending} onClick={()=>admission.request(onCancel)}>取消</button><button type="submit" className="primary" form={formId} disabled={locked}>{label}</button></>}><div onChange={()=>setDirty(true)}><fieldset disabled={locked}>{children}</fieldset></div></InlineWorkspace>;
 }
 
 function PoolSheet({

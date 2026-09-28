@@ -32,7 +32,7 @@ export function PendingChangesWorkspace({target,active,onClose,onAdopt}:Readonly
  const reset=()=>{setPage(0);void client.invalidateQueries({queryKey:["config-versions"]}).then(()=>client.resetQueries({queryKey:key,exact:true}));};
  const apply=()=>lifecycle.start(target,"publish",{inline:true,proof:{targetRevision:target.revision,baseId:active?.id??null,...(active?{baseRevision:active.revision}:{})}});
  return <InlineWorkspace title="待应用变更" description="核对这一批配置的净变化；全局操作单独列出。" dirty={false} busy={lifecycle.active} onClose={onClose}
-  footer={<><button type="button" className="secondary" disabled={lifecycle.active} onClick={onClose}>返回配置</button>{selected?<button type="button" disabled={!complete||lifecycle.active||target.status!=="draft"} onClick={apply}>校验并应用</button>:<button type="button" disabled={lifecycle.active||target.status!=="draft"} onClick={()=>onAdopt(target)}>接续这份草稿</button>}</>}>
+  footer={<><button type="button" className="secondary" disabled={lifecycle.active} onClick={onClose}>返回配置</button>{selected?<button type="button" className="primary" disabled={!complete||lifecycle.active||target.status!=="draft"} onClick={apply}>校验并应用</button>:<button type="button" className="primary" disabled={lifecycle.active||target.status!=="draft"} onClick={()=>onAdopt(target)}>接续这份草稿</button>}</>}>
   <div className="changes-workspace-grid"><div className="changes-workspace-main">
   <div className="operation-summary"><span>{selected?"当前正在编辑":"只读查看"}</span><strong>{target.description||"未命名草稿"}</strong><small>核对变化 → 校验 → 应用</small></div>
   {!active?<p role="status">当前没有活动配置，无法进行差异比较。可校验并明确应用首份服务配置；此处不推断变化数。</p>:<>

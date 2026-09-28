@@ -3457,3 +3457,25 @@ See `docs/reports/cpar-kimi-metadata-20260927.md` and `docs/change-requests/BE-F
 **Why:** API channels had no zero-configuration creation path; native Grok saving did not provide the connection next step; multiple Kimi Coding services could not be explicitly selected. Configuration selection remounts also discarded onboarding continuation.
 
 **Other side:** FYI under unified repair authorization. Existing CRUD and configuration lifecycle reused; no schema, secret persistence, automatic model grants or production changes. Optional Kimi query documented in `docs/change-requests/BE-FE-KIMI-TARGET-SELECTION-002.md`. Evidence and live limits: `docs/reports/cpar-channel-onboarding-repair-20260927.md`.
+
+## 2026-09-28 - Codex - Prism frontend hierarchy and selection motion
+
+**What:** `web/prism/src/app/{AppShell,DraftDock}.tsx`, `app.css`, `v6.css`,
+`components/StatusBadge.tsx`, new `components/motion/SelectionIndicator.tsx` and
+`selection-indicator.css`, explicit button variants across resource/configuration
+forms, and overview/request presentation. See `docs/reports/prism-frontend-polish-20260928.md`.
+
+**Why:** The default blue button reversed the prototype's action hierarchy.
+The draft dock exposed a misleading apply shortcut. Restore neutral defaults,
+explicit primary actions, one review entrance, compact status badges, readable
+overview scope descriptions and decorative navigation/segment selection motion.
+Contrast verification also corrects warning/critical text on their tinted surfaces.
+
+**Other side:** FYI under the user's explicit implementation authorization
+("开始吧") for the reviewed frontend plan. Routing, Sheet/OperationBoundary,
+configuration publication, APIs, generated client and dependencies are unchanged.
+Motion uses SVG attributes and requestAnimationFrame to retain production CSP
+and fixed four-file output. Local unit/type/build gates and EgoLite fixture
+acceptance are recorded separately from real gateway/provider/production
+acceptance. No deployment or real account write. A later commit must carry the
+required `Cross-Boundary` trailer.
