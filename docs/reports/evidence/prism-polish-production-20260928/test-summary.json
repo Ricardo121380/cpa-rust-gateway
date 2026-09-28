@@ -1,0 +1,12 @@
+{
+  "revision": "b0cf36e387b774439acc23830221389eb3ac74d0",
+  "formal_gate_run": 36401343994,
+  "formal_gate_url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36401343994",
+  "formal_gate_conclusion": "success",
+  "rust_test_groups": 121,
+  "rust_tests_passed": 1389,
+  "rust_tests_failed": 0,
+  "rust_tests_ignored": 12,
+  "frontend_tests_passed": 443,
+  "frontend_test_files": 60
+}

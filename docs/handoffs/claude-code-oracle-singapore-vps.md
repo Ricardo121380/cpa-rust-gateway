@@ -1,5 +1,22 @@
 # Claude Code handoff: Oracle Singapore VPS access
 
+## 2026-09-28: Prism polish and channel onboarding deployed
+
+Production serves signed `b0cf36e387b774439acc23830221389eb3ac74d0`, schema 31,
+including channel onboarding `5497f92` and frontend polish `1a2c345`. Formal gates,
+both signed architectures, independent verification, production-copy compatible
+rollback and isolated administrator lifecycle passed. Stop-to-ready 644ms.
+Eight accounts/admin, 2391 events, 704 ledger rows, 11 quarantined events and effective
+permissions retained. Final service active/running, accepting requests, public/loopback
+health 200 and automatic restarts 0. Fallback `f283494` retains latest data/credentials.
+EgoLite 24 user-login acceptance passed for 48 page layouts and 6 connection-workspace
+states at three sizes/both themes; mobile navigation and overview selectors passed.
+Only read-only production actions were exercised. No account/config write, real
+inference or DNS/Caddy/Autoreg change. Actual display FPS and full production onboarding
+remain unverified. Original appearance/viewport restored; overview result page retained.
+See [release evidence](../reports/prism-polish-production-20260928.md).
+Earlier entries are historical; this receipt grants no new authority.
+
 ## 2026-09-27: Kimi quota semantics and visible account deletion deployed
 
 Production serves signed `f28349406b7645572e85c95d411a769720092751`, schema31.

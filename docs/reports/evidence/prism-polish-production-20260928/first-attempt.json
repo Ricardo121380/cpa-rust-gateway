@@ -1,0 +1,9 @@
+{
+  "revision": "1a2c3458f82723810d932254a65faba3c93b5b4c",
+  "formal_gate_run": 36400564735,
+  "conclusion": "failure",
+  "failure_class": "clippy_manual_let_else",
+  "signed_build_run": 36400569278,
+  "deployment_attempted": false,
+  "correction": "Equivalent fallible let binding, same invalid_input error response."
+}

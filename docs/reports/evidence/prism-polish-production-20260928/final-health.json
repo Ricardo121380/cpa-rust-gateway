@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-09-28T09:45:49.123149+00:00",
+  "service": "active/running",
+  "automatic_restarts": 0,
+  "revision": "b0cf36e387b774439acc23830221389eb3ac74d0",
+  "current_link_revision": "b0cf36e387b774439acc23830221389eb3ac74d0",
+  "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+  "accepting_requests": true,
+  "loopback_health": 200,
+  "public_health": 200,
+  "passed": true
+}

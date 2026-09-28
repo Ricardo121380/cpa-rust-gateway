@@ -3479,3 +3479,24 @@ and fixed four-file output. Local unit/type/build gates and EgoLite fixture
 acceptance are recorded separately from real gateway/provider/production
 acceptance. No deployment or real account write. A later commit must carry the
 required `Cross-Boundary` trailer.
+
+## 2026-09-28 - Codex - Combined Prism production release receipt
+
+**What:** `docs/reports/prism-polish-production-20260928.md` and its value-free
+evidence, frontend local report release status, and the Oracle VPS handoff now
+record signed production `b0cf36e`, including channel onboarding `5497f92` and
+frontend polish `1a2c345`.
+
+**Why:** The user explicitly authorized combined deployment of this work and
+the other chat's changes. Exact-code formal gates, both signed targets,
+independent verification, compatible production-copy rollback, isolated auth
+and actual deployment passed; 644ms cutover, schema 31, 8 accounts, 2391 events,
+704 ledger rows, 11 quarantined events/admin/effective permissions retained.
+
+**Other side:** FYI. Frontend source crossing and its trailer were committed
+in `1a2c345`. User-login EgoLite 24 production read-only acceptance passed 48
+page and 6 connection-workspace states; real screenshots remain private.
+No production configuration/account write or inference was performed.
+Fallback `f283494` retains latest state; reassess compatibility after new user
+configuration changes. Actual animation FPS and full production onboarding
+remain unverified; see the release report for exact scope.

@@ -1,0 +1,105 @@
+{
+  "spaceId": 24,
+  "realProduction": true,
+  "authenticated": false,
+  "loginMatrix": [
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "overflow": 0,
+      "primaryButtons": 1,
+      "button": {
+        "x": 553,
+        "y": 577.140625,
+        "width": 334,
+        "height": 48,
+        "background": "none"
+      },
+      "inputsInViewport": true,
+      "screenshot": "login/login-1440-light.png"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "overflow": 0,
+      "primaryButtons": 1,
+      "button": {
+        "x": 553,
+        "y": 577.140625,
+        "width": 334,
+        "height": 48,
+        "background": "none"
+      },
+      "inputsInViewport": true,
+      "screenshot": "login/login-1440-dark.png"
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "theme": "light",
+      "overflow": 0,
+      "primaryButtons": 1,
+      "button": {
+        "x": 473,
+        "y": 487.140625,
+        "width": 334,
+        "height": 48,
+        "background": "none"
+      },
+      "inputsInViewport": true,
+      "screenshot": "login/login-1280-light.png"
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "theme": "dark",
+      "overflow": 0,
+      "primaryButtons": 1,
+      "button": {
+        "x": 473,
+        "y": 487.140625,
+        "width": 334,
+        "height": 48,
+        "background": "none"
+      },
+      "inputsInViewport": true,
+      "screenshot": "login/login-1280-dark.png"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "overflow": 0,
+      "primaryButtons": 1,
+      "button": {
+        "x": 37,
+        "y": 549.140625,
+        "width": 316,
+        "height": 48,
+        "background": "none"
+      },
+      "inputsInViewport": true,
+      "screenshot": "login/login-390-light.png"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "overflow": 0,
+      "primaryButtons": 1,
+      "button": {
+        "x": 37,
+        "y": 549.140625,
+        "width": 316,
+        "height": 48,
+        "background": "none"
+      },
+      "inputsInViewport": true,
+      "screenshot": "login/login-390-dark.png"
+    }
+  ],
+  "passed": true,
+  "runtimeOrConsoleErrors": 0
+}
