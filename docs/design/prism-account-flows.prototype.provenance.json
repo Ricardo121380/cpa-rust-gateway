@@ -15,12 +15,13 @@
   ],
   "v6_style_sha256": "05bcf4f780548ebe43c9d15a2b8fb0ca1c739d2b91d7cd883bf7679117272dbf",
   "v6_style_bytes": 38158,
-  "revision": 2,
+  "revision": 3,
   "previous_revision": {
-    "commit": "dd60328128eb6b7e7bfc3c8202dbaf1045101acf",
-    "prototype_sha256": "478037aaad194cead112edb4d5bb599ee8efa948e5b725c061d6d3ca84eae15f",
-    "user_feedback": "INCOMPLETE_WALKTHROUGH_FLOW_REVISION_REQUESTED",
-    "note": "First revision was not accepted; its eight guided scenarios are not revision two evidence"
+    "commit": "af6a21344165028130a84dc321d88ec9c5e4bcc9",
+    "prototype_sha256": "596dc1ae2828c660460fab63f300431c8d813e618fdcfa75ddf22ef8de5a2a46",
+    "user_feedback": "PAGE_SEPARATION_REVISION_REQUESTED",
+    "verification_record": "https://github.com/Ricardo121380/cpa-rust-gateway/blob/af6a21344165028130a84dc321d88ec9c5e4bcc9/docs/design/prism-account-flows.prototype.provenance.json",
+    "note": "Prior checks remain historical; not rerun as full revision three acceptance"
   },
   "reference_sources": [
     {
@@ -44,99 +45,72 @@
     "new_models": "not_open_until_explicit_grant",
     "resolution_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/4#issuecomment-5886103785"
   },
-  "user_feedback": "PENDING_REVISION_2_WALKTHROUGH",
-  "browser_acceptance": "PASS_LOCAL_SYNTHETIC_WALKTHROUGH",
+  "user_feedback": "PENDING_REVISION_3_WALKTHROUGH",
+  "browser_acceptance": "PASS_LOCAL_SYNTHETIC_CHANGED_FLOWS",
   "real_provider": "NOT_RUN",
   "production": "NOT_RUN",
-  "prototype_sha256": "596dc1ae2828c660460fab63f300431c8d813e618fdcfa75ddf22ef8de5a2a46",
-  "verified_at": "2026-09-29T08:02:48.469764+00:00",
+  "prototype_sha256": "c98b8a21b8139d9e67f72737f59a83fb3ec9adba4087e5eea3b4a534e9a434dc",
+  "verified_at": "2026-09-29T08:36:39.895373+00:00",
   "browser": {
     "tool": "EgoLite via ego-browser",
     "task_space": 26,
     "observations": [
       {
-        "id": "api_direct_save",
+        "id": "list_and_filter_separation",
         "status": "PASS",
-        "observed": "Kimi API default form saved and applied without permission selection; list showed model not open"
+        "observed": "Default accounts contained four authorization accounts and seven account-channel filter options; AI providers contained one API configuration and four API-channel options"
       },
       {
-        "id": "separate_model_permissions",
+        "id": "api_save_and_exclusion",
         "status": "PASS",
-        "observed": "Saved work scope through row Models; list changed to configured with real calls unverified"
+        "observed": "Kimi API saved without permission step and appeared only in providers, while accounts remained four"
       },
       {
-        "id": "oauth_auto_registration",
+        "id": "oauth_registration_and_exclusion",
         "status": "PASS",
-        "observed": "Kiro simulated authorization closed drawer automatically; new account listed with model not open"
+        "observed": "Kiro authorization saved automatically, appeared in accounts and was absent from providers"
       },
       {
-        "id": "reauth_disabled_preserved",
+        "id": "independent_model_permissions",
         "status": "PASS",
-        "observed": "Grok Build reauthorization kept disabled switch false and account count unchanged"
+        "observed": "New Kimi API remained closed until work scope was saved independently"
       },
       {
-        "id": "unknown_authorization",
+        "id": "provider_detail_and_delete",
         "status": "PASS",
-        "observed": "Response lost then missing identity kept original account; reliable identity query updated without duplication"
+        "observed": "API detail used API Key and provider terms without authorization-account quota actions; delete preview retained shared resources and did not claim upstream key revocation"
       },
       {
-        "id": "partial_import_retry",
+        "id": "expired_api_key",
         "status": "PASS",
-        "observed": "Two files saved and one invalid; retry processed remaining file only"
+        "observed": "API credential expiry showed replace-key action and wording"
       },
       {
-        "id": "partial_import_after_draft_review",
+        "id": "partial_import_placement",
         "status": "PASS",
-        "observed": "Failed file and saved rows remained visible after preserving pending changes and reopening import"
+        "observed": "Two file imports saved and one failed; successful account records appeared only in accounts"
       },
       {
-        "id": "connection_and_drafts",
+        "id": "independent_empty_states",
         "status": "PASS",
-        "observed": "Multiple connections required inline choice; combined review included two prior edits and new Kimi configuration"
+        "observed": "After removing API configs providers showed provider empty state while accounts remained; fully empty scene showed account-specific empty state"
       },
       {
-        "id": "concurrent_revision",
+        "id": "search_and_filter_scope",
         "status": "PASS",
-        "observed": "Concurrent edit replaced apply action with reload requirement; latest list applied and pending dock cleared"
-      },
-      {
-        "id": "disable_delete",
-        "status": "PASS",
-        "observed": "Disable preserved two in-flight requests; single delete preview stated retained shared resources and history; only target removed from list"
-      },
-      {
-        "id": "new_identity_and_reauth_conflict",
-        "status": "PASS",
-        "observed": "New Codex login accepted different reliable identity; targeted reauthorization rejected different identity"
-      },
-      {
-        "id": "empty_permission_choice",
-        "status": "PASS",
-        "observed": "Empty selection remained visible and prevented permission save without affecting onboarding"
-      },
-      {
-        "id": "global_apply_recovery",
-        "status": "PASS",
-        "observed": "Native-channel simulated failure showed global block; apply cleared block and pending dock"
-      },
-      {
-        "id": "local_isolation_release",
-        "status": "PASS",
-        "observed": "Explicit confirm cleared local isolation with unverified wording and no model request"
+        "observed": "Codex filter returned one account; changing pages reset filter/search; unmatched provider search showed explicit empty result"
       }
     ],
     "visual_review": [
-      "desktop light",
-      "desktop dark",
-      "390 x 844 cards and API drawer"
+      "desktop accounts with four authorization rows",
+      "desktop AI providers with API configuration only"
     ],
-    "narrow_layout": {
-      "viewport": 390,
-      "documentWidth": 390,
-      "canvasClientWidth": 390,
-      "canvasScrollWidth": 390
+    "handoff_viewport": {
+      "width": 1793,
+      "height": 959,
+      "tableDisplay": "table"
     },
-    "evidence_scope": "Offline synthetic prototype only. Not exhaustive state coverage, per-channel verification, human acceptance or production validation."
+    "evidence_scope": "Targeted offline synthetic checks for revision three changes. Other revision two checks were not rerun. No human acceptance, per-channel or production validation."
   },
   "static_checks": {
     "scripts": "PASS",
@@ -145,5 +119,21 @@
     "external_asset_references": 0,
     "network_api_calls": 0,
     "csp_connect_src": "none"
+  },
+  "revision_history": [
+    {
+      "commit": "dd60328128eb6b7e7bfc3c8202dbaf1045101acf",
+      "prototype_sha256": "478037aaad194cead112edb4d5bb599ee8efa948e5b725c061d6d3ca84eae15f",
+      "user_feedback": "INCOMPLETE_WALKTHROUGH_FLOW_REVISION_REQUESTED",
+      "note": "First revision was not accepted; its eight guided scenarios are not revision two evidence"
+    }
+  ],
+  "page_separation_decision": {
+    "status": "CONFIRMED",
+    "user_instruction": "那就按照CPA/CPAMP来调整吧",
+    "providers": "API Key configurations only",
+    "accounts": "OAuth, device and imported account credentials only",
+    "oauth": "Start authorization and return to accounts",
+    "data_model_change": false
   }
 }
