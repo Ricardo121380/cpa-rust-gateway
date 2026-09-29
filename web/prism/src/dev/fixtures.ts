@@ -91,7 +91,7 @@ type EndpointRow = {
   base_url: string;
   inference_path: string;
   models_path: string | null;
-  transport: "https";
+  transport: "http" | "sse" | "websocket";
   enabled: boolean;
 };
 
@@ -99,7 +99,7 @@ type CredentialRow = {
   id: string;
   upstream_id: string;
   kind: string;
-  status: "active" | "disabled" | "revoked";
+  status: "active" | "disabled" | "revoked" | "cooling" | "unauthorized";
   revision: number;
   secret_present: true;
 };
@@ -313,7 +313,7 @@ const state = {
           base_url: "https://relay-a.example.com/v1",
           inference_path: "/responses",
           models_path: "/models",
-          transport: "https",
+          transport: "http",
           enabled: true,
         },
         {
@@ -324,7 +324,7 @@ const state = {
           base_url: "https://cli-chat-proxy.grok.com/v1",
           inference_path: "/responses",
           models_path: null,
-          transport: "https",
+          transport: "http",
           enabled: false,
         },
       ],
@@ -695,17 +695,45 @@ function fixtureBuildIdentity(material:string):{email:string|null;phone:null;use
 }
 const nativeFixtureAccounts: NativeFixtureAccount[] = [];
 let nativeFixtureGeneration=0;
-const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:{email:string|null;phone:string|null;username:string|null}|null;identity_state:string};name:string;target?:{account_id:string;revision:number}}>();
+const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:{email:string|null;phone:string|null;username:string|null}|null;identity_state:string;runtime_applied?:boolean|null};name:string;target?:{account_id:string;revision:number}}>();
 const approvedNativeSessions=new Set<string>();
 const kimiDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const kiroDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const unresolvedDevicePolls = new Set<"kimi-coding" | "kiro">();
+type FixtureAuthorizationReceipt={session_id:string;channel:string;config_version:string;upstream_id:string;credential_id:string;started_revision:string;revision:string;state:string;expires_at_ms:number;actor:string};
+const authorizationReceipts=new Map<string,FixtureAuthorizationReceipt>();
+const codeEnrollments=new Map<string,{handle:string;state:string;replaceExisting:boolean}>();
+const ordinaryImportReceipts=new Map<string,Record<string,unknown>>();
+const fixturePoolRuntime=new Map<string,string>();
+const importedDigests=new Map<string,string>();
+const oauthCredentials=new Set<string>();
+const deletedAccounts=new Map<string,number>();
+let deletionSequence=0;
+async function fixtureDigest(value:unknown):Promise<string>{return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(value))))].map(byte=>byte.toString(16).padStart(2,"0")).join("");}
+async function fixtureRestorationReview(target:VersionRow){
+  const active=state.versions.find(row=>row.status==="active");
+  const current=state.credentials.get(active?.id??"")??[];
+  const accounts=(state.credentials.get(target.id)??[]).filter(row=>deletedAccounts.has(row.id)&&!current.some(other=>other.id===row.id&&other.upstream_id===row.upstream_id)).map(row=>({credential_id:row.id,upstream_id:row.upstream_id,credential_revision:row.revision})).sort((a,b)=>a.credential_id.localeCompare(b.credential_id));
+  const review={target_id:target.id,target_revision:target.revision,active_id:active?.id??null,active_revision:active?.revision??null,deletion_event_id:deletionSequence,accounts};
+  return {...review,review_token:await fixtureDigest(review)};
+}
+async function fixtureDeletionImpact(version:VersionRow,id:string){
+  const credential=state.credentials.get(version.id)?.find(row=>row.id===id);if(!credential)return undefined;
+  const bindings=state.bindings.get(version.id)??[];
+  const removed=bindings.filter(row=>row.credential_id===id);
+  const endpointIds=new Set(removed.map(row=>row.endpoint_id));
+  const retained_routes=(state.routeCandidates.get(version.id)??[]).filter(row=>endpointIds.has(row.endpoint_id)).map(row=>row.route_id).sort();
+  const keys=(state.keys.get(version.id)??[]).filter(key=>(state.groupRoutes.get(`${version.id}:${key.access_group_id}`)??[]).some(grant=>retained_routes.includes(grant.route_id))).map(key=>key.id).sort();
+  const impact={config_version:version.id,revision:revisionToken(version),credential_id:id,upstream_id:credential.upstream_id,credential_revision:credential.revision,removed_bindings:removed.map(row=>({endpoint_id:row.endpoint_id,enabled:row.enabled})).sort((a,b)=>a.endpoint_id.localeCompare(b.endpoint_id)),removed_egress_profiles:(state.compatBindings.get(version.id)??[]).filter(row=>row.credential_id===id).length,retained_endpoints:(state.endpoints.get(version.id)??[]).filter(row=>endpointIds.has(row.id)).map(row=>({id:row.id,enabled:row.enabled,remaining_credentials:bindings.filter(binding=>binding.endpoint_id===row.id&&binding.credential_id!==id).map(binding=>binding.credential_id).sort()})),retained_routes,retained_client_keys:keys,history_retained:true,upstream_account_revoked:false};
+  return {...impact,review_token:await fixtureDigest(impact)};
+}
 let credentialOAuthStatusFailures = 0;
 let loseCredentialOAuthCompletionResponse = false;
 let credentialReadFailures = 0;
 let retainPendingCredentialOAuthOnCancel = false;
 let partialOperationalPool = false;
 let operationalPoolFailures = 0;
+let nativeRuntimeApplyFailures = 0;
 type FixtureOperationControl = { held: boolean; calls: number; waiters: Set<() => void> };
 const fixtureOperationControls = new Map<string, FixtureOperationControl>();
 
@@ -749,6 +777,8 @@ export function fixtureOperationCallsForTest(route: string): number {
 }
 
 /** Test-only reset for the fixture backend. Production builds never import it. */
+const nativeImportReceipts=new Map<string,{batch_id:string;account_id:string;channel:string;credential_revision:number;outcome:string;saved_at_ms:number;saved:true}>();
+
 export function resetFixturesForTest(): void {
   const target = state as Record<string, unknown>;
   const baseline = initialFixtureState as Record<string, unknown>;
@@ -777,6 +807,7 @@ export function resetFixturesForTest(): void {
   approvedNativeSessions.clear();
   kimiDeviceSessions.clear();
   kiroDeviceSessions.clear();
+  authorizationReceipts.clear();ordinaryImportReceipts.clear();codeEnrollments.clear();importedDigests.clear();oauthCredentials.clear();deletedAccounts.clear();deletionSequence=0;
   unresolvedDevicePolls.clear();
   credentialOAuthStatusFailures = 0;
   loseCredentialOAuthCompletionResponse = false;
@@ -784,9 +815,81 @@ export function resetFixturesForTest(): void {
   retainPendingCredentialOAuthOnCancel = false;
   partialOperationalPool = false;
   operationalPoolFailures = 0;
+  nativeRuntimeApplyFailures = 0;
+  nativeImportReceipts.clear();fixturePoolRuntime.clear();
   for (const control of fixtureOperationControls.values()) releaseFixtureControl(control);
   fixtureOperationControls.clear();
 }
+
+/** Seeds exact API target matches for browser acceptance; never called by production UI. */
+export function prepareApiConnectionMatchesForTest(count:0|1|2):void {
+  const version=state.versions.find(row=>row.status==="active");
+  if(!version)throw new Error("active fixture version unavailable");
+  const providers:UpstreamRow[]=[],endpoints:EndpointRow[]=[];
+  for(let index=0;index<count;index+=1){
+    const id=`batch-a-api-${index+1}`;
+    providers.push({id,name:`Fixture API ${index+1}`,kind:"openai-compatible",enabled:index!==0,tags:[],egress_policy_id:null});
+    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.openai.com/v1",inference_path:"/responses",models_path:"/models",transport:"http",enabled:index!==0});
+  }
+  state.upstreams.set(version.id,providers);
+  state.endpoints.set(version.id,endpoints);
+}
+export function apiConnectionSnapshotForTest(){
+  const version=state.versions.find(row=>row.status==="active");
+  if(!version)throw new Error("active fixture version unavailable");
+  return {providers:structuredClone(state.upstreams.get(version.id)??[]),endpoints:structuredClone(state.endpoints.get(version.id)??[]),accounts:structuredClone(state.credentials.get(version.id)??[]),bindings:structuredClone(state.bindings.get(version.id)??[])};
+}
+export function prepareNativeConnectionMatchesForTest(count:0|1|2):void {
+  const version=state.versions.find(row=>row.status==="active");
+  if(!version)throw new Error("active fixture version unavailable");
+  const providers:UpstreamRow[]=[],endpoints:EndpointRow[]=[];
+  for(let index=0;index<count;index+=1){
+    const id=`batch-a-native-${index+1}`;
+    providers.push({id,name:`Fixture Grok ${index+1}`,kind:"grok-build-native",enabled:index!==0,tags:[],egress_policy_id:null});
+    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:"grok.build.responses",api_format:"openai/responses",base_url:"https://cli-chat-proxy.grok.com/v1",inference_path:"/responses",models_path:null,transport:"http",enabled:index!==0});
+  }
+  state.upstreams.set(version.id,providers);state.endpoints.set(version.id,endpoints);
+}
+export function failNextNativeRuntimeApplyForTest():void {nativeRuntimeApplyFailures+=1;}
+/** One exact active route/key/account fixture for the explicit Pin UI. */
+export function prepareAccountPinForTest(permission:boolean):void {
+  const version=state.versions.find(row=>row.status==="active");
+  if(!version)throw new Error("active fixture version unavailable");
+  state.upstreams.set(version.id,[{id:"relay-a",name:"Fixture API",kind:"openai-compatible",enabled:true,tags:[],egress_policy_id:null}]);
+  state.endpoints.set(version.id,[{id:"ep-relay-a-responses",upstream_id:"relay-a",adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://relay-a.example.test/v1",inference_path:"/responses",models_path:null,transport:"http",enabled:true}]);
+  state.credentials.set(version.id,[{id:"cred-relay-key",upstream_id:"relay-a",kind:"bearer",status:"active",revision:2,secret_present:true}]);
+  state.bindings.set(version.id,[{endpoint_id:"ep-relay-a-responses",upstream_id:"relay-a",credential_id:"cred-relay-key",enabled:true,priority:0,weight:1,concurrency:1}]);
+  state.models.set(version.id,[{id:"pm-minimax",model_name:"minimax-m3",display_name:"MiniMax M3",status:"active",capabilities:{streaming:true,tools:false,reasoning:false}}]);
+  state.routes.set(version.id,[{id:"rt-minimax",public_model_id:"pm-minimax",policy:"smooth_weighted_round_robin",max_attempts:1,bootstrap_timeout_ms:5000}]);
+  state.routeCandidates.set(version.id,[{id:"cand-relay",route_id:"rt-minimax",endpoint_id:"ep-relay-a-responses",upstream_model:"minimax-m3",credential_scope:"all_active",transform_mode:"passthrough",enabled:true,priority:0,weight:1,capability_override:{}}]);
+  state.groupRoutes.set(`${version.id}:team-default`,permission?[{access_group_id:"team-default",route_id:"rt-minimax",enabled:true}]:[]);
+}
+export function prepareSharedDeletionForTest():void {
+  prepareAccountPinForTest(true);
+  const version=state.versions.find(row=>row.status==="active");
+  if(!version)throw new Error("active fixture version unavailable");
+  state.credentials.get(version.id)!.push({id:"cred-relay-spare",upstream_id:"relay-a",kind:"bearer",status:"active",revision:1,secret_present:true});
+  state.bindings.get(version.id)!.push({endpoint_id:"ep-relay-a-responses",upstream_id:"relay-a",credential_id:"cred-relay-spare",enabled:true,priority:10,weight:1,concurrency:1});
+}
+
+export function prepareModelMappingConflictForTest():void {
+  prepareAccountPinForTest(false);
+  const version=state.versions.find(row=>row.status==="active")!;
+  state.routeCandidates.get(version.id)![0]!.upstream_model="upstream-custom-model";
+  state.endpoints.get(version.id)!.push({id:"ep-relay-second",upstream_id:"relay-a",adapter_id:"openai-compatible.chat-completions",api_format:"openai/chat-completions",base_url:"https://relay-second.example.test/v1",inference_path:"/responses",models_path:null,transport:"http",enabled:true});
+  state.bindings.get(version.id)!.push({endpoint_id:"ep-relay-second",upstream_id:"relay-a",credential_id:"cred-relay-key",enabled:true,priority:0,weight:1,concurrency:1});
+}
+export function modelMappingSnapshotForTest(){
+  const version=state.versions.find(row=>row.status==="active")!;
+  return structuredClone({models:state.models.get(version.id),candidates:state.routeCandidates.get(version.id),credentials:state.credentials.get(version.id),permissions:state.groupRoutes.get(`${version.id}:team-default`)});
+}
+
+export async function prepareNativeBatchForTest():Promise<void> {
+  nativeFixtureAccounts.splice(0,nativeFixtureAccounts.length,{id:"native-existing",provider:"grok_console",auth_status:"active",enabled:false,revision:3,import_batch_id:"original-batch",identity:{email:"session.member@example.test",phone:null,username:null}});
+  nativeFixtureGeneration+=1;
+  importedDigests.set(`native:grok.console:${await fixtureDigest("synthetic-existing")}`,"native-existing");
+}
+export function nativeBatchSnapshotForTest(){return structuredClone(nativeFixtureAccounts);}
 /** Simulates the provider's consent, not a management API or automatic successful poll. */
 export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
 /** Simulates a provider transport uncertainty after the server drops its session. */
@@ -853,6 +956,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (headers.get("X-Management-Key") === null) {
       return errorResponse(404, "management_access_denied", "Management access is unavailable");
     }
+    const restoration=/^GET \/admin\/config-versions\/([^/]+)\/account-restoration$/u.exec(route);
+    if(restoration){const target=state.versions.find(row=>row.id===decodeURIComponent(restoration[1]!));return target?json(200,await fixtureRestorationReview(target)):errorResponse(404,"management_resource_not_found","configuration not found");}
+    const deletionImpact=/^GET \/admin\/credentials\/([^/]+)\/deletion-impact$/u.exec(route);
+    if(deletionImpact){const version=versionByHeader(headers);if(version instanceof Response)return version;const impact=await fixtureDeletionImpact(version,decodeURIComponent(deletionImpact[1]!));return impact?json(200,impact):errorResponse(404,"management_resource_not_found","credential not found");}
+    const authorizationRead=/^GET \/admin\/account-authorization\/([^/]+)$/u.exec(route);
+    if(authorizationRead){const version=versionByHeader(headers);if(version instanceof Response)return version;const receipt=authorizationReceipts.get(decodeURIComponent(authorizationRead[1]!));if(!receipt||receipt.actor!==headers.get("X-Management-Key")||receipt.config_version!==version.id)return errorResponse(404,"management_authorization_receipt_missing","授权回执不在保留范围内");const {actor:_,...view}=receipt;return json(200,{...view,state:view.state==="pending"&&view.expires_at_ms<=Date.now()?"expired":view.state});}
 
     const diffPath = /^GET \/admin\/config-versions\/([^/]+)\/diff$/u.exec(route);
     if (diffPath) {
@@ -930,6 +1039,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       copy(state.upstreams); copy(state.endpoints); copy(state.credentials); copy(state.bindings);
       copy(state.models); copy(state.aliases); copy(state.routes); copy(state.routeCandidates);
       copy(state.pricePolicy); copy(state.compatPools); copy(state.compatNodes); copy(state.compatBindings);
+      for(const [key,id] of [...importedDigests])if(key.startsWith(`${sourceId}:`))importedDigests.set(`${target.id}:${key.slice(sourceId.length+1)}`,id);
+      for(const key of [...oauthCredentials])if(key.startsWith(`${sourceId}:`))oauthCredentials.add(`${target.id}:${key.slice(sourceId.length+1)}`);
       editOrigins.set(target.id, {source: source.id, revision: source.revision, credentials: credentialStamp(source.id), lifecycle: lifecycleSequence});
       state.versions.push(target);
       recordLifecycle("config_created",target.id,null);
@@ -983,6 +1094,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         if (!source || source.status !== "active" || source.revision !== origin.revision || credentialStamp(source.id) !== origin.credentials || lifecycleSequence !== origin.lifecycle) return errorResponse(409, "management_revision_conflict", "Edit source changed");
       }
       const replaced = state.versions.find((row) => row.status === "active");
+      const restoration=await fixtureRestorationReview(version);if(restoration.accounts.length&&headers.get("X-Account-Restoration-Review")!==restoration.review_token)return errorResponse(409,"management_account_restoration_confirmation_required","恢复已删除账号需要核对并明确确认");
       if (replaced !== undefined) {
         replaced.status = "archived";
       }
@@ -1004,6 +1116,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (active === undefined || predecessor === undefined) {
         return errorResponse(409, "management_lifecycle_conflict", "no persisted rollback target");
       }
+      const restoration=await fixtureRestorationReview(predecessor);if(restoration.accounts.length&&headers.get("X-Account-Restoration-Review")!==restoration.review_token)return errorResponse(409,"management_account_restoration_confirmation_required","恢复已删除账号需要核对并明确确认");
       active.status = "archived";
       predecessor.status = "active";
       lifecycleSequence += 1;
@@ -1569,7 +1682,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if (rows.some((row) => row.id === body.id)) {
         return errorResponse(409, "management_lifecycle_conflict", "endpoint id already exists");
       }
-      const row = { ...body, upstream_id: decodeURIComponent(epCreate[1] ?? "") } as EndpointRow;
+      if(body.transport as string!=="https")return errorResponse(400,"invalid_management_request","管理连接写入要求 https");
+      const row = { ...body, transport:"http", upstream_id: decodeURIComponent(epCreate[1] ?? "") } as EndpointRow;
       rows.push(row);
       state.endpoints.set(version.id, rows);
       version.revision += 1;
@@ -1601,7 +1715,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         return new Response(null, { status: 204, headers: new Headers({ ETag: `"${revisionToken(version)}"` }) });
       }
       const body = JSON.parse(bodyText ?? "{}") as EndpointRow;
-      rows[index] = { ...body, id, upstream_id: rows[index]?.upstream_id ?? "" };
+      if(body.transport as string!=="https")return errorResponse(400,"invalid_management_request","管理连接写入要求 https");
+      rows[index] = { ...body, transport:"http", id, upstream_id: rows[index]?.upstream_id ?? "" };
       version.revision += 1;
       return json(200, rows[index], revisionToken(version));
     }
@@ -1642,11 +1757,25 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       row.identity={email:"session.member@example.test",phone:null,username:null};nativeFixtureGeneration+=1;
       return json(200,{identity:row.identity,identity_state:"observed"});
     }
+    const nativeImportRead=/^GET \/admin\/native-account-imports\/([^/]+)$/u.exec(route);
+    if(nativeImportRead){const receipt=nativeImportReceipts.get(nativeImportRead[1]!);return receipt?json(200,{...receipt,account_exists:nativeFixtureAccounts.some(row=>row.id===receipt.account_id)}):errorResponse(404,"management_native_import_not_found","本次导入回执未提供，保持待确认");}
     if(route === "POST /admin/native-accounts/import") {
       const input=JSON.parse(bodyText??"{}") as {id:string;channel:string;secret:string};
-      if(nativeFixtureAccounts.some((r)=>r.import_batch_id===input.id))return errorResponse(409,"management_native_account_conflict","账号名称已存在");
-      nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:input.channel.replace(".","_"),auth_status:"active",enabled:true,revision:0,import_batch_id:input.id,identity:input.channel==="grok.build"?fixtureBuildIdentity(input.secret):{email:"session.member@example.test",phone:null,username:null}});
-      return json(201,{created:1,unchanged:0,runtime_applied:true,identity_state:"observed"});
+      if(nativeImportReceipts.has(input.id))return errorResponse(409,"management_native_account_conflict","导入批次已存在");
+      const digestKey=`native:${input.channel}:${await fixtureDigest(input.secret)}`;
+      const identity=input.channel==="grok.build"?fixtureBuildIdentity(input.secret):{email:input.secret.includes("another-user")?"other.member@example.test":"session.member@example.test",phone:null,username:null};
+      const provider=input.channel.replace(".","_");
+      const exact=nativeFixtureAccounts.find(row=>row.id===importedDigests.get(digestKey));
+      const same=exact??nativeFixtureAccounts.find(row=>row.provider===provider&&identity.email!==null&&row.identity?.email?.toLowerCase()===identity.email.toLowerCase());
+      const outcome=exact?"unchanged":same?"updated":"created";
+      if(same&&outcome==="updated"){same.revision+=1;same.auth_status="active";same.identity=identity;nativeFixtureGeneration+=1;}
+      if(!same)nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider,auth_status:"active",enabled:true,revision:0,import_batch_id:input.id,identity});
+      const account=same??nativeFixtureAccounts.at(-1)!;
+      importedDigests.set(digestKey,account.id);
+      nativeImportReceipts.set(input.id,{batch_id:input.id,account_id:account.id,channel:input.channel,credential_revision:account.revision,outcome,saved_at_ms:Date.now(),saved:true});
+      const runtime_applied=nativeRuntimeApplyFailures>0?false:true;
+      if(!runtime_applied)nativeRuntimeApplyFailures-=1;
+      return json(201,{created:Number(outcome==="created"),unchanged:Number(outcome==="unchanged"),updated:Number(outcome==="updated"),runtime_applied,identity_state:"observed"});
     }
     if(route === "POST /admin/native-account-authorizations") {
       const input=JSON.parse(bodyText??"{}") as {name:string;target?:{account_id:string;revision:number}};
@@ -1660,17 +1789,20 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         if(entry.target){const account=nativeFixtureAccounts.find((r)=>r.id===entry.target?.account_id);if(!account||account.revision!==entry.target.revision)entry.view.state="persistence_conflict";else{account.revision+=1;nativeFixtureGeneration+=1;entry.view.state="complete";}}
         else{nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:"grok_build",auth_status:"active",enabled:true,revision:0,import_batch_id:entry.name,identity:{email:"authorized.member@example.test",phone:null,username:null}});entry.view.state="complete";}
       }
-      if(entry.view.state==="complete"){entry.view.identity={email:"authorized.member@example.test",phone:null,username:null};entry.view.identity_state="observed";}
-      entry.view.retry_at_ms=Date.now()+1000;return json(200,{...entry.view,runtime_applied:entry.view.state==="complete"?true:null});
+      if(entry.view.state==="complete"){
+        entry.view.identity={email:"authorized.member@example.test",phone:null,username:null};entry.view.identity_state="observed";
+        if(entry.view.runtime_applied===undefined){entry.view.runtime_applied=nativeRuntimeApplyFailures>0?false:true;if(!entry.view.runtime_applied)nativeRuntimeApplyFailures-=1;}
+      }
+      entry.view.retry_at_ms=Date.now()+1000;return json(200,{...entry.view,runtime_applied:entry.view.state==="complete"?entry.view.runtime_applied:null});
     }
 
-    if (route === "GET /admin/system") return json(200,{build:{version:"0.1.0",build_revision:"development",build_target:"development",rust_version:"development",schema_version:26},uptime_seconds:120,configuration_application:"live",accepting_requests:true});
+    if (route === "GET /admin/system") return json(200,{server_instance:"fixture-process",build:{version:"0.1.0",build_revision:"development",build_target:"development",rust_version:"development",schema_version:26},uptime_seconds:120,configuration_application:"live",accepting_requests:true});
     if (route === "GET /admin/account-channels") {
       return json(200, [
         ["openai-compatible", "OpenAI 兼容 / 中转", "api_key", true, "none", ["openai-compatible"]],
         ["anthropic-compatible", "Anthropic 兼容 / 中转", "api_key", true, "none", ["anthropic-compatible"]],
-        ["codex", "Codex / ChatGPT", "cpa_sub2api_json", true, "authorization_code", ["codex", "chatgpt", "openai-compatible"]],
-        ["claude", "Claude", "claude_json", true, "authorization_code", ["claude", "anthropic-compatible"]],
+        ["codex", "Codex / ChatGPT", "cpa_sub2api_json", true, "authorization_code", ["codex"]],
+        ["claude", "Claude", "claude_json", true, "authorization_code", ["claude"]],
         ["kimi-coding", "Kimi Coding", "kimi_oauth", true, "device_code", ["kimi-coding"]],
         ["kimi-api", "Kimi API", "api_key", true, "none", ["kimi"]],
         ["grok.official", "Grok Official", "api_key", true, "none", ["grok.official"]],
@@ -1678,7 +1810,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         ["grok.console", "Grok Console", "sso", true, "none", ["grok.console"]],
         ["grok.web", "Grok Web", "sso", true, "none", ["grok.web"]],
         ["kiro", "Kiro", "kiro_json_or_key", true, "device_code", ["kiro"]],
-      ].map(([id,name,credential_format,import_available,authorization_flow,upstream_kinds]) => ({id,name,credential_format,import_available,authorization_flow,upstream_kinds,authorization_available:id==="grok.build"||id==="kimi-coding"||id==="kiro"})));
+      ].map(([id,name,credential_format,import_available,authorization_flow,upstream_kinds]) => ({id,name,credential_format,import_available,authorization_flow,upstream_kinds,authorization_available:["codex","claude","grok.build","kimi-coding","kiro"].includes(String(id))})));
     }
 
     if(route === "POST /admin/account-channels/kimi/prepare-target") {
@@ -1689,7 +1821,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       let upstream=candidates[0];
       if(!upstream){upstream={id:"kimi-coding",name:"Kimi Coding",kind:"kimi-coding",enabled:true,tags:["kimi","coding"],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
       const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.upstream_id===upstream.id&&row.api_format==="openai/responses");
-      if(!endpoint){endpoint={id:"kimi-coding-responses",upstream_id:upstream.id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.kimi.com/coding",inference_path:"/v1/responses",models_path:"/v1/models",transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      if(!endpoint){endpoint={id:"kimi-coding-responses",upstream_id:upstream.id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.kimi.com/coding",inference_path:"/v1/responses",models_path:"/v1/models",transport:"http",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
       version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
     }
     const preparedNamedChannel=/^POST \/admin\/account-channels\/(codex|claude)\/prepare-target$/u.exec(route);
@@ -1697,12 +1829,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
       const channel=preparedNamedChannel[1]!;
-      const upstreamId=`${channel}-managed`;
-      const endpointId=channel==="codex"?`${upstreamId}-responses`:`${upstreamId}-messages`;
+      const upstreamId=channel;
+      const endpointId=channel==="codex"?"codex-responses":"claude-messages";
       const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.id===upstreamId);
       if(!upstream){upstream={id:upstreamId,name:channel==="codex"?"Codex / ChatGPT":"Claude",kind:channel,enabled:true,tags:[channel],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
       const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.id===endpointId);
-      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:channel==="codex"?"openai-compatible.responses":"anthropic.messages",api_format:channel==="codex"?"openai/responses":"anthropic/messages",base_url:channel==="codex"?"https://chatgpt.com/backend-api":"https://api.anthropic.com",inference_path:"/",models_path:null,transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:channel==="codex"?"openai-compatible.responses":"anthropic-compatible.messages",api_format:channel==="codex"?"openai/responses":"anthropic/messages",base_url:channel==="codex"?"https://chatgpt.com/backend-api/codex":"https://api.anthropic.com/v1",inference_path:channel==="codex"?"/responses":"/messages",models_path:channel==="codex"?null:"/models",transport:"http",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
       version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
     }
     if(route === "POST /admin/account-channels/kiro/prepare-target") {
@@ -1713,7 +1845,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.id===upstreamId);
       if(!upstream){upstream={id:upstreamId,name:"Kiro",kind:"kiro",enabled:true,tags:["kiro",region],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
       const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.id===endpointId);
-      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:"kiro.messages",api_format:"anthropic/messages",base_url:`https://runtime.${region}.kiro.dev`,inference_path:"/",models_path:null,transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:"kiro.messages",api_format:"anthropic/messages",base_url:`https://runtime.${region}.kiro.dev`,inference_path:"/",models_path:null,transport:"http",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
       version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
     }
     const kimiDevice=/^POST \/admin\/upstreams\/([^/]+)\/kimi-authorization\/(start|poll|cancel)$/u.exec(route);
@@ -1721,26 +1853,47 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
       const input=JSON.parse(bodyText??"{}") as {id:string;session_id?:string;replace_existing?:boolean};const action=kimiDevice[2];
-      if(action==="start"){const session_id=crypto.randomUUID();kimiDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kimiDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});version.revision+=1;return json(200,{state:"pending",session_id,user_code:"KIMI-TEST",verification_uri:"https://auth.kimi.com/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
+      if(action==="start"){const session_id=crypto.randomUUID();kimiDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kimiDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});version.revision+=1;authorizationReceipts.set(session_id,{session_id,channel:"kimi-coding",config_version:version.id,upstream_id:decodeURIComponent(kimiDevice[1]!),credential_id:input.id,started_revision:revisionToken(version),revision:revisionToken(version),state:"pending",expires_at_ms:Date.now()+600000,actor:headers.get("X-Management-Key")!});return json(200,{state:"pending",session_id,user_code:"KIMI-TEST",verification_uri:"https://auth.kimi.com/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
       const entry=input.session_id?kimiDeviceSessions.get(input.session_id):undefined;if(!entry||entry.id!==input.id)return errorResponse(409,"management_kimi_authorization_conflict","授权已结束");
-      if(action==="cancel"){kimiDeviceSessions.delete(input.session_id!);return json(200,{state:"cancelled"},revisionToken(version));}
-      if(unresolvedDevicePolls.delete("kimi-coding")){kimiDeviceSessions.delete(input.session_id!);return errorResponse(503,"management_kimi_authorization_unresolved","授权结果暂时无法确认");}
+      const receipt=authorizationReceipts.get(input.session_id!);if(!receipt||receipt.config_version!==version.id||receipt.actor!==headers.get("X-Management-Key")||receipt.upstream_id!==decodeURIComponent(kimiDevice[1]!)||receipt.revision!==revisionToken(version))return errorResponse(409,"management_kimi_authorization_conflict","授权范围已变化");
+      if(action==="cancel"){kimiDeviceSessions.delete(input.session_id!);receipt.state="cancelled";return json(200,{state:"cancelled"},revisionToken(version));}
+      if(unresolvedDevicePolls.delete("kimi-coding")){kimiDeviceSessions.delete(input.session_id!);receipt.state="unknown";return errorResponse(503,"management_kimi_authorization_unresolved","授权结果暂时无法确认");}
       entry.polls+=1;if(entry.polls===1)return json(200,{state:"pending",interval_ms:1000},revisionToken(version));
-      const rows=state.credentials.get(version.id)??[];if(!rows.some((row)=>row.id===entry.id))rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"oauth_json",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kimiDeviceSessions.delete(input.session_id!);version.revision+=1;return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
+      const rows=state.credentials.get(version.id)??[];const previous=rows.find(row=>row.id===entry.id);if(previous){if(previous.upstream_id!==entry.upstreamId||!entry.replaceExisting)return errorResponse(409,"management_kimi_authorization_conflict","账号所有权已变化");previous.revision+=1;if(previous.status!=="disabled")previous.status="active";}else rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"oauth_json",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kimiDeviceSessions.delete(input.session_id!);version.revision+=1;receipt.state="completed";receipt.revision=revisionToken(version);return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
     }
     const kiroDevice=/^POST \/admin\/upstreams\/([^/]+)\/kiro-authorization\/(start|poll|cancel)$/u.exec(route);
     if(kiroDevice){
       const version=versionByHeader(headers);if(version instanceof Response)return version;
       const mismatch=requireDraftAndMatch(version,headers);if(mismatch!==undefined)return mismatch;
       const input=JSON.parse(bodyText??"{}") as {id:string;session_id?:string;replace_existing?:boolean};const action=kiroDevice[2];
-      if(action==="start"){const session_id=crypto.randomUUID();kiroDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kiroDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});return json(200,{state:"pending",session_id,user_code:"KIRO-TEST",verification_uri:"https://view.awsapps.com/start/#/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
+      if(action==="start"){const session_id=crypto.randomUUID();kiroDeviceSessions.set(session_id,{id:input.id,upstreamId:decodeURIComponent(kiroDevice[1]??""),polls:0,replaceExisting:!!input.replace_existing});authorizationReceipts.set(session_id,{session_id,channel:"kiro",config_version:version.id,upstream_id:decodeURIComponent(kiroDevice[1]!),credential_id:input.id,started_revision:revisionToken(version),revision:revisionToken(version),state:"pending",expires_at_ms:Date.now()+600000,actor:headers.get("X-Management-Key")!});return json(200,{state:"pending",session_id,user_code:"KIRO-TEST",verification_uri:"https://view.awsapps.com/start/#/device",expires_at_ms:Date.now()+600000,interval_ms:1000},revisionToken(version));}
       const entry=input.session_id?kiroDeviceSessions.get(input.session_id):undefined;if(!entry||entry.id!==input.id)return errorResponse(409,"management_kiro_authorization_conflict","授权已结束");
-      if(action==="cancel"){kiroDeviceSessions.delete(input.session_id!);return json(200,{state:"cancelled"},revisionToken(version));}
-      if(unresolvedDevicePolls.delete("kiro")){kiroDeviceSessions.delete(input.session_id!);return errorResponse(503,"management_kiro_authorization_unresolved","授权结果暂时无法确认");}
+      const receipt=authorizationReceipts.get(input.session_id!);if(!receipt||receipt.config_version!==version.id||receipt.actor!==headers.get("X-Management-Key")||receipt.upstream_id!==decodeURIComponent(kiroDevice[1]!)||receipt.revision!==revisionToken(version))return errorResponse(409,"management_kiro_authorization_conflict","授权范围已变化");
+      if(action==="cancel"){kiroDeviceSessions.delete(input.session_id!);receipt.state="cancelled";return json(200,{state:"cancelled"},revisionToken(version));}
+      if(unresolvedDevicePolls.delete("kiro")){kiroDeviceSessions.delete(input.session_id!);receipt.state="unknown";return errorResponse(503,"management_kiro_authorization_unresolved","授权结果暂时无法确认");}
       entry.polls+=1;if(entry.polls===1)return json(200,{state:"pending",interval_ms:1000},revisionToken(version));
-      const rows=state.credentials.get(version.id)??[];if(!rows.some((row)=>row.id===entry.id))rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"bearer",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kiroDeviceSessions.delete(input.session_id!);version.revision+=1;return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
+      const rows=state.credentials.get(version.id)??[];const previous=rows.find(row=>row.id===entry.id);if(previous){if(previous.upstream_id!==entry.upstreamId||!entry.replaceExisting)return errorResponse(409,"management_kiro_authorization_conflict","账号所有权已变化");previous.revision+=1;if(previous.status!=="disabled")previous.status="active";}else rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"bearer",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kiroDeviceSessions.delete(input.session_id!);version.revision+=1;receipt.state="completed";receipt.revision=revisionToken(version);return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
+    }
+    const codeEnrollment=/^POST \/admin\/upstreams\/([^/]+)\/(codex|claude)-authorization\/(start|callback|cancel)$/u.exec(route);
+    if(codeEnrollment){
+      const version=versionByHeader(headers);if(version instanceof Response)return version;const mismatch=requireDraftAndMatch(version,headers);if(mismatch)return mismatch;
+      const upstreamId=decodeURIComponent(codeEnrollment[1]!);const channel=codeEnrollment[2]!;const action=codeEnrollment[3]!;
+      const input=JSON.parse(bodyText??"{}") as {id:string;replace_existing?:boolean;callback?:{state:string;code?:string;error?:string}};
+      const key=`${version.id}:${upstreamId}:${input.id}:${headers.get("X-Management-Key")}`;
+      if(action==="start"){const handle=crypto.randomUUID(),stateValue=btoa(crypto.randomUUID()).replace(/=+$/u,"");const expires=Date.now()+600000;codeEnrollments.set(key,{handle,state:stateValue,replaceExisting:!!input.replace_existing});authorizationReceipts.set(handle,{session_id:handle,channel,config_version:version.id,upstream_id:upstreamId,credential_id:input.id,started_revision:revisionToken(version),revision:revisionToken(version),state:"pending",expires_at_ms:expires,actor:headers.get("X-Management-Key")!});return json(202,{credential_id:input.id,session_id:handle,state:"pending",authorization_url:`https://auth.fixture.example/authorize?state=${stateValue}`,expires_at_ms:expires});}
+      const entry=codeEnrollments.get(key);if(!entry)return errorResponse(409,"management_authorization_conflict","授权不存在或已结束");const receipt=authorizationReceipts.get(entry.handle)!;
+      if(receipt.state!=="pending"||receipt.revision!==revisionToken(version))return errorResponse(409,"management_authorization_conflict","授权状态已变化");
+      if(action==="cancel"){receipt.state="cancelled";codeEnrollments.delete(key);return new Response(null,{status:204});}
+      if(input.callback?.state!==entry.state)return errorResponse(409,"management_authorization_conflict","state 不属于此会话");
+      if(input.callback.error){receipt.state="denied";codeEnrollments.delete(key);return errorResponse(409,"management_authorization_conflict","授权被拒绝");}
+      if(!input.callback.code)return errorResponse(400,"management_invalid_input","缺少回调授权码");
+      const rows=state.credentials.get(version.id)??[];const identityKey=`${version.id}:${upstreamId}:${channel}:fixture-oauth-identity`;const dedupId=importedDigests.get(identityKey);const previous=rows.find(row=>row.id===(entry.replaceExisting?input.id:dedupId));
+      if(entry.replaceExisting&&(!previous||previous.upstream_id!==upstreamId))return errorResponse(409,"management_authorization_conflict","账号身份已变化");
+      const row:CredentialRow=previous??{id:input.id,upstream_id:upstreamId,kind:channel==="codex"?"oauth_json":"bearer",status:"active",revision:0,secret_present:true};if(previous){row.revision+=1;if(row.status!=="disabled")row.status="active";}else rows.push(row);state.credentials.set(version.id,rows);oauthCredentials.add(`${version.id}:${row.id}`);importedDigests.set(identityKey,row.id);version.revision+=1;receipt.state="completed";receipt.credential_id=row.id;receipt.revision=revisionToken(version);codeEnrollments.delete(key);return json(previous?200:201,row,revisionToken(version));
     }
 
+    const importReceiptRead=/^GET \/admin\/upstreams\/([^/]+)\/account-imports\/([^/]+)$/u.exec(route);
+    if(importReceiptRead){const version=versionByHeader(headers);if(version instanceof Response)return version;const key=`${version.id}:${decodeURIComponent(importReceiptRead[1]!)}:${decodeURIComponent(importReceiptRead[2]!)}:${url.searchParams.get("started_revision")}`;const receipt=ordinaryImportReceipts.get(key);return receipt?json(200,receipt):errorResponse(404,"management_import_receipt_missing","导入回执未保留，结果保持待确认");}
     const credCreate = /^POST \/admin\/upstreams\/([^/]+)\/(?:credentials|account-import)$/u.exec(route);
     if (credCreate !== null) {
       const version = versionByHeader(headers);
@@ -1756,7 +1909,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         body.kind = body.channel === "codex" || body.channel === "kimi-coding" ? "oauth_json" : "bearer";
         body.status = "active";
       }
+      const started=revisionToken(version);
+      const rememberImport=(id:string)=>{if(route.endsWith("/account-import"))ordinaryImportReceipts.set(`${version.id}:${decodeURIComponent(credCreate[1]!)}:${body.id}:${started}`,{session_id:body.id,channel:body.channel,config_version:version.id,upstream_id:decodeURIComponent(credCreate[1]!),credential_id:id,started_revision:started,revision:revisionToken(version),state:"completed",expires_at_ms:Date.now()+900000});};
       const rows = state.credentials.get(version.id) ?? [];
+      const digestKey=`${version.id}:${decodeURIComponent(credCreate[1]!)}:${body.channel??body.kind}:${await fixtureDigest(body.secret)}`;
+      const duplicate=rows.find(row=>row.id===importedDigests.get(digestKey));
+      if(route.endsWith("/account-import")&&duplicate){version.revision+=1;rememberImport(duplicate.id);return json(200,duplicate,revisionToken(version));}
       if (rows.some((row) => row.id === body.id)) {
         return errorResponse(409, "management_lifecycle_conflict", "credential id already exists");
       }
@@ -1771,7 +1929,9 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       };
       rows.push(row);
       state.credentials.set(version.id, rows);
-      version.revision += 1;
+      importedDigests.set(digestKey,row.id);
+      if((body.channel==="claude"||body.channel==="kiro")&&body.secret.trim().startsWith("{"))oauthCredentials.add(`${version.id}:${row.id}`);
+      version.revision += 1;rememberImport(row.id);
       return json(201, row, revisionToken(version));
     }
 
@@ -1789,11 +1949,14 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         return errorResponse(409, "management_lifecycle_conflict", "unknown credential");
       }
       if (credPatchDelete[1] === "DELETE") {
+        const impact=await fixtureDeletionImpact(version,id);const reviewed=headers.get("X-Deletion-Impact-Review");if(reviewed&&reviewed!==impact?.review_token)return errorResponse(409,"management_account_delete_impact_changed","删除影响已变化");
+        deletedAccounts.set(id,++deletionSequence);
         rows.splice(index, 1);
         state.bindings.set(
           version.id,
           (state.bindings.get(version.id) ?? []).filter((b) => b.credential_id !== id),
         );
+        state.compatBindings.set(version.id,(state.compatBindings.get(version.id)??[]).filter(binding=>binding.credential_id!==id));
         version.revision += 1;
         return new Response(null, { status: 204, headers: new Headers({ ETag: `"${revisionToken(version)}"` }) });
       }
@@ -2354,7 +2517,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           account_id: row.id,
           account_kind: row.kind,
           auth_status: row.auth,
-          runtime_status: row.runtime,
+          runtime_status: fixturePoolRuntime.get(row.id)??row.runtime,
           enabled: row.enabled,
           priority: index,
           weight: 1,
@@ -2390,6 +2553,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       };
       const knownTarget = [
         ["relay-a", "ep-relay-a-responses", "cred-relay-key"],
+        ["relay-a", "ep-relay-a-responses", "cred-relay-spare"],
+        ["relay-a", "ep-relay-a-responses", "cred-relay-quota"],
         ["grok-build-pool", "ep-grok-build", "cred-grok-oauth"],
         ["grok-build-pool", "ep-grok-build", "cred-grok-old"],
       ].some(([provider, channel, account]) => provider === body.provider_id && channel === body.channel_id && account === body.account_id);
@@ -2405,10 +2570,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const cooling = body.action === "cool_down";
       // reauth_required cannot be probed back to life — the scheduler says so
       // rather than pretending to queue something.
-      const rejected = body.account_id === "cred-grok-oauth" && !cooling;
+      const rejected = body.account_id === "cred-grok-oauth";
+      const quotaBlocked = body.account_id === "cred-relay-quota" && !cooling;
+      if(!rejected&&!quotaBlocked)fixturePoolRuntime.set(body.account_id,cooling?"cooling":"available");
       state.poolSnapshot += 1;
       return json(202, {
-        state: cooling ? "cooling" : rejected ? "recovery_required" : "probe_scheduled",
+        state: rejected ? "rejected" : quotaBlocked ? "recovery_required" : cooling ? "cooling" : "released",
         observed_at_ms: FIXTURE_NOW_MS,
         cooldown_until_ms: cooling ? FIXTURE_NOW_MS + (body.cooldown_ms ?? 60_000) : null,
       });
@@ -2552,23 +2719,27 @@ export const fixtureFetch: typeof fetch = (input, init) => {
 
     if(route === "GET /admin/accounts/inventory") {
       const version=versionByHeader(headers);if(version instanceof Response)return version;
+      const entryType=url.searchParams.get("entry_type");if(entryType!==null&&!["api","account"].includes(entryType))return errorResponse(400,"invalid_management_request","invalid entry type");
       const q=(url.searchParams.get("q")??"").trim().toLowerCase(),category=url.searchParams.get("category"),status=url.searchParams.get("status"),owner=url.searchParams.get("upstream_id"),sort=url.searchParams.get("sort")??"name",limit=Number(url.searchParams.get("limit")??50);
       const ordinary=(state.credentials.get(version.id)??[]).filter(c=>!owner||c.upstream_id===owner).map(credential=>{
         const bindings=(state.bindings.get(version.id)??[]).filter(b=>b.credential_id===credential.id);
         const connections=bindings.flatMap(b=>{const e=state.endpoints.get(version.id)?.find(e=>e.id===b.endpoint_id);return e?[{id:e.id,api_format:e.api_format,enabled:b.enabled&&e.enabled,host:new URL(e.base_url).hostname}]:[];});
         const kimi=state.upstreams.get(version.id)?.some(upstream=>upstream.id===credential.upstream_id&&upstream.kind==="kimi-coding");
         const identity={email:kimi?"kimi.member@example.test":credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null};
-        const category=kimi?"kimi":credential.kind==="oauth_json"?"codex":"api",provider=kimi?"Kimi":category==="codex"?"Codex":"API";
-        return {id:credential.id,native:false,identity,name:identity.email??"",category,provider,status:credential.status==="active"?"enabled":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(["codex","kimi"].includes(category)?["reauthorize"]:[])],plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,managed:{credential,identity,authentication:category==="codex"?"oauth":"api_key",plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,category,provider,connections,binding_count:bindings.length},native_account:null};
+        const kind=state.upstreams.get(version.id)?.find(upstream=>upstream.id===credential.upstream_id)?.kind;
+        const oauth=credential.kind==="oauth_json"||oauthCredentials.has(`${version.id}:${credential.id}`);
+        const category=kimi?"kimi":kind==="claude"?"claude":kind==="kiro"?"kiro":credential.kind==="oauth_json"?"codex":"api",provider=kimi?"Kimi":category==="codex"?"Codex":category==="claude"?"Claude":category==="kiro"?"Kiro":"API";
+        const authentication=oauth?"oauth":kind==="kiro"?null:"api_key";
+        return {id:credential.id,native:false,identity,name:identity.email??"",category,provider,status:credential.status==="active"?"enabled":credential.status==="unauthorized"?"reauth_required":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(oauth?["reauthorize"]:[])],plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,managed:{credential,identity,authentication,plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,category,provider,connections,binding_count:bindings.length},native_account:null};
       });
       const native=owner?[]:nativeFixtureAccounts.map(row=>{const identity=row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null};return {id:row.id,native:true,identity,name:identity.email??identity.phone??identity.username??"",category:"grok",provider:row.provider==="grok_build"?"Grok Build":row.provider==="grok_console"?"Grok Console":"Grok Web",status:!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"enabled":"reauth_required",operations:["details","update_credential","enable","disable","remove","models",...(row.provider==="grok_build"?["reauthorize"]:[])],plan:null,plan_source:null,managed:null,native_account:{...row,identity,adapter_models:fixtureAdapterModels(row.provider)}};});
-      let rows=[...ordinary,...native].filter(r=>(!category||r.category===category)&&(!status||r.status===status)&&[r.name,r.provider,r.category,r.identity.email,r.identity.phone,r.identity.username].join(" ").toLowerCase().includes(q));
+      let rows=[...ordinary,...native].filter(r=>(entryType===null||(entryType==="api")===(r.managed?.authentication==="api_key"))&&(!category||r.category===category)&&(!status||r.status===status)&&[r.name,r.provider,r.category,r.identity.email,r.identity.phone,r.identity.username].join(" ").toLowerCase().includes(q));
       const plan=url.searchParams.get("plan"),withoutPlan=url.searchParams.get("without_plan");
       if((plan!==null&&(!plan||plan.length>128))||(withoutPlan!==null&&!['true','false'].includes(withoutPlan))||(plan!==null&&withoutPlan==='true'))return errorResponse(400,"invalid_management_request","invalid plan filter");
       const planTotals:Record<string,number>={};let unobserved=0;for(const row of rows){if(row.plan===null)unobserved+=1;else planTotals[row.plan]=(planTotals[row.plan]??0)+1;}
       rows=rows.filter(row=>(plan===null||row.plan===plan)&&(withoutPlan!=="true"||row.plan===null));
       rows.sort((a,b)=>{const ka=(sort==="provider"?a.provider+" ":"")+a.name,kb=(sort==="provider"?b.provider+" ":"")+b.name;const c=ka.toLowerCase()<kb.toLowerCase()?-1:ka.toLowerCase()>kb.toLowerCase()?1:a.id.localeCompare(b.id);return sort==="name_desc"?-c:c;});
-      const filter=JSON.stringify([q,category,status,owner,sort,limit,plan,withoutPlan]);let offset=0;
+      const filter=JSON.stringify([entryType,q,category,status,owner,sort,limit,plan,withoutPlan]);let offset=0;
       const encoded=url.searchParams.get("cursor");if(encoded){try{const c=JSON.parse(atob(encoded));if(c.version!==version.id||c.revision!==version.revision||c.sequence!==inventorySequence||c.native!==nativeFixtureGeneration||c.filter!==filter)return errorResponse(409,"management_account_inventory_conflict","账号目录已改变");offset=c.offset;}catch{return errorResponse(400,"invalid_management_request","invalid cursor");}}
       const counts:Record<string,number>={};for(const row of rows)counts[row.category]=(counts[row.category]??0)+1;
       return json(200,{config_version:version.id,revision:revisionToken(version),total:rows.length,plan_totals:planTotals,unobserved_plan_total:unobserved,category_totals:counts,items:rows.slice(offset,offset+limit),next_cursor:offset+limit<rows.length?btoa(JSON.stringify({version:version.id,revision:version.revision,sequence:inventorySequence,native:nativeFixtureGeneration,filter,offset:offset+limit})):null});
@@ -2793,9 +2964,17 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if (route === "POST /admin/operations/channel-pin") {
       const version = versionByHeader(headers);
       if (version instanceof Response) return version;
-      const rejected = requireDraftAndMatch(version, headers);
-      if (rejected !== undefined) return rejected;
+      if(version.status!=="active"||headers.get("If-Match")?.replace(/"/gu,"")!==revisionToken(version))return errorResponse(409,"management_channel_pin_target_changed","当前活动配置已变化");
       const input = JSON.parse(bodyText ?? "{}") as Record<string, string>;
+      const key=state.keys.get(version.id)?.find(key=>key.id===input.client_key_id&&key.status==="active"&&(key.expires_at_ms===null||key.expires_at_ms>Date.now()));
+      const group=key?state.groups.get(version.id)?.find(group=>group.id===key.access_group_id&&group.status==="active"):undefined;
+      if(!key||!group||!state.groupRoutes.get(`${version.id}:${group.id}`)?.some(grant=>grant.route_id===input.route_id&&grant.enabled))return errorResponse(403,"management_model_permission_denied","当前 Key 无权调用所选模型");
+      const endpoint=state.endpoints.get(version.id)?.find(row=>row.id===input.channel_id&&row.upstream_id===input.provider_id&&row.enabled);
+      const native=nativeFixtureAccounts.find(row=>row.id===input.credential_id&&row.provider==="grok_build"&&row.enabled&&row.auth_status==="active");
+      const ordinary=state.credentials.get(version.id)?.find(row=>row.id===input.credential_id&&row.upstream_id===input.provider_id&&row.status==="active");
+      const credential=endpoint?.adapter_id==="grok.build.responses"?native:ordinary;
+      if(!endpoint||!credential||(!native&&!state.bindings.get(version.id)?.some(binding=>binding.credential_id===credential.id&&binding.endpoint_id===input.channel_id&&binding.enabled)))return errorResponse(409,"management_channel_pin_target_changed","账号或绑定已变化");
+      if(input.credential_revision!==undefined&&Number(input.credential_revision)!==credential.revision)return errorResponse(409,"management_channel_pin_target_changed","授权 revision 已变化");
       // A target that moved between read and call: 409, and nothing is sent.
       if (input["credential_id"] === "cred-grok-old") {
         return errorResponse(
@@ -2807,12 +2986,13 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       // Never left the gateway: outcome failed WITHOUT upstream_sent — a local
       // problem, which is different information from a provider-side failure.
       const local = input["credential_id"] === "cred-relay-quota";
-      const ok = input["credential_id"] === "cred-relay-key";
+      const ok = input["credential_id"] === "cred-relay-key" || credential===native;
       return json(200, {
         ...input,
         request_id: `pin-${state.poolSnapshot}-${input["route_id"] ?? "r"}`,
         config_version_id: version.id,
         config_revision: version.revision,
+        credential_revision:credential.revision,runtime_credential_revision:credential.revision+(credential===native?1:0),connection_revision:version.revision,runtime_build:"development:development:development",server_instance:"fixture-process",permission_basis:"management_key_projection",
         outcome: ok ? "succeeded" : local ? "failed" : "rejected",
         upstream_sent: ok,
         attempt_count: 1,
@@ -3122,11 +3302,11 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       return json(
         200,
         [
-          ...(state.bindings.get(version.id)??[]).filter(binding=>binding.endpoint_id==="kimi-coding-responses"&&binding.enabled).map(binding=>({endpoint_id:binding.endpoint_id,credential_id:binding.credential_id,freshness:"fresh",observed_at_ms:now,snapshot_version:1,refresh_due:false,model_count:2})),
-          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", freshness: "fresh", observed_at_ms: now - 900_000, snapshot_version: 3, refresh_due: false, model_count: 2 },
-          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", freshness: "stale", observed_at_ms: now - 30 * 3_600_000, snapshot_version: 2, refresh_due: true, model_count: 1, last_failure_at_ms: now - 60_000, last_failure_class: "transport" },
-          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", freshness: "missing", observed_at_ms: 0, last_failure_at_ms: now - 120_000, last_failure_class: "authentication" },
-          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-old", freshness: "expired", observed_at_ms: now - 73 * 3_600_000, snapshot_version: 1, refresh_due: true, model_count: 1 },
+          ...(state.bindings.get(version.id)??[]).filter(binding=>binding.endpoint_id==="kimi-coding-responses"&&binding.enabled).map(binding=>({endpoint_id:binding.endpoint_id,credential_id:binding.credential_id,freshness:"fresh",observed_at_ms:now,last_success_at_ms:now,observation_state:"succeeded",source:"upstream_catalog",snapshot_version:1,refresh_due:false,model_count:2})),
+          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-relay-key", freshness: "fresh", observed_at_ms: now - 900_000, last_success_at_ms:now-900_000,observation_state:"succeeded",source:"upstream_catalog",snapshot_version: 3, refresh_due: false, model_count: 2 },
+          { endpoint_id: "ep-relay-a-responses", credential_id: "cred-grok-oauth", freshness: "stale", observed_at_ms: now - 30 * 3_600_000, last_success_at_ms:now-30*3_600_000,observation_state:"failed",source:"upstream_catalog",snapshot_version: 2, refresh_due: true, model_count: 1, last_failure_at_ms: now - 60_000, last_failure_class: "transport" },
+          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-oauth", freshness: "missing", observed_at_ms: 0,last_success_at_ms:null,observation_state:"failed",source:"upstream_catalog", last_failure_at_ms: now - 120_000, last_failure_class: "authentication" },
+          { endpoint_id: "ep-grok-build", credential_id: "cred-grok-old", freshness: "expired", observed_at_ms: now - 73 * 3_600_000, last_success_at_ms:now-73*3_600_000,observation_state:"succeeded",source:"upstream_catalog", snapshot_version: 1, refresh_due: true, model_count: 1 },
         ],
         revisionToken(version),
       );

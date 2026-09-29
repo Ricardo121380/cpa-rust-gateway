@@ -1,3 +1,4 @@
+import {ApiProvidersPage} from "../accounts/AccountsPage";
 import { useOperationBoundary } from "../../components/OperationBoundary";
 import { Link } from "react-router-dom";
 import { useModelConnections } from "../models/useModelConnections";
@@ -85,7 +86,9 @@ function toInput(draft: DraftUpstream) {
   };
 }
 
-export function UpstreamsPage() {
+export function UpstreamsPage() { const [params]=useSearchParams();return params.has("advanced")||params.has("upstream_id")?<AdvancedUpstreamsPage/>:<ApiProvidersPage/>; }
+
+function AdvancedUpstreamsPage() {
   const t = useMessages();
   const boundary=useOperationBoundary();
   const queryClient = useQueryClient();

@@ -133,11 +133,16 @@ impl RouteCredentialScheduler {
     /// Atomically publishes a Catalog-materialized Snapshot for the same Config Version.
     ///
     /// Config Version transitions still rebuild the complete runtime composition. This narrow
-    /// publication seam only replaces discovery-derived routes and resets their route cursors.
+    /// publication seam replaces changed discovery-derived routes. An identical view retains
+    /// its Arc and cursors so a periodic metadata pass cannot invalidate admitted requests.
     ///
     /// # Errors
     ///
     /// Returns a safe internal error when the replacement belongs to another Config Version.
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "preserves the owned publication API; RCU retries clone the proposed snapshot"
+    )]
     pub fn publish_catalog_snapshot(
         &self,
         snapshot: Arc<RouteSnapshot>,
@@ -148,8 +153,13 @@ impl RouteCredentialScheduler {
                 ErrorScope::Internal,
             ));
         }
-        self.candidates
-            .store(Arc::new(RouteCandidateScheduler::new(snapshot)));
+        self.candidates.rcu(|current| {
+            if current.snapshot_arc().as_ref() == snapshot.as_ref() {
+                Arc::clone(current)
+            } else {
+                Arc::new(RouteCandidateScheduler::new(Arc::clone(&snapshot)))
+            }
+        });
         Ok(())
     }
 
@@ -1288,6 +1298,23 @@ mod tests {
         )?])?);
         let scheduler = RouteCredentialScheduler::new(Arc::clone(&snapshot), pools);
         scheduler.publish_catalog_snapshot(Arc::new((*snapshot).clone()))?;
+        assert!(
+            Arc::ptr_eq(&scheduler.snapshot(), &snapshot),
+            "a content-identical publication cannot invalidate an admitted request"
+        );
+        assert!(
+            scheduler
+                .route_from_snapshot(Some(&snapshot), &route_id)
+                .is_ok()
+        );
+        let changed =
+            snapshot.materialize_credential_catalogs([crate::SnapshotCredentialCatalog::new(
+                EndpointId::try_new("endpoint-a")?,
+                CredentialId::try_new("credential-a")?,
+                CatalogModelState::Fresh,
+                BTreeSet::from(["different-model".to_owned()]),
+            )])?;
+        scheduler.publish_catalog_snapshot(Arc::new(changed))?;
         let error = scheduler
             .select_eligible_and_lease_with_runtime_health_quota_and_binding_at_from_snapshot(
                 Some(&snapshot),

@@ -384,6 +384,9 @@ async fn handle(
                         .clamp(5, 60)
                         .saturating_mul(1_000);
                     let expires_at_ms = clock.checked_add(expires_in.saturating_mul(1_000)).ok_or(())?;
+                    worker.authorization_receipts.lock().map_err(|_| ())?.begin(
+                        session_id.clone(), None, "kimi-coding", &actor,
+                        &WriteContext {version:context.version.clone(),revision:session_revision}, &owner, &id, expires_at_ms).map_err(|_| ())?;
                     workflow.sessions.insert(
                         session_id.clone(),
                         Session {
@@ -419,6 +422,7 @@ async fn handle(
                     return Ok(Err(WorkflowError::Conflict));
                 }
                 workflow.sessions.remove(&session_id);
+                authorization_receipts::update(&worker,&session_id,"cancelled",None);
                 Ok(Ok(Outcome::State(serde_json::json!({"state": "cancelled"}))))
             }
             Action::Poll => {
@@ -448,11 +452,13 @@ async fn handle(
                         Zeroizing::new(session.device_id.to_string()),
                     )
                 };
+                authorization_receipts::update(&worker,&session_id,"in_progress",None);
                 let Ok(mut response) = (workflow.transport)(TOKEN_URL, form.as_str(), device_id.as_str()) else {
                     // A transport result cannot prove whether the upstream consumed the device
                     // grant. Do not retry it automatically or leave a background session that
                     // could later persist unseen material; require a fresh explicit authorization.
                     workflow.sessions.remove(&session_id);
+                    authorization_receipts::update(&worker,&session_id,"unknown",None);
                     return Err(ManagementOperationsError::SourceUnavailable);
                 };
                 let provider_error = response.body
@@ -465,7 +471,8 @@ async fn handle(
                     "authorization_pending" | "slow_down" | "expired_token" | "access_denied"
                 );
                 if recognized_oauth_error && !matches!(response.status, 200 | 400) {
-                    wipe(&mut response.body);
+                    wipe(&mut response.body);workflow.sessions.remove(&session_id);
+                    authorization_receipts::update(&worker,&session_id,"unknown",None);
                     return Err(ManagementOperationsError::SourceUnavailable);
                 }
                 if provider_error == "authorization_pending" || provider_error == "slow_down" {
@@ -480,6 +487,7 @@ async fn handle(
                         .get(&session_id)
                         .map_or(5_000, |session| session.interval_ms);
                     wipe(&mut response.body);
+                    authorization_receipts::update(&worker,&session_id,"pending",None);
                     return Ok(Ok(Outcome::State(serde_json::json!({
                         "state": "pending",
                         "interval_ms": interval_ms,
@@ -488,6 +496,7 @@ async fn handle(
                 if matches!(provider_error.as_str(), "expired_token" | "access_denied") {
                     workflow.sessions.remove(&session_id);
                     wipe(&mut response.body);
+                    authorization_receipts::update(&worker,&session_id,if provider_error=="expired_token" {"expired"} else {"denied"},None);
                     return Ok(Ok(Outcome::State(serde_json::json!({
                         "state": if provider_error == "expired_token" { "expired" } else { "denied" },
                     }))));
@@ -495,6 +504,7 @@ async fn handle(
                 if !provider_error.is_empty() {
                     workflow.sessions.remove(&session_id);
                     wipe(&mut response.body);
+                    authorization_receipts::update(&worker,&session_id,"failed",None);
                     return Ok(Ok(Outcome::State(serde_json::json!({"state": "failed"}))));
                 }
                 let material: Result<Zeroizing<Vec<u8>>, ()> = (|| {
@@ -528,6 +538,7 @@ async fn handle(
                 wipe(&mut response.body);
                 workflow.sessions.remove(&session_id);
                 let Ok(material) = material else {
+                    authorization_receipts::update(&worker,&session_id,"failed",None);
                     return Ok(Ok(Outcome::State(serde_json::json!({"state":"failed"}))));
                 };
                 let mut service = worker
@@ -555,6 +566,10 @@ async fn handle(
                     },
                     previous,
                 );
+                match &persisted {
+                    Ok((value,_))=>authorization_receipts::update(&worker,&session_id,"completed",Some((&value.value().id,value.revision()))),
+                    Err(_)=>authorization_receipts::update(&worker,&session_id,"failed",None),
+                }
                 Ok(Ok(Outcome::Saved(persisted)))
             }
         }

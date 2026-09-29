@@ -25,6 +25,10 @@ pub(super) enum Channel {
     Kiro,
 }
 
+#[cfg(test)]
+#[path = "ordinary_batch_a.rs"]
+mod batch_a;
+
 pub(super) enum Material {
     OpenAi(OpenAiCompatibleRuntimeCredential),
     Claude(ClaudeRuntimeCredential),
@@ -87,6 +91,8 @@ trait Exchange {
 }
 struct HttpExchange {
     codex_proxy: UpstreamProxy,
+    #[cfg(test)]
+    token_url_override: Option<String>,
 }
 
 impl HttpExchange {
@@ -98,6 +104,8 @@ impl HttpExchange {
         device: Option<&str>,
         codex: bool,
     ) -> Result<Zeroizing<Vec<u8>>, RefreshFailure> {
+        #[cfg(test)]
+        let url = self.token_url_override.as_deref().unwrap_or(url);
         let mut builder = reqwest::blocking::Client::builder()
             .no_proxy()
             .redirect(reqwest::redirect::Policy::none())
@@ -316,7 +324,14 @@ pub(super) struct Pass<'a> {
 }
 impl Pass<'_> {
     pub fn run(&self, proxy: UpstreamProxy) -> Result<OAuthRefreshSummary, GrokAccountWorkerError> {
-        self.run_with(&HttpExchange { codex_proxy: proxy }, &now_ms)
+        self.run_with(
+            &HttpExchange {
+                codex_proxy: proxy,
+                #[cfg(test)]
+                token_url_override: None,
+            },
+            &now_ms,
+        )
     }
 
     #[allow(clippy::too_many_lines)]
@@ -850,6 +865,7 @@ mod tests {
             });
             let http = HttpExchange {
                 codex_proxy: UpstreamProxy::Direct,
+                token_url_override: None,
             };
             assert_eq!(
                 http.post(

@@ -1,7 +1,7 @@
 import type { beginConfigurationTask } from "../config-versions/configurationTask";
 import type { PublicModel, CandidateRecord, RouteListItem, RoutingPage, AliasRecord } from "./model";
 
-export type ConfigurationTask = Awaited<ReturnType<typeof beginConfigurationTask>>;
+export type ConfigurationTask = Pick<Awaited<ReturnType<typeof beginConfigurationTask>>, "version"|"autoApply"|"assertOwner"|"read"|"mutate"|"finish"|"revision">;
 export type ModelConnection = Readonly<{ upstreamModel: string; alias?: string; targetModelId?: string; endpointId: string; allowUnlisted: boolean }>;
 
 export function parseModelIds(value: string): string[] {

@@ -150,8 +150,12 @@ describe("recovery entry points", () => {
     ]);
   });
 
-  it("keeps the three outcomes distinct and never calls a probe a recovery", () => {
-    expect(recoveryMeta("probe_scheduled").tone).toBe("good");
+  it("keeps recovery outcomes distinct and does not claim an accepted request sent a probe", () => {
+    expect(recoveryMeta("released").tone).toBe("tint");
+    expect(recoveryMeta("released").label).toContain("尚未验证");
+    expect(recoveryMeta("probe_scheduled").tone).toBe("tint");
+    expect(recoveryMeta("probe_scheduled").label).toBe("恢复操作尚未完成");
+    expect(recoveryMeta("probe_scheduled").detail).toContain("不证明发送了上游探测");
     expect(recoveryMeta("recovery_required").tone).toBe("tint");
     expect(recoveryMeta("rejected").tone).toBe("serious");
     expect(recoveryMeta("probe_scheduled").label).not.toBe(

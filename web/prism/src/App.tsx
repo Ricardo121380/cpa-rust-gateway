@@ -16,6 +16,7 @@ import { UnlockPage } from "./features/unlock/UnlockPage";
 import { UpstreamsPage } from "./features/upstreams/UpstreamsPage";
 import { UsagePage } from "./features/usage/UsagePage";
 import { AccountsPage } from "./features/accounts/AccountsPage";
+import {OAuthPage} from "./features/accounts/OAuthPage";
 import { CatalogPage } from "./features/catalog/CatalogPage";
 import { RouteRecovery } from "./app/RouteRecovery";
 
@@ -29,6 +30,7 @@ export const router = createHashRouter([
       { index: true, element: <OverviewPage /> },
       { path: "overview", element: <OverviewPage /> },
       { path: "accounts", element: <AccountsPage /> },
+      { path: "oauth", element: <OAuthPage /> },
       { path: "catalog", element: <CatalogPage /> },
       { path: "usage", element: <UsagePage /> },
       { path: "monitoring", element: <MonitoringPage /> },

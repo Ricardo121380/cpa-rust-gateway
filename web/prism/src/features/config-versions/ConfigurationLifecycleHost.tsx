@@ -26,6 +26,7 @@ export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
  const [selectedDestination,setSelectedDestination]=useState<ConfigVersionSummary>();
  useEffect(()=>{if(selectedDestination){if(useVersionStore.getState().context?.configVersionId===selectedDestination.id)void navigate(selectedDestination.status==="draft"?`/versions?review=${encodeURIComponent(selectedDestination.id)}`:"/versions");setSelectedDestination(undefined);}},[selectedDestination,navigate]);
  const [panel,setPanel]=useState<Panel>();const current=useRef<Attempt | undefined>(undefined);
+ const [restorationConfirmed,setRestorationConfirmed]=useState(false);
  const [entryError,setEntryError]=useState<string>();
  const alive=(attempt:Attempt)=>current.current===attempt&&isLifecycleOwner(attempt.owner);
  const close=()=>{current.current=undefined;setPanel(undefined);};
@@ -39,7 +40,7 @@ export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
    let owner:LifecycleOwner;
    try{owner=captureLifecycleOwner(source);}catch(cause){setEntryError(asAppError(cause).message);return;}
    const attempt={owner,mode,inline:options.inline??false,validateOnly:options.validateOnly??false};
-   current.current=attempt;setEntryError(undefined);setPanel({kind:"preparing",attempt});
+   current.current=attempt;setRestorationConfirmed(false);setEntryError(undefined);setPanel({kind:"preparing",attempt});
    void prepareConfigurationLifecycle(owner,mode,options.proof,options.validateOnly).then(prepared=>{if(alive(attempt))setPanel({kind:"prepared",attempt,prepared});}).catch(cause=>{if(alive(attempt)&&!isCancelledError(cause))setPanel({kind:"failed",attempt,message:asAppError(cause).message});});
   };
   if(options.inline)begin();else admission.request(begin);
@@ -54,7 +55,7 @@ export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
  const commit=(prepared:PreparedLifecycle,attempt:Attempt)=>{
   if(!alive(attempt)||panel?.kind!=="prepared")return;
   setPanel({kind:"writing",attempt,prepared});
-  void commitConfigurationLifecycle(prepared).then(receipt=>{
+  void commitConfigurationLifecycle(prepared,restorationConfirmed).then(receipt=>{
    if(!alive(attempt))return;
    setPanel({kind:"receipt",attempt,receipt,reading:false});
    void queries.invalidateQueries({queryKey:["config-versions"]});
@@ -70,10 +71,11 @@ export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
  return <Context.Provider value={{active:panel!==undefined,start,openSelected:setSelectedDestination}}>{children}
   {entryError?<div role="alert" className="conflict-bar">{entryError}<button type="button" onClick={()=>setEntryError(undefined)}>关闭</button></div>:null}
   {panel?<Sheet navigationOwned={panel.attempt.inline} title={title} layout={panel.kind==="prepared"&&!panel.attempt.validateOnly?"confirm":"inspector"} tone={panel.attempt.mode==="rollback"?"danger":"default"} busy={busy} onEscape={finish} guardUnsaved={false}
-   footer={panel.kind==="prepared"&&!panel.attempt.validateOnly?<><SheetDismissButton className="secondary" onDismiss={close}>取消</SheetDismissButton><button type="button" className={panel.attempt.mode==="rollback"?"danger":"primary"} onClick={()=>commit(panel.prepared,panel.attempt)}>{panel.attempt.mode==="rollback"?"确认回滚":"确认应用"}</button></>:panel.kind==="receipt"?<><button type="button" className="secondary" disabled={busy} onClick={()=>observe(panel.attempt,panel.receipt)}>核对服务端状态</button><SheetDismissButton disabled={busy} onDismiss={finish}>{panel.receipt.kind==="acknowledged"?"完成":"返回核对"}</SheetDismissButton></>:<SheetDismissButton disabled={busy} onDismiss={close}>{busy?"处理中…":"关闭"}</SheetDismissButton>}>
+   footer={panel.kind==="prepared"&&!panel.attempt.validateOnly?<><SheetDismissButton className="secondary" onDismiss={close}>取消</SheetDismissButton><button type="button" className={panel.attempt.mode==="rollback"?"danger":"primary"} disabled={!!panel.prepared.restoration?.accounts.length&&!restorationConfirmed} onClick={()=>commit(panel.prepared,panel.attempt)}>{panel.attempt.mode==="rollback"?"确认回滚":"确认应用"}</button></>:panel.kind==="receipt"?<><button type="button" className="secondary" disabled={busy} onClick={()=>observe(panel.attempt,panel.receipt)}>核对服务端状态</button><SheetDismissButton disabled={busy} onDismiss={finish}>{panel.receipt.kind==="acknowledged"?"完成":"返回核对"}</SheetDismissButton></>:<SheetDismissButton disabled={busy} onDismiss={close}>{busy?"处理中…":"关闭"}</SheetDismissButton>}>
    <p>配置：<ResourceIdentity id={panel.attempt.owner.source.id} kind="config" name={panel.attempt.owner.source.description}/></p>
    {panel.kind==="preparing"||panel.kind==="writing"?<p role="status">{panel.kind==="preparing"?"正在核对版本并校验，请稍候…":"正在提交已确认的配置，请稍候…"}</p>:null}
    {panel.kind==="prepared"?<><p role="status">此修订的配置校验通过。</p><p>{panel.attempt.validateOnly?"校验不会应用配置，也不保留未来的应用权限。":"确认后新请求使用这份配置；已开始的请求继续完成。"}</p>{panel.attempt.mode==="rollback"?<p>回滚目标：<ResourceIdentity id={panel.prepared.target.id} kind="config" name={panel.prepared.target.description}/></p>:null}<p className="stat-sub">全局价格目录、历史账本和原生账号运行状态不随配置回滚。</p></>:null}
+   {panel.kind==="prepared"&&panel.prepared.restoration?.accounts.length?<section><h4>将恢复已删除的本地账号</h4><ul>{panel.prepared.restoration.accounts.map(account=><li key={`${account.upstream_id}:${account.credential_id}`}>{account.credential_id} · 归属 {account.upstream_id} · 授权 revision {account.credential_revision}</li>)}</ul><p>恢复的是历史版本中的授权与连接。历史账本仍保留；没有注销或撤销上游账号的授权。</p><label className="check-row"><input type="checkbox" checked={restorationConfirmed} onChange={event=>setRestorationConfirmed(event.target.checked)}/>确认恢复清单中的已删除账号及历史授权</label></section>:null}
    {panel.kind==="failed"?<p role="alert">{panel.message}</p>:null}
    {panel.kind==="receipt"?<><p role={panel.receipt.kind==="acknowledged"?"status":"alert"}>{panel.receipt.message}</p>{panel.reading?<p role="status">正在读取服务端状态…</p>:null}{panel.readError?<p role="alert">回执保留，状态重读失败：{panel.readError}</p>:null}{panel.observation?<p>{panel.observation.target.status==="active"&&panel.observation.activeId===panel.observation.target.id?(panel.receipt.kind==="acknowledged"?"已核对：目标仍为当前活动配置。":"当前读取到目标处于活动状态；这不证明本次请求已获确认。"):"目标已被后续操作替换或仍未应用；不会将它当作当前活动配置。"}</p>:null}</>:null}
   </Sheet>:null}

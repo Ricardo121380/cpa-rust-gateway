@@ -27,6 +27,7 @@ export type AccountActionOutcomeKind =
   | "rejected"
   | "saved_draft"
   | "saved_unapplied"
+  | "saved_application_unconfirmed"
   | "applied"
   | "unconfirmed";
 
@@ -43,6 +44,7 @@ export function accountActionOutcomeLabel(outcome: AccountActionOutcome): string
     rejected: "未执行：被拒绝",
     saved_draft: "已保存到草稿",
     saved_unapplied: "已保存，待应用",
+    saved_application_unconfirmed: "已保存，应用结果待确认",
     applied: "已应用",
     unconfirmed: "结果未确认",
   };

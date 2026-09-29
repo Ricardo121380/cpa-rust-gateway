@@ -1088,7 +1088,27 @@ pub(super) async fn import(
             Ok(_) => return Ok(Err(ManagementResourceError::InvalidCredentialInput)),
             Err(error) => return Ok(Err(error)),
         }
-        Ok(service.import_credential(
+        let key = import_receipt_key(
+            context.version.as_str(),
+            owner.as_str(),
+            id.as_str(),
+            &context.revision.as_token(),
+        );
+        worker
+            .authorization_receipts
+            .lock()
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?
+            .begin(
+                key.clone(),
+                None,
+                &input.channel,
+                &actor,
+                &context,
+                &owner,
+                &id,
+                now.saturating_add(60_000),
+            )?;
+        let result = service.import_credential(
             &actor,
             &context.version,
             context.revision,
@@ -1099,7 +1119,17 @@ pub(super) async fn import(
                 plaintext_secret: secret.as_slice(),
                 status: CredentialStatus::Active,
             },
-        ))
+        );
+        match &result {
+            Ok((value, _)) => super::authorization_receipts::update(
+                &worker,
+                &key,
+                "completed",
+                Some((&value.value().id, value.revision())),
+            ),
+            Err(_) => super::authorization_receipts::update(&worker, &key, "failed", None),
+        }
+        Ok(result)
     })
     .await;
     match result {
@@ -1114,6 +1144,74 @@ pub(super) async fn import(
         ),
         Ok(Err(error)) => management_error(error),
         Err(error) => management_error(ManagementResourceError::from(error)),
+    }
+}
+
+fn import_receipt_key(version: &str, owner: &str, id: &str, revision: &str) -> String {
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+    use sha2::{Digest, Sha256};
+    let mut hash = Sha256::new();
+    hash.update(b"cpar/management-import-receipt/v1\0");
+    for value in [version, owner, id, revision] {
+        hash.update(value.as_bytes());
+        hash.update([0]);
+    }
+    format!("import-{}", URL_SAFE_NO_PAD.encode(hash.finalize()))
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ImportReceiptQuery {
+    started_revision: String,
+}
+pub(super) async fn import_receipt(
+    request: HttpRequest,
+    path: web::Path<(String, String)>,
+    query: web::Query<ImportReceiptQuery>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let actor = match principal(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let context = match super::read_context(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let (owner, id) = path.into_inner();
+    let (Ok(owner), Ok(id)) = (UpstreamId::try_new(owner), CredentialId::try_new(id)) else {
+        return invalid_input();
+    };
+    if query.started_revision.len() > 64
+        || !query
+            .started_revision
+            .strip_prefix("rev-")
+            .is_some_and(|value| value.parse::<i64>().is_ok_and(|value| value >= 0))
+    {
+        return invalid_input();
+    }
+    let key = import_receipt_key(
+        context.version.as_str(),
+        owner.as_str(),
+        id.as_str(),
+        &query.started_revision,
+    );
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .and_then(|value| i64::try_from(value.as_millis()).ok())
+        .unwrap_or(0);
+    let Ok(receipts) = state.authorization_receipts.lock() else {
+        return super::internal_error();
+    };
+    match receipts.read(&key, &actor, &context.version, now) {
+        Some(value) => HttpResponse::Ok()
+            .insert_header(("Cache-Control", "no-store"))
+            .json(value),
+        None => super::error_response(
+            StatusCode::NOT_FOUND,
+            "management_import_receipt_missing",
+            "导入回执不在本进程保留范围内，结果保持待确认；不会重放导入",
+        ),
     }
 }
 

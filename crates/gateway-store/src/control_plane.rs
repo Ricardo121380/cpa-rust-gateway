@@ -4,6 +4,8 @@
 //! a Provider trait or the inference request path. P2-06 compiles these rows into a validated
 //! runtime view; P2-07 owns publication of that view.
 
+mod account_restoration;
+pub use account_restoration::{AccountRestorationReview, RestoredAccount};
 mod configuration_diff;
 use std::collections::BTreeMap;
 mod configuration_edit;
@@ -1883,6 +1885,35 @@ impl SqliteControlPlaneRepository {
         native_generation: Option<i64>,
         audit: Option<&ManagementAuditEventDraft>,
     ) -> StoreResult<(ConfigVersionActivation, Option<ManagementAuditEvent>)> {
+        self.activate_prepared_version_with_account_review(
+            version,
+            expected_revision,
+            expected_active,
+            expected_credentials,
+            native_generation,
+            audit,
+            None,
+        )
+    }
+
+    /// Activates the reviewed graph, requiring an exact review digest for deleted accounts.
+    /// # Errors
+    /// Returns a revision conflict for missing or stale account restoration confirmation.
+    #[allow(
+        clippy::too_many_arguments,
+        clippy::too_many_lines,
+        reason = "graph, runtime sources, restoration review and audit commit in one transaction"
+    )]
+    pub fn activate_prepared_version_with_account_review(
+        &mut self,
+        version: &ConfigVersionId,
+        expected_revision: i64,
+        expected_active: Option<&ConfigVersionId>,
+        expected_credentials: &[CredentialConfiguration],
+        native_generation: Option<i64>,
+        audit: Option<&ManagementAuditEventDraft>,
+        account_review: Option<&str>,
+    ) -> StoreResult<(ConfigVersionActivation, Option<ManagementAuditEvent>)> {
         if audit.is_some_and(|value| {
             !matches!(
                 value.action(),
@@ -1958,7 +1989,27 @@ impl SqliteControlPlaneRepository {
         {
             return Err(StoreError::ConfigVersionRevisionConflict);
         }
+        let restoration = account_restoration::review(&transaction.transaction, version)?;
+        if !restoration.accounts.is_empty()
+            && account_review != Some(restoration.review_token.as_str())
+        {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
         let activation = transaction.activate_version(version)?;
+        if let Some(audit) = audit {
+            for account in &restoration.accounts {
+                transaction.record_management_resource_audit_event(
+                    &ManagementResourceAuditEventDraft::try_new(
+                        "credential_restored_from_history",
+                        audit.actor(),
+                        audit.occurred_at_ms(),
+                        "credential",
+                        &account.credential_id,
+                    )?,
+                    version,
+                )?;
+            }
+        }
         let event = audit
             .map(|draft| {
                 transaction.record_management_audit_event(
@@ -4667,6 +4718,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "exercises rotation during preparation and stale rollback in one durable scenario"
+    )]
     fn prepared_activation_never_restores_rotated_oauth_material() -> TestResult {
         let key_version = KeyVersion::try_new(1)?;
         let secrets = SecretStore::new(MasterKeyRing::try_new(
@@ -4732,6 +4787,59 @@ mod tests {
                 .version
                 .id,
             first.version.id
+        );
+        let mut deleted = build("after-account-deletion", 3)?;
+        deleted.credentials.clear();
+        repository.write_configuration(&deleted)?;
+        repository.connection.execute("INSERT INTO management_resource_audit_events(action,actor,occurred_at_ms,config_version_id,resource_kind,resource_id) VALUES('credential_deleted','operator',1,?1,'credential','account')",[deleted.version.id.as_str()])?;
+        repository.activate_version(&deleted.version.id)?;
+        assert!(
+            matches!(
+                repository.activate_prepared_version(
+                    &stale.version.id,
+                    0,
+                    Some(&deleted.version.id),
+                    &stale.credentials,
+                    None,
+                    None
+                ),
+                Err(StoreError::ConfigVersionRevisionConflict)
+            ),
+            "Historical publication must require an explicit account restoration review"
+        );
+        let review = repository.account_restoration_review(&stale.version.id)?;
+        assert_eq!(review.accounts.len(), 1);
+        assert_eq!(review.accounts[0].credential_revision, 1);
+        repository.connection.execute("INSERT INTO management_resource_audit_events(action,actor,occurred_at_ms,config_version_id,resource_kind,resource_id) VALUES('credential_deleted','operator',2,?1,'credential','another-account')",[deleted.version.id.as_str()])?;
+        assert!(matches!(
+            repository.activate_prepared_version_with_account_review(
+                &stale.version.id,
+                0,
+                Some(&deleted.version.id),
+                &stale.credentials,
+                None,
+                None,
+                Some(&review.review_token)
+            ),
+            Err(StoreError::ConfigVersionRevisionConflict)
+        ));
+        let review = repository.account_restoration_review(&stale.version.id)?;
+        repository.activate_prepared_version_with_account_review(
+            &stale.version.id,
+            0,
+            Some(&deleted.version.id),
+            &stale.credentials,
+            None,
+            None,
+            Some(&review.review_token),
+        )?;
+        assert_eq!(
+            repository
+                .load_active_configuration()?
+                .ok_or("active")?
+                .version
+                .id,
+            stale.version.id
         );
         Ok(())
     }

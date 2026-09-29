@@ -56,6 +56,31 @@ fn observation_fingerprint(
         .map_err(|_| GrokAccountPoolError::StoreUnavailable)
 }
 
+pub(super) fn save_imported_identity(
+    transaction: &rusqlite::Transaction<'_>,
+    secret_store: &gateway_store::secret_store::SecretStore,
+    account_id: &str,
+    identity: &AccountIdentity,
+    now_ms: i64,
+) -> Result<(), GrokAccountPoolError> {
+    // Updated authorization removes its old observation inside import_one. Unchanged
+    // authorization keeps an existing observation rather than overwriting a newer lookup.
+    if observation_fingerprint(transaction, account_id)?.is_some() {
+        return Ok(());
+    }
+    let persisted = load_persisted_credential(transaction, account_id)?
+        .ok_or(GrokAccountPoolError::NotFound)?;
+    let fingerprint: [u8; 32] = Sha256::digest(&persisted.ciphertext).into();
+    let bytes = Zeroizing::new(
+        serde_json::to_vec(identity).map_err(|_| GrokAccountPoolError::InvalidRequest)?,
+    );
+    let encrypted = secret_store
+        .seal(&bytes, &aad(account_id, &fingerprint))
+        .map_err(|_| GrokAccountPoolError::SecretStoreFailure)?;
+    transaction.execute("INSERT INTO native_account_identity_observations(account_id,credential_fingerprint,ciphertext,key_version,observed_at_ms) VALUES(?1,?2,?3,?4,?5)",params![account_id,fingerprint.as_slice(),encrypted.ciphertext(),encrypted.key_version().as_sqlite_i64(),now_ms]).map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+    Ok(())
+}
+
 impl GrokAccountPoolStore {
     /// Opens a revision-bound credential solely for a requested identity lookup.
     /// # Errors
@@ -184,7 +209,7 @@ impl GrokAccountPoolStore {
             .lock()
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
         let mut query = connection
-            .prepare("SELECT id FROM grok_accounts WHERE import_batch_id=?1 LIMIT 2")
+            .prepare("SELECT account_id FROM native_account_import_receipts WHERE batch_id=?1 UNION SELECT id FROM grok_accounts WHERE import_batch_id=?1 LIMIT 2")
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
         let ids = query
             .query_map([batch], |r| r.get::<_, String>(0))
@@ -196,6 +221,48 @@ impl GrokAccountPoolStore {
         }
         Ok(ids[0].clone())
     }
+
+    /// Reads the durable result of one management import without Provider access or runtime apply.
+    /// # Errors
+    /// Rejects absent or ambiguous batches, invalid identifiers and storage failures.
+    pub fn managed_import_receipt(
+        &self,
+        batch: &str,
+    ) -> Result<serde_json::Value, GrokAccountPoolError> {
+        if !super::valid_component(batch, super::MAX_OPAQUE_ID_BYTES) {
+            return Err(GrokAccountPoolError::InvalidRequest);
+        }
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let mut query = connection.prepare("SELECT r.account_id,r.provider,r.credential_revision,r.outcome,r.saved_at_ms,EXISTS(SELECT 1 FROM grok_accounts a WHERE a.id=r.account_id) FROM native_account_import_receipts r JOIN grok_account_import_batches b ON b.id=r.batch_id WHERE r.batch_id=?1 AND b.status='applied' LIMIT 2")
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let rows = query
+            .query_map([batch], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, bool>(5)?,
+                ))
+            })
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        let [row] = rows.as_slice() else {
+            return Err(if rows.is_empty() {
+                GrokAccountPoolError::NotFound
+            } else {
+                GrokAccountPoolError::InvalidRequest
+            });
+        };
+        Ok(
+            serde_json::json!({"batch_id":batch,"account_id":row.0,"channel":format!("grok.{}",row.1),"credential_revision":row.2,"outcome":row.3,"saved_at_ms":row.4,"saved":true,"account_exists":row.5}),
+        )
+    }
 }
 
 #[cfg(test)]
@@ -205,6 +272,75 @@ mod tests {
         GrokAccountAuthStatus, GrokAccountCredential, GrokAccountIdentity, GrokAccountImport,
     };
     use gateway_store::secret_store::{MasterKey, MasterKeyRing, SecretStore};
+    #[test]
+    fn managed_import_observation_is_atomic_and_unchanged_import_preserves_newer_identity()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let version = KeyVersion::try_new(1)?;
+        let store = GrokAccountPoolStore::try_new(
+            rusqlite::Connection::open_in_memory()?,
+            SecretStore::new(MasterKeyRing::try_new(
+                version,
+                [(version, MasterKey::try_from_bytes([0x53; 32])?)],
+            )?),
+        )?;
+        let entry = |bytes: &[u8]| -> Result<GrokAccountImport, GrokAccountPoolError> {
+            Ok(GrokAccountImport {
+                provider: GrokAccountProvider::Console,
+                identity: GrokAccountIdentity::try_from_bytes(b"same-human")?,
+                credential: GrokAccountCredential::try_from_bytes(bytes)?,
+                auth_status: GrokAccountAuthStatus::Active,
+                enabled: false,
+                priority: 3,
+                weight: 2,
+                max_concurrency: 1,
+                refresh_due_at_ms: None,
+                quota_sync_due_at_ms: None,
+                cooldown_until_ms: None,
+            })
+        };
+        let original = AccountIdentity {
+            email: Some("member@example.test".to_owned()),
+            phone: None,
+            username: Some("old".to_owned()),
+        };
+        store.import_managed_account_with_identity(
+            "atomic-first",
+            &entry(b"first")?,
+            Some(&original),
+            1,
+        )?;
+        let id = store.single_import_account("atomic-first")?;
+        let before = store.identity_snapshot(&id)?;
+        let newer = AccountIdentity {
+            username: Some("newer".to_owned()),
+            ..original.clone()
+        };
+        store.save_observed_identity(&before, &newer, 2)?;
+        let unchanged = store.import_managed_account_with_identity(
+            "atomic-repeat",
+            &entry(b"first")?,
+            Some(&original),
+            2,
+        )?;
+        assert_eq!(unchanged.unchanged, 1);
+        assert_eq!(store.observed_identity(&id, 2)?, newer);
+        let updated = store.import_managed_account_with_identity(
+            "atomic-update",
+            &entry(b"replacement")?,
+            Some(&original),
+            3,
+        )?;
+        assert_eq!(updated.updated, 1);
+        assert_eq!(store.observed_identity(&id, 3)?, original);
+        assert_eq!(
+            store.save_observed_identity(&before, &newer, 3),
+            Err(GrokAccountPoolError::ExistingAccountConflict)
+        );
+        let latest = store.identity_snapshot(&id)?;
+        assert_eq!(latest.credential.as_bytes(), b"replacement");
+        assert_eq!(latest.revision, before.revision + 1);
+        Ok(())
+    }
     #[test]
     fn observation_is_encrypted_cas_bound_and_invalidated_by_credential_changes()
     -> Result<(), Box<dyn std::error::Error>> {

@@ -97,9 +97,10 @@ fn same_observed_account(old: &[u8], new: &[u8]) -> bool {
         return false;
     }
     let identity = gateway_store::account_identity::AccountIdentity::from_credential(old);
-    identity.email.is_none()
-        || identity.email
-            == gateway_store::account_identity::AccountIdentity::from_credential(new).email
+    (old_binding.is_some() || identity.email.is_some())
+        && (identity.email.is_none()
+            || identity.email
+                == gateway_store::account_identity::AccountIdentity::from_credential(new).email)
 }
 
 pub(super) fn persist(
@@ -113,7 +114,7 @@ pub(super) fn persist(
     if let Some(previous) = previous {
         let old = service.open_credential_for_export(&context.version, &input.id)?;
         if !same_observed_account(old.as_bytes(), input.plaintext_secret) {
-            return Err(ManagementResourceError::InvalidCredentialInput);
+            return Err(ManagementResourceError::CredentialIdentityUnverified);
         }
         service
             .update_credential_if_revision(
@@ -144,6 +145,7 @@ fn admit(
     id: &CredentialId,
     channel: Channel,
     replace_existing: bool,
+    actor: &ManagementActor,
 ) -> Result<Admission, HttpResponse> {
     if !channel_workflow(state, channel)?.codex_enrollment_available() {
         return Err(error_response(
@@ -204,6 +206,7 @@ fn admit(
         hash.update(value.as_bytes());
     }
     hash.update(context.revision.as_i64().to_be_bytes());
+    hash.update(actor.as_str().as_bytes());
     CredentialId::try_new(format!(
         "enroll-{}",
         URL_SAFE_NO_PAD.encode(hash.finalize())
@@ -233,6 +236,10 @@ fn start_for(
     ) else {
         return invalid_input();
     };
+    let actor = match principal(request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
     let admission = match admit(
         state,
         &context,
@@ -240,6 +247,7 @@ fn start_for(
         &id,
         channel,
         input.replace_existing,
+        &actor,
     ) {
         Ok(v) => v,
         Err(r) => return r,
@@ -248,9 +256,44 @@ fn start_for(
         Ok(mut w) => w.start_oauth(&admission.session),
         Err(r) => return r,
     };
+    let handle = operation.authorization_url.as_ref().map(|url| {
+        let mut hash = sha2::Sha256::new();
+        hash.update(admission.session.as_str());
+        hash.update(url.as_bytes());
+        format!("auth-{}", URL_SAFE_NO_PAD.encode(hash.finalize()))
+    });
+    if let Some(handle) = &handle {
+        let result = state
+            .authorization_receipts
+            .lock()
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)
+            .and_then(|mut receipts| {
+                receipts.begin(
+                    handle.clone(),
+                    Some(admission.session.to_string()),
+                    match channel {
+                        Channel::Codex => "codex",
+                        Channel::Claude => "claude",
+                    },
+                    &actor,
+                    &context,
+                    &owner,
+                    &id,
+                    operation.expires_at_ms.unwrap_or(0),
+                )
+            });
+        if result.is_err() {
+            return internal_error();
+        }
+    }
+    let mut response =
+        serde_json::to_value(CredentialOAuthResponse::new(&id, operation)).unwrap_or_default();
+    if let Some(handle) = handle {
+        response["session_id"] = serde_json::json!(handle);
+    }
     HttpResponse::Accepted()
         .insert_header(("Cache-Control", "no-store"))
-        .json(CredentialOAuthResponse::new(&id, operation))
+        .json(response)
 }
 
 fn cancel_for(
@@ -274,6 +317,10 @@ fn cancel_for(
     ) else {
         return invalid_input();
     };
+    let actor = match principal(request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
     let admission = match admit(
         state,
         &context,
@@ -281,13 +328,26 @@ fn cancel_for(
         &id,
         channel,
         input.replace_existing,
+        &actor,
     ) {
         Ok(v) => v,
         Err(r) => return r,
     };
-    match channel_workflow(state, channel) {
-        Ok(mut w) => w.cancel_oauth(&admission.session),
+    let cancelled = match channel_workflow(state, channel) {
+        Ok(mut w) => {
+            w.cancel_oauth(&admission.session);
+            w.oauth_status(&admission.session).state == ManagementCredentialOAuthState::Cancelled
+        }
         Err(r) => return r,
+    };
+    if !cancelled {
+        return conflict();
+    }
+    if let Ok(receipts) = state.authorization_receipts.lock()
+        && let Some(key) = receipts.logical_key(admission.session.as_str(), &actor)
+    {
+        drop(receipts);
+        authorization_receipts::update(state, &key, "cancelled", None);
     }
     HttpResponse::NoContent().finish()
 }
@@ -297,6 +357,7 @@ fn callback_for(
     state: &web::Data<ManagementResourceHttpState>,
     channel: Channel,
     session: &CredentialId,
+    actor: &ManagementActor,
 ) -> Result<ParsedOAuthCallback, HttpResponse> {
     match parse_oauth_callback_request(input) {
         Ok(v) => Ok(v),
@@ -309,13 +370,25 @@ fn callback_for(
                 .and_then(|s| decode_oauth_state(s.as_bytes()))
                 && let Ok(mut workflow) = channel_workflow(state, channel)
             {
-                let _ = workflow.reject_oauth(session, &decoded);
+                let rejected = workflow.reject_oauth(session, &decoded);
+                drop(workflow);
+                if rejected
+                    && let Ok(receipts) = state.authorization_receipts.lock()
+                    && let Some(key) = receipts.logical_key(session.as_str(), actor)
+                {
+                    drop(receipts);
+                    authorization_receipts::update(state, &key, "denied", None);
+                }
             }
             Err(conflict())
         }
     }
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "keeps the consuming exchange, CAS persistence and terminal receipt in one workflow"
+)]
 async fn complete_for(
     channel: Channel,
     request: HttpRequest,
@@ -337,6 +410,10 @@ async fn complete_for(
     ) else {
         return invalid_input();
     };
+    let actor = match principal(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
     let admission = match admit(
         &state,
         &context,
@@ -344,30 +421,39 @@ async fn complete_for(
         &id,
         channel,
         input.replace_existing,
+        &actor,
     ) {
         Ok(v) => v,
         Err(r) => return r,
     };
-    let callback = match callback_for(&input.callback, &state, channel, &admission.session) {
+    let callback = match callback_for(&input.callback, &state, channel, &admission.session, &actor)
+    {
         Ok(value) => value,
         Err(response) => return response,
     };
     let Some(decoded) = decode_oauth_state(callback.state.as_bytes()) else {
         return invalid_input();
     };
-    let actor = match principal(&request) {
-        Ok(v) => v,
-        Err(r) => return r,
-    };
     let worker = state.clone();
     // Token exchange is bounded by the existing operational-read semaphore and runs off Actix.
     let result = read_operations(&state, move || {
+        let receipt_key = worker
+            .authorization_receipts
+            .lock()
+            .ok()
+            .and_then(|receipts| receipts.logical_key(admission.session.as_str(), &actor));
+        if let Some(key) = &receipt_key {
+            authorization_receipts::update(&worker, key, "in_progress", None);
+        }
         let envelope = channel
             .workflows(&worker)
             .lock()
             .map_err(|_| ManagementOperationsError::SourceUnavailable)?
             .complete_oauth(&admission.session, &decoded, Zeroizing::new(callback.code));
         let Some(envelope) = envelope else {
+            if let Some(key) = &receipt_key {
+                authorization_receipts::update(&worker, key, "unknown", None);
+            }
             return Ok(None);
         };
         let input = CredentialUpsert {
@@ -395,6 +481,17 @@ async fn complete_for(
             input,
             admission.previous,
         );
+        if let Some(key) = &receipt_key {
+            match &result {
+                Ok((value, _)) => authorization_receipts::update(
+                    &worker,
+                    key,
+                    "completed",
+                    Some((&value.value().id, value.revision())),
+                ),
+                Err(_) => authorization_receipts::update(&worker, key, "failed", None),
+            }
+        }
         let finalized = channel
             .workflows(&worker)
             .lock()
@@ -491,6 +588,19 @@ mod tests {
         assert!(!super::same_observed_account(
             br#"{"account_id":"a"}"#,
             b"{}"
+        ));
+    }
+
+    #[test]
+    fn replacement_requires_a_shared_observed_identity() {
+        assert!(!super::same_observed_account(b"{}", b"{}"));
+        assert!(!super::same_observed_account(
+            br#"{"access_token":"old-synthetic"}"#,
+            br#"{"access_token":"new-synthetic"}"#
+        ));
+        assert!(!super::same_observed_account(
+            b"{}",
+            br#"{"account_id":"new-account"}"#
         ));
     }
 }

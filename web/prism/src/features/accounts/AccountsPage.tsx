@@ -4,12 +4,12 @@ import {readAccountMetadata} from "./accountMetadataQueue";
 import {call} from "../../api/client";
 import {kimiQuotaSummary, type KimiMetadata} from "./KimiAccountEvidence";
 import { PagedReadStatus } from "../../components/PagedReadStatus";
-import { AccountRuntimeSummary, useAccountRuntimeSummary } from "./AccountRuntimeSummary";
+import { AccountRuntimeSummary,AccountMainStatus, useAccountRuntimeSummary } from "./AccountRuntimeSummary";
 import { KiroDeviceDialog } from "./KiroDeviceDialog";
 import { KimiDeviceDialog } from "./KimiDeviceDialog";
 import {useAccountDirectory} from "./useAccountDirectory";
 import { useModelConnections } from "../models/useModelConnections";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
@@ -17,12 +17,14 @@ import { IdentityDetails } from "../../components/ResourceIdentity";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useVersionStore } from "../config-versions/versionStore";
 import { CredentialSheet } from "../upstreams/CredentialSheet";
+import { ProviderDialog } from "../upstreams/ProviderDialog";
 import { AuthorizationCodeDialog } from "./AuthorizationCodeDialog";
 import { OAuthWizard } from "../upstreams/OAuthWizard";
 import {type NativeAccount} from "./NativeAccounts";
 import {GrokDeviceWizard} from "./GrokDeviceWizard";
 import {AccountList, type AccountListRow} from "./AccountList";
 import {accountGroups, accountName, accountSource, protocolName, nativeConnections} from "./presentation";
+import { AccountModelsDialog } from "./AccountModelsDialog";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { NativeAccountDialog } from "./NativeAccountDialog";
 import { AccountRuntimePanel } from "./AccountRuntimePanel";
@@ -41,7 +43,10 @@ export function AccountsPage() {
   return runtime ? <AccountRuntimePanel navigation={navigation} /> : <ManagedAccounts navigation={navigation} />;
 }
 
-function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
+export function ApiProvidersPage() { return <ManagedAccounts navigation={<Link to="/upstreams?advanced=true">高级连接配置</Link>} entryType="api"/>; }
+
+function ManagedAccounts({navigation,entryType="account"}: Readonly<{navigation: ReactNode;entryType?:"api"|"account"}>) {
+  const api=entryType==="api";
   const [params, setParams] = useSearchParams();
   const context = useVersionStore((s) => s.context);
   const client = useQueryClient();
@@ -53,9 +58,10 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const selectedStatus=params.get("status")??"";
   const sort=params.get("sort")??"name";
   const plan=params.get("plan")??"";const withoutPlan=params.get("without_plan")==="true";
-  const inventory=useAccountDirectory({q:search,category:selectedCategory,status:selectedStatus,sort,upstream_id:provider,plan,without_plan:withoutPlan?"true":""});
+  const inventory=useAccountDirectory({q:search,category:selectedCategory,status:selectedStatus,sort,upstream_id:provider,plan,without_plan:withoutPlan?"true":"",entry_type:entryType});
   const native=inventory;
   const runtimeSnapshot=useAccountRuntimeSummary();
+  const serving=useQuery({queryKey:["system-information"],retry:false,staleTime:15000,queryFn:()=>call<{accepting_requests:boolean|null}>("getSystemInformation")});
   const topology = useModelConnections();
   const directory=inventory.data?.pages.flatMap(p=>p.items)??[];
   const kimiRows=directory.filter(row=>["kimi","codex","claude","kiro"].includes(row.category)&&!row.native&&row.status==="enabled");
@@ -86,13 +92,14 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
   const [selecting, setSelecting] = useState(false);
   const [filtersOpen,setFiltersOpen]=useState(false);
   const filterCount=Number(!!selectedCategory)+Number(!!plan||withoutPlan)+Number(sort!=="name")+Number(!!provider);
+  const [modelsAccount,setModelsAccount]=useState<{target:AccountTarget;endpointIds:readonly string[]}>();
   const [batch, setBatch] = useState<{targets:readonly AccountTarget[];action:AccountAction}>();
   const [notice, setNotice] = useState<string>();
   // A delayed search replace is background work, not an intent to leave a
   // newly opened account operation. Retire its timer until that owner closes.
-  const operationOpen = ["account", "api-key"].includes(params.get("add") ?? "") ||
+  const operationOpen = ["account", "api-key", "import", "provider"].includes(params.get("add") ?? "") ||
     !!(nativeDetail || nativeOauth || connections || authorizations || detail || oauth ||
-      claudeOauth || kiroOauth || kimiOauth || more || updating || batch);
+      claudeOauth || kiroOauth || kimiOauth || more || updating || batch || modelsAccount);
   useEffect(() => {
     if (operationOpen || searchInput === search) return;
     const timer = setTimeout(() => {
@@ -103,7 +110,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     }, 300);
     return () => clearTimeout(timer);
   }, [operationOpen, searchInput, search, params, setParams]);
-  const refresh = () => Promise.all(["account-list-runtime", "account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.invalidateQueries({queryKey:[key]})));
+  const refresh = () => Promise.all(["account-call-evidence", "account-list-runtime", "account-directory", "managed-inventory", "native-accounts", "accounts", "provider-pools", "runtime-availability", "effective-models"].map((key)=>client.invalidateQueries({queryKey:[key]})));
   const update = (name: string, value: string) => {
     if (["q", "provider", "category", "status", "sort"].includes(name)) setSelection(new Set());
     const next = new URLSearchParams(params);
@@ -121,8 +128,9 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     return next;
   });
   const startAction=(row:ManagedCredential,action:AccountAction)=>{setMore(undefined);setAuthorizations(undefined);setBatch({targets:[ordinaryTarget(row)],action});};
-  const actions = (row: ManagedCredential) => <div className="page-actions">
+  const actions = (row: ManagedCredential) => <div className="page-actions"><button className="secondary" onClick={()=>setModelsAccount({target:ordinaryTarget(row),endpointIds:row.connections.map(connection=>connection.id)})}>模型</button>
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setDetail(row.credential.id);}}>详情</button>
+              {api?<button className="secondary" onClick={()=>setUpdating(row)}>更换 API Key</button>:null}
               {directory.find(item=>item.id===row.credential.id&&!item.native)?.operations.includes("reauthorize") ? <button className="secondary" onClick={() => {setAuthorizations(undefined);if(row.category==="claude")setClaudeOauth(row);else if(row.category==="kiro")setKiroOauth(row);else if(row.category==="kimi")setKimiOauth(row);else setOauth(row.credential.id);}}>重新授权</button> : null}
               <button className="secondary" onClick={() => {setAuthorizations(undefined);setMore(row);}}>更多</button>
               <button className="secondary" onClick={()=>startAction(row,"remove")}>删除</button>
@@ -136,16 +144,16 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     authentication:row.authentication==="oauth"||row.credential.kind==="oauth_json"?"OAuth 授权":row.authentication==="api_key"?"API Key":"渠道凭据",
     plan:row.plan,planSource:row.plan_source,
     runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.credential.id]} providerId={row.credential.upstream_id} quota={kimiQuotaSummary(kimiById.get(row.credential.id)?.kimi)??accountQuotaSummary(kimiById.get(row.credential.id)?.live_quota)}/>,
-    status:<StatusBadge status={ordinaryStatus(row)==="enabled"?"active":ordinaryStatus(row)==="reauth_required"?"unauthorized":"disabled"}>{ordinaryStatus(row)==="enabled"?"已启用":ordinaryStatus(row)==="reauth_required"?"需要重新授权":"已停用"}</StatusBadge>,
+    status:<AccountMainStatus snapshot={runtimeSnapshot} id={row.credential.id} credentialRevision={row.credential.revision} providerId={row.credential.upstream_id} enabled={ordinaryStatus(row)!=="disabled"} auth={ordinaryStatus(row)==="reauth_required"?"reauth_required":row.credential.status} connections={row.binding_count} acceptingRequests={serving.data?.accepting_requests} draft={context?.status!=="active"}/>,
     connection:<button className="account-connection-link" onClick={()=>setConnections(row)}>{row.binding_count===0?"未连接接口":[...new Set(row.connections.map((c)=>protocolName(c.api_format)))].join(" · ")||"查看连接"}<span className="entity-meta">{row.binding_count?`${row.binding_count} 个已配置连接 · 查看`:"添加连接后用于请求"}</span></button>,actions:actions(row),
   });
   const nativeView=(row:NativeAccount):AccountListRow=>({key:row.id,name:accountName(row.identity,row.import_batch_id),source:accountSource(row.import_batch_id),provider:nativeNames[row.provider],authentication:row.provider==="grok_build"?"OAuth 授权":"SSO 授权",
     runtime:<AccountRuntimeSummary snapshot={runtimeSnapshot} ids={[row.id]} quota={accountQuotaSummary(nativeQuotaById.get(row.id))} nativeKind={{grok_build:"grok_build_oauth",grok_web:"grok_web_sso",grok_console:"grok_console_sso"}[row.provider]}/>,
     plan:directory.find(item=>item.native&&item.id===row.id)?.plan,planSource:directory.find(item=>item.native&&item.id===row.id)?.plan_source,
     selected:selection.has(`native:${row.id}`),onSelect:selecting?()=>toggle([`native:${row.id}`]):undefined,
-    status:<StatusBadge status={!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"active":"unauthorized"}>{!row.enabled||row.auth_status==="disabled"?"已停用":row.auth_status==="active"?"已保存授权":"需要重新授权"}</StatusBadge>,
+    status:<AccountMainStatus snapshot={runtimeSnapshot} id={row.id} credentialRevision={row.revision} nativeKind={{grok_build:"grok_build_oauth",grok_web:"grok_web_sso",grok_console:"grok_console_sso"}[row.provider]} enabled={row.enabled&&row.auth_status!=="disabled"} auth={row.auth_status} connections={topology.data?nativeConnections(row.provider,topology.data.endpoints).length:undefined} acceptingRequests={serving.data?.accepting_requests}/>,
     connection:<button className="account-connection-link" onClick={()=>setNativeDetail(row)}>{topology.isError?"接口读取失败":!topology.data?"读取接口…":[...new Set(nativeConnections(row.provider,topology.data.endpoints).map(c=>protocolName(c.api_format)))].join(" · ")||"未配置接口"}<span className="entity-meta">查看接口连接</span></button>,
-    actions:<div className="page-actions"><button className="secondary" onClick={()=>setNativeDetail(row)}>详情</button>{row.provider==="grok_build"?<button className="secondary" onClick={()=>setNativeOauth(row)}>重新授权</button>:null}<button className="secondary" onClick={()=>setBatch({targets:[nativeTarget(row)],action:"remove"})}>删除</button></div>,
+    actions:<div className="page-actions"><button className="secondary" disabled={!topology.data} onClick={()=>setModelsAccount({target:nativeTarget(row),endpointIds:nativeConnections(row.provider,topology.data?.endpoints??[]).map(connection=>connection.id)})}>模型</button><button className="secondary" onClick={()=>setNativeDetail(row)}>详情</button>{row.provider==="grok_build"?<button className="secondary" onClick={()=>setNativeOauth(row)}>重新授权</button>:null}<button className="secondary" onClick={()=>setBatch({targets:[nativeTarget(row)],action:"remove"})}>删除</button></div>,
   });
   const groupedView=(group:ManagedCredential[]):AccountListRow=>{
     const first=group[0]!;if(group.length===1)return ordinaryView(first);
@@ -158,15 +166,17 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
       actions:<button className="secondary" onClick={()=>setAuthorizations(group)}>管理授权</button>};
   };
   return <section className="accounts-page">
-    <header className="page-head"><div><h2>账号管理</h2><p className="page-description">以账号身份为主线，查看授权、接口与运行状态。</p></div>
+    <header className="page-head"><div><h2>{api?"AI 提供商":"账号管理"}</h2><p className="page-description">{api?"配置 API 地址与 Key，查看连接、模型和运行状态。":"查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。"}</p></div>
       <div className="page-actions">
-        <button className="primary" onClick={() => update("add", "account")}>授权 / 导入账号</button>
+        <button className="primary" onClick={() => update("add", api?"provider":"import")}>{api?"添加 AI 提供商":"导入账号文件"}</button>
+        {!api?<Link className="button secondary" to="/oauth">OAuth 授权</Link>:null}
 
       </div>
     </header>
     {navigation}
     {inventory.data?<div className="account-inventory-summary" aria-label="账号目录摘要"><span><strong>{inventory.data.pages[0]?.total.toLocaleString()}</strong>匹配授权</span><span><strong>{Object.keys(inventory.data.pages[0]?.category_totals??{}).filter(key=>(inventory.data?.pages[0]?.category_totals[key]??0)>0).length}</strong>账号类别</span><span><strong>{inventory.data.pages[0]?.unobserved_plan_total.toLocaleString()}</strong>套餐未观测</span></div>:null}
-    {notice ? <p role="status">{notice}</p> : null}
+    {serving.data?.accepting_requests===false?<p role="alert">服务运行配置暂不接收新请求，请核对全局应用状态。已开始的请求继续完成。</p>:null}
+      {notice ? <p role="status">{notice}</p> : null}
     {selecting?<div className="account-batch-toolbar" aria-label="批量账号操作"><span>已选 {selectedTargets.length} / 20 份授权</span><div className="page-actions">{(["enable","disable","remove"] as const).map((action)=><button key={action} className="secondary" disabled={!selectedTargets.length} onClick={()=>setBatch({targets:selectedTargets,action})}>{({enable:"启用",disable:"停用",remove:"删除"})[action]}</button>)}<button className="secondary" disabled={!selection.size} onClick={()=>setSelection(new Set())}>清除选择</button></div></div>:null}
     <div className="account-status-tabs" role="group" aria-label="授权状态筛选">
       {([["","全部授权"],["reauth_required","需要授权"],["enabled","已启用"],["disabled","已停用"]] as const).map(([value,label])=><button key={value} type="button" aria-pressed={selectedStatus===value} onClick={()=>update("status",value)}>{label}</button>)}
@@ -223,7 +233,8 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     </Sheet>:null}
     {nativeDetail?<NativeAccountDialog account={nativeDetail} onClose={()=>setNativeDetail(undefined)} onAuthorize={()=>{setNativeOauth(nativeDetail);setNativeDetail(undefined);}} onChanged={(notice)=>{setNativeDetail(undefined);setNotice(notice);void refresh();void client.resetQueries({queryKey:["accounts"]});}}/>:null}
     {nativeOauth?<GrokDeviceWizard name={accountName(nativeOauth.identity,nativeOauth.import_batch_id)??"Grok Build 账号"} target={{account_id:nativeOauth.id,revision:nativeOauth.revision}} onClose={()=>{setNativeOauth(undefined);void refresh();}} />:null}
-    {["account", "api-key"].includes(params.get("add") ?? "") ? <AddAccountDialog onClose={() => update("add", "")} onCreated={(notice) => {update("add", ""); setNotice(notice??"账号已保存。"); void refresh();}} /> : null}
+    {api&&params.get("add")==="provider"?<ProviderDialog onClose={()=>update("add","")} onSaved={version=>{update("add","");useVersionStore.getState().select(version);void refresh();}}/>:null}
+    {["account", "api-key", "import"].includes(params.get("add") ?? "") ? <AddAccountDialog mode={params.get("add")==="import"?"import":undefined} onClose={() => update("add", "")} onCreated={(notice) => {update("add", ""); setNotice(notice??"账号已保存。"); void refresh();}} /> : null}
     {detail ? <CredentialSheet plan={rows.find(row=>row.credential.id===detail)?.plan} credentialId={detail} accountName={accountName(rows.find((row)=>row.credential.id===detail)?.identity)} providerName={rows.find((row)=>row.credential.id===detail)?.provider} category={rows.find((row)=>row.credential.id===detail)?.category==="codex"?"codex":rows.find((row)=>row.credential.id===detail)?.category==="kimi"?"kimi":undefined} onClose={() => {setDetail(undefined); void refresh();}} /> : null}
     {kiroOauth?<KiroDeviceDialog credentialId={kiroOauth.credential.id} providerId={kiroOauth.credential.upstream_id} endpointId="" onClose={()=>setKiroOauth(undefined)} onComplete={notice=>{setKiroOauth(undefined);setNotice(notice);void refresh();}}/>:null}
     {kimiOauth?<KimiDeviceDialog credentialId={kimiOauth.credential.id} providerId={kimiOauth.credential.upstream_id} onClose={()=>setKimiOauth(undefined)} onComplete={notice=>{setKimiOauth(undefined);setNotice(notice);void refresh();}}/>:null}
@@ -231,6 +242,7 @@ function ManagedAccounts({navigation}: Readonly<{navigation: ReactNode}>) {
     {oauth ? <OAuthWizard credentialId={oauth} accountName={accountName(rows.find((row)=>row.credential.id===oauth)?.identity)} onClose={() => {setOauth(undefined); void refresh();}} /> : null}
     {more?<Sheet title="账号操作" description="选择一项维护动作；授权、运行状态和删除会在后续步骤明确确认。" layout="confirm" onEscape={()=>setMore(undefined)} footer={<SheetDismissButton className="secondary">取消</SheetDismissButton>}><h3>{accountName(more.identity)??more.provider}</h3><div className="sheet-actions"><button onClick={()=>{setUpdating(more);setMore(undefined);}}>更新凭据</button><button className="secondary" onClick={()=>startAction(more,more.credential.status==="disabled"?"enable":"disable")}>{more.credential.status==="disabled"?"启用":"停用"}账号</button><button className="danger" onClick={()=>startAction(more,"remove")}>删除账号</button></div></Sheet>:null}
     {updating?<CredentialUpdateDialog account={updating} onClose={()=>setUpdating(undefined)} onSaved={(version)=>{setUpdating(undefined);void refresh();useVersionStore.getState().select(version);}}/>:null}
+    {modelsAccount?<AccountModelsDialog {...modelsAccount} onClose={()=>setModelsAccount(undefined)} onSaved={version=>{setModelsAccount(undefined);useVersionStore.getState().rememberPending(version);void refresh();}}/>:null}
     {batch?<AccountBatchDialog targets={batch.targets} action={batch.action} onClose={()=>setBatch(undefined)} onCompleted={(message,version)=>{setBatch(undefined);setSelection(new Set());setNotice(message);if(version)useVersionStore.getState().select(version);void refresh();}}/>:null}
   </section>;
 }

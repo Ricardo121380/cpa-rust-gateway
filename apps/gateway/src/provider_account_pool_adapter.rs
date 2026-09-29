@@ -333,47 +333,150 @@ impl ProviderAccountPoolAdapter {
         action: &ProviderAccountOperatorAction,
         observed_at_ms: i64,
     ) -> Result<ProviderAccountOperatorReceipt, ProviderAccountPoolError> {
+        let descriptor = self.descriptor_for_action(action)?;
+        // An account-wide health release must not jump ahead of any relevant reset window.
+        let mut targets = vec![RuntimeQuotaTarget::endpoint_credential(
+            action.channel_id.clone(),
+            action.account_id.clone(),
+        )];
+        let models = action.upstream_model.as_ref().map_or_else(
+            || descriptor.upstream_models.clone(),
+            |model| vec![model.clone()],
+        );
+        for model in models {
+            targets.push(
+                RuntimeQuotaTarget::endpoint_credential_model(
+                    action.channel_id.clone(),
+                    action.account_id.clone(),
+                    model,
+                )
+                .map_err(|_| ProviderAccountPoolError::InvalidAction)?,
+            );
+        }
+        for target in targets {
+            match self
+                .runtime_quota
+                .availability_at(&target, observed_at_ms)
+                .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?
+            {
+                RuntimeQuotaAvailability::Exhausted { .. } => {
+                    return Ok(operator_receipt(
+                        ProviderAccountOperatorState::RecoveryRequired,
+                        observed_at_ms,
+                        None,
+                    ));
+                }
+                RuntimeQuotaAvailability::RecoveryProbeInFlight { .. } => {
+                    return Ok(operator_receipt(
+                        ProviderAccountOperatorState::ProbeScheduled,
+                        observed_at_ms,
+                        None,
+                    ));
+                }
+                _ => {}
+            }
+        }
         let account_status = self
             .runtime_health
             .credential_account_status_at(&action.channel_id, &action.account_id, observed_at_ms)
             .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?;
         match account_status {
-            RuntimeCredentialAccountStatus::Unauthorized
-            | RuntimeCredentialAccountStatus::Forbidden
-                if action.upstream_model.is_none() =>
-            {
-                let expires_at_ms = observed_at_ms
+            RuntimeCredentialAccountStatus::Unauthorized => Ok(operator_receipt(
+                ProviderAccountOperatorState::Rejected,
+                observed_at_ms,
+                None,
+            )),
+            RuntimeCredentialAccountStatus::Forbidden if action.upstream_model.is_some() => Ok(
+                operator_receipt(ProviderAccountOperatorState::Rejected, observed_at_ms, None),
+            ),
+            RuntimeCredentialAccountStatus::Forbidden => {
+                let quota = self.apply_quota_recovery(action, observed_at_ms)?;
+                if matches!(
+                    quota.state,
+                    ProviderAccountOperatorState::RecoveryRequired
+                        | ProviderAccountOperatorState::ProbeScheduled
+                ) {
+                    return Ok(quota);
+                }
+                let expires = observed_at_ms
                     .checked_add(OPERATOR_RECOVERY_TTL_MS)
                     .ok_or(ProviderAccountPoolError::SourceUnavailable)?;
-                let ticket = self
+                if let Some(ticket) = self
                     .runtime_health
-                    .begin_account_recovery(&action.channel_id, &action.account_id, expires_at_ms)
-                    .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?;
-                if let Some(ticket) = ticket {
+                    .begin_account_recovery(&action.channel_id, &action.account_id, expires)
+                    .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?
+                {
                     self.runtime_health
                         .complete_account_recovery(
                             ticket,
                             RuntimeHealthAccountRecoveryResult::Allowed,
                         )
                         .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?;
+                    Ok(operator_receipt(
+                        ProviderAccountOperatorState::Released,
+                        observed_at_ms,
+                        None,
+                    ))
+                } else {
+                    Ok(operator_receipt(
+                        ProviderAccountOperatorState::ProbeScheduled,
+                        observed_at_ms,
+                        None,
+                    ))
                 }
-                Ok(operator_receipt(
-                    ProviderAccountOperatorState::ProbeScheduled,
-                    observed_at_ms,
-                    None,
-                ))
             }
             RuntimeCredentialAccountStatus::RecoveryInFlight { .. } => Ok(operator_receipt(
                 ProviderAccountOperatorState::ProbeScheduled,
                 observed_at_ms,
                 None,
             )),
-            RuntimeCredentialAccountStatus::Forbidden
-            | RuntimeCredentialAccountStatus::Unauthorized
-            | RuntimeCredentialAccountStatus::Available => {
-                self.apply_quota_recovery(action, observed_at_ms)
+            RuntimeCredentialAccountStatus::Available => {
+                self.release_available_account(action, observed_at_ms)
             }
         }
+    }
+
+    fn release_available_account(
+        &self,
+        action: &ProviderAccountOperatorAction,
+        observed_at_ms: i64,
+    ) -> Result<ProviderAccountOperatorReceipt, ProviderAccountPoolError> {
+        let quota = self.apply_quota_recovery(action, observed_at_ms)?;
+        if matches!(
+            quota.state,
+            ProviderAccountOperatorState::RecoveryRequired
+                | ProviderAccountOperatorState::ProbeScheduled
+        ) {
+            return Ok(quota);
+        }
+        let key = match &action.upstream_model {
+            Some(model) => RuntimeHealthKey::endpoint_credential_model(
+                action.channel_id.clone(),
+                action.account_id.clone(),
+                model.clone(),
+            ),
+            None => RuntimeHealthKey::endpoint_credential(
+                action.channel_id.clone(),
+                action.account_id.clone(),
+            ),
+        };
+        if matches!(
+            self.runtime_health
+                .availability_at(&key, observed_at_ms)
+                .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?,
+            RuntimeHealthAvailability::CoolingDown { .. }
+                | RuntimeHealthAvailability::CircuitOpen { .. }
+        ) {
+            self.runtime_health
+                .mark_healthy(&key)
+                .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?;
+            return Ok(operator_receipt(
+                ProviderAccountOperatorState::Released,
+                observed_at_ms,
+                None,
+            ));
+        }
+        Ok(quota)
     }
 
     fn apply_quota_recovery(
@@ -406,8 +509,11 @@ impl ProviderAccountPoolAdapter {
                 ProviderAccountOperatorState::ProbeScheduled
             }
             RuntimeQuotaAvailability::RecoveryRequired { .. } => {
-                self.complete_quota_recovery(target, observed_at_ms)?;
-                ProviderAccountOperatorState::ProbeScheduled
+                if self.complete_quota_recovery(target, observed_at_ms)? {
+                    ProviderAccountOperatorState::Released
+                } else {
+                    ProviderAccountOperatorState::ProbeScheduled
+                }
             }
         };
         Ok(operator_receipt(state, observed_at_ms, None))
@@ -417,7 +523,7 @@ impl ProviderAccountPoolAdapter {
         &self,
         target: RuntimeQuotaTarget,
         observed_at_ms: i64,
-    ) -> Result<(), ProviderAccountPoolError> {
+    ) -> Result<bool, ProviderAccountPoolError> {
         let expires_at_ms = observed_at_ms
             .checked_add(OPERATOR_RECOVERY_TTL_MS)
             .ok_or(ProviderAccountPoolError::SourceUnavailable)?;
@@ -437,8 +543,9 @@ impl ProviderAccountPoolAdapter {
             self.runtime_quota
                 .complete_recovery_probe(ticket, snapshot)
                 .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?;
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 
     fn apply_cooldown(
@@ -582,7 +689,23 @@ impl ProviderAccountPoolAdapter {
             let expires_at_ms = diagnostic
                 .and_then(CredentialPoolEntrySnapshot::expires_at_ms)
                 .or(descriptor.expires_at_ms);
-            let auth_status = effective_auth_status(descriptor, expires_at_ms, observed_at_ms);
+            let auth_status = if descriptor.auth_status != ProviderAccountAuthStatus::Disabled
+                && self
+                    .runtime_health
+                    .availability_at(
+                        &RuntimeHealthKey::endpoint_credential(
+                            descriptor.channel_id.clone(),
+                            descriptor.account_id.clone(),
+                        ),
+                        observed_at_ms,
+                    )
+                    .map_err(|_| ProviderAccountPoolError::SourceUnavailable)?
+                    == RuntimeHealthAvailability::CredentialUnauthorized
+            {
+                ProviderAccountAuthStatus::ReauthRequired
+            } else {
+                effective_auth_status(descriptor, expires_at_ms, observed_at_ms)
+            };
             let runtime_status = self.runtime_status(descriptor, auth_status, observed_at_ms)?;
             items.push(ProviderAccountPoolItem {
                 presentation: descriptor.presentation.clone(),
@@ -806,7 +929,9 @@ impl ProviderAccountPoolFacade for ProviderAccountPoolAdapter {
         }?;
         if matches!(
             receipt.state,
-            ProviderAccountOperatorState::Cooling | ProviderAccountOperatorState::ProbeScheduled
+            ProviderAccountOperatorState::Cooling
+                | ProviderAccountOperatorState::ProbeScheduled
+                | ProviderAccountOperatorState::Released
         ) {
             self.invalidate_current_snapshot(observed_at_ms)?;
         }
@@ -850,6 +975,9 @@ fn effective_auth_status(
 ) -> ProviderAccountAuthStatus {
     if descriptor.auth_status == ProviderAccountAuthStatus::Disabled {
         return ProviderAccountAuthStatus::Disabled;
+    }
+    if descriptor.auth_status == ProviderAccountAuthStatus::ReauthRequired {
+        return ProviderAccountAuthStatus::ReauthRequired;
     }
     if descriptor.auth_status == ProviderAccountAuthStatus::Expired
         || expires_at_ms.is_some_and(|expires_at_ms| expires_at_ms <= observed_at_ms)
@@ -1121,6 +1249,36 @@ mod tests {
             .map(|item| (item.account_id.to_string(), item))
             .collect::<BTreeMap<_, _>>();
         assert_projected_states(&states);
+        Ok(())
+    }
+
+    #[test]
+    fn explicit_revocation_is_not_hidden_by_an_older_expiry_observation()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let clock = Arc::new(TestClock::new(100));
+        let mut account = descriptor("provider-a", "channel", "revoked");
+        account.expires_at_ms = Some(99);
+        let health = Arc::new(RuntimeHealthRegistry::with_clock(clock.clone()));
+        health
+            .mark_credential_unauthorized(account.channel_id.clone(), account.account_id.clone())?;
+        let adapter = ProviderAccountPoolAdapter::try_new(
+            vec![account.clone()],
+            pools(&[account])?,
+            health,
+            Arc::new(RuntimeQuotaRegistry::with_clock(clock.clone())),
+            clock,
+            Duration::from_secs(1),
+            Duration::from_secs(2),
+        )?;
+        let page = adapter.list_provider_account_pools(&query(10))?;
+        assert_eq!(
+            page.items[0].auth_status,
+            ProviderAccountAuthStatus::ReauthRequired
+        );
+        assert_eq!(
+            page.items[0].runtime_status,
+            ProviderAccountRuntimeStatus::Unauthorized
+        );
         Ok(())
     }
 
@@ -1586,13 +1744,91 @@ mod tests {
 
         clock.set(151);
         let recovered = adapter.apply_operator_action(&action, 151)?;
-        assert_eq!(
-            recovered.state,
-            ProviderAccountOperatorState::ProbeScheduled
-        );
+        assert_eq!(recovered.state, ProviderAccountOperatorState::Released);
         assert_eq!(
             quota.availability_at(&quota_target, 151)?,
             RuntimeQuotaAvailability::Available
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn local_release_preserves_auth_and_future_quota_blocks_and_clears_only_local_health()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let clock = Arc::new(TestClock::new(100));
+        let target = descriptor("provider-a", "channel", "target");
+        let health = Arc::new(RuntimeHealthRegistry::with_clock(clock.clone()));
+        let quota = Arc::new(RuntimeQuotaRegistry::with_clock(clock.clone()));
+        let adapter = ProviderAccountPoolAdapter::try_new(
+            vec![target.clone()],
+            pools(std::slice::from_ref(&target))?,
+            health.clone(),
+            quota.clone(),
+            clock.clone(),
+            Duration::from_secs(1),
+            Duration::from_secs(2),
+        )?
+        .with_config_version("config-v1".to_owned())?;
+        let action = ProviderAccountOperatorAction::try_new(
+            "config-v1",
+            target.provider_id.clone(),
+            target.channel_id.clone(),
+            target.account_id.clone(),
+            None,
+            ProviderAccountOperatorActionKind::RequestRecovery,
+            None,
+        )?;
+        health
+            .mark_credential_unauthorized(target.channel_id.clone(), target.account_id.clone())?;
+        assert_eq!(
+            adapter.apply_operator_action(&action, 100)?.state,
+            ProviderAccountOperatorState::Rejected
+        );
+        assert_eq!(
+            health.credential_account_status_at(&target.channel_id, &target.account_id, 100)?,
+            RuntimeCredentialAccountStatus::Unauthorized
+        );
+        let key = RuntimeHealthKey::endpoint_credential(
+            target.channel_id.clone(),
+            target.account_id.clone(),
+        );
+        // A real reauthorization may lift Unauthorized; the operator release cannot.
+        let ticket = health
+            .begin_account_recovery(&target.channel_id, &target.account_id, 500)?
+            .ok_or("auth ticket")?;
+        health.complete_account_recovery(ticket, RuntimeHealthAccountRecoveryResult::Allowed)?;
+        health.mark_credential_forbidden(target.channel_id.clone(), target.account_id.clone())?;
+        quota.record_rate_limited(
+            RuntimeQuotaTarget::endpoint_credential(
+                target.channel_id.clone(),
+                target.account_id.clone(),
+            ),
+            100,
+            Some(Duration::from_millis(50)),
+            Duration::from_millis(50),
+        )?;
+        assert_eq!(
+            adapter.apply_operator_action(&action, 100)?.state,
+            ProviderAccountOperatorState::RecoveryRequired
+        );
+        assert_eq!(
+            health.credential_account_status_at(&target.channel_id, &target.account_id, 100)?,
+            RuntimeCredentialAccountStatus::Forbidden
+        );
+        clock.set(151);
+        assert_eq!(
+            adapter.apply_operator_action(&action, 151)?.state.as_str(),
+            "released"
+        );
+        assert!(health.endpoint_credential_is_available(&target.channel_id, &target.account_id));
+        health.cool_down_until(key.clone(), 500)?;
+        assert_eq!(
+            adapter.apply_operator_action(&action, 151)?.state.as_str(),
+            "released"
+        );
+        assert_eq!(
+            health.availability_at(&key, 151)?,
+            RuntimeHealthAvailability::Available
         );
         Ok(())
     }

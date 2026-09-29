@@ -386,6 +386,46 @@ pub trait ManagementLifecycleFacade: Send {
         expected_revision: i64,
     ) -> Result<ManagementLifecyclePublication, ManagementLifecycleError>;
 
+    /// Reads the value-free restoration identities and exact review clocks.
+    /// # Errors
+    /// Returns unavailable when the embedding facade does not support review.
+    fn account_restoration_review(
+        &mut self,
+        _id: &ConfigVersionId,
+    ) -> Result<gateway_store::control_plane::AccountRestorationReview, ManagementLifecycleError>
+    {
+        Err(ManagementLifecycleError::Unavailable)
+    }
+
+    /// Publishes with an optional explicit account restoration review.
+    /// # Errors
+    /// Returns conflict when a legacy embedding cannot verify the supplied review.
+    fn publish_version_with_account_review(
+        &mut self,
+        id: &ConfigVersionId,
+        revision: i64,
+        review: Option<&str>,
+    ) -> Result<ManagementLifecyclePublication, ManagementLifecycleError> {
+        if review.is_some() {
+            return Err(ManagementLifecycleError::Conflict);
+        }
+        self.publish_version(id, revision)
+    }
+
+    /// Rolls back with an optional explicit account restoration review.
+    /// # Errors
+    /// Returns conflict when a legacy embedding cannot verify the supplied review.
+    fn rollback_with_account_review(
+        &mut self,
+        revision: i64,
+        review: Option<&str>,
+    ) -> Result<ManagementLifecyclePublication, ManagementLifecycleError> {
+        if review.is_some() {
+            return Err(ManagementLifecycleError::Conflict);
+        }
+        self.rollback(revision)
+    }
+
     /// Lists bounded safe P2 lifecycle audit rows only.
     ///
     /// # Errors
@@ -516,6 +556,40 @@ impl ManagementLifecycleFacade for ManagementServiceLifecycleFacade {
             .map_err(|error| map_service_error(&error))
     }
 
+    fn account_restoration_review(
+        &mut self,
+        id: &ConfigVersionId,
+    ) -> Result<gateway_store::control_plane::AccountRestorationReview, ManagementLifecycleError>
+    {
+        self.service
+            .account_restoration_review(id)
+            .map_err(|error| map_service_error(&error))
+    }
+    fn publish_version_with_account_review(
+        &mut self,
+        id: &ConfigVersionId,
+        revision: i64,
+        review: Option<&str>,
+    ) -> Result<ManagementLifecyclePublication, ManagementLifecycleError> {
+        self.require_draft_revision(id, revision)?;
+        self.service
+            .publish_configuration_with_account_review(id, review)
+            .map(|publication| ManagementLifecyclePublication::from_publication(&publication))
+            .map_err(|error| map_service_error(&error))
+    }
+    fn rollback_with_account_review(
+        &mut self,
+        revision: i64,
+        review: Option<&str>,
+    ) -> Result<ManagementLifecyclePublication, ManagementLifecycleError> {
+        if self.active_version()?.revision() != revision {
+            return Err(ManagementLifecycleError::Conflict);
+        }
+        self.service
+            .rollback_configuration_with_account_review(review)
+            .map(|publication| ManagementLifecyclePublication::from_publication(&publication))
+            .map_err(|error| map_service_error(&error))
+    }
     fn audit_events(
         &mut self,
     ) -> Result<Vec<ManagementLifecycleAuditEvent>, ManagementLifecycleError> {
@@ -608,6 +682,10 @@ fn lifecycle_routes(config: &mut web::ServiceConfig) {
         .route(
             "/config-versions/{config_version_id}",
             web::get().to(get_version),
+        )
+        .route(
+            "/config-versions/{config_version_id}/account-restoration",
+            web::get().to(account_restoration_review),
         )
         .route("/audit-events", web::get().to(list_audit_events));
 }
@@ -733,6 +811,38 @@ async fn validate_version(
     }
 }
 
+async fn account_restoration_review(
+    path: web::Path<String>,
+    state: web::Data<ManagementLifecycleHttpState>,
+) -> HttpResponse {
+    let id = match config_version_id(path.into_inner()) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match run_lifecycle(state, move |facade| facade.account_restoration_review(&id)).await {
+        Ok(review) => HttpResponse::Ok()
+            .insert_header((header::CACHE_CONTROL, "no-store"))
+            .json(review),
+        Err(error) => lifecycle_error(error),
+    }
+}
+fn account_review_header(request: &HttpRequest) -> Result<Option<String>, HttpResponse> {
+    request
+        .headers()
+        .get("X-Account-Restoration-Review")
+        .map(|value| {
+            value
+                .to_str()
+                .ok()
+                .filter(|token| {
+                    token.len() == 64 && token.bytes().all(|byte| byte.is_ascii_hexdigit())
+                })
+                .map(str::to_owned)
+                .ok_or_else(invalid_input)
+        })
+        .transpose()
+}
+
 async fn publish_version(
     request: HttpRequest,
     path: web::Path<String>,
@@ -750,9 +860,17 @@ async fn publish_version(
         Ok(value) => value,
         Err(response) => return response,
     };
+    let account_review = match account_review_header(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
     match run_lifecycle(state, move |facade| {
         expected.check(facade)?;
-        facade.publish_version(&version_id, expected_revision)
+        facade.publish_version_with_account_review(
+            &version_id,
+            expected_revision,
+            account_review.as_deref(),
+        )
     })
     .await
     .map_err(lifecycle_error)
@@ -774,9 +892,13 @@ async fn rollback(
         Ok(value) => value,
         Err(response) => return response,
     };
+    let account_review = match account_review_header(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
     match run_lifecycle(state, move |facade| {
         expected.check(facade)?;
-        facade.rollback(expected_revision)
+        facade.rollback_with_account_review(expected_revision, account_review.as_deref())
     })
     .await
     .map_err(lifecycle_error)

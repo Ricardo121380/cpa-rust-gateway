@@ -719,6 +719,11 @@ export const managementOperations = {
         "required": true
       },
       {
+        "name": "X-Deletion-Impact-Review",
+        "in": "header",
+        "required": false
+      },
+      {
         "name": "If-Match",
         "in": "header",
         "required": true
@@ -1035,6 +1040,68 @@ export const managementOperations = {
     "bodyEncoding": "none",
     "bodyRequired": false
   },
+  "getAccountAuthorizationReceipt": {
+    "method": "GET",
+    "path": "/admin/account-authorization/{session_id}",
+    "parameters": [
+      {
+        "name": "session_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getAccountImportReceipt": {
+    "method": "GET",
+    "path": "/admin/upstreams/{upstream_id}/account-imports/{import_id}",
+    "parameters": [
+      {
+        "name": "upstream_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "import_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "started_revision",
+        "in": "query",
+        "required": true
+      },
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getAccountRestorationReview": {
+    "method": "GET",
+    "path": "/admin/config-versions/{config_version_id}/account-restoration",
+    "parameters": [
+      {
+        "name": "config_version_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
   "getBillingProcessingStatus": {
     "method": "GET",
     "path": "/admin/operations/billing-processing",
@@ -1165,6 +1232,35 @@ export const managementOperations = {
         "name": "credential_id",
         "in": "path",
         "required": true
+      },
+      {
+        "name": "X-Deletion-Impact-Review",
+        "in": "header",
+        "required": false
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getCredentialDeletionImpact": {
+    "method": "GET",
+    "path": "/admin/credentials/{credential_id}/deletion-impact",
+    "parameters": [
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": true
+      },
+      {
+        "name": "credential_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "X-Deletion-Impact-Review",
+        "in": "header",
+        "required": false
       }
     ],
     "requiresAuthentication": true,
@@ -1239,6 +1335,20 @@ export const managementOperations = {
       },
       {
         "name": "endpoint_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getNativeAccountImportReceipt": {
+    "method": "GET",
+    "path": "/admin/native-account-imports/{batch_id}",
+    "parameters": [
+      {
+        "name": "batch_id",
         "in": "path",
         "required": true
       }
@@ -1510,6 +1620,11 @@ export const managementOperations = {
         "name": "X-Config-Version",
         "in": "header",
         "required": true
+      },
+      {
+        "name": "entry_type",
+        "in": "query",
+        "required": false
       },
       {
         "name": "q",
@@ -2587,6 +2702,11 @@ export const managementOperations = {
         "name": "X-Expected-Lifecycle-Event",
         "in": "header",
         "required": false
+      },
+      {
+        "name": "X-Account-Restoration-Review",
+        "in": "header",
+        "required": false
       }
     ],
     "requiresAuthentication": true,
@@ -2748,6 +2868,11 @@ export const managementOperations = {
       },
       {
         "name": "X-Expected-Lifecycle-Event",
+        "in": "header",
+        "required": false
+      },
+      {
+        "name": "X-Account-Restoration-Review",
         "in": "header",
         "required": false
       }
@@ -3124,6 +3249,11 @@ export const managementOperations = {
         "name": "credential_id",
         "in": "path",
         "required": true
+      },
+      {
+        "name": "X-Deletion-Impact-Review",
+        "in": "header",
+        "required": false
       },
       {
         "name": "If-Match",
@@ -3709,6 +3839,18 @@ export class ManagementApi {
     return this.request("getAccessGroup", request);
   }
 
+  getAccountAuthorizationReceipt(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getAccountAuthorizationReceipt", request);
+  }
+
+  getAccountImportReceipt(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getAccountImportReceipt", request);
+  }
+
+  getAccountRestorationReview(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getAccountRestorationReview", request);
+  }
+
   getBillingProcessingStatus(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getBillingProcessingStatus", request);
   }
@@ -3741,6 +3883,10 @@ export class ManagementApi {
     return this.request("getCredential", request);
   }
 
+  getCredentialDeletionImpact(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getCredentialDeletionImpact", request);
+  }
+
   getCredentialMetadata(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getCredentialMetadata", request);
   }
@@ -3755,6 +3901,10 @@ export class ManagementApi {
 
   getEndpoint(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getEndpoint", request);
+  }
+
+  getNativeAccountImportReceipt(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getNativeAccountImportReceipt", request);
   }
 
   getNativeAccountUsage(request: ManagementRequest = {}): Promise<Response> {

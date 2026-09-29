@@ -1066,6 +1066,68 @@ async fn channel_import_is_scoped_validated_and_visible_before_binding() -> Test
 }
 
 #[actix_web::test]
+async fn account_entry_type_filters_counts_and_cursors_by_actual_material() -> TestResult {
+    let (file, state) = fixture(false)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute(
+        "UPDATE upstreams SET kind='codex' WHERE config_version_id=?1 AND id='owner-a'",
+        [VERSION],
+    )?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let imported = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import")).insert_header(("If-Match", "rev-0")).set_json(serde_json::json!({"id":"entry-oauth","channel":"codex","secret":"{\"kind\":\"codex_oauth\",\"access_token\":\"synthetic-access\",\"refresh_token\":\"synthetic-refresh\",\"expires_at_ms\":4102444800000,\"account_id\":\"synthetic-account\"}"})).to_request()).await;
+    assert_eq!(imported.status(), StatusCode::CREATED);
+    let accounts = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/accounts/inventory?entry_type=account&limit=100"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(accounts.status(), StatusCode::OK);
+    let accounts: Value = test::read_body_json(accounts).await;
+    assert_eq!(accounts["total"], 2);
+    let account_ids = accounts["items"]
+        .as_array()
+        .ok_or("accounts")?
+        .iter()
+        .filter_map(|row| row["id"].as_str())
+        .collect::<Vec<_>>();
+    assert!(account_ids.contains(&"entry-oauth"));
+    assert!(account_ids.contains(&"account-000")); // Old JSON bearer material is an account, not an API key.
+    let apis = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/accounts/inventory?entry_type=api&limit=1"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(apis.status(), StatusCode::OK);
+    let apis: Value = test::read_body_json(apis).await;
+    assert_eq!(apis["total"], 249);
+    assert_ne!(apis["items"][0]["id"], "entry-oauth");
+    assert_eq!(apis["items"][0]["managed"]["authentication"], "api_key");
+    let cursor = apis["next_cursor"].as_str().ok_or("API cursor")?;
+    let changed = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&format!(
+            "/admin/accounts/inventory?entry_type=account&limit=1&cursor={cursor}"
+        )))
+        .to_request(),
+    )
+    .await;
+    assert_eq!(changed.status(), StatusCode::CONFLICT);
+    Ok(())
+}
+
+#[actix_web::test]
 async fn repeated_channel_import_retains_disabled_account_and_connections() -> TestResult {
     let (file, state) = fixture(false)?;
     let db = gateway_store::open(&file.0)?;
@@ -1130,6 +1192,70 @@ async fn repeated_channel_import_retains_disabled_account_and_connections() -> T
     .await;
     let body: Value = test::read_body_json(response).await;
     assert!(body["items"].as_array().ok_or("items")?.is_empty());
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials/first-kimi/deletion-impact"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let impact: Value = test::read_body_json(response).await;
+    assert_eq!(impact["credential_revision"], 1);
+    assert_eq!(
+        impact["removed_bindings"]
+            .as_array()
+            .ok_or("bindings")?
+            .len(),
+        1
+    );
+    assert_eq!(impact["retained_endpoints"][0]["id"], "endpoint-owner-a");
+    assert_eq!(impact["history_retained"], true);
+    assert_eq!(impact["upstream_account_revoked"], false);
+    let stale = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri("/admin/credentials/first-kimi"))
+            .insert_header(("If-Match", "rev-4"))
+            .insert_header(("X-Deletion-Impact-Review", "a".repeat(64)))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::CONFLICT);
+    let deleted = test::call_service(
+        &app,
+        authorized(test::TestRequest::delete().uri("/admin/credentials/first-kimi"))
+            .insert_header(("If-Match", "rev-4"))
+            .insert_header((
+                "X-Deletion-Impact-Review",
+                impact["review_token"].as_str().ok_or("review")?,
+            ))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+    let endpoint = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/endpoints/endpoint-owner-a")).to_request(),
+    )
+    .await;
+    assert_eq!(endpoint.status(), StatusCode::OK);
+    let missing = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials/first-kimi")).to_request(),
+    )
+    .await;
+    assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+    let bindings: test::TestRequest =
+        test::TestRequest::get().uri("/admin/endpoints/endpoint-owner-a/credential-bindings");
+    let bindings: Value =
+        test::read_body_json(test::call_service(&app, authorized(bindings).to_request()).await)
+            .await;
+    assert!(
+        !bindings
+            .as_array()
+            .ok_or("remaining bindings")?
+            .iter()
+            .any(|row| row["credential_id"] == "first-kimi")
+    );
     Ok(())
 }
 
@@ -1937,7 +2063,7 @@ async fn credential_replacement_invalidates_old_browser_authorization() -> TestR
     Ok(())
 }
 
-struct SyntheticCodexExchange;
+struct SyntheticCodexExchange(std::sync::Arc<std::sync::atomic::AtomicUsize>);
 impl gateway_http_actix::management_resources::ManagementCodexOAuthExchange
     for SyntheticCodexExchange
 {
@@ -1947,17 +2073,19 @@ impl gateway_http_actix::management_resources::ManagementCodexOAuthExchange
         _: zeroize::Zeroizing<String>,
         _: zeroize::Zeroizing<Vec<u8>>,
     ) -> Option<zeroize::Zeroizing<Vec<u8>>> {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Some(zeroize::Zeroizing::new(br#"{"kind":"codex_oauth","access_token":"synthetic-first-access","refresh_token":"synthetic-first-refresh","expires_at_ms":4102444800000,"account_id":"synthetic-first-account","email":"enrollment@example.test"}"#.to_vec()))
     }
 }
 
 #[actix_web::test]
 async fn first_codex_authorization_creates_only_after_callback_and_rejects_replay() -> TestResult {
+    let exchanges = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let (file, state) = fixture_with_workflow(
         false,
         Box::new(
             gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::with_exchange(
-                Box::new(SyntheticCodexExchange),
+                Box::new(SyntheticCodexExchange(exchanges.clone())),
             ),
         ),
     )?;
@@ -1984,6 +2112,12 @@ async fn first_codex_authorization_creates_only_after_callback_and_rejects_repla
     .await;
     assert_eq!(response.status(), StatusCode::ACCEPTED);
     let started: Value = test::read_body_json(response).await;
+    let receipt_path = format!(
+        "/admin/account-authorization/{}",
+        started["session_id"]
+            .as_str()
+            .ok_or("reconciliation handle")?
+    );
     let url = url::Url::parse(started["authorization_url"].as_str().ok_or("URL")?)?;
     let state = url
         .query_pairs()
@@ -2033,6 +2167,34 @@ async fn first_codex_authorization_creates_only_after_callback_and_rejects_repla
     assert_eq!(credential["kind"], "oauth_json");
     assert!(!credential.to_string().contains("synthetic-first-access"));
     assert_eq!(count()?, 251);
+    for _ in 0..2 {
+        let response = test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&receipt_path)).to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let receipt: Value = test::read_body_json(response).await;
+        assert_eq!(receipt["state"], "completed");
+        assert_eq!(receipt["credential_id"], "new-codex");
+        assert_eq!(receipt["revision"], "rev-1");
+        assert_eq!(receipt["started_revision"], "rev-0");
+        assert!(receipt.get("authorization_url").is_none());
+        assert!(!receipt.to_string().contains("synthetic-first-access"));
+    }
+    assert_eq!(
+        exchanges.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "readback never exchanges Provider material"
+    );
+    let wrong_version = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&receipt_path))
+            .insert_header(("X-Config-Version", "different-version"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(wrong_version.status(), StatusCode::NOT_FOUND);
     let response = test::call_service(
         &app,
         authorized(test::TestRequest::post().uri(callback_path))
@@ -2105,7 +2267,7 @@ async fn claude_enrollment_and_reauthorization_keep_one_identity_and_reject_wron
     for (round, revision, replace, expected) in [
         (0, "rev-0", false, StatusCode::CREATED),
         (1, "rev-1", true, StatusCode::OK),
-        (2, "rev-2", true, StatusCode::BAD_REQUEST),
+        (2, "rev-2", true, StatusCode::CONFLICT),
     ] {
         let response = test::call_service(
             &app,
@@ -2134,6 +2296,12 @@ async fn claude_enrollment_and_reauthorization_keep_one_identity_and_reject_wron
             assert_eq!(body["id"], "claude-enrolled");
             assert_eq!(body["revision"], round);
             assert!(!body.to_string().contains("synthetic-refresh"));
+        } else {
+            let body: Value = test::read_body_json(response).await;
+            assert_eq!(
+                body["error"]["code"],
+                "management_credential_identity_unverified"
+            );
         }
         let count: i64 = db.query_row(
             "SELECT COUNT(*) FROM upstream_credentials WHERE config_version_id=?1",
@@ -2579,6 +2747,11 @@ async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_excha
     assert_eq!(disabled.status(), StatusCode::OK);
     let binding=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/endpoints/endpoint-owner-a/credential-bindings")).insert_header(("If-Match","rev-2")).set_json(serde_json::json!({"credential_id":"new-kiro","enabled":true,"priority":7,"weight":3,"concurrency":2})).to_request()).await;
     assert_eq!(binding.status(), StatusCode::CREATED);
+    let before_reauthorization: i64 = db.query_row(
+        "SELECT revision FROM upstream_credentials WHERE config_version_id=?1 AND id='new-kiro'",
+        [VERSION],
+        |row| row.get(0),
+    )?;
     let repeated = test::call_service(
         &app,
         authorized(
@@ -2593,9 +2766,21 @@ async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_excha
     let repeated: Value = test::read_body_json(repeated).await;
     tokio::time::sleep(std::time::Duration::from_millis(5100)).await;
     let replaced=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll")).insert_header(("If-Match","rev-3")).set_json(serde_json::json!({"id":"new-kiro","replace_existing":true,"session_id":repeated["session_id"]})).to_request()).await;
-    assert_eq!(replaced.status(), StatusCode::OK);
+    assert_eq!(replaced.status(), StatusCode::CONFLICT);
     let replaced: Value = test::read_body_json(replaced).await;
-    assert_eq!(replaced["state"], "completed");
+    assert_eq!(
+        replaced["error"]["code"],
+        "management_credential_identity_unverified"
+    );
+    let retained_revision: i64 = db.query_row(
+        "SELECT revision FROM upstream_credentials WHERE config_version_id=?1 AND id='new-kiro'",
+        [VERSION],
+        |row| row.get(0),
+    )?;
+    assert_eq!(
+        retained_revision, before_reauthorization,
+        "unverified device identity cannot replace the original material"
+    );
     let account:(i64,String)=db.query_row("SELECT count(*),status FROM upstream_credentials WHERE config_version_id=?1 AND id='new-kiro'",[VERSION],|r|Ok((r.get(0)?,r.get(1)?)))?;
     assert_eq!(account, (1, "disabled".into()));
     let retained:i64=db.query_row("SELECT count(*) FROM endpoint_credential_bindings WHERE config_version_id=?1 AND credential_id='new-kiro' AND priority=7 AND weight=3 AND concurrency=2",[VERSION],|r|r.get(0))?;
@@ -2605,7 +2790,7 @@ async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_excha
         authorized(
             test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/start"),
         )
-        .insert_header(("If-Match", "rev-4"))
+        .insert_header(("If-Match", "rev-3"))
         .set_json(serde_json::json!({"id":"new-kiro","replace_existing":true}))
         .to_request(),
     )
@@ -2619,7 +2804,7 @@ async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_excha
     let changed = test::call_service(
         &app,
         authorized(test::TestRequest::patch().uri("/admin/credentials/new-kiro/status"))
-            .insert_header(("If-Match", "rev-4"))
+            .insert_header(("If-Match", "rev-3"))
             .set_json(
                 serde_json::json!({"status":"active","credential_revision":credential_revision}),
             )
@@ -2627,7 +2812,7 @@ async fn kiro_device_enrollment_has_no_placeholder_and_persists_only_after_excha
     )
     .await;
     assert_eq!(changed.status(), StatusCode::OK);
-    let stale=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll")).insert_header(("If-Match","rev-5")).set_json(serde_json::json!({"id":"new-kiro","replace_existing":true,"session_id":pending["session_id"]})).to_request()).await;
+    let stale=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/kiro-authorization/poll")).insert_header(("If-Match","rev-4")).set_json(serde_json::json!({"id":"new-kiro","replace_existing":true,"session_id":pending["session_id"]})).to_request()).await;
     assert_eq!(stale.status(), StatusCode::CONFLICT);
 
     Ok(())
@@ -3699,5 +3884,164 @@ async fn native_quota_rejects_late_response_after_account_changed() -> TestResul
     assert_eq!(response.status(), StatusCode::CONFLICT);
     let body: Value = test::read_body_json(response).await;
     assert!(body.get("observation").is_none());
+    Ok(())
+}
+
+#[actix_web::test]
+#[allow(clippy::too_many_lines)] // One operator flow proves update, readback and intent preservation.
+async fn native_reimport_updates_same_identity_and_reads_exact_committed_batch() -> TestResult {
+    let (file, resources) = fixture(false)?;
+    let version = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        version,
+        [(version, MasterKey::try_from_bytes([0x67; 32])?)],
+    )?);
+    let store = std::sync::Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+        &file.0, secrets,
+    )?);
+    let reads = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            store.clone(),
+        )?
+        .with_identity_transport(std::sync::Arc::new(SessionIdentityFixture(reads.clone())))
+        .with_runtime(std::sync::Arc::new(RuntimeApplyFixture(
+            std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
+        )));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources.with_native_accounts(native)))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let first = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/native-accounts/import"))
+        .set_json(serde_json::json!({"id":"first-batch","channel":"grok.console","secret":"synthetic-first"})).to_request()).await;
+    assert_eq!(first.status(), StatusCode::CREATED);
+    let id = store.single_import_account("first-batch")?;
+    let now = i64::try_from(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_millis(),
+    )?;
+    store.manage_account(
+        &id,
+        0,
+        provider_grok::GrokManagedAccountChange::SetEnabled(false),
+        "admin",
+        now,
+    )?;
+    for (batch, material, updated) in [
+        ("repeat-batch", "synthetic-first", 0),
+        ("new-auth-batch", "synthetic-renewed", 1),
+    ] {
+        let response = test::call_service(
+            &app,
+            authorized(test::TestRequest::post().uri("/admin/native-accounts/import"))
+                .set_json(
+                    serde_json::json!({"id":batch,"channel":"grok.console","secret":material}),
+                )
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let receipt: Value = test::read_body_json(response).await;
+        assert_eq!(receipt["updated"], updated);
+        let calls = reads.load(std::sync::atomic::Ordering::Relaxed);
+        let path = format!("/admin/native-account-imports/{batch}");
+        let denied =
+            test::call_service(&app, test::TestRequest::get().uri(&path).to_request()).await;
+        assert_eq!(denied.status(), StatusCode::NOT_FOUND);
+        let recovered = test::call_service(
+            &app,
+            authorized(test::TestRequest::get().uri(&path)).to_request(),
+        )
+        .await;
+        assert_eq!(recovered.status(), StatusCode::OK);
+        let readback: Value = test::read_body_json(recovered).await;
+        assert_eq!(readback["account_id"], id);
+        assert_eq!(readback["channel"], "grok.console");
+        assert_eq!(readback["saved"], true);
+        assert_eq!(
+            reads.load(std::sync::atomic::Ordering::Relaxed),
+            calls,
+            "readback may not contact Provider"
+        );
+        assert!(!readback.to_string().contains(material));
+    }
+    let rows = store.list_accounts()?;
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].id, id);
+    assert!(!rows[0].enabled);
+    assert_eq!(rows[0].revision, 2);
+    assert_eq!(
+        rows[0].import_batch_id, "first-batch",
+        "creation lineage must not be reassigned"
+    );
+    assert_eq!(store.open_credential(&id)?.as_bytes(), b"synthetic-renewed");
+    let different = test::call_service(&app, authorized(test::TestRequest::post().uri("/admin/native-accounts/import"))
+        .set_json(serde_json::json!({"id":"different-batch","channel":"grok.console","secret":"synthetic-another-user"})).to_request()).await;
+    assert_eq!(different.status(), StatusCode::CREATED);
+    assert_eq!(store.list_accounts()?.len(), 2);
+    assert_eq!(
+        store.open_credential(&id)?.as_bytes(),
+        b"synthetic-renewed",
+        "another identity must not overwrite the original"
+    );
+    Ok(())
+}
+
+#[actix_web::test]
+async fn ordinary_duplicate_import_readback_resolves_actual_existing_account() -> TestResult {
+    let (_file, resources) = fixture(false)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let first=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
+        .insert_header(("X-Config-Version",VERSION)).insert_header(("If-Match","rev-0"))
+        .set_json(serde_json::json!({"id":"ordinary-first","channel":"openai-compatible","secret":"synthetic-ordinary"})).to_request()).await;
+    assert_eq!(first.status(), StatusCode::CREATED);
+    let revision = first
+        .headers()
+        .get("etag")
+        .ok_or("revision")?
+        .to_str()?
+        .to_owned();
+    let second=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/upstreams/owner-a/account-import"))
+        .insert_header(("X-Config-Version",VERSION)).insert_header(("If-Match",revision.clone()))
+        .set_json(serde_json::json!({"id":"ordinary-duplicate","channel":"openai-compatible","secret":"synthetic-ordinary"})).to_request()).await;
+    assert_eq!(second.status(), StatusCode::OK);
+    let account: Value = test::read_body_json(second).await;
+    assert_eq!(account["id"], "ordinary-first");
+    let path = format!(
+        "/admin/upstreams/owner-a/account-imports/ordinary-duplicate?started_revision={}",
+        revision.trim_matches('"')
+    );
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&path))
+            .insert_header(("X-Config-Version", VERSION))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let receipt: Value = test::read_body_json(response).await;
+    assert_eq!(receipt["state"], "completed");
+    assert_eq!(receipt["credential_id"], "ordinary-first");
+    assert_eq!(receipt["upstream_id"], "owner-a");
+    assert!(!receipt.to_string().contains("synthetic-ordinary"));
+    let wrong_owner = path.replace("owner-a", "owner-b");
+    let response = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri(&wrong_owner))
+            .insert_header(("X-Config-Version", VERSION))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
     Ok(())
 }

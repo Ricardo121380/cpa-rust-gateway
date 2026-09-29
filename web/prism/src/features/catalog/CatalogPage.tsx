@@ -3,7 +3,7 @@ import { UpstreamModelBrowser } from "./UpstreamModelBrowser";
 import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { EffectiveModels } from "./EffectiveModels";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
 import { PagedReadStatus } from "../../components/PagedReadStatus";
@@ -20,13 +20,15 @@ import {
 
 export function CatalogPage() {
   const t = useMessages();
-  const scope = useVersionStore((s) => s.context?.configVersionId);
+  const context = useVersionStore((s) => s.context);
+  const scope = context?.configVersionId;
   const [params, setParams] = useSearchParams();
   const [selected, setSelected] = useState<CatalogRow>();
+  useEffect(() => setSelected(undefined), [scope, context?.revision]);
   const query = params.get("q") ?? "";
   const state = params.get("state") ?? "";
   const catalog = useQuery({
-    queryKey: ["catalog-status", scope],
+    queryKey: ["catalog-status", scope, context?.revision],
     enabled: scope !== undefined,
     queryFn: () =>
       call<CatalogRow[]>("getCatalogStatus", {}, { versionScoped: true }),
@@ -133,11 +135,12 @@ export function CatalogPage() {
                     <td data-label="新鲜度">
                       <StatusBadge status={row.freshness}>
                         {freshnessMeta(row.freshness).label}
+                        {row.observation_state === "unsupported" ? " · 不支持自动目录" : row.observation_state === "empty" ? " · 成功，零模型" : row.observation_state === "failed" ? " · 最近刷新失败" : ""}
                       </StatusBadge>
                     </td>
                     <td data-label="模型数" className="mono">{row.model_count ?? "—"}</td>
                     <td data-label="最近成功观测" className="mono">
-                      {formatObservedAt(row.observed_at_ms)}
+                      {formatObservedAt(row.last_success_at_ms ?? (row.freshness === "missing" ? 0 : row.observed_at_ms))}
                     </td>
                     <td data-label="刷新 / 失败">
                       <div>
@@ -203,7 +206,9 @@ export function CatalogPage() {
                     ? "是"
                     : "否",
               ],
-              ["成功观测", formatObservedAt(selected.observed_at_ms)],
+              ["来源", selected.source ?? "上游目录"],
+              ["最近结果", selected.observation_state ?? "以新鲜度和失败记录核对"],
+              ["成功观测", formatObservedAt(selected.last_success_at_ms ?? (selected.freshness === "missing" ? 0 : selected.observed_at_ms))],
               ["最近失败", formatObservedAt(selected.last_failure_at_ms ?? 0)],
               ["失败分类", selected.last_failure_class ?? "未观测"],
             ].map(([label, value]) => (

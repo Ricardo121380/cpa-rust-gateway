@@ -98,6 +98,10 @@ impl ManagementChannelPinFacade for FixtureChannelPinFacade {
     }
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "one protected Pin fixture includes model, key permission and exact account binding"
+)]
 fn resource_state(calls: Arc<AtomicUsize>) -> Result<ManagementResourceHttpState, Box<dyn Error>> {
     let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
     let key_version = KeyVersion::try_new(1)?;
@@ -187,6 +191,32 @@ fn resource_state(calls: Arc<AtomicUsize>) -> Result<ManagementResourceHttpState
             weight: 1,
             capability_override_json: "{}".to_owned(),
         });
+    let group_id = gateway_core::AccessGroupId::try_new("group-pin")?;
+    configuration
+        .access_groups
+        .push(gateway_store::control_plane::AccessGroupConfiguration {
+            id: group_id.clone(),
+            name: "Pin group".to_owned(),
+            status: AdministrativeStatus::Active,
+            limits_json: "{}".to_owned(),
+        });
+    configuration.access_group_routes.push(
+        gateway_store::control_plane::AccessGroupRouteConfiguration {
+            access_group_id: group_id.clone(),
+            route_id: RouteId::try_new("route-pin")?,
+            enabled: true,
+        },
+    );
+    configuration
+        .client_keys
+        .push(gateway_store::control_plane::StoredClientKey::try_new(
+            gateway_core::ClientKeyId::try_new("key-pin")?,
+            group_id,
+            "ck_pin",
+            [0x12_u8; 32],
+            gateway_store::control_plane::StoredClientKeyStatus::Active,
+            None,
+        )?);
     let version_id = configuration.version.id.clone();
     repository.write_configuration(&configuration)?;
     repository.activate_version(&version_id)?;
@@ -226,18 +256,31 @@ async fn channel_pin_is_authenticated_bounded_and_value_free() -> TestResult {
             .insert_header((MANAGEMENT_KEY_HEADER, MANAGEMENT_KEY))
             .insert_header(("X-Config-Version", VERSION))
             .set_json(json!({
-                "provider_id":"provider-pin",
-                "channel_id":"channel-pin",
-                "route_id":"route-pin",
-                "credential_id":"credential-pin",
-                "requested_model":"pin-model",
-                "protocol":"openai_responses",
-                "mode":"sse"
+            "provider_id":"provider-pin",
+            "channel_id":"channel-pin",
+            "route_id":"route-pin",
+            "credential_id":"credential-pin",
+            "requested_model":"pin-model",
+            "protocol":"openai_responses",
+            "mode":"sse",
+                "client_key_id":"key-pin",
+                "credential_revision":0
             }))
             .to_request(),
     )
     .await;
     assert_eq!(missing_revision.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    let missing_key = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/operations/channel-pin").set_json(json!({
+            "provider_id":"provider-pin","channel_id":"channel-pin","route_id":"route-pin",
+            "credential_id":"credential-pin","credential_revision":0,"requested_model":"pin-model",
+            "protocol":"openai_responses","mode":"json"
+        }))).to_request(),
+    ).await;
+    assert_eq!(missing_key.status(), StatusCode::FORBIDDEN);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
 
     let response = test::call_service(
@@ -252,7 +295,9 @@ async fn channel_pin_is_authenticated_bounded_and_value_free() -> TestResult {
                     "credential_id":"credential-pin",
                     "requested_model":"pin-model",
                     "protocol":"openai_responses",
-                    "mode":"sse"
+                    "mode":"sse",
+                    "client_key_id":"key-pin",
+                    "credential_revision":0
                 })),
         )
         .to_request(),
@@ -288,7 +333,9 @@ async fn channel_pin_is_authenticated_bounded_and_value_free() -> TestResult {
                     "credential_id":"credential-pin",
                     "requested_model":"pin-model",
                     "protocol":"openai_chat_completions",
-                    "mode":"json"
+                    "mode":"json",
+                    "client_key_id":"key-pin",
+                    "credential_revision":0
                 })),
         )
         .to_request(),
@@ -311,7 +358,9 @@ async fn channel_pin_is_authenticated_bounded_and_value_free() -> TestResult {
                     "credential_id":"credential-pin",
                     "requested_model":"pin-model",
                     "protocol":"openai_chat_completions",
-                    "mode":"json"
+                    "mode":"json",
+                    "client_key_id":"key-pin",
+                    "credential_revision":0
                 })),
         )
         .to_request(),
@@ -341,7 +390,9 @@ async fn channel_pin_is_authenticated_bounded_and_value_free() -> TestResult {
                     "requested_model":"pin-model",
                     "protocol":"openai_responses",
                     "mode":"json",
-                    "body":"must-be-rejected"
+                    "body":"must-be-rejected",
+                    "client_key_id":"key-pin",
+                    "credential_revision":0
                 })),
         )
         .to_request(),
@@ -353,5 +404,21 @@ async fn channel_pin_is_authenticated_bounded_and_value_free() -> TestResult {
         Some(&header::HeaderValue::from_static("no-store"))
     );
     assert_eq!(calls.load(Ordering::SeqCst), 2);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn channel_pin_rejects_unavailable_client_key_before_execution() -> TestResult {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state(Arc::clone(&calls))?))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let response=test::call_service(&app,test::TestRequest::post().uri("/admin/operations/channel-pin").peer_addr(loopback()).insert_header((MANAGEMENT_KEY_HEADER,MANAGEMENT_KEY)).insert_header(("X-Config-Version",VERSION)).insert_header(("If-Match","rev-0")).set_json(json!({"provider_id":"provider-pin","channel_id":"channel-pin","route_id":"route-pin","credential_id":"credential-pin","requested_model":"pin-model","protocol":"openai_responses","mode":"json","client_key_id":"missing-key"})).to_request()).await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
     Ok(())
 }

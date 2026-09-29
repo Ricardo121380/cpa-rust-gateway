@@ -368,7 +368,9 @@ async fn protected_runtime_views_are_value_free_and_recovery_only_requests_contr
             "freshness": "fresh", "observed_at_ms": 1_700_000_000_000_i64,
             "snapshot_version": 7, "refresh_due": false, "model_count": 4,
             "last_failure_at_ms": 1_699_999_999_000_i64,
-            "last_failure_class": "transport"
+            "last_failure_class": "transport",
+            "observation_state": "succeeded", "source": "upstream_catalog",
+            "last_success_at_ms": 1_700_000_000_000_i64
         }])
     );
 

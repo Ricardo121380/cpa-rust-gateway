@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "runner": "Vitest",
+  "files": 64,
+  "tests": 459,
+  "passed": 459,
+  "failed": 0,
+  "pending": 0
+}

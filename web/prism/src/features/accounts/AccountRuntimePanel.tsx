@@ -221,6 +221,7 @@ export function AccountRuntimePanel({navigation}: Readonly<{navigation?: ReactNo
       {receipt === undefined ? null : (
         <p className="action-notice" role="status">
           {runtimeName(receipt.target.account)} · {runtimeConnection(receipt.target.account)} · {receipt.target.action === "cool_down" ? "冷却" : "请求恢复"}{receipt.target.upstreamModel?` · ${receipt.target.upstreamModel}`:""} · {receipt.kind==="received"?`${receiptMeta(receipt.value.state).label} · ${receiptMeta(receipt.value.state).detail}`:receipt.message}
+          {receipt.kind==="received"&&receipt.value.audit_recorded===false?<span> 状态回执已确认，完成审计写入失败；不要重复解除隔离。</span>:null}
           {receipt.kind==="unconfirmed"?<button className="secondary" onClick={()=>void queryClient.resetQueries({queryKey:key,exact:true})}>重新读取运行状态</button>:null}
           <button className="secondary" onClick={() => setReceipt(undefined)}>
             知道了

@@ -10,7 +10,8 @@ import { Sheet, SheetDismissButton } from "../../components/Sheet";
 import { resourceName } from "../../utils/resourceNames";
 import { useSessionStore } from "../../session/sessionStore";
 import { useVersionStore, type ConfigVersionSummary } from "../config-versions/versionStore";
-import { beginConfigurationTask } from "../config-versions/configurationTask";
+import { beginConfigurationTask, type ConfigurationTask } from "../config-versions/configurationTask";
+import { ConfigurationTaskReview } from "../config-versions/ConfigurationTaskReview";
 import { AuthorizationCodeDialog } from "./AuthorizationCodeDialog";
 import { GrokDeviceWizard } from "./GrokDeviceWizard";
 import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
@@ -19,8 +20,8 @@ import { protocolName } from "./presentation";
 
 type Channel=Readonly<{id:string;name:string;credential_format:string;import_available:boolean;authorization_flow:string;authorization_available:boolean;upstream_kinds:readonly string[]}>;
 type Material=Readonly<{id:string;label:string;secret:string}>;
-type Result=Readonly<{id:string;label:string;status:string;error?:string}>;
-type Imported=Readonly<{created:number;unchanged:number;runtime_applied?:boolean;identity_state?:string}>;
+type Result=Readonly<{id:string;label:string;status:string;saved?:boolean;credentialId?:string;beforeRevision?:string;error?:string}>;
+type Imported=Readonly<{created:number;unchanged:number;updated?:number;runtime_applied?:boolean;identity_state?:string}>;
 const formats:Record<string,string>={api_key:"API Key / Token",cpa_sub2api_json:"CPA / Sub2API / Codex 凭据 JSON",claude_json:"Claude 凭据 JSON 或 API Key",kiro_json_or_key:"Kiro 凭据 JSON 或 ksk_ Key",kimi_oauth:"Kimi OAuth 凭据 JSON",grok_build_json:"Grok Build 凭据 JSON",sso:"SSO 凭据"};
 const MAX_FILES=20;
 const API_CHANNELS=new Set(["openai-compatible","anthropic-compatible","grok.official","kimi-api"]);
@@ -89,7 +90,7 @@ export async function connectImportedAccount(task:ImportTask,endpoint:string,cre
   if(!bindings.some(binding=>binding.credential_id===credential))await task.mutate("createEndpointCredentialBinding",{path:{endpoint_id:endpoint},body:{credential_id:credential,enabled:true,priority:0,weight:1,concurrency:1}});
 }
 
-export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void}>) {
+export function AddAccountDialog({onClose,onCreated,mode}:Readonly<{onClose:()=>void;onCreated:(notice?:string)=>void;mode?:"import"}>) {
   const location=useLocation(),navigate=useNavigate();
   const [resume]=useState(()=>{const value=location.state?.accountConnection;return value?.version===useVersionStore.getState().context?.configVersionId?value:undefined;});
 
@@ -101,13 +102,16 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
   const [choosingChannel,setChoosingChannel]=useState(!resume);
   const [inputMode,setInputMode]=useState<"paste"|"files">("paste");
   const [oauth,setOauth]=useState(false);
-  const [method,setMethod]=useState<"authorize"|"import">("authorize");
+  const [method,setMethod]=useState<"authorize"|"import">(mode??"authorize");
   const [rows,setRows]=useState<Result[]>([]);
   const [completed,setCompleted]=useState(false);
   const [error,setError]=useState<string>();
   const [needsApply,setNeedsApply]=useState(false);
   const [finishedVersion,setFinishedVersion]=useState<ConfigVersionSummary>();
   const [workingId,setWorkingId]=useState<string>();
+  const [configurationTask,setConfigurationTask]=useState<ConfigurationTask>();
+  const [importTarget,setImportTarget]=useState<{upstream_id:string;endpoint_id:string}>();
+  const [reviewApplying,setReviewApplying]=useState(false);
   const [reading,setReading]=useState(false);
   const [providerId,setProviderId]=useState<string>(resume?.upstream_id??"");
   const [endpointId,setEndpointId]=useState<string|null>(resume?.endpoint_id??null);
@@ -151,49 +155,119 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     && !(!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&providers.isError)
     && !(!native&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&!!context&&providers.isPending)
     && !(requiresConfiguredTarget&&!CHANNEL_OWNED_AUTHORIZATION.has(channelId)&&(matches.length===0||matches.length>1));
-  const create=useMutation({gcTime:0,mutationFn:async({provider,endpoint,items,kiroRegion}:{provider:string;endpoint:string;items:Material[];kiroRegion?:string})=>{
+  const create=useMutation({gcTime:0,mutationFn:async({provider,endpoint,items,kiroRegion,retry}:{provider:string;endpoint:string;items:Material[];kiroRegion?:string;retry?:boolean})=>{
     const owner=useVersionStore.getState().selectionGeneration;
     const session=useSessionStore.getState().generation;
     const assertOwner=()=>{if(owner!==useVersionStore.getState().selectionGeneration||session!==useSessionStore.getState().generation)throw new CancelledError({silent:true});};
-    const task=native?undefined:await beginConfigurationTask("导入账号");
-    if(task)setWorkingId(task.version.id);
-    const target=task?await prepareImportConnection(task,channelId,provider,endpoint,kiroRegion):undefined;
-    const results:Result[]=items.map(({id,label})=>({id,label,status:"未执行"}));
+    const task=native?undefined:retry&&configurationTask?configurationTask:await beginConfigurationTask("导入账号");
+    if(retry&&task){const current=await task.read<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:task.version.id}});if(current.status!=="draft"||current.revision!==task.revision())throw new Error("重试前工作配置已变化，请先核对；不会重放导入。");}
+    if(task){setWorkingId(task.version.id);setConfigurationTask(task);}
+    const target=task?(retry&&importTarget?importTarget:await prepareImportConnection(task,channelId,provider,endpoint,kiroRegion)):undefined;
+    if(target)setImportTarget(target);
+    const results:Result[]=retry?[...rows]:items.map(({id,label})=>({id,label,status:"未执行"}));
     let saved=0;let canApply=true;
     for(const [index,item] of items.entries()) {
       assertOwner();
+      const resultIndex=retry?results.findIndex(row=>row.id===item.id):index;
+      if(resultIndex<0||(retry&&! ["未添加","未执行"].includes(results[resultIndex]?.status??"")))throw new Error("此项未确定未保存，不能重试。");
       let accountSaved=false;
+      let credentialId:string|undefined;
+      const beforeRevision=task?.revision();
       try {
         const body={id:item.id,channel:channelId,secret:item.secret};
         if(native) {
           const result=await call<Imported>("importNativeAccount",{body});
-          results[index]={id:item.id,label:item.label,status:result.created?"已添加":"已存在",...(result.identity_state==="unavailable"?{error:"渠道暂未返回身份"}:{})};
-          saved+=result.created;
+          results[resultIndex]={id:item.id,label:item.label,status:result.created?"已添加":result.updated?"已更新授权":"已存在",saved:true,...(result.identity_state==="unavailable"?{error:"渠道暂未返回身份"}:{})};
+          saved+=result.created+result.unchanged+(result.updated??0);
           if(result.runtime_applied===false){setNeedsApply(true);canApply=false;setRows([...results]);break;}
         } else {
           const imported=await task!.mutate<{id:string}>("importChannelAccount",{path:{upstream_id:target!.upstream_id},body});
-          accountSaved=true;saved+=1;
+          accountSaved=true;credentialId=imported.id;saved+=1;
           await connectImportedAccount(task!,target!.endpoint_id,imported.id);
-          results[index]={id:item.id,label:item.label,status:imported.id===item.id?"已添加":"已存在"};
+          results[resultIndex]={id:item.id,label:item.label,status:imported.id===item.id?"已添加":"已存在",saved:true,credentialId};
         }
       } catch(cause) {
         if(isCancelledError(cause))throw cause;
         const failure=asAppError(cause);
-        results[index]={id:item.id,label:item.label,status:accountSaved?"已保存，连接未完成":failure.kind==="network"?"结果未确认":"未添加",error:failure.message};
+        const rejected=["invalid_request","conflict","session_invalid"].includes(failure.kind);
+        results[resultIndex]={id:item.id,label:item.label,status:accountSaved?"已保存，连接未完成":rejected?"未添加":"结果未确认",saved:accountSaved,credentialId,beforeRevision,error:failure.message};
         // Independent invalid inputs may be skipped. A conflict/uncertain result never replays
         // a write or advances the remaining batch against a different source revision.
+        canApply=false;
         if(accountSaved||failure.kind!=="invalid_request"){canApply=false;setRows([...results]);break;}
       }
       setRows([...results]);
     }
-    if(task&&saved&&canApply) {
+    if(task&&saved&&canApply&&results.every(row=>row.saved)) {
       try{setFinishedVersion(await task.finish());}
       catch(cause){if(isCancelledError(cause))throw cause;setError(asAppError(cause).message);}
     }
     return results;
   },onSuccess:(results)=>{setRows(results);setCompleted(true);},onError:(cause)=>{if(!isCancelledError(cause)){setError(asAppError(cause).message);setCompleted(true);}},onSettled:():void=>{submitting.current=false;create.reset();}});
-  const review=useMutation({mutationFn:()=>call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}}),onSuccess:(version)=>{onClose();useVersionStore.getState().select(version);}});
-  const busy=create.isPending||reading||review.isPending;
+  const review=useMutation({mutationFn:async()=>{
+    if(native){
+      const reconciled:Result[]=[];
+      for(const row of rows){
+        if(row.status!=="结果未确认"){reconciled.push(row);continue;}
+        try {
+          const receipt=await call<{batch_id:string;channel:string;account_id:string;saved:boolean;account_exists:boolean}>("getNativeAccountImportReceipt",{path:{batch_id:row.id}});
+          if(receipt.batch_id!==row.id||receipt.channel!==channelId||!receipt.saved){reconciled.push(row);continue;}
+          reconciled.push({...row,saved:true,credentialId:receipt.account_id,status:receipt.account_exists?"已回读账号，运行应用待核对":"已保存，账号随后移除",error:undefined});
+          if(receipt.account_exists)setNeedsApply(true);
+        } catch(cause){if(isCancelledError(cause))throw cause;reconciled.push(row);}
+      }
+      return {version:undefined,reconciled};
+    }
+    const version=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}});
+    const reconciled:Result[]=[];
+    for(const row of rows){
+      if(row.saved||row.status!=="结果未确认"||!configurationTask||!importTarget){reconciled.push(row);continue;}
+      try {
+        let savedId=row.id;
+        if(row.beforeRevision){
+          try {const receipt=await configurationTask.read<{state:string;credential_id:string;upstream_id:string;started_revision:string}>("getAccountImportReceipt",{path:{upstream_id:importTarget.upstream_id,import_id:row.id},query:{started_revision:row.beforeRevision}});
+            if(receipt.state==="completed"&&receipt.upstream_id===importTarget.upstream_id&&receipt.started_revision===row.beforeRevision)savedId=receipt.credential_id;
+          }catch(cause){if(isCancelledError(cause))throw cause;}
+        }
+        const account=await configurationTask.read<{id:string;upstream_id:string}>("getCredential",{path:{credential_id:savedId}});
+        if(account.id!==savedId||account.upstream_id!==importTarget.upstream_id){reconciled.push(row);continue;}
+        reconciled.push({...row,saved:true,credentialId:account.id,status:"已保存，连接与应用待核对",error:undefined});
+      } catch(cause){
+        if(isCancelledError(cause))throw cause;
+        // A missing requested ID is not proof against server-side deduplication.
+        // Only an unchanged configuration revision also proves no import committed.
+        const failure=asAppError(cause);
+        reconciled.push(failure.status===404&&version.revision===row.beforeRevision?{...row,status:"未添加",error:"已核对资源和版本，未保存"}:row);
+      }
+    }
+    return {version,reconciled};
+  },onSuccess:({version,reconciled})=>{
+    setRows(reconciled);if(version)useVersionStore.getState().rememberPending(version);
+    if(version?.status==="active"&&version.revision===configurationTask?.revision())setFinishedVersion(version);
+    setError(reconciled.some(row=>row.status==="结果未确认")?"仍有结果待确认；不会重放导入，请保留资源和版本信息继续核对。":undefined);
+  }});
+  const continueConnection=useMutation({mutationFn:async(row:Result)=>{
+    if(!row.saved||!row.credentialId||!configurationTask||!importTarget)throw new Error("缺少已确认的账号保存回执。");
+    const version=await configurationTask.read<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:configurationTask.version.id}});
+    if(version.status!=="draft"||version.revision!==configurationTask.revision())throw new Error("工作配置已有后续变化，请先核对完整清单；不会重新导入账号。");
+    const account=await configurationTask.read<{id:string;upstream_id:string}>("getCredential",{path:{credential_id:row.credentialId}});
+    if(account.id!==row.credentialId||account.upstream_id!==importTarget.upstream_id)throw new Error("保存的账号所有权已变化，请重新核对。");
+    await connectImportedAccount(configurationTask,importTarget.endpoint_id,row.credentialId);
+    const next=rows.map(item=>item.id===row.id?{...item,status:"已保存，连接完成",error:undefined}:item);
+    setRows(next);
+    if(next.every(item=>item.saved&&!item.status.includes("未完成")&&!item.status.includes("待核对")))setFinishedVersion(await configurationTask.finish());
+  },onError:cause=>{if(!isCancelledError(cause))setError(asAppError(cause).message);}});
+  const retryFile=async(row:Result,file:File)=>{
+    if(submitting.current||busy||!completed||! ["未添加","未执行"].includes(row.status))return;
+    if(file.size>65536){setError("凭据文件最多 64 KiB。");return;}
+    const owner=readerGeneration.current;setReading(true);
+    try {const material=await file.text();if(owner!==readerGeneration.current)return;
+      if(!material.trim())throw new Error("文件为空，尚未重试。");
+      submitting.current=true;setError(undefined);setFinishedVersion(undefined);
+      create.mutate({provider:importTarget?.upstream_id??selectedProvider,endpoint:importTarget?.endpoint_id??selectedEndpoint,items:[{id:row.id,label:row.label,secret:material}],kiroRegion:channelId==="kiro"?kiroImportRegion([{id:row.id,label:row.label,secret:material}]):undefined,retry:true});
+    }catch(cause){setError(asAppError(cause).message);submitting.current=false;}finally{if(owner===readerGeneration.current)setReading(false);}
+  };
+  const busy=create.isPending||reading||review.isPending||continueConnection.isPending||reviewApplying;
   const resetInput=()=>{materials.current=[];readerGeneration.current+=1;setReading(false);setRows([]);setError(undefined);if(secret.current)secret.current.value="";};
   const close=()=>{
     if(busy)return;
@@ -202,8 +276,11 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
       const added=rows.filter((row)=>row.status==="已添加").length;
       const existing=rows.filter((row)=>row.status==="已存在").length;
       const remaining=rows.filter((row)=>!["已添加","已存在"].includes(row.status)).length;
+      const saved=rows.filter((row)=>row.saved===true).length;
+      const uncertain=rows.some((row)=>row.status==="结果未确认");
       if(finishedVersion)useVersionStore.getState().select(finishedVersion);
-      onCreated(needsApply?"账号已保存，运行配置暂未应用。":workingId&&!finishedVersion?"账号修改已保存，请核对应用状态。":finishedVersion?.status==="draft"?"账号已保存到待应用配置。":`已添加 ${added} 个账号${existing?`，${existing} 个已存在`:""}${remaining?`，${remaining} 个未完成`:""}。`);
+      onCreated(!saved?(uncertain?"导入结果待确认，请先核对，不要重复导入。":"本次未保存账号，请查看失败结果。")
+        :needsApply?"账号已保存，运行配置暂未应用。":workingId&&!finishedVersion?`已确认保存 ${saved} 个账号，请核对连接与应用状态。`:finishedVersion?.status==="draft"?"账号已保存到待应用配置。":`已添加 ${added} 个账号${existing?`，${existing} 个已存在`:""}${remaining?`，${remaining} 个未完成`:""}。`);
     }
     else onClose();
   };
@@ -231,9 +308,9 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
     {completed?<>
       {needsApply?<RuntimeApplyNotice onApplied={()=>setNeedsApply(false)}/>:null}
       {native?<><p role="status">授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。</p><button className="secondary" onClick={()=>setSetupConnection(true)}>配置渠道接口</button><a href="#/upstreams" onClick={close}>查看已有服务与连接</a></>:null}
-    </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:choosingChannel?<div className="account-channel-grid" aria-label="选择账号渠道">{channels.data?.map(entry=><button type="button" className="secondary account-channel-option" key={entry.id} onClick={()=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(entry.id);setMethod("authorize");setChoosingChannel(false);}}><span className="channel-symbol" aria-hidden="true">{entry.name.slice(0,1)}</span><span><strong>{entry.name}</strong><small>{entry.authorization_available?"官方授权":entry.import_available?"导入凭据":"暂不可接入"}</small></span></button>)}</div>:<>
+    </>:channels.isPending?<p>读取接入方式…</p>:channels.isError?<p role="alert">{asAppError(channels.error).message}</p>:choosingChannel?<div className="account-channel-grid" aria-label="选择账号渠道">{channels.data?.filter(entry=>!mode||(!API_CHANNELS.has(entry.id)&&entry.import_available)).map(entry=><button type="button" className="secondary account-channel-option" key={entry.id} onClick={()=>{resetInput();setEndpointId(null);setProviderId("");setChannelId(entry.id);setMethod(mode??"authorize");setChoosingChannel(false);}}><span className="channel-symbol" aria-hidden="true">{entry.name.slice(0,1)}</span><span><strong>{entry.name}</strong><small>{entry.authorization_available?"官方授权":entry.import_available?"导入凭据":"暂不可接入"}</small></span></button>)}</div>:<>
       <SheetDismissButton className="secondary channel-back" disabled={busy} onDismiss={()=>{resetInput();setChoosingChannel(true);}}>更换渠道</SheetDismissButton>
-      {channel?.authorization_available&&channel.import_available?<div className="account-onboarding"><div className="account-access-method" role="group" aria-label="接入方式">
+      {!mode&&channel?.authorization_available&&channel.import_available?<div className="account-onboarding"><div className="account-access-method" role="group" aria-label="接入方式">
         <SheetDismissButton className="secondary" aria-pressed={authorizing} disabled={busy} onClick={event=>{if(authorizing)event.preventDefault();}} onDismiss={()=>{resetInput();setMethod("authorize");}}>官方授权</SheetDismissButton>
         <SheetDismissButton className="secondary" aria-pressed={!authorizing} disabled={busy} onClick={event=>{if(!authorizing)event.preventDefault();}} onDismiss={()=>{resetInput();setMethod("import");}}>导入凭据</SheetDismissButton>
       </div></div>:null}
@@ -263,9 +340,19 @@ export function AddAccountDialog({onClose,onCreated}:Readonly<{onClose:()=>void;
       </form>:<p>此渠道暂不可从面板接入。</p>}
       </>}
     </>}
-    {rows.length?<div className="tablewrap"><table><thead><tr><th>来源</th><th>结果</th></tr></thead><tbody>{rows.map((row)=><tr key={row.id}><td>{row.label}</td><td>{row.status}{row.error?<span className="entity-meta">{row.error}</span>:null}</td></tr>)}</tbody></table></div>:null}
+    {rows.length?<div className="tablewrap"><table><thead><tr><th>来源</th><th>结果</th></tr></thead><tbody>{rows.map((row)=><tr key={row.id}><td>{row.label}</td><td>{row.status}{row.error?<span className="entity-meta">{row.error}</span>:null}{completed&&row.saved&&row.credentialId&&row.status==="已保存，连接未完成"?<button type="button" className="secondary" disabled={busy} onClick={()=>{setError(undefined);continueConnection.mutate(row);}}>继续连接此账号</button>:null}{completed&&!row.saved&&["未添加","未执行"].includes(row.status)?<label className="small">仅重试此项：重新选择材料<input type="file" aria-label={`重试 ${row.label}`} disabled={busy||needsApply} onChange={event=>{const file=event.currentTarget.files?.[0];event.currentTarget.value="";if(file)void retryFile(row,file);}}/></label>:null}</td></tr>)}</tbody></table></div>:null}
+    {completed&&rows.some(row=>row.saved)?<p role="status">已确认保存 {rows.filter(row=>row.saved).length} 项授权。配置{finishedVersion?.status==="active"?"已生效":finishedVersion?.status==="draft"?"待应用":error?"校验／应用未完成，保存回执保留":"待核对"}；这不代表真实调用已验证。</p>:null}
+    {completed&&configurationTask&&finishedVersion?.status!=="active"&&rows.some(row=>row.saved)&&!rows.some(row=>row.status==="结果未确认")?<ConfigurationTaskReview task={configurationTask} onBusyChange={setReviewApplying} onApplied={version=>{setFinishedVersion(version);setError(undefined);}} onReviewed={rows.some(row=>row.saved&&row.credentialId&&(row.status.includes("未完成")||row.status.includes("待核对")))?async review=>{
+      await configurationTask.acceptReviewedDraft(review);
+      for(const row of rows.filter(row=>row.saved&&row.credentialId&&(row.status.includes("未完成")||row.status.includes("待核对")))){
+        const account=await configurationTask.read<{id:string;upstream_id:string}>("getCredential",{path:{credential_id:row.credentialId!}});if(account.upstream_id!==importTarget?.upstream_id)throw new Error("账号所有权已变化。");
+        await connectImportedAccount(configurationTask,importTarget!.endpoint_id,row.credentialId!);
+        setRows(current=>current.map(item=>item.id===row.id?{...item,status:"已保存，连接完成",error:undefined}:item));
+      }
+      return {...configurationTask.version,revision:configurationTask.revision()};
+    }:undefined}/>:null}
     {error?<p role="alert">{error}</p>:null}
-    {workingId&&completed&&!finishedVersion?<button className="secondary" disabled={busy} onClick={()=>review.mutate()}>查看待应用的修改</button>:null}
+    {(workingId||native)&&completed&&!finishedVersion?<button className="secondary" disabled={busy} onClick={()=>review.mutate()}>核对导入结果</button>:null}
     {review.isError?<p role="alert">{asAppError(review.error).message}</p>:null}
   </Sheet>;
 }

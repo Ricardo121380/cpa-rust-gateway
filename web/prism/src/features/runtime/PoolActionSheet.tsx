@@ -32,13 +32,13 @@ export function PoolActionSheet({
   const [validation, setValidation] = useState<string>();
   return (
     <Sheet
-      title={isCooldown ? "冷却这个账号" : "为这个账号请求恢复"}
-      description={isCooldown ? "让当前账号连接在指定时间内退出调度，其他同渠道账号不受影响。" : "只登记恢复意图；是否重新放行仍由运行时和上游决定。"}
+      title={isCooldown ? "冷却这个账号" : "高级：解除本地隔离"}
+      description={isCooldown ? "让当前账号连接在指定时间内退出调度，其他同渠道账号不受影响。" : "只解除选中账号连接的本地冷却或隔离；不验证上游，也不解除停用、授权失效或未到重置时间的额度限制。"}
       layout="confirm"
       tone={isCooldown ? "danger" : "default"}
       onEscape={onCancel}
       busy={pending}
-      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} className={isCooldown ? "danger" : "primary"} disabled={pending}>{isCooldown ? "确认冷却" : "确认请求恢复"}</button></>}
+      footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="submit" form={formId} className={isCooldown ? "danger" : "primary"} disabled={pending}>{isCooldown ? "确认冷却" : "确认解除本地隔离"}</button></>}
     >
       <p className="reveal-warning">
         <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong>
@@ -47,7 +47,7 @@ export function PoolActionSheet({
         <br />
         {isCooldown
           ? "冷却会把它移出调度直到到期，同渠道的其他账号继续服务。"
-          : "请求恢复只是登记意图 —— 是否放行仍由运行时与上游决定,不保证恢复。"}
+          : `当前本地原因：${account.runtime_status}。完成后允许再次尝试，尚未验证。`}
       </p>
       <IdentityDetails entries={[["账号",account.account_id,accountName(account.presentation?.identity)??"未提供账号身份"],["提供商",account.provider_id,account.presentation?.provider],["接口",account.channel_id,account.presentation?protocolName(account.presentation.api_format):undefined]]} />
       <form
@@ -99,6 +99,7 @@ export function PoolActionSheet({
           <input name="upstream_model" className="mono" maxLength={256} />
           <small>只想影响某一个上游模型时填写;留空表示整个账号。</small>
         </label>
+        {!isCooldown?<label className="check-row"><input type="checkbox" required disabled={pending}/>已核对目标、当前原因与解除范围；不会发送测试请求</label>:null}
         {validation?<p role="alert" className="action-error">{validation}</p>:null}
         {error===undefined?null:<p role="alert" className="action-error">{error}</p>}
       </form>

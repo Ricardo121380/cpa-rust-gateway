@@ -59,7 +59,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 31;
+pub const CURRENT_SCHEMA_VERSION: i64 = 32;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -223,6 +223,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 31,
         up: include_str!("../migrations/0031_attempt_history_index.up.sql"),
         down: include_str!("../migrations/0031_attempt_history_index.down.sql"),
+    },
+    Migration {
+        version: 32,
+        up: include_str!("../migrations/0032_native_import_receipts.up.sql"),
+        down: include_str!("../migrations/0032_native_import_receipts.down.sql"),
     },
 ];
 
@@ -674,6 +679,32 @@ mod tests {
     }
 
     #[test]
+    fn native_import_receipts_upgrade_and_rollback_preserve_disabled_accounts() -> TestResult {
+        let mut connection = Connection::open_in_memory()?;
+        migrate(&mut connection)?;
+        rollback_to_version(&mut connection, 31)?;
+        connection.execute("INSERT INTO grok_account_import_batches(id,status,created_count,unchanged_count,created_at_ms) VALUES('legacy','applied',1,0,1)", [])?;
+        connection.execute("INSERT INTO grok_accounts(id,provider,identity_digest,credential_ciphertext,credential_key_version,auth_status,enabled,priority,weight,max_concurrency,revision,import_batch_id,created_at_ms,updated_at_ms) VALUES('retained','console',zeroblob(32),x'01',1,'active',0,7,3,2,4,'legacy',1,1)", [])?;
+        migrate(&mut connection)?;
+        assert_eq!(
+            connection.query_row(
+                "SELECT COUNT(*) FROM native_account_import_receipts",
+                [],
+                |row| row.get::<_, i64>(0)
+            )?,
+            0,
+            "legacy receipts are not guessed"
+        );
+        connection.execute("INSERT INTO native_account_import_receipts(batch_id,account_id,provider,credential_revision,outcome,saved_at_ms) VALUES('legacy','retained','console',4,'unchanged',2)",[])?;
+        rollback_to_version(&mut connection, 31)?;
+        let retained=connection.query_row("SELECT enabled,priority,weight,max_concurrency,revision,credential_ciphertext FROM grok_accounts WHERE id='retained'",[],|row|Ok((row.get::<_,i64>(0)?,row.get::<_,i64>(1)?,row.get::<_,i64>(2)?,row.get::<_,i64>(3)?,row.get::<_,i64>(4)?,row.get::<_,Vec<u8>>(5)?)))?;
+        assert_eq!(retained, (0, 7, 3, 2, 4, vec![1]));
+        migrate(&mut connection)?;
+        assert_eq!(schema_version(&connection)?, Some(CURRENT_SCHEMA_VERSION));
+        Ok(())
+    }
+
+    #[test]
     fn migrations_are_idempotent_and_create_all_known_schema_tables() -> TestResult {
         let mut connection = Connection::open_in_memory()?;
 
@@ -727,6 +758,7 @@ mod tests {
                 "model_routes",
                 "native_account_authorization_events",
                 "native_account_identity_observations",
+                "native_account_import_receipts",
                 "native_account_inventory_generation",
                 "native_account_management_events",
                 "public_models",

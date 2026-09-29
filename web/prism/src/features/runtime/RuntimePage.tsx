@@ -1374,6 +1374,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
             channel_id: String(data.get("channel_id") ?? ""),
             route_id: String(data.get("route_id") ?? ""),
             credential_id: String(data.get("credential_id") ?? ""),
+            client_key_id: String(data.get("client_key_id") ?? ""),
             requested_model: String(data.get("requested_model") ?? ""),
             protocol: String(data.get("protocol") ?? ""),
             mode: String(data.get("mode") ?? ""),
@@ -1392,6 +1393,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
             <ResourcePicker name={field.name} kind={field.name==="provider_id"?"upstream":field.name==="channel_id"?"endpoint":field.name==="route_id"?"route":"account"} runtime={field.name==="credential_id"} required />
           </label>
         ))}
+        <label>客户端 Key（遵守当前模型权限）<input name="client_key_id" required maxLength={128}/></label>
         <label>
           requested_model
           <input name="requested_model" className="mono" required maxLength={256} />
@@ -1423,7 +1425,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
 
       {invalid ? (
         <p role="alert" className="rt-error-text">
-          七个字段都是必填的,空白不会被发出去。
+          目标、客户端 Key、模型和协议都是必填的，空白不会被发出去。
         </p>
       ) : null}
       {error === undefined ? null : (

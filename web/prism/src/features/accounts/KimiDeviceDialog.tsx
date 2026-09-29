@@ -1,3 +1,5 @@
+import {AuthorizationRecovery,continueAuthorizationAfterReview} from "./AuthorizationRecovery";
+import {ConfigurationTaskReview} from "../config-versions/ConfigurationTaskReview";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetDismissButton } from "../../components/Sheet";
@@ -68,6 +70,9 @@ export function KimiDeviceDialog({
   const [completed, setCompleted] = useState<ConfigVersionSummary>();
   const [completionError, setCompletionError] = useState<unknown>();
   const [unresolvedResult, setUnresolvedResult] = useState(false);
+  const [pendingRecovery,setPendingRecovery]=useState(false);
+  const [recoveredId,setRecoveredId]=useState<string>();const [reviewBusy,setReviewBusy]=useState(false);
+  const [connected,setConnected]=useState(false);
   const mergeSession = (next: Session) => setSession((current) => mergeKimiDeviceSession(current, next));
   const start = useMutation({
     mutationFn: async () => {
@@ -104,11 +109,13 @@ export function KimiDeviceDialog({
       if (result.state !== "completed" || !result.credential_id) return result;
       try {
         setCompleted(await finishKimiEnrollment(enrollment, result.credential_id));
+        setConnected(true);
       } catch (error) {
         // The terminal poll already persisted the credential. Keep that
         // receipt terminal and offer configuration recovery; retrying poll
         // would replay a consuming provider operation.
         setCompletionError(error);
+        setRecoveredId(result.credential_id);
       }
       return result;
     },
@@ -130,7 +137,8 @@ export function KimiDeviceDialog({
       });
     },
   });
-  const busy = start.isPending || poll.isPending || cancel.isPending;
+  const resume=useMutation({mutationFn:async()=>{const entry=current.current!;const version=await entry.task.read<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:entry.task.version.id}});if(version.status!=="draft"||version.revision!==entry.task.revision())throw new Error("工作配置已变化，请核对完整清单；不会再次轮询已完成的授权。");return finishKimiEnrollment(entry,recoveredId!);},onSuccess:version=>{setConnected(true);setCompleted(version);setCompletionError(undefined);setRecoveredId(undefined);},onError:setCompletionError});
+  const busy = start.isPending || poll.isPending || cancel.isPending||resume.isPending||reviewBusy;
   const awaitingConsent = session?.state === "pending" && completed === undefined && completionError === undefined && !unresolvedResult;
   const pollInFlight = poll.isPending;
   const canSchedulePoll = awaitingConsent && !pollInFlight && !poll.isError;
@@ -186,6 +194,18 @@ export function KimiDeviceDialog({
         {session.expires_at_ms ? <p className="muted">有效期至 {new Date(session.expires_at_ms).toLocaleTimeString()}。完成后会自动检查结果。</p> : null}
       </> : null}
     </>}
+    {unresolvedResult&&session?.session_id&&current.current?<AuthorizationRecovery task={current.current.task} sessionId={session.session_id} onReceipt={(receipt,canContinue)=>{
+      setPendingRecovery(receipt.state==="pending"&&canContinue);
+      if(receipt.state==="completed"){mergeSession({state:"completed",credential_id:receipt.credential_id});setUnresolvedResult(false);setCompletionError(new Error("授权已保存，连接与应用尚待核对。"));if(canContinue)setRecoveredId(receipt.credential_id);}
+      else if(["failed","denied","expired","cancelled"].includes(receipt.state)){mergeSession({state:receipt.state as Session["state"]});setUnresolvedResult(false);}
+    }}/>:null}
+    {unresolvedResult&&pendingRecovery?<button className="primary" disabled={busy} onClick={()=>{poll.reset();setPendingRecovery(false);setUnresolvedResult(false);}}>继续等待此授权会话</button>:null}
+    {recoveredId?<button className="primary" disabled={busy} onClick={()=>resume.mutate()}>继续连接与应用</button>:null}
+    {session?.state==="completed"&&session.credential_id&&current.current&&completed?.status!=="active"?<ConfigurationTaskReview task={current.current.task} onBusyChange={setReviewBusy} onReviewed={!connected?async review=>{
+      const entry=current.current!;
+      const version=await continueAuthorizationAfterReview(entry.task,review,{upstream_id:entry.providerId,endpoint_id:entry.endpointId},session.credential_id!);
+      setConnected(true);return version;
+    }:undefined} onApplied={version=>{if(version.status==="active"){setCompleted(version);setCompletionError(undefined);setRecoveredId(undefined);}else setCompletionError(new Error("接口连接已核对，配置尚未应用；请核对更新后的完整清单。"));}}/>:null}
     <ConfigurationTaskNotice
       workingId={workingId}
       error={completionError ?? start.error ?? poll.error ?? cancel.error}

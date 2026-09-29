@@ -169,7 +169,7 @@ impl SnapshotPublicationService {
         repository: &mut SqliteControlPlaneRepository,
         config_version_id: &ConfigVersionId,
     ) -> Result<SnapshotPublication, SnapshotPublicationError> {
-        self.publish_version_with_optional_audit(repository, config_version_id, None)
+        self.publish_version_with_optional_audit(repository, config_version_id, None, None)
     }
 
     /// Publishes one Config Version and appends a matching durable audit event in the same
@@ -188,7 +188,43 @@ impl SnapshotPublicationService {
         if audit_draft.action() != gateway_store::control_plane::ManagementAuditAction::Published {
             return Err(StoreError::InvalidManagementAuditEvent.into());
         }
-        self.publish_version_with_optional_audit(repository, config_version_id, Some(audit_draft))
+        self.publish_version_with_optional_audit(
+            repository,
+            config_version_id,
+            Some(audit_draft),
+            None,
+        )
+    }
+
+    /// Publishes with the caller's exact deleted-account restoration review.
+    /// # Errors
+    /// Returns normal publication failures or a conflict for a stale review.
+    pub fn publish_version_with_account_review(
+        &self,
+        repository: &mut SqliteControlPlaneRepository,
+        id: &ConfigVersionId,
+        audit: &ManagementAuditEventDraft,
+        review: Option<&str>,
+    ) -> Result<SnapshotPublication, SnapshotPublicationError> {
+        if audit.action() != gateway_store::control_plane::ManagementAuditAction::Published {
+            return Err(StoreError::InvalidManagementAuditEvent.into());
+        }
+        self.publish_version_with_optional_audit(repository, id, Some(audit), review)
+    }
+
+    /// Rolls back with the caller's exact deleted-account restoration review.
+    /// # Errors
+    /// Returns normal rollback failures or a conflict for a stale review.
+    pub fn rollback_with_account_review(
+        &self,
+        repository: &mut SqliteControlPlaneRepository,
+        audit: &ManagementAuditEventDraft,
+        review: Option<&str>,
+    ) -> Result<SnapshotPublication, SnapshotPublicationError> {
+        if audit.action() != gateway_store::control_plane::ManagementAuditAction::RolledBack {
+            return Err(StoreError::InvalidManagementAuditEvent.into());
+        }
+        self.rollback_with_optional_audit(repository, Some(audit), review)
     }
 
     fn publish_version_with_optional_audit(
@@ -196,6 +232,7 @@ impl SnapshotPublicationService {
         repository: &mut SqliteControlPlaneRepository,
         config_version_id: &ConfigVersionId,
         audit_draft: Option<&ManagementAuditEventDraft>,
+        account_review: Option<&str>,
     ) -> Result<SnapshotPublication, SnapshotPublicationError> {
         let configuration = repository
             .load_configuration(config_version_id)?
@@ -217,7 +254,7 @@ impl SnapshotPublicationService {
             .map(|preparer| preparer.prepare(&configuration, Arc::clone(&replacement)))
             .transpose()?;
         let prepared = self.registry.prepare_publication(replacement)?;
-        let (activation, audit_event) = repository.activate_prepared_version(
+        let (activation, audit_event) = repository.activate_prepared_version_with_account_review(
             config_version_id,
             configuration.version.revision,
             active.as_ref(),
@@ -226,6 +263,7 @@ impl SnapshotPublicationService {
                 .as_ref()
                 .and_then(|value| value.native_inventory_generation()),
             audit_draft,
+            account_review,
         )?;
         let transition = prepared.commit();
         if let Some(runtime) = runtime {
@@ -250,7 +288,7 @@ impl SnapshotPublicationService {
         &self,
         repository: &mut SqliteControlPlaneRepository,
     ) -> Result<SnapshotPublication, SnapshotPublicationError> {
-        self.rollback_with_optional_audit(repository, None)
+        self.rollback_with_optional_audit(repository, None, None)
     }
 
     /// Restores the retained predecessor and records its matching durable rollback audit event.
@@ -267,13 +305,14 @@ impl SnapshotPublicationService {
         if audit_draft.action() != gateway_store::control_plane::ManagementAuditAction::RolledBack {
             return Err(StoreError::InvalidManagementAuditEvent.into());
         }
-        self.rollback_with_optional_audit(repository, Some(audit_draft))
+        self.rollback_with_optional_audit(repository, Some(audit_draft), None)
     }
 
     fn rollback_with_optional_audit(
         &self,
         repository: &mut SqliteControlPlaneRepository,
         audit_draft: Option<&ManagementAuditEventDraft>,
+        account_review: Option<&str>,
     ) -> Result<SnapshotPublication, SnapshotPublicationError> {
         let prepared = self.registry.prepare_rollback()?;
         if self
@@ -299,7 +338,7 @@ impl SnapshotPublicationService {
         let current = self.registry.load();
         let active = ConfigVersionId::try_new(current.version().as_str().to_owned())
             .map_err(|_| SnapshotPublicationError::InvalidSnapshotVersion)?;
-        let (activation, audit_event) = repository.activate_prepared_version(
+        let (activation, audit_event) = repository.activate_prepared_version_with_account_review(
             &target_version,
             configuration.version.revision,
             Some(&active),
@@ -308,6 +347,7 @@ impl SnapshotPublicationService {
                 .as_ref()
                 .and_then(|value| value.native_inventory_generation()),
             audit_draft,
+            account_review,
         )?;
         let transition = prepared.commit();
         if let Some(runtime) = runtime {

@@ -13,6 +13,7 @@ use serde_json::{Value, json};
 #[serde(deny_unknown_fields)]
 struct Params {
     q: Option<String>,
+    entry_type: Option<String>,
     category: Option<String>,
     status: Option<String>,
     plan: Option<String>,
@@ -136,7 +137,10 @@ pub(super) async fn list(
   if cursor.as_ref().is_some_and(|c|c.native!=native_stamp){return Ok(Err("conflict"))}
   if metadata_source.as_ref().is_some_and(|s|s.metadata_revision()!=metadata_revision){return Ok(Err("conflict"))}
   let query=params.q.as_deref().unwrap_or("").trim().to_lowercase();
-  items.retain(|r| params.category.as_deref().is_none_or(|c|text(r,"category")==c)&&params.status.as_deref().is_none_or(|s|text(r,"status")==s)&&[text(r,"provider"),text(r,"category"),text(&r["identity"],"email"),text(&r["identity"],"phone"),text(&r["identity"],"username")].join(" ").to_lowercase().contains(&query));
+  items.retain(|r| params.entry_type.as_deref().is_none_or(|entry| {
+   let api = r["native"] == false && text(&r["managed"], "authentication") == "api_key";
+   (entry == "api") == api
+  })&&params.category.as_deref().is_none_or(|c|text(r,"category")==c)&&params.status.as_deref().is_none_or(|s|text(r,"status")==s)&&[text(r,"provider"),text(r,"category"),text(&r["identity"],"email"),text(&r["identity"],"phone"),text(&r["identity"],"username")].join(" ").to_lowercase().contains(&query));
   let mut plan_totals=std::collections::BTreeMap::<String,usize>::new();let mut unobserved_plan_total=0;
   for item in &items { if let Some(plan)=item["plan"].as_str(){*plan_totals.entry(plan.to_owned()).or_default()+=1;}else{unobserved_plan_total+=1;} }
   items.retain(|item|params.plan.as_deref().is_none_or(|plan|item["plan"].as_str()==Some(plan)) && (!params.without_plan.unwrap_or(false)||item["plan"].is_null()));
@@ -193,6 +197,10 @@ fn parse(request: &HttpRequest, version: &str) -> Result<(Params, Option<Cursor>
     let limit = params.limit.unwrap_or(50);
     if !(1..=100).contains(&limit)
         || params.q.as_ref().is_some_and(|s| s.len() > 256)
+        || params
+            .entry_type
+            .as_ref()
+            .is_some_and(|s| !["api", "account"].contains(&s.as_str()))
         || params
             .plan
             .as_ref()

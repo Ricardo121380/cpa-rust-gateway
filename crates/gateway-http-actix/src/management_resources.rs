@@ -7,6 +7,7 @@
 mod account_channels;
 mod account_inventory;
 pub mod account_quota;
+mod authorization_receipts;
 mod catalog_inventory;
 pub mod catalog_refresh;
 pub mod claude_authorization;
@@ -126,6 +127,7 @@ pub struct ManagementResourceHttpState {
     catalog_refresh_slots: std::sync::Arc<tokio::sync::Semaphore>,
     system_information: Option<ManagementSystemInformation>,
     started_at: std::time::Instant,
+    server_instance: String,
     native_accounts: Option<std::sync::Arc<native_accounts::NativeAccountManagement>>,
     billing_processing:
         std::sync::Arc<gateway_control::billing_processing::BillingProcessingMonitor>,
@@ -145,6 +147,7 @@ pub struct ManagementResourceHttpState {
     /// the revision-guarded persistence write so two HTTP callers can never spend the same
     /// rotating refresh token concurrently.
     oauth_refresh_claims: Mutex<BTreeSet<CredentialId>>,
+    authorization_receipts: Mutex<authorization_receipts::Receipts>,
     runtime_clock: Box<dyn ManagementRuntimeClock>,
 }
 
@@ -167,6 +170,7 @@ async fn system_information(state: web::Data<ManagementResourceHttpState>) -> Ht
     match &state.system_information {
         Some(info) => HttpResponse::Ok().json(serde_json::json!({
             "build": info,
+            "server_instance": state.server_instance,
             "uptime_seconds": state.started_at.elapsed().as_secs(),
             "configuration_application": "live",
             "accepting_requests": state.native_accounts.as_ref().and_then(|native| native.accepting_requests()),
@@ -394,6 +398,13 @@ impl ManagementResourceHttpState {
             catalog_refresh_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
             system_information: None,
             started_at: std::time::Instant::now(),
+            server_instance: format!(
+                "instance-{:x}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos()
+            ),
             native_accounts: None,
             billing_processing: std::sync::Arc::default(),
             service: Mutex::new(service),
@@ -411,6 +422,7 @@ impl ManagementResourceHttpState {
                 Box::new(RejectingProviderEgressStatusFacade::new()),
             ),
             oauth_refresh_claims: Mutex::new(BTreeSet::new()),
+            authorization_receipts: Mutex::default(),
             runtime_clock,
         }
     }
@@ -642,6 +654,7 @@ pub struct ManagementCatalogStatus {
     model_count: Option<usize>,
     last_failure_at_ms: Option<i64>,
     last_failure_class: Option<ManagementCatalogFailureClass>,
+    discovery_supported: bool,
 }
 
 impl ManagementCatalogStatus {
@@ -663,6 +676,7 @@ impl ManagementCatalogStatus {
             model_count: None,
             last_failure_at_ms: None,
             last_failure_class: None,
+            discovery_supported: true,
         }
     }
 
@@ -694,6 +708,13 @@ impl ManagementCatalogStatus {
     ) -> Self {
         self.last_failure_at_ms = Some(failed_at_ms);
         self.last_failure_class = Some(class);
+        self
+    }
+
+    /// Attaches the configured adapter's discovery capability; this performs no discovery.
+    #[must_use]
+    pub const fn with_discovery_support(mut self, supported: bool) -> Self {
+        self.discovery_supported = supported;
         self
     }
 
@@ -818,6 +839,8 @@ impl ManagementRuntimeAvailabilityStatus {
 /// The only responses to an operator's controlled quota-recovery request.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ManagementQuotaRecoveryState {
+    /// The local transition completed, allowing another attempt without verifying the Provider.
+    Released,
     /// A recovery is still required before a probe can be scheduled.
     RecoveryRequired,
     /// The runtime controller accepted a bounded recovery request for later handling.
@@ -1322,6 +1345,8 @@ pub struct ManagementChannelPinRequest {
     requested_model: String,
     protocol: ManagementRequestProtocol,
     mode: ManagementChannelPinMode,
+    client_key_id: Option<ClientKeyId>,
+    credential_revision: Option<i64>,
 }
 
 impl ManagementChannelPinRequest {
@@ -1349,6 +1374,8 @@ impl ManagementChannelPinRequest {
             requested_model,
             protocol,
             mode,
+            client_key_id: None,
+            credential_revision: None,
         }
     }
 
@@ -1404,6 +1431,29 @@ impl ManagementChannelPinRequest {
     #[must_use]
     pub const fn mode(&self) -> ManagementChannelPinMode {
         self.mode
+    }
+    /// Pins the independently authenticated management projection to a Key's permission graph.
+    #[must_use]
+    pub fn with_client_context(
+        mut self,
+        key: Option<ClientKeyId>,
+        credential_revision: i64,
+    ) -> Self {
+        self.client_key_id = key;
+        self.credential_revision = Some(credential_revision);
+        self
+    }
+
+    /// Returns the selected Key ID; this does not authenticate possession of its secret.
+    #[must_use]
+    pub const fn client_key_id(&self) -> Option<&ClientKeyId> {
+        self.client_key_id.as_ref()
+    }
+
+    /// Returns the exact credential revision admitted before execution.
+    #[must_use]
+    pub const fn credential_revision(&self) -> Option<i64> {
+        self.credential_revision
     }
 }
 
@@ -1462,6 +1512,7 @@ pub struct ManagementChannelPinReceipt {
     response_started: bool,
     observed_at_ms: i64,
     stage: Option<ManagementRequestAttemptStage>,
+    runtime_build: Option<String>,
 }
 
 impl ManagementChannelPinReceipt {
@@ -1530,7 +1581,21 @@ impl ManagementChannelPinReceipt {
             response_started,
             observed_at_ms,
             stage,
+            runtime_build: None,
         })
+    }
+
+    /// Attaches the release build identity used by this actual runtime executor.
+    #[must_use]
+    pub fn with_runtime_build(mut self, build: String) -> Self {
+        self.runtime_build = Some(build);
+        self
+    }
+
+    /// Returns the release build identity when produced by the real runtime.
+    #[must_use]
+    pub fn runtime_build(&self) -> Option<&str> {
+        self.runtime_build.as_deref()
     }
 
     /// Returns the opaque request correlation identity.
@@ -2339,8 +2404,11 @@ impl ManagementEndpointWorkflow for CodexOAuthManagementWorkflow {
 
     fn start_oauth(&mut self, credential_id: &CredentialId) -> ManagementCredentialOAuthOperation {
         let now = Self::now_ms();
-        self.oauth
-            .retain(|_, session| session.view(now).expires_at_ms > now);
+        self.oauth.retain(|_, session| {
+            let view = session.view(now);
+            view.state == CodexOAuthSessionState::Pending
+                || view.expires_at_ms.saturating_add(15 * 60 * 1000) > now
+        });
         if self.oauth.len() >= 128 && !self.oauth.contains_key(credential_id) {
             return ManagementCredentialOAuthOperation {
                 state: ManagementCredentialOAuthState::Failed,
@@ -2574,6 +2642,10 @@ pub fn configure_management_resources(config: &mut web::ServiceConfig) {
 }
 
 fn resource_routes(config: &mut web::ServiceConfig) {
+    config.route(
+        "/account-authorization/{session_id}",
+        web::get().to(authorization_receipts::status),
+    );
     configure_upstream_resource_routes(config);
     configure_routing_resource_routes(config);
     configure_runtime_resource_routes(config);
@@ -2589,6 +2661,10 @@ pub(crate) fn configure_protected_resource_routes(config: &mut web::ServiceConfi
     resource_routes(config);
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "one protected route registration table"
+)]
 fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
     config
         .route("/egress-policies", web::get().to(list_egress_policies))
@@ -2676,6 +2752,10 @@ fn configure_upstream_resource_routes(config: &mut web::ServiceConfig) {
             web::post().to(export_credential),
         )
         .route(
+            "/credentials/{credential_id}/deletion-impact",
+            web::get().to(credential_deletion_impact),
+        )
+        .route(
             "/credentials/{credential_id}/metadata",
             web::get().to(get_credential_metadata),
         )
@@ -2705,6 +2785,10 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
             web::delete().to(grok_device::cancel),
         )
         .route("/native-accounts", web::get().to(native_accounts::list))
+        .route(
+            "/native-account-imports/{batch_id}",
+            web::get().to(native_accounts::import_receipt),
+        )
         .route(
             "/native-accounts/{account_id}/usage",
             web::get().to(native_accounts::usage::usage),
@@ -2782,6 +2866,10 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
         .route(
             "/upstreams/{upstream_id}/account-import",
             web::post().to(account_channels::import),
+        )
+        .route(
+            "/upstreams/{upstream_id}/account-imports/{import_id}",
+            web::get().to(account_channels::import_receipt),
         )
         .route(
             "/credentials/{credential_id}/status",
@@ -3156,6 +3244,8 @@ struct ChannelPinInput {
     requested_model: String,
     protocol: String,
     mode: String,
+    client_key_id: Option<String>,
+    credential_revision: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -3654,6 +3744,9 @@ struct ValidationResponse {
 
 #[derive(Serialize)]
 struct CatalogStatusResponse {
+    last_success_at_ms: Option<i64>,
+    observation_state: &'static str,
+    source: &'static str,
     endpoint_id: String,
     credential_id: String,
     freshness: &'static str,
@@ -4933,9 +5026,29 @@ async fn apply_provider_account_pool_action(
         Err(response) => return response,
     };
     match action_result {
-        Ok(receipt) => HttpResponse::Accepted()
-            .insert_header((header::CACHE_CONTROL, "no-store"))
-            .json(ProviderAccountOperatorActionResponse::from(receipt)),
+        Ok(receipt) => {
+            let completed = matches!(receipt.state.as_str(), "released" | "cooling");
+            let audit_recorded = management_service
+                .record_resource_action(
+                    &actor,
+                    &context.version,
+                    if completed {
+                        "provider_account_action_completed"
+                    } else {
+                        "provider_account_action_observed"
+                    },
+                    "provider_account",
+                    &resource_id,
+                )
+                .is_ok();
+            let mut response =
+                serde_json::to_value(ProviderAccountOperatorActionResponse::from(receipt))
+                    .unwrap_or_default();
+            response["audit_recorded"] = serde_json::json!(audit_recorded);
+            HttpResponse::Accepted()
+                .insert_header((header::CACHE_CONTROL, "no-store"))
+                .json(response)
+        }
         Err(error) => provider_account_pool_error(error),
     }
 }
@@ -5950,6 +6063,16 @@ async fn execute_channel_pin(
     if input.requested_model.trim().is_empty() || input.requested_model.chars().count() > 256 {
         return invalid_input();
     }
+    let Ok(client_key_id) = input.client_key_id.map(ClientKeyId::try_new).transpose() else {
+        return invalid_input();
+    };
+    if client_key_id.is_none() {
+        return error_response(
+            StatusCode::FORBIDDEN,
+            "management_model_permission_required",
+            "请选择客户端 Key；调用测试必须遵守其当前模型权限",
+        );
+    }
     let protocol = match management_request_protocol(&input.protocol) {
         Ok(protocol) => protocol,
         Err(response) => return response,
@@ -5986,7 +6109,7 @@ async fn execute_channel_pin(
     // Validate the complete identity relation from one selected Config Version before handing
     // anything to the executor.  This prevents a facade from becoming an alternate config
     // lookup or cross-Provider fallback mechanism.
-    let revision = {
+    let (revision, credential_revision, durable_credential_revision) = {
         let mut management_service = match service(&state) {
             Ok(value) => value,
             Err(response) => return response,
@@ -5995,35 +6118,125 @@ async fn execute_channel_pin(
             Ok(value) => value.into_parts().0,
             Err(error) => return management_error(error),
         };
-        let credential = match management_service.get_credential(&context.version, &credential_id) {
-            Ok(value) => value.into_parts().0,
-            Err(error) => return management_error(error),
-        };
         let Ok(upstream_id) = UpstreamId::try_new(provider_id.as_str().to_owned()) else {
             return invalid_input();
         };
-        if endpoint.upstream_id != upstream_id || credential.upstream_id != upstream_id {
+        if endpoint.upstream_id != upstream_id || !endpoint.enabled {
             return invalid_input();
         }
-        if let Err(error) = management_service.get_upstream(&context.version, &upstream_id) {
-            return management_error(error);
+        match management_service.get_upstream(&context.version, &upstream_id) {
+            Ok(value) if value.value().enabled => {}
+            Ok(_) => return invalid_input(),
+            Err(error) => return management_error(error),
         }
         if let Err(error) = management_service.get_model_route(&context.version, &route_id) {
             return management_error(error);
         }
-        let bindings = match management_service
-            .list_endpoint_credential_bindings(&context.version, &channel_id)
-        {
-            Ok(value) => value.into_parts().0,
-            Err(error) => return management_error(error),
+        let native_provider = match endpoint.adapter_id.as_str() {
+            "grok.build.responses" => Some(provider_grok::GrokAccountProvider::Build),
+            "grok.console.responses" => Some(provider_grok::GrokAccountProvider::Console),
+            "grok.web.responses" => Some(provider_grok::GrokAccountProvider::Web),
+            _ => None,
         };
-        if !bindings.iter().any(|binding| {
-            binding.credential_id == credential_id && binding.upstream_id == upstream_id
-        }) {
-            return invalid_input();
+        let (credential_revision, durable_revision) = if let Some(provider) = native_provider {
+            let Some(native) = &state.native_accounts else {
+                return invalid_input();
+            };
+            let Ok(rows) = native.store.list_accounts() else {
+                return internal_error();
+            };
+            let Some(account) = rows.iter().find(|row| {
+                row.id == credential_id.as_str()
+                    && row.provider == provider
+                    && row.enabled
+                    && row.auth_status == provider_grok::GrokAccountAuthStatus::Active
+            }) else {
+                return invalid_input();
+            };
+            let Ok(durable) = i64::try_from(account.revision) else {
+                return invalid_input();
+            };
+            let Some(runtime) = durable.checked_add(1) else {
+                return invalid_input();
+            };
+            (runtime, durable)
+        } else {
+            let credential =
+                match management_service.get_credential(&context.version, &credential_id) {
+                    Ok(value) => value.into_parts().0,
+                    Err(error) => return management_error(error),
+                };
+            if credential.upstream_id != upstream_id
+                || credential.status != CredentialStatus::Active
+            {
+                return invalid_input();
+            }
+            let bindings = match management_service
+                .list_endpoint_credential_bindings(&context.version, &channel_id)
+            {
+                Ok(value) => value.into_parts().0,
+                Err(error) => return management_error(error),
+            };
+            if !bindings.iter().any(|binding| {
+                binding.credential_id == credential_id
+                    && binding.upstream_id == upstream_id
+                    && binding.enabled
+            }) {
+                return invalid_input();
+            }
+            (credential.revision, credential.revision)
+        };
+        if input
+            .credential_revision
+            .is_some_and(|expected| expected != durable_revision)
+        {
+            return channel_pin_error(ManagementChannelPinError::SnapshotConflict);
+        }
+        if let Some(key_id) = &client_key_id {
+            let denied = || {
+                error_response(
+                    StatusCode::FORBIDDEN,
+                    "management_model_permission_denied",
+                    "所选客户端 Key 当前无权调用该模型",
+                )
+            };
+            let key = match management_service.get_client_key(&context.version, key_id) {
+                Ok(value) => value.into_parts().0,
+                Err(_) => return denied(),
+            };
+            let Ok(now) = runtime_observed_at(&state) else {
+                return denied();
+            };
+            if key.status != StoredClientKeyStatus::Active
+                || key.expires_at_ms.is_some_and(|expires| expires <= now)
+            {
+                return denied();
+            }
+            let group =
+                match management_service.get_access_group(&context.version, &key.access_group_id) {
+                    Ok(value) => value.into_parts().0,
+                    Err(_) => return denied(),
+                };
+            if group.status != AdministrativeStatus::Active {
+                return denied();
+            }
+            let grants = match management_service
+                .list_access_group_routes(&context.version, &key.access_group_id)
+            {
+                Ok(value) => value.into_parts().0,
+                Err(_) => return denied(),
+            };
+            if !grants
+                .iter()
+                .any(|grant| grant.route_id == route_id && grant.enabled)
+            {
+                return denied();
+            }
         }
         match management_service.require_config_version(&context.version) {
-            Ok(revision) if revision == context.revision => revision,
+            Ok(revision) if revision == context.revision => {
+                (revision, credential_revision, durable_revision)
+            }
             Ok(_) => return channel_pin_error(ManagementChannelPinError::SnapshotConflict),
             Err(error) => return management_error(error),
         }
@@ -6039,7 +6252,8 @@ async fn execute_channel_pin(
         input.requested_model,
         protocol,
         mode,
-    );
+    )
+    .with_client_context(client_key_id.clone(), credential_revision);
     let expected_request = pin_request.clone();
     // Persist the final pre-execution boundary before any Provider/transport call. This makes an
     // audit-storage failure a guaranteed no-send result; after the one-shot call begins, the
@@ -6080,9 +6294,26 @@ async fn execute_channel_pin(
             {
                 return channel_pin_error(ManagementChannelPinError::SnapshotConflict);
             }
+            let build = receipt.runtime_build().map(str::to_owned);
+            let Ok(mut value) = serde_json::to_value(ChannelPinResponse::from(receipt)) else {
+                return internal_error();
+            };
+            value["client_key_id"] =
+                serde_json::json!(client_key_id.map(|id| id.as_str().to_owned()));
+            value["credential_revision"] = serde_json::json!(durable_credential_revision);
+            value["runtime_credential_revision"] = serde_json::json!(credential_revision);
+            value["connection_revision"] = serde_json::json!(revision.as_i64());
+            value["runtime_build"] = serde_json::json!(build);
+            value["server_instance"] = serde_json::json!(state.server_instance);
+            value["permission_basis"] =
+                serde_json::json!(if expected_request.client_key_id().is_some() {
+                    "management_key_projection"
+                } else {
+                    "administrator_diagnostic"
+                });
             HttpResponse::Ok()
                 .insert_header((header::CACHE_CONTROL, "no-store"))
-                .json(ChannelPinResponse::from(receipt))
+                .json(value)
         }
         Err(error) => channel_pin_error(error),
     }
@@ -6288,6 +6519,29 @@ async fn update_credential(
     }
 }
 
+async fn credential_deletion_impact(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    let context = match read_context(&request) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    let Ok(id) = CredentialId::try_new(path.into_inner()) else {
+        return invalid_input();
+    };
+    let mut service = match service(&state) {
+        Ok(value) => value,
+        Err(response) => return response,
+    };
+    match service.credential_deletion_impact(&context.version, &id) {
+        Ok(impact) => HttpResponse::Ok()
+            .insert_header((header::CACHE_CONTROL, "no-store"))
+            .json(impact),
+        Err(error) => management_error(error),
+    }
+}
 async fn delete_credential(
     request: HttpRequest,
     path: web::Path<String>,
@@ -6308,6 +6562,19 @@ async fn delete_credential(
         Ok(service) => service,
         Err(response) => return response,
     };
+    if let Some(token) = request.headers().get("X-Deletion-Impact-Review") {
+        let impact = match service.credential_deletion_impact(&context.version, &id) {
+            Ok(value) => value,
+            Err(error) => return management_error(error),
+        };
+        if token.to_str().ok() != impact["review_token"].as_str() {
+            return error_response(
+                StatusCode::CONFLICT,
+                "management_deletion_impact_changed",
+                "删除影响已变化，请重新核对",
+            );
+        }
+    }
     match service.delete_credential(&actor, &context.version, context.revision, &id) {
         Ok(revision) => empty_with_revision(revision),
         Err(error) => management_error(error),
@@ -8515,6 +8782,19 @@ fn require_runtime_target(
     if endpoint.upstream_id != credential.upstream_id {
         return Err(invalid_input());
     }
+    let upstream = management_service
+        .get_upstream(config_version_id, &endpoint.upstream_id)
+        .map_err(management_error)?;
+    if !endpoint.enabled
+        || !upstream.value().enabled
+        || credential.status != CredentialStatus::Active
+    {
+        return Err(error_response(
+            StatusCode::CONFLICT,
+            "management_recovery_target_ineligible",
+            "停用或授权失效的账号与连接不能通过解除本地隔离恢复",
+        ));
+    }
     let bindings = management_service
         .list_endpoint_credential_bindings(config_version_id, target.endpoint_id())
         .map_err(management_error)?
@@ -8523,6 +8803,7 @@ fn require_runtime_target(
     if !bindings.iter().any(|binding| {
         binding.credential_id == *target.credential_id()
             && binding.upstream_id == endpoint.upstream_id
+            && binding.enabled
     }) {
         return Err(invalid_input());
     }
@@ -8548,6 +8829,23 @@ fn catalog_status_response(
                 return Err(ManagementRuntimeError::Unavailable);
             }
             Ok(CatalogStatusResponse {
+                last_success_at_ms: (status.freshness() != ManagementCatalogFreshness::Missing)
+                    .then_some(status.observed_at_ms()),
+                observation_state: if !status.discovery_supported {
+                    "unsupported"
+                } else if status
+                    .last_failure_at_ms()
+                    .is_some_and(|at| at >= status.observed_at_ms())
+                {
+                    "failed"
+                } else if status.snapshot_version().is_none() {
+                    "missing"
+                } else if status.model_count() == Some(0) {
+                    "empty"
+                } else {
+                    "succeeded"
+                },
+                source: "upstream_catalog",
                 endpoint_id: status.endpoint_id().as_str().to_owned(),
                 credential_id: status.credential_id().as_str().to_owned(),
                 freshness: catalog_freshness_response(status.freshness()),
@@ -9416,6 +9714,11 @@ fn management_error(error: ManagementResourceError) -> HttpResponse {
         ManagementResourceError::Operations(ManagementOperationsError::InvalidQuery) => {
             invalid_input()
         }
+        ManagementResourceError::CredentialIdentityUnverified => error_response(
+            StatusCode::CONFLICT,
+            "management_credential_identity_unverified",
+            "授权身份缺失或与原账号不一致，未替换原授权；请先核对身份",
+        ),
         ManagementResourceError::InvalidRevision
         | ManagementResourceError::InvalidCredentialInput
         | ManagementResourceError::InvalidBillingCatalogInput
@@ -9546,6 +9849,7 @@ fn error_response(status: StatusCode, code: &'static str, message: &'static str)
 impl From<ManagementQuotaRecoveryState> for RuntimeActionResponse {
     fn from(value: ManagementQuotaRecoveryState) -> Self {
         let state = match value {
+            ManagementQuotaRecoveryState::Released => "released",
             ManagementQuotaRecoveryState::RecoveryRequired => "recovery_required",
             ManagementQuotaRecoveryState::ProbeScheduled => "probe_scheduled",
             ManagementQuotaRecoveryState::Rejected => "rejected",

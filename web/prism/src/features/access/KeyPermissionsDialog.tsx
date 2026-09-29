@@ -30,7 +30,7 @@ const sameRoutes=(a:readonly RouteListItem[],b:readonly RouteListItem[])=>a.leng
 const allowedModels=(routes:readonly RouteListItem[],grants:readonly Grant[])=>new Set(routes.filter(route=>grants.some(grant=>grant.route_id===route.id&&grant.enabled)).map(route=>route.public_model_id));
 const sameSelection=(a:ReadonlySet<string>,b:ReadonlySet<string>)=>a.size===b.size&&[...a].every(id=>b.has(id));
 
-export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:ClientKeyRecord;onClose:()=>void;onSaved:(version:ConfigVersionSummary)=>void}>){
+export function KeyPermissionsDialog({record,onClose,onSaved,modelScope}:Readonly<{record:ClientKeyRecord;onClose:()=>void;onSaved:(version:ConfigVersionSummary)=>void;modelScope?:readonly string[]}>){
   const formId="key-permissions-form";
   const context=useVersionStore(state=>state.context);
   const [baseline,setBaseline]=useState<Baseline>();
@@ -69,7 +69,7 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
   },[baseline,source.data,source.isSuccess,source.isFetching]);
   const original=baseline?allowedModels(baseline.routes,baseline.grants):new Set<string>();
   const chosen=selected??original;
-  const selectableModels=baseline?.models.filter(model=>model.status==="active"||original.has(model.id))??[];
+  const selectableModels=baseline?.models.filter(model=>(modelScope===undefined||modelScope.includes(model.id))&&(model.status==="active"||original.has(model.id)))??[];
   const visibleModels=selectableModels.filter(model=>model.model_name.toLowerCase().includes(modelSearch.trim().toLowerCase()));
   const dirty=!!baseline&&(!sameSelection(chosen,original)||name!==baseline.group.name||status!==baseline.key.status||expiry!==toLocalInput(baseline.key.expires_at_ms));
   const save=useMutation({mutationFn:async(input:Readonly<{baseline:Baseline;chosen:ReadonlySet<string>;label:string;status:ClientKeyRecord["status"];expiry:string}>)=>runModelTask(`修改密钥 · ${input.label}`,async task=>{
@@ -102,19 +102,19 @@ export function KeyPermissionsDialog({record,onClose,onSaved}:Readonly<{record:C
     submitted.current=true;
     save.mutate({baseline,chosen:new Set(selected),label,status,expiry});
   };
-  return <Sheet title={receipt?"密钥权限结果":"编辑 API 密钥"} description={receipt?"请核对保存与应用状态。":"修改名称、状态、有效期和允许调用的模型。"} onEscape={()=>!save.isPending&&done()} busy={save.isPending} isDirty={!receipt&&dirty} footer={receipt?<SheetDismissButton onDismiss={done}>{receipt.kind==="saved_applied"||receipt.kind==="unchanged"?"完成":"核对配置"}</SheetDismissButton>:baseline?<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" className="primary" form={formId} disabled={!dirty||save.isPending||submitted.current}>{context?.status==="draft"?"保存到草稿":"保存并应用"}</button></>:undefined}>
+  return <Sheet title={receipt?"密钥权限结果":modelScope?"设置模型权限":"编辑 API 密钥"} description={receipt?"请核对保存与应用状态。":modelScope?"仅调整这个账号已连接模型的开放范围；其他模型的权限保留。":"修改名称、状态、有效期和允许调用的模型。"} onEscape={()=>!save.isPending&&done()} busy={save.isPending} isDirty={!receipt&&dirty} footer={receipt?<SheetDismissButton onDismiss={done}>{receipt.kind==="saved_applied"||receipt.kind==="unchanged"?"完成":"核对配置"}</SheetDismissButton>:baseline?<><SheetDismissButton className="secondary" disabled={save.isPending}>取消</SheetDismissButton><button type="submit" className="primary" form={formId} disabled={!dirty||save.isPending||submitted.current}>{context?.status==="draft"?"保存到草稿":"保存并应用"}</button></>:undefined}>
     {receipt?<div role="status"><p>{receipt.message}</p><p>已确认保存 {receipt.acknowledgedWrites} 步。</p></div>:<>
       {source.isError?<p role="alert">{asAppError(source.error).message}<button type="button" onClick={()=>void source.refetch()}>重新读取</button></p>:null}
       {source.isPending||source.isFetching&&!baseline?<p role="status">正在读取模型权限…</p>:null}
       {baseline?<form id={formId} className="sheet-form key-permissions-form" onSubmit={submit}>
         <fieldset disabled={save.isPending||submitted.current}>
-          <label>名称<input required maxLength={128} value={name} onChange={event=>setName(event.target.value)}/></label>
-          <div className="key-fields-row"><label>状态<select value={status} onChange={event=>setStatus(event.target.value as ClientKeyRecord["status"])}><option value="active" disabled={baseline.key.status==="revoked"}>启用</option><option value="disabled" disabled={baseline.key.status==="revoked"}>停用</option><option value="revoked">吊销</option></select></label>
-          <label>有效期<input type="datetime-local" value={expiry} onChange={event=>setExpiry(event.target.value)}/></label>
+          <label>名称<input readOnly={modelScope!==undefined} required maxLength={128} value={name} onChange={event=>setName(event.target.value)}/></label>
+          <div className="key-fields-row"><label>状态<select disabled={modelScope!==undefined} value={status} onChange={event=>setStatus(event.target.value as ClientKeyRecord["status"])}><option value="active" disabled={baseline.key.status==="revoked"}>启用</option><option value="disabled" disabled={baseline.key.status==="revoked"}>停用</option><option value="revoked">吊销</option></select></label>
+          <label>有效期<input disabled={modelScope!==undefined} type="datetime-local" value={expiry} onChange={event=>setExpiry(event.target.value)}/></label>
           </div><p className="field-help">有效期留空表示不过期。</p>
           <fieldset className="key-model-picker"><legend>模型权限 <span className="badge badge-muted">已选 {chosen.size}</span></legend>
             <label className="key-model-search">搜索模型<input type="search" placeholder="按原始模型 ID 搜索" value={modelSearch} onChange={event=>setModelSearch(event.target.value)}/></label>
-            <div className="data-toolbar"><button type="button" className="secondary" onClick={()=>setSelected(new Set(baseline.models.filter(model=>model.status==="active").map(model=>model.id)))}>全选当前已开放模型</button><button type="button" className="secondary" onClick={()=>setSelected(new Set())}>清空选择</button></div>
+            <div className="data-toolbar"><button type="button" className="secondary" onClick={()=>setSelected(new Set([...chosen].filter(id=>modelScope!==undefined&&!modelScope.includes(id)).concat(selectableModels.filter(model=>model.status==="active").map(model=>model.id))))}>全选当前已开放模型</button><button type="button" className="secondary" onClick={()=>setSelected(new Set([...chosen].filter(id=>modelScope!==undefined&&!modelScope.includes(id))))}>清空选择</button></div>
             <div className="key-model-options">{visibleModels.map(model=><label className="check-row" key={model.id}><input type="checkbox" checked={chosen.has(model.id)} onChange={()=>{const next=new Set(chosen);if(next.has(model.id))next.delete(model.id);else next.add(model.id);setSelected(next);}}/><span className="mono">{model.model_name}</span>{model.status!=="active"?<span className="badge badge-muted">已关闭</span>:null}</label>)}</div>
             {visibleModels.length===0?<p role="status" className="field-help">{selectableModels.length===0?"尚无可选择的模型。":"没有匹配的模型，已选权限保持不变。"}</p>:null}
             <p className="field-help">以后新增的模型不会自动加入此密钥。</p>

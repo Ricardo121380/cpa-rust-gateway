@@ -14,6 +14,7 @@ beforeEach(()=>{
   if(operation==="listConfigVersions")return [active,draft] as never;
   if(operation==="listManagementAuditEvents")return events as never;
   if(operation==="validateConfigVersion")return {valid:true} as never;
+  if(operation==="getAccountRestorationReview")return {target_id:draft.id,target_revision:7,active_id:active.id,active_revision:2,deletion_event_id:0,accounts:[],review_token:"a".repeat(64)} as never;
   return {active_config_version_id:"draft",replaced_config_version_id:"active"} as never;
  });
 });
@@ -66,6 +67,7 @@ it("rollback follows durable lifecycle history rather than the first archived ro
   if(operation==="listConfigVersions")return [unrelated,active,prior] as never;
   if(operation==="listManagementAuditEvents")return events as never;
   if(operation==="validateConfigVersion")return {valid:true} as never;
+  if(operation==="getAccountRestorationReview")return {target_id:prior.id,target_revision:2,active_id:active.id,active_revision:2,deletion_event_id:0,accounts:[],review_token:"a".repeat(64)} as never;
   return {active_config_version_id:"prior",replaced_config_version_id:"active"} as never;
  });
  const prepared=await prepareConfigurationLifecycle(captureLifecycleOwner(active),"rollback");

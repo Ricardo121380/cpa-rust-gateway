@@ -7,6 +7,7 @@
 //! plaintext/ciphertext.
 
 mod configuration_edit;
+mod credential_deletion;
 mod credential_status;
 
 use std::{error::Error, fmt, sync::Arc};
@@ -1291,7 +1292,11 @@ impl ManagementMutationService {
                 id: credential_id,
                 kind: "oauth_json".to_owned(),
                 plaintext_secret: oauth_envelope,
-                status: CredentialStatus::Active,
+                status: if current.status == CredentialStatus::Disabled {
+                    CredentialStatus::Disabled
+                } else {
+                    CredentialStatus::Active
+                },
             },
             next_credential_revision,
         )?;
@@ -3280,6 +3285,8 @@ pub enum ManagementResourceError {
     InvalidRevision,
     /// A credential mutation had no plaintext Secret or an invalid record revision.
     InvalidCredentialInput,
+    /// Reauthorization could not prove the old and new material belong to the same account.
+    CredentialIdentityUnverified,
     /// A concurrent credential update advanced the record revision.
     CredentialRevisionConflict,
     /// A protected billing catalog request violated the bounded immutable input contract.
@@ -3317,6 +3324,9 @@ impl fmt::Display for ManagementResourceError {
             Self::InvalidCredentialInput => {
                 formatter.write_str("management credential input is invalid")
             }
+            Self::CredentialIdentityUnverified => {
+                formatter.write_str("management credential identity could not be verified")
+            }
             Self::CredentialRevisionConflict => {
                 formatter.write_str("management credential revision conflict")
             }
@@ -3344,6 +3354,7 @@ impl Error for ManagementResourceError {
             | Self::ResourceNotFound
             | Self::InvalidRevision
             | Self::InvalidCredentialInput
+            | Self::CredentialIdentityUnverified
             | Self::CredentialRevisionConflict
             | Self::InvalidBillingCatalogInput
             | Self::RoutingPriceCatalogNotEffective
@@ -3865,6 +3876,44 @@ mod tests {
                 .action(),
             "credential_oauth_rotated"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn oauth_renewal_preserves_disabled_intent_in_draft_and_active_versions() -> TestResult {
+        for active in [false, true] {
+            let (mut service, version, actor) = test_service()?;
+            let policy = create_egress_policy(&mut service, &actor, &version)?;
+            let upstream = create_upstream(&mut service, &actor, &version, policy.revision())?;
+            let endpoint = create_endpoint(&mut service, &actor, &version, upstream.revision())?;
+            let credential =
+                create_credential(&mut service, &actor, &version, endpoint.revision())?;
+            let disabled = service.set_credential_status(
+                &actor,
+                &version,
+                credential.revision(),
+                &credential.value().id,
+                credential.value().revision,
+                CredentialStatus::Disabled,
+            )?;
+            if active {
+                service.repository_mut().activate_version(&version)?;
+            }
+            let renewed=service.persist_oauth_credential_if_revision(&actor,&version,disabled.revision(),disabled.value().id.clone(),disabled.value().revision,br#"{"kind":"codex_oauth","access_token":"renewed","refresh_token":"refresh","expires_at_ms":4102444800000}"#)?;
+            assert_eq!(renewed.value().status, CredentialStatus::Disabled);
+            assert_eq!(renewed.value().revision, disabled.value().revision + 1);
+            assert!(matches!(
+                service.persist_oauth_credential_if_revision(
+                    &actor,
+                    &version,
+                    renewed.revision(),
+                    renewed.value().id.clone(),
+                    disabled.value().revision,
+                    b"stale"
+                ),
+                Err(ManagementResourceError::CredentialRevisionConflict)
+            ));
+        }
         Ok(())
     }
 

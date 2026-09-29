@@ -708,6 +708,8 @@ fn now_ms() -> Result<i64, GrokAccountWorkerError> {
 
 struct GrokBuildRefreshExecutor {
     client: reqwest::blocking::Client,
+    #[cfg(test)]
+    test_endpoints: Option<(String, String)>,
 }
 
 impl GrokBuildRefreshExecutor {
@@ -719,7 +721,11 @@ impl GrokBuildRefreshExecutor {
             .timeout(OAUTH_REQUEST_TIMEOUT)
             .build()
             .map_err(|_| GrokAccountWorkerError::InvalidRequest)?;
-        Ok(Self { client })
+        Ok(Self {
+            client,
+            #[cfg(test)]
+            test_endpoints: None,
+        })
     }
 }
 
@@ -741,6 +747,8 @@ impl GrokAccountWorkerExecutor for GrokBuildRefreshExecutor {
         let transport = GrokBuildRefreshTransport {
             client: self.client.clone(),
             reauth_required: Cell::new(false),
+            #[cfg(test)]
+            test_endpoints: self.test_endpoints.clone(),
         };
         match GrokBuildOAuthFlow::default().refresh(&transport, &current, observed_at_ms) {
             Ok(refreshed) => {
@@ -765,6 +773,8 @@ impl GrokAccountWorkerExecutor for GrokBuildRefreshExecutor {
 struct GrokBuildRefreshTransport {
     client: reqwest::blocking::Client,
     reauth_required: Cell<bool>,
+    #[cfg(test)]
+    test_endpoints: Option<(String, String)>,
 }
 
 impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
@@ -772,9 +782,18 @@ impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
         &self,
         access_token: &str,
     ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+        #[cfg(test)]
+        let endpoint = self
+            .test_endpoints
+            .as_ref()
+            .map_or(provider_grok::GROK_BUILD_USERINFO_URL, |(_, profile)| {
+                profile.as_str()
+            });
+        #[cfg(not(test))]
+        let endpoint = provider_grok::GROK_BUILD_USERINFO_URL;
         let response = self
             .client
-            .get(provider_grok::GROK_BUILD_USERINFO_URL)
+            .get(endpoint)
             .timeout(Duration::from_secs(10))
             .bearer_auth(access_token)
             .send()
@@ -794,6 +813,12 @@ impl GrokBuildOAuthTransport for GrokBuildRefreshTransport {
         &self,
         request: GrokBuildOAuthRequest,
     ) -> Result<GrokBuildOAuthHttpResponse, GrokBuildOAuthTransportError> {
+        #[cfg(test)]
+        let endpoint = self
+            .test_endpoints
+            .as_ref()
+            .map_or(request.endpoint().url(), |(token, _)| token.as_str());
+        #[cfg(not(test))]
         let endpoint = request.endpoint().url();
         let body = request.into_form_body();
         let mut response = self
@@ -1112,3 +1137,7 @@ mod tests {
         )?))
     }
 }
+
+#[cfg(test)]
+#[path = "credential_refresh/native_batch_a.rs"]
+mod native_batch_a;

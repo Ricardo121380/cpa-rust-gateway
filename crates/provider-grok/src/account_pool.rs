@@ -581,6 +581,8 @@ pub struct GrokAccountImportOutcome {
     pub created: usize,
     /// Existing exact accounts left unchanged.
     pub unchanged: usize,
+    /// Same-identity authorizations updated while retaining operator settings.
+    pub updated: usize,
 }
 
 /// Result of rolling back exactly one import batch.
@@ -717,22 +719,44 @@ impl GrokAccountPoolStore {
         relations: &[GrokAccountImportRelation],
         observed_at_ms: i64,
     ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
-        self.import_batch_inner(batch_id, entries, relations, observed_at_ms, false)
+        self.import_batch_inner(batch_id, entries, relations, observed_at_ms, false, None)
     }
 
-    /// Enrolls one management account; a repeated identical credential preserves operator settings.
+    /// Enrolls one management account; a reliable same-identity import preserves operator settings.
     /// # Errors
-    /// Rejects a conflicting credential for the same identity and the ordinary bounded import errors.
+    /// Rejects invalid imports and ordinary bounded storage errors. Different identities never merge.
     pub fn import_managed_account(
         &self,
         batch_id: &str,
         entry: &GrokAccountImport,
         now: i64,
     ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
-        self.import_batch_inner(batch_id, std::slice::from_ref(entry), &[], now, true)
+        self.import_managed_account_with_identity(batch_id, entry, None, now)
     }
 
-    #[allow(clippy::too_many_lines)]
+    /// Commits imported authorization and its source identity in the same transaction.
+    /// An unchanged import preserves an existing display observation, including a concurrent
+    /// newer observation. Changed authorization cannot inherit identity from other material.
+    /// # Errors
+    /// Rejects invalid imports, encryption failures and bounded storage errors atomically.
+    pub fn import_managed_account_with_identity(
+        &self,
+        batch_id: &str,
+        entry: &GrokAccountImport,
+        identity: Option<&gateway_store::account_identity::AccountIdentity>,
+        now: i64,
+    ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
+        self.import_batch_inner(
+            batch_id,
+            std::slice::from_ref(entry),
+            &[],
+            now,
+            true,
+            identity,
+        )
+    }
+
+    #[allow(clippy::too_many_lines, clippy::too_many_arguments)] // Import, receipt and optional identity share one transaction.
     fn import_batch_inner(
         &self,
         batch_id: &str,
@@ -740,6 +764,7 @@ impl GrokAccountPoolStore {
         relations: &[GrokAccountImportRelation],
         observed_at_ms: i64,
         preserve_existing_settings: bool,
+        observed_identity: Option<&gateway_store::account_identity::AccountIdentity>,
     ) -> Result<GrokAccountImportOutcome, GrokAccountPoolError> {
         if !valid_component(batch_id, MAX_OPAQUE_ID_BYTES)
             || entries.is_empty()
@@ -803,9 +828,10 @@ impl GrokAccountPoolStore {
 
         let mut created = 0_usize;
         let mut unchanged = 0_usize;
+        let mut updated = 0_usize;
         let mut account_ids = Vec::with_capacity(entries.len());
         for entry in entries {
-            let account_id = match self.import_one(
+            let (account_id, outcome) = match self.import_one(
                 &transaction,
                 batch_id,
                 entry,
@@ -814,13 +840,28 @@ impl GrokAccountPoolStore {
             )? {
                 ImportOneOutcome::Created(account_id) => {
                     created += 1;
-                    account_id
+                    (account_id, "created")
                 }
                 ImportOneOutcome::Unchanged(account_id) => {
                     unchanged += 1;
-                    account_id
+                    (account_id, "unchanged")
+                }
+                ImportOneOutcome::Updated(account_id) => {
+                    updated += 1;
+                    (account_id, "updated")
                 }
             };
+            transaction.execute("INSERT INTO native_account_import_receipts(batch_id,account_id,provider,credential_revision,outcome,saved_at_ms) SELECT ?1,id,provider,revision,?3,?4 FROM grok_accounts WHERE id=?2",params![batch_id,account_id,outcome,observed_at_ms])
+                .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+            if let Some(identity) = observed_identity.filter(|value| !value.is_empty()) {
+                identity::save_imported_identity(
+                    &transaction,
+                    &self.secret_store,
+                    &account_id,
+                    identity,
+                    observed_at_ms,
+                )?;
+            }
             if entry.auth_status == GrokAccountAuthStatus::ReauthRequired {
                 transaction
                     .execute(
@@ -852,18 +893,23 @@ impl GrokAccountPoolStore {
         transaction
             .execute(
                 "UPDATE grok_account_import_batches \
-                 SET created_count = ?2, unchanged_count = ?3 WHERE id = ?1",
+                 SET created_count = ?2, unchanged_count = ?3, updated_count = ?4 WHERE id = ?1",
                 params![
                     batch_id,
                     i64::try_from(created).map_err(|_| GrokAccountPoolError::InvalidRequest)?,
                     i64::try_from(unchanged).map_err(|_| GrokAccountPoolError::InvalidRequest)?,
+                    i64::try_from(updated).map_err(|_| GrokAccountPoolError::InvalidRequest)?,
                 ],
             )
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
         transaction
             .commit()
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
-        Ok(GrokAccountImportOutcome { created, unchanged })
+        Ok(GrokAccountImportOutcome {
+            created,
+            unchanged,
+            updated,
+        })
     }
 
     /// Rolls back only accounts created by the named batch and retains its audit row.
@@ -1311,11 +1357,47 @@ impl GrokAccountPoolStore {
                 && existing.refresh_due_at_ms == entry.refresh_due_at_ms
                 && existing.quota_sync_due_at_ms == entry.quota_sync_due_at_ms
                 && existing.cooldown_until_ms == entry.cooldown_until_ms;
-            return if credential_matches && (metadata_matches || preserve_existing_settings) {
-                Ok(ImportOneOutcome::Unchanged(existing.id))
-            } else {
-                Err(GrokAccountPoolError::ExistingAccountConflict)
-            };
+            if credential_matches && (metadata_matches || preserve_existing_settings) {
+                return Ok(ImportOneOutcome::Unchanged(existing.id));
+            }
+            if !preserve_existing_settings {
+                return Err(GrokAccountPoolError::ExistingAccountConflict);
+            }
+            let revision: i64 = transaction
+                .query_row(
+                    "SELECT revision FROM grok_accounts WHERE id=?1",
+                    [&existing.id],
+                    |row| row.get(0),
+                )
+                .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+            let next = revision
+                .checked_add(1)
+                .ok_or(GrokAccountPoolError::InvalidPersistedState)?;
+            let encrypted = self
+                .secret_store
+                .seal(
+                    &entry.credential.0,
+                    &credential_aad(entry.provider, &digest),
+                )
+                .map_err(|_| GrokAccountPoolError::SecretStoreFailure)?;
+            let changed = transaction.execute("UPDATE grok_accounts SET credential_ciphertext=?1,credential_key_version=?2,revision=?3,auth_status=CASE WHEN auth_status='disabled' THEN auth_status ELSE ?4 END,refresh_due_at_ms=?5,last_refresh_at_ms=?6,refresh_failure_count=0,updated_at_ms=?6,worker_claim_kind=NULL,worker_claim_id=NULL,worker_claim_expires_at_ms=NULL,continuation_floor_revision=NULL,continuation_current_revision=NULL WHERE id=?7 AND revision=?8",params![encrypted.ciphertext(),encrypted.key_version().as_sqlite_i64(),next,entry.auth_status.as_str(),entry.refresh_due_at_ms,observed_at_ms,existing.id,revision])
+                .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+            if changed != 1 {
+                return Err(GrokAccountPoolError::ExistingAccountConflict);
+            }
+            transaction
+                .execute(
+                    "DELETE FROM native_account_identity_observations WHERE account_id=?1",
+                    [&existing.id],
+                )
+                .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+            transaction
+                .execute(
+                    "DELETE FROM grok_account_reauth_state WHERE account_id=?1",
+                    [&existing.id],
+                )
+                .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+            return Ok(ImportOneOutcome::Updated(existing.id));
         }
 
         let associated_data = credential_aad(entry.provider, &digest);
@@ -1397,6 +1479,7 @@ fn runtime_auth_blocked(
 enum ImportOneOutcome {
     Created(String),
     Unchanged(String),
+    Updated(String),
 }
 
 struct ExistingAccount {

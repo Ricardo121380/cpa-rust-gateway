@@ -358,33 +358,26 @@ pub(super) async fn import(
                 quota_sync_due_at_ms: None,
                 cooldown_until_ms: None,
             };
-            let entries = [account];
-            let outcome = native
-                .store
-                .import_managed_account(&input.id, &entries[0], now)?;
-            let observed = if let (Some(identity), Some(id)) = (
-                identity,
+            let outcome = native.store.import_managed_account_with_identity(
+                &input.id,
+                &account,
+                identity.as_ref(),
+                now,
+            )?;
+            let imported = native.store.single_import_account(&input.id)?;
+            let observed = !native.store.observed_identity(&imported, now)?.is_empty();
+            Ok::<_, GrokAccountPoolError>((
+                outcome,
                 native
-                    .store
-                    .account_for_identity(provider, &entries[0].identity)?,
-            ) {
-                let snapshot = native.store.identity_snapshot(&id)?;
-                // Identity can race another update; imported material remains valid even if the
-                // display observation loses its own CAS. Never overwrite that newer observation.
-                native
-                    .store
-                    .save_observed_identity(&snapshot, &identity, now)
-                    .is_ok()
-            } else {
-                false
-            };
-            Ok::<_, GrokAccountPoolError>((outcome, native.apply_runtime(None), observed))
+                    .apply_runtime((outcome.updated > 0 && observed).then_some(imported.as_str())),
+                observed,
+            ))
         })())
     })
     .await;
     match result {
         Ok(Ok((value, applied, observed))) => HttpResponse::Created().insert_header(("Cache-Control","no-store"))
-            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged,"identity_state":if observed {"observed"} else {"unavailable"},"runtime_applied":applied})),
+            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged,"updated":value.updated,"identity_state":if observed {"observed"} else {"unavailable"},"runtime_applied":applied})),
         Ok(Err(GrokAccountPoolError::ExistingAccountConflict | GrokAccountPoolError::BatchAlreadyExists)) => conflict(),
         Ok(Err(GrokAccountPoolError::InvalidCredential | GrokAccountPoolError::InvalidRequest)) => invalid_input(),
         _ => unavailable(),
@@ -427,23 +420,56 @@ async fn import_build(
             quota_sync_due_at_ms: None,
             cooldown_until_ms: None,
         };
-        Ok(native
-            .store
-            .import_managed_account(&input.id, &account, now))
+        Ok((|| {
+            let value = native
+                .store
+                .import_managed_account(&input.id, &account, now)?;
+            let id = native.store.single_import_account(&input.id)?;
+            Ok::<_, GrokAccountPoolError>((value, id))
+        })())
     })
     .await;
     match result {
-        Ok(Ok(value)) => {
-            let runtime_applied =
-                read_operations(&state, move || Ok(runtime_native.apply_runtime(None)))
-                    .await
-                    .unwrap_or(false);
+        Ok(Ok((value, id))) => {
+            let runtime_applied = read_operations(&state, move || {
+                Ok(runtime_native.apply_runtime((value.updated > 0).then_some(id.as_str())))
+            })
+            .await
+            .unwrap_or(false);
             HttpResponse::Created()
             .insert_header(("Cache-Control", "no-store"))
-            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged,"runtime_applied":runtime_applied}))
+            .json(serde_json::json!({"created":value.created,"unchanged":value.unchanged,"updated":value.updated,"runtime_applied":runtime_applied}))
         }
         Ok(Err(GrokAccountPoolError::InvalidCredential)) => invalid_input(),
         Ok(Err(GrokAccountPoolError::ExistingAccountConflict)) => conflict(),
+        _ => unavailable(),
+    }
+}
+
+pub(super) async fn import_receipt(
+    request: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<ManagementResourceHttpState>,
+) -> HttpResponse {
+    if let Err(response) = principal(&request) {
+        return response;
+    }
+    let Some(native) = state.native_accounts.clone() else {
+        return unavailable();
+    };
+    let batch = path.into_inner();
+    match read_operations(&state, move || {
+        Ok(native.store.managed_import_receipt(&batch))
+    })
+    .await
+    {
+        Ok(Ok(value)) => HttpResponse::Ok()
+            .insert_header(("Cache-Control", "no-store"))
+            .json(value),
+        Ok(Err(GrokAccountPoolError::NotFound)) => {
+            failure(StatusCode::NOT_FOUND, "management_native_import_not_found")
+        }
+        Ok(Err(GrokAccountPoolError::InvalidRequest)) => invalid_input(),
         _ => unavailable(),
     }
 }

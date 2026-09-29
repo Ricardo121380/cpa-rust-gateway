@@ -48,6 +48,7 @@ export const en: Pack = {
     egress: "Egress policy",
     runtime: "Runtime",
     accounts: "Accounts",
+    oauth: "OAuth authorization",
     catalog: "Model catalog",
     audit: "Audit & backup",
     settings: "Settings",

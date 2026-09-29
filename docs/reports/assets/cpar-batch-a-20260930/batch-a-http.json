@@ -1,0 +1,68 @@
+{
+  "result": "PASS",
+  "environment": "real-gateway-loopback-tls-synthetic",
+  "model_default_closed": true,
+  "catalog_success_empty_failure_retention_and_unsupported": true,
+  "directory_reads_are_not_inference": true,
+  "public_model_view_follows_explicit_grant": true,
+  "sibling_key_and_prior_model_preserved": true,
+  "stream_natural_completion": true,
+  "new_request_uses_enabled_sibling": true,
+  "retired_retry_sends_no_fallback": true,
+  "key_required_before_send": true,
+  "explicit_pin_sends_once": true,
+  "local_release_sends_zero_inference": true,
+  "release_preserves_disabled_auth_quota_and_permission_blocks": true,
+  "release_audit_distinguishes_completion": true,
+  "calls": [
+    {
+      "account": "a",
+      "scenario": "held-stream",
+      "stream": true
+    },
+    {
+      "account": "b",
+      "scenario": "short",
+      "stream": false
+    },
+    {
+      "account": "b",
+      "scenario": "short",
+      "stream": false
+    },
+    {
+      "account": "b",
+      "scenario": "short",
+      "stream": false
+    },
+    {
+      "account": "a",
+      "scenario": "held-failure",
+      "stream": false
+    },
+    {
+      "account": "b",
+      "scenario": "quota-block",
+      "stream": false
+    },
+    {
+      "account": "a",
+      "scenario": "auth-block",
+      "stream": false
+    }
+  ],
+  "catalog_calls": [
+    {
+      "scenario": "success"
+    },
+    {
+      "scenario": "success"
+    },
+    {
+      "scenario": "empty"
+    },
+    {
+      "scenario": "failure"
+    }
+  ]
+}

@@ -3500,3 +3500,11 @@ No production configuration/account write or inference was performed.
 Fallback `f283494` retains latest state; reassess compatibility after new user
 configuration changes. Actual animation FPS and full production onboarding
 remain unverified; see the release report for exact scope.
+
+## 2026-09-30 - Codex - CPAR A account and model workflows
+
+**What:** `web/prism` account import/batch/authorization/recovery/model-call and status components; API provider creation and API/account/OAuth navigation; configuration review/restoration lifecycle; model mapping guard, catalog source/time/empty/partial-loading display, Key permission isolation and runtime release confirmations; corresponding fixtures/unit tests, vendored management contract and generated client. Authoritative backend contract, schema 0032 and runtime retirement/refresh accompany this delivery. Exact file scope is the task commit and [A report](reports/cpar-batch-a-20260930.md).
+
+**Why:** Implement spec #9 A / CPAR-01–17 (#10–26), including honest saved/application states, uncertain readback without replay, exact permissions and safe account retirement.
+
+**Other side:** FYI under the user's explicit answer **“授权 Codex 完成本次 A 的前后端”**. Codex owns this batch's frontend and backend implementation; no separate Claude Code write is required. Local unit/high-level HTTP and EgoLite synthetic acceptance are distinguished from real Provider and production. No remote push or production release. The task commit carries `Cross-Boundary: web/prism - authorized CPAR A frontend and contract implementation`.

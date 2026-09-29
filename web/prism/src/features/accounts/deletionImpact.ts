@@ -1,0 +1,6 @@
+export type DeletionImpact=Readonly<{config_version:string;revision:string;credential_id:string;upstream_id:string;credential_revision:number;review_token:string;removed_bindings:readonly Readonly<{endpoint_id:string;enabled:boolean}>[];removed_egress_profiles:number;retained_endpoints:readonly Readonly<{id:string;enabled:boolean;remaining_credentials:readonly string[]}>[];retained_routes:readonly string[];retained_client_keys:readonly string[];history_retained:boolean;upstream_account_revoked:boolean}>;
+/** Earlier removals from the same captured batch may remove selected siblings only. */
+export function sameDeletionImpact(a:DeletionImpact,b:DeletionImpact,selected:readonly string[]):boolean{
+  const content=(impact:DeletionImpact)=>({credential_id:impact.credential_id,upstream_id:impact.upstream_id,credential_revision:impact.credential_revision,removed_bindings:impact.removed_bindings,removed_egress_profiles:impact.removed_egress_profiles,retained_endpoints:impact.retained_endpoints.map(endpoint=>({...endpoint,remaining_credentials:endpoint.remaining_credentials.filter(id=>!selected.includes(id))})),retained_routes:impact.retained_routes,retained_client_keys:impact.retained_client_keys,history_retained:impact.history_retained,upstream_account_revoked:impact.upstream_account_revoked});
+  return JSON.stringify(content(a))===JSON.stringify(content(b));
+}

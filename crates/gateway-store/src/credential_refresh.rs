@@ -209,6 +209,24 @@ mod tests {
     const B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
     #[test]
+    fn disabling_during_a_claim_fences_both_late_outcomes() -> TestResult {
+        let (mut store, version, credential, secret) = fixture()?;
+        let claim = store
+            .claim(&version, &credential, 1, A, 1000, 60000)?
+            .ok_or("claim")?;
+        store.connection.execute("UPDATE upstream_credentials SET status='disabled',revision=revision+1 WHERE config_version_id=?1 AND id=?2",params![version.as_str(),credential.as_str()])?;
+        assert!(!store.succeed(&claim, &secret, 1001)?);
+        assert!(!store.fail(&claim, RefreshFailure::ReauthRequired, 1002)?);
+        let row: (String, i64) = store.connection.query_row(
+            "SELECT status,revision FROM upstream_credentials",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        assert_eq!(row, ("disabled".to_owned(), 2));
+        Ok(())
+    }
+
+    #[test]
     fn claim_lease_fences_late_success_and_late_failure() -> TestResult {
         let (mut s, v, c, secret) = fixture()?;
         let first = s.claim(&v, &c, 1, A, 1_000, 60_000)?.ok_or("claim")?;

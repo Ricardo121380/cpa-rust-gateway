@@ -320,6 +320,47 @@ impl ManagementService {
             .rollback_with_audit(&mut self.repository, &audit_draft)?)
     }
 
+    /// Reads the exact account identities a historical activation would restore.
+    /// # Errors
+    /// Returns a storage failure without any lifecycle change.
+    pub fn account_restoration_review(
+        &mut self,
+        id: &ConfigVersionId,
+    ) -> Result<gateway_store::control_plane::AccountRestorationReview, ManagementServiceError>
+    {
+        Ok(self.repository.account_restoration_review(id)?)
+    }
+
+    /// Publishes with explicit reviewed restoration identities.
+    /// # Errors
+    /// Returns publication failures without a partial activation.
+    pub fn publish_configuration_with_account_review(
+        &mut self,
+        id: &ConfigVersionId,
+        review: Option<&str>,
+    ) -> Result<SnapshotPublication, ManagementServiceError> {
+        let audit = self.audit_draft(ManagementAuditAction::Published)?;
+        Ok(self.publisher.publish_version_with_account_review(
+            &mut self.repository,
+            id,
+            &audit,
+            review,
+        )?)
+    }
+
+    /// Restores the retained predecessor with explicit reviewed account identities.
+    /// # Errors
+    /// Returns rollback failures without a partial activation.
+    pub fn rollback_configuration_with_account_review(
+        &mut self,
+        review: Option<&str>,
+    ) -> Result<SnapshotPublication, ManagementServiceError> {
+        let audit = self.audit_draft(ManagementAuditAction::RolledBack)?;
+        Ok(self
+            .publisher
+            .rollback_with_account_review(&mut self.repository, &audit, review)?)
+    }
+
     /// Lists durable, non-secret management audit events in append order.
     ///
     /// # Errors

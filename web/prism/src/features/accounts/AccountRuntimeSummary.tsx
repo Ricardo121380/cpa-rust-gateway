@@ -1,3 +1,6 @@
+import { StatusBadge } from "../../components/StatusBadge";
+import {primaryAccountStatus} from "./accountStatus";
+import {useAccountCallEvidence} from "./callEvidence";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { call } from "../../api/client";
@@ -28,4 +31,12 @@ export function AccountRuntimeSummary({snapshot,ids,providerId,nativeKind,quota}
     <small>{quota??"额度余额未观测"}</small>
     {snapshot.data&&!snapshot.isError&&rows.length?<small>快照 {new Date(snapshot.data.observedAt!).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})} · {rows.length} 个连接</small>:null}
   </div>;
+}
+
+export function AccountMainStatus({snapshot,id,credentialRevision,providerId,nativeKind,enabled,auth,connections,acceptingRequests,draft}:Readonly<{snapshot:ReturnType<typeof useAccountRuntimeSummary>;id:string;credentialRevision:number;providerId?:string;nativeKind?:string;enabled:boolean;auth:string;connections?:number;acceptingRequests?:boolean|null;draft?:boolean}>){
+ const evidence=useAccountCallEvidence(id,nativeKind?({grok_build_oauth:"grok_build",grok_console_sso:"grok_console",grok_web_sso:"grok_web"}[nativeKind]):undefined,credentialRevision);
+ const rows=snapshot.data?.rows.filter(row=>row.account_id===id&&(providerId?row.provider_id===providerId:true)&&(nativeKind?row.account_kind===nativeKind:!row.account_kind.startsWith("grok_")))??[];
+ const authProblem=rows.find(row=>["reauth_required","expired"].includes(row.auth_status));
+ const main=primaryAccountStatus({enabled,auth:authProblem?.auth_status??auth,connections,runtime:rows.map(row=>row.runtime_status),readFailed:snapshot.isError,acceptingRequests,draft,...(evidence.current.data===true&&!evidence.current.isFetching&&!evidence.current.isError&&evidence.receipt?.outcome==="succeeded"?{successfulCall:{model:evidence.receipt.requested_model,protocol:evidence.receipt.protocol}}:{})});
+ return <><StatusBadge status={main.status}>{main.label}</StatusBadge>{evidence.receipt?<small>{new Date(evidence.receipt.observed_at_ms).toLocaleString()} · {evidence.current.data===true&&!evidence.current.isFetching&&!evidence.current.isError?"精确调用观察":"旧调用观察，当前待核对"}</small>:null}</>;
 }

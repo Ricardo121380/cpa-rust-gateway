@@ -16,7 +16,9 @@ it("keeps the active page while editing a private revision, then validates and a
     if(operation==="listConfigVersions")return ++lists===1?[active]:[active,{...draft,revision:"rev-1"}];
     if(operation==="forkConfigVersion")return draft;
     if(operation==="listManagementAuditEvents")return [{id:12,action:"config_published"}];
+    if(operation==="compareConfigVersions")return {base:{id:"online",revision:"rev-7"},target:{id:"working",revision:"rev-1"},items:[],next_cursor:null};
     if(operation==="validateConfigVersion")return {valid:true};
+    if(operation==="getAccountRestorationReview")return {target_id:draft.id,target_revision:1,active_id:active.id,active_revision:7,deletion_event_id:0,accounts:[],review_token:"a".repeat(64)};
     if(operation==="publishConfigVersion")return {active_config_version_id:draft.id};
     if(operation==="getConfigVersion")return {...draft,status:"active",revision:"rev-1"};
     return {};
@@ -33,11 +35,11 @@ it("keeps the active page while editing a private revision, then validates and a
 
 it("does not silently publish other changes in an explicitly selected draft",async()=>{
   useVersionStore.getState().select(draft);
-  vi.mocked(call).mockResolvedValue([active,draft]);
+  vi.mocked(call).mockImplementation(async operation=>operation==="compareConfigVersions"?{base:{id:"online",revision:"rev-7"},target:{id:"working",revision:"rev-0"},items:[],next_cursor:null}:[active,draft]);
   const task=await beginConfigurationTask("Add account");
   expect(task.autoApply).toBe(false);
   expect((await task.finish()).status).toBe("draft");
-  expect(call).toHaveBeenCalledTimes(1);
+  expect(call).not.toHaveBeenCalledWith("publishConfigVersion",expect.anything());
 });
 
 it("rejects a newer selected draft before adopting it for a frozen catalog action",async()=>{
@@ -105,4 +107,47 @@ it("Kimi terminal device states may retain the revision but credential persisten
  await expect(task.mutate("pollKimiEnrollment")).resolves.toEqual({state:"expired"});
  vi.mocked(callRevisioned).mockResolvedValue({value:{state:"completed",credential_id:"kimi-account"},revision:"rev-0"});
  await expect(task.mutate("pollKimiEnrollment")).rejects.toThrow("未推进");
+});
+
+it("requires a separate explicit restoration confirmation before publishing a reviewed draft",async()=>{
+  useVersionStore.getState().select(draft);
+  const restoration={target_id:draft.id,target_revision:0,active_id:active.id,active_revision:7,deletion_event_id:23,accounts:[{credential_id:"restored-account",upstream_id:"provider",credential_revision:4}],review_token:"b".repeat(64)};
+  vi.mocked(call).mockImplementation(async operation=>{
+    if(operation==="listConfigVersions")return [active,draft];
+    if(operation==="compareConfigVersions")return {base:{id:active.id,revision:active.revision},target:{id:draft.id,revision:draft.revision},items:[],next_cursor:null};
+    if(operation==="listManagementAuditEvents")return [{id:12,action:"config_published"}];
+    if(operation==="getAccountRestorationReview")return restoration;
+    if(operation==="validateConfigVersion")return {valid:true};
+    if(operation==="publishConfigVersion")return {active_config_version_id:draft.id};
+    return draft;
+  });
+  const task=await beginConfigurationTask("Review historical account");
+  const review=await task.preview();
+  await expect(task.apply(review)).rejects.toThrow("明确确认");
+  expect(call).not.toHaveBeenCalledWith("publishConfigVersion",expect.anything());
+  await expect(task.apply(review,true)).resolves.toMatchObject({id:draft.id,status:"active"});
+  expect(call).toHaveBeenCalledWith("publishConfigVersion",expect.objectContaining({headers:expect.objectContaining({"X-Account-Restoration-Review":restoration.review_token,"If-Match":draft.revision})}));
+});
+
+it("only adopts the exact freshly reviewed revision before continuing a saved account",async()=>{
+  let current={...draft};
+  vi.mocked(call).mockImplementation(async operation=>{
+    if(operation==="listConfigVersions")return [active,current];
+    if(operation==="forkConfigVersion")return draft;
+    if(operation==="getConfigVersion")return current;
+    if(operation==="compareConfigVersions")return {base:{id:active.id,revision:active.revision},target:{id:current.id,revision:current.revision},items:[],next_cursor:null};
+    if(operation==="getAccountRestorationReview")return {target_id:current.id,target_revision:Number(current.revision.slice(4)),active_id:active.id,active_revision:7,deletion_event_id:0,accounts:[],review_token:"c".repeat(64)};
+    return [];
+  });
+  const task=await beginConfigurationTask("Continue an uncertain write");
+  current={...draft,revision:"rev-1"};
+  const review=await task.preview();
+  expect(task.revision()).toBe("rev-0");
+  current={...draft,revision:"rev-2"};
+  await expect(task.acceptReviewedDraft(review)).rejects.toThrow("已变化");
+  expect(task.revision()).toBe("rev-0");
+  await task.acceptReviewedDraft(await task.preview());
+  expect(task.revision()).toBe("rev-2");
+  expect(callRevisioned).not.toHaveBeenCalled();
+  expect(call).not.toHaveBeenCalledWith("publishConfigVersion",expect.anything());
 });

@@ -160,6 +160,8 @@ impl ProviderAccountOperatorAction {
 /// Safe state returned after one operator action.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProviderAccountOperatorState {
+    /// The exact local block was synchronously released; no Provider call was made or verified.
+    Released,
     /// The action placed an exact Health key into cooldown.
     Cooling,
     /// A controlled account or quota probe now owns the exact target.
@@ -175,6 +177,7 @@ impl ProviderAccountOperatorState {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Released => "released",
             Self::Cooling => "cooling",
             Self::ProbeScheduled => "probe_scheduled",
             Self::RecoveryRequired => "recovery_required",

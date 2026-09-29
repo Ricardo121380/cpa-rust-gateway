@@ -1,3 +1,4 @@
+import { readAccountRestorationReview, restorationHeaders, type AccountRestorationReview } from "./accountRestoration";
 import { CancelledError, isCancelledError } from "@tanstack/react-query";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -14,7 +15,7 @@ export type LifecycleEvent = Readonly<{id:number|string;action:string;config_ver
 export type ReviewProof = Readonly<{targetRevision:string;baseId:string|null;baseRevision?:string}>;
 export type PreparedLifecycle = Readonly<{
   owner:LifecycleOwner;mode:LifecycleMode;target:ConfigVersionSummary;
-  activeId:string|null;eventId:string;validationOnly:boolean;
+  activeId:string|null;eventId:string;validationOnly:boolean;restoration?:AccountRestorationReview;
 }>;
 export type LifecycleReceipt = Readonly<{
   kind:"acknowledged"|"unconfirmed"|"rejected";
@@ -79,18 +80,20 @@ export async function prepareConfigurationLifecycle(owner:LifecycleOwner,mode:Li
   exactSource(await read<ConfigVersionSummary>(owner,"getConfigVersion",{path:{config_version_id:source.id}}),source);
   if(target.id!==source.id)exactSource(await read<ConfigVersionSummary>(owner,"getConfigVersion",{path:{config_version_id:target.id}}),target);
   if(!validation.valid)throw new Error(`配置校验未通过：${validation.error_codes?.join("、")||"请查看诊断"}`);
-  return {owner,mode,target,activeId:active?.id??null,eventId,validationOnly};
+  const restoration=validationOnly?undefined:await readAccountRestorationReview(target,active?.id??null);
+  assertLifecycleOwner(owner);
+  return {owner,mode,target,activeId:active?.id??null,eventId,validationOnly,restoration};
 }
 
 /** One deliberate write with captured CAS. No retries or recovery POSTs. */
-export async function commitConfigurationLifecycle(prepared:PreparedLifecycle):Promise<LifecycleReceipt> {
+export async function commitConfigurationLifecycle(prepared:PreparedLifecycle,restorationConfirmed=false):Promise<LifecycleReceipt> {
   const {owner,mode}=prepared;assertLifecycleOwner(owner);
   if(prepared.validationOnly)throw new Error("只读校验不能直接用于应用，请重新查看变更。");
   if(useVersionStore.getState().context?.revision!==owner.source.revision)throw new Error("校验后配置已变化，请重新查看变更。");
   try{
     const publication=await call<NonNullable<LifecycleReceipt["publication"]>>(mode==="publish"?"publishConfigVersion":"rollbackConfigVersion",{
       ...(mode==="publish"?{path:{config_version_id:owner.source.id}}:{}),
-      headers:{"If-Match":owner.source.revision,"X-Expected-Active-Version":JSON.stringify(prepared.activeId),"X-Expected-Lifecycle-Event":prepared.eventId},
+      headers:{"If-Match":owner.source.revision,"X-Expected-Active-Version":JSON.stringify(prepared.activeId),"X-Expected-Lifecycle-Event":prepared.eventId,...restorationHeaders(prepared.restoration,restorationConfirmed)},
     });
     assertLifecycleOwner(owner);
     if(publication.active_config_version_id!==prepared.target.id|| (publication.replaced_config_version_id??null)!==prepared.activeId)throw new Error("应用响应与已确认目标不一致。");

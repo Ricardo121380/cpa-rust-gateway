@@ -1,0 +1,2 @@
+DROP TABLE native_account_import_receipts;
+ALTER TABLE grok_account_import_batches DROP COLUMN updated_count;

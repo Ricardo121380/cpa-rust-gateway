@@ -3,11 +3,13 @@ import {useRef,useState,type FormEvent} from "react";
 import {Sheet,SheetDismissButton} from "../../components/Sheet";
 import {asAppError} from "../../api/errors";
 import {beginConfigurationTask} from "../config-versions/configurationTask";
+import {AuthorizationRecovery,continueAuthorizationAfterReview} from "./AuthorizationRecovery";
+import {ConfigurationTaskReview} from "../config-versions/ConfigurationTaskReview";
 import {ConfigurationTaskNotice} from "../config-versions/ConfigurationTaskNotice";
 import {useVersionStore,type ConfigVersionSummary} from "../config-versions/versionStore";
 import {parseOAuthCallback,safeExternalUrl} from "../upstreams/model";
 
-type Session={credential_id:string;state:string;authorization_url?:string|null;expires_at_ms?:number|null};
+type Session={credential_id:string;state:string;session_id?:string;authorization_url?:string|null;expires_at_ms?:number|null};
 type Target=Readonly<{upstream_id:string;endpoint_id:string}>;
 type Enrollment={task:Awaited<ReturnType<typeof beginConfigurationTask>>;id:string;providerId:string;endpointId:string};
 
@@ -31,6 +33,8 @@ export function AuthorizationCodeDialog({providerId,providerName,endpointId,onCl
   const [workingId,setWorkingId]=useState<string>();
   const [completed,setCompleted]=useState<ConfigVersionSummary>();
   const [completionError,setCompletionError]=useState<unknown>();
+  const [unresolved,setUnresolved]=useState(false);const [confirmedId,setConfirmedId]=useState<string>();const [continuable,setContinuable]=useState(false);const [reviewBusy,setReviewBusy]=useState(false);
+  const [connected,setConnected]=useState(false);
   const start=useMutation({mutationFn:async()=>{
     const task=await beginConfigurationTask(`授权 ${label} 账号`);
     const id=credentialId??`${channel}-${crypto.randomUUID()}`;
@@ -43,42 +47,52 @@ export function AuthorizationCodeDialog({providerId,providerName,endpointId,onCl
     const parsed=parseOAuthCallback(callback);if(!parsed.ok)throw new Error(parsed.reason);
     const {task,id}=enrollment;task.assertOwner();
     const account=await task.mutate<{id:string}>(operations.complete,{path:{upstream_id:enrollment.providerId},body:{id,replace_existing:!!credentialId,callback:parsed.input}});
-    setCallback("");
+    setCallback("");setConfirmedId(account.id);
     try {
       if(enrollment.endpointId){
         const bindings=await task.read<{credential_id:string}[]>("listEndpointCredentialBindings",{path:{endpoint_id:enrollment.endpointId}});
         if(!bindings.some(row=>row.credential_id===account.id))await task.mutate("createEndpointCredentialBinding",{path:{endpoint_id:enrollment.endpointId},body:{credential_id:account.id,enabled:true,priority:0,weight:1,concurrency:1}});
       }
+      setConnected(true);
       return await task.finish();
     } catch (error) {
       // Completion consumed the callback and persisted the credential. An
       // application/binding failure is recoverable configuration work, never
       // a reason to resubmit the callback or cancel the consumed enrollment.
       setCompletionError(error);
+      setContinuable(true);
       return undefined;
     }
-  },onSuccess:(version)=>{if(version!==undefined)setCompleted(version);}});
+  },onSuccess:(version)=>{if(version!==undefined)setCompleted(version);},onError:()=>{setCallback("");setUnresolved(true);}});
+  const resume=useMutation({mutationFn:async()=>{
+    const entry=current.current;if(!entry||!confirmedId||!continuable)throw new Error("请重新核对授权与配置版本。");
+    const version=await entry.task.read<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:entry.task.version.id}});
+    if(version.status!=="draft"||version.revision!==entry.task.revision())throw new Error("工作配置已变化，请核对完整清单；不会重放授权回调。");
+    if(entry.endpointId){const bindings=await entry.task.read<{credential_id:string}[]>("listEndpointCredentialBindings",{path:{endpoint_id:entry.endpointId}});if(!bindings.some(row=>row.credential_id===confirmedId))await entry.task.mutate("createEndpointCredentialBinding",{path:{endpoint_id:entry.endpointId},body:{credential_id:confirmedId,enabled:true,priority:0,weight:1,concurrency:1}});}
+    setConnected(true);
+    return entry.task.finish();
+  },onSuccess:version=>{setCompleted(version);setCompletionError(undefined);setContinuable(false);},onError:setCompletionError});
   const cancel=useMutation({mutationFn:async()=>{
     const enrollment=current.current;
     if(enrollment)await enrollment.task.read(operations.cancel,{path:{upstream_id:enrollment.providerId},body:{id:enrollment.id,replace_existing:!!credentialId},headers:{"If-Match":enrollment.task.revision()}});
   }});
-  const busy=start.isPending||complete.isPending||cancel.isPending;
+  const busy=start.isPending||complete.isPending||cancel.isPending||resume.isPending||reviewBusy;
   const dismissAuthorization=async()=>{
     // The callback is transient material. Clear it before cancellation so a
     // failed close never leaves it behind a secondary error state.
     setCallback("");
-    if(completed||completionError!==undefined)return true;
+    if(completed||completionError!==undefined||unresolved||complete.isError)return true;
     if(session?.state!=="pending")return true;
     try {await cancel.mutateAsync();return true;} catch {return false;}
   };
-  const close=()=>{setCallback("");if(completed){useVersionStore.getState().select(completed);onComplete(`${label} 账号授权已保存。`);}else if(completionError!==undefined)onComplete(`${label} 账号授权已保存，配置尚未应用，请核对待应用的修改。`);else onClose();};
+  const close=()=>{setCallback("");if(completed){useVersionStore.getState().select(completed);onComplete(`${label} 账号授权已保存。`);}else if(completionError!==undefined)onComplete(`${label} 账号授权已保存，配置尚未应用，请核对待应用的修改。`);else if(unresolved)onComplete("授权结果待确认；请保留会话与草稿信息核对，勿重复授权。");else onClose();};
   const authorizeUrl=safeExternalUrl(session?.authorization_url);
   const submitCallback=(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();const parsed=parseOAuthCallback(callback);if(!parsed.ok){setInputError(parsed.reason);return;}complete.mutate();};
   const footer=completed||completionError!==undefined?<SheetDismissButton disabled={busy}>完成</SheetDismissButton>:!session?<><SheetDismissButton className="secondary" disabled={busy}>取消</SheetDismissButton><button type="button" className="primary" disabled={busy||start.isError} onClick={()=>start.mutate()}>开始授权</button></>:session.state==="pending"&&authorizeUrl&&!complete.isError?<><SheetDismissButton className="secondary" disabled={busy}>取消授权</SheetDismissButton><button type="submit" className="primary" form={formId} disabled={busy||!callback.trim()}>完成授权</button></>:<SheetDismissButton disabled={busy}>关闭</SheetDismissButton>;
-  return <Sheet title={`${credentialId?"重新授权":"授权"} ${label} 账号`} description={credentialId?"为当前账号更新授权，不会新建连接或改变已配置的接口。":"在官方页面完成登录后，粘贴浏览器带回的完整回调地址。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={session?.state==="pending"&&completed===undefined&&completionError===undefined} footer={footer}>
+  return <Sheet title={`${credentialId?"重新授权":"授权"} ${label} 账号`} description={credentialId?"为当前账号更新授权，不会新建连接或改变已配置的接口。":"在官方页面完成登录后，粘贴浏览器带回的完整回调地址。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={session?.state==="pending"&&completed===undefined&&completionError===undefined&&!unresolved} footer={footer}>
     <div className="operation-summary"><span>{providerLabel}</span><strong>连接 {label} 账号</strong><small>官方登录 → 回调确认 → 保存结果</small></div>
     {providerName&&providerName!==label?<p className="muted">{providerName}</p>:null}
-    {completed||completionError!==undefined?<p role="status">{completionError===undefined?`账号授权已保存${current.current?.endpointId?"并连接接口":""}。`:"账号授权已保存；接口连接或配置尚未应用。"}</p>:!session?<>
+    {completed||completionError!==undefined?<p role="status">{completionError===undefined?`账号授权已保存${connected&&current.current?.endpointId?"并连接接口":""}。`:"账号授权已保存；接口连接或配置尚未应用。"}</p>:!session?<>
       <p>登录 {providerLabel} 账号后，将浏览器跳转的完整回调地址粘贴回来。</p>
     </>:session.state==="pending"&&authorizeUrl?<>
       <p><a href={authorizeUrl} target="_blank" rel="noreferrer noopener">打开 {providerLabel} 授权页</a></p>
@@ -86,6 +100,16 @@ export function AuthorizationCodeDialog({providerId,providerName,endpointId,onCl
       <p className="muted">授权后，本机回调页可能打不开；复制地址栏中的完整地址即可。</p>
       {inputError?<p id={callbackErrorId} role="alert">{inputError}</p>:null}
     </>:<p role="alert">未能启动授权，请关闭后重新开始。</p>}
+    {unresolved&&session?.session_id&&current.current?<AuthorizationRecovery task={current.current.task} sessionId={session.session_id} onReceipt={(receipt,canContinue)=>{
+      if(receipt.state==="completed"){setConfirmedId(receipt.credential_id);setContinuable(canContinue);setUnresolved(false);setCompletionError(new Error("授权已保存，连接与应用尚待核对。"));}
+      else if(["failed","denied","expired","cancelled"].includes(receipt.state)){setSession({...session,state:receipt.state});setUnresolved(false);}
+    }}/>:null}
+    {continuable&&confirmedId?<button className="primary" disabled={busy} onClick={()=>resume.mutate()}>继续连接与应用</button>:null}
+    {confirmedId&&current.current&&completed?.status!=="active"?<ConfigurationTaskReview task={current.current.task} onBusyChange={setReviewBusy} onReviewed={!connected?async review=>{
+      const entry=current.current!;
+      const version=await continueAuthorizationAfterReview(entry.task,review,{upstream_id:entry.providerId,endpoint_id:entry.endpointId},confirmedId);
+      setConnected(true);return version;
+    }:undefined} onApplied={version=>{if(version.status==="active"){setCompleted(version);setCompletionError(undefined);setContinuable(false);}else setCompletionError(new Error("接口连接已核对，配置尚未应用；请核对更新后的完整清单。"));}}/>:null}
     <ConfigurationTaskNotice workingId={workingId} error={completionError??start.error??complete.error} onReview={version=>{useVersionStore.getState().select(version);onComplete("请核对已保存的账号修改。");}}/>
     {cancel.isError?<p role="alert">{asAppError(cancel.error).message}</p>:null}
   </Sheet>;

@@ -2,10 +2,10 @@
 use super::{
     Arc, AtomicBool, ClientKeyService, ConfigRevision, ConfigVersionId, ControlPlaneConfiguration,
     GatewayEventSink, GrokBuildCacheIdentityDeriver, ManagementChannelPinFacade,
-    ManagementChannelPinRequest, ManagementRuntimeError, ManagementRuntimeFacade, Mutex,
-    NoActiveConfigurationExecutor, Ordering, P12AttemptStageStore, P12ChannelPinFacade,
-    P12RoutedResponsesExecutor, ProviderAccountPoolComposition, ProviderAccountPoolFacade,
-    ProviderEgressStatusFacade, RejectingManagementChannelPinFacade,
+    ManagementChannelPinRequest, ManagementRuntimeError, ManagementRuntimeFacade,
+    ModelCatalogTarget, Mutex, NoActiveConfigurationExecutor, Ordering, P12AttemptStageStore,
+    P12ChannelPinFacade, P12RoutedResponsesExecutor, ProviderAccountPoolComposition,
+    ProviderAccountPoolFacade, ProviderEgressStatusFacade, RejectingManagementChannelPinFacade,
     RejectingProviderAccountPoolFacade, RejectingProviderEgressStatusFacade, RequestId,
     ResponsesHttpState, RouteSnapshotRegistry, RoutingPriceSnapshot, RuntimeCompositionError,
     RuntimeCompositionStage, RuntimeCredentialRefreshWorker, RuntimeHealthRegistry,
@@ -131,7 +131,7 @@ impl RuntimeFactory {
                     routing_price_snapshot = Some(Arc::new(compiled));
                 }
                 let (
-                    executor,
+                    mut executor,
                     provider_account_pools,
                     route_explain_scheduler,
                     provider_egress_status,
@@ -154,6 +154,7 @@ impl RuntimeFactory {
                     routing_price_snapshot.as_ref(),
                     &self.concurrency,
                 )?;
+                executor.generation_active = Some(Arc::clone(&active));
                 let executor = Arc::new(executor);
                 let channel_pin: Box<dyn ManagementChannelPinFacade> =
                     Box::new(P12ChannelPinFacade::new(Arc::clone(&executor)));
@@ -202,6 +203,43 @@ impl RuntimeFactory {
                 Some((Arc::clone(&self.publication_gate), Arc::clone(&active)));
             worker
         });
+        let catalog_targets = configuration
+            .into_iter()
+            .flat_map(|configuration| {
+                configuration
+                    .endpoint_credential_bindings
+                    .iter()
+                    .filter_map(|binding| {
+                        let endpoint = configuration
+                            .endpoints
+                            .iter()
+                            .find(|endpoint| endpoint.id == binding.endpoint_id)?;
+                        let supported = model_catalog_worker.as_ref().is_some_and(|worker| {
+                            worker
+                                .targets
+                                .iter()
+                                .any(|target| target.endpoint_id == endpoint.id)
+                        }) || endpoint.adapter_id == "kiro.messages"
+                            || endpoint.adapter_id == "grok.build.responses"
+                            || (matches!(
+                                endpoint.adapter_id.as_str(),
+                                "openai-compatible.responses"
+                                    | "openai-compatible.chat-completions"
+                                    | "anthropic-compatible.messages"
+                            ) && (endpoint.models_path.is_some()
+                                || endpoint
+                                    .base_url
+                                    .starts_with("https://chatgpt.com/backend-api/codex")));
+                        Some((
+                            ModelCatalogTarget::new(
+                                binding.endpoint_id.clone(),
+                                binding.credential_id.clone(),
+                            ),
+                            supported,
+                        ))
+                    })
+            })
+            .collect();
         Ok(BuiltGeneration {
             generation: Arc::new(Generation {
                 catalog: model_catalog_worker.clone().map(Arc::new),
@@ -216,6 +254,7 @@ impl RuntimeFactory {
                     routing_price_snapshot,
                     event_store,
                     catalog_store,
+                    catalog_targets,
                 })),
                 pools: provider_account_pools,
                 egress: provider_egress_status,
@@ -532,6 +571,14 @@ impl ProviderAccountPoolFacade for RuntimePublicationController {
         action: &pools::ProviderAccountOperatorAction,
         now: i64,
     ) -> Result<pools::ProviderAccountOperatorReceipt, pools::ProviderAccountPoolError> {
+        let _guard = self
+            .factory
+            .publication_gate
+            .try_lock()
+            .map_err(|_| pools::ProviderAccountPoolError::ActionTargetUnavailable)?;
+        if !self.available.load(Ordering::Acquire) {
+            return Err(pools::ProviderAccountPoolError::ActionTargetUnavailable);
+        }
         self.current.load().pools.apply_operator_action(action, now)
     }
 }
@@ -601,6 +648,14 @@ impl ManagementRuntimeFacade for RuntimePublicationController {
         target: &management::ManagementRuntimeTarget,
         now: i64,
     ) -> Result<management::ManagementQuotaRecoveryState, ManagementRuntimeError> {
+        let _guard = self
+            .factory
+            .publication_gate
+            .try_lock()
+            .map_err(|_| ManagementRuntimeError::Unavailable)?;
+        if !self.available.load(Ordering::Acquire) {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
         self.current
             .load()
             .runtime

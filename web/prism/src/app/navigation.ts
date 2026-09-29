@@ -24,6 +24,7 @@ const ALL_NAV_GROUPS: ReadonlyArray<{
   {
     label: "resources",
     items: [
+      {to:"/oauth",key:"oauth",icon:"M12 3a5 5 0 0 1 5 5v3h3v10H4V11h3V8a5 5 0 0 1 5-5z M7 11h10"},
       {
         to: "/accounts",
         key: "accounts",

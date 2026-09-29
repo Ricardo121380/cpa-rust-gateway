@@ -497,6 +497,8 @@ fn p13_channel_pin_request_id() -> Result<RequestId, ManagementChannelPinError> 
 }
 
 mod account_quota;
+#[cfg(test)]
+mod batch_a_native;
 mod catalog_refresh;
 mod kimi_metadata;
 /// Production pieces that must be attached to the separate P12 listeners together.
@@ -1071,6 +1073,7 @@ impl GatewayEventSink for P12FanoutEventSink {
 }
 
 struct P12RoutedResponsesExecutor {
+    generation_active: Option<Arc<AtomicBool>>,
     reasoning_codec: provider_grok::GrokBuildReasoningCodec,
     registry: Arc<RouteSnapshotRegistry>,
     snapshot_version: SnapshotVersion,
@@ -1326,6 +1329,7 @@ impl P12RoutedResponsesExecutor {
 
         Ok((
             Self {
+                generation_active: None,
                 reasoning_codec: provider_grok::GrokBuildReasoningCodec::new(secret_store.clone()),
                 registry,
                 snapshot_version: snapshot.version().clone(),
@@ -1352,7 +1356,10 @@ impl P12RoutedResponsesExecutor {
     }
 
     fn snapshot_is_current(&self) -> bool {
-        self.registry.load().version() == &self.snapshot_version
+        self.generation_active
+            .as_ref()
+            .is_none_or(|active| active.load(Ordering::Acquire))
+            && self.registry.load().version() == &self.snapshot_version
     }
 
     /// Executes one exact management Channel Pin against the same pools, scheduler, endpoint
@@ -1372,7 +1379,10 @@ impl P12RoutedResponsesExecutor {
         }
         let observed_at_ms =
             system_now_ms_runtime().map_err(|_| ManagementChannelPinError::Unavailable)?;
-        let observation = Arc::new(P13ChannelPinObservation::default());
+        let observation = Arc::new(P13ChannelPinObservation {
+            expected_credential_revision: request.credential_revision(),
+            ..P13ChannelPinObservation::default()
+        });
         let route = self
             .scheduler
             .route(request.route_id())
@@ -1386,6 +1396,24 @@ impl P12RoutedResponsesExecutor {
         };
         if snapshot.route(public_model.route_id()).is_none() {
             return Err(ManagementChannelPinError::InvalidTarget);
+        }
+        if let Some(key) = request.client_key_id() {
+            let group = snapshot
+                .access_group_for_client_key_at(key, observed_at_ms)
+                .ok_or(ManagementChannelPinError::InvalidTarget)?;
+            let model = snapshot
+                .resolve_public_model_for_access_group(group.id(), request.requested_model())
+                .filter(|model| model.route_id() == request.route_id())
+                .ok_or(ManagementChannelPinError::InvalidTarget)?;
+            if !snapshot.route(model.route_id()).is_some_and(|route| {
+                route.candidates().iter().any(|candidate| {
+                    candidate.endpoint_id() == request.channel_id()
+                        && candidate.is_hard_eligible_at(observed_at_ms)
+                        && candidate.allows_credential(request.credential_id())
+                })
+            }) {
+                return Err(ManagementChannelPinError::InvalidTarget);
+            }
         }
         let mut candidates = route.candidates().iter().filter(|candidate| {
             candidate.endpoint_id() == request.channel_id()
@@ -1479,8 +1507,9 @@ impl P12RoutedResponsesExecutor {
         };
         let endpoints = Arc::clone(&self.endpoints);
         let driver = EndpointAttemptDriver {
+            generation_active: self.generation_active.clone(),
             request_id: request_id.clone(),
-            client_key_id: None,
+            client_key_id: request.client_key_id().cloned(),
             request: canonical,
             client_protocol,
             native_payload: None,
@@ -1507,15 +1536,18 @@ impl P12RoutedResponsesExecutor {
                 request.route_id().clone(),
             )),
         };
-        let started = self
-            .orchestrator
-            .start_pinned_once_with_event_sink(
+        let total_deadline = Instant::now() + P13_CHANNEL_PIN_TOTAL_TIMEOUT;
+        let started = actix_web::rt::time::timeout(
+            P13_CHANNEL_PIN_TOTAL_TIMEOUT,
+            self.orchestrator.start_pinned_once_with_event_sink(
                 &request_id,
                 request.route_id(),
                 request.provider_id(),
                 request.channel_id(),
                 request.credential_id(),
-                |candidate| driver.project_candidate(candidate).is_ok(),
+                |candidate| {
+                    self.snapshot_is_current() && driver.project_candidate(candidate).is_ok()
+                },
                 &driver,
                 &P13ChannelPinRetryGate,
                 // A Channel Pin's durable terminal state is written by the management handler
@@ -1523,8 +1555,36 @@ impl P12RoutedResponsesExecutor {
                 // orchestrator returns before the source is consumed, so that event would claim
                 // success before a later SSE/JSON decoder failure could be observed.
                 &NoopGatewayEventSink,
-            )
-            .await;
+            ),
+        )
+        .await;
+        let Ok(started) = started else {
+            let sent = observation.upstream_sent()
+                || self
+                    .attempt_stages
+                    .recorded_stage(&request_id)
+                    .is_some_and(|stage| {
+                        matches!(
+                            stage,
+                            ManagementRequestAttemptStage::HttpTransport
+                                | ManagementRequestAttemptStage::HttpStatus
+                                | ManagementRequestAttemptStage::ContentType
+                                | ManagementRequestAttemptStage::BodyRead
+                                | ManagementRequestAttemptStage::Decoder
+                                | ManagementRequestAttemptStage::SseBootstrap
+                        )
+                    });
+            return self.channel_pin_receipt(
+                &request,
+                request_id,
+                ManagementChannelPinOutcome::Failed,
+                u8::from(observation.attempted()),
+                sent,
+                false,
+                observed_at_ms,
+                Some(ManagementRequestAttemptStage::HttpTransport),
+            );
+        };
         // Channel Pin deliberately suppresses the serving Attempt event until after the source
         // is drained, so use the request-local stage projection rather than the public attempt
         // listing view (which requires a terminal Attempt pairing).
@@ -1548,7 +1608,7 @@ impl P12RoutedResponsesExecutor {
                 let (mut source, _selection) = started.into_parts();
                 let mut event_count = 0_usize;
                 let mut response_started = false;
-                let drain_deadline = Instant::now() + P13_CHANNEL_PIN_TOTAL_TIMEOUT;
+                let drain_deadline = total_deadline;
                 let mut event_state = CanonicalEventState::default();
                 let lifecycle_complete = loop {
                     let remaining = drain_deadline.saturating_duration_since(Instant::now());
@@ -1698,6 +1758,14 @@ impl P12RoutedResponsesExecutor {
             observed_at_ms,
             stage,
         )
+        .map(|receipt| {
+            receipt.with_runtime_build(format!(
+                "{}:{}:{}",
+                env!("GATEWAY_RELEASE_REVISION"),
+                env!("GATEWAY_RELEASE_RUST_VERSION"),
+                env!("GATEWAY_RELEASE_TARGET")
+            ))
+        })
     }
 }
 
@@ -1737,6 +1805,9 @@ fn channel_pin_single_transport_adapter(adapter: &EndpointAdapter) -> bool {
         EndpointAdapter::OpenAiChatCompletions(_)
             | EndpointAdapter::OpenAiResponses(_)
             | EndpointAdapter::AnthropicMessages(_)
+            | EndpointAdapter::GrokOfficialResponses
+            | EndpointAdapter::GrokBuildResponses
+            | EndpointAdapter::KiroMessages(_)
     )
 }
 
@@ -1843,13 +1914,18 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let mut continuation_pin = execution.continuation_pin().cloned();
         let registry = Arc::clone(&self.registry);
         let snapshot_version = self.snapshot_version.clone();
+        let generation_active = self.generation_active.clone();
 
         Box::pin(async move {
             // A management publication may replace the active Config Version while this request
             // is waiting for its first executor poll. Recheck at the request-start boundary before
             // selector/lease work. A publication after this check follows the existing pinned
             // in-flight Snapshot semantics rather than trying to revoke the request atomically.
-            if registry.load().version() != &snapshot_version {
+            if generation_active
+                .as_ref()
+                .is_some_and(|active| !active.load(Ordering::Acquire))
+                || registry.load().version() != &snapshot_version
+            {
                 return Err(stale_runtime_error());
             }
             let route_id = route_id.ok_or_else(route_not_found_error)?;
@@ -1870,6 +1946,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             }
             let exact_continuation = continuation_pin.is_some();
             let driver = EndpointAttemptDriver {
+                generation_active: self.generation_active.clone(),
                 reasoning_binding: Some((
                     self.reasoning_codec.clone(),
                     snapshot_version.clone(),
@@ -1902,6 +1979,12 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // filter would simply have chosen a different Candidate before the first byte.
             let admission_snapshot = route_snapshot.clone().unwrap_or_else(|| registry.load());
             let is_candidate_eligible = |candidate: &SnapshotRouteCandidate| {
+                if generation_active
+                    .as_ref()
+                    .is_some_and(|active| !active.load(Ordering::Acquire))
+                {
+                    return false;
+                }
                 if exact_upstream_model
                     .as_deref()
                     .is_some_and(|model| candidate.upstream_model() != model)
@@ -4212,6 +4295,7 @@ struct CompatibleEgressSelection {
 }
 
 struct EndpointAttemptDriver {
+    generation_active: Option<Arc<AtomicBool>>,
     reasoning_binding: Option<(
         provider_grok::GrokBuildReasoningCodec,
         SnapshotVersion,
@@ -4240,6 +4324,7 @@ struct EndpointAttemptDriver {
 /// from a driver invocation when the shared stage ledger is contended or unavailable.
 #[derive(Default)]
 struct P13ChannelPinObservation {
+    expected_credential_revision: Option<i64>,
     attempted: AtomicBool,
     upstream_sent: AtomicBool,
 }
@@ -4414,7 +4499,22 @@ impl AttemptDriver for EndpointAttemptDriver {
         _bootstrap_timeout: Duration,
     ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>> {
         Box::pin(async move {
+            if self
+                .generation_active
+                .as_ref()
+                .is_some_and(|active| !active.load(Ordering::Acquire))
+            {
+                return Err(AttemptFailure::NonRetryable(stale_runtime_error()));
+            }
             if let Some(observation) = &self.channel_pin_observation {
+                if observation
+                    .expected_credential_revision
+                    .is_some_and(|revision| {
+                        u64::try_from(revision).ok() != Some(credential.credential_revision())
+                    })
+                {
+                    return Err(AttemptFailure::NonRetryable(stale_runtime_error()));
+                }
                 observation.mark_attempted();
             }
             self.attempt_stages.record_stage(
@@ -5039,6 +5139,13 @@ impl EndpointAttemptDriver {
             &self.request_id,
             ManagementRequestAttemptStage::EgressAdmission,
         );
+        if self
+            .generation_active
+            .as_ref()
+            .is_some_and(|active| !active.load(Ordering::Acquire))
+        {
+            return Err(AttemptFailure::NonRetryable(stale_runtime_error()));
+        }
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
@@ -5236,6 +5343,15 @@ impl EndpointAttemptDriver {
         detect_codex_rejected_field: bool,
         compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<UpstreamHttpResponse, P12SendFailure> {
+        if self
+            .generation_active
+            .as_ref()
+            .is_some_and(|active| !active.load(Ordering::Acquire))
+        {
+            return Err(P12SendFailure::Attempt(AttemptFailure::NonRetryable(
+                stale_runtime_error(),
+            )));
+        }
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
@@ -7368,6 +7484,7 @@ struct SnapshotManagementRuntimeFacade {
     routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>>,
     event_store: SqliteEventStore,
     catalog_store: SqliteCatalogSnapshotStore,
+    catalog_targets: Vec<(ModelCatalogTarget, bool)>,
 }
 
 impl SnapshotManagementRuntimeFacade {
@@ -7409,7 +7526,7 @@ impl SnapshotManagementRuntimeFacade {
         self.runtime_health
             .complete_account_recovery(ticket, RuntimeHealthAccountRecoveryResult::Allowed)
             .map_err(|_| ManagementRuntimeError::Unavailable)?;
-        Ok(ManagementQuotaRecoveryState::ProbeScheduled)
+        Ok(ManagementQuotaRecoveryState::Released)
     }
 
     /// Completes one due controlled quota recovery as an explicit operator override.
@@ -7480,7 +7597,7 @@ impl SnapshotManagementRuntimeFacade {
         self.runtime_quota
             .complete_recovery_probe(ticket, snapshot)
             .map_err(|_| ManagementRuntimeError::Unavailable)?;
-        Ok(ManagementQuotaRecoveryState::ProbeScheduled)
+        Ok(ManagementQuotaRecoveryState::Released)
     }
 }
 
@@ -7650,7 +7767,11 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                 .with_discovery_details(
                     status.snapshot().version(),
                     status.is_refresh_due(),
-                    status.eligible_models().count(),
+                    status
+                        .models()
+                        .iter()
+                        .filter(|model| model.is_present_in_last_success())
+                        .count(),
                     failure,
                 ))
             })
@@ -7668,13 +7789,31 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                     failure.target().endpoint_id().clone(),
                     failure.target().credential_id().clone(),
                     ManagementCatalogFreshness::Missing,
-                    failure.failed_at_ms(),
+                    0,
                 )
                 .with_last_failure(
                     failure.failed_at_ms(),
                     management_catalog_failure_class(failure.class()),
                 ),
             );
+        }
+        for (target, supported) in &self.catalog_targets {
+            if let Some(status) = statuses.iter_mut().find(|status| {
+                status.endpoint_id() == target.endpoint_id()
+                    && status.credential_id() == target.credential_id()
+            }) {
+                *status = status.clone().with_discovery_support(*supported);
+            } else {
+                statuses.push(
+                    ManagementCatalogStatus::new(
+                        target.endpoint_id().clone(),
+                        target.credential_id().clone(),
+                        ManagementCatalogFreshness::Missing,
+                        0,
+                    )
+                    .with_discovery_support(*supported),
+                );
+            }
         }
         statuses.sort_by(|left, right| {
             (left.endpoint_id(), left.credential_id())
@@ -7787,10 +7926,7 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
             .map_err(|_| ManagementRuntimeError::Unavailable)?;
         match account_status {
             RuntimeCredentialAccountStatus::Unauthorized => {
-                if target.upstream_model().is_some() {
-                    return Ok(ManagementQuotaRecoveryState::Rejected);
-                }
-                self.recover_forbidden_account(target, observed_at_ms)
+                Ok(ManagementQuotaRecoveryState::Rejected)
             }
             RuntimeCredentialAccountStatus::Forbidden => {
                 // An account block covers the whole binding, so only a binding-scoped request may
@@ -7798,6 +7934,14 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                 // let a request addressing one model lift an account-level block it never named.
                 if target.upstream_model().is_some() {
                     return Ok(ManagementQuotaRecoveryState::Rejected);
+                }
+                let quota = self.recover_quota_target(target, observed_at_ms)?;
+                if matches!(
+                    quota,
+                    ManagementQuotaRecoveryState::RecoveryRequired
+                        | ManagementQuotaRecoveryState::ProbeScheduled
+                ) {
+                    return Ok(quota);
                 }
                 self.recover_forbidden_account(target, observed_at_ms)
             }
@@ -8351,14 +8495,14 @@ mod tests {
     }
 
     #[test]
-    fn channel_pin_rejects_native_adapters_before_the_transport_boundary()
+    fn channel_pin_admits_one_send_adapters_and_rejects_auxiliary_browser_work()
     -> Result<(), Box<dyn Error>> {
         let generic = EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
             "https://gateway.example.test/v1",
             "/responses",
         )?);
         assert!(channel_pin_single_transport_adapter(&generic));
-        assert!(!channel_pin_single_transport_adapter(
+        assert!(channel_pin_single_transport_adapter(
             &EndpointAdapter::GrokBuildResponses
         ));
         assert!(!channel_pin_single_transport_adapter(
@@ -8367,7 +8511,7 @@ mod tests {
         assert!(!channel_pin_single_transport_adapter(
             &EndpointAdapter::GrokWebResponses
         ));
-        assert!(!channel_pin_single_transport_adapter(
+        assert!(channel_pin_single_transport_adapter(
             &EndpointAdapter::GrokOfficialResponses
         ));
         Ok(())
@@ -9538,6 +9682,7 @@ mod tests {
             r#"{"model":"gateway-model","input":"fail over safely","stream":false}"#,
         )?;
         let driver = EndpointAttemptDriver {
+            generation_active: None,
             reasoning_binding: None,
             request_id: request_id.clone(),
             client_key_id: None,
@@ -9876,6 +10021,7 @@ mod tests {
             "../../../tests/fixtures/openai-responses/request-canonical.json"
         ))?;
         let driver = EndpointAttemptDriver {
+            generation_active: None,
             reasoning_binding: None,
             request_id: request_id.clone(),
             client_key_id: None,
@@ -9924,6 +10070,7 @@ mod tests {
             active_binding_count: 1,
         });
         let websocket_driver = EndpointAttemptDriver {
+            generation_active: None,
             client_transport: ResponsesClientTransport::WebSocket,
             ..driver
         };
@@ -10300,7 +10447,7 @@ mod tests {
         Ok(())
     }
 
-    struct TemporaryDirectory(PathBuf);
+    pub(super) struct TemporaryDirectory(PathBuf);
 
     struct StaticPublicResolver;
 
@@ -10633,7 +10780,7 @@ mod tests {
     static TEMPORARY_DIRECTORY_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
     impl TemporaryDirectory {
-        fn new() -> Result<Self, Box<dyn Error>> {
+        pub(super) fn new() -> Result<Self, Box<dyn Error>> {
             let suffix = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
             let sequence = TEMPORARY_DIRECTORY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
             let path = std::env::temp_dir().join(format!(
@@ -10648,7 +10795,7 @@ mod tests {
             self.0.join(name)
         }
 
-        fn path(&self) -> &Path {
+        pub(super) fn path(&self) -> &Path {
             &self.0
         }
     }
@@ -11326,6 +11473,7 @@ mod tests {
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open(&database)?,
             catalog_store: SqliteCatalogSnapshotStore::open(&database)?,
+            catalog_targets: Vec::new(),
         };
         let attempts = facade
             .list_request_attempts(&request_id)
@@ -11455,6 +11603,7 @@ mod tests {
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open(&database)?,
             catalog_store: SqliteCatalogSnapshotStore::open(&database)?,
+            catalog_targets: Vec::new(),
         };
         let attempts = facade
             .list_request_attempts(&request_id)
@@ -13202,6 +13351,7 @@ mod tests {
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
             catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
+            catalog_targets: Vec::new(),
         };
         let request = ManagementRouteExplainRequest::try_new(
             version,
@@ -13331,6 +13481,7 @@ mod tests {
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
             catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
+            catalog_targets: Vec::new(),
         };
         let unscoped = ManagementRouteExplainRequest::try_new(
             version.clone(),
@@ -13409,6 +13560,7 @@ mod tests {
             routing_price_snapshot: None,
             event_store: SqliteEventStore::open_in_memory()?,
             catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
+            catalog_targets: Vec::new(),
         };
         Ok((facade, clock, runtime_health, runtime_quota, version))
     }
@@ -13653,10 +13805,34 @@ mod tests {
             Some(ManagementCatalogFailureClass::RateLimit)
         );
         assert_eq!(statuses[1].freshness(), ManagementCatalogFreshness::Missing);
+        assert_eq!(
+            statuses[1].observed_at_ms(),
+            0,
+            "a failed attempt must not become a last-success observation"
+        );
         assert_eq!(statuses[1].snapshot_version(), None);
         assert_eq!(
             statuses[1].last_failure_class(),
             Some(ManagementCatalogFailureClass::Authentication)
+        );
+        // A successful empty response stays empty even while prior models are retained for
+        // the three-success/24-hour removal isolation rule.
+        facade
+            .catalog_store
+            .record_success(version.as_str(), &successful, [], 4_000)?;
+        let empty = facade
+            .catalog_status(&version, 4_001)
+            .map_err(|_| "empty status unavailable")?;
+        assert_eq!(empty[0].model_count(), Some(0));
+        assert_eq!(empty[0].observed_at_ms(), 4_000);
+        assert_eq!(
+            facade
+                .catalog_store
+                .status_at(version.as_str(), &successful, 4_001)?
+                .ok_or("missing retained snapshot")?
+                .eligible_models()
+                .count(),
+            1
         );
         Ok(())
     }
@@ -13721,7 +13897,7 @@ mod tests {
             facade
                 .request_quota_recovery(&version, &target, 1_500)
                 .map_err(|error| format!("{error:?}"))?,
-            ManagementQuotaRecoveryState::ProbeScheduled
+            ManagementQuotaRecoveryState::Released
         );
         assert!(quota.endpoint_credential_is_available(&endpoint, &credential));
         Ok(())
@@ -13743,7 +13919,7 @@ mod tests {
             facade
                 .request_quota_recovery(&version, &target, 1_000)
                 .map_err(|error| format!("{error:?}"))?,
-            ManagementQuotaRecoveryState::ProbeScheduled
+            ManagementQuotaRecoveryState::Released
         );
         assert_eq!(
             health.credential_account_status_at(&endpoint, &credential, 1_000)?,
@@ -13912,6 +14088,10 @@ mod tests {
                 test::call_service(&held, request()).await.status(),
                 StatusCode::OK
             );
+            let retired = test::call_service(&held, test::TestRequest::post().uri("/v1/responses").insert_header(("authorization",format!("Bearer {}",presented.as_str()))).set_json(serde_json::json!({"model":"p12-test-model","input":"synthetic","stream":false})).to_request()).await;
+            // Captured read projections stay readable, while new dispatch through a
+            // retired execution generation is rejected before any Provider attempt.
+            assert_eq!(retired.status(),StatusCode::SERVICE_UNAVAILABLE);
             let invalid_id = invalid.version.id;
             let (mut lifecycle, rejected) = web::block(move || {
                 let result = lifecycle.publish_configuration(&invalid_id);
@@ -14163,7 +14343,7 @@ mod tests {
         p12_configuration_for(secret_store, "p12-runtime-config")
     }
 
-    fn p12_configuration_for(
+    pub(super) fn p12_configuration_for(
         secret_store: &SecretStore,
         id: &str,
     ) -> Result<ControlPlaneConfiguration, Box<dyn Error>> {
@@ -14294,7 +14474,7 @@ mod tests {
         Ok(())
     }
 
-    fn test_secret_store() -> Result<SecretStore, Box<dyn Error>> {
+    pub(super) fn test_secret_store() -> Result<SecretStore, Box<dyn Error>> {
         let version = KeyVersion::try_new(1)?;
         Ok(SecretStore::new(MasterKeyRing::try_new(
             version,

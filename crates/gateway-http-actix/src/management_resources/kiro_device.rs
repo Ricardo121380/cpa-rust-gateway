@@ -299,6 +299,7 @@ async fn handle(
                     let expires=response["expiresIn"].as_i64().filter(|v|(1..=3600).contains(v)).ok_or(())?;
                     let interval=response["interval"].as_i64().unwrap_or(5).clamp(5,60)*1000;
                     let mut random=[0_u8;32];getrandom::fill(&mut random).map_err(|_|())?;let session_id=URL_SAFE_NO_PAD.encode(random);
+                    worker.authorization_receipts.lock().map_err(|_| ())?.begin(session_id.clone(),None,"kiro",&actor,&context,&owner,&id,clock+expires*1000).map_err(|_| ())?;
                     workflow.sessions.insert(session_id.clone(),Session{scope,client_id,client_secret,device_code,region,expires:clock+expires*1000,next_poll:clock+interval,interval});
                     Ok(serde_json::json!({"state":"pending","session_id":session_id,"user_code":user_code.as_str(),"verification_uri":uri.as_str(),"expires_at_ms":clock+expires*1000,"interval_ms":interval}))
                 })();wipe(&mut response);Ok(parsed.map(Outcome::State))
@@ -306,7 +307,7 @@ async fn handle(
             Action::Cancel=>{
                 let Some(session)=input.session_id else{return Ok(Err(()));};
                 if workflow.sessions.get(&session).is_none_or(|s|s.scope!=scope){return Ok(Err(()));}
-                workflow.sessions.remove(&session);Ok(Ok(Outcome::State(serde_json::json!({"state":"cancelled"}))))
+                workflow.sessions.remove(&session);authorization_receipts::update(&worker,&session,"cancelled",None);Ok(Ok(Outcome::State(serde_json::json!({"state":"cancelled"}))))
             },
             Action::Poll=>{
                 let Some(session_id)=input.session_id else{return Ok(Err(()));};
@@ -315,24 +316,25 @@ async fn handle(
                 if clock<session.next_poll{return Ok(Ok(Outcome::State(serde_json::json!({"state":"pending","interval_ms":session.next_poll-clock}))));}
                 session.next_poll=clock+session.interval;
                 let mut payload=serde_json::json!({"clientId":session.client_id.as_str(),"clientSecret":session.client_secret.as_str(),"deviceCode":session.device_code.as_str(),"grantType":"urn:ietf:params:oauth:grant-type:device_code"});
+                authorization_receipts::update(&worker,&session_id,"in_progress",None);
                 let response=(workflow.transport)(&format!("https://oidc.{}.amazonaws.com/token",session.region),&payload);wipe(&mut payload);
-                let Ok(mut response)=response else {workflow.sessions.remove(&session_id);return Err(ManagementOperationsError::SourceUnavailable);};
+                let Ok(mut response)=response else {workflow.sessions.remove(&session_id);authorization_receipts::update(&worker,&session_id,"unknown",None);return Err(ManagementOperationsError::SourceUnavailable);};
                 let error=response["error"].as_str().or_else(||response["__type"].as_str()).unwrap_or("");
                 if matches!(error,"authorization_pending"|"AuthorizationPendingException"|"slow_down"|"SlowDownException"){
                     if matches!(error,"slow_down"|"SlowDownException"){session.interval=(session.interval+5000).min(60000);session.next_poll=clock+session.interval;}
-                    let interval=session.interval;wipe(&mut response);return Ok(Ok(Outcome::State(serde_json::json!({"state":"pending","interval_ms":interval}))));
+                    let interval=session.interval;wipe(&mut response);authorization_receipts::update(&worker,&session_id,"pending",None);return Ok(Ok(Outcome::State(serde_json::json!({"state":"pending","interval_ms":interval}))));
                 }
                 if matches!(error,"access_denied"|"AccessDeniedException") {
                     wipe(&mut response);workflow.sessions.remove(&session_id);
-                    return Ok(Ok(Outcome::State(serde_json::json!({"state":"denied"}))));
+                    authorization_receipts::update(&worker,&session_id,"denied",None);return Ok(Ok(Outcome::State(serde_json::json!({"state":"denied"}))));
                 }
                 if matches!(error,"expired_token"|"ExpiredTokenException") {
                     wipe(&mut response);workflow.sessions.remove(&session_id);
-                    return Ok(Ok(Outcome::State(serde_json::json!({"state":"expired"}))));
+                    authorization_receipts::update(&worker,&session_id,"expired",None);return Ok(Ok(Outcome::State(serde_json::json!({"state":"expired"}))));
                 }
                 if !error.is_empty() {
                     wipe(&mut response);workflow.sessions.remove(&session_id);
-                    return Ok(Ok(Outcome::State(serde_json::json!({"state":"failed"}))));
+                    authorization_receipts::update(&worker,&session_id,"failed",None);return Ok(Ok(Outcome::State(serde_json::json!({"state":"failed"}))));
                 }
                 let material:Result<Zeroizing<Vec<u8>>,()>=(||{
                     let access=token(&response,"accessToken")?;let refresh=token(&response,"refreshToken")?;
@@ -341,10 +343,14 @@ async fn handle(
                     let bytes=Zeroizing::new(serde_json::to_vec(&envelope).map_err(|_|())?);wipe(&mut envelope);
                     provider_kiro::credential::KiroCredential::import_runtime_secret(&bytes,clock).map_err(|_|())?;Ok(bytes)
                 })();wipe(&mut response);workflow.sessions.remove(&session_id);
-                let Ok(material)=material else{return Ok(Ok(Outcome::State(serde_json::json!({"state":"failed"}))));};
+                let Ok(material)=material else{authorization_receipts::update(&worker,&session_id,"failed",None);return Ok(Ok(Outcome::State(serde_json::json!({"state":"failed"}))));};
                 let mut service=worker.service.lock().map_err(|_|ManagementOperationsError::SourceUnavailable)?;
                 let status=if previous.as_ref().is_some_and(|v|v.status==CredentialStatus::Disabled){CredentialStatus::Disabled}else{CredentialStatus::Active};
                 let result=super::codex_enrollment::persist(&mut service,&actor,&context,owner,CredentialUpsert{id,kind:"bearer".into(),plaintext_secret:&material,status},previous);
+                match &result {
+                    Ok((value,_))=>authorization_receipts::update(&worker,&session_id,"completed",Some((&value.value().id,value.revision()))),
+                    Err(_)=>authorization_receipts::update(&worker,&session_id,"failed",None),
+                }
                 Ok(Ok(Outcome::Saved(result)))
             }
         }

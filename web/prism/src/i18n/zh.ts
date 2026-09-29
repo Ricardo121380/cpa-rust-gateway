@@ -43,6 +43,7 @@ export const zh = {
     egress: "出口策略",
     runtime: "运行诊断",
     accounts: "账号管理",
+    oauth: "OAuth 授权",
     catalog: "模型目录",
     audit: "审计与备份",
     settings: "设置",
