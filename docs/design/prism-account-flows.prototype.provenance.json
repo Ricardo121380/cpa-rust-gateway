@@ -45,7 +45,7 @@
     "new_models": "not_open_until_explicit_grant",
     "resolution_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/4#issuecomment-5886103785"
   },
-  "user_feedback": "PENDING_REVISION_3_WALKTHROUGH",
+  "user_feedback": "ACCEPTED_PRIMARY_OPERATION_MODEL",
   "browser_acceptance": "PASS_LOCAL_SYNTHETIC_CHANGED_FLOWS",
   "real_provider": "NOT_RUN",
   "production": "NOT_RUN",
@@ -110,7 +110,7 @@
       "height": 959,
       "tableDisplay": "table"
     },
-    "evidence_scope": "Targeted offline synthetic checks for revision three changes. Other revision two checks were not rerun. No human acceptance, per-channel or production validation."
+    "evidence_scope": "Targeted offline synthetic checks for revision three changes. Other revision two checks were not rerun. Human feedback is recorded separately in user_acceptance; these browser checks do not establish per-channel or production validation."
   },
   "static_checks": {
     "scripts": "PASS",
@@ -135,5 +135,17 @@
     "accounts": "OAuth, device and imported account credentials only",
     "oauth": "Start authorization and return to accounts",
     "data_model_change": false
+  },
+  "user_acceptance": {
+    "recorded_at": "2026-09-29T08:55:47.807157+00:00",
+    "prototype_commit": "569b432398325fb4b7b206898a9ebca1f71825be",
+    "prior_status": "PENDING_REVISION_3_WALKTHROUGH",
+    "feedback": [
+      "还不错",
+      "还可以，整体参考CPA/CPAR应该就不错"
+    ],
+    "reference_interpretation": "CPA/CPAR in the latest feedback is understood in the prior CPA/CPAMP reference context; CPAR is the target project.",
+    "scope": "Primary operation model for onboarding, separate model permissions and daily management; not exhaustive scenario, per-channel or production acceptance.",
+    "decision_issue": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/7"
   }
 }
