@@ -1,0 +1,91 @@
+{
+  "purpose": "HITL account onboarding and management flow prototype; no production edits",
+  "source_revision": "9fc4ceb4e12aab9c60658869706828a7d5d8312f",
+  "sources": [
+    {
+      "path": "docs/design/chatgpt-prism-liquid-v2/CPAR-Prism-Liquid-v2.html",
+      "sha256": "1e45fab7a7d5e59d28d7031bbe80c8370b05850ff1f68455ee7d269d05250de1",
+      "reused": "inline-workspace and inline-body rules; same-task workflow and primary-action hierarchy"
+    },
+    {
+      "path": "docs/design/prism-liquid-glass-v6.html",
+      "sha256": "4b7721ca64550bdba9acd60d583095efd18f7be91a0d114d7b7f69434be918ef",
+      "reused": "entire style block verbatim, Prism mark, navigation entries and icons, glass shell layout; no original mock business handlers"
+    }
+  ],
+  "v6_style_sha256": "05bcf4f780548ebe43c9d15a2b8fb0ca1c739d2b91d7cd883bf7679117272dbf",
+  "v6_style_bytes": 38158,
+  "user_feedback": "PENDING",
+  "browser_acceptance": "PASS_LOCAL_SYNTHETIC_WALKTHROUGH",
+  "real_provider": "NOT_RUN",
+  "production": "NOT_RUN",
+  "prototype_sha256": "478037aaad194cead112edb4d5bb599ee8efa948e5b725c061d6d3ca84eae15f",
+  "verified_at": "2026-09-29T07:21:17.670504+00:00",
+  "browser": {
+    "tool": "EgoLite via ego-browser",
+    "task_space": 26,
+    "guided_scenarios": [
+      {
+        "scenario": "kimi",
+        "status": "PASS"
+      },
+      {
+        "scenario": "oauth",
+        "status": "PASS"
+      },
+      {
+        "scenario": "uncertain",
+        "status": "PASS"
+      },
+      {
+        "scenario": "drafts",
+        "status": "PASS"
+      },
+      {
+        "scenario": "management",
+        "status": "PASS"
+      },
+      {
+        "scenario": "lifecycle",
+        "status": "PASS"
+      },
+      {
+        "scenario": "duplicate",
+        "status": "PASS"
+      },
+      {
+        "scenario": "native",
+        "status": "PASS"
+      }
+    ],
+    "boundary_observations": [
+      "empty model scope blocks save",
+      "existing scope retained during reauthorization",
+      "conflicting identity cannot overwrite via reconciliation",
+      "unknown identity still requires evidence",
+      "disable before model selection remains pending",
+      "completing onboarding preserves disabled intent",
+      "quota failure retains known exhaustion restriction",
+      "replacement API credential retains old invalid state until save"
+    ],
+    "visual_review": [
+      "desktop light",
+      "desktop dark",
+      "390 x 844 narrow layout"
+    ],
+    "narrow_layout": {
+      "viewport": 390,
+      "documentWidth": 390,
+      "canvasClientWidth": 390,
+      "canvasScrollWidth": 390
+    },
+    "evidence_scope": "Offline synthetic prototype only; browser walkthrough is not human acceptance or production verification"
+  },
+  "static_checks": {
+    "scripts": "PASS",
+    "original_v6_styles_preserved": "PASS",
+    "external_asset_references": 0,
+    "network_api_calls": 0,
+    "csp_connect_src": "none"
+  }
+}

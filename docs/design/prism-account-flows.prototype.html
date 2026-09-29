@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-lens="off" data-motion="reduce">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Prism · 账号流程走查 · Liquid V2 / Kimi V6</title>
+<!-- Reused verbatim: Kimi K3 reviewed V6 style block. Provenance is in the companion README. -->
+<style>
+/* ============ Prism V6 · 银白/石墨 + Apple 蓝 · Liquid Glass chrome ============ */
+:root{
+  --canvas:#e8ebf0;
+  --surface:#ffffff;
+  --surface-2:#f3f5f8;
+  --surface-3:#e9edf2;
+  --ink:#1b1f26;
+  --ink-2:#575f6b;
+  --ink-3:#8a929e;
+  --separator:rgba(22,32,46,.10);
+  --separator-2:rgba(22,32,46,.18);
+  --tint:#0066cc;
+  --tint-fill:#0071e3;
+  --tint-ink:#ffffff;
+  --good:#1e7a37;
+  --warn:#96660a;
+  --serious:#bf3603;
+  --critical:#d70015;
+  --chart-1:#0066d6;
+  --chart-2:#b85f00;
+  --chart-3:#0079ab;
+  --chart-4:#c41e77;
+  /* glass body */
+  --glass-blur:12px; --glass-sat:180%; --glass-bright:1.06; --glass-contrast:1.02;
+  --glass-tint-top:rgba(255,255,255,.64);
+  --glass-tint-mid:rgba(255,255,255,.42);
+  --glass-tint-bot:rgba(255,255,255,.52);
+  --ring-w:1px;
+  --ring-1:rgba(255,255,255,.95); --ring-2:rgba(255,255,255,.42); --ring-3:rgba(255,255,255,.02);
+  --ring-4:rgba(255,255,255,.55); --ring-5:rgba(255,255,255,.90);
+  --glass-inner:
+    inset 0 1px .5px rgba(255,255,255,.9),
+    inset 0 -1px .5px rgba(255,255,255,.45),
+    inset 0 14px 22px -20px rgba(255,255,255,.95),
+    inset 0 -18px 26px -22px rgba(255,255,255,.6);
+  --glass-shadow:
+    0 1px 1px rgba(14,18,32,.05),
+    0 4px 10px -3px rgba(14,18,32,.08),
+    0 14px 28px -8px rgba(14,18,32,.12),
+    0 30px 60px -22px rgba(14,18,32,.18);
+  --glass-shadow-boost:
+    0 1px 1px rgba(14,18,32,.07),
+    0 5px 12px -3px rgba(14,18,32,.12),
+    0 16px 32px -8px rgba(14,18,32,.18),
+    0 34px 66px -22px rgba(14,18,32,.26);
+  --glass-edge-top:rgba(255,255,255,.28);
+  --glass-edge-bot:rgba(255,255,255,.14);
+  /* ambient */
+  --amb-1:#5f9dff; --amb-2:#b98cff; --amb-3:#3fd7bd; --amb-4:#ffb877;
+  --amb-s1:.20; --amb-s2:.13; --amb-s3:.13; --amb-s4:.08;
+  --amb-streak:.20; --amb-grain:.16;
+  /* material semantics: config version state as glass */
+  --mat-draft-blur:22px; --mat-draft-sat:120%; --mat-draft-frost:20; --mat-draft-lsat:1.2;
+  --mat-active-blur:11px; --mat-active-sat:195%; --mat-active-frost:9; --mat-active-lsat:1.85;
+  /* lens geometry (read by the PrismLens port) */
+  --lens-bezel:26; --lens-thickness:34; --lens-ior:1.5; --lens-gain:1; --lens-rim-blur:3;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --dur:180ms; --dur-anneal:600ms;
+  --font-text:-apple-system,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --font-display:-apple-system,"SF Pro Display","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --font-mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+:root[data-theme="dark"]{
+  --canvas:#0e1014;
+  --surface:#181b21;
+  --surface-2:#20242c;
+  --surface-3:#272c35;
+  --ink:#f2f4f8;
+  --ink-2:#9aa3af;
+  --ink-3:#6b7480;
+  --separator:rgba(255,255,255,.10);
+  --separator-2:rgba(255,255,255,.20);
+  --tint:#0a84ff;
+  --tint-fill:#0f6fd6;
+  --good:#30d158;
+  --warn:#ffd60a;
+  --serious:#ff9f0a;
+  --critical:#ff453a;
+  --chart-1:#0a84ff; --chart-2:#cc7a00; --chart-3:#2196c9; --chart-4:#db4e92;
+  --glass-blur:13px; --glass-sat:165%; --glass-bright:1.04; --glass-contrast:1.04;
+  --glass-tint-top:rgba(13,14,20,.52);
+  --glass-tint-mid:rgba(13,14,20,.40);
+  --glass-tint-bot:rgba(13,14,20,.48);
+  --ring-1:rgba(255,255,255,.62); --ring-2:rgba(255,255,255,.20); --ring-3:rgba(255,255,255,.02);
+  --ring-4:rgba(255,255,255,.24); --ring-5:rgba(255,255,255,.50);
+  --glass-inner:
+    inset 0 1px .5px rgba(255,255,255,.30),
+    inset 0 -1px .5px rgba(255,255,255,.16),
+    inset 0 16px 26px -24px rgba(255,255,255,.55),
+    inset 0 -20px 30px -26px rgba(255,255,255,.35);
+  --glass-shadow:
+    0 1px 1px rgba(0,0,0,.30),
+    0 5px 12px -4px rgba(0,0,0,.40),
+    0 18px 36px -10px rgba(0,0,0,.45),
+    0 40px 70px -24px rgba(0,0,0,.55);
+  --glass-shadow-boost:
+    0 1px 1px rgba(0,0,0,.40),
+    0 6px 14px -4px rgba(0,0,0,.50),
+    0 20px 40px -10px rgba(0,0,0,.55),
+    0 44px 78px -24px rgba(0,0,0,.65);
+  --glass-edge-top:rgba(255,255,255,.10);
+  --glass-edge-bot:rgba(255,255,255,.05);
+  --amb-1:#1e5fe0; --amb-2:#7c3aed; --amb-3:#0f9d8f; --amb-4:#c2560a;
+  --amb-s1:.20; --amb-s2:.14; --amb-s3:.15; --amb-s4:.08;
+  --amb-streak:.16; --amb-grain:.20;
+}
+
+/* base */
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 var(--font-text);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button,a{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button{cursor:pointer}button:disabled{cursor:default;opacity:.5}
+a{color:var(--tint);text-decoration:none}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--tint);outline-offset:2px;border-radius:6px}
+::selection{background:color-mix(in srgb,var(--tint) 22%,transparent)}
+h1,h2,h3,p{margin:0}
+h1{font-family:var(--font-display);font-size:26px;line-height:1.35;font-weight:650}
+h2{font-size:15px;font-weight:600;line-height:1.4}
+h3{font-size:13px;font-weight:600}
+.mono,code{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+code{font-size:12px;overflow-wrap:anywhere}
+.muted{color:var(--ink-2)}.small{font-size:12px}.tiny{font-size:11px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+[hidden]{display:none!important}
+.row{display:flex;align-items:center;gap:10px}
+.spread{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.mt{margin-top:18px}
+.line{height:1px;background:var(--separator);margin:18px 0}
+
+/* ============ glass chrome（顶栏 / 侧栏 / 草稿坞，最多三面） ============ */
+.glass{position:relative;isolation:isolate;border-radius:var(--r-outer,18px);border:0;background-color:transparent;
+  background-image:linear-gradient(to bottom,var(--glass-tint-top) 0%,var(--glass-tint-mid) 46%,var(--glass-tint-bot) 100%);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat)) brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat)) brightness(var(--glass-bright)) contrast(var(--glass-contrast));
+  box-shadow:var(--glass-shadow),var(--glass-inner)}
+.glass>*{position:relative;z-index:1}
+.glass[data-over="content"]{box-shadow:var(--glass-shadow-boost),var(--glass-inner)}
+.glass::before{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;padding:var(--ring-w);pointer-events:none;
+  background:linear-gradient(147deg,var(--ring-1) 0%,var(--ring-2) 16%,var(--ring-3) 38%,var(--ring-3) 60%,var(--ring-4) 84%,var(--ring-5) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.glass::after{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(to bottom,var(--glass-edge-top) 0%,transparent var(--glass-edge-top-h,18px)),
+             linear-gradient(to top,var(--glass-edge-bot) 0%,transparent var(--glass-edge-bot-h,14px))}
+@supports (backdrop-filter:url(#prism-lens-topbar)) and (not (-moz-appearance:none)) and (not (background:-webkit-named-image(i))){
+  html[data-lens="on"] .glass[data-pane="topbar"]{-webkit-backdrop-filter:url(#prism-lens-topbar);backdrop-filter:url(#prism-lens-topbar)}
+  html[data-lens="on"] .glass[data-pane="rail"]{-webkit-backdrop-filter:url(#prism-lens-rail);backdrop-filter:url(#prism-lens-rail)}
+  html[data-lens="on"] .glass[data-pane="dock"]{-webkit-backdrop-filter:url(#prism-lens-dock);backdrop-filter:url(#prism-lens-dock)}
+  html[data-lens="on"] .glass[data-pane]{background-image:linear-gradient(to bottom,
+    color-mix(in srgb,var(--glass-tint-top) 72%,transparent) 0%,
+    color-mix(in srgb,var(--glass-tint-mid) 72%,transparent) 46%,
+    color-mix(in srgb,var(--glass-tint-bot) 72%,transparent) 100%)}
+}
+.glass[data-material="draft"]{--glass-blur:var(--mat-draft-blur);--glass-sat:var(--mat-draft-sat);--lens-frost:var(--mat-draft-frost);--lens-sat:var(--mat-draft-lsat)}
+.glass[data-material="active"]{--glass-blur:var(--mat-active-blur);--glass-sat:var(--mat-active-sat);--lens-frost:var(--mat-active-frost);--lens-sat:var(--mat-active-lsat)}
+.glass[data-material]{transition:backdrop-filter var(--dur-anneal) var(--ease),-webkit-backdrop-filter var(--dur-anneal) var(--ease)}
+@supports not (backdrop-filter:blur(1px)){
+  .glass,.glass[data-pane]{background:var(--surface);background-image:none;border:1px solid var(--separator)}
+  .glass::before,.glass::after{display:none}
+}
+@media (prefers-reduced-transparency:reduce){
+  .glass,html[data-lens="on"] .glass[data-pane]{background-color:color-mix(in srgb,var(--surface) 96%,transparent);background-image:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:var(--glass-shadow)}
+  .glass::before{background:var(--separator)}.glass::after{display:none}
+}
+@media (prefers-contrast:more){
+  .glass,html[data-lens="on"] .glass[data-pane]{background:var(--surface);background-image:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid var(--ink-2);box-shadow:none}
+  .glass::before,.glass::after{display:none}
+}
+
+/* ============ shell ============ */
+.shell{position:fixed;inset:0;overflow:hidden;--topbar-h:56px;--rail-w:224px;--canvas-top:88px;--canvas-left:256px;--dock-clear:0px}
+.shell[data-draft="true"]{--dock-clear:96px}
+.ambient{position:absolute;inset:0;pointer-events:none;background-color:var(--canvas);
+  background-image:
+    linear-gradient(107deg,transparent 6%,color-mix(in oklab,#ff5f6d calc(var(--amb-streak)*22%),transparent) 12%,color-mix(in oklab,#ffc371 calc(var(--amb-streak)*24%),transparent) 17%,color-mix(in oklab,#6ee7b7 calc(var(--amb-streak)*30%),transparent) 22%,color-mix(in oklab,#60a5fa calc(var(--amb-streak)*30%),transparent) 27%,color-mix(in oklab,#a78bfa calc(var(--amb-streak)*26%),transparent) 32%,transparent 46%),
+    radial-gradient(ellipse 64% 52% at 4% -6%,color-mix(in oklab,var(--amb-1) calc(var(--amb-s1)*100%),transparent),transparent),
+    radial-gradient(ellipse 56% 50% at 98% 2%,color-mix(in oklab,var(--amb-2) calc(var(--amb-s2)*100%),transparent),transparent),
+    radial-gradient(ellipse 70% 62% at 36% 108%,color-mix(in oklab,var(--amb-3) calc(var(--amb-s3)*100%),transparent),transparent),
+    radial-gradient(ellipse 34% 40% at 90% 62%,color-mix(in oklab,var(--amb-4) calc(var(--amb-s4)*100%),transparent),transparent)}
+.grain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:var(--amb-grain);mix-blend-mode:overlay}
+html[data-theme="dark"] .grain{mix-blend-mode:soft-light}
+.lens-defs{position:absolute;width:0;height:0;pointer-events:none}
+
+.topbar{--r-outer:16px;position:absolute!important;inset:14px 14px auto;height:var(--topbar-h);display:flex;align-items:center;padding:0 14px;gap:12px;z-index:40}
+.brand{display:flex;align-items:center;gap:10px;min-width:196px;color:var(--ink)}
+.brandmark{width:26px;height:26px;display:block;flex-shrink:0}
+.brand-name{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.brand-tag{font-size:12px;color:var(--ink-2);border-left:1px solid var(--separator-2);padding-left:10px;margin-left:2px}
+.top-divider{width:1px;height:20px;background:var(--separator-2)}
+.crumb{font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.crumb b{color:var(--ink);font-weight:550}
+.vctx{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--separator-2);border-radius:99px;padding:6px 12px;font-size:12px;color:var(--ink);background:color-mix(in srgb,var(--surface) 42%,transparent);white-space:nowrap}
+.vctx:hover{background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.vctx i{width:6px;height:6px;border-radius:50%;background:var(--good);flex-shrink:0}
+.vctx[data-state="draft"] i{background:var(--warn)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-size:11px;font-weight:600;border:0;flex-shrink:0}
+
+.rail{--r-outer:18px;position:absolute!important;left:14px;top:var(--canvas-top);bottom:14px;width:var(--rail-w);z-index:30;display:flex;flex-direction:column;padding:12px 10px 10px}
+.nav-scroll{min-height:0;flex:1;overflow:auto;scrollbar-width:none}
+.nav-group+.nav-group{margin-top:14px}
+.nav-label{color:var(--ink-2);font-size:12px;font-weight:500;padding:0 12px 6px}
+.nav-link{display:flex;align-items:center;min-height:36px;gap:10px;border-radius:10px;padding:7px 11px;color:var(--ink);font-size:13px;line-height:1.4;position:relative}
+.nav-link svg{width:16px;height:16px;color:var(--ink-2);flex-shrink:0}
+.nav-link:hover{background:color-mix(in srgb,var(--surface) 45%,transparent)}
+.nav-link[aria-current="page"]{background:color-mix(in srgb,var(--tint) 12%,var(--surface));font-weight:600;box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 6%,transparent),inset 0 1px color-mix(in srgb,var(--surface) 70%,transparent)}
+.nav-link[aria-current="page"] svg{color:var(--tint)}
+.nav-count{margin-left:auto;font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.rail-bottom{margin:10px 4px 0;border-top:1px solid var(--separator);padding:10px 8px 0}
+.rail-note{display:flex;gap:9px;align-items:center;color:var(--ink-2);font-size:12px}
+.rail-note b{display:block;color:var(--ink);font-weight:550;font-size:12px}
+
+.canvas{position:absolute;inset:0;overflow:auto;scrollbar-gutter:stable;z-index:1;
+  padding:var(--canvas-top) 24px calc(32px + var(--dock-clear)) var(--canvas-left);
+  scroll-padding:var(--canvas-top) 24px 32px var(--canvas-left);
+  mask-image:linear-gradient(to bottom,transparent 0,transparent 14px,#000a 52px,#000 var(--canvas-top))}
+.shell[data-draft="true"] .canvas{mask-image:linear-gradient(to bottom,transparent 0,transparent 14px,#000a 52px,#000 var(--canvas-top)),linear-gradient(to top,transparent 12px,#000a 48px,#000 88px);mask-composite:intersect}
+.sheet{position:relative;background:var(--surface);border:1px solid var(--separator);border-radius:20px;padding:32px 34px 26px;min-height:calc(100vh - 124px);max-width:1440px;margin:0 auto;
+  box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 3%,transparent),0 16px 40px -28px color-mix(in srgb,var(--ink) 26%,transparent)}
+
+.dock{--r-outer:99px;position:absolute!important;z-index:60;bottom:20px;left:calc(50% + 112px);transform:translateX(-50%);
+  display:flex;align-items:center;gap:14px;padding:10px 12px 10px 18px;min-height:58px;max-width:calc(100vw - 32px);white-space:nowrap}
+.dock strong{font-size:13px;font-weight:600}
+.dock small{font-size:12px;color:var(--ink-2)}
+
+/* ============ page composition（编辑式分节，不用等高卡片阵） ============ */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:6px}
+.page-head h1{margin-bottom:8px}
+.subtitle{color:var(--ink-2);font-size:13px;line-height:1.7;max-width:640px}
+.scope-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);margin:10px 0 4px;flex-wrap:wrap}
+.scope-row i{width:5px;height:5px;border-radius:50%;background:var(--tint);flex-shrink:0}
+.band{padding:26px 0 28px;border-top:1px solid var(--separator)}
+.band:first-of-type{border-top:0;padding-top:18px}
+.band-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.band-head h2{margin:0}
+.band-head .small{color:var(--ink-2)}
+.readouts{display:grid;grid-template-columns:1.7fr 1fr 1fr 1.2fr;border-top:1px solid var(--separator);border-bottom:1px solid var(--separator);padding:22px 0 24px;margin:14px 0 0}
+.ro{padding:0 22px;border-left:1px solid var(--separator);min-width:0}
+.ro:first-child{border-left:0;padding-left:0}
+.ro-label{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.ro-value{font-family:var(--font-display);font-variant-numeric:tabular-nums;font-size:27px;font-weight:650;letter-spacing:-.01em;line-height:1.25;margin:8px 0 4px}
+.ro-hero .ro-value{font-size:42px}
+.ro-value small{font-size:14px;font-weight:450;letter-spacing:0;color:var(--ink-2);margin-left:4px}
+.ro-note{font-size:12px;color:var(--ink-2);line-height:1.6}
+.ro-note a{font-weight:500}
+.q-row{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:12px;align-items:center;padding:15px 0;border-top:1px solid var(--separator);color:var(--ink)}
+.q-row:first-of-type{border-top:0;padding-top:4px}
+.q-dot{width:8px;height:8px;border-radius:50%;justify-self:center}
+.q-dot.warn{background:var(--warn)}.q-dot.serious{background:var(--serious)}.q-dot.critical{background:var(--critical)}.q-dot.good{background:var(--good)}
+.q-row b{font-size:13px;font-weight:550;display:block}
+.q-row small{display:block;color:var(--ink-2);font-size:12px;margin-top:3px;line-height:1.6}
+a.q-row:hover b{color:var(--tint)}
+.q-row .chev{color:var(--ink-3)}
+.i-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--separator);color:var(--ink);font-size:13px}
+.i-row:first-of-type{border-top:0;padding-top:2px}
+.i-row:hover .i-name{color:var(--tint)}
+.i-name{display:flex;align-items:center;gap:8px;min-width:0;font-weight:500}
+.i-count{font-variant-numeric:tabular-nums;color:var(--ink-2);display:flex;align-items:center;gap:8px;font-size:12px}
+.page-foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--separator);font-size:12px;color:var(--ink-2);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* ============ data components ============ */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.searchbox{display:flex;align-items:center;gap:8px;border:1px solid var(--separator-2);border-radius:10px;padding:8px 12px;background:var(--surface);min-width:210px;max-width:300px}
+.searchbox svg{color:var(--ink-2);width:15px;height:15px;flex-shrink:0}
+.searchbox input{border:0;outline:none;background:transparent;width:100%;min-width:0;font-size:13px}
+.searchbox:focus-within{outline:2px solid var(--tint);outline-offset:1px}
+input::placeholder,textarea::placeholder{color:var(--ink-3)}
+.segment{display:inline-flex;gap:2px;background:var(--surface-2);padding:3px;border-radius:10px;max-width:100%;overflow:auto;border:1px solid var(--separator)}
+.segment button{border:0;border-radius:8px;padding:6px 12px;background:transparent;white-space:nowrap;font-size:12px;color:var(--ink-2);min-height:30px;display:flex;align-items:center;gap:6px}
+.segment button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 12%,transparent);font-weight:550}
+.filter-select{border:1px solid var(--separator-2);padding:7px 26px 7px 11px;border-radius:10px;background:var(--surface);font-size:12px;min-height:34px}
+.tbl-wrap{overflow:auto;max-width:100%;scrollbar-width:thin}
+table{border-collapse:collapse;width:100%;text-align:left;font-size:13px}
+th{font-weight:500;font-size:12px;color:var(--ink-2);white-space:nowrap;padding:10px 14px;border-bottom:1px solid var(--separator-2)}
+td{padding:15px 14px;border-bottom:1px solid var(--separator);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.rowlink{cursor:pointer}
+td:first-child,th:first-child{padding-left:4px}
+td:last-child,th:last-child{padding-right:4px;text-align:right}
+.entity{display:flex;align-items:center;gap:11px;min-width:0}
+.entity b{display:block;font-weight:550;color:var(--ink);font-size:13px;line-height:1.4}
+.entity small{display:block;color:var(--ink-2);font-size:12px;margin-top:2px}
+.tile{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-2);font-size:11px;font-weight:600;font-family:var(--font-mono);flex-shrink:0;border:1px solid var(--separator)}
+.tile.grok{background:var(--ink);color:var(--surface);border-color:transparent}
+.tile.codex{color:var(--chart-3);background:color-mix(in srgb,var(--chart-3) 9%,var(--surface));border-color:transparent}
+.tile.claude{color:var(--chart-2);background:color-mix(in srgb,var(--chart-2) 10%,var(--surface));border-color:transparent}
+.tile.api{color:var(--tint);background:color-mix(in srgb,var(--tint) 8%,var(--surface));border-color:transparent}
+.sid{font-family:var(--font-mono);font-size:11px;padding:2px 7px;border-radius:6px;background:var(--surface-2);border:1px solid var(--separator);color:var(--ink-2);white-space:nowrap;cursor:copy;display:inline-flex;align-items:center;gap:5px}
+.sid:hover{border-color:var(--tint);color:var(--tint)}
+.sid svg{width:11px;height:11px;opacity:0;transition:opacity var(--dur)}
+.sid:hover svg{opacity:.8}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);border:1px solid var(--separator);border-radius:99px;padding:3px 10px;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:3px 10px;font-size:12px;white-space:nowrap;background:var(--surface-2);color:var(--ink-2)}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.pill.good{color:color-mix(in srgb,var(--good) 78%,var(--ink));background:color-mix(in srgb,var(--good) 10%,var(--surface))}
+.pill.warn{color:color-mix(in srgb,var(--warn) 82%,var(--ink));background:color-mix(in srgb,var(--warn) 11%,var(--surface))}
+.pill.serious{color:var(--serious);background:color-mix(in srgb,var(--serious) 9%,var(--surface))}
+.pill.critical{color:var(--critical);background:color-mix(in srgb,var(--critical) 9%,var(--surface))}
+.pill.blue{color:var(--tint);background:color-mix(in srgb,var(--tint) 9%,var(--surface))}
+.meter{display:inline-flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums;font-size:12px}
+.meter svg{width:44px;height:5px;display:block}
+.meter svg line{stroke:var(--tint);stroke-width:5;stroke-linecap:round}
+.meter svg .track{stroke:var(--surface-3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--separator-2);border-radius:10px;min-height:34px;padding:6px 13px;background:var(--surface);font-size:13px;font-weight:550;white-space:nowrap;color:var(--ink)}
+.btn:hover{background:var(--surface-2)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--tint-fill);color:var(--tint-ink);border-color:transparent}
+.btn.primary:hover{filter:brightness(.94);background:var(--tint-fill)}
+.btn.quiet{background:transparent;border-color:transparent;color:var(--tint)}
+.btn.quiet:hover{background:color-mix(in srgb,var(--tint) 8%,transparent)}
+.btn.danger{color:var(--critical)}
+.btn.compact{min-height:30px;padding:4px 10px;font-size:12px}
+.btn svg{width:15px;height:15px}
+.icon-btn{display:inline-grid;place-items:center;width:34px;height:34px;border:0;background:transparent;border-radius:9px;flex-shrink:0;color:var(--ink)}
+.icon-btn:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.icon-btn svg{width:17px;height:17px}
+.linkbtn{background:none;border:0;padding:0;color:var(--tint);font:inherit;cursor:pointer;text-align:left;font-size:13px}
+.linkbtn:hover{text-decoration:underline}
+.group-head{display:flex;align-items:center;gap:10px;padding:20px 0 10px;font-size:13px}
+.group-head .tile{width:28px;height:28px;border-radius:8px;font-size:10px}
+.group-head b{font-weight:600}
+.group-head small{color:var(--ink-2);font-size:12px}
+.cf{width:6px;height:6px;border-radius:50%;display:inline-block;margin-left:5px;vertical-align:2px}
+.cf-auth{background:var(--good)}.cf-derived{background:var(--warn)}.cf-declared{background:var(--ink-3)}
+.tk-bar{display:flex;height:6px;border-radius:4px;overflow:hidden;background:var(--surface-3);min-width:90px}
+.tk-bar i{display:block;height:100%}
+
+/* ============ forms / overlays ============ */
+.field{display:grid;gap:7px;margin-bottom:16px}
+.field label{font-size:13px;font-weight:550}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--separator-2);background:var(--surface-2);padding:10px 12px;border-radius:10px;min-height:40px;font-size:14px}
+.field textarea{min-height:80px;resize:vertical}
+.field small{color:var(--ink-2);font-size:12px;line-height:1.6}
+dialog{border:1px solid var(--separator);color:var(--ink);background:var(--surface);padding:0;overflow:auto}
+dialog::backdrop{background:rgba(17,24,39,.28);backdrop-filter:blur(4px)}
+dialog[open]{animation:pop var(--dur) var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.modal{margin:auto;border-radius:20px;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 48px);box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.modal-head{position:sticky;top:0;background:var(--surface);z-index:3;display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--separator);gap:12px}
+.modal-head h2{font-size:16px}
+.modal-body{padding:22px}
+.modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:20px;border-top:1px solid var(--separator);padding-top:16px}
+.inspector{position:fixed;margin:0;inset:74px 14px 14px auto;width:min(520px,calc(100vw - 24px));height:auto;max-height:calc(100dvh - 88px);border-radius:16px;box-shadow:0 16px 60px rgba(0,0,0,.22)}
+.inspector::backdrop{background:transparent;backdrop-filter:none}
+.inspector[open]{animation:slidein var(--dur) var(--ease)}
+@keyframes slidein{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.detail-hero{display:flex;align-items:center;gap:13px;margin-bottom:20px}
+.detail-hero .tile{width:44px;height:44px;font-size:13px;border-radius:12px}
+.detail-hero h2{font-size:19px;line-height:1.35}
+.detail-hero p{font-size:12px;color:var(--ink-2);margin-top:3px}
+.fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 16px}
+.fact dt{font-size:12px;color:var(--ink-2);margin-bottom:4px}
+.fact dd{margin:0;font-size:13px;overflow-wrap:anywhere}
+.kv-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:14px;border-bottom:1px solid var(--separator);font-size:13px}
+.kv-row:first-child{padding-top:0}.kv-row:last-child{padding-bottom:0;border-bottom:0}
+.kv-row small{display:block;color:var(--ink-2);font-size:12px;margin-top:3px}
+.fullid{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--separator);border-radius:10px;padding:9px 12px;font-size:11px}
+.fullid code{flex:1;min-width:0}
+.steps{display:grid}
+.step{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 0;border-top:1px solid var(--separator)}
+.step:first-of-type{border-top:0}
+.step-num{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--surface-2);border:1px solid var(--separator);font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.step b{font-size:13px;font-weight:550}
+.step small{display:block;color:var(--ink-2);font-size:12px;margin-top:2px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:150;max-width:calc(100vw - 32px);padding:11px 18px;border:1px solid var(--separator);border-radius:99px;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.14);font-size:13px;display:flex;gap:8px;align-items:center;color:var(--ink)}
+.toast svg{color:var(--good);width:16px;height:16px;flex-shrink:0}
+.notice{padding:13px 15px;border:1px solid var(--separator);border-radius:12px;background:var(--surface-2);font-size:13px;color:var(--ink-2);line-height:1.7}
+.notice.warn{background:color-mix(in srgb,var(--warn) 7%,var(--surface));border-color:color-mix(in srgb,var(--warn) 26%,var(--surface));color:var(--ink)}
+.notice.critical{background:color-mix(in srgb,var(--critical) 6%,var(--surface));border-color:color-mix(in srgb,var(--critical) 24%,var(--surface));color:var(--ink)}
+.empty{display:grid;justify-items:center;text-align:center;padding:44px 24px;gap:10px}
+.empty>svg{width:30px;height:30px;color:var(--ink-3)}
+.empty p{max-width:420px;color:var(--ink-2);font-size:13px}
+.inline-error{color:var(--critical);font-size:12px;margin-top:8px}
+.switch{width:42px;height:26px;border:0;background:color-mix(in srgb,var(--ink) 17%,var(--surface));border-radius:99px;padding:3px;display:flex;align-items:center;flex-shrink:0}
+.switch::before{content:"";width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch[aria-checked="true"]{background:var(--tint-fill);justify-content:flex-end}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 0;border-bottom:1px solid var(--separator)}
+.setting-row:last-child{border-bottom:0}
+.setting-row p{font-size:13px}
+.setting-row small{display:block;font-size:12px;color:var(--ink-2);margin-top:4px;line-height:1.6}
+.swatches{display:flex;gap:9px}
+.appearance{width:92px;min-height:72px;padding:6px;border:2px solid transparent;border-radius:12px;background:var(--surface-2);cursor:pointer}
+.appearance[aria-pressed="true"]{border-color:var(--tint)}
+.appearance i{display:block;height:40px;border-radius:6px;position:relative;overflow:hidden;background:linear-gradient(130deg,#c4d6ee,#e6e2f0 50%,#c8e0da)}
+.appearance.dark i{background:linear-gradient(130deg,#22344f,#332f45 50%,#1d3f3a)}
+.appearance i::before{content:"";position:absolute;inset:4px 62px 4px 4px;background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.45);border-radius:4px}
+.appearance i::after{content:"";position:absolute;inset:4px 4px 4px 24px;background:rgba(255,255,255,.94);border-radius:4px}
+.appearance.dark i::before{background:rgba(10,12,16,.5)}
+.appearance.dark i::after{background:#1d1f24}
+.appearance span{font-size:12px;display:block;margin-top:5px;color:var(--ink)}
+.kbd{padding:1px 6px;border:1px solid var(--separator-2);border-radius:5px;font-size:11px;color:var(--ink-2);font-family:var(--font-mono)}
+.commands{display:grid;gap:4px;margin-top:14px}
+.command-link{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;color:var(--ink);font-size:13px}
+.command-link:hover{background:var(--surface-2)}
+.command-link small{margin-left:auto;color:var(--ink-2)}
+.command-link svg{width:15px;height:15px;color:var(--ink-2)}
+
+/* ============ login ============ */
+.login{min-height:100dvh;display:grid;place-items:center;padding:24px;position:relative}
+.login-card{width:min(400px,100%);padding:32px;--r-outer:24px}
+.login-card .brandmark{width:38px;height:38px;margin-bottom:20px}
+.login-card h1{font-size:23px;margin-bottom:8px}
+.login-card .lede{color:var(--ink-2);font-size:13px;margin-bottom:24px;line-height:1.7}
+.login-card .btn.primary{width:100%;min-height:42px;font-size:14px;margin-top:6px}
+.pw-field{position:relative}
+.pw-field input{padding-right:46px}
+.pw-eye{position:absolute;right:2px;top:1px;width:38px;height:38px;display:grid;place-items:center;background:transparent;border:0;color:var(--ink-2);border-radius:9px}
+.pw-eye:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.pw-eye svg{width:17px;height:17px}
+
+/* ============ split（模型与路由工作台） ============ */
+.split{display:grid;grid-template-columns:340px minmax(0,1fr);gap:28px;align-items:start}
+.model-list{display:grid}
+.model-row{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:12px;padding:12px 14px;cursor:pointer;color:var(--ink)}
+.model-row:hover{background:var(--surface-2)}
+.model-row[aria-current="true"]{border-color:color-mix(in srgb,var(--tint) 45%,var(--surface));background:color-mix(in srgb,var(--tint) 6%,var(--surface))}
+.model-row code{font-size:13px;font-weight:600;color:var(--ink)}
+.model-row small{display:block;color:var(--ink-2);font-size:12px;margin-top:4px}
+.mobile-cards{display:none}
+
+/* ============ preferences overrides ============ */
+html[data-transparency="reduce"] .glass,html[data-transparency="reduce"] .glass[data-pane]{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid var(--separator)}
+html[data-transparency="reduce"] .glass::before,html[data-transparency="reduce"] .glass::after,html[data-transparency="reduce"] .grain{display:none}
+html[data-transparency="reduce"] .canvas{mask-image:linear-gradient(to bottom,transparent 72px,#000 72px)}
+html[data-contrast="more"]{--ink-2:var(--ink);--separator:var(--separator-2)}
+html[data-contrast="more"] .glass,html[data-contrast="more"] .glass[data-pane]{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid var(--ink);box-shadow:none}
+html[data-contrast="more"] .glass::before,html[data-contrast="more"] .glass::after,html[data-contrast="more"] .grain{display:none}
+html[data-contrast="more"] .canvas{mask-image:linear-gradient(to bottom,transparent 72px,#000 72px)}
+html[data-motion="reduce"]{--dur:0ms;--dur-anneal:0ms}
+@media(prefers-reduced-motion:reduce){:root{--dur:0ms;--dur-anneal:0ms}}
+@media(prefers-reduced-transparency:reduce),(prefers-contrast:more){.grain{display:none}.canvas{mask-image:linear-gradient(to bottom,transparent 72px,#000 72px)}}
+@media(forced-colors:active){
+  .glass[data-pane]{background:Canvas;backdrop-filter:none;border:1px solid CanvasText}
+  .pill,.btn,.sheet{border:1px solid CanvasText}
+  .grain,.ambient{display:none}.canvas{mask-image:none}
+  .brandmark{forced-color-adjust:none}
+}
+
+/* ============ responsive ============ */
+@media(max-height:760px) and (min-width:821px){
+  .rail{padding:8px 10px}
+  .nav-link{min-height:32px;padding:5px 11px}
+  .nav-group+.nav-group{margin-top:8px}
+  .rail-bottom{margin-top:8px;padding-top:8px}
+}
+@media(max-width:1200px){
+  .shell{--rail-w:196px;--canvas-left:228px}
+  .brand{min-width:0}.brand-tag{display:none}
+  .sheet{padding:26px 24px}
+  .readouts{grid-template-columns:1fr 1fr;row-gap:22px}
+  .ro:nth-child(3){border-left:0;padding-left:0}
+  .split{grid-template-columns:300px minmax(0,1fr)}
+}
+@media(max-width:820px){
+  .shell{--canvas-left:16px;--canvas-top:84px}
+  .canvas{padding-right:16px}
+  .topbar{gap:8px;padding:0 10px}
+  .crumb{display:none}
+  .mobile-menu{display:inline-grid!important}
+  .rail{display:none;top:80px;bottom:14px;left:14px;width:min(300px,calc(100vw - 28px));z-index:70}
+  .rail[data-open="true"]{display:flex}
+  .sheet{padding:22px 18px;border-radius:18px;min-height:calc(100dvh - 106px)}
+  .page-head{flex-wrap:wrap}
+  .page-head h1{font-size:23px}
+  .readouts{grid-template-columns:1fr 1fr;row-gap:20px;padding:18px 0}
+  .ro{padding:0 14px}
+  .ro:nth-child(odd){border-left:0;padding-left:0}
+  .ro-hero .ro-value{font-size:32px}
+  .split{grid-template-columns:1fr}
+  .dock{left:50%;gap:10px;bottom:12px}
+  .inspector{inset:auto 12px 12px 12px;width:auto;max-height:calc(100dvh - 96px);top:72px}
+  .modal{width:calc(100vw - 24px)}
+  .fact-grid{grid-template-columns:1fr}
+  .account-table{display:none}
+  .mobile-cards{display:grid;gap:12px}
+  .acc-card{border:1px solid var(--separator);border-radius:14px;padding:15px;background:var(--surface)}
+  .acc-card .kv-row{padding:9px 0}
+  .band{padding:22px 0}
+  .page-foot{font-size:11px}
+}
+@media(max-width:560px){
+  .shell{--canvas-left:12px;--canvas-top:80px}
+  .canvas{padding-right:12px}
+  .topbar{inset:10px 12px auto;height:52px}
+  .topbar .vctx{font-size:11px;padding:5px 9px}
+  .brandmark{width:23px;height:23px}
+  .brand-name{font-size:16px}
+  .sheet{padding:20px 14px}
+  .searchbox{flex:1;max-width:none}
+}
+.mobile-menu{display:none}
+.readouts.even{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:820px){.readouts.even{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-transparency:reduce){dialog::backdrop{backdrop-filter:none}}
+.go{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:550;color:var(--tint)}
+.go:hover{text-decoration:underline}
+.band-split{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,4fr);gap:48px}
+.side-sec{margin-bottom:26px}
+.side-sec:last-child{margin-bottom:0}
+.side-sec h3{font-size:13px;font-weight:600;margin-bottom:8px}
+.note-line{font-size:12px;color:var(--ink-2);line-height:1.7}
+.ver-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:18px 0;border-top:1px solid var(--separator)}
+.ver-row:first-of-type{border-top:0}
+.ver-badge{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;font-family:var(--font-mono);font-size:13px;font-weight:600;background:var(--surface-2);border:1px solid var(--separator)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.legend .cf{margin:0 5px 0 0;vertical-align:0}
+.tk-cell{white-space:nowrap;font-variant-numeric:tabular-nums}
+.diff-row{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--separator);font-size:13px}
+.diff-row:last-child{border-bottom:0}
+.timeline{margin:0;padding:0;list-style:none}
+.timeline li{position:relative;padding:0 0 20px 28px}
+.timeline li:last-child{padding-bottom:0}
+.timeline li:not(:last-child)::before{content:"";position:absolute;left:7px;top:16px;bottom:0;border-left:1px solid var(--separator)}
+.timeline li::after{content:"";position:absolute;left:2px;top:5px;width:9px;height:9px;border:2px solid var(--surface);border-radius:50%;background:var(--tint);box-shadow:0 0 0 1px var(--separator-2)}
+.timeline b{font-size:13px;font-weight:550}
+.timeline p{font-size:12px;color:var(--ink-2);margin-top:3px;line-height:1.6}
+.draft-panel{border:1px dashed color-mix(in srgb,var(--warn) 55%,var(--surface));background:color-mix(in srgb,var(--warn) 5%,var(--surface));border-radius:16px;padding:18px 20px}
+.fullid-row{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--separator);border-radius:10px;padding:9px 12px;font-size:11px;margin-top:14px}
+.fullid-row code{flex:1;min-width:0}
+.subhead{font-size:12px;color:var(--ink-2);font-weight:500;margin:22px 0 10px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);cursor:pointer}
+.chk input{accent-color:var(--tint)}
+.login-theme{position:fixed;top:16px;right:16px;z-index:5}
+@media(max-width:1200px){.band-split{grid-template-columns:1fr;gap:0}}
+</style>
+<style>
+/* ChatGPT Liquid V2 inline workflow container, followed by scoped flow layout. */
+.inline-workspace{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:22px}
+.inline-body{padding:26px}
+
+:root{--accent:var(--tint-fill);--muted:var(--ink-2);--line:var(--separator);--bad:var(--critical);--subtle:var(--surface-2);--dur:0ms;--dur-anneal:0ms}
+.prototype-flow button{border:1px solid var(--separator-2);border-radius:10px;min-height:34px;padding:7px 12px;background:var(--surface);font-size:13px;color:var(--ink)}
+.prototype-flow button:hover{background:var(--surface-2)}
+.prototype-flow button.primary{background:var(--tint-fill);border-color:transparent;color:var(--tint-ink)}
+.prototype-flow button.danger{color:var(--critical)}
+.prototype-flow button.small{font-size:12px;padding:5px 10px}
+.prototype-flow button[disabled]{opacity:.45}
+.prototype-flow .tiny{font-size:12px}.subtle{color:var(--ink-2)}
+.flex{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.prototype-intro{max-width:850px;margin-bottom:21px;font-size:13px;color:var(--ink-2)}
+.prototype-intro strong{color:var(--ink);font-weight:550}
+.prototype-mark{font-size:11px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--separator);border-radius:6px;padding:4px 8px}
+.panel{padding:0;border:0;background:none;box-shadow:none}
+.current-evidence{padding:20px 0;border-top:1px solid var(--separator);border-bottom:1px solid var(--separator)}
+.status-top{margin-bottom:18px}.status-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:600;flex-wrap:wrap}.dot{width:7px;height:7px;border-radius:50%;background:var(--tint)}
+.evidence{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+.evidence dl{margin:0}.evidence dt{font-size:12px;color:var(--ink-2);margin-bottom:5px}.evidence dd{font-size:12px;margin:0;font-weight:550}
+.board{display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:30px;align-items:start}
+.work{min-height:410px}.work h2{font-size:20px;margin:5px 0 8px}.work p{margin:8px 0 15px}.eyebrow{font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--tint)}
+.stepbar{display:flex;gap:13px;font-size:12px;color:var(--ink-3);margin-bottom:22px}.stepbar .current{color:var(--tint);font-weight:600}
+.field{margin:16px 0;display:block}.field>span{display:block;margin-bottom:7px;font-weight:550;font-size:13px}
+.prototype-flow input,.prototype-flow select{width:100%;padding:9px 11px;border:1px solid var(--separator-2);border-radius:10px;background:var(--surface-2);color:var(--ink)}
+.prototype-flow input[readonly]{color:var(--ink-2)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+.note{padding:12px 14px;background:var(--surface-2);border-radius:10px;font-size:13px}
+.note.warn{background:color-mix(in srgb,var(--warn) 8%,var(--surface));color:var(--ink)}
+.note.bad{background:color-mix(in srgb,var(--critical) 7%,var(--surface));color:var(--critical)}
+.global{margin:18px 0}.pill.bad{background:color-mix(in srgb,var(--critical) 8%,var(--surface));color:var(--critical)}
+.resource{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0;border-bottom:1px solid var(--separator)}
+.resource strong{display:block}.resource select{width:180px}.model-note{color:var(--ink-2);font-size:12px}
+.checklist{margin:15px 0;padding:0;list-style:none}.checklist li{padding:10px 0;border-bottom:1px solid var(--separator)}.check{color:var(--good);margin-right:8px}
+.rows{margin:13px 0}.rows dl{display:grid;grid-template-columns:102px minmax(0,1fr);gap:14px;margin:0;padding:10px 0;border-bottom:1px solid var(--separator);font-size:13px}.rows dt{color:var(--ink-2)}.rows dd{margin:0;overflow-wrap:anywhere}
+.guide{padding:24px 0 0 23px;border-left:1px solid var(--separator);align-self:stretch}.guide h2{margin:0 0 7px;font-size:14px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:13px 0 18px}.tabs button{font-size:11px;padding:8px 7px;text-align:left}.tabs button[aria-selected=true]{background:var(--surface-2);color:var(--tint);border-color:color-mix(in srgb,var(--tint) 35%,var(--surface))}
+.guide ol{padding-left:21px;margin:13px 0}.guide li{padding:4px 0;font-size:12px;color:var(--ink-2)}.guide li.done{color:var(--good)}.guide li.current{color:var(--ink);font-weight:600}
+.guide .run{width:100%;text-align:left;font-size:12px}.guide .run.primary{background:var(--surface-2);color:var(--ink);border:1px solid var(--separator-2)}
+.guide hr{border:0;border-top:1px solid var(--separator);margin:20px 0}.guide p{margin-top:8px}
+.log{font-size:11px!important;list-style:none;padding:0!important;max-height:170px;overflow:auto}.log li{padding:7px 0;border-bottom:1px solid var(--separator)}.log time{color:var(--ink-3);margin-right:7px;font-variant-numeric:tabular-nums}
+#notice{margin-top:16px;min-height:44px;border:0;border-left:3px solid var(--tint);border-radius:0;background:var(--surface-2);font-size:13px}
+#notice.blocked{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 6%,var(--surface))}
+.lab{margin-top:22px;padding-top:17px;border-top:1px solid var(--separator)}.lab summary{font-size:13px;font-weight:550;cursor:pointer}.lab p{margin-top:10px}.lab .buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.count{font-variant-numeric:tabular-nums}.conn{display:block;width:100%;margin:10px 0;text-align:left;padding:14px!important}.conn span{display:block;color:var(--ink-2);font-size:12px;margin-top:4px}
+.delete-box{border:1px solid color-mix(in srgb,var(--critical) 28%,var(--surface));border-radius:12px;padding:17px}
+.nav-link[aria-disabled=true]{opacity:.68;cursor:default}
+.prototype-dock[hidden]{display:none!important}
+.prototype-flow footer{margin-top:22px;border-top:1px solid var(--separator);padding-top:15px;display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--ink-2)}
+@media(max-width:1300px){.board{grid-template-columns:minmax(0,1fr) 250px;gap:22px}.guide{padding-left:18px}.evidence{grid-template-columns:repeat(3,minmax(0,1fr))}.inline-body{padding:20px}}
+@media(max-width:1050px){.board{grid-template-columns:1fr}.guide{border-left:0;border-top:1px solid var(--separator);margin-top:24px;padding:20px 0 0}.tabs{grid-template-columns:repeat(4,1fr)}.guide ol{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}.guide .log{display:block}}
+@media(max-width:760px){.form-grid{grid-template-columns:1fr}.resource{align-items:start;flex-direction:column}.resource select{width:100%}.evidence{grid-template-columns:1fr 1fr}.tabs{grid-template-columns:1fr 1fr}.guide ol{display:block}.inline-body{padding:18px 14px}.stepbar{gap:10px;flex-wrap:wrap}.prototype-flow footer{flex-direction:column}.rows dl{grid-template-columns:85px minmax(0,1fr)}.prototype-dock{white-space:normal;font-size:12px;min-width:260px}.prototype-mark{display:none}}
+</style>
+</head>
+<body>
+<div class="shell" id="shell" data-draft="false"><div class="ambient" aria-hidden="true"></div>
+<header class="topbar glass" data-pane="topbar" data-material="active"><button class="icon-btn mobile-menu" type="button" data-shell="nav" aria-label="展开导航" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+<div class="brand"><svg class="brandmark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="prism-g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a84ff"/><stop offset=".5" stop-color="#8273e8"/><stop offset="1" stop-color="#37bca5"/></linearGradient></defs><path d="M20 4 36.5 33h-33Z" fill="url(#prism-g)"/><path d="M20 4v29H3.5Z" fill="#fff" opacity=".22"/><path d="M20 12.5 30.5 30.5h-21Z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.4"/></svg><span class="brand-name">Prism</span><span class="brand-tag">网关控制台</span></div><span class="top-divider"></span><nav class="crumb" aria-label="当前位置"><span>资源</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg><b>账号</b></nav><span class="grow"></span>
+<span class="vctx" id="flow-context">离线操作走查</span><button class="icon-btn" type="button" data-shell="theme" aria-label="切换深浅外观"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.2A8.2 8.2 0 1 1 10.8 4a6.6 6.6 0 0 0 9.2 9.2Z"/></svg></button><span class="avatar" aria-label="演示管理者">AD</span></header>
+<aside class="rail glass" data-pane="rail" data-material="active" id="rail"><nav class="nav-scroll" aria-label="主导航"><div class="nav-group"><div class="nav-label">运行</div><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>总览</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>请求与失败</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg><span>用量分析</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21Z"/><path d="M9.5 8h5M9.5 12h5"/></svg><span>计费与价格</span></span></div><div class="nav-group"><div class="nav-label">资源</div><a class="nav-link" href="#accounts" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3.8 20c.4-3.2 2.6-5 5.2-5s4.8 1.8 5.2 5"/><path d="M15.6 4.9a3.4 3.4 0 0 1 0 6.3M17.3 15.4c1.7.8 2.8 2.3 3 4.6"/></svg><span>账号池</span></a><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6.8v10.4L12 21l7.5-3.8V6.8Z"/><path d="M4.5 6.8 12 10.5l7.5-3.7M12 10.5V21"/></svg><span>上游</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.2C10.2 4.8 7.7 4.2 4.5 4.2v14c3.2 0 5.7.6 7.5 2 1.8-1.4 4.3-2 7.5-2v-14c-3.2 0-5.7.6-7.5 2Z"/><path d="M12 6.2v14"/></svg><span>模型目录</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.3"/><circle cx="19" cy="5.5" r="2.3"/><circle cx="19" cy="18.5" r="2.3"/><path d="m7.2 11 9.6-4.6M7.2 13l9.6 4.6"/></svg><span>模型与路由</span></span></div><div class="nav-group"><div class="nav-label">管理</div><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15.5" r="4.2"/><path d="m11.2 12.3 8.3-8.3M16 7l3 3M13.2 9.8l2 2"/></svg><span>访问控制</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M8.4 15.6a5.1 5.1 0 0 1 0-7.2M15.6 8.4a5.1 5.1 0 0 1 0 7.2M5.6 18.4a9.2 9.2 0 0 1 0-12.8M18.4 5.6a9.2 9.2 0 0 1 0 12.8"/></svg><span>运行诊断</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.2c0 4.4 3 8.3 7 9.8 4-1.5 7-5.4 7-9.8V6Z"/><path d="m9.3 12 2 2 3.4-3.6"/></svg><span>出口策略</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 4.8-9 4.8-9-4.8Z"/><path d="m4.5 12.7 7.5 4 7.5-4M4.5 16.7l7.5 4 7.5-4"/></svg><span>配置版本</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5.6" rx="7" ry="2.7"/><path d="M5 5.6v12.8c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7V5.6"/><path d="M5 12c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7"/></svg><span>审计与备份</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h9M17.5 8H20M4 16h3.5M12 16h8"/><circle cx="15" cy="8" r="2.3"/><circle cx="9.5" cy="16" r="2.3"/></svg><span>设置</span></span></div></nav><div class="rail-bottom"><div class="rail-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.2c0 4.4 3 8.3 7 9.8 4-1.5 7-5.4 7-9.8V6Z"/><path d="m9.3 12 2 2 3.4-3.6"/></svg><div><b>离线操作走查</b><span>沿用已有界面 · 本轮聚焦账号</span></div></div></div></aside>
+<main class="canvas" id="canvas"><div class="sheet prototype-flow" id="accounts"><div class="page-head"><div><h1>账号</h1><p class="subtitle">在当前任务完成接入，看清每个状态和下一步。</p></div><span class="prototype-mark">沿用 Liquid V2 / Kimi V6</span></div>
+<div class="prototype-intro"><strong>操作走查：</strong>不预建服务与接口，是否能完成接入、处理授权失败并理解生效结果？<br>全部为合成数据，无网络或真实授权；请勿输入真实凭据，刷新即重置。</div>
+<div id="global"></div>
+<section class="panel current-evidence" aria-label="当前账号与证据"><div id="status"></div><div id="evidence" class="evidence"></div></section>
+<div class="board"><div><section class="inline-workspace" aria-label="操作区域"><div id="work" class="inline-body work"></div></section><div id="notice" class="notice" role="status" aria-live="polite"></div>
+<details class="panel lab"><summary>自由演练：触发边界情况</summary><p class="tiny subtle">按钮始终可尝试；条件不满足时解释原因，不强行改变状态。这些是演练开关，不是未来产品按钮。</p><div id="freeplay" class="buttons"></div></details></div>
+<aside class="panel guide" aria-label="引导演练"><h2>按场景体验</h2><div class="tiny subtle">先走前三项。切换场景会重置模拟状态。</div><div id="tabs" class="tabs" role="tablist" aria-label="演练场景"></div><div id="guide"></div><hr><div class="flex"><strong class="tiny">刚才发生了什么</strong><span id="stepcount" class="tiny count"></span></div><ol id="log" class="log"></ol></aside></div>
+<footer><span>讨论稿 · 验证流程与反馈，视觉样式尚未定稿</span><span>真实请求 <strong>0</strong> · 持久化 <strong>无</strong> · 数据仅在当前页面内</span></footer>
+</div></main>
+<div class="dock glass prototype-dock" data-pane="dock" data-material="draft" id="flow-dock" hidden><div><strong>有已保存的待应用修改</strong><br><small>先核对结果和影响，再决定应用</small></div><button class="btn" type="button" data-action="showPending">查看修改</button></div></div>
+<script>
+// Portable, pure state model. No DOM, network, storage, timers or provider data.
+const Flow = (() => {
+  const step = (label, action, value) => ({label, action, value});
+  const scenarios = [
+    {id:'kimi',label:'01 Kimi 首次接入',title:'从零开始接入 Kimi API',description:'只提供必要信息，连接自动准备；选好新模型开放范围后保存并自动生效。观察调用验证仍为空。',steps:[step('使用演示密钥继续','prepare'),step('把新模型开放给日常编程 Key','scope','work'),step('保存并自动生效','save'),step('查看分阶段结果','manage')]},
+    {id:'oauth',label:'02 OAuth 正常',title:'授权完成后回到同一任务',description:'用 Codex 演示 OAuth。授权保存与配置生效分别反馈，回到当前流程完成模型开放。',steps:[step('开始模拟 OAuth 授权','startAuth'),step('模拟同一账号授权完成','grant'),step('选择新模型开放范围','scope','work'),step('保存并自动生效','save')]},
+    {id:'uncertain',label:'03 授权中断',title:'响应丢失，先核对再继续',description:'回调没有返回，不代表授权失败或取消。先查询已发生的结果，避免重复创建和覆盖。',steps:[step('开始模拟授权','startAuth'),step('模拟回调响应丢失','loseReceipt'),step('核对已发生的结果','reconcile'),step('选择模型开放范围','scope','work'),step('保存并生效','save')]},
+    {id:'drafts',label:'04 连接与待应用',title:'多个连接，还有旧修改',description:'在当前流程选连接，再核对旧修改与本次接入。也可保留待应用；并发变化后需要重新核对。',steps:[step('提供演示密钥','prepare'),step('选择“代理 · 备用”','chooseConnection','proxy'),step('选择新模型开放范围','scope','work'),step('保存并查看合并清单','save'),step('模拟另一处修改配置','concurrentEdit'),step('重新读取变更清单','reviewLatest'),step('确认一并应用','applyTogether')]},
+    {id:'management',label:'05 日常诊断',title:'陈旧目录、未知额度与授权失效',description:'额度未提供是正常空态。更新目录不等于测试调用；真正授权失效时才引导重新授权。',steps:[step('更新模型目录','refreshCatalog'),step('模拟额度读取失败','quotaFail'),step('恢复额度观察为空态','refreshQuota'),step('模拟授权明确失效','invalidateAuth'),step('在原账号重新授权','reauthorize'),step('模拟同一账号授权完成','grant'),step('保存并生效，保留原权限','save')]},
+    {id:'lifecycle',label:'06 停用与删除',title:'在途请求与共享连接',description:'停用只停止新分配，已有两条请求保留。删除前预览关联影响，历史记录和共享连接保留。',steps:[step('停用并生效','disable'),step('模拟一条在途请求结束','finishRequest'),step('预览删除影响','previewDelete'),step('确认删除并应用','confirmDelete')]},
+    {id:'duplicate',label:'07 重复授权',title:'新授权不启用已停用账号',description:'可靠确认同一账号后更新原授权。账号数量、连接和既有权限保持不变，停用意图保留。',steps:[step('开始更新原账号授权','startAuth'),step('模拟同一账号授权完成','grant'),step('保存授权更新并生效','save')]},
+    {id:'native',label:'08 应用与隔离',title:'已保存，但网关尚未采用',description:'用 Grok Build 演示保存成功、运行应用失败的全局影响。解除本地隔离也不代表上游恢复。',steps:[step('重新应用已保存结果','apply'),step('模拟临时本地隔离','isolate'),step('查看解除隔离的影响','previewRecovery'),step('确认允许再次尝试','confirmRecovery')]}
+  ];
+  function initial(id='kimi') {
+    const managed=['management','lifecycle','duplicate','native'].includes(id);
+    const oauth=['oauth','uncertain','duplicate'].includes(id);
+    return {scenario:id,guideStep:0,channel:oauth?'Codex':id==='native'?'Grok Build':id==='lifecycle'?'Codex':id==='management'?'Kimi Coding':'Kimi API',method:oauth||id==='lifecycle'?'OAuth':['native','management'].includes(id)?'设备授权':'API Key',
+      native:id==='native',accountName:oauth?'演示 · 编程账号':id==='native'?'演示 · Build 账号':'演示 · 日常账号',
+      stage:managed && id!=='duplicate'?'manage':'credentials',resumeStage:null,
+      saved:managed,auth:managed?'active':'none',authWaiting:false,credentialReady:false,
+      identity:'same',accountCount:managed?2:0,revision:managed?1:0,
+      connection:managed?'日常接入':null,connectionMode:managed?'复用':null,matches:id==='drafts'?2:managed?1:0,
+      catalog:managed?(id==='management'?'stale':'fresh'):'none',quota:managed?'not_provided':'none',lastQuota:managed?'not_provided':null,
+      scope:managed?'work':'',newModel:!managed,previousScope:managed?'work':null,
+      applied:managed&&id!=='native',activeScope:managed?'work':null,applyFailed:id==='native',gatewayBlocked:id==='native',
+      otherDraft:id==='drafts',draftRevision:1,reviewRevision:null,extraChange:false,
+      disabled:id==='duplicate',activeDisabled:id==='duplicate',isolation:false,quotaExhausted:false,
+      inFlight:id==='lifecycle'?2:0,history:managed?12:0,sharedAccounts:managed?1:0,removalSaved:false,removed:false,
+      simulatedTests:0,testModel:'演示模型 A',protocol:'Chat Completions',testReceipt:null,
+      notice:'已载入“'+scenarios.find(x=>x.id===id).title+'”。所有数据均为模拟。',outcome:'done',events:[],actionCount:0};
+  }
+  const clone = s => JSON.parse(JSON.stringify(s));
+  function transition(previous, action, value) {
+    let s=clone(previous);
+    const finish=(message,ok=true)=>{s.notice=message;s.outcome=ok?'done':'blocked';s.actionCount++;s.events.push({n:s.actionCount,text:message});return s;};
+    const absent=()=>s.removalSaved||s.removed;
+    const ready=()=>s.saved && s.auth==='active' && s.connection && s.applied && !s.disabled && !absent() && !s.gatewayBlocked;
+    const prepare=()=>{s.catalog='fresh';if(s.matches>1&&!s.connection){s.stage='connections';return;}
+      s.connection=s.connection||'官方默认接入';s.connectionMode=s.matches?'复用':'自动创建';s.stage='models';};
+    const apply=()=>{s.applied=true;s.applyFailed=false;s.gatewayBlocked=false;s.otherDraft=false;s.activeScope=s.scope;s.activeDisabled=s.disabled;if(s.removalSaved)s.removed=true;s.stage=s.removed?'manage':'result';};
+    if(action==='field'){s[value.name]=value.value;s.outcome='field';return s;}
+    switch(action){
+      case 'prepare':
+        if(s.stage!=='credentials'||s.method!=='API Key'||absent())return finish('当前不是填写 API Key 的步骤。',false);
+        s.credentialReady=true;if(!s.saved)s.auth='provided';prepare();return finish(s.matches>1?'找到两个符合条件的接入配置，请在这里选择。':'连接已自动准备；凭据仍待保存。'+(s.newModel?'请选择新模型开放范围。':'已有模型权限保持不变。'));
+      case 'startAuth':
+      case 'reauthorize':
+        if(s.method==='API Key')return finish('这个渠道使用 API Key；请在原接入流程中更换凭据，不提供 OAuth 入口。',false);
+        if(absent()||s.auth==='unknown')return finish('请先核对不确定结果，不能直接重复授权。',false);
+        s.priorAuth=s.auth;s.authWaiting=true;s.stage='authorize';s.resumeStage=null;return finish('已开始模拟授权。完成或失败都会回到当前任务，未打开外部网站。');
+      case 'resumeCredential':
+        if(s.method!=='API Key'||absent()||s.auth==='unknown')return finish('当前不能直接更换 API Key，请先核对账号状态。',false);
+        s.stage='credentials';return finish('请更换演示凭据后继续；原设置与权限保留。');
+      case 'deny':
+        if(!s.authWaiting)return finish('当前没有进行中的授权。',false);
+        s.authWaiting=false;s.stage='credentials';return finish('授权被拒绝；未保存新的授权。已有账号与设置保留，可以重试。');
+      case 'grant':
+        if(!s.authWaiting)return finish('请先开始授权。',false);
+        if(s.identity==='different')return finish('新授权属于另一个账号，拒绝覆盖。原账号及设置保留。',false);
+        if(s.identity==='unknown'){s.stage='identity';return finish('身份暂时无法确认。请核对目标账号，不能宣称已验证为同一身份。',false);}
+        s.authWaiting=false;if(!s.saved)s.accountCount++;s.saved=true;s.auth='active';s.revision++;s.applied=false;s.testReceipt=null;prepare();
+        return finish('授权已保存到原任务，'+(s.disabled?'账号仍保持停用。':'配置尚未生效。')+'连接与已有权限保留。');
+      case 'verifyIdentity':
+        if(s.stage!=='identity')return finish('当前没有待核对身份。',false);
+        s.identity='same';s.stage='authorize';return finish('模拟补充了同一身份的可靠证据，可以继续保存授权。');
+      case 'loseReceipt':
+        if(!s.authWaiting&&!['models','result'].includes(s.stage))return finish('请在授权或保存流程中演练响应丢失。',false);
+        s.authWaiting=false;s.auth='unknown';s.stage='uncertain';s.testReceipt=null;return finish('响应丢失，结果待确认。先查询账号与操作状态，不重复提交，也不宣称已取消。');
+      case 'reconcile':
+        if(s.auth!=='unknown')return finish('当前没有结果不确定的操作。',false);
+        if(s.identity==='different'){s.auth=s.priorAuth||(s.saved?'active':'none');s.stage='credentials';return finish('核对结果：新授权属于另一个账号，未覆盖原授权。原账号和设置保留，请重新选择正确账号。',false);}
+        if(s.identity==='unknown'){s.authWaiting=true;s.stage='identity';return finish('回读仍缺少身份依据；继续核对，不能把授权保存为同一账号。',false);}
+        if(!s.saved)s.accountCount++;s.saved=true;s.auth='active';s.revision++;s.applied=false;prepare();return finish('已核对：模拟授权实际已保存。继续原任务，不重复创建账号；配置尚未生效。');
+      case 'chooseConnection':
+        if(s.stage!=='connections')return finish('当前无需选择连接。',false);
+        s.connection=value==='proxy'?'代理 · 备用':'直连 · 日常';s.connectionMode='复用';s.catalog='fresh';s.stage='models';return finish('已复用“'+s.connection+'”，保留其地址、地区和代理设置。');
+      case 'scope':
+        if(s.stage!=='models'||!s.newModel)return finish('当前没有需要选择开放范围的新模型；已有权限保持不变。',false);
+        s.scope=value||'';return finish(!s.scope?'尚未选择开放范围，请明确选择，也可以暂不开放。':s.scope==='none'?'已明确选择暂不开放新模型。':'已选择新模型开放范围；应用前不会改变运行中的权限。',Boolean(s.scope));
+      case 'save':
+        if(s.stage!=='models'||!s.connection||(!['active','provided'].includes(s.auth)&&!(s.method==='API Key'&&s.credentialReady)))return finish('请先完成授权与接入配置。',false);
+        if(s.newModel&&!s.scope)return finish('请选择新模型开放范围，也可以明确选择“暂不开放”。',false);
+        if(!s.saved){s.accountCount++;s.revision++;}else if(s.method==='API Key'&&s.credentialReady)s.revision++;s.saved=true;s.auth='active';s.credentialReady=false;s.applied=false;s.testReceipt=null;
+        if(s.newModel){s.previousScope=s.scope;s.newModel=false;}if(s.quota==='none'){s.quota='not_provided';s.lastQuota='not_provided';}
+        if(s.otherDraft){s.reviewRevision=s.draftRevision;s.stage='review';return finish('账号已保存。还有其他待应用修改，请核对合并清单后决定是否一起应用。');}
+        apply();return finish('账号已保存，连接已完成，配置已自动生效。'+(s.disabled?'停用状态保留。':'真实调用仍未验证。'));
+      case 'keepPending':
+        if(!s.saved||s.applied)return finish('当前没有已保存但待应用的修改。',false);
+        s.stage='result';return finish('已保留待应用。没有发布其他修改，账号保存结果仍在。');
+      case 'concurrentEdit':
+        if(s.stage!=='review')return finish('请先进入合并修改核对。',false);
+        s.draftRevision++;s.extraChange=true;return finish('模拟另一处增加了修改。原核对结果已过期，应用前需重新读取。');
+      case 'reviewLatest':
+        if(s.stage!=='review')return finish('当前没有合并清单需要核对。',false);
+        s.reviewRevision=s.draftRevision;return finish('已重新读取完整清单，包含新出现的修改，请重新确认。');
+      case 'applyTogether':
+        if(s.stage!=='review'||s.reviewRevision!==s.draftRevision)return finish('清单已变化或尚未核对，不能用旧结果应用。请重新读取。',false);
+        if(s.newModel){s.stage='models';return finish('请先明确新模型开放范围并保存，再核对合并清单。',false);}
+        apply();return finish('已按确认的合并清单一起应用，未覆盖并发修改。调用仍未验证。');
+      case 'apply':
+        if(!s.saved||s.auth==='unknown')return finish('先确认账号保存结果，再应用配置。',false);
+        if(s.newModel){s.stage='models';return finish('请先明确新模型开放范围并保存；不能跳过这个选择。',false);}
+        if(s.otherDraft){s.stage='review';s.reviewRevision=s.draftRevision;return finish('存在其他待应用修改，已打开完整清单，需核对后一起应用。');}
+        apply();return finish(s.removed?'移除已生效；共享连接、其他账号与历史记录保留。':'已保存的配置现已生效；这不等于真实调用已通过。');
+      case 'applyFail':
+        if(!s.saved)return finish('请先保存账号，再模拟应用失败。',false);
+        s.applied=false;s.applyFailed=true;s.gatewayBlocked=s.native;s.stage='result';s.testReceipt=null;
+        return finish(s.native?'账号已保存，但运行应用失败；模拟网关停止接收新请求。需恢复应用。':'账号已保存，配置应用失败；旧运行配置保留，新变更未生效。');
+      case 'showPending':
+        if(!s.saved)return finish('当前接入尚未保存；完成后会与其他修改一起列明核对。',false);
+        if(s.newModel){s.stage='models';return finish('授权已保存；请继续选择新模型开放范围，接入配置尚未生效。');}
+        s.stage=s.otherDraft?'review':'result';if(s.otherDraft)s.reviewRevision=s.draftRevision;return finish('已打开待应用结果；查看不会自动应用。');
+      case 'manage':s.stage='manage';return finish('查看同一个账号的分项证据与下一步。所有观察值仍为演示数据。');
+      case 'refreshCatalog':
+        if(!s.saved||s.auth!=='active'||absent())return finish('需要有效授权和已保存账号才能更新目录。',false);
+        s.catalog='fresh';return finish('模拟目录已更新；既有开放范围未改变，未发送推理测试。');
+      case 'staleCatalog':if(!s.saved||absent())return finish('请先保存账号。',false);s.catalog='stale';return finish('目录更新失败，保留昨天的成功结果并标注陈旧。');
+      case 'quotaFail':if(!s.saved||absent())return finish('请先保存账号。',false);s.quota='failed';return finish('额度读取失败。没有把空值变成零，也没有自动停用账号。');
+      case 'refreshQuota':if(!s.saved||absent())return finish('请先保存账号。',false);s.quota='not_provided';s.lastQuota='not_provided';return finish('模拟上游响应成功但未提供额度。展示正常空态，不显示零余额；已有未到期限制不会据此解除。');
+      case 'invalidateAuth':
+        if(!s.saved||absent())return finish('请先保存账号。',false);
+        s.auth='expired';s.testReceipt=null;s.stage='manage';return finish('模拟收到明确授权失效证据。需要重新授权，后台不循环重试。');
+      case 'disable':
+      case 'enable':
+        if(!s.saved||absent()||s.auth==='unknown')return finish('先核对已保存的账号状态。',false);
+        s.disabled=action==='disable';s.applied=false;s.testReceipt=null;
+        if(s.newModel){s.stage='models';return finish('启停意图已保存；请先明确新模型开放范围并保存，之后才能一并生效。');}
+        if(s.otherDraft){s.stage='review';s.reviewRevision=s.draftRevision;return finish('启停意图已保存，核对其他修改后才能生效。');}
+        apply();s.stage='manage';return finish(s.disabled?'停用已生效：停止新分配，在途请求自然结束。':'允许账号参与调度；仍需满足授权、连接、额度等条件，未自动测试。');
+      case 'finishRequest':
+        if(s.inFlight<1)return finish('当前没有在途请求。',false);
+        s.inFlight--;s.history++;return finish('一条模拟在途请求自然结束，历史记录增加；未新增请求。');
+      case 'previewDelete':
+        if(!s.saved||absent()||s.auth==='unknown')return finish('先核对已保存账号，再预览删除。',false);
+        s.stage='delete';return finish('请核对账号、关联影响与保留内容。尚未执行删除。');
+      case 'confirmDelete':
+        if(s.stage!=='delete')return finish('请先查看删除影响，不能跳过预览。',false);
+        s.removalSaved=true;s.applied=false;s.testReceipt=null;
+        if(s.otherDraft){s.stage='review';s.reviewRevision=s.draftRevision;return finish('移除已保存；与其他待应用修改一起核对后才生效。');}
+        apply();return finish('当前接入的账号已移除；在途继续，共享连接与历史保留。未撤销上游 token，也未擦除历史配置。');
+      case 'isolate':
+        if(!ready())return finish('只有已生效、未停用且授权有效的账号才能演练临时隔离。',false);
+        s.isolation=true;s.testReceipt=null;s.stage='manage';return finish('模拟临时本地隔离，只影响此账号与连接，不等于授权撤销。');
+      case 'previewRecovery':
+        if(!ready()||!s.isolation||s.quotaExhausted)return finish('没有可解除的本地隔离，或目标被停用、授权失效、配置未生效、额度未到期。不能绕过。',false);
+        s.stage='recovery';return finish('这只解除本地调度阻断。请核对影响后确认，不会请求上游或增加余额。');
+      case 'confirmRecovery':
+        if(s.stage!=='recovery'||!ready()||!s.isolation||s.quotaExhausted)return finish('恢复条件不满足；不改变授权、停用或额度限制。',false);
+        s.isolation=false;s.stage='manage';return finish('允许再次尝试，尚未验证。没有探测上游，也没有更新授权或余额。');
+      case 'exhaustQuota':
+        if(!s.saved||absent())return finish('请先保存账号。',false);s.quotaExhausted=true;s.quota='exhausted';s.lastQuota='exhausted';s.stage='manage';return finish('模拟可信额度已耗尽，重置时间尚未到达；手动解除不能提前补充额度。');
+      case 'previewTest':
+        if(!ready()||s.isolation||s.quotaExhausted||!s.activeScope||s.activeScope==='none')return finish('当前授权、配置、调度或模型开放条件不满足，请先处理对应问题。',false);
+        s.stage='test';return finish('真实产品中，测试可能消耗额度。请先选择模型和协议；此原型仅模拟结果。');
+      case 'simulateTest':
+        if(s.stage!=='test'||!ready()||s.isolation||s.quotaExhausted||s.activeScope==='none')return finish('请先查看测试范围并满足调用条件。',false);
+        s.simulatedTests++;s.testReceipt={model:s.testModel,protocol:s.protocol};s.stage='manage';return finish('模拟测试通过：'+s.testModel+' / '+s.protocol+'。这不是实际调用证据，不代表其他模型或协议通过。');
+      case 'close':
+        if(s.authWaiting){s.authWaiting=false;s.auth='unknown';s.stage='uncertain';return finish('已停止等待，但外部授权结果仍待确认。先核对，不宣称授权已取消。');}
+        if(s.auth==='unknown')return finish('结果仍待确认；关闭不能证明成功、失败或已取消。请先核对。',false);
+        s.resumeStage=s.stage;s.stage='closed';return finish(s.saved?'已关闭任务；已保存账号和待应用修改保留，没有删除或撤销授权。':'已关闭任务；尚未保存账号。未宣称接入完成。');
+      case 'resume':
+        if(s.stage!=='closed')return finish('当前任务仍打开。',false);s.stage=s.resumeStage||'credentials';return finish('已回到原任务，继续处理保留的状态。');
+      default:return finish('当前没有这项可执行操作。',false);
+    }
+  }
+  function primary(s){
+    if(s.removed)return ['已移除','当前接入不再分配新请求；共享配置和历史保留。',''];
+    if(s.removalSaved)return ['移除待生效','删除意图已保存，运行状态尚未采用。','warn'];
+    if(s.disabled)return [s.activeDisabled?'已停用':'停用待生效','保留账号设置；后台不会自动启用。',''];
+    if(s.auth==='unknown')return ['结果待确认','响应丢失，先核对已发生的状态。','warn'];
+    if(s.auth==='expired')return ['需要重新授权','有明确失效证据，当前授权无法继续使用。','bad'];
+    if(s.gatewayBlocked)return ['运行应用失败','账号已保存，网关暂不接收新请求。','bad'];
+    if(s.applyFailed)return ['已保存，应用失败','新配置尚未被运行中的网关采用。','bad'];
+    if(s.saved&&!s.applied)return ['已保存，待生效','账号保存和配置生效是两个结果。','warn'];
+    if(s.quotaExhausted)return ['额度已耗尽','仅针对此演示账号；未到重置时间。','warn'];
+    if(s.isolation)return ['暂时隔离','本地停止分配；不等于授权失效。','warn'];
+    if(!s.saved)return ['接入待完成','提供授权和必要信息，连接由系统组织。',''];
+    if(s.testReceipt)return ['模拟测试通过','仅演示所选模型与协议；真实调用仍未验证。',''];
+    return ['已配置，调用未验证',s.catalog==='stale'?'目录陈旧；可查看昨天的观察并更新。':'没有已知阻断，尚无真实调用证据。',''];
+  }
+  return {initial,transition,primary,scenarios};
+})();
+</script>
+<script>
+// Thin, throwaway presentation. All transitions go through Flow.
+let state=Flow.initial();
+const $=id=>document.getElementById(id);
+const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const btn=(label,action,style='',value='')=>'<button type="button" data-action="'+action+'" data-value="'+escape(value)+'" class="'+style+'">'+escape(label)+'</button>';
+const pill=(label,type='')=>'<span class="pill '+type+'">'+escape(label)+'</span>';
+const scopeName=value=>({work:'日常编程 Key',all:'现有全部 Key',none:'暂不开放'}[value]||'尚未选择');
+const quotaDescription=s=>(s.quota==='failed'?'本次读取失败；上次观察：'+(s.lastQuota==='exhausted'?'已耗尽':s.lastQuota==='not_provided'?'未提供额度':'无成功记录'):s.quota==='none'?'尚未观察':s.quota==='exhausted'?'演示：可信观察为额度耗尽':'上游未提供额度（正常空态，不是零余额）')+(s.quotaExhausted?'；此前耗尽限制保留，重置时间未到':'');
+const section=(title,body)=>'<div class="eyebrow">当前任务 · '+escape(state.channel)+'</div><h2>'+title+'</h2>'+body;
+const rows=entries=>'<div class="rows">'+entries.map(x=>'<dl><dt>'+escape(x[0])+'</dt><dd>'+escape(x[1])+'</dd></dl>').join('')+'</div>';
+function scopeOptions(value){
+  return [['','请选择开放范围'],['work','日常编程 Key'],['all','现有全部 Key'],['none','暂不开放']].map(x=>'<option value="'+x[0]+'"'+(value===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+}
+function renderWork(){
+  const s=state;
+  const stages='<div class="stepbar"><span class="'+(['credentials','authorize','uncertain','identity'].includes(s.stage)?'current':'')+'">01 提供授权</span><span class="'+(['connections','models'].includes(s.stage)?'current':'')+'">02 连接与开放范围</span><span class="'+(['review','result'].includes(s.stage)?'current':'')+'">03 保存与生效</span></div>';
+  let body='';
+  if(s.stage==='credentials'){
+    body=section(s.saved?'更新原账号授权':'添加账号',
+      '<p class="subtle">从渠道开始，连接由系统自动准备。'+(s.disabled?'本账号已停用；更新授权不会将它启用。':'')+'</p>'+
+      '<div class="form-grid"><label class="field"><span>渠道</span><input value="'+escape(s.channel)+' · '+s.method+'" readonly></label><label class="field"><span>账号备注</span><input id="accountName" data-field="accountName" maxlength="50" value="'+escape(s.accountName)+'"></label></div>'+
+      (s.method==='API Key'?'<label class="field"><span>API Key <span class="subtle tiny">· 已填演示值</span></span><input value="DEMO_KEY_ONLY — 不是真实凭据" readonly></label>':'<div class="note">演练只模拟'+s.method+'的开始与返回，不打开登录页面，不访问真实账号。</div>')+
+      '<details><summary class="tiny subtle">连接信息 · 使用官方默认值</summary>'+rows([['地址','官方默认地址（演示）'],['地区 / 代理','沿用渠道默认值；已有连接不被覆盖']])+'</details>'+
+      '<div class="actions">'+btn(s.method==='API Key'?'继续接入':'开始模拟'+s.method,s.method==='API Key'?'prepare':'startAuth','primary')+btn('关闭任务','close')+'</div>');
+  }else if(s.stage==='authorize'){
+    body=section('等待授权返回','<p class="subtle">授权成功后会回到这个任务；中途退出并不能证明上游授权已取消。</p>'+
+      '<div class="note">仅模拟外部授权结果。没有真正发起 OAuth 或设备授权。</div>'+
+      '<label class="field"><span>演练：返回的账号身份</span><select id="identity" data-field="identity">'+[['same','可靠识别为同一账号'],['unknown','身份暂时无法读取'],['different','确认属于另一个账号']].map(x=>'<option value="'+x[0]+'"'+(s.identity===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+
+      '<div class="actions">'+btn('模拟授权完成','grant','primary')+btn('模拟授权被拒绝','deny')+btn('模拟响应丢失','loseReceipt')+btn('停止等待','close')+'</div>');
+  }else if(s.stage==='identity'){
+    body=section('先核对账号身份','<p>未取得足够身份信息，不能自动将新授权覆盖到原账号。</p><div class="note warn">正式产品需要真实身份依据。这个按钮仅模拟后来取得了同一身份的可靠证据，不是强制覆盖。</div><div class="actions">'+btn('模拟补齐身份依据','verifyIdentity','primary')+btn('停止等待','close')+'</div>');
+  }else if(s.stage==='uncertain'){
+    body=section('结果待确认','<p>最后的响应丢失了。授权可能已经保存，先查清结果，避免重复创建。</p><div class="note warn">当前不能确定成功、失败或已取消。重复授权与保存暂不作为下一步。</div><div class="actions">'+btn('核对已发生的结果','reconcile','primary')+'</div>');
+  }else if(s.stage==='connections'){
+    body=section('选一个已有接入配置','<p class="subtle">有两个符合渠道和授权条件的连接，在这里选即可。已有的地址、代理和权限会保留。</p>'+
+      '<button class="conn" data-action="chooseConnection" data-value="direct"><strong>直连 · 日常</strong><span>官方默认地址 · 默认地区 · 不使用代理 · 已启用</span></button>'+
+      '<button class="conn" data-action="chooseConnection" data-value="proxy"><strong>代理 · 备用</strong><span>官方默认地址 · 默认地区 · 使用已有代理组 · 已启用</span></button>');
+  }else if(s.stage==='models'){
+    body=section(s.newModel?'选择模型开放范围':'确认原账号设置','<p class="subtle">'+(s.newModel?'账号发现模型后，还需要决定哪些客户端 API Key 能使用。已有权限保持原样。':'原接入配置与模型权限已保留，确认后保存本次授权更新。')+'</p>'+
+      '<div class="note">'+escape(s.connectionMode)+'接入配置：<strong>'+escape(s.connection)+'</strong>。无需预建服务或接口。</div>'+
+      (s.newModel?'<div class="resource"><div><strong>演示模型 A</strong><span class="model-note">新发现 · 只用于演练，不声明上游实际模型能力</span></div><label><span class="tiny">开放范围</span><select id="scope" data-scope aria-label="新模型开放范围">'+scopeOptions(s.scope)+'</select></label></div>':'<div class="resource"><div><strong>演示模型 A</strong><span class="model-note">已有模型 · 本次不改变权限</span></div>'+pill(scopeName(s.previousScope))+'</div>')+
+      '<p class="tiny subtle">模型发现为模拟观察，不是推理验证。'+(s.newModel?'选择“暂不开放”也可以保存账号。':'本次无需重新选择已有模型的开放范围。')+'</p>'+
+      '<div class="actions">'+btn(s.otherDraft?'保存并核对待应用修改':'保存并自动生效','save','primary')+btn('关闭，稍后继续','close')+'</div>');
+  }else if(s.stage==='review'){
+    body=section('一起核对，再应用','<p class="subtle">账号授权已保存。当前还有其他修改，不能静默夹带生效。</p>'+
+      '<ul class="checklist"><li><span class="check">＋</span>本次：'+(s.removalSaved?'移除“'+escape(s.accountName)+'”及其关联':s.disabled?'停用／更新当前账号，保留停用意图':'接入“'+escape(s.accountName)+'”，新模型开放给 '+escape(scopeName(s.scope)))+'</li><li>已有：将备用连接的权重调整为 2</li><li>已有：更新“自动化 Key”的备注</li>'+(s.extraChange?'<li>刚刚新增：修改连接的超时设置</li>':'')+'</ul>'+
+      (s.reviewRevision!==s.draftRevision?'<div class="note warn">核对期间发生了其他修改。请先重新读取；旧清单不能直接应用。</div>':'<div class="note">确认将使清单内的修改一起生效。也可以全部保留为待应用。</div>')+
+      '<div class="actions">'+(s.reviewRevision!==s.draftRevision?btn('重新读取变更清单','reviewLatest','primary'):btn('核对完成，一并应用','applyTogether','primary'))+btn('保留待应用','keepPending')+'</div>');
+  }else if(s.stage==='result'){
+    body=section(s.applyFailed?'已保存，应用需要处理':s.applied?'接入结果':'已保存，等待应用',
+      rows([['账号授权',s.removalSaved?'移除已保存':s.saved?'已保存；凭据内容不在页面展示':'尚未保存'],['接入配置',s.connection?s.connection+' · '+s.connectionMode:'尚未完成'],['配置生效',s.applyFailed?'失败，需要恢复应用':s.applied?'已生效':'待应用'],['模型开放',s.removalSaved?'移除后不再由此账号承接':s.applied?scopeName(s.scope):scopeName(s.scope)+'（待生效）'],['真实调用','未验证；没有发送推理请求']])+
+      (s.disabled?'<div class="note">授权可以更新，账号仍停用。需要操作者主动启用才允许参与调度。</div>':'')+
+      '<div class="actions">'+(s.applied?btn('查看账号与下一步','manage','primary'):btn(s.applyFailed?'恢复应用':'查看并应用','apply','primary'))+btn('关闭任务','close')+'</div>');
+  }else if(s.stage==='closed'){
+    body=section('任务已关闭','<p>'+escape(s.saved?'已保存账号仍保留，未生效修改也仍在。关闭不是删除或回滚。':'账号尚未保存，可以返回继续；未宣称接入已完成。')+'</p><div class="actions">'+btn('继续原任务','resume','primary')+'</div>');
+  }else if(s.stage==='delete'){
+    body=section('确认移除这个账号','<p class="subtle">只处理当前账号及其关联，先核对对后续请求的影响。</p><div class="delete-box">'+
+      rows([['账号',s.accountName+' · '+s.channel],['关联影响','解除与“'+s.connection+'”的关联'],['其他承接',s.sharedAccounts?'同一连接还有 1 个演示账号；不保证一定能接替请求':'本连接没有其他账号，相关模型可能无法继续调用'],['在途请求',s.inFlight+' 条继续执行，不因删除主动中断'],['保留内容','共享连接、其他账号、历史请求、用量、账本与审计']])+
+      '<p class="tiny subtle">不注销上游账号或撤销 token，也不擦除历史配置凭据；以后应用旧配置时必须提示可能恢复的账号。</p></div><div class="actions">'+btn('确认删除并应用','confirmDelete','danger')+btn('返回账号','manage')+'</div>');
+  }else if(s.stage==='recovery'){
+    body=section('允许再次尝试','<p>目标：'+escape(s.accountName)+' → '+escape(s.connection)+'。只解除此目标的本地调度隔离。</p><div class="note warn">不会更新上游授权或余额，不会发送探测。结果仍是“尚未验证”。停用、明确授权失效和未到期额度不能绕过。</div><div class="actions">'+btn('确认解除本地隔离','confirmRecovery','primary')+btn('返回账号','manage')+'</div>');
+  }else if(s.stage==='test'){
+    body=section('选择测试范围','<p class="subtle">正式产品中，这一步会发起推理并可能消耗额度；此原型只演示反馈。</p>'+
+      '<div class="form-grid"><label class="field"><span>模型</span><select id="testModel" data-field="testModel"><option>演示模型 A</option></select></label><label class="field"><span>下游协议</span><select id="protocol" data-field="protocol">'+['Chat Completions','Messages','Responses'].map(x=>'<option'+(x===s.protocol?' selected':'')+'>'+x+'</option>').join('')+'</select></label></div>'+
+      '<div class="note">一次所选模型与协议的结果，不代表三协议或全部模型可靠。不会发送真实请求。</div><div class="actions">'+btn('仅模拟测试结果','simulateTest','primary')+btn('返回账号','manage')+'</div>');
+  }else{
+    let next=s.auth==='unknown'?btn('核对操作结果','reconcile','primary'):s.auth==='expired'?btn(s.method==='API Key'?'返回接入流程更换凭据':'重新授权',s.method==='API Key'?'resumeCredential':'reauthorize','primary'):!s.applied?btn('恢复配置生效','apply','primary'):s.isolation?btn('查看恢复操作','previewRecovery','primary'):s.catalog==='stale'?btn('更新模型目录','refreshCatalog','primary'):s.removed?'':btn('按需测试调用','previewTest','primary');
+    if(s.removed||(s.disabled&&!['expired','unknown'].includes(s.auth)))next='';
+    body=section('账号详情与下一步','<p class="subtle">'+escape(Flow.primary(s)[1])+'</p>'+
+      rows([['接入配置',(s.connection||'未完成')+' · '+(s.connectionMode||'待准备')],['模型目录',s.catalog==='stale'?'昨天 14:20 的演示目录 · 本次更新失败':s.catalog==='fresh'?'刚刚更新的演示目录':'尚未发现'],['额度',quotaDescription(s)],['开放范围',s.applied?scopeName(s.activeScope):scopeName(s.activeScope)+'（运行中）；变更待生效'],['在途 / 历史',s.inFlight+' 条在途 / '+s.history+' 条历史（合成数据）'],['模拟调用',s.testReceipt?s.testReceipt.model+' / '+s.testReceipt.protocol+' · 模拟通过，不是真实证据':'未做模拟测试；真实调用未验证']])+
+      '<div class="actions">'+next+(!s.removalSaved?(btn('更新额度观察','refreshQuota')+btn(s.disabled?'启用账号':'停用账号',s.disabled?'enable':'disable')+btn('删除账号…','previewDelete','danger')):'')+(s.inFlight?btn('模拟一条在途结束','finishRequest'):'')+'</div>'+
+      (!s.removalSaved?'<details style="margin-top:18px"><summary class="tiny subtle">高级操作与证据详情</summary>'+rows([['身份依据',s.identity==='different'?'新授权身份冲突，原账号保留':s.identity==='unknown'||s.auth==='unknown'?'身份或结果待核对':'演示：已识别为同一账号'],['状态来源','合成场景，不是线上观测'],['授权更新次数',String(s.revision)],['本地隔离',s.isolation?'有本地调度阻断':'无本地隔离'],['历史限制','关联证据不足时须显示不完整，不能猜测归属']])+'<div class="actions">'+btn('允许再次尝试…','previewRecovery','small')+btn('更新目录','refreshCatalog','small')+'</div></details>':''));
+  }
+  return (['manage','delete','recovery','test','closed'].includes(s.stage)?'':stages)+body;
+}
+function render(){
+  const s=state,summary=Flow.primary(s),scenario=Flow.scenarios.find(x=>x.id===s.scenario);
+  const pending=(s.saved&&!s.applied)||s.otherDraft;
+  $('shell').dataset.draft=String(pending);$('flow-dock').hidden=!pending;$('flow-context').textContent=pending?'待应用 · 模拟状态':'离线操作走查';
+  $('global').innerHTML=s.gatewayBlocked?'<div class="note bad global" role="alert"><strong>网关当前无法接收新请求（模拟）</strong> · 账号已保存，但运行应用失败。先恢复应用，再判断账号是否可参与调度。</div>':'';
+  $('status').innerHTML='<div class="status-top flex wrap"><div><div class="status-title"><span class="dot" aria-hidden="true"></span>'+escape(s.accountName)+' '+pill(summary[0],summary[2])+'</div><div class="tiny subtle" style="margin-top:5px">'+escape(s.channel)+' · '+escape(summary[1])+'</div></div><div class="tiny subtle count">账号数 '+Math.max(0,s.accountCount-(s.removed?1:0))+' · 在途 '+s.inFlight+'</div></div>';
+  const evidence=[
+    ['授权',s.removalSaved?'移除已保存':s.auth==='unknown'?'结果待确认':s.auth==='expired'?'需重新授权':s.saved?'已保存':s.auth==='provided'?'已填写，待保存':'未完成'],
+    ['连接',s.connection?(s.connectionMode+' · '+s.connection):'系统将在接入时准备'],
+    ['配置',s.removed?'移除已生效':s.applyFailed?'应用失败':s.applied?'已生效':s.saved?'待生效':'尚未保存'],
+    ['模型',s.catalog==='fresh'?'已发现（模拟）':s.catalog==='stale'?'目录陈旧 · 昨日观察':'尚未发现'],
+    ['开放范围',s.scope?scopeName(s.scope)+(s.applied?'':' · 待生效'):'尚未选择'],
+    ['真实调用',s.testReceipt?'仅模拟通过 · 仍未验证':'尚未验证']];
+  $('evidence').innerHTML=evidence.map(x=>'<dl><dt>'+escape(x[0])+'</dt><dd>'+escape(x[1])+'</dd></dl>').join('');
+  $('work').innerHTML=renderWork();
+  $('notice').className='notice '+(s.outcome==='blocked'?'blocked':'');
+  $('notice').textContent=s.notice;
+  $('tabs').innerHTML=Flow.scenarios.map(x=>'<button role="tab" aria-selected="'+(x.id===s.scenario)+'" aria-controls="guide" data-scenario="'+x.id+'">'+x.label+'</button>').join('');
+  $('guide').innerHTML='<strong>'+escape(scenario.title)+'</strong><p class="tiny subtle">'+escape(scenario.description)+'</p><ol>'+scenario.steps.map((x,i)=>'<li class="'+(i<s.guideStep?'done':i===s.guideStep?'current':'')+'"><button class="run '+(i===s.guideStep?'primary':'')+'" data-guide="'+i+'"'+(i>s.guideStep?' disabled':'')+'>'+(i<s.guideStep?'✓ ':'')+escape(x.label)+'</button></li>').join('')+'</ol>'+(s.guideStep>=scenario.steps.length?'<div class="note">场景已走完。观察上方结果是否符合你的预期；也可以自由触发其他情况。</div>':'')+btn('重新开始这个场景','restart','small');
+  $('stepcount').textContent=s.actionCount+' 次操作';
+  $('log').innerHTML=(s.events.length?s.events.slice(-5).reverse():[{n:0,text:'载入合成场景；未触发任何真实操作。'}]).map(x=>'<li><time>'+String(x.n).padStart(2,'0')+'</time>'+escape(x.text)+'</li>').join('');
+  const actions=[['开始授权','startAuth'],['授权被拒绝','deny'],['回调响应丢失','loseReceipt'],['核对结果','reconcile'],['关闭任务','close'],['继续任务','resume'],['目录变陈旧','staleCatalog'],['额度读取失败','quotaFail'],['授权明确失效','invalidateAuth'],['应用失败','applyFail'],['其他地方修改配置','concurrentEdit'],['尝试一并应用','applyTogether'],['停用','disable'],['启用','enable'],['临时隔离','isolate'],['预览解除隔离','previewRecovery'],['尝试确认解除','confirmRecovery'],['额度耗尽且未到期','exhaustQuota'],['预览删除','previewDelete'],['在途自然结束','finishRequest']];
+  $('freeplay').innerHTML=actions.map(x=>btn(x[0],x[1],'small')).join('');
+}
+function dispatch(action,value){
+  if(action==='restart'){state=Flow.initial(state.scenario);render();return;}
+  const before=state.guideStep,step=Flow.scenarios.find(x=>x.id===state.scenario).steps[before];
+  state=Flow.transition(state,action,value);
+  if(state.outcome==='done'&&step&&step.action===action&&(step.value===undefined||step.value===value))state.guideStep=before+1;
+  render();
+}
+document.addEventListener('click',event=>{
+  const target=event.target.closest('button');if(!target)return;
+  if(target.dataset.shell==='theme'){document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';return;}
+  if(target.dataset.shell==='nav'){const open=$('rail').dataset.open!=='true';$('rail').dataset.open=String(open);target.setAttribute('aria-expanded',String(open));return;}
+  if(target.dataset.scenario){state=Flow.initial(target.dataset.scenario);render();return;}
+  if(target.dataset.guide!==undefined){const step=Flow.scenarios.find(x=>x.id===state.scenario).steps[Number(target.dataset.guide)];dispatch(step.action,step.value);return;}
+  if(target.dataset.action)dispatch(target.dataset.action,target.dataset.value);
+});
+document.addEventListener('change',event=>{
+  const target=event.target;
+  if(target.hasAttribute('data-scope')){dispatch('scope',target.value);return;}
+  if(target.dataset.field){state=Flow.transition(state,'field',{name:target.dataset.field,value:target.value});const id=target.id;render();if(id&&$(id))$(id).focus();}
+});
+render();
+</script>
+</body>
+</html>
