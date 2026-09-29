@@ -15,63 +15,120 @@
   ],
   "v6_style_sha256": "05bcf4f780548ebe43c9d15a2b8fb0ca1c739d2b91d7cd883bf7679117272dbf",
   "v6_style_bytes": 38158,
-  "user_feedback": "PENDING",
+  "revision": 2,
+  "previous_revision": {
+    "commit": "dd60328128eb6b7e7bfc3c8202dbaf1045101acf",
+    "prototype_sha256": "478037aaad194cead112edb4d5bb599ee8efa948e5b725c061d6d3ca84eae15f",
+    "user_feedback": "INCOMPLETE_WALKTHROUGH_FLOW_REVISION_REQUESTED",
+    "note": "First revision was not accepted; its eight guided scenarios are not revision two evidence"
+  },
+  "reference_sources": [
+    {
+      "repository": "router-for-me/CLIProxyAPI",
+      "revision": "acdace936fa7df2905500c7f5e0a97d683138dea"
+    },
+    {
+      "repository": "router-for-me/Cli-Proxy-API-Management-Center",
+      "revision": "4530da271ba2e89810d4dccebc57f3091afa590a"
+    },
+    {
+      "repository": "seakee/CPA-Manager-Plus",
+      "revision": "29d676f8eebfbc11eedc96573f3a059360163a3e"
+    }
+  ],
+  "reference_verification": "PINNED_SOURCE_INSPECTION_ONLY",
+  "permission_decision": {
+    "status": "CONFIRMED",
+    "mode": "separate_management_does_not_block_onboarding",
+    "existing_permissions": "preserved",
+    "new_models": "not_open_until_explicit_grant",
+    "resolution_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/4#issuecomment-5886103785"
+  },
+  "user_feedback": "PENDING_REVISION_2_WALKTHROUGH",
   "browser_acceptance": "PASS_LOCAL_SYNTHETIC_WALKTHROUGH",
   "real_provider": "NOT_RUN",
   "production": "NOT_RUN",
-  "prototype_sha256": "478037aaad194cead112edb4d5bb599ee8efa948e5b725c061d6d3ca84eae15f",
-  "verified_at": "2026-09-29T07:21:17.670504+00:00",
+  "prototype_sha256": "596dc1ae2828c660460fab63f300431c8d813e618fdcfa75ddf22ef8de5a2a46",
+  "verified_at": "2026-09-29T08:02:48.469764+00:00",
   "browser": {
     "tool": "EgoLite via ego-browser",
     "task_space": 26,
-    "guided_scenarios": [
+    "observations": [
       {
-        "scenario": "kimi",
-        "status": "PASS"
+        "id": "api_direct_save",
+        "status": "PASS",
+        "observed": "Kimi API default form saved and applied without permission selection; list showed model not open"
       },
       {
-        "scenario": "oauth",
-        "status": "PASS"
+        "id": "separate_model_permissions",
+        "status": "PASS",
+        "observed": "Saved work scope through row Models; list changed to configured with real calls unverified"
       },
       {
-        "scenario": "uncertain",
-        "status": "PASS"
+        "id": "oauth_auto_registration",
+        "status": "PASS",
+        "observed": "Kiro simulated authorization closed drawer automatically; new account listed with model not open"
       },
       {
-        "scenario": "drafts",
-        "status": "PASS"
+        "id": "reauth_disabled_preserved",
+        "status": "PASS",
+        "observed": "Grok Build reauthorization kept disabled switch false and account count unchanged"
       },
       {
-        "scenario": "management",
-        "status": "PASS"
+        "id": "unknown_authorization",
+        "status": "PASS",
+        "observed": "Response lost then missing identity kept original account; reliable identity query updated without duplication"
       },
       {
-        "scenario": "lifecycle",
-        "status": "PASS"
+        "id": "partial_import_retry",
+        "status": "PASS",
+        "observed": "Two files saved and one invalid; retry processed remaining file only"
       },
       {
-        "scenario": "duplicate",
-        "status": "PASS"
+        "id": "partial_import_after_draft_review",
+        "status": "PASS",
+        "observed": "Failed file and saved rows remained visible after preserving pending changes and reopening import"
       },
       {
-        "scenario": "native",
-        "status": "PASS"
+        "id": "connection_and_drafts",
+        "status": "PASS",
+        "observed": "Multiple connections required inline choice; combined review included two prior edits and new Kimi configuration"
+      },
+      {
+        "id": "concurrent_revision",
+        "status": "PASS",
+        "observed": "Concurrent edit replaced apply action with reload requirement; latest list applied and pending dock cleared"
+      },
+      {
+        "id": "disable_delete",
+        "status": "PASS",
+        "observed": "Disable preserved two in-flight requests; single delete preview stated retained shared resources and history; only target removed from list"
+      },
+      {
+        "id": "new_identity_and_reauth_conflict",
+        "status": "PASS",
+        "observed": "New Codex login accepted different reliable identity; targeted reauthorization rejected different identity"
+      },
+      {
+        "id": "empty_permission_choice",
+        "status": "PASS",
+        "observed": "Empty selection remained visible and prevented permission save without affecting onboarding"
+      },
+      {
+        "id": "global_apply_recovery",
+        "status": "PASS",
+        "observed": "Native-channel simulated failure showed global block; apply cleared block and pending dock"
+      },
+      {
+        "id": "local_isolation_release",
+        "status": "PASS",
+        "observed": "Explicit confirm cleared local isolation with unverified wording and no model request"
       }
-    ],
-    "boundary_observations": [
-      "empty model scope blocks save",
-      "existing scope retained during reauthorization",
-      "conflicting identity cannot overwrite via reconciliation",
-      "unknown identity still requires evidence",
-      "disable before model selection remains pending",
-      "completing onboarding preserves disabled intent",
-      "quota failure retains known exhaustion restriction",
-      "replacement API credential retains old invalid state until save"
     ],
     "visual_review": [
       "desktop light",
       "desktop dark",
-      "390 x 844 narrow layout"
+      "390 x 844 cards and API drawer"
     ],
     "narrow_layout": {
       "viewport": 390,
@@ -79,11 +136,12 @@
       "canvasClientWidth": 390,
       "canvasScrollWidth": 390
     },
-    "evidence_scope": "Offline synthetic prototype only; browser walkthrough is not human acceptance or production verification"
+    "evidence_scope": "Offline synthetic prototype only. Not exhaustive state coverage, per-channel verification, human acceptance or production validation."
   },
   "static_checks": {
     "scripts": "PASS",
     "original_v6_styles_preserved": "PASS",
+    "original_source_hashes": "PASS",
     "external_asset_references": 0,
     "network_api_calls": 0,
     "csp_connect_src": "none"

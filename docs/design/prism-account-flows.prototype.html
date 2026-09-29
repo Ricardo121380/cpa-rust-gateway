@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
-<title>Prism · 账号流程走查 · Liquid V2 / Kimi V6</title>
+<title>Prism · CPA / CPAMP 操作流程 · 第二版</title>
 <!-- Reused verbatim: Kimi K3 reviewed V6 style block. Provenance is in the companion README. -->
 <style>
 /* ============ Prism V6 · 银白/石墨 + Apple 蓝 · Liquid Glass chrome ============ */
@@ -538,60 +538,37 @@ html[data-motion="reduce"]{--dur:0ms;--dur-anneal:0ms}
 @media(max-width:1200px){.band-split{grid-template-columns:1fr;gap:0}}
 </style>
 <style>
-/* ChatGPT Liquid V2 inline workflow container, followed by scoped flow layout. */
+/* Reuse the original V6 shell; only the account workspace below is new. */
 .inline-workspace{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:22px}
 .inline-body{padding:26px}
-
-:root{--accent:var(--tint-fill);--muted:var(--ink-2);--line:var(--separator);--bad:var(--critical);--subtle:var(--surface-2);--dur:0ms;--dur-anneal:0ms}
-.prototype-flow button{border:1px solid var(--separator-2);border-radius:10px;min-height:34px;padding:7px 12px;background:var(--surface);font-size:13px;color:var(--ink)}
-.prototype-flow button:hover{background:var(--surface-2)}
-.prototype-flow button.primary{background:var(--tint-fill);border-color:transparent;color:var(--tint-ink)}
-.prototype-flow button.danger{color:var(--critical)}
-.prototype-flow button.small{font-size:12px;padding:5px 10px}
-.prototype-flow button[disabled]{opacity:.45}
-.prototype-flow .tiny{font-size:12px}.subtle{color:var(--ink-2)}
-.flex{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.prototype-intro{max-width:850px;margin-bottom:21px;font-size:13px;color:var(--ink-2)}
-.prototype-intro strong{color:var(--ink);font-weight:550}
-.prototype-mark{font-size:11px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--separator);border-radius:6px;padding:4px 8px}
-.panel{padding:0;border:0;background:none;box-shadow:none}
-.current-evidence{padding:20px 0;border-top:1px solid var(--separator);border-bottom:1px solid var(--separator)}
-.status-top{margin-bottom:18px}.status-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:600;flex-wrap:wrap}.dot{width:7px;height:7px;border-radius:50%;background:var(--tint)}
-.evidence{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
-.evidence dl{margin:0}.evidence dt{font-size:12px;color:var(--ink-2);margin-bottom:5px}.evidence dd{font-size:12px;margin:0;font-weight:550}
-.board{display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:30px;align-items:start}
-.work{min-height:410px}.work h2{font-size:20px;margin:5px 0 8px}.work p{margin:8px 0 15px}.eyebrow{font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--tint)}
-.stepbar{display:flex;gap:13px;font-size:12px;color:var(--ink-3);margin-bottom:22px}.stepbar .current{color:var(--tint);font-weight:600}
-.field{margin:16px 0;display:block}.field>span{display:block;margin-bottom:7px;font-weight:550;font-size:13px}
-.prototype-flow input,.prototype-flow select{width:100%;padding:9px 11px;border:1px solid var(--separator-2);border-radius:10px;background:var(--surface-2);color:var(--ink)}
-.prototype-flow input[readonly]{color:var(--ink-2)}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
-.note{padding:12px 14px;background:var(--surface-2);border-radius:10px;font-size:13px}
-.note.warn{background:color-mix(in srgb,var(--warn) 8%,var(--surface));color:var(--ink)}
-.note.bad{background:color-mix(in srgb,var(--critical) 7%,var(--surface));color:var(--critical)}
-.global{margin:18px 0}.pill.bad{background:color-mix(in srgb,var(--critical) 8%,var(--surface));color:var(--critical)}
-.resource{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0;border-bottom:1px solid var(--separator)}
-.resource strong{display:block}.resource select{width:180px}.model-note{color:var(--ink-2);font-size:12px}
-.checklist{margin:15px 0;padding:0;list-style:none}.checklist li{padding:10px 0;border-bottom:1px solid var(--separator)}.check{color:var(--good);margin-right:8px}
-.rows{margin:13px 0}.rows dl{display:grid;grid-template-columns:102px minmax(0,1fr);gap:14px;margin:0;padding:10px 0;border-bottom:1px solid var(--separator);font-size:13px}.rows dt{color:var(--ink-2)}.rows dd{margin:0;overflow-wrap:anywhere}
-.guide{padding:24px 0 0 23px;border-left:1px solid var(--separator);align-self:stretch}.guide h2{margin:0 0 7px;font-size:14px}
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:13px 0 18px}.tabs button{font-size:11px;padding:8px 7px;text-align:left}.tabs button[aria-selected=true]{background:var(--surface-2);color:var(--tint);border-color:color-mix(in srgb,var(--tint) 35%,var(--surface))}
-.guide ol{padding-left:21px;margin:13px 0}.guide li{padding:4px 0;font-size:12px;color:var(--ink-2)}.guide li.done{color:var(--good)}.guide li.current{color:var(--ink);font-weight:600}
-.guide .run{width:100%;text-align:left;font-size:12px}.guide .run.primary{background:var(--surface-2);color:var(--ink);border:1px solid var(--separator-2)}
-.guide hr{border:0;border-top:1px solid var(--separator);margin:20px 0}.guide p{margin-top:8px}
-.log{font-size:11px!important;list-style:none;padding:0!important;max-height:170px;overflow:auto}.log li{padding:7px 0;border-bottom:1px solid var(--separator)}.log time{color:var(--ink-3);margin-right:7px;font-variant-numeric:tabular-nums}
-#notice{margin-top:16px;min-height:44px;border:0;border-left:3px solid var(--tint);border-radius:0;background:var(--surface-2);font-size:13px}
-#notice.blocked{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 6%,var(--surface))}
-.lab{margin-top:22px;padding-top:17px;border-top:1px solid var(--separator)}.lab summary{font-size:13px;font-weight:550;cursor:pointer}.lab p{margin-top:10px}.lab .buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
-.count{font-variant-numeric:tabular-nums}.conn{display:block;width:100%;margin:10px 0;text-align:left;padding:14px!important}.conn span{display:block;color:var(--ink-2);font-size:12px;margin-top:4px}
-.delete-box{border:1px solid color-mix(in srgb,var(--critical) 28%,var(--surface));border-radius:12px;padding:17px}
-.nav-link[aria-disabled=true]{opacity:.68;cursor:default}
-.prototype-dock[hidden]{display:none!important}
-.prototype-flow footer{margin-top:22px;border-top:1px solid var(--separator);padding-top:15px;display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--ink-2)}
-@media(max-width:1300px){.board{grid-template-columns:minmax(0,1fr) 250px;gap:22px}.guide{padding-left:18px}.evidence{grid-template-columns:repeat(3,minmax(0,1fr))}.inline-body{padding:20px}}
-@media(max-width:1050px){.board{grid-template-columns:1fr}.guide{border-left:0;border-top:1px solid var(--separator);margin-top:24px;padding:20px 0 0}.tabs{grid-template-columns:repeat(4,1fr)}.guide ol{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}.guide .log{display:block}}
-@media(max-width:760px){.form-grid{grid-template-columns:1fr}.resource{align-items:start;flex-direction:column}.resource select{width:100%}.evidence{grid-template-columns:1fr 1fr}.tabs{grid-template-columns:1fr 1fr}.guide ol{display:block}.inline-body{padding:18px 14px}.stepbar{gap:10px;flex-wrap:wrap}.prototype-flow footer{flex-direction:column}.rows dl{grid-template-columns:85px minmax(0,1fr)}.prototype-dock{white-space:normal;font-size:12px;min-width:260px}.prototype-mark{display:none}}
+:root{--line:var(--separator);--dur:0ms;--dur-anneal:0ms}
+.prototype-flow{min-height:calc(100dvh - 130px)}
+#canvas{scroll-padding-top:100px;scroll-padding-bottom:80px}
+.prototype-flow .page-head{margin-bottom:24px}.proto-tag{font-size:11px;color:var(--ink-2);white-space:nowrap}
+.flow-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0}.flow-bar .left,.flow-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.flow-search{width:220px!important}.prototype-flow input,.prototype-flow select,.flow-dialog input,.flow-dialog select,.flow-dialog textarea{border:1px solid var(--separator-2);border-radius:9px;background:var(--surface);color:var(--ink);padding:9px 11px;max-width:100%;font:inherit}
+.flow-dialog input,.flow-dialog select,.flow-dialog textarea{width:100%}.flow-dialog textarea{min-height:130px;resize:vertical;font-size:12px;font-family:ui-monospace,monospace}
+.flow-dialog input[readonly],.flow-dialog textarea[readonly]{background:var(--surface-2);color:var(--ink-2)}
+.flow-table-wrap{overflow:auto;border-top:1px solid var(--separator)}.flow-table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}
+.flow-table th{font-size:11px;color:var(--ink-2);font-weight:500;padding:12px 10px;background:transparent;white-space:nowrap}.flow-table td{padding:16px 10px;border-top:1px solid var(--separator);vertical-align:middle}.flow-table tr:hover td{background:var(--surface-2)}
+.account-name{font-weight:600;display:block;color:var(--ink);background:none;border:0;text-align:left;padding:0;cursor:pointer}.flow-secondary{font-size:11px;color:var(--ink-2);margin-top:5px;line-height:1.65;max-width:280px}.flow-table .flow-actions{min-width:185px;gap:5px}.flow-table .btn{min-height:29px;padding:4px 8px;font-size:12px}
+.flow-status{display:inline-flex;align-items:center;gap:6px;font-size:12px}.flow-status:before{content:'';height:6px;width:6px;border-radius:50%;background:var(--ink-3)}.flow-status.warn:before{background:var(--warn)}.flow-status.bad:before{background:var(--critical)}.flow-status.good:before{background:var(--good)}
+.flow-switch{height:22px;min-width:38px;border:0;border-radius:20px;background:var(--ink-3);padding:3px;cursor:pointer}.flow-switch:before{content:'';display:block;background:white;width:16px;height:16px;border-radius:50%}.flow-switch[aria-checked=true]{background:var(--tint)}.flow-switch[aria-checked=true]:before{margin-left:16px}
+.row-more{position:relative}.row-more summary{list-style:none;cursor:pointer;color:var(--ink-2);font-size:12px;padding:5px 7px}.row-more[open] .row-menu{position:absolute;right:0;top:30px;background:var(--surface);border:1px solid var(--separator);box-shadow:0 8px 24px #0002;padding:6px;z-index:8;border-radius:10px;min-width:128px;display:grid;gap:3px}.row-menu .btn{justify-content:flex-start}
+.flow-note{padding:12px 14px;background:var(--surface-2);border-radius:10px;font-size:12px;line-height:1.7}.flow-note.warn{background:color-mix(in srgb,var(--warn) 8%,var(--surface))}.flow-note.bad{background:color-mix(in srgb,var(--critical) 8%,var(--surface));color:var(--critical)}
+.flow-alert{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}.flow-toast{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 15px;border-left:3px solid var(--tint);background:var(--surface-2);font-size:12px;margin-bottom:18px}.flow-toast.warn{border-color:var(--warn)}.flow-toast.bad{border-color:var(--critical)}
+.flow-empty{padding:64px 20px;text-align:center;color:var(--ink-2)}.flow-empty h2{font-size:18px;color:var(--ink);margin-bottom:10px}.flow-empty .btn{margin-top:18px}
+.flow-field{display:block;margin:16px 0;font-size:13px}.flow-field>span{display:block;font-weight:550;margin-bottom:7px}.flow-help{font-size:11px;line-height:1.7;color:var(--ink-2);margin-top:6px}.flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.flow-grid .wide{grid-column:1/-1}
+.flow-dialog{position:fixed;inset:84px 14px 14px auto;margin:0;width:min(640px,calc(100vw - 28px));height:calc(100dvh - 98px);max-height:none;border-radius:18px;box-shadow:0 25px 90px #0003}.flow-dialog::backdrop{background:#0c142426;backdrop-filter:blur(2px)}
+.flow-dialog[open]{display:flex;flex-direction:column}.flow-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 24px;border-bottom:1px solid var(--separator);flex:none}.flow-dialog-head h2{font-size:18px;margin:0}.flow-dialog-body{padding:22px 24px;overflow:auto;flex:1}.flow-dialog-foot{padding:16px 24px;border-top:1px solid var(--separator);display:flex;justify-content:flex-end;gap:8px;flex:none;background:var(--surface)}
+.flow-dialog details{margin:20px 0;border-top:1px solid var(--separator);padding-top:14px}.flow-dialog summary{cursor:pointer;font-size:12px;color:var(--ink-2)}.flow-dialog h3{font-size:14px;margin:20px 0 10px}.flow-dialog .segment{margin-bottom:18px}
+.flow-definition{margin:0}.flow-definition>div{display:grid;grid-template-columns:100px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--separator);font-size:12px}.flow-definition dt{color:var(--ink-2)}.flow-definition dd{margin:0;overflow-wrap:anywhere}.flow-model{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 0}.flow-model strong{font-size:13px}.flow-model select{width:200px}
+.login-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.login-card-flow{border:1px solid var(--separator);border-radius:14px;padding:21px}.login-card-flow h2{font-size:17px;margin:0 0 5px}.login-card-flow .brand-symbol{font-size:19px;font-weight:700;background:var(--surface-2);border:1px solid var(--separator);width:42px;height:42px;display:grid;place-items:center;border-radius:12px;margin-bottom:17px}.login-card-flow p{font-size:12px;color:var(--ink-2);min-height:36px;margin-bottom:18px}
+.flow-mock{margin-top:24px;border:1px dashed var(--separator-2);border-radius:10px;padding:12px;background:var(--surface-2)}.flow-mock .flow-actions{margin-top:10px}.flow-mock select{font-size:12px;margin-top:8px}.flow-mock-label{font-size:11px;color:var(--ink-2)}
+.flow-lab{margin-top:26px;border-top:1px solid var(--separator);padding-top:13px;color:var(--ink-2)}.flow-lab>summary{font-size:11px;cursor:pointer}.flow-lab-inner{padding:14px 0;display:grid;gap:14px}.flow-lab select{max-width:340px}.flow-lab .flow-actions .btn{font-size:11px}.flow-footer{display:flex;justify-content:space-between;gap:15px;margin-top:24px;font-size:11px;color:var(--ink-3)}
+.nav-link[aria-disabled=true]{opacity:.68;cursor:default}.prototype-dock[hidden]{display:none!important}
+@media(max-width:1150px){.login-grid{grid-template-columns:1fr 1fr}.flow-table{min-width:850px}}
+@media(max-width:760px){.flow-table-wrap{overflow:visible;border-top:0}.flow-table{min-width:0;display:block}.flow-table thead{display:none}.flow-table tbody{display:grid;gap:14px}.flow-table tr{display:grid;grid-template-columns:1fr auto;border:1px solid var(--separator);border-radius:12px;padding:6px}.flow-table td{display:block;border:0;padding:9px}.flow-table td:nth-child(n+3){grid-column:1/-1}.flow-table tr:hover td{background:transparent}.flow-table .flow-actions{min-width:0}.flow-table td:nth-child(2){text-align:right}.flow-dialog{inset:10px;width:calc(100vw - 20px);height:calc(100dvh - 20px);border-radius:14px}.flow-dialog-head,.flow-dialog-body,.flow-dialog-foot{padding:16px}.flow-grid,.login-grid{grid-template-columns:1fr}.flow-model{align-items:start;flex-direction:column}.flow-model select{width:100%}.flow-footer{flex-direction:column}.flow-alert{align-items:start;flex-direction:column}.flow-bar .left{width:100%}.flow-search{width:100%!important}.proto-tag{display:none}}
 </style>
 </head>
 <body>
@@ -599,323 +576,265 @@ html[data-motion="reduce"]{--dur:0ms;--dur-anneal:0ms}
 <header class="topbar glass" data-pane="topbar" data-material="active"><button class="icon-btn mobile-menu" type="button" data-shell="nav" aria-label="展开导航" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 <div class="brand"><svg class="brandmark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="prism-g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a84ff"/><stop offset=".5" stop-color="#8273e8"/><stop offset="1" stop-color="#37bca5"/></linearGradient></defs><path d="M20 4 36.5 33h-33Z" fill="url(#prism-g)"/><path d="M20 4v29H3.5Z" fill="#fff" opacity=".22"/><path d="M20 12.5 30.5 30.5h-21Z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.4"/></svg><span class="brand-name">Prism</span><span class="brand-tag">网关控制台</span></div><span class="top-divider"></span><nav class="crumb" aria-label="当前位置"><span>资源</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg><b>账号</b></nav><span class="grow"></span>
 <span class="vctx" id="flow-context">离线操作走查</span><button class="icon-btn" type="button" data-shell="theme" aria-label="切换深浅外观"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.2A8.2 8.2 0 1 1 10.8 4a6.6 6.6 0 0 0 9.2 9.2Z"/></svg></button><span class="avatar" aria-label="演示管理者">AD</span></header>
-<aside class="rail glass" data-pane="rail" data-material="active" id="rail"><nav class="nav-scroll" aria-label="主导航"><div class="nav-group"><div class="nav-label">运行</div><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>总览</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>请求与失败</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg><span>用量分析</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21Z"/><path d="M9.5 8h5M9.5 12h5"/></svg><span>计费与价格</span></span></div><div class="nav-group"><div class="nav-label">资源</div><a class="nav-link" href="#accounts" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3.8 20c.4-3.2 2.6-5 5.2-5s4.8 1.8 5.2 5"/><path d="M15.6 4.9a3.4 3.4 0 0 1 0 6.3M17.3 15.4c1.7.8 2.8 2.3 3 4.6"/></svg><span>账号池</span></a><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6.8v10.4L12 21l7.5-3.8V6.8Z"/><path d="M4.5 6.8 12 10.5l7.5-3.7M12 10.5V21"/></svg><span>上游</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.2C10.2 4.8 7.7 4.2 4.5 4.2v14c3.2 0 5.7.6 7.5 2 1.8-1.4 4.3-2 7.5-2v-14c-3.2 0-5.7.6-7.5 2Z"/><path d="M12 6.2v14"/></svg><span>模型目录</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.3"/><circle cx="19" cy="5.5" r="2.3"/><circle cx="19" cy="18.5" r="2.3"/><path d="m7.2 11 9.6-4.6M7.2 13l9.6 4.6"/></svg><span>模型与路由</span></span></div><div class="nav-group"><div class="nav-label">管理</div><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15.5" r="4.2"/><path d="m11.2 12.3 8.3-8.3M16 7l3 3M13.2 9.8l2 2"/></svg><span>访问控制</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M8.4 15.6a5.1 5.1 0 0 1 0-7.2M15.6 8.4a5.1 5.1 0 0 1 0 7.2M5.6 18.4a9.2 9.2 0 0 1 0-12.8M18.4 5.6a9.2 9.2 0 0 1 0 12.8"/></svg><span>运行诊断</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.2c0 4.4 3 8.3 7 9.8 4-1.5 7-5.4 7-9.8V6Z"/><path d="m9.3 12 2 2 3.4-3.6"/></svg><span>出口策略</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 4.8-9 4.8-9-4.8Z"/><path d="m4.5 12.7 7.5 4 7.5-4M4.5 16.7l7.5 4 7.5-4"/></svg><span>配置版本</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5.6" rx="7" ry="2.7"/><path d="M5 5.6v12.8c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7V5.6"/><path d="M5 12c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7"/></svg><span>审计与备份</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h9M17.5 8H20M4 16h3.5M12 16h8"/><circle cx="15" cy="8" r="2.3"/><circle cx="9.5" cy="16" r="2.3"/></svg><span>设置</span></span></div></nav><div class="rail-bottom"><div class="rail-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.2c0 4.4 3 8.3 7 9.8 4-1.5 7-5.4 7-9.8V6Z"/><path d="m9.3 12 2 2 3.4-3.6"/></svg><div><b>离线操作走查</b><span>沿用已有界面 · 本轮聚焦账号</span></div></div></div></aside>
-<main class="canvas" id="canvas"><div class="sheet prototype-flow" id="accounts"><div class="page-head"><div><h1>账号</h1><p class="subtitle">在当前任务完成接入，看清每个状态和下一步。</p></div><span class="prototype-mark">沿用 Liquid V2 / Kimi V6</span></div>
-<div class="prototype-intro"><strong>操作走查：</strong>不预建服务与接口，是否能完成接入、处理授权失败并理解生效结果？<br>全部为合成数据，无网络或真实授权；请勿输入真实凭据，刷新即重置。</div>
-<div id="global"></div>
-<section class="panel current-evidence" aria-label="当前账号与证据"><div id="status"></div><div id="evidence" class="evidence"></div></section>
-<div class="board"><div><section class="inline-workspace" aria-label="操作区域"><div id="work" class="inline-body work"></div></section><div id="notice" class="notice" role="status" aria-live="polite"></div>
-<details class="panel lab"><summary>自由演练：触发边界情况</summary><p class="tiny subtle">按钮始终可尝试；条件不满足时解释原因，不强行改变状态。这些是演练开关，不是未来产品按钮。</p><div id="freeplay" class="buttons"></div></details></div>
-<aside class="panel guide" aria-label="引导演练"><h2>按场景体验</h2><div class="tiny subtle">先走前三项。切换场景会重置模拟状态。</div><div id="tabs" class="tabs" role="tablist" aria-label="演练场景"></div><div id="guide"></div><hr><div class="flex"><strong class="tiny">刚才发生了什么</strong><span id="stepcount" class="tiny count"></span></div><ol id="log" class="log"></ol></aside></div>
-<footer><span>讨论稿 · 验证流程与反馈，视觉样式尚未定稿</span><span>真实请求 <strong>0</strong> · 持久化 <strong>无</strong> · 数据仅在当前页面内</span></footer>
-</div></main>
-<div class="dock glass prototype-dock" data-pane="dock" data-material="draft" id="flow-dock" hidden><div><strong>有已保存的待应用修改</strong><br><small>先核对结果和影响，再决定应用</small></div><button class="btn" type="button" data-action="showPending">查看修改</button></div></div>
+<aside class="rail glass" data-pane="rail" data-material="active" id="rail"><nav class="nav-scroll" aria-label="主导航"><div class="nav-group"><div class="nav-label">运行</div><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>总览</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>请求与失败</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg><span>用量分析</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21Z"/><path d="M9.5 8h5M9.5 12h5"/></svg><span>计费与价格</span></span></div><div class="nav-group"><div class="nav-label">资源</div><a class="nav-link" href="#accounts" data-view="accounts" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3.8 20c.4-3.2 2.6-5 5.2-5s4.8 1.8 5.2 5"/><path d="M15.6 4.9a3.4 3.4 0 0 1 0 6.3M17.3 15.4c1.7.8 2.8 2.3 3 4.6"/></svg><span>账号管理</span></a><a class="nav-link" href="#providers" data-view="providers"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6.8v10.4L12 21l7.5-3.8V6.8Z"/><path d="M4.5 6.8 12 10.5l7.5-3.7M12 10.5V21"/></svg><span>API 配置</span></a><a class="nav-link" href="#oauth" data-view="oauth"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6.8v10.4L12 21l7.5-3.8V6.8Z"/><path d="M4.5 6.8 12 10.5l7.5-3.7M12 10.5V21"/></svg><span>授权登录</span></a><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.2C10.2 4.8 7.7 4.2 4.5 4.2v14c3.2 0 5.7.6 7.5 2 1.8-1.4 4.3-2 7.5-2v-14c-3.2 0-5.7.6-7.5 2Z"/><path d="M12 6.2v14"/></svg><span>模型目录</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.3"/><circle cx="19" cy="5.5" r="2.3"/><circle cx="19" cy="18.5" r="2.3"/><path d="m7.2 11 9.6-4.6M7.2 13l9.6 4.6"/></svg><span>模型与路由</span></span></div><div class="nav-group"><div class="nav-label">管理</div><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15.5" r="4.2"/><path d="m11.2 12.3 8.3-8.3M16 7l3 3M13.2 9.8l2 2"/></svg><span>访问控制</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M8.4 15.6a5.1 5.1 0 0 1 0-7.2M15.6 8.4a5.1 5.1 0 0 1 0 7.2M5.6 18.4a9.2 9.2 0 0 1 0-12.8M18.4 5.6a9.2 9.2 0 0 1 0 12.8"/></svg><span>运行诊断</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.2c0 4.4 3 8.3 7 9.8 4-1.5 7-5.4 7-9.8V6Z"/><path d="m9.3 12 2 2 3.4-3.6"/></svg><span>出口策略</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 4.8-9 4.8-9-4.8Z"/><path d="m4.5 12.7 7.5 4 7.5-4M4.5 16.7l7.5 4 7.5-4"/></svg><span>配置版本</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5.6" rx="7" ry="2.7"/><path d="M5 5.6v12.8c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7V5.6"/><path d="M5 12c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7"/></svg><span>审计与备份</span></span><span class="nav-link" aria-disabled="true" title="本轮只走查账号流程"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h9M17.5 8H20M4 16h3.5M12 16h8"/><circle cx="15" cy="8" r="2.3"/><circle cx="9.5" cy="16" r="2.3"/></svg><span>设置</span></span></div></nav><div class="rail-bottom"><div class="rail-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.2c0 4.4 3 8.3 7 9.8 4-1.5 7-5.4 7-9.8V6Z"/><path d="m9.3 12 2 2 3.4-3.6"/></svg><div><b>离线操作走查</b><span>CPA / CPAMP 操作参照</span></div></div></div></aside>
+
+<main class="canvas" id="canvas"><div class="sheet prototype-flow"><div id="workspace"></div><details class="flow-lab" id="lab"><summary>原型演示工具 · 切换数据和异常情况</summary><div id="lab-body" class="flow-lab-inner"></div></details><footer class="flow-footer"><span>Prism · 沿用 ChatGPT Liquid V2 / Kimi V6 · 操作参考 CPA / CPAMP</span><span>合成数据 · 无网络请求 · 刷新重置</span></footer></div></main>
+<div class="dock glass prototype-dock" id="flow-dock" data-pane="dock" data-material="draft" hidden><span id="draft-text"></span><button class="btn" data-action="review">查看修改</button></div></div>
+<dialog id="flow-sheet" class="flow-dialog" aria-labelledby="sheet-title"><div id="sheet-content"></div></dialog>
 <script>
-// Portable, pure state model. No DOM, network, storage, timers or provider data.
-const Flow = (() => {
-  const step = (label, action, value) => ({label, action, value});
-  const scenarios = [
-    {id:'kimi',label:'01 Kimi 首次接入',title:'从零开始接入 Kimi API',description:'只提供必要信息，连接自动准备；选好新模型开放范围后保存并自动生效。观察调用验证仍为空。',steps:[step('使用演示密钥继续','prepare'),step('把新模型开放给日常编程 Key','scope','work'),step('保存并自动生效','save'),step('查看分阶段结果','manage')]},
-    {id:'oauth',label:'02 OAuth 正常',title:'授权完成后回到同一任务',description:'用 Codex 演示 OAuth。授权保存与配置生效分别反馈，回到当前流程完成模型开放。',steps:[step('开始模拟 OAuth 授权','startAuth'),step('模拟同一账号授权完成','grant'),step('选择新模型开放范围','scope','work'),step('保存并自动生效','save')]},
-    {id:'uncertain',label:'03 授权中断',title:'响应丢失，先核对再继续',description:'回调没有返回，不代表授权失败或取消。先查询已发生的结果，避免重复创建和覆盖。',steps:[step('开始模拟授权','startAuth'),step('模拟回调响应丢失','loseReceipt'),step('核对已发生的结果','reconcile'),step('选择模型开放范围','scope','work'),step('保存并生效','save')]},
-    {id:'drafts',label:'04 连接与待应用',title:'多个连接，还有旧修改',description:'在当前流程选连接，再核对旧修改与本次接入。也可保留待应用；并发变化后需要重新核对。',steps:[step('提供演示密钥','prepare'),step('选择“代理 · 备用”','chooseConnection','proxy'),step('选择新模型开放范围','scope','work'),step('保存并查看合并清单','save'),step('模拟另一处修改配置','concurrentEdit'),step('重新读取变更清单','reviewLatest'),step('确认一并应用','applyTogether')]},
-    {id:'management',label:'05 日常诊断',title:'陈旧目录、未知额度与授权失效',description:'额度未提供是正常空态。更新目录不等于测试调用；真正授权失效时才引导重新授权。',steps:[step('更新模型目录','refreshCatalog'),step('模拟额度读取失败','quotaFail'),step('恢复额度观察为空态','refreshQuota'),step('模拟授权明确失效','invalidateAuth'),step('在原账号重新授权','reauthorize'),step('模拟同一账号授权完成','grant'),step('保存并生效，保留原权限','save')]},
-    {id:'lifecycle',label:'06 停用与删除',title:'在途请求与共享连接',description:'停用只停止新分配，已有两条请求保留。删除前预览关联影响，历史记录和共享连接保留。',steps:[step('停用并生效','disable'),step('模拟一条在途请求结束','finishRequest'),step('预览删除影响','previewDelete'),step('确认删除并应用','confirmDelete')]},
-    {id:'duplicate',label:'07 重复授权',title:'新授权不启用已停用账号',description:'可靠确认同一账号后更新原授权。账号数量、连接和既有权限保持不变，停用意图保留。',steps:[step('开始更新原账号授权','startAuth'),step('模拟同一账号授权完成','grant'),step('保存授权更新并生效','save')]},
-    {id:'native',label:'08 应用与隔离',title:'已保存，但网关尚未采用',description:'用 Grok Build 演示保存成功、运行应用失败的全局影响。解除本地隔离也不代表上游恢复。',steps:[step('重新应用已保存结果','apply'),step('模拟临时本地隔离','isolate'),step('查看解除隔离的影响','previewRecovery'),step('确认允许再次尝试','confirmRecovery')]}
+// Pure prototype state. The page renders it; no services, timers or persistence.
+const AccountFlow = (()=>{
+  const permissionMode='separate';
+  const channels=[
+    {id:'kimi-api',name:'Kimi API',kind:'api',url:'https://api.moonshot.cn/v1'},
+    {id:'openai-compatible',name:'OpenAI 兼容',kind:'api',url:''},
+    {id:'anthropic-compatible',name:'Anthropic 兼容',kind:'api',url:''},
+    {id:'grok.official',name:'Grok Official',kind:'api',url:'https://api.x.ai/v1'},
+    {id:'codex',name:'Codex',kind:'oauth'}, {id:'claude',name:'Claude',kind:'oauth'},
+    {id:'kimi-coding',name:'Kimi Coding',kind:'device'}, {id:'grok.build',name:'Grok Build',kind:'device'},
+    {id:'kiro',name:'Kiro',kind:'device'}, {id:'grok.console',name:'Grok Console',kind:'import'}, {id:'grok.web',name:'Grok Web',kind:'import'}
   ];
-  function initial(id='kimi') {
-    const managed=['management','lifecycle','duplicate','native'].includes(id);
-    const oauth=['oauth','uncertain','duplicate'].includes(id);
-    return {scenario:id,guideStep:0,channel:oauth?'Codex':id==='native'?'Grok Build':id==='lifecycle'?'Codex':id==='management'?'Kimi Coding':'Kimi API',method:oauth||id==='lifecycle'?'OAuth':['native','management'].includes(id)?'设备授权':'API Key',
-      native:id==='native',accountName:oauth?'演示 · 编程账号':id==='native'?'演示 · Build 账号':'演示 · 日常账号',
-      stage:managed && id!=='duplicate'?'manage':'credentials',resumeStage:null,
-      saved:managed,auth:managed?'active':'none',authWaiting:false,credentialReady:false,
-      identity:'same',accountCount:managed?2:0,revision:managed?1:0,
-      connection:managed?'日常接入':null,connectionMode:managed?'复用':null,matches:id==='drafts'?2:managed?1:0,
-      catalog:managed?(id==='management'?'stale':'fresh'):'none',quota:managed?'not_provided':'none',lastQuota:managed?'not_provided':null,
-      scope:managed?'work':'',newModel:!managed,previousScope:managed?'work':null,
-      applied:managed&&id!=='native',activeScope:managed?'work':null,applyFailed:id==='native',gatewayBlocked:id==='native',
-      otherDraft:id==='drafts',draftRevision:1,reviewRevision:null,extraChange:false,
-      disabled:id==='duplicate',activeDisabled:id==='duplicate',isolation:false,quotaExhausted:false,
-      inFlight:id==='lifecycle'?2:0,history:managed?12:0,sharedAccounts:managed?1:0,removalSaved:false,removed:false,
-      simulatedTests:0,testModel:'演示模型 A',protocol:'Chat Completions',testReceipt:null,
-      notice:'已载入“'+scenarios.find(x=>x.id===id).title+'”。所有数据均为模拟。',outcome:'done',events:[],actionCount:0};
+  const channel=id=>channels.find(x=>x.id===id);
+  const account=(id,c,name,extra={})=>({id,channel:c,name,identity:'demo-'+c+'-primary',auth:'active',disabled:false,activeDisabled:false,applied:true,scope:'work',connection:'日常接入',catalog:'fresh',quota:'not_provided',lastQuota:'not_provided',quotaExhausted:false,inFlight:0,revision:1,test:null,removed:false,isolation:false,...extra});
+  function initial(scene='normal'){
+    const s={view:'accounts',filter:'all',query:'',sheet:null,form:null,selected:null,tab:'overview',toast:null,scene,accounts:[account('codex-main','codex','Codex · 日常'),account('kimi-work','kimi-coding','Kimi Coding · 编程',{auth:'expired'}),account('claude-main','claude','Claude · 工作',{catalog:'stale'}),account('build-backup','grok.build','Grok Build · 备用',{disabled:true,activeDisabled:true}),account('api-main','openai-compatible','兼容 API · 演示',{url:'https://gateway.example.invalid/v1'})],pending:[],draftRevision:1,reviewRevision:null,authSession:null,importRows:[],historyCount:148,globalBlocked:false,nextId:1,nextApplyFail:false,multipleConnections:false,labOpen:false,events:[]};
+    if(scene==='empty'){s.accounts=[];s.view='providers';}
+    if(scene==='drafts'){s.pending=[{type:'other',label:'已有修改：备用连接权重 1 → 2'},{type:'other',label:'已有修改：自动化 Key 备注'}];s.multipleConnections=true;s.view='providers';}
+    if(scene==='lifecycle')s.accounts[0].inFlight=2;
+    if(scene==='native'){s.accounts[3].disabled=false;s.accounts[3].activeDisabled=false;s.accounts[3].applied=false;s.accounts[3].applyFailed=true;s.pending=[{id:'build-backup',type:'update',label:'Grok Build · 备用：等待恢复应用'}];s.globalBlocked=true;}
+    return s;
   }
-  const clone = s => JSON.parse(JSON.stringify(s));
-  function transition(previous, action, value) {
-    let s=clone(previous);
-    const finish=(message,ok=true)=>{s.notice=message;s.outcome=ok?'done':'blocked';s.actionCount++;s.events.push({n:s.actionCount,text:message});return s;};
-    const absent=()=>s.removalSaved||s.removed;
-    const ready=()=>s.saved && s.auth==='active' && s.connection && s.applied && !s.disabled && !absent() && !s.gatewayBlocked;
-    const prepare=()=>{s.catalog='fresh';if(s.matches>1&&!s.connection){s.stage='connections';return;}
-      s.connection=s.connection||'官方默认接入';s.connectionMode=s.matches?'复用':'自动创建';s.stage='models';};
-    const apply=()=>{s.applied=true;s.applyFailed=false;s.gatewayBlocked=false;s.otherDraft=false;s.activeScope=s.scope;s.activeDisabled=s.disabled;if(s.removalSaved)s.removed=true;s.stage=s.removed?'manage':'result';};
-    if(action==='field'){s[value.name]=value.value;s.outcome='field';return s;}
+  const copy=x=>JSON.parse(JSON.stringify(x));
+  function transition(prev,action,value={}){
+    const s=copy(prev),find=id=>s.accounts.find(x=>x.id===id),target=()=>find(value.id||s.selected),say=(message,tone='')=>{s.toast={message,tone};s.events.push(message);return s;};
+    const close=()=>{s.sheet=null;s.form=null;s.scopeChoice=null;};
+    const inherited=c=>s.accounts.find(x=>x.channel===c&&!x.removed)?.scope;
+    const newScope=form=>inherited(form.channel)||form.scope||'none';
+    const apply=()=>{
+      if(s.nextApplyFail){s.nextApplyFail=false;for(const p of s.pending){const a=find(p.id);if(a){a.applyFailed=true;if(['grok.build','grok.console','grok.web'].includes(a.channel))s.globalBlocked=true;}}return false;}
+      for(const p of s.pending){const a=find(p.id);if(!a)continue;a.applied=true;a.applyFailed=false;a.activeDisabled=a.disabled;if(p.type==='delete')a.removed=true;}
+      s.pending=[];s.globalBlocked=false;return true;
+    };
+    const queue=(items,keepSheet=false)=>{
+      const old=s.pending.length>0;
+      for(const p of items){s.pending=s.pending.filter(x=>x.id!==p.id||x.type==='other');s.pending.push(p);const a=find(p.id);if(a){a.applied=false;a.test=null;}}
+      s.draftRevision++;
+      if(old){s.sheet='review';s.reviewRevision=s.draftRevision;return say('已保存；还有其他待应用修改，请核对后一起应用，或保留待应用。','warn');}
+      const success=apply();if(!keepSheet)close();return say(success?'已保存并自动生效。真实调用尚未验证。':'已保存，应用失败。请从待应用修改中恢复。',''+(success?'':'bad'));
+    };
+    const makeForm=(c,id)=>{const a=find(id);return {id:a?.id||null,channel:c,name:a?.name||channel(c).name+' · 演示',url:a?.url??channel(c).url??'',scope:'',connection:a?.connection||(s.multipleConnections?'':'官方默认接入'),keys:1,modelsRead:false,tested:false,error:null};};
+    const authFinish=()=>{
+      const session=s.authSession;if(!session||!['waiting','unknown'].includes(session.status))return say('当前没有待完成的授权。','warn');
+      if(session.identity==='different'&&session.id){session.status='conflict';return say('返回身份与目标账号不同，未覆盖原账号。','bad');}
+      if(session.identity==='unknown'){session.status='identity';return say('身份依据不足，保留原账号，等待重新查询。','warn');}
+      const identity=session.identity==='different'?'demo-'+session.channel+'-other':session.identityKey;
+      let a=find(session.id)||s.accounts.find(x=>!x.removed&&x.channel===session.channel&&x.identity===identity);if(!a){a=account('added-'+s.nextId++,session.channel,channel(session.channel).name+' · 新账号',{scope:session.scope,connection:session.connection,identity});s.accounts.unshift(a);}
+      else {a.auth='active';a.revision++;a.test=null;}
+      session.id=a.id;session.status='success';s.selected=a.id;const result=queue([{id:a.id,type:'update',label:a.name+'：授权已保存'}]);
+      if(s.sheet!=='review')s.sheet=null;
+      return result;
+    };
     switch(action){
-      case 'prepare':
-        if(s.stage!=='credentials'||s.method!=='API Key'||absent())return finish('当前不是填写 API Key 的步骤。',false);
-        s.credentialReady=true;if(!s.saved)s.auth='provided';prepare();return finish(s.matches>1?'找到两个符合条件的接入配置，请在这里选择。':'连接已自动准备；凭据仍待保存。'+(s.newModel?'请选择新模型开放范围。':'已有模型权限保持不变。'));
-      case 'startAuth':
-      case 'reauthorize':
-        if(s.method==='API Key')return finish('这个渠道使用 API Key；请在原接入流程中更换凭据，不提供 OAuth 入口。',false);
-        if(absent()||s.auth==='unknown')return finish('请先核对不确定结果，不能直接重复授权。',false);
-        s.priorAuth=s.auth;s.authWaiting=true;s.stage='authorize';s.resumeStage=null;return finish('已开始模拟授权。完成或失败都会回到当前任务，未打开外部网站。');
-      case 'resumeCredential':
-        if(s.method!=='API Key'||absent()||s.auth==='unknown')return finish('当前不能直接更换 API Key，请先核对账号状态。',false);
-        s.stage='credentials';return finish('请更换演示凭据后继续；原设置与权限保留。');
-      case 'deny':
-        if(!s.authWaiting)return finish('当前没有进行中的授权。',false);
-        s.authWaiting=false;s.stage='credentials';return finish('授权被拒绝；未保存新的授权。已有账号与设置保留，可以重试。');
-      case 'grant':
-        if(!s.authWaiting)return finish('请先开始授权。',false);
-        if(s.identity==='different')return finish('新授权属于另一个账号，拒绝覆盖。原账号及设置保留。',false);
-        if(s.identity==='unknown'){s.stage='identity';return finish('身份暂时无法确认。请核对目标账号，不能宣称已验证为同一身份。',false);}
-        s.authWaiting=false;if(!s.saved)s.accountCount++;s.saved=true;s.auth='active';s.revision++;s.applied=false;s.testReceipt=null;prepare();
-        return finish('授权已保存到原任务，'+(s.disabled?'账号仍保持停用。':'配置尚未生效。')+'连接与已有权限保留。');
-      case 'verifyIdentity':
-        if(s.stage!=='identity')return finish('当前没有待核对身份。',false);
-        s.identity='same';s.stage='authorize';return finish('模拟补充了同一身份的可靠证据，可以继续保存授权。');
-      case 'loseReceipt':
-        if(!s.authWaiting&&!['models','result'].includes(s.stage))return finish('请在授权或保存流程中演练响应丢失。',false);
-        s.authWaiting=false;s.auth='unknown';s.stage='uncertain';s.testReceipt=null;return finish('响应丢失，结果待确认。先查询账号与操作状态，不重复提交，也不宣称已取消。');
-      case 'reconcile':
-        if(s.auth!=='unknown')return finish('当前没有结果不确定的操作。',false);
-        if(s.identity==='different'){s.auth=s.priorAuth||(s.saved?'active':'none');s.stage='credentials';return finish('核对结果：新授权属于另一个账号，未覆盖原授权。原账号和设置保留，请重新选择正确账号。',false);}
-        if(s.identity==='unknown'){s.authWaiting=true;s.stage='identity';return finish('回读仍缺少身份依据；继续核对，不能把授权保存为同一账号。',false);}
-        if(!s.saved)s.accountCount++;s.saved=true;s.auth='active';s.revision++;s.applied=false;prepare();return finish('已核对：模拟授权实际已保存。继续原任务，不重复创建账号；配置尚未生效。');
-      case 'chooseConnection':
-        if(s.stage!=='connections')return finish('当前无需选择连接。',false);
-        s.connection=value==='proxy'?'代理 · 备用':'直连 · 日常';s.connectionMode='复用';s.catalog='fresh';s.stage='models';return finish('已复用“'+s.connection+'”，保留其地址、地区和代理设置。');
-      case 'scope':
-        if(s.stage!=='models'||!s.newModel)return finish('当前没有需要选择开放范围的新模型；已有权限保持不变。',false);
-        s.scope=value||'';return finish(!s.scope?'尚未选择开放范围，请明确选择，也可以暂不开放。':s.scope==='none'?'已明确选择暂不开放新模型。':'已选择新模型开放范围；应用前不会改变运行中的权限。',Boolean(s.scope));
-      case 'save':
-        if(s.stage!=='models'||!s.connection||(!['active','provided'].includes(s.auth)&&!(s.method==='API Key'&&s.credentialReady)))return finish('请先完成授权与接入配置。',false);
-        if(s.newModel&&!s.scope)return finish('请选择新模型开放范围，也可以明确选择“暂不开放”。',false);
-        if(!s.saved){s.accountCount++;s.revision++;}else if(s.method==='API Key'&&s.credentialReady)s.revision++;s.saved=true;s.auth='active';s.credentialReady=false;s.applied=false;s.testReceipt=null;
-        if(s.newModel){s.previousScope=s.scope;s.newModel=false;}if(s.quota==='none'){s.quota='not_provided';s.lastQuota='not_provided';}
-        if(s.otherDraft){s.reviewRevision=s.draftRevision;s.stage='review';return finish('账号已保存。还有其他待应用修改，请核对合并清单后决定是否一起应用。');}
-        apply();return finish('账号已保存，连接已完成，配置已自动生效。'+(s.disabled?'停用状态保留。':'真实调用仍未验证。'));
-      case 'keepPending':
-        if(!s.saved||s.applied)return finish('当前没有已保存但待应用的修改。',false);
-        s.stage='result';return finish('已保留待应用。没有发布其他修改，账号保存结果仍在。');
-      case 'concurrentEdit':
-        if(s.stage!=='review')return finish('请先进入合并修改核对。',false);
-        s.draftRevision++;s.extraChange=true;return finish('模拟另一处增加了修改。原核对结果已过期，应用前需重新读取。');
-      case 'reviewLatest':
-        if(s.stage!=='review')return finish('当前没有合并清单需要核对。',false);
-        s.reviewRevision=s.draftRevision;return finish('已重新读取完整清单，包含新出现的修改，请重新确认。');
-      case 'applyTogether':
-        if(s.stage!=='review'||s.reviewRevision!==s.draftRevision)return finish('清单已变化或尚未核对，不能用旧结果应用。请重新读取。',false);
-        if(s.newModel){s.stage='models';return finish('请先明确新模型开放范围并保存，再核对合并清单。',false);}
-        apply();return finish('已按确认的合并清单一起应用，未覆盖并发修改。调用仍未验证。');
-      case 'apply':
-        if(!s.saved||s.auth==='unknown')return finish('先确认账号保存结果，再应用配置。',false);
-        if(s.newModel){s.stage='models';return finish('请先明确新模型开放范围并保存；不能跳过这个选择。',false);}
-        if(s.otherDraft){s.stage='review';s.reviewRevision=s.draftRevision;return finish('存在其他待应用修改，已打开完整清单，需核对后一起应用。');}
-        apply();return finish(s.removed?'移除已生效；共享连接、其他账号与历史记录保留。':'已保存的配置现已生效；这不等于真实调用已通过。');
-      case 'applyFail':
-        if(!s.saved)return finish('请先保存账号，再模拟应用失败。',false);
-        s.applied=false;s.applyFailed=true;s.gatewayBlocked=s.native;s.stage='result';s.testReceipt=null;
-        return finish(s.native?'账号已保存，但运行应用失败；模拟网关停止接收新请求。需恢复应用。':'账号已保存，配置应用失败；旧运行配置保留，新变更未生效。');
-      case 'showPending':
-        if(!s.saved)return finish('当前接入尚未保存；完成后会与其他修改一起列明核对。',false);
-        if(s.newModel){s.stage='models';return finish('授权已保存；请继续选择新模型开放范围，接入配置尚未生效。');}
-        s.stage=s.otherDraft?'review':'result';if(s.otherDraft)s.reviewRevision=s.draftRevision;return finish('已打开待应用结果；查看不会自动应用。');
-      case 'manage':s.stage='manage';return finish('查看同一个账号的分项证据与下一步。所有观察值仍为演示数据。');
-      case 'refreshCatalog':
-        if(!s.saved||s.auth!=='active'||absent())return finish('需要有效授权和已保存账号才能更新目录。',false);
-        s.catalog='fresh';return finish('模拟目录已更新；既有开放范围未改变，未发送推理测试。');
-      case 'staleCatalog':if(!s.saved||absent())return finish('请先保存账号。',false);s.catalog='stale';return finish('目录更新失败，保留昨天的成功结果并标注陈旧。');
-      case 'quotaFail':if(!s.saved||absent())return finish('请先保存账号。',false);s.quota='failed';return finish('额度读取失败。没有把空值变成零，也没有自动停用账号。');
-      case 'refreshQuota':if(!s.saved||absent())return finish('请先保存账号。',false);s.quota='not_provided';s.lastQuota='not_provided';return finish('模拟上游响应成功但未提供额度。展示正常空态，不显示零余额；已有未到期限制不会据此解除。');
-      case 'invalidateAuth':
-        if(!s.saved||absent())return finish('请先保存账号。',false);
-        s.auth='expired';s.testReceipt=null;s.stage='manage';return finish('模拟收到明确授权失效证据。需要重新授权，后台不循环重试。');
-      case 'disable':
-      case 'enable':
-        if(!s.saved||absent()||s.auth==='unknown')return finish('先核对已保存的账号状态。',false);
-        s.disabled=action==='disable';s.applied=false;s.testReceipt=null;
-        if(s.newModel){s.stage='models';return finish('启停意图已保存；请先明确新模型开放范围并保存，之后才能一并生效。');}
-        if(s.otherDraft){s.stage='review';s.reviewRevision=s.draftRevision;return finish('启停意图已保存，核对其他修改后才能生效。');}
-        apply();s.stage='manage';return finish(s.disabled?'停用已生效：停止新分配，在途请求自然结束。':'允许账号参与调度；仍需满足授权、连接、额度等条件，未自动测试。');
-      case 'finishRequest':
-        if(s.inFlight<1)return finish('当前没有在途请求。',false);
-        s.inFlight--;s.history++;return finish('一条模拟在途请求自然结束，历史记录增加；未新增请求。');
-      case 'previewDelete':
-        if(!s.saved||absent()||s.auth==='unknown')return finish('先核对已保存账号，再预览删除。',false);
-        s.stage='delete';return finish('请核对账号、关联影响与保留内容。尚未执行删除。');
-      case 'confirmDelete':
-        if(s.stage!=='delete')return finish('请先查看删除影响，不能跳过预览。',false);
-        s.removalSaved=true;s.applied=false;s.testReceipt=null;
-        if(s.otherDraft){s.stage='review';s.reviewRevision=s.draftRevision;return finish('移除已保存；与其他待应用修改一起核对后才生效。');}
-        apply();return finish('当前接入的账号已移除；在途继续，共享连接与历史保留。未撤销上游 token，也未擦除历史配置。');
-      case 'isolate':
-        if(!ready())return finish('只有已生效、未停用且授权有效的账号才能演练临时隔离。',false);
-        s.isolation=true;s.testReceipt=null;s.stage='manage';return finish('模拟临时本地隔离，只影响此账号与连接，不等于授权撤销。');
-      case 'previewRecovery':
-        if(!ready()||!s.isolation||s.quotaExhausted)return finish('没有可解除的本地隔离，或目标被停用、授权失效、配置未生效、额度未到期。不能绕过。',false);
-        s.stage='recovery';return finish('这只解除本地调度阻断。请核对影响后确认，不会请求上游或增加余额。');
-      case 'confirmRecovery':
-        if(s.stage!=='recovery'||!ready()||!s.isolation||s.quotaExhausted)return finish('恢复条件不满足；不改变授权、停用或额度限制。',false);
-        s.isolation=false;s.stage='manage';return finish('允许再次尝试，尚未验证。没有探测上游，也没有更新授权或余额。');
-      case 'exhaustQuota':
-        if(!s.saved||absent())return finish('请先保存账号。',false);s.quotaExhausted=true;s.quota='exhausted';s.lastQuota='exhausted';s.stage='manage';return finish('模拟可信额度已耗尽，重置时间尚未到达；手动解除不能提前补充额度。');
-      case 'previewTest':
-        if(!ready()||s.isolation||s.quotaExhausted||!s.activeScope||s.activeScope==='none')return finish('当前授权、配置、调度或模型开放条件不满足，请先处理对应问题。',false);
-        s.stage='test';return finish('真实产品中，测试可能消耗额度。请先选择模型和协议；此原型仅模拟结果。');
-      case 'simulateTest':
-        if(s.stage!=='test'||!ready()||s.isolation||s.quotaExhausted||s.activeScope==='none')return finish('请先查看测试范围并满足调用条件。',false);
-        s.simulatedTests++;s.testReceipt={model:s.testModel,protocol:s.protocol};s.stage='manage';return finish('模拟测试通过：'+s.testModel+' / '+s.protocol+'。这不是实际调用证据，不代表其他模型或协议通过。');
+      case 'view':s.view=value.view;s.query='';s.filter='all';return s;
+      case 'filter':s.filter=value.value;return s;
+      case 'query':s.query=value.value;return s;
+      case 'dismiss':s.toast=null;return s;
+      case 'field':if(s.form)s.form[value.name]=value.value;return s;
+      case 'newApi':s.form=makeForm('kimi-api');s.sheet='api';return s;
+      case 'editApi':{const a=target();if(!a)return s;s.form=makeForm(a.channel,a.id);s.sheet='api';return s;}
+      case 'apiChannel':s.form=makeForm(value.channel);return s;
+      case 'addKey':if(s.form)s.form.keys++;return s;
+      case 'discoverForm':if(s.form){s.form.modelsRead=true;s.form.error=null;}return say('模型读取完成（模拟）。保存不以目录读取或测试通过为前提。');
+      case 'testForm':if(s.form){s.form.tested=true;s.form.error=null;}return say('所选演示模型的测试结果已模拟；没有发送真实推理。');
+      case 'saveApi':{
+        const f=s.form;if(!f||s.sheet!=='api')return s;
+        if(!f.name.trim()||!/^https?:\/\//.test(f.url)){f.error='请填写名称和有效的 Base URL。';return s;}
+        if(!f.connection){f.error='有多个匹配的接入配置，请在当前表单选择。';return s;}
+        let a=find(f.id);if(a){a.name=f.name;a.url=f.url;a.auth='active';a.revision++;}
+        else {a=account('added-'+s.nextId++,f.channel,f.name,{url:f.url,scope:newScope(f),connection:f.connection});s.accounts.unshift(a);}
+        s.selected=a.id;return queue([{id:a.id,type:'update',label:a.name+'：保存 API 配置'}]);
+      }
+      case 'login':{
+        const a=value.id?find(value.id):null,c=value.channel||a?.channel;s.form=makeForm(c,value.id);s.sheet='auth';
+        s.authSession={channel:c,id:value.id||null,identityKey:a?.identity||'demo-'+c+'-primary',status:'setup',identity:'same',origin:s.view,scope:a?.scope||inherited(c)||'none',connection:a?.connection||s.form.connection};
+        if(s.form.connection)s.authSession.status='waiting';return s;
+      }
+      case 'beginAuth':{
+        if(!s.form||!s.authSession)return s;
+        if(!s.form.connection){s.form.error='请选择要复用的接入配置。';return s;}
+        s.authSession.scope=newScope(s.form);s.authSession.connection=s.form.connection;s.authSession.status='waiting';s.form.error=null;return s;
+      }
+      case 'authIdentity':if(s.authSession)s.authSession.identity=value.value;return s;
+      case 'authComplete':return authFinish();
+      case 'authDenied':if(s.authSession)s.authSession.status='denied';return say('本次授权被拒绝；没有保存新授权，已有账号和设置保留。','warn');
+      case 'authLost':if(s.authSession)s.authSession.status='unknown';return say('授权响应未确认。先查询结果，不重复授权。','warn');
+      case 'checkAuth':if(s.authSession?.status==='identity'){if(s.authSession.identity==='same')s.authSession.status='unknown';else return say('仍缺少可靠的同一账号身份依据。','warn');}return authFinish();
+      case 'retryAuth':if(s.authSession){s.authSession.status='waiting';s.authSession.identity='same';}return s;
+      case 'resumeAuth':if(s.authSession)s.sheet='auth';return s;
+      case 'viewAccounts':s.view='accounts';close();return s;
       case 'close':
-        if(s.authWaiting){s.authWaiting=false;s.auth='unknown';s.stage='uncertain';return finish('已停止等待，但外部授权结果仍待确认。先核对，不宣称授权已取消。');}
-        if(s.auth==='unknown')return finish('结果仍待确认；关闭不能证明成功、失败或已取消。请先核对。',false);
-        s.resumeStage=s.stage;s.stage='closed';return finish(s.saved?'已关闭任务；已保存账号和待应用修改保留，没有删除或撤销授权。':'已关闭任务；尚未保存账号。未宣称接入完成。');
-      case 'resume':
-        if(s.stage!=='closed')return finish('当前任务仍打开。',false);s.stage=s.resumeStage||'credentials';return finish('已回到原任务，继续处理保留的状态。');
-      default:return finish('当前没有这项可执行操作。',false);
+        if(s.sheet==='auth'&&s.authSession?.status==='waiting'){s.authSession.status='unknown';close();return say('已停止等待；授权结果待确认，可从提示继续核对。','warn');}
+        close();return s;
+      case 'import':s.sheet='import';if(!s.importRows.some(r=>r.status!=='saved'))s.importRows=[];s.form={channel:'codex',scope:''};return s;
+      case 'importSample':
+        s.importRows=[{name:'codex-main.demo.json',channel:'codex',match:'codex-main',status:'ready'},{name:'kimi-coding.demo.json',channel:'kimi-coding',status:'ready'},{name:'invalid.demo.json',channel:'codex',status:'invalid'}];return s;
+      case 'submitImport':{
+        if(!s.importRows.length)return say('请先选择示例文件或载入示例 JSON。','warn');
+        const items=[];for(const r of s.importRows){if(r.status==='saved')continue;if(r.status==='invalid'){r.error='JSON 格式不完整，未保存。';continue;}
+          let a=find(r.match)||s.accounts.find(x=>!x.removed&&x.channel===r.channel&&x.identity==='demo-file-'+r.name);if(a){a.auth='active';a.revision++;a.test=null;}else{a=account('added-'+s.nextId++,r.channel,channel(r.channel).name+' · 导入示例',{scope:inherited(r.channel)||'none',identity:'demo-file-'+r.name});s.accounts.unshift(a);r.match=a.id;}r.status='saved';items.push({id:a.id,type:'update',label:a.name+'：导入授权'});
+        }
+        if(items.length)queue(items,true);
+        const failed=s.importRows.filter(r=>r.status!=='saved').length;
+        if(s.sheet!=='review')s.sheet='import';
+        return say('已保存 '+s.importRows.filter(r=>r.status==='saved').length+' 项，'+failed+' 项待处理。'+(s.pending.length?'保存结果已保留，配置仍待应用。':'成功项已回到账号列表并生效。'),failed?'warn':'');
+      }
+      case 'fixImport':s.importRows=s.importRows.map(r=>r.status==='invalid'?{...r,status:'ready',error:null}:r);return s;
+      case 'detail':s.selected=value.id;s.scopeChoice=null;s.tab=value.tab||'overview';s.sheet='detail';return s;
+      case 'tab':s.tab=value.tab;return s;
+      case 'modelScope':s.scopeChoice=value.value;return s;
+      case 'saveScope':{const a=target();if(!a)return s;const choice=s.scopeChoice??a.scope;if(!choice)return say('请选择开放范围。','warn');if(choice===a.scope){close();return say('模型权限保持不变。');}a.scope=choice;s.scopeChoice=null;return queue([{id:a.id,type:'update',label:a.name+'：更新演示模型的开放范围'}]);}
+      case 'refreshModels':{const a=target();if(!a)return s;if(a.auth!=='active')return say('授权已失效，请先重新授权。旧目录仍保留。','warn');a.catalog='fresh';return say('模型目录已更新（模拟）；已有权限不变，未测试调用。');}
+      case 'refreshQuota':{const a=target();if(!a)return s;a.quota='not_provided';a.lastQuota='not_provided';return say('上游未提供额度（模拟），不记为零余额；未到期的耗尽限制仍保留。');}
+      case 'toggle':{const a=target();if(!a||a.auth==='unknown')return say('请先核对账号状态。','warn');a.disabled=!a.disabled;const res=queue([{id:a.id,type:'update',label:a.name+'：'+(a.disabled?'停用':'启用')}]);if(a.applied)return say(a.disabled?'已停用；不再分配新请求，在途请求自然结束。':'已启用；仍须满足授权、额度及模型权限。');return res;}
+      case 'delete':s.selected=value.id;s.sheet='delete';return s;
+      case 'confirmDelete':{const a=target();if(!a||s.sheet!=='delete')return s;a.deletionPending=true;const res=queue([{id:a.id,type:'delete',label:a.name+'：移除账号及其关联'}]);return a.removed?say('账号已移除，共享接入配置、在途请求和历史记录保留。'):res;}
+      case 'review':s.sheet='review';s.reviewRevision=s.draftRevision;return s;
+      case 'keepPending':close();return say('保留待应用；已保存结果仍在，运行配置没有被此操作更新。');
+      case 'concurrentEdit':s.pending.push({type:'other',label:'核对期间新增：连接超时设置'});s.draftRevision++;return say('清单已变化，请重新读取后确认。','warn');
+      case 'reviewLatest':s.reviewRevision=s.draftRevision;return s;
+      case 'apply':if(s.reviewRevision!==s.draftRevision)return say('清单已变化，不能使用旧核对结果。','warn');if(!apply())return say('保存结果保留，运行应用仍失败。','bad');close();return say('清单内修改已一起生效；没有发送推理测试。');
+      case 'test':{const a=target();if(!a)return s;s.selected=a.id;if(a.disabled||!a.applied||a.auth!=='active'||a.scope==='none'||a.quotaExhausted||a.isolation)return say('当前账号不满足调用条件，请先处理其状态或模型权限。','warn');s.sheet='test';s.form={protocol:'Chat Completions'};return s;}
+      case 'runTest':{const a=target();if(!a||s.sheet!=='test')return s;a.test=s.form.protocol;close();return say('仅模拟了演示模型 / '+a.test+' 的测试结果。真实调用仍未验证。');}
+      case 'recovery':{const a=target();if(!a||a.disabled||a.auth!=='active'||!a.applied||a.quotaExhausted||!a.isolation)return say('当前没有可解除的隔离，或存在停用、失效授权、配置/额度限制。','warn');s.selected=a.id;s.sheet='recovery';return s;}
+      case 'confirmRecovery':{const a=target();if(!a||s.sheet!=='recovery'||a.disabled||a.auth!=='active'||!a.applied||a.quotaExhausted)return say('恢复条件已变化，未解除限制。','warn');a.isolation=false;close();return say('允许再次尝试，尚未验证。没有更新上游授权、余额或执行探测。');}
+      case 'scenario':return initial(value.scene);
+      case 'lab':{
+        const a=target()||s.accounts.find(x=>!x.removed);if(value.kind==='applyFailure'){s.nextApplyFail=true;return say('下一次应用将返回演示失败。');}if(!a)return s;
+        if(value.kind==='expired')a.auth='expired';if(value.kind==='quotaFailure')a.quota='failed';if(value.kind==='stale')a.catalog='stale';if(value.kind==='isolated')a.isolation=true;
+        if(value.kind==='exhausted'){a.quotaExhausted=true;a.quota='exhausted';a.lastQuota='exhausted';}
+        if(value.kind==='finish'&&a.inFlight){a.inFlight--;s.historyCount++;}
+        return say('已为“'+a.name+'”载入演示状态；不是线上观察。');
+      }
+      default:return s;
     }
   }
-  function primary(s){
-    if(s.removed)return ['已移除','当前接入不再分配新请求；共享配置和历史保留。',''];
-    if(s.removalSaved)return ['移除待生效','删除意图已保存，运行状态尚未采用。','warn'];
-    if(s.disabled)return [s.activeDisabled?'已停用':'停用待生效','保留账号设置；后台不会自动启用。',''];
-    if(s.auth==='unknown')return ['结果待确认','响应丢失，先核对已发生的状态。','warn'];
-    if(s.auth==='expired')return ['需要重新授权','有明确失效证据，当前授权无法继续使用。','bad'];
-    if(s.gatewayBlocked)return ['运行应用失败','账号已保存，网关暂不接收新请求。','bad'];
-    if(s.applyFailed)return ['已保存，应用失败','新配置尚未被运行中的网关采用。','bad'];
-    if(s.saved&&!s.applied)return ['已保存，待生效','账号保存和配置生效是两个结果。','warn'];
-    if(s.quotaExhausted)return ['额度已耗尽','仅针对此演示账号；未到重置时间。','warn'];
-    if(s.isolation)return ['暂时隔离','本地停止分配；不等于授权失效。','warn'];
-    if(!s.saved)return ['接入待完成','提供授权和必要信息，连接由系统组织。',''];
-    if(s.testReceipt)return ['模拟测试通过','仅演示所选模型与协议；真实调用仍未验证。',''];
-    return ['已配置，调用未验证',s.catalog==='stale'?'目录陈旧；可查看昨天的观察并更新。':'没有已知阻断，尚无真实调用证据。',''];
+  function status(a){
+    if(a.deletionPending&&!a.removed)return ['移除待生效','已保存移除意图，运行状态尚未采用','warn'];
+    if(a.disabled)return [a.activeDisabled?'已停用':'停用待生效','保留授权与设置，不自动启用',''];
+    if(a.auth==='expired')return ['需要重新授权','授权已失效，请更新原账号授权','bad'];
+    if(a.applyFailed)return ['应用失败','账号已保存，配置尚未被采用','bad'];
+    if(!a.applied)return ['已保存，待生效','查看待应用修改','warn'];
+    if(a.quotaExhausted)return ['额度已耗尽','观察范围：此演示账号；重置时间未到','warn'];
+    if(a.isolation)return ['暂时隔离','本地停止分配，授权仍保留','warn'];
+    if(a.scope==='none')return ['模型未开放','接入已生效，可从模型设置开放范围','warn'];
+    return ['已配置，调用未验证',a.catalog==='stale'?'模型目录陈旧，可按需更新':'没有已知阻断，尚无真实调用证据',''];
   }
-  return {initial,transition,primary,scenarios};
+  return {initial,transition,status,channels,channel,permissionMode};
 })();
 </script>
 <script>
-// Thin, throwaway presentation. All transitions go through Flow.
-let state=Flow.initial();
-const $=id=>document.getElementById(id);
-const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const btn=(label,action,style='',value='')=>'<button type="button" data-action="'+action+'" data-value="'+escape(value)+'" class="'+style+'">'+escape(label)+'</button>';
-const pill=(label,type='')=>'<span class="pill '+type+'">'+escape(label)+'</span>';
-const scopeName=value=>({work:'日常编程 Key',all:'现有全部 Key',none:'暂不开放'}[value]||'尚未选择');
-const quotaDescription=s=>(s.quota==='failed'?'本次读取失败；上次观察：'+(s.lastQuota==='exhausted'?'已耗尽':s.lastQuota==='not_provided'?'未提供额度':'无成功记录'):s.quota==='none'?'尚未观察':s.quota==='exhausted'?'演示：可信观察为额度耗尽':'上游未提供额度（正常空态，不是零余额）')+(s.quotaExhausted?'；此前耗尽限制保留，重置时间未到':'');
-const section=(title,body)=>'<div class="eyebrow">当前任务 · '+escape(state.channel)+'</div><h2>'+title+'</h2>'+body;
-const rows=entries=>'<div class="rows">'+entries.map(x=>'<dl><dt>'+escape(x[0])+'</dt><dd>'+escape(x[1])+'</dd></dl>').join('')+'</div>';
-function scopeOptions(value){
-  return [['','请选择开放范围'],['work','日常编程 Key'],['all','现有全部 Key'],['none','暂不开放']].map(x=>'<option value="'+x[0]+'"'+(value===x[0]?' selected':'')+'>'+x[1]+'</option>').join('');
+let state=AccountFlow.initial();
+const $=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const button=(label,action,params={},kind='')=>'<button type="button" class="btn '+kind+'" data-action="'+action+'" data-params="'+esc(JSON.stringify(params))+'">'+esc(label)+'</button>';
+const scopeLabel=x=>({work:'日常编程 Key',all:'现有全部 Key',none:'暂不开放'}[x]||'请选择开放范围');
+const scopeOptions=value=>[['','请选择开放范围'],['work','日常编程 Key'],['all','现有全部 Key'],['none','暂不开放']].map(([v,t])=>'<option value="'+v+'"'+(v===value?' selected':'')+'>'+t+'</option>').join('');
+const options=(items,current)=>items.map(([v,t])=>'<option value="'+esc(v)+'"'+(v===current?' selected':'')+'>'+esc(t)+'</option>').join('');
+const note=(text,tone='')=>'<div class="flow-note '+tone+'">'+text+'</div>';
+const defs=items=>'<dl class="flow-definition">'+items.map(([a,b])=>'<div><dt>'+esc(a)+'</dt><dd>'+esc(b)+'</dd></div>').join('')+'</dl>';
+const current=()=>state.accounts.find(a=>a.id===state.selected);
+const quota=a=>a.quota==='failed'?'读取失败 · 上次'+(a.lastQuota==='exhausted'?'已耗尽':'未提供额度'):a.quotaExhausted?'额度耗尽 · 未到重置时间':'上游未提供额度';
+function modelPolicy(form){
+  const original=state.accounts.find(a=>a.id===form.id),existing=state.accounts.find(a=>a.channel===form.channel&&!a.removed);
+  if(original||existing)return '<p class="flow-help">已有模型沿用原权限：'+esc(scopeLabel((original||existing).scope))+'。本次接入不扩大权限。</p>';
+  return '<p class="flow-help">新模型暂不开放。接入后可通过账号的“模型”设置客户端权限。</p>';
 }
-function renderWork(){
-  const s=state;
-  const stages='<div class="stepbar"><span class="'+(['credentials','authorize','uncertain','identity'].includes(s.stage)?'current':'')+'">01 提供授权</span><span class="'+(['connections','models'].includes(s.stage)?'current':'')+'">02 连接与开放范围</span><span class="'+(['review','result'].includes(s.stage)?'current':'')+'">03 保存与生效</span></div>';
-  let body='';
-  if(s.stage==='credentials'){
-    body=section(s.saved?'更新原账号授权':'添加账号',
-      '<p class="subtle">从渠道开始，连接由系统自动准备。'+(s.disabled?'本账号已停用；更新授权不会将它启用。':'')+'</p>'+
-      '<div class="form-grid"><label class="field"><span>渠道</span><input value="'+escape(s.channel)+' · '+s.method+'" readonly></label><label class="field"><span>账号备注</span><input id="accountName" data-field="accountName" maxlength="50" value="'+escape(s.accountName)+'"></label></div>'+
-      (s.method==='API Key'?'<label class="field"><span>API Key <span class="subtle tiny">· 已填演示值</span></span><input value="DEMO_KEY_ONLY — 不是真实凭据" readonly></label>':'<div class="note">演练只模拟'+s.method+'的开始与返回，不打开登录页面，不访问真实账号。</div>')+
-      '<details><summary class="tiny subtle">连接信息 · 使用官方默认值</summary>'+rows([['地址','官方默认地址（演示）'],['地区 / 代理','沿用渠道默认值；已有连接不被覆盖']])+'</details>'+
-      '<div class="actions">'+btn(s.method==='API Key'?'继续接入':'开始模拟'+s.method,s.method==='API Key'?'prepare':'startAuth','primary')+btn('关闭任务','close')+'</div>');
-  }else if(s.stage==='authorize'){
-    body=section('等待授权返回','<p class="subtle">授权成功后会回到这个任务；中途退出并不能证明上游授权已取消。</p>'+
-      '<div class="note">仅模拟外部授权结果。没有真正发起 OAuth 或设备授权。</div>'+
-      '<label class="field"><span>演练：返回的账号身份</span><select id="identity" data-field="identity">'+[['same','可靠识别为同一账号'],['unknown','身份暂时无法读取'],['different','确认属于另一个账号']].map(x=>'<option value="'+x[0]+'"'+(s.identity===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+
-      '<div class="actions">'+btn('模拟授权完成','grant','primary')+btn('模拟授权被拒绝','deny')+btn('模拟响应丢失','loseReceipt')+btn('停止等待','close')+'</div>');
-  }else if(s.stage==='identity'){
-    body=section('先核对账号身份','<p>未取得足够身份信息，不能自动将新授权覆盖到原账号。</p><div class="note warn">正式产品需要真实身份依据。这个按钮仅模拟后来取得了同一身份的可靠证据，不是强制覆盖。</div><div class="actions">'+btn('模拟补齐身份依据','verifyIdentity','primary')+btn('停止等待','close')+'</div>');
-  }else if(s.stage==='uncertain'){
-    body=section('结果待确认','<p>最后的响应丢失了。授权可能已经保存，先查清结果，避免重复创建。</p><div class="note warn">当前不能确定成功、失败或已取消。重复授权与保存暂不作为下一步。</div><div class="actions">'+btn('核对已发生的结果','reconcile','primary')+'</div>');
-  }else if(s.stage==='connections'){
-    body=section('选一个已有接入配置','<p class="subtle">有两个符合渠道和授权条件的连接，在这里选即可。已有的地址、代理和权限会保留。</p>'+
-      '<button class="conn" data-action="chooseConnection" data-value="direct"><strong>直连 · 日常</strong><span>官方默认地址 · 默认地区 · 不使用代理 · 已启用</span></button>'+
-      '<button class="conn" data-action="chooseConnection" data-value="proxy"><strong>代理 · 备用</strong><span>官方默认地址 · 默认地区 · 使用已有代理组 · 已启用</span></button>');
-  }else if(s.stage==='models'){
-    body=section(s.newModel?'选择模型开放范围':'确认原账号设置','<p class="subtle">'+(s.newModel?'账号发现模型后，还需要决定哪些客户端 API Key 能使用。已有权限保持原样。':'原接入配置与模型权限已保留，确认后保存本次授权更新。')+'</p>'+
-      '<div class="note">'+escape(s.connectionMode)+'接入配置：<strong>'+escape(s.connection)+'</strong>。无需预建服务或接口。</div>'+
-      (s.newModel?'<div class="resource"><div><strong>演示模型 A</strong><span class="model-note">新发现 · 只用于演练，不声明上游实际模型能力</span></div><label><span class="tiny">开放范围</span><select id="scope" data-scope aria-label="新模型开放范围">'+scopeOptions(s.scope)+'</select></label></div>':'<div class="resource"><div><strong>演示模型 A</strong><span class="model-note">已有模型 · 本次不改变权限</span></div>'+pill(scopeName(s.previousScope))+'</div>')+
-      '<p class="tiny subtle">模型发现为模拟观察，不是推理验证。'+(s.newModel?'选择“暂不开放”也可以保存账号。':'本次无需重新选择已有模型的开放范围。')+'</p>'+
-      '<div class="actions">'+btn(s.otherDraft?'保存并核对待应用修改':'保存并自动生效','save','primary')+btn('关闭，稍后继续','close')+'</div>');
-  }else if(s.stage==='review'){
-    body=section('一起核对，再应用','<p class="subtle">账号授权已保存。当前还有其他修改，不能静默夹带生效。</p>'+
-      '<ul class="checklist"><li><span class="check">＋</span>本次：'+(s.removalSaved?'移除“'+escape(s.accountName)+'”及其关联':s.disabled?'停用／更新当前账号，保留停用意图':'接入“'+escape(s.accountName)+'”，新模型开放给 '+escape(scopeName(s.scope)))+'</li><li>已有：将备用连接的权重调整为 2</li><li>已有：更新“自动化 Key”的备注</li>'+(s.extraChange?'<li>刚刚新增：修改连接的超时设置</li>':'')+'</ul>'+
-      (s.reviewRevision!==s.draftRevision?'<div class="note warn">核对期间发生了其他修改。请先重新读取；旧清单不能直接应用。</div>':'<div class="note">确认将使清单内的修改一起生效。也可以全部保留为待应用。</div>')+
-      '<div class="actions">'+(s.reviewRevision!==s.draftRevision?btn('重新读取变更清单','reviewLatest','primary'):btn('核对完成，一并应用','applyTogether','primary'))+btn('保留待应用','keepPending')+'</div>');
-  }else if(s.stage==='result'){
-    body=section(s.applyFailed?'已保存，应用需要处理':s.applied?'接入结果':'已保存，等待应用',
-      rows([['账号授权',s.removalSaved?'移除已保存':s.saved?'已保存；凭据内容不在页面展示':'尚未保存'],['接入配置',s.connection?s.connection+' · '+s.connectionMode:'尚未完成'],['配置生效',s.applyFailed?'失败，需要恢复应用':s.applied?'已生效':'待应用'],['模型开放',s.removalSaved?'移除后不再由此账号承接':s.applied?scopeName(s.scope):scopeName(s.scope)+'（待生效）'],['真实调用','未验证；没有发送推理请求']])+
-      (s.disabled?'<div class="note">授权可以更新，账号仍停用。需要操作者主动启用才允许参与调度。</div>':'')+
-      '<div class="actions">'+(s.applied?btn('查看账号与下一步','manage','primary'):btn(s.applyFailed?'恢复应用':'查看并应用','apply','primary'))+btn('关闭任务','close')+'</div>');
-  }else if(s.stage==='closed'){
-    body=section('任务已关闭','<p>'+escape(s.saved?'已保存账号仍保留，未生效修改也仍在。关闭不是删除或回滚。':'账号尚未保存，可以返回继续；未宣称接入已完成。')+'</p><div class="actions">'+btn('继续原任务','resume','primary')+'</div>');
-  }else if(s.stage==='delete'){
-    body=section('确认移除这个账号','<p class="subtle">只处理当前账号及其关联，先核对对后续请求的影响。</p><div class="delete-box">'+
-      rows([['账号',s.accountName+' · '+s.channel],['关联影响','解除与“'+s.connection+'”的关联'],['其他承接',s.sharedAccounts?'同一连接还有 1 个演示账号；不保证一定能接替请求':'本连接没有其他账号，相关模型可能无法继续调用'],['在途请求',s.inFlight+' 条继续执行，不因删除主动中断'],['保留内容','共享连接、其他账号、历史请求、用量、账本与审计']])+
-      '<p class="tiny subtle">不注销上游账号或撤销 token，也不擦除历史配置凭据；以后应用旧配置时必须提示可能恢复的账号。</p></div><div class="actions">'+btn('确认删除并应用','confirmDelete','danger')+btn('返回账号','manage')+'</div>');
-  }else if(s.stage==='recovery'){
-    body=section('允许再次尝试','<p>目标：'+escape(s.accountName)+' → '+escape(s.connection)+'。只解除此目标的本地调度隔离。</p><div class="note warn">不会更新上游授权或余额，不会发送探测。结果仍是“尚未验证”。停用、明确授权失效和未到期额度不能绕过。</div><div class="actions">'+btn('确认解除本地隔离','confirmRecovery','primary')+btn('返回账号','manage')+'</div>');
-  }else if(s.stage==='test'){
-    body=section('选择测试范围','<p class="subtle">正式产品中，这一步会发起推理并可能消耗额度；此原型只演示反馈。</p>'+
-      '<div class="form-grid"><label class="field"><span>模型</span><select id="testModel" data-field="testModel"><option>演示模型 A</option></select></label><label class="field"><span>下游协议</span><select id="protocol" data-field="protocol">'+['Chat Completions','Messages','Responses'].map(x=>'<option'+(x===s.protocol?' selected':'')+'>'+x+'</option>').join('')+'</select></label></div>'+
-      '<div class="note">一次所选模型与协议的结果，不代表三协议或全部模型可靠。不会发送真实请求。</div><div class="actions">'+btn('仅模拟测试结果','simulateTest','primary')+btn('返回账号','manage')+'</div>');
-  }else{
-    let next=s.auth==='unknown'?btn('核对操作结果','reconcile','primary'):s.auth==='expired'?btn(s.method==='API Key'?'返回接入流程更换凭据':'重新授权',s.method==='API Key'?'resumeCredential':'reauthorize','primary'):!s.applied?btn('恢复配置生效','apply','primary'):s.isolation?btn('查看恢复操作','previewRecovery','primary'):s.catalog==='stale'?btn('更新模型目录','refreshCatalog','primary'):s.removed?'':btn('按需测试调用','previewTest','primary');
-    if(s.removed||(s.disabled&&!['expired','unknown'].includes(s.auth)))next='';
-    body=section('账号详情与下一步','<p class="subtle">'+escape(Flow.primary(s)[1])+'</p>'+
-      rows([['接入配置',(s.connection||'未完成')+' · '+(s.connectionMode||'待准备')],['模型目录',s.catalog==='stale'?'昨天 14:20 的演示目录 · 本次更新失败':s.catalog==='fresh'?'刚刚更新的演示目录':'尚未发现'],['额度',quotaDescription(s)],['开放范围',s.applied?scopeName(s.activeScope):scopeName(s.activeScope)+'（运行中）；变更待生效'],['在途 / 历史',s.inFlight+' 条在途 / '+s.history+' 条历史（合成数据）'],['模拟调用',s.testReceipt?s.testReceipt.model+' / '+s.testReceipt.protocol+' · 模拟通过，不是真实证据':'未做模拟测试；真实调用未验证']])+
-      '<div class="actions">'+next+(!s.removalSaved?(btn('更新额度观察','refreshQuota')+btn(s.disabled?'启用账号':'停用账号',s.disabled?'enable':'disable')+btn('删除账号…','previewDelete','danger')):'')+(s.inFlight?btn('模拟一条在途结束','finishRequest'):'')+'</div>'+
-      (!s.removalSaved?'<details style="margin-top:18px"><summary class="tiny subtle">高级操作与证据详情</summary>'+rows([['身份依据',s.identity==='different'?'新授权身份冲突，原账号保留':s.identity==='unknown'||s.auth==='unknown'?'身份或结果待核对':'演示：已识别为同一账号'],['状态来源','合成场景，不是线上观测'],['授权更新次数',String(s.revision)],['本地隔离',s.isolation?'有本地调度阻断':'无本地隔离'],['历史限制','关联证据不足时须显示不完整，不能猜测归属']])+'<div class="actions">'+btn('允许再次尝试…','previewRecovery','small')+btn('更新目录','refreshCatalog','small')+'</div></details>':''));
-  }
-  return (['manage','delete','recovery','test','closed'].includes(s.stage)?'':stages)+body;
+function connectionField(form){return state.multipleConnections&&!form.id?'<label class="flow-field"><span>已有接入配置</span><select id="form-connection" data-field="connection">'+options([['','请选择匹配的配置'],['直连 · 日常','直连 · 日常 / 官方地址 / 无代理'],['代理 · 备用','代理 · 备用 / 官方地址 / 已有代理组']],form.connection)+'</select><div class="flow-help">找到多个符合条件的配置，在这里选一个即可。</div></label>':'';}
+function title(name,subtitle,actions){return '<div class="page-head"><div><h1>'+name+'</h1><p class="subtitle">'+subtitle+'</p></div><div class="flow-actions">'+actions+'</div></div>';}
+function rowActions(a){
+  const c=AccountFlow.channel(a.channel),id={id:a.id};
+  const recovery=a.auth==='expired'?button(c.kind==='api'?'更换密钥':'重新授权',c.kind==='api'?'editApi':'login',{id:a.id,channel:a.channel},'quiet compact'):a.applyFailed||!a.applied?button('查看修改','review',{},'quiet compact'):'';
+  return '<div class="flow-actions">'+recovery+button('模型','detail',{...id,tab:'models'},'compact')+button('详情','detail',id,'compact')+'<button type="button" class="flow-switch" role="switch" aria-label="'+esc(a.name)+' 启用状态" aria-checked="'+!a.disabled+'" data-action="toggle" data-params="'+esc(JSON.stringify(id))+'"></button><details class="row-more"><summary>更多</summary><div class="row-menu">'+(c.kind==='api'?button('编辑配置','editApi',id):button('重新授权','login',{...id,channel:a.channel}))+(c.kind!=='api'?button('更新额度','refreshQuota',id):'')+button('测试调用','test',id)+button('删除账号','delete',id,'danger')+'</div></details></div>';
+}
+function accountsTable(providerOnly=false){
+  const all=state.accounts.filter(a=>!a.removed&&(!providerOnly||AccountFlow.channel(a.channel).kind==='api'));
+  const filtered=all.filter(a=>(state.filter==='all'||state.filter==='disabled'&&a.disabled||state.filter==='problem'&&!a.disabled&&(a.auth!=='active'||!a.applied||a.quotaExhausted||a.isolation)||state.filter===a.channel)&&(a.name+' '+AccountFlow.channel(a.channel).name).toLowerCase().includes(state.query.toLowerCase()));
+  const toolbar='<div class="flow-bar"><div class="left"><input class="flow-search" id="account-search" data-query placeholder="搜索账号或渠道" value="'+esc(state.query)+'" aria-label="搜索账号或渠道"><select id="account-filter" data-filter aria-label="筛选账号">'+options([['all','全部状态与渠道'],['problem','需要处理'],['disabled','已停用'],...AccountFlow.channels.filter(c=>!providerOnly||c.kind==='api').map(c=>[c.id,c.name])],state.filter)+'</select></div><span class="flow-secondary">'+filtered.length+' 个'+(providerOnly?'配置':'账号')+' · 合成数据</span></div>';
+  if(!all.length)return toolbar+'<div class="flow-empty"><h2>'+(providerOnly?'添加第一个 API 配置':'还没有账号')+'</h2><p>'+(providerOnly?'填写渠道、地址和 Key 即可保存。系统自动组织连接。':'授权登录或导入认证文件，完成后账号会显示在这里。')+'</p>'+button(providerOnly?'添加 API 配置':'导入认证文件',providerOnly?'newApi':'import',{},'primary')+'</div>';
+  return toolbar+'<div class="flow-table-wrap"><table class="flow-table"><thead><tr><th>'+(providerOnly?'API 配置':'账号')+'</th><th>渠道</th><th>状态</th><th>'+(providerOnly?'地址':'额度')+'</th><th>启停与操作</th></tr></thead><tbody>'+filtered.map(a=>{const st=AccountFlow.status(a);return '<tr data-account="'+a.id+'"><td><button class="account-name" data-action="'+(providerOnly?'editApi':'detail')+'" data-params="'+esc(JSON.stringify({id:a.id}))+'">'+esc(a.name)+'</button><div class="flow-secondary">'+esc(a.connection)+(a.inFlight?' · '+a.inFlight+' 条在途':'')+'</div></td><td>'+esc(AccountFlow.channel(a.channel).name)+'<div class="flow-secondary">'+(AccountFlow.channel(a.channel).kind==='api'?'API Key':'授权账号')+'</div></td><td><div class="flow-status '+st[2]+'">'+esc(st[0])+'</div><div class="flow-secondary">'+esc(st[1])+'</div></td><td>'+esc(providerOnly?a.url||'官方地址':quota(a))+'<div class="flow-secondary">'+(providerOnly?'密钥仅展示保存状态':'演示观察 · 09:40')+'</div></td><td>'+rowActions(a)+'</td></tr>';}).join('')+'</tbody></table></div>';
+}
+function renderPage(){
+  let html='';
+  if(state.view==='providers')html=title('API 配置','在同一张表单管理地址、密钥和模型。',button('添加 API 配置','newApi',{},'primary'))+accountsTable(true);
+  else if(state.view==='oauth')html=title('授权登录','选择渠道完成登录，授权账号会自动登记。','<span class="proto-tag">仅模拟授权，不访问真实账号</span>')+'<div class="login-grid">'+AccountFlow.channels.filter(c=>['oauth','device'].includes(c.kind)).map(c=>{const done=state.authSession?.channel===c.id&&state.authSession.status==='success';return '<article class="login-card-flow"><div class="brand-symbol">'+c.name[0]+'</div><h2>'+c.name+'</h2><p>'+(['device'].includes(c.kind)?'使用设备授权登录。':'使用官方 OAuth 登录。')+'<br>完成后无需再次保存账号。</p><div class="flow-actions">'+button(done?'登录另一个账号':'登录','login',{channel:c.id},done?'':'primary')+(done?button('查看账号','viewAccounts',{},'quiet'):'')+'</div>'+(done?'<p class="flow-help" style="margin:14px 0 0;min-height:0">授权已保存 · '+(state.pending.length?'配置待应用':'配置已生效')+'</p>':'')+'</article>';}).join('')+'</div>';
+  else html=title('账号管理','从账号出发，查看状态并处理需要关注的问题。',button('授权登录','view',{view:'oauth'})+button('导入认证文件','import',{},'primary'))+accountsTable();
+  const authUnknown=state.authSession&&['unknown','identity','conflict'].includes(state.authSession.status);
+  const banner=state.globalBlocked?'<div class="flow-alert flow-note bad"><span><strong>网关暂不接收新请求（模拟）</strong><br>账号已保存，但运行应用失败。</span>'+button('恢复应用','review')+'</div>':authUnknown?'<div class="flow-alert flow-note warn"><span>上次授权结果需要核对。原账号和设置保留。</span>'+button('继续核对','resumeAuth')+'</div>':'';
+  const toast=state.toast?'<div class="flow-toast '+state.toast.tone+'" role="status"><span>'+esc(state.toast.message)+'</span>'+button('关闭提示','dismiss',{},'compact')+'</div>':'';
+  $('workspace').innerHTML=banner+toast+html;
+}
+function renderSheet(){
+  const s=state,f=s.form,a=current();let heading='',body='',foot=button('关闭','close');
+  if(s.sheet==='api'){
+    heading=f.id?'编辑 API 配置':'添加 API 配置';
+    body=(f.error?note(esc(f.error),'bad'):'')+'<div class="flow-grid"><label class="flow-field"><span>渠道</span><select id="form-channel" data-api-channel'+(f.id?' disabled':'')+'>'+options(AccountFlow.channels.filter(c=>c.kind==='api').map(c=>[c.id,c.name]),f.channel)+'</select></label><label class="flow-field"><span>名称</span><input id="form-name" data-field="name" value="'+esc(f.name)+'"></label><label class="flow-field wide"><span>Base URL</span><input id="form-url" data-field="url" value="'+esc(f.url)+'" placeholder="https://api.example.com/v1"></label></div><label class="flow-field"><span>API Key</span><input readonly value="DEMO_KEY_ONLY · 演示凭据"><div class="flow-help">本原型不收集真实密钥。'+(f.id?'替换凭据保留原账号的停用状态与权限。':'')+'</div></label>'+connectionField(f)+modelPolicy(f)+'<details><summary>模型与高级设置</summary><div class="flow-actions" style="margin-top:14px">'+button('读取模型（模拟）','discoverForm')+button('测试演示模型','testForm')+'</div><p class="flow-help">'+(f.modelsRead?'演示模型 A · 目录读取完成。':'模型读取与调用测试按需进行，不是保存的前置条件。')+(f.tested?' 已模拟测试；真实调用未验证。':'')+'</p>'+defs([['代理 / 地区','沿用默认值或已匹配的接入配置'],['密钥条目',f.keys+' 份演示凭据']])+button('增加演示 Key','addKey',{},'compact')+'</details>';
+    foot=button('取消','close')+button('保存','saveApi',{},'primary');
+  }else if(s.sheet==='auth'){
+    const session=s.authSession,c=AccountFlow.channel(session.channel),device=c.kind==='device';heading=(session.id?'重新授权 · ':'登录 · ')+c.name;
+    if(session.status==='setup'){
+      body=note('授权完成后直接登记到账号列表。')+(f.error?note(esc(f.error),'bad'):'')+connectionField(f)+modelPolicy(f);foot=button('取消','close')+button('开始登录','beginAuth',{},'primary');
+    }else{
+      const problem=['unknown','identity','conflict','denied'].includes(session.status);
+      body=note(session.status==='waiting'?'请在授权页面完成登录。完成后系统会自动登记账号。':session.status==='denied'?'授权被拒绝，没有保存新的授权。':session.status==='conflict'?'返回的是另一个账号，原授权未被覆盖。':session.status==='identity'?'暂时缺少可靠身份依据，原账号保持不变。':'最后一次响应丢失，先查询已发生的结果。',problem?'warn':'')+(device?'<label class="flow-field"><span>设备码（演示）</span><input readonly value="DEMO-8231"></label>':'')+'<label class="flow-field"><span>授权链接（演示）</span><input readonly value="https://authorize.example.invalid/demo"></label><p class="flow-help">本页面没有打开真实授权站点。下方模拟器只替代外部授权返回。</p>'+(session.id?note('同一身份更新原账号，保留接入配置、模型权限及停用意图。'):'')+'<div class="flow-mock"><div class="flow-mock-label">外部授权模拟器 · 不属于正式产品界面</div><select id="auth-identity" data-identity aria-label="模拟返回的身份">'+options([['same','同一账号的可靠身份'],['unknown','身份依据暂缺'],['different','另一账号（重新授权时会冲突）']],session.identity)+'</select><div class="flow-actions">'+button('返回授权成功','authComplete')+button('返回拒绝','authDenied')+button('响应丢失','authLost')+'</div></div>';
+      foot=button('停止等待并关闭','close')+(['unknown','identity'].includes(session.status)?button('查询授权结果','checkAuth',{},'primary'):['denied','conflict'].includes(session.status)?button('重新登录','retryAuth',{},'primary'):'');
+    }
+  }else if(s.sheet==='import'){
+    heading='导入认证文件';body='<p class="flow-help">直接上传 JSON 或粘贴内容；成功项进入当前列表，失败项单独处理。本原型只载入合成样例。</p><div class="flow-actions">'+button('选择示例文件','importSample')+button('粘贴示例 JSON','importSample')+'</div>'+(s.importRows.length?'<div class="inline-workspace"><div class="inline-body">'+s.importRows.map(r=>'<div style="padding:10px 0"><strong style="font-size:12px">'+esc(r.name)+'</strong><div class="flow-help">'+(r.status==='saved'?'已保存 · '+(s.pending.length?'配置待应用':'配置已生效'):r.error||'待导入')+'</div></div>').join('')+'</div></div>':note('示例批次：一个已有账号、一份新的授权文件，以及一个格式不完整的文件。'));
+    foot=button('返回列表','viewAccounts')+(s.importRows.some(r=>r.status==='invalid'&&r.error)?button('修正失败示例','fixImport'):'')+button(s.importRows.some(r=>r.status==='saved')?'仅重试未成功项':'导入','submitImport',{},'primary');
+  }else if(s.sheet==='detail'&&a){
+    heading=a.name;
+    body='<div class="segment" role="tablist">'+[['overview','概况'],['models','模型']].map(([id,t])=>'<button role="tab" aria-selected="'+(s.tab===id)+'" data-action="tab" data-params="'+esc(JSON.stringify({tab:id}))+'">'+t+'</button>').join('')+'</div>';
+    if(s.tab==='models')body+=note(a.catalog==='stale'?'上次目录：昨天 14:20。本次读取失败，保留旧目录。':'演示目录 · 刚刚读取。目录结果不等于调用通过。',a.catalog==='stale'?'warn':'')+'<div class="flow-model"><div><strong>演示模型 A</strong><div class="flow-help">本原型中由当前账号提供</div></div><label><span class="flow-help">客户端开放范围</span><select id="model-scope" data-model-scope>'+scopeOptions(s.scopeChoice??a.scope)+'</select></label></div><p class="flow-help">更改权限是独立操作，已有权限在你保存前保持不变。暂不开放不影响账号授权的保存。</p><div class="flow-actions">'+button('更新模型目录','refreshModels',{id:a.id})+'</div>',foot=button('关闭','close')+button('保存模型权限','saveScope',{id:a.id},'primary');
+    else{
+      const st=AccountFlow.status(a);body+=note('<strong>'+esc(st[0])+'</strong><br>'+esc(st[1]),st[2])+defs([['授权',a.auth==='expired'?'需要重新授权':'已保存 · 演示身份'],['配置生效',a.applied?'已生效':a.applyFailed?'应用失败':'待生效'],['接入配置',a.connection+' · '+(a.url||'官方地址')],['模型目录',a.catalog==='stale'?'陈旧 · 昨天 14:20':'已读取 · 演示结果'],['模型权限',scopeLabel(a.scope)],['额度',quota(a)+(a.quotaExhausted?'；耗尽限制仍保留':'')],['调用证据',a.test?'仅模拟 '+a.test+'，真实调用未验证':'尚无真实调用证据'],['在途请求',a.inFlight+' 条；停用后自然结束'],['历史记录',s.historyCount+' 条合成记录，删除账号仍保留']])+ '<div class="flow-actions">'+(AccountFlow.channel(a.channel).kind==='api'?button('编辑配置','editApi',{id:a.id}):button('重新授权','login',{id:a.id,channel:a.channel}))+button('更新额度','refreshQuota',{id:a.id})+button('测试调用','test',{id:a.id})+'</div><details><summary>高级诊断</summary>'+defs([['本地隔离',a.isolation?'有本地调度阻断':'无'],['停用意图',a.disabled?'停用':'启用'],['运行启停',a.activeDisabled?'已停用':'允许参与调度'],['授权修订',a.revision+'（演示）'],['观察来源','合成数据，不是线上状态']])+button('解除本地隔离…','recovery',{id:a.id},'compact')+'</details>';
+      foot=button('关闭','close')+button(a.disabled?'启用账号':'停用账号','toggle',{id:a.id})+button('删除账号','delete',{id:a.id},'danger');
+    }
+  }else if(s.sheet==='delete'&&a){
+    heading='删除 '+a.name;body=note('删除当前账号及其关联。共享接入配置和其他账号不会连带删除。','warn')+defs([['影响范围',a.name+' → '+a.connection],['在途请求',a.inFlight+' 条继续执行'],['保留内容','历史请求、用量、账本、共享连接及其他账号'],['历史配置','旧版本可能保留凭据；恢复旧配置时必须再次提示'],['上游授权','本操作不撤销上游 token 或注销账号']]);foot=button('取消','close')+button('确认删除','confirmDelete',{},'danger');
+  }else if(s.sheet==='review'){
+    heading='待应用修改';body=note('本次保存结果已保留。以下修改需要一起核对后生效。')+'<ul style="padding-left:20px;margin:20px 0;font-size:13px">'+s.pending.map(p=>'<li style="padding:9px 0">'+esc(p.label)+'</li>').join('')+'</ul>'+(s.reviewRevision!==s.draftRevision?note('核对期间清单发生变化，请重新读取。','warn'):'')+'<details><summary>演示并发修改</summary>'+button('模拟其他地方新增修改','concurrentEdit')+'</details>';
+    foot=button('保留待应用','keepPending')+(s.reviewRevision!==s.draftRevision?button('重新读取清单','reviewLatest',{},'primary'):button('核对完成，一并应用','apply',{},'primary'));
+  }else if(s.sheet==='test'&&a){heading='测试调用 · '+a.name;body=note('正式产品会发送推理请求，可能消耗额度。本原型仅模拟。')+defs([['模型','演示模型 A'],['接入配置',a.connection]])+'<label class="flow-field"><span>下游协议</span><select id="test-protocol" data-field="protocol">'+options(['Chat Completions','Messages','Responses'].map(v=>[v,v]),f.protocol)+'</select></label>';foot=button('取消','close')+button('模拟测试','runTest',{},'primary');
+  }else if(s.sheet==='recovery'&&a){heading='解除本地隔离';body=note('只允许此账号与连接再次尝试。不会更新授权或余额，不发送推理测试。','warn')+defs([['目标',a.name+' → '+a.connection],['结果','允许再次尝试，尚未验证'],['限制','不绕过停用、明确授权失效和未到期额度']]);foot=button('取消','close')+button('确认解除','confirmRecovery',{},'primary');}
+  $('sheet-content').style.display='contents';$('sheet-content').innerHTML='<header class="flow-dialog-head"><h2 id="sheet-title">'+esc(heading)+'</h2>'+button('关闭','close',{},'compact')+'</header><div class="flow-dialog-body">'+body+'</div><footer class="flow-dialog-foot">'+foot+'</footer>';
 }
 function render(){
-  const s=state,summary=Flow.primary(s),scenario=Flow.scenarios.find(x=>x.id===s.scenario);
-  const pending=(s.saved&&!s.applied)||s.otherDraft;
-  $('shell').dataset.draft=String(pending);$('flow-dock').hidden=!pending;$('flow-context').textContent=pending?'待应用 · 模拟状态':'离线操作走查';
-  $('global').innerHTML=s.gatewayBlocked?'<div class="note bad global" role="alert"><strong>网关当前无法接收新请求（模拟）</strong> · 账号已保存，但运行应用失败。先恢复应用，再判断账号是否可参与调度。</div>':'';
-  $('status').innerHTML='<div class="status-top flex wrap"><div><div class="status-title"><span class="dot" aria-hidden="true"></span>'+escape(s.accountName)+' '+pill(summary[0],summary[2])+'</div><div class="tiny subtle" style="margin-top:5px">'+escape(s.channel)+' · '+escape(summary[1])+'</div></div><div class="tiny subtle count">账号数 '+Math.max(0,s.accountCount-(s.removed?1:0))+' · 在途 '+s.inFlight+'</div></div>';
-  const evidence=[
-    ['授权',s.removalSaved?'移除已保存':s.auth==='unknown'?'结果待确认':s.auth==='expired'?'需重新授权':s.saved?'已保存':s.auth==='provided'?'已填写，待保存':'未完成'],
-    ['连接',s.connection?(s.connectionMode+' · '+s.connection):'系统将在接入时准备'],
-    ['配置',s.removed?'移除已生效':s.applyFailed?'应用失败':s.applied?'已生效':s.saved?'待生效':'尚未保存'],
-    ['模型',s.catalog==='fresh'?'已发现（模拟）':s.catalog==='stale'?'目录陈旧 · 昨日观察':'尚未发现'],
-    ['开放范围',s.scope?scopeName(s.scope)+(s.applied?'':' · 待生效'):'尚未选择'],
-    ['真实调用',s.testReceipt?'仅模拟通过 · 仍未验证':'尚未验证']];
-  $('evidence').innerHTML=evidence.map(x=>'<dl><dt>'+escape(x[0])+'</dt><dd>'+escape(x[1])+'</dd></dl>').join('');
-  $('work').innerHTML=renderWork();
-  $('notice').className='notice '+(s.outcome==='blocked'?'blocked':'');
-  $('notice').textContent=s.notice;
-  $('tabs').innerHTML=Flow.scenarios.map(x=>'<button role="tab" aria-selected="'+(x.id===s.scenario)+'" aria-controls="guide" data-scenario="'+x.id+'">'+x.label+'</button>').join('');
-  $('guide').innerHTML='<strong>'+escape(scenario.title)+'</strong><p class="tiny subtle">'+escape(scenario.description)+'</p><ol>'+scenario.steps.map((x,i)=>'<li class="'+(i<s.guideStep?'done':i===s.guideStep?'current':'')+'"><button class="run '+(i===s.guideStep?'primary':'')+'" data-guide="'+i+'"'+(i>s.guideStep?' disabled':'')+'>'+(i<s.guideStep?'✓ ':'')+escape(x.label)+'</button></li>').join('')+'</ol>'+(s.guideStep>=scenario.steps.length?'<div class="note">场景已走完。观察上方结果是否符合你的预期；也可以自由触发其他情况。</div>':'')+btn('重新开始这个场景','restart','small');
-  $('stepcount').textContent=s.actionCount+' 次操作';
-  $('log').innerHTML=(s.events.length?s.events.slice(-5).reverse():[{n:0,text:'载入合成场景；未触发任何真实操作。'}]).map(x=>'<li><time>'+String(x.n).padStart(2,'0')+'</time>'+escape(x.text)+'</li>').join('');
-  const actions=[['开始授权','startAuth'],['授权被拒绝','deny'],['回调响应丢失','loseReceipt'],['核对结果','reconcile'],['关闭任务','close'],['继续任务','resume'],['目录变陈旧','staleCatalog'],['额度读取失败','quotaFail'],['授权明确失效','invalidateAuth'],['应用失败','applyFail'],['其他地方修改配置','concurrentEdit'],['尝试一并应用','applyTogether'],['停用','disable'],['启用','enable'],['临时隔离','isolate'],['预览解除隔离','previewRecovery'],['尝试确认解除','confirmRecovery'],['额度耗尽且未到期','exhaustQuota'],['预览删除','previewDelete'],['在途自然结束','finishRequest']];
-  $('freeplay').innerHTML=actions.map(x=>btn(x[0],x[1],'small')).join('');
+  renderPage();
+  const pending=state.pending.length;$('flow-dock').hidden=!pending;$('draft-text').textContent=pending+' 项修改待应用';$('shell').dataset.draft=String(Boolean(pending));$('flow-context').textContent='离线原型 · 第二版';
+  document.querySelectorAll('[data-view]').forEach(x=>{if(x.dataset.view===state.view)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current');});
+  document.querySelector('.crumb b').textContent=({accounts:'账号管理',providers:'API 配置',oauth:'授权登录'})[state.view];
+  $('lab-body').innerHTML='<label>场景数据 <select id="demo-scene" data-scene>'+options([['normal','日常账号列表'],['empty','首次接入 · 空列表'],['drafts','多连接与已有待应用修改'],['lifecycle','停用与删除 · 两条在途请求'],['native','原生渠道应用失败']],state.scene)+'</select></label><div class="flow-help">请通过正常页面入口操作。以下按钮仅注入演示状态；优先作用于最近查看的账号。</div><div class="flow-actions">'+[['授权失效','expired'],['目录陈旧','stale'],['额度读取失败','quotaFailure'],['额度耗尽','exhausted'],['本地隔离','isolated'],['下一次应用失败','applyFailure'],['一条在途结束','finish']].map(([t,k])=>button(t,'lab',{kind:k},'compact')).join('')+'</div>';
+  const dialog=$('flow-sheet');if(state.sheet){renderSheet();if(!dialog.open)dialog.showModal();}else if(dialog.open)dialog.close();
 }
-function dispatch(action,value){
-  if(action==='restart'){state=Flow.initial(state.scenario);render();return;}
-  const before=state.guideStep,step=Flow.scenarios.find(x=>x.id===state.scenario).steps[before];
-  state=Flow.transition(state,action,value);
-  if(state.outcome==='done'&&step&&step.action===action&&(step.value===undefined||step.value===value))state.guideStep=before+1;
-  render();
-}
+function dispatch(action,value={}){const oldView=state.view;state=AccountFlow.transition(state,action,value);render();if(oldView!==state.view||action==='scenario')$('canvas').scrollTop=0;}
 document.addEventListener('click',event=>{
+  const nav=event.target.closest('[data-view]');if(nav){event.preventDefault();dispatch('view',{view:nav.dataset.view});$('rail').dataset.open='false';return;}
   const target=event.target.closest('button');if(!target)return;
   if(target.dataset.shell==='theme'){document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';return;}
-  if(target.dataset.shell==='nav'){const open=$('rail').dataset.open!=='true';$('rail').dataset.open=String(open);target.setAttribute('aria-expanded',String(open));return;}
-  if(target.dataset.scenario){state=Flow.initial(target.dataset.scenario);render();return;}
-  if(target.dataset.guide!==undefined){const step=Flow.scenarios.find(x=>x.id===state.scenario).steps[Number(target.dataset.guide)];dispatch(step.action,step.value);return;}
-  if(target.dataset.action)dispatch(target.dataset.action,target.dataset.value);
+  if(target.dataset.shell==='nav'){$('rail').dataset.open=String($('rail').dataset.open!=='true');return;}
+  if(target.dataset.action)dispatch(target.dataset.action,target.dataset.params?JSON.parse(target.dataset.params):{});
 });
 document.addEventListener('change',event=>{
-  const target=event.target;
-  if(target.hasAttribute('data-scope')){dispatch('scope',target.value);return;}
-  if(target.dataset.field){state=Flow.transition(state,'field',{name:target.dataset.field,value:target.value});const id=target.id;render();if(id&&$(id))$(id).focus();}
+  const t=event.target,id=t.id;
+  if(t.hasAttribute('data-field'))dispatch('field',{name:t.dataset.field,value:t.value});
+  else if(t.hasAttribute('data-api-channel'))dispatch('apiChannel',{channel:t.value});
+  else if(t.hasAttribute('data-identity'))dispatch('authIdentity',{value:t.value});
+  else if(t.hasAttribute('data-model-scope'))dispatch('modelScope',{value:t.value});
+  else if(t.hasAttribute('data-filter'))dispatch('filter',{value:t.value});
+  else if(t.hasAttribute('data-query'))dispatch('query',{value:t.value});
+  else if(t.hasAttribute('data-scene'))dispatch('scenario',{scene:t.value});
+  if(id&&$(id))$(id).focus();
 });
+$('flow-sheet').addEventListener('cancel',event=>{event.preventDefault();dispatch('close');});
 render();
 </script>
-</body>
-</html>
+</body></html>
