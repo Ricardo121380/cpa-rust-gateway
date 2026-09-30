@@ -251,10 +251,10 @@ function AdvancedUpstreamsPage() {
 
       {adding?<ProviderDialog onClose={closeAdding} onSaved={(version)=>{closeAdding();useVersionStore.getState().select(version);void queryClient.resetQueries({queryKey:["upstreams",version.id]});void queryClient.resetQueries({queryKey:["model-connections"]});}}/>:null}
 
-      <ReadStatus pending={!!scope&&upstreams.isPending} error={upstreams.error} hasData={upstreams.data !== undefined} retry={() => void upstreams.refetch()} />
+      <ReadStatus pending={!!scope&&upstreams.isPending} fetching={upstreams.isFetching} dataUpdatedAt={upstreams.dataUpdatedAt} error={upstreams.error} hasData={upstreams.data !== undefined} retry={() => void upstreams.refetch()} />
 
       <div className="data-toolbar"><input type="search" aria-label="搜索提供商或模型" placeholder="搜索提供商、地址或模型 ID" value={filter} onChange={e=>setFilter(e.target.value)}/><select aria-label="渠道类型" value={kindFilter} onChange={e=>setKindFilter(e.target.value)}><option value="">全部渠道</option>{[...new Set(upstreams.data?.map(p=>p.kind)??[])].map(kind=><option key={kind} value={kind}>{providerKindLabel(kind)}</option>)}</select></div>
-      <ReadStatus pending={false} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
+      <ReadStatus pending={false} fetching={topology.isFetching} dataUpdatedAt={topology.dataUpdatedAt} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
       <div className={`provider-workspace${expanded?" has-detail":""}`}><div className="provider-list"><div className="provider-list-heading"><div><h3>已接入提供商</h3><p>接口、账号与模型连接分层维护</p></div><span className="badge badge-muted">{upstreams.data ? `${filteredUpstreams.length} 个来源` : "读取中"}</span></div>
         {filteredUpstreams.map(upstream=>{
           const endpoints=topology.data?.endpoints.filter(e=>e.upstream_id===upstream.id)??[];

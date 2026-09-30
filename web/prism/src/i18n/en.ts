@@ -34,6 +34,8 @@ export const en: Pack = {
     savePassword: "Save and sign in again",
     passwordChanged: "Password updated. Please sign in again",
     back: "Back to sign in",
+    returnAfterLogin: "Sign in to return to your page with its filters preserved.",
+    sessionRequired: "This page needs a valid management session. Please sign in again.",
     revealToggle: "Reveal secret",
   },
   nav: {
@@ -71,6 +73,7 @@ export const en: Pack = {
     noPublished: "No published configuration",
   },
   state: {
+    refreshFailed: "Refresh failed", lastRead: "Last successful read", temporarilyUnavailable: "Temporarily unable to read. A successful read is needed to confirm whether this source is enabled and has records.",
     loading: "Loading…", readFailed: "Read failed", previousData: "Previous results remain below; they are not the latest state.", retry: "Retry read",
     empty: "No data yet",
     filteredEmpty: "Nothing matches the current filters",

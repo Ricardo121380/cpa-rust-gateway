@@ -75,7 +75,7 @@ export function LifecycleConfirmation({
       footer={<><SheetDismissButton className="secondary" disabled={pending}>取消</SheetDismissButton><button type="button" disabled={pending||query.isFetching||query.isError||Boolean(error)||!query.data||!valid} onClick={commit}>{mode==="publish"?"确认发布":"确认回滚"}</button></>}
     >
       <ReadStatus
-        pending={query.isPending}
+        pending={query.isPending} fetching={query.isFetching} dataUpdatedAt={query.dataUpdatedAt}
         error={query.error}
         hasData={query.data !== undefined}
         retry={() => void query.refetch()}

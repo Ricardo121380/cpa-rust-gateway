@@ -37,6 +37,7 @@ function formatTime(ms: number): string {
 export function AuditBackupPage() {
   const t = useMessages();
   const [preflight, setPreflight] = useState<BackupPreflight | undefined>();
+  const [preflightAt, setPreflightAt] = useState<number>();
   const [actionError, setActionError] = useState<string | undefined>();
   const [inspected, setInspected] = useState<AuditEvent>();
 
@@ -48,7 +49,8 @@ export function AuditBackupPage() {
 
   const runPreflight = useMutation({
     mutationFn: () => call<BackupPreflight>("previewBackup"),
-    onSuccess: setPreflight,
+    onMutate: () => setActionError(undefined),
+    onSuccess: value => { setPreflight(value); setPreflightAt(Date.now()); setActionError(undefined); },
     onError: (error) => setActionError(asAppError(error).message),
   });
 
@@ -65,7 +67,7 @@ export function AuditBackupPage() {
         </p>
       ) : null}
 
-      <ReadStatus pending={events.isPending} error={events.error} hasData={events.data !== undefined} retry={() => void events.refetch()} />
+      <ReadStatus pending={events.isPending} fetching={events.isFetching} dataUpdatedAt={events.dataUpdatedAt} error={events.error} hasData={events.data !== undefined} retry={() => void events.refetch()} />
 
       <div className="card tablewrap">
         <h3>配置生命周期审计(append-only)</h3>
@@ -101,7 +103,7 @@ export function AuditBackupPage() {
               ))}
           </tbody>
         </table>
-        {events.data?.length === 0 ? (
+        {events.data?.length === 0 && !events.isError ? (
           <div className="empty-state" data-kind="empty">
             <p>{t.state.empty}</p>
           </div>
@@ -119,11 +121,13 @@ export function AuditBackupPage() {
         </p>
         <div className="page-actions" data-gap="sm">
           <button type="button" disabled={runPreflight.isPending} onClick={() => runPreflight.mutate()}>
-            源库备份预检
+            {runPreflight.isPending ? "正在预检…" : "源库备份预检"}
           </button>
         </div>
         {preflight !== undefined ? (
           <p className="small" data-gap="top">
+            {runPreflight.isError || runPreflight.isPending ? "保留上次成功预检；当前结果待确认。" : "源库预检已确认。"}
+            {preflightAt ? ` ${new Date(preflightAt).toLocaleString()}。` : ""}预检不会生成备份工件。
             schema 版本:<span className="mono">{preflight.schema_version}</span> ·
             {preflight.secret_key_required
               ? " 恢复时需要独立备份密钥(与凭据 Master Key 分离)"

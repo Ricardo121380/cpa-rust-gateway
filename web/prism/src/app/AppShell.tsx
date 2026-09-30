@@ -42,7 +42,7 @@ function ConfigurationBootstrap() {
   return <div className="workspace-context" data-status="error" role="alert">
     <strong>无法读取配置上下文。</strong>
     <span>资源暂不可用；重新读取后会恢复当前活动配置。</span>
-    <button type="button" className="secondary" onClick={() => void versions.refetch()}>重新读取</button>
+    <button type="button" className="secondary" disabled={versions.isFetching} onClick={() => void versions.refetch()}>{versions.isFetching ? "正在读取…" : "重新读取"}</button>
   </div>;
 }
 
@@ -64,18 +64,23 @@ export function AppShell() {
   const conflict = useVersionStore((s) => s.conflict);
   const clearConflict = useVersionStore((s) => s.clearConflict);
   const t = useMessages();
-  const { pathname, key: locationKey } = useLocation();
+  const { pathname, search, key: locationKey } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const choice = useThemeStore((s) => s.choice);
   const setChoice = useThemeStore((s) => s.setChoice);
   const currentGroup = NAV_GROUPS.find((group) => group.items.some((item) => item.to === primaryRoute(pathname)));
-  const currentPage = NAV_ITEMS.find((item) => item.to === pathname);
+  const currentPage = NAV_ITEMS.find((item) => item.to === (pathname === "/overview" ? "/" : pathname));
   const canvasRef = useRef<HTMLElement>(null);
+  const focusAfterNavigation = useRef(false);
 
   // The canvas — not the window — is the scroll container now (content slides
   // under the fixed glass chrome), so route changes must reset *its* offset.
   useEffect(() => {
     canvasRef.current?.scrollTo({ top: 0 });
+    if (focusAfterNavigation.current) {
+      canvasRef.current?.focus();
+      focusAfterNavigation.current = false;
+    }
     setMenuOpen(false);
   }, [pathname]);
 
@@ -95,7 +100,7 @@ export function AppShell() {
     // A concurrent workspace navigation can supersede the lock redirect.
     // Navigate's absolute target does not change, so remount it for that new
     // location rather than leaving its effect consumed and a blank outlet.
-    return <Navigate key={locationKey} to="/unlock" replace />;
+    return <Navigate key={locationKey} to="/unlock" state={{ returnTo: pathname + search, sessionRequired: true }} replace />;
   }
 
   const material = context?.status ?? "active";
@@ -160,7 +165,11 @@ export function AppShell() {
                 to={item.to}
                 aria-current={primaryRoute(pathname) === item.to ? "page" : undefined}
                 className={primaryRoute(pathname) === item.to ? "on" : ""}
-                onClick={() => setMenuOpen(false)}
+                onClick={() => {
+                  if (menuOpen && pathname !== item.to) focusAfterNavigation.current = true;
+                  else if (menuOpen) document.getElementById("nav-toggle")?.focus();
+                  setMenuOpen(false);
+                }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg>
                 <span>{t.nav[item.key]}</span>
@@ -171,7 +180,7 @@ export function AppShell() {
         <div className="rail-session"><span className="rail-avatar" aria-hidden="true">{(username ?? "P").slice(0, 1).toUpperCase()}</span><div><strong>{username ?? "管理员"}</strong><small>管理会话</small></div></div>
       </GlassSurface>
 
-      <main className="canvas" ref={canvasRef} data-context-version={context?.configVersionId} data-context-status={context?.status}>
+      <main className="canvas" ref={canvasRef} tabIndex={-1} aria-label={currentPage === undefined ? "Prism" : t.nav[currentPage.key]} data-context-version={context?.configVersionId} data-context-status={context?.status}>
         <div className="workspace">
           <ConfigurationBootstrap />
           <PendingConfigurationNotice />

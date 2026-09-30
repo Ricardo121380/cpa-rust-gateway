@@ -14,6 +14,8 @@ import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { SelectionIndicator } from "../../components/motion/SelectionIndicator";
 import { costConfidenceLabel, formatMicrounits, errorCodeLabel, type AttemptRow } from "./model";
 import { downloadText } from "./export";
+import { UsageEvidence, type UsageProvenance, type InputAccounting } from "../usage/UsageEvidence";
+import { TOKEN_FAMILIES, familyLabel, type TokenFamilyName } from "../usage/model";
 import "./requests.css";
 
 export type RequestRow = Readonly<{
@@ -21,7 +23,7 @@ export type RequestRow = Readonly<{
   upstream_id:string|null;endpoint_id:string|null;credential_id:string|null;attempt_count:number;
   outcome:"succeeded"|"failed"|"cancelled"|"unknown";started_at_ms:number|null;finished_at_ms:number|null;
   duration_ms:number|null;first_content_ms:number|null;error_code:string|null;
-  usage:Readonly<Record<string,number|null>>|null;cost_microunits:number|null;cost_confidence:"exact"|"partial"|"unknown"|"unpriced"|null;ledger_records:number;
+  usage:(Readonly<Record<TokenFamilyName,number|null>> & {provenance?:UsageProvenance;input_accounting?:InputAccounting})|null;cost_microunits:number|null;cost_confidence:"exact"|"partial"|"unknown"|"unpriced"|null;ledger_records:number;
 }>;
 type Summary=Readonly<{requests:number;succeeded:number;failed:number;cancelled:number;unknown:number;attempts:number;success_rate:number|null;average_duration_ms:number|null;average_first_content_ms:number|null;p50_duration_ms:number|null;p95_duration_ms:number|null}>;
 type Bucket=Readonly<{at_ms:number;requests:number;succeeded:number;failed:number;cancelled:number;average_duration_ms:number|null;average_first_content_ms:number|null}>;
@@ -162,7 +164,7 @@ function RequestDetail({row,onClose}:Readonly<{row:RequestRow;onClose:()=>void}>
   return <Sheet title="请求详情" layout="inspector" onEscape={onClose} footer={<SheetDismissButton>关闭</SheetDismissButton>}>
     <header className="request-inspector-header"><h3>{row.model}</h3><StatusBadge status={row.outcome==="succeeded"?"active":row.outcome==="failed"?"unauthorized":"disabled"}>{outcomeLabel[row.outcome]}</StatusBadge><p>{protocolName(row.protocol)} · {row.streaming?"流式请求":"非流式请求"}</p></header>
     <section className="request-inspector-section"><h4>时间与计价</h4><dl className="request-facts"><dt>开始</dt><dd>{time(row.started_at_ms)}</dd><dt>结束</dt><dd>{time(row.finished_at_ms)}</dd><dt>总耗时</dt><dd>{milliseconds(row.duration_ms)}</dd><dt>首内容延迟</dt><dd>{milliseconds(row.first_content_ms)}</dd><dt>费用（微单位）</dt><dd>{row.ledger_records?`${row.cost_microunits===null?"—":formatMicrounits(row.cost_microunits)} · ${row.cost_confidence?costConfidenceLabel(row.cost_confidence):""}`:"尚无账本记录"}</dd>{row.error_code?<><dt>错误</dt><dd>{errorCodeLabel(row.error_code)}</dd></>:null}</dl></section>
-    {row.usage?<details className="request-inspector-section"><summary>Token 用量</summary><dl className="request-facts">{Object.entries(row.usage).map(([name,value])=><div key={name}><dt>{name}</dt><dd>{value??"未观测"}</dd></div>)}</dl></details>:null}
+    {row.usage?<details className="request-inspector-section"><summary>Token 用量</summary><UsageEvidence provenance={row.usage.provenance} inputAccounting={row.usage.input_accounting}/><dl className="request-facts">{TOKEN_FAMILIES.map(name=><div key={name}><dt>{familyLabel(name)}</dt><dd>{row.usage?.[name]??"未观测"}</dd></div>)}</dl><p className="small muted">用量来源与计价置信度分别核对；实测或估算均不代表已经完整计价。</p></details>:null}
     <section className="request-inspector-section"><h4>上游尝试 <span>{row.attempt_count} 次</span></h4><p className="stat-sub">一次外部请求可包含多次尝试；上游响应建立后仍可能发生流中断。</p><PagedReadStatus query={attempts}/>{attempts.data?<AttemptTimeline items={attempts.data} onNavigate={onClose}/>:null}</section>
     <details className="request-reference request-inspector-section"><summary>请求标识</summary><code>{row.request_id}</code></details>
   </Sheet>;

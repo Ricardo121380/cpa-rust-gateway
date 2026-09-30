@@ -16,6 +16,7 @@ export function SettingsPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [search, setSearch] = useState("");
+  const matchingPages = NAV_ITEMS.filter(item => t.nav[item.key].toLowerCase().includes(search.trim().toLowerCase()));
   const searchRef = useRef<HTMLInputElement>(null);
   const accessibility = useAccessibilityStore();
   useEffect(() => { if (params.get("focus") === "search") searchRef.current?.focus(); }, [params]);
@@ -81,7 +82,7 @@ export function SettingsPage() {
       <h3 className="settings-section-title">连接与会话</h3>
       <div className="card settings-preferences">
         <div className="settings-preference-row"><div><h3>{t.settings.session}</h3><p>{t.settings.sessionHelp}</p></div><strong>{username ?? "—"}</strong></div>
-        <div className="settings-preference-row"><div><h3>{t.settings.sessionCsrfLabel}</h3><p>{expiresAt === undefined ? "未观测" : new Date(expiresAt).toLocaleString()}</p></div><button type="button" className="secondary" onClick={() => navigate("/unlock?change-password=1")}>{t.unlock.changeTitle}</button></div>
+        <div className="settings-preference-row"><div><h3>{t.settings.sessionCsrfLabel}</h3><p>{expiresAt === undefined ? "未观测" : new Date(expiresAt).toLocaleString()}</p></div><button type="button" className="secondary" onClick={() => navigate("/unlock?change-password=1",{state:{returnTo:`/settings${params.size?`?${params}`:""}`}})}>{t.unlock.changeTitle}</button></div>
         <div className="settings-preference-row"><div><h3>结束管理会话</h3><p>清除当前会话与缓存，返回登录页。</p></div><button type="button" className="settings-lock" onClick={() => {void logoutAdministrator();navigate("/unlock", { replace: true });}}>{t.settings.lock}</button></div>
       </div>
 
@@ -96,7 +97,8 @@ export function SettingsPage() {
       <details className="card settings-search" data-gap="top" open={params.get("focus") === "search" ? true : undefined}>
         <summary>{t.navigation.search}</summary>
         <div className="data-toolbar"><input ref={searchRef} aria-label={t.navigation.search} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.navigation.search} /></div>
-        <div className="section-search">{NAV_ITEMS.filter((item) => t.nav[item.key].toLowerCase().includes(search.toLowerCase())).map((item) => <Link key={item.to} to={item.to}>{t.nav[item.key]}</Link>)}</div>
+        <div className="section-search">{matchingPages.map(item => <Link key={item.to} to={item.to}>{t.nav[item.key]}</Link>)}</div>
+        {matchingPages.length === 0 ? <p role="status">没有匹配的栏目。<button className="secondary" onClick={()=>{setSearch("");searchRef.current?.focus();}}>清除搜索</button></p> : null}
       </details>
       <details className="card settings-technical" data-gap="top"><summary>{t.settings.render} / {t.settings.build}</summary>
       <div className="card" data-gap="top">

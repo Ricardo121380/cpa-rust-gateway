@@ -191,12 +191,12 @@ export function ModelsPage() {
         </p>
       ) : null}
 
-      <ReadStatus pending={!!scope&&models.isPending} error={models.error} hasData={models.data !== undefined} retry={() => void models.refetch()} />
+      <ReadStatus pending={!!scope&&models.isPending} fetching={models.isFetching} dataUpdatedAt={models.dataUpdatedAt} error={models.error} hasData={models.data !== undefined} retry={() => void models.refetch()} />
 
       <div className="model-source-context"><div><strong>{providerFilter?resourceName(providerFilter,"upstream",providers.data?.find(provider=>provider.id===providerFilter)?.name):"全部来源"}</strong><span>原始模型 ID 与提供商来源同时保留</span></div>{providerFilter?<button className="secondary" onClick={()=>setProviderFilter("")}>清除来源筛选</button>:<Link to="/catalog">浏览上游目录</Link>}</div>
       <div className="data-toolbar model-filters"><input type="search" aria-label="搜索已接入模型" placeholder="搜索模型 ID" value={searchText} onChange={e=>setSearchText(e.target.value)}/><select aria-label="模型提供商" value={providerFilter} disabled={providers.isPending||providers.isError} onChange={event=>setProviderFilter(event.target.value)}><option value="">全部提供商</option>{providerFilter&&!providers.data?.some(provider=>provider.id===providerFilter)?<option value={providerFilter}>所选来源待核对</option>:null}{providers.data?.map(provider=><option key={provider.id} value={provider.id}>{resourceName(provider.id,"upstream",provider.name)}</option>)}</select><span className="muted">{models.data&&filteredSourcesReady?visibleModels.length:"—"} / {models.data?.length??"—"} 个已接入模型</span></div>
-      <ReadStatus pending={false} error={providers.error} hasData={!!providers.data} retry={()=>void providers.refetch()}/>
-      <ReadStatus pending={false} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
+      <ReadStatus pending={false} fetching={providers.isFetching} dataUpdatedAt={providers.dataUpdatedAt} error={providers.error} hasData={!!providers.data} retry={()=>void providers.refetch()}/>
+      <ReadStatus pending={false} fetching={topology.isFetching} dataUpdatedAt={topology.dataUpdatedAt} error={topology.error} hasData={!!topology.data} retry={()=>void topology.refetch()}/>
       <div className="card tablewrap models-inventory">
         <table>
           <thead>

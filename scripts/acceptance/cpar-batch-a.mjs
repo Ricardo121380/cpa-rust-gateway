@@ -85,7 +85,7 @@ if(scenario==="local-release") {
   await page.selectOption('loc=css:.upstream-model-browser select >> nth=2',"cred-relay-key");
   await page.waitForFunction(()=>document.querySelector('main')?.textContent.includes("旧模型仍在移除隔离期内"));
   await page.click('loc=role:button[name="加载更多模型"]');
-  await page.waitForFunction(()=>document.querySelector('main')?.textContent.includes("后续目录页读取失败"));
+  await page.waitForFunction(()=>document.querySelector('main')?.textContent.includes("下一页读取失败"));
   assert.match(await page.evaluate(()=>document.querySelector('.upstream-model-browser')?.textContent??""),/retained-source-model/u);
   console.log(JSON.stringify({scenario,result:"PASS",environment:"local-synthetic",spaceId}));
 } else if(scenario==="catalog-mapping-conflict") {

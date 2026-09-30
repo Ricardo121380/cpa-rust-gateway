@@ -12,6 +12,8 @@ import type { LedgerRow } from "./model";
 /** The exact field set the ledger table displays, plus the four token families
  *  the table folds away. Adding a field here is a deliberate act. */
 export type ExportRow = Readonly<{
+  usage_provenance: NonNullable<LedgerRow["usage_provenance"]>;
+  input_accounting: NonNullable<LedgerRow["input_accounting"]>;
   ledger_id: number;
   request_id: string;
   response_id: string;
@@ -36,6 +38,8 @@ export type ExportRow = Readonly<{
 
 export function toExportRow(row: LedgerRow): ExportRow {
   return {
+    usage_provenance: row.usage_provenance ?? "unknown",
+    input_accounting: row.input_accounting ?? "unknown",
     ledger_id: row.ledger_id,
     request_id: row.request_id,
     response_id: row.response_id,

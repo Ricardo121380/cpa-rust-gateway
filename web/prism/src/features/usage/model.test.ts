@@ -64,7 +64,7 @@ describe("weakest", () => {
 describe("sumFamily", () => {
   it("adds observed totals and keeps exact when every contributor is exact", () => {
     const total = sumFamily([row(), row()], "input_tokens");
-    expect(total).toEqual({ total: 200, confidence: "exact", partialCoverage: false });
+    expect(total).toEqual({ total: 200, confidence: "exact", partialCoverage: false, provenance: "unknown" });
   });
 
   it("downgrades to the weakest contributor's confidence", () => {
@@ -107,6 +107,14 @@ describe("sumFamily", () => {
 
   it("sums an empty row set to null", () => {
     expect(sumFamily([], "output_tokens").total).toBeNull();
+  });
+  it("distinguishes measured, estimated, mixed and unknown sources independently of confidence", () => {
+    const measured=row({input_tokens:{total:10,confidence:"exact",provenance:"measured"}});
+    const estimated=row({input_tokens:{total:20,confidence:"exact",provenance:"estimated"}});
+    expect(sumFamily([measured],"input_tokens")).toMatchObject({provenance:"measured",confidence:"exact"});
+    expect(sumFamily([estimated],"input_tokens").provenance).toBe("estimated");
+    expect(sumFamily([measured,estimated],"input_tokens")).toMatchObject({total:30,provenance:"mixed",confidence:"exact"});
+    expect(sumFamily([measured,row()],"input_tokens").provenance).toBe("unknown");
   });
 });
 

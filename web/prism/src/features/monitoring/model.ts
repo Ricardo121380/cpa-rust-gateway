@@ -66,6 +66,8 @@ export function costConfidenceDetail(value: string): string {
 }
 
 export type LedgerRow = Readonly<{
+  usage_provenance?: import("../usage/UsageEvidence").UsageProvenance;
+  input_accounting?: import("../usage/UsageEvidence").InputAccounting;
   ledger_id: number;
   request_id: string;
   response_id: string;

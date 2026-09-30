@@ -7,14 +7,14 @@ import {ResourceIdentity} from "../../components/ResourceIdentity";
 import {useOperationBoundary} from "../../components/OperationBoundary";
 import {useSessionStore} from "../../session/sessionStore";
 import {useVersionStore,type ConfigVersionSummary} from "./versionStore";
-import {captureLifecycleOwner,isLifecycleOwner,prepareConfigurationLifecycle,commitConfigurationLifecycle,observeConfigurationLifecycle,type LifecycleMode,type LifecycleOwner,type LifecycleReceipt,type LifecycleObservation,type PreparedLifecycle,type ReviewProof} from "./configurationLifecycle";
+import {captureLifecycleOwner,isLifecycleOwner,prepareConfigurationLifecycle,commitConfigurationLifecycle,observeConfigurationLifecycle,LifecyclePreparationError,type ValidationEvidence,type LifecycleMode,type LifecycleOwner,type LifecycleReceipt,type LifecycleObservation,type PreparedLifecycle,type ReviewProof} from "./configurationLifecycle";
 
 type Attempt=Readonly<{owner:LifecycleOwner;mode:LifecycleMode;inline:boolean;validateOnly:boolean}>;
 type Panel=
  |{kind:"preparing";attempt:Attempt}
  |{kind:"prepared";attempt:Attempt;prepared:PreparedLifecycle}
  |{kind:"writing";attempt:Attempt;prepared:PreparedLifecycle}
- |{kind:"failed";attempt:Attempt;message:string}
+ |{kind:"failed";attempt:Attempt;message:string;validation?:ValidationEvidence}
  |{kind:"receipt";attempt:Attempt;receipt:LifecycleReceipt;observation?:LifecycleObservation;readError?:string;reading:boolean};
 type API=Readonly<{active:boolean;openSelected:(version:ConfigVersionSummary)=>void;start:(source:ConfigVersionSummary,mode:LifecycleMode,options?:{inline?:boolean;validateOnly?:boolean;proof?:ReviewProof})=>void}>;
 const Context=createContext<API | undefined>(undefined);
@@ -41,7 +41,7 @@ export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
    try{owner=captureLifecycleOwner(source);}catch(cause){setEntryError(asAppError(cause).message);return;}
    const attempt={owner,mode,inline:options.inline??false,validateOnly:options.validateOnly??false};
    current.current=attempt;setRestorationConfirmed(false);setEntryError(undefined);setPanel({kind:"preparing",attempt});
-   void prepareConfigurationLifecycle(owner,mode,options.proof,options.validateOnly).then(prepared=>{if(alive(attempt))setPanel({kind:"prepared",attempt,prepared});}).catch(cause=>{if(alive(attempt)&&!isCancelledError(cause))setPanel({kind:"failed",attempt,message:asAppError(cause).message});});
+   void prepareConfigurationLifecycle(owner,mode,options.proof,options.validateOnly).then(prepared=>{if(alive(attempt))setPanel({kind:"prepared",attempt,prepared});}).catch(cause=>{if(alive(attempt)&&!isCancelledError(cause))setPanel({kind:"failed",attempt,message:asAppError(cause).message,validation:cause instanceof LifecyclePreparationError?cause.validation:undefined});});
   };
   if(options.inline)begin();else admission.request(begin);
  };
@@ -76,7 +76,7 @@ export function ConfigurationLifecycleHost({children}:{children:ReactNode}){
    {panel.kind==="preparing"||panel.kind==="writing"?<p role="status">{panel.kind==="preparing"?"正在核对版本并校验，请稍候…":"正在提交已确认的配置，请稍候…"}</p>:null}
    {panel.kind==="prepared"?<><p role="status">此修订的配置校验通过。</p><p>{panel.attempt.validateOnly?"校验不会应用配置，也不保留未来的应用权限。":"确认后新请求使用这份配置；已开始的请求继续完成。"}</p>{panel.attempt.mode==="rollback"?<p>回滚目标：<ResourceIdentity id={panel.prepared.target.id} kind="config" name={panel.prepared.target.description}/></p>:null}<p className="stat-sub">全局价格目录、历史账本和原生账号运行状态不随配置回滚。</p></>:null}
    {panel.kind==="prepared"&&panel.prepared.restoration?.accounts.length?<section><h4>将恢复已删除的本地账号</h4><ul>{panel.prepared.restoration.accounts.map(account=><li key={`${account.upstream_id}:${account.credential_id}`}>{account.credential_id} · 归属 {account.upstream_id} · 授权 revision {account.credential_revision}</li>)}</ul><p>恢复的是历史版本中的授权与连接。历史账本仍保留；没有注销或撤销上游账号的授权。</p><label className="check-row"><input type="checkbox" checked={restorationConfirmed} onChange={event=>setRestorationConfirmed(event.target.checked)}/>确认恢复清单中的已删除账号及历史授权</label></section>:null}
-   {panel.kind==="failed"?<p role="alert">{panel.message}</p>:null}
+   {panel.kind==="failed"?<>{panel.validation?<p role="status">已收到校验结果：{panel.validation.valid?"目标校验通过":"目标校验未通过"} · <ResourceIdentity id={panel.validation.targetId} kind="config"/>。校验前读取修订 {panel.validation.observedRevision}。{panel.validation.valid?"后续版本状态尚未确认，不能据此应用配置。":"请先修正校验问题。"}</p>:null}<p role="alert">{panel.message}</p></>:null}
    {panel.kind==="receipt"?<><p role={panel.receipt.kind==="acknowledged"?"status":"alert"}>{panel.receipt.message}</p>{panel.reading?<p role="status">正在读取服务端状态…</p>:null}{panel.readError?<p role="alert">回执保留，状态重读失败：{panel.readError}</p>:null}{panel.observation?<p>{panel.observation.target.status==="active"&&panel.observation.activeId===panel.observation.target.id?(panel.receipt.kind==="acknowledged"?"已核对：目标仍为当前活动配置。":"当前读取到目标处于活动状态；这不证明本次请求已获确认。"):"目标已被后续操作替换或仍未应用；不会将它当作当前活动配置。"}</p>:null}</>:null}
   </Sheet>:null}
  </Context.Provider>;

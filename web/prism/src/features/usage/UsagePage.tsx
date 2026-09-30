@@ -24,7 +24,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { PagedReadStatus } from "../../components/PagedReadStatus";
+import { provenanceLabel } from "./UsageEvidence";
 import { useMessages } from "../../i18n/messages";
 import "./usage.css";
 import {
@@ -108,7 +109,7 @@ function FamilyCell({ total, label }: Readonly<{ total: FamilyTotal; label:strin
     <td className="mono usage-num" data-label={label}>
       {total.partialCoverage && total.total !== null ? "≥ " : ""}
       {formatTokens(total.total)}
-      <ConfidenceChip total={total} />
+      <ConfidenceChip total={total} /><small>{provenanceLabel(total.provenance)}</small>
     </td>
   );
 }
@@ -201,7 +202,7 @@ export function UsagePage() {
 
       <div className="usage-workspace-tools"><WorkspaceTabs />
       <details className="usage-filter-disclosure" open={activeFilterCount(filters)>0 ? true : undefined}><summary>筛选范围{activeFilterCount(filters)>0 ? ` · ${activeFilterCount(filters)} 项已应用` : ""}</summary>
-      <form className="card usage-filters" onSubmit={onFilterSubmit}>
+      <form key={JSON.stringify(filters)} className="card usage-filters" onSubmit={onFilterSubmit}>
         {FILTER_KEYS.map((key) =>
           key === "protocol" ? (
             <label key={key}>
@@ -256,7 +257,7 @@ export function UsagePage() {
         </label>
       </div>
 
-      {excluded > 0 && !usage.isError ? (
+      {excluded > 0 ? (
         <p role="status" className="action-notice usage-integrity">
           <strong>历史用量不完整</strong> · {formatCount(excluded)} 条事件因调用关联冲突未计入，
           涉及 {formatCount(usage.data?.excluded_request_groups ?? 0)} 组历史标识。原记录已保留并隔离。
@@ -264,7 +265,7 @@ export function UsagePage() {
         </p>
       ) : null}
 
-      {usage.data && !usage.isError ? (
+      {usage.data ? (
           <div className="card usage-summary">
             <div className="usage-kpi">
               <span className="usage-kpi-value mono">{formatCount(totalRequests)}</span>
@@ -287,15 +288,8 @@ export function UsagePage() {
           </div>
       ) : null}
 
-      {usage.isError ? (
-        <div className="card empty-state" data-kind="error">
-          <p>{asAppError(usage.error).message}</p>
-        </div>
-      ) : usage.isPending ? (
-        <div className="card empty-state" data-kind="loading">
-          <p>正在读取用量(按游标翻页,最多 {MAX_PAGES} 页)…</p>
-        </div>
-      ) : (
+      <PagedReadStatus query={usage}/>
+      {usage.data ? (
         <>
 
 
@@ -363,7 +357,7 @@ export function UsagePage() {
             置信度取组内<strong>最弱</strong>的那一个。
           </p>
         </>
-      )}
+      ) : null}
             <details className="reading-notes"><summary>聚合维度与观测口径</summary><p className="usage-hint">
         仅统计已收到用量记录的请求，不包含所有失败或取消请求；完整请求数请查看请求日志。
         数据按所选时间窗汇总，支持按提供商、接口、账号、模型及密钥分组。

@@ -5,6 +5,7 @@ import { ResourceIdentity } from "../../components/ResourceIdentity";
 import { resourceName } from "../../utils/resourceNames";
 import { routingInventoryKey, useRoutingPages } from "../models/useRoutingPages";
 import type { RouteListItem } from "../models/model";
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { ReadStatus } from "../../components/ReadStatus";
 // Access control: groups + client keys. Signature safety flow lives here —
 // the reveal-once sheet (docs/07 §6.4): the full rgw_ key exists only in the
@@ -103,16 +104,17 @@ function GroupRoutes({
         <button
           type="button"
           className="secondary"
-          disabled={!editable}
+          disabled={!editable || grants.isError || grants.isPending || grants.isFetching}
           title={editable ? undefined : "仅草稿版本可编辑"}
           onClick={() => {submitted.current=false;setReceipt(undefined);setWorkingId(undefined);grant.reset();setSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setAdding(true);}}
         >
           授权路由
         </button>
       </h4>
-      {grants.data !== undefined && grants.data.length === 0 ? (
+      <PagedReadStatus query={grants}/>
+      {grants.data === undefined ? null : grants.data.length === 0 ? (
         <p className="stat-sub">
-          该组没有任何路由授权 —— 组内的 Client Key 现在到不了任何模型。
+          本次读取中该组未配置路由授权；模型开放范围仍需按每把 Key 核对。
         </p>
       ) : (
         <table className="responsive-table">
@@ -244,8 +246,8 @@ export function AccessPage() {
         </p>
       ) : null}
 
-      <ReadStatus pending={!!scope&&groups.isPending} error={groups.error} hasData={groups.data !== undefined} retry={() => void groups.refetch()} />
-      <ReadStatus pending={!!scope&&keys.isPending} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
+      <ReadStatus pending={!!scope&&groups.isPending} fetching={groups.isFetching} dataUpdatedAt={groups.dataUpdatedAt} error={groups.error} hasData={groups.data !== undefined} retry={() => void groups.refetch()} />
+      <ReadStatus pending={!!scope&&keys.isPending} fetching={keys.isFetching} dataUpdatedAt={keys.dataUpdatedAt} error={keys.error} hasData={keys.data !== undefined} retry={() => void keys.refetch()} />
 
       <div className="card tablewrap key-list-wrap">
         <table className="key-list" aria-label="客户端密钥">

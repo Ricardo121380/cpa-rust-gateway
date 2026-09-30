@@ -1,3 +1,4 @@
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { ResourcePicker } from "../../components/ResourcePicker";
 import { ResourceIdInput } from "../../components/ResourceIdentity";
 import { resourceOption, referenceText } from "../../utils/resourceNames";
@@ -498,8 +499,8 @@ function BindingSheet({
 }
 
 export function CompatibleProxyPanel({
-  upstreams,
-}: Readonly<{ upstreams: readonly UpstreamOption[] }>) {
+  upstreams, upstreamsReady,
+}: Readonly<{ upstreams: readonly UpstreamOption[]; upstreamsReady: boolean }>) {
   const queryClient = useQueryClient();
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
@@ -557,8 +558,10 @@ export function CompatibleProxyPanel({
   const poolRows = pools.data ?? [];
   const nodeRows = nodes.data ?? [];
   const bindingRows = bindings.data ?? [];
-  const loading = pools.isLoading || nodes.isLoading || bindings.isLoading;
-  const failure = pools.error ?? nodes.error ?? bindings.error;
+  const poolsReady = upstreamsReady && pools.isSuccess && !pools.isFetching;
+  const nodesReady = poolsReady && nodes.isSuccess && !nodes.isFetching;
+  const bindingsReady = nodesReady && bindings.isSuccess && !bindings.isFetching;
+  const dependenciesReady = pools.isSuccess && nodes.isSuccess && bindings.isSuccess && !pools.isFetching && !nodes.isFetching && !bindings.isFetching;
 
   if (scope === undefined) {
     return null;
@@ -581,13 +584,6 @@ export function CompatibleProxyPanel({
           </button>
         </p>
       )}
-      {failure !== null && failure !== undefined ? (
-        <p role="alert" className="action-error">
-          读取失败:{asAppError(failure).code} · {asAppError(failure).message}
-        </p>
-      ) : null}
-      {loading ? <p className="cp-empty">读取中…</p> : null}
-
       {!receipt&&draft?.kind === "pool" ? (
         <PoolSheet
           existing={draft.existing}
@@ -624,8 +620,9 @@ export function CompatibleProxyPanel({
       {receipt?<InlineWorkspace title="兼容出口修改结果" busy={false} dirty={false} onClose={close} footer={<button onClick={close}>完成</button>}><p role="status">修改已保存到草稿，尚未应用。</p></InlineWorkspace>:null}
       <ConfigurationTaskNotice workingId={workingId} error={save.error??remove.error} onReview={review}/>
       {!receipt&&doomed !== undefined ? (
-        <Sheet title={`删除 ${doomed.label}`} onEscape={close} busy={remove.isPending} footer={<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={submitted.current||doomed.blockers.length>0} onClick={()=>{if(!submitted.current){submitted.current=true;remove.mutate({entity:doomed.entity,path:doomed.path});}}}>确认删除</button></>}>
-          <p>删除后不可撤销(可以回滚整个配置版本)。</p>
+        <Sheet title={`删除 ${doomed.label}`} onEscape={close} busy={remove.isPending} footer={<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={submitted.current||!dependenciesReady||doomed.blockers.length>0} onClick={()=>{if(!submitted.current&&dependenciesReady&&!doomed.blockers.length){submitted.current=true;remove.mutate({entity:doomed.entity,path:doomed.path});}}}>确认删除</button></>}>
+          <p>删除写入工作草稿，应用后生效。</p>
+          {!dependenciesReady ? <p role="alert">引用来源尚未完整确认，请重新读取后再删除。</p> : null}
           {doomed.blockers.length > 0 ? (
             // The backend refuses to delete a referenced pool or node and there
             // is no cascade. Both lists are already here, so the refusal is
@@ -639,13 +636,14 @@ export function CompatibleProxyPanel({
       <Section
         title="代理池"
         help="一个池是一组可互换的出口节点。池本身不持有任何地址。"
-        editable={editable === true}
+        editable={editable === true && poolsReady}
         onCreate={() => beginDraft({ kind: "pool", existing: undefined })}
       >
-        {poolRows.length === 0 ? (
+        <PagedReadStatus query={pools}/>
+        {pools.data === undefined ? null : poolRows.length === 0 ? (
           <p className="cp-empty">还没有代理池。</p>
         ) : (
-          <table>
+          <div className="tablewrap"><table>
             <thead>
               <tr>
                 <th scope="col">名称</th>
@@ -664,13 +662,13 @@ export function CompatibleProxyPanel({
                   <td><ResourceIdentity id={pool.upstream_id} kind="upstream" /></td>
                   <td>{pool.enabled ? "是" : "否"}</td>
                   <td className="mono">
-                    {nodeRows.filter((node) => node.pool_id === pool.id).length}
+                    {nodes.isSuccess ? nodeRows.filter((node) => node.pool_id === pool.id).length : "未确认"}
                   </td>
                   <td className="row-actions">
                     <button
                       type="button"
                       className="secondary"
-                      disabled={editable !== true}
+                      disabled={editable !== true || !poolsReady}
                       onClick={() => beginDraft({ kind: "pool", existing: pool })}
                     >
                       编辑
@@ -678,7 +676,7 @@ export function CompatibleProxyPanel({
                     <button
                       type="button"
                       className="secondary"
-                      disabled={editable !== true}
+                      disabled={editable !== true || !dependenciesReady}
                       onClick={() =>
                         beginDelete({
                           entity: "pool",
@@ -694,7 +692,7 @@ export function CompatibleProxyPanel({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Section>
 
@@ -706,21 +704,23 @@ export function CompatibleProxyPanel({
             地址落库即封存,任何界面都拿不回它。
           </>
         }
-        editable={editable === true}
+        editable={editable === true && nodesReady}
         onCreate={() => beginDraft({ kind: "node", existing: undefined })}
       >
-        {nodeRows.length === 0 && poolRows.length === 0 ? (
+        <PagedReadStatus query={nodes}/>
+        {nodes.data === undefined || pools.data === undefined ? null : nodeRows.length === 0 && poolRows.length === 0 ? (
           <p className="cp-empty">还没有代理节点。</p>
         ) : (
           groupNodesByPool(poolRows, nodeRows).map((group) => (
             <div key={group.pool?.id ?? "__loose__"} className="cp-group">
               <h4 className="mono">{group.pool === undefined ? "不属于任何池" : <ResourceIdentity id={group.pool.id} kind="resource" />}</h4>
+              {!nodes.isSuccess ? <p className="cp-empty">节点来源待确认；下面保留先前读取。</p> : null}
               {group.nodes.length === 0 ? (
                 // The state a pool is in the moment it is created. Saying so
                 // beats an empty area that reads as a rendering bug.
-                <p className="cp-empty">这个池还没有节点 —— 用上面的「新建」加一个。</p>
+                <p className="cp-empty">{nodes.isSuccess ? "本次读取中这个池还没有节点。" : "节点数量未确认，请重新读取。"}</p>
               ) : (
-                <table>
+                <div className="tablewrap"><table>
                   <thead>
                     <tr>
                       <th scope="col">名称</th>
@@ -751,7 +751,7 @@ export function CompatibleProxyPanel({
                           <button
                             type="button"
                             className="secondary"
-                            disabled={editable !== true}
+                            disabled={editable !== true || !nodesReady}
                             onClick={() => beginDraft({ kind: "node", existing: node })}
                           >
                             编辑
@@ -759,7 +759,7 @@ export function CompatibleProxyPanel({
                           <button
                             type="button"
                             className="secondary"
-                            disabled={editable !== true}
+                            disabled={editable !== true || !dependenciesReady}
                             onClick={() =>
                               beginDelete({
                                 entity: "node",
@@ -775,7 +775,7 @@ export function CompatibleProxyPanel({
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
           ))
@@ -785,13 +785,14 @@ export function CompatibleProxyPanel({
       <Section
         title="兼容出口绑定"
         help="把一对 (endpoint, credential) 绑到直连、某个固定节点,或某个池。"
-        editable={editable === true}
+        editable={editable === true && bindingsReady}
         onCreate={() => beginDraft({ kind: "binding", existing: undefined })}
       >
-        {bindingRows.length === 0 ? (
+        <PagedReadStatus query={bindings}/>
+        {bindings.data === undefined ? null : bindingRows.length === 0 ? (
           <p className="cp-empty">还没有兼容出口绑定。</p>
         ) : (
-          <table>
+          <div className="tablewrap"><table>
             <thead>
               <tr>
                 <th scope="col">endpoint / credential</th>
@@ -821,7 +822,7 @@ export function CompatibleProxyPanel({
                     <button
                       type="button"
                       className="secondary"
-                      disabled={editable !== true}
+                      disabled={editable !== true || !bindingsReady}
                       onClick={() => beginDraft({ kind: "binding", existing: binding })}
                     >
                       编辑
@@ -829,7 +830,7 @@ export function CompatibleProxyPanel({
                     <button
                       type="button"
                       className="secondary"
-                      disabled={editable !== true}
+                      disabled={editable !== true || !dependenciesReady}
                       onClick={() =>
                         beginDelete({
                           entity: "binding",
@@ -848,7 +849,7 @@ export function CompatibleProxyPanel({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Section>
 

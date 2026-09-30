@@ -25,3 +25,9 @@ it("keeps stale or backlogged observations visible even when the last state was 
   expect(lag).toContain("待处理序号跨度较大");
   expect(lag).not.toContain('class="processing-fold"');
 });
+
+it("keeps the processing span unknown when the checkpoint has not been observed", () => {
+  const html = render({source_ordinal: 5000, checkpoint_ordinal: null});
+  expect(html).toContain("待处理序号跨度</dt><dd>未观测");
+  expect(html).not.toContain("待处理序号跨度较大");
+});

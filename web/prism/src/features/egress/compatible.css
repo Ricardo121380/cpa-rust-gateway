@@ -103,6 +103,14 @@
   color: var(--ink-2);
 }
 
+.compatible-proxy .tablewrap > table {
+  display: table;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  overflow: visible;
+}
+
 /* ---- forms ------------------------------------------------------------- */
 
 .compatible-proxy .cp-pair,

@@ -255,9 +255,9 @@ function ProviderAccountsGlance() {
   return <section className="card overview-providers">
     <header className="overview-resource-head"><h3>提供商与账号</h3><Link to="/accounts">管理账号 →</Link></header>
     <p className="stat-sub">{context?.status==="draft"?"待应用配置":context?.status==="archived"?"历史配置":"当前配置"}凭据与独立渠道账号；以下为授权数量，非运行可用数。</p>
-    <ReadStatus pending={runtime.isPending} error={runtime.error} hasData={runtime.data!==undefined} retry={()=>void runtime.refetch()}/>
+    <ReadStatus pending={runtime.isPending} fetching={runtime.isFetching} dataUpdatedAt={runtime.dataUpdatedAt} error={runtime.error} hasData={runtime.data!==undefined} retry={()=>void runtime.refetch()}/>
     {runtime.data?<p className="stat-sub">{runtime.data.next_cursor?"已载入部分运行绑定":"当前运行绑定"}：{runtime.data.items.length} 个，其中认证可用 {runtime.data.items.filter(item=>item.auth_status==="active").length} · 调度可用 {runtime.data.items.filter(item=>item.runtime_status==="available").length} · 冷却 {runtime.data.items.filter(item=>item.runtime_status==="cooling").length}。这是当前运行快照，同一账号的多个接口分别计数{runtime.data.next_cursor?"，不是全量账号统计":""}。<Link to="/accounts?view=runtime">查看运行状态 →</Link></p>:null}
-    {context===undefined||context===null?<p className="muted">尚无配置上下文，请先接入提供商。</p>:<ReadStatus pending={inventory.isPending} error={inventory.error} hasData={summary!==undefined} retry={()=>void inventory.refetch()}/>}
+    {context===undefined||context===null?<p className="muted">尚无配置上下文，请先接入提供商。</p>:<ReadStatus pending={inventory.isPending} fetching={inventory.isFetching} dataUpdatedAt={inventory.dataUpdatedAt} error={inventory.error} hasData={summary!==undefined} retry={()=>void inventory.refetch()}/>}
     {summary?summary.total===0?<p className="muted">尚未接入账号。</p>:<div className="overview-provider-rows">{accountGroups.filter(group=>(summary.category_totals[group.id]??0)>0).map(group=><Link key={group.id} to={`/accounts?category=${encodeURIComponent(group.id)}`}><span className="account-avatar" aria-hidden="true">{group.name.slice(0,2)}</span><span><strong>{group.name}</strong><small>{group.description}</small></span><strong>{summary.category_totals[group.id]} <small>份授权</small></strong><span aria-hidden="true">→</span></Link>)}</div>:null}
   </section>;
 }
@@ -309,7 +309,7 @@ export function OverviewPage() {
         </aside>
       </div>
       <details className="overview-telemetry overview-maintenance"><summary>资源与处理状态</summary><ProcessingStatus compact /><AnalyticsPointers />
-          <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
+          <ReadStatus pending={versions.isPending} fetching={versions.isFetching} dataUpdatedAt={versions.dataUpdatedAt} error={versions.error} hasData={versions.data !== undefined} retry={() => void versions.refetch()} />
           <div className="card overview-resources">
           <div className="overview-resource-head"><h3>资源概览</h3><span className="entity-meta">{context?.status === "draft" ? "待应用" : context?.status === "archived" ? "历史配置" : active === undefined ? "等待接入" : "当前配置"}</span></div>
           {scope === undefined ? null : <ReadStatus

@@ -1,13 +1,13 @@
 // Uniform management error envelope mapping (docs/07 §6.3).
 // The backend intentionally returns one opaque 404 for every auth/network/origin
-// failure; 503-style rejections from injected facades are a first-class
-// "projection unavailable" state, not an error toast.
+// failure. A 503 can be temporary admission failure or an unavailable source;
+// it does not establish that a runtime projection is disabled.
 
 export type AppErrorKind =
   | "session_invalid" // 404 management_access_denied → back to unlock
   | "invalid_request" // 400 → form-level message
   | "conflict" // 409 → refetch + conflict bar, never replay
-  | "unavailable" // 503 → projection-unavailable empty state
+  | "unavailable" // 503 → unavailable read, retain any previously observed data
   | "network"
   | "unknown";
 

@@ -79,3 +79,26 @@ it("read-only validation cannot be reused as application permission",async()=>{
  await expect(commitConfigurationLifecycle(prepared)).rejects.toThrow("只读校验");
  expect(vi.mocked(call).mock.calls.some(([operation])=>operation==="publishConfigVersion")).toBe(false);
 });
+
+it("retains validation and its prior observed revision when the following state read fails", async()=>{
+ const original=vi.mocked(call).getMockImplementation()!;let reads=0;
+ vi.mocked(call).mockImplementation(async(operation,request,options)=>{
+  if(operation==="getConfigVersion"&&++reads===2)throw new Error("state read unavailable");
+  return original(operation,request,options);
+ });
+ await expect(prepareConfigurationLifecycle(captureLifecycleOwner(draft),"publish")).rejects.toMatchObject({
+  validation:{targetId:"draft",observedRevision:"rev-7",valid:true},message:"state read unavailable",
+ });
+ expect(vi.mocked(call).mock.calls.some(([operation])=>operation==="publishConfigVersion")).toBe(false);
+});
+
+it("reports rejected validation before attempting another state read", async()=>{
+ const original=vi.mocked(call).getMockImplementation()!;let reads=0;
+ vi.mocked(call).mockImplementation(async(operation,request,options)=>{
+  if(operation==="getConfigVersion"&&++reads===2)throw new Error("state read unavailable");
+  if(operation==="validateConfigVersion")return {valid:false,error_codes:["route_missing"]} as never;
+  return original(operation,request,options);
+ });
+ await expect(prepareConfigurationLifecycle(captureLifecycleOwner(draft),"publish")).rejects.toMatchObject({validation:{valid:false,error_codes:["route_missing"]}});
+ expect(reads).toBe(1);
+});

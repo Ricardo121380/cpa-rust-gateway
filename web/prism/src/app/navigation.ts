@@ -94,6 +94,7 @@ const WORKSPACES: Readonly<Record<string, readonly string[]>> = {
 };
 
 export function primaryRoute(path: string): string {
+  if (path === "/overview") return "/";
   return Object.entries(WORKSPACES).find(([, pages]) => pages.includes(path))?.[0] ?? path;
 }
 

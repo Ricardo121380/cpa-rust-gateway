@@ -13,6 +13,10 @@ export type LifecycleOwner = Readonly<{
 }>;
 export type LifecycleEvent = Readonly<{id:number|string;action:string;config_version_id:string;replaced_config_version_id?:string|null}>;
 export type ReviewProof = Readonly<{targetRevision:string;baseId:string|null;baseRevision?:string}>;
+export type ValidationEvidence = Readonly<{targetId:string;observedRevision:string;valid:boolean;error_codes?:readonly string[]}>;
+export class LifecyclePreparationError extends Error {
+  constructor(message:string,readonly validation:ValidationEvidence) { super(message); }
+}
 export type PreparedLifecycle = Readonly<{
   owner:LifecycleOwner;mode:LifecycleMode;target:ConfigVersionSummary;
   activeId:string|null;eventId:string;validationOnly:boolean;restoration?:AccountRestorationReview;
@@ -77,12 +81,18 @@ export async function prepareConfigurationLifecycle(owner:LifecycleOwner,mode:Li
     target=previous;
   }
   const validation=await read<{valid:boolean;error_codes?:readonly string[]}>(owner,"validateConfigVersion",{path:{config_version_id:target.id}});
-  exactSource(await read<ConfigVersionSummary>(owner,"getConfigVersion",{path:{config_version_id:source.id}}),source);
-  if(target.id!==source.id)exactSource(await read<ConfigVersionSummary>(owner,"getConfigVersion",{path:{config_version_id:target.id}}),target);
-  if(!validation.valid)throw new Error(`配置校验未通过：${validation.error_codes?.join("、")||"请查看诊断"}`);
-  const restoration=validationOnly?undefined:await readAccountRestorationReview(target,active?.id??null);
-  assertLifecycleOwner(owner);
-  return {owner,mode,target,activeId:active?.id??null,eventId,validationOnly,restoration};
+  const evidence={...validation,targetId:target.id,observedRevision:target.revision};
+  if(!validation.valid)throw new LifecyclePreparationError(`配置校验未通过：${validation.error_codes?.join("、")||"请查看诊断"}`,evidence);
+  try {
+    exactSource(await read<ConfigVersionSummary>(owner,"getConfigVersion",{path:{config_version_id:source.id}}),source);
+    if(target.id!==source.id)exactSource(await read<ConfigVersionSummary>(owner,"getConfigVersion",{path:{config_version_id:target.id}}),target);
+    const restoration=validationOnly?undefined:await readAccountRestorationReview(target,active?.id??null);
+    assertLifecycleOwner(owner);
+    return {owner,mode,target,activeId:active?.id??null,eventId,validationOnly,restoration};
+  } catch(cause) {
+    if(isCancelledError(cause))throw cause;
+    throw new LifecyclePreparationError(asAppError(cause).message,evidence);
+  }
 }
 
 /** One deliberate write with captured CAS. No retries or recovery POSTs. */

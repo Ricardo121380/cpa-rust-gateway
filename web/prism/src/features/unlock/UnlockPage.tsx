@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { isCancelledError } from "@tanstack/react-query";
 import { call, loginAdministrator, logoutAdministrator } from "../../api/client";
 import { asAppError } from "../../api/errors";
@@ -7,9 +7,14 @@ import { GlassSurface } from "../../components/glass/GlassSurface";
 import { useMessages } from "../../i18n/messages";
 import { useSessionStore } from "../../session/sessionStore";
 import { PasswordField } from "./PasswordField";
+import { NAV_ITEMS } from "../../app/navigation";
 
 export function UnlockPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeState = location.state as { returnTo?: unknown; sessionRequired?: boolean } | null;
+  const candidate = typeof routeState?.returnTo === "string" ? routeState.returnTo : "/";
+  const returnTo = NAV_ITEMS.some(item => item.to === candidate.split("?")[0]) || candidate.split("?")[0] === "/overview" ? candidate : "/";
   const [params] = useSearchParams();
   const t = useMessages();
   const unlocked = useSessionStore((s) => s.unlocked);
@@ -25,12 +30,12 @@ export function UnlockPage() {
   const attempt = useRef<AbortController | undefined>(undefined);
   useEffect(() => () => attempt.current?.abort(), []);
   useEffect(() => { setPassword(""); setNewPassword(""); setConfirm(""); setError(undefined); }, [changing]);
-  useEffect(() => { if (unlocked && !changing) navigate("/", { replace: true }); }, [unlocked, changing, navigate]);
+  useEffect(() => { if (unlocked && !changing) navigate(returnTo, { replace: true }); }, [unlocked, changing, navigate, returnTo]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
-    setError(undefined); setNotice(undefined);
+    setError(undefined);
     if (!password || (!changing && !username.trim())) { setError(t.unlock.required); return; }
     if (changing) {
       const length = [...newPassword].length;
@@ -45,7 +50,7 @@ export function UnlockPage() {
       if (changing) {
         await call<void>("changeAdministratorPassword", { body: { current_password: password, new_password: newPassword }, signal: controller.signal });
         useSessionStore.getState().lock();
-        navigate("/unlock", { replace: true });
+        navigate("/unlock", { replace: true, state: { returnTo } });
         setNotice(t.unlock.passwordChanged);
       } else {
         await loginAdministrator(username.trim(), password, controller.signal);
@@ -68,6 +73,8 @@ export function UnlockPage() {
       <div className="login-brand"><svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M14 2 26 14 14 26 2 14Z" stroke="currentColor" strokeWidth="1.5" /><path d="M14 2v24M2 14h24" stroke="currentColor" strokeOpacity=".25" /></svg><span>Prism</span></div>
       <h1>{changing ? t.unlock.changeTitle : t.unlock.title}</h1>
       {requiredChange ? <p className="login-note">{t.unlock.firstChange}</p> : null}
+      {!changing && routeState?.sessionRequired ? <p className="login-note">{t.unlock.sessionRequired}</p> : null}
+      {returnTo !== "/" ? <p className="login-note">{t.unlock.returnAfterLogin}</p> : null}
       <form onSubmit={(event) => void onSubmit(event)} noValidate aria-busy={busy}>
         {changing ? null : <div className="login-field"><label htmlFor="login-username">{t.unlock.username}</label><input id="login-username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username} onChange={(e) => setUsername(e.target.value)} autoFocus maxLength={64} required aria-invalid={error !== undefined} aria-describedby={errorId} /></div>}
         <PasswordField key={changing ? "current" : "login"} label={changing ? (requiredChange ? t.unlock.initialPassword : t.unlock.currentPassword) : t.unlock.password} value={password} onChange={setPassword} autoFocus={changing} errorId={errorId} />

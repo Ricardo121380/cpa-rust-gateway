@@ -1,3 +1,4 @@
+import { UsageEvidence } from "../usage/UsageEvidence";
 import { AttemptTimeline } from "./AttemptTimeline";
 import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { ResourcePicker, resourceFilterKinds } from "../../components/ResourcePicker";
@@ -201,7 +202,7 @@ function LedgerPanel({
 
   return (
     <>
-      <FilterForm keys={LEDGER_FILTER_KEYS} values={filters} onApply={onApply} onClear={onClear} />
+      <FilterForm key={JSON.stringify(filters)} keys={LEDGER_FILTER_KEYS} values={filters} onApply={onApply} onClear={onClear} />
       <PagedReadStatus query={ledger}/>
       <div className="request-read-actions"><button className="secondary" disabled={ledger.isFetching} onClick={()=>void ledger.refetch()}>重新读取账本</button></div>
 
@@ -294,7 +295,7 @@ function LedgerPanel({
                   <td className="mono mon-triple">
                     <ResourceIdentity id={row.provider_id} kind="upstream" /> / <ResourceIdentity id={row.channel_id} kind="endpoint" /> / <ResourceIdentity id={row.account_id} kind="account" />
                   </td>
-                  <td className="mono mon-num">{formatTokens(row.input_tokens)}</td>
+                  <td className="mono mon-num">{formatTokens(row.input_tokens)}<br/><UsageEvidence provenance={row.usage_provenance} inputAccounting={row.input_accounting}/></td>
                   <td className="mono mon-num">{formatTokens(row.output_tokens)}</td>
                   <td className="mono mon-num">{formatMicrounits(row.cost_microunits)}</td>
                   <td>
@@ -386,7 +387,7 @@ function FailurePanel({
   return (
     <>
       {drill === undefined ? null : <AttemptsSheet requestId={drill} onClose={() => setDrill(undefined)} />}
-      <FilterForm keys={FAILURE_FILTER_KEYS} values={filters} onApply={onApply} onClear={onClear} />
+      <FilterForm key={JSON.stringify(filters)} keys={FAILURE_FILTER_KEYS} values={filters} onApply={onApply} onClear={onClear} />
       <PagedReadStatus query={failures}/>
       <div className="request-read-actions"><button className="secondary" disabled={failures.isFetching} onClick={()=>void failures.refetch()}>重新读取失败记录</button></div>
 

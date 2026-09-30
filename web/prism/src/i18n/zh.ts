@@ -29,6 +29,8 @@ export const zh = {
     savePassword: "保存并重新登录",
     passwordChanged: "密码已更新，请重新登录",
     back: "返回登录",
+    returnAfterLogin: "登录后返回原页面；原有筛选条件将保留。",
+    sessionRequired: "此页面需要有效的管理会话，请重新登录。",
     revealToggle: "显示密钥",
   },
   nav: {
@@ -66,6 +68,7 @@ export const zh = {
     noPublished: "配置待初始化",
   },
   state: {
+    refreshFailed: "刷新失败", lastRead: "上次成功读取", temporarilyUnavailable: "暂时无法读取；当前来源是否启用、是否有记录，需要读取成功后确认。",
     loading: "读取中…", readFailed: "读取失败", previousData: "下面保留上次读取的结果，并非最新状态。", retry: "重试读取",
     empty: "暂无数据",
     filteredEmpty: "没有符合过滤条件的结果",

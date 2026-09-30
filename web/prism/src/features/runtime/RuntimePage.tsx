@@ -11,8 +11,8 @@ import { ResourceIdentity } from "../../components/ResourceIdentity";
 //   explainRoute            GET  /admin/routes/{id}/explain      → candidate decisions
 //
 // All four are INJECTED FACADES in the gateway and fail closed, so each panel
-// carries its own "projection not enabled in this deployment" state, kept
-// strictly distinct from "enabled and empty" and from "empty after filtering".
+// retains its own source error and observation time. An unavailable read is
+// distinct from a successfully observed empty or filtered snapshot.
 //
 // Everything here is SOLID: cards, tables and the matrix are content, never
 // glass. The page adds zero backdrop-filter panes to the shell's budget of 3.
@@ -21,7 +21,8 @@ import { EntitlementEvidence } from "./EntitlementEvidence";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { call } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { asAppError, requiresWriteReconciliation } from "../../api/errors";
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { useLangStore, useMessages } from "../../i18n/messages";
 import { useNowTick } from "../../utils/useNowTick";
 import { useVersionStore } from "../config-versions/versionStore";
@@ -161,8 +162,8 @@ function UnavailableBlock({ operation }: Readonly<{ operation: string }>) {
   return (
     <StateBlock
       kind="unavailable"
-      text={t.state.unavailable}
-      detail={`${operation} 为注入式投影,未接线时按契约失败关闭(503)—— 这不是“没有数据”,而是“这台部署不提供该投影”。`}
+      text={t.state.temporarilyUnavailable}
+      detail={`${operation} 当前不可读取；保留来源与错误码，重新读取后核对是否有观测。`}
     />
   );
 }
@@ -354,18 +355,23 @@ function AvailabilityMatrixCard({
 // 2. quota recovery — inline on the rows that can carry it
 // ---------------------------------------------------------------------------
 
-type RecoveryOutcome =
-  | Readonly<{ ok: true; state: string }>
-  | Readonly<{ ok: false; message: string }>;
+type RecoveryOutcome = Readonly<{ state?: string; message?: string; needsReview?: boolean }>;
 
 function RecoveryCard({
   rows,
   scope,
 }: Readonly<{ rows: readonly AvailabilityRow[]; scope: string }>) {
-  const t = useMessages();
   const targets = recoverableRows(rows);
   const [outcomes, setOutcomes] = useState<Readonly<Record<string, RecoveryOutcome>>>({});
   const [pendingKey, setPendingKey] = useState<string | undefined>();
+  const queryClient = useQueryClient();
+  const review = useMutation({
+    mutationFn: () => call<AvailabilityRow[]>("getRuntimeAvailability", {}, { versionScoped: true }),
+    onSuccess: data => {
+      queryClient.setQueryData(["runtime-availability", scope], data);
+      setOutcomes(current => Object.fromEntries(Object.entries(current).map(([key, outcome]) => [key, { ...outcome, needsReview: false }])));
+    },
+  });
 
   const recover = useMutation({
     mutationFn: (target: AvailabilityRow) =>
@@ -380,16 +386,15 @@ function RecoveryCard({
     onSuccess: (data, target) =>
       setOutcomes((current) => ({
         ...current,
-        [cellKey(target.endpoint_id, target.credential_id)]: { ok: true, state: data.state },
+        [cellKey(target.endpoint_id, target.credential_id)]: { state: data.state },
       })),
     onError: (error, target) =>
       setOutcomes((current) => ({
         ...current,
         [cellKey(target.endpoint_id, target.credential_id)]: {
-          ok: false,
-          message: isProjectionUnavailable(error)
-            ? t.state.unavailable
-            : asAppError(error).message || "请求失败",
+          ...current[cellKey(target.endpoint_id, target.credential_id)],
+          needsReview: requiresWriteReconciliation(error),
+          message: `${asAppError(error).code} · ${asAppError(error).message || "请求失败"}${requiresWriteReconciliation(error) ? "。本次结果未确认，请先读取状态核对，不会再次提交。" : ""}`,
         },
       })),
     onSettled: () => setPendingKey(undefined),
@@ -408,8 +413,7 @@ function RecoveryCard({
             <span className="mono">recovery_required</span>(已登记但未放行)、
             <span className="mono">rejected</span>(拒绝)。
             <strong className="rt-warn">
-              真实部署当前恒返回 rejected —— 受控恢复仍须人工介入;此处的其他两态只在 fixture
-              演示模式出现。
+              排程或登记的回执不代表认证、额度或服务已经恢复；请继续核对运行状态。
             </strong>
           </>
         }
@@ -450,7 +454,7 @@ function RecoveryCard({
                     <button
                       type="button"
                       className="secondary"
-                      disabled={pendingKey !== undefined}
+                      disabled={pendingKey !== undefined || review.isPending || outcome?.needsReview === true}
                       onClick={() => recover.mutate(row)}
                     >
                       {pendingKey === key ? "请求中…" : "发起恢复"}
@@ -459,15 +463,11 @@ function RecoveryCard({
                   <td data-label="结果">
                     {outcome === undefined ? (
                       <span className="muted-3">—</span>
-                    ) : outcome.ok ? (
-                      <StateChip
-                        meta={recoveryMeta(outcome.state)}
-                        attr={outcome.state}
-                        raw={outcome.state}
-                      />
-                    ) : (
-                      <span className="rt-error-text">{outcome.message}</span>
-                    )}
+                    ) : <>
+                      {outcome.state ? <StateChip meta={recoveryMeta(outcome.state)} attr={outcome.state} raw={outcome.state}/> : null}
+                      {outcome.message ? <p role="alert" className="rt-error-text">{outcome.message}</p> : null}
+                      {outcome.needsReview ? <button className="secondary" disabled={review.isPending} onClick={() => review.mutate()}>读取状态后核对</button> : null}
+                    </>}
                   </td>
                 </tr>
               );
@@ -478,6 +478,7 @@ function RecoveryCard({
       <p className="rt-footnote">
         操作作用于配置版本 <ResourceIdentity id={scope} kind="config" />,不改写配置,也不产生草稿修订。
       </p>
+      {review.isError ? <p role="alert">状态核对失败：{asAppError(review.error).message}；原操作结果仍未确认。</p> : null}
     </div>
   );
 }
@@ -489,13 +490,11 @@ function RecoveryCard({
 function CatalogCard({
   rows,
   nowMs,
-  unavailable,
-  loading,
+  query,
 }: Readonly<{
   rows: readonly CatalogRow[] | undefined;
   nowMs: number;
-  unavailable: boolean;
-  loading: boolean;
+  query: Parameters<typeof PagedReadStatus>[0]["query"];
 }>) {
   const t = useMessages();
   return (
@@ -513,11 +512,8 @@ function CatalogCard({
           </>
         }
       />
-      {unavailable ? (
-        <UnavailableBlock operation="getCatalogStatus" />
-      ) : loading ? (
-        <StateBlock kind="loading" text="加载目录新鲜度…" />
-      ) : rows === undefined || rows.length === 0 ? (
+      <PagedReadStatus query={query}/>
+      {rows === undefined ? null : rows.length === 0 ? (
         <StateBlock
           kind="empty"
           text={t.state.empty}
@@ -824,11 +820,14 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
   >();
   const [receipt, setReceipt] = useState<ActionReceipt | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [needsReview, setNeedsReview] = useState(false);
 
-  const pools = useQuery({
+  const pools = useInfiniteQuery({
     // NOT version-scoped: this is live runtime state, not configuration.
     queryKey: ["provider-pools"],
-    queryFn: () => call<PoolSnapshot>("listProviderAccountPools", { query: { limit: 100 } }),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({pageParam}) => call<PoolSnapshot>("listProviderAccountPools", { query: { limit: 100, ...(pageParam ? {cursor: pageParam} : {}) } }),
+    getNextPageParam: page => page.next_cursor ?? undefined,
     refetchInterval: visible ? POLL_MS : false,
     refetchIntervalInBackground: false,
     placeholderData: (previous) => previous,
@@ -852,19 +851,15 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
     onError: (cause) => {
       const app = asAppError(cause);
       setTarget(undefined);
-      // A 409 means the snapshot moved under us. Re-read before retrying, and
-      // say so instead of leaving a stale table on screen.
-      if (app.kind === "conflict") {
-        void queryClient.invalidateQueries({ queryKey: ["provider-pools"] });
-        setError("目标已过期(快照已变)—— 已重新读取,请确认后重试。");
-        return;
-      }
-      setError(app.message);
+      if (requiresWriteReconciliation(cause)) {
+        setNeedsReview(true);
+        setError(`${app.code} · 操作结果未确认，请先读取当前账号状态核对；不会重新提交。${app.message}`);
+      } else setError(`${app.code} · ${app.message}`);
     },
   });
 
   const accountFilter = params.get("account_id");
-  const rows = (pools.data?.items ?? []).filter((row) => accountFilter === null || row.account_id === accountFilter);
+  const rows = (pools.data?.pages.flatMap(page => page.items) ?? []).filter((row) => accountFilter === null || row.account_id === accountFilter);
 
   return (
     <div className="card rt-card" data-gap="top">
@@ -894,6 +889,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
           </button>
         </p>
       ) : null}
+      {needsReview ? <p role="status">仅核对当前状态，先前操作的结果仍以回执为准。<button className="secondary" disabled={pools.isFetching} onClick={async () => { const result = await pools.refetch(); if (!result.isError) setNeedsReview(false); }}>读取账号状态后确认下一次操作</button></p> : null}
       {receipt === undefined ? null : (
         <p className="action-notice">
           <StateChip
@@ -911,39 +907,19 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
         </p>
       )}
 
-      {pools.isError ? (
-        isProjectionUnavailable(pools.error) ? (
-          <UnavailableBlock operation="listProviderAccountPools" />
-        ) : (
-          <StateBlock
-            kind="error"
-            text="读取失败"
-            // Measured against a real gateway on 2026-08-20: an unwired pool
-            // source maps to internal_error() (500), NOT the 503 every other
-            // injected projection here uses when it is not enabled. So a 500
-            // on this one read is ambiguous, and the panel says which two
-            // things it could be instead of implying a gateway defect.
-            detail={`${asAppError(pools.error).code} · ${asAppError(pools.error).message}${
-              asAppError(pools.error).status === 500
-                ? " —— 注意:本投影未接线时也返回 500(其余投影用 503),所以这既可能是真的内部错误,也可能是这台部署没有提供账号池来源。"
-                : ""
-            }`}
-          />
-        )
-      ) : pools.data === undefined ? (
-        <StateBlock kind="loading" text="读取账号池…" />
-      ) : rows.length === 0 ? (
+      <PagedReadStatus query={pools}/>
+      {pools.data === undefined ? null : rows.length === 0 ? (
         <StateBlock
           kind="empty"
-          text="没有 Provider 账号池"
-          detail="运行时没有报告任何账号 —— 这与「投影未接线」不同:接线正常,只是池是空的。"
+          text={pools.hasNextPage ? "已载入页尚无匹配账号" : accountFilter ? "没有匹配的账号" : "当前账号池为空"}
+          detail={pools.hasNextPage ? "后续页仍有记录，请继续读取后核对目标。" : "按本次读取范围与快照确认；当前结果不代表历史调用没有发生。"}
         />
       ) : (
         <>
           <p className="rt-help">
-            快照 <span className="mono">{pools.data.snapshot_id}</span> · 观测于{" "}
-            <span className="mono">{formatObservedAt(pools.data.observed_at_ms)}</span>
-            {pools.data.next_cursor === null ? "" : " · 还有更多(本卡只读第一页)"}
+            快照 <span className="mono">{pools.data.pages[0]?.snapshot_id}</span> · 观测于{" "}
+            <span className="mono">{formatObservedAt(pools.data.pages[0]?.observed_at_ms ?? 0)}</span>
+            {pools.hasNextPage ? " · 当前仅载入部分账号" : " · 已读取末页"}
           </p>
           <table className="responsive-table">
             <thead>
@@ -964,15 +940,15 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
                   <th scope="row" className="mono rt-rowhead">
                     <strong>{accountName(account.presentation?.identity)??"未提供账号身份"}</strong><div className="entity-meta">{account.presentation?.provider??resourceName(account.provider_id,"upstream")} · {account.presentation?protocolName(account.presentation.api_format):resourceName(account.channel_id,"endpoint")} {account.presentation?.host}</div>
                   </th>
-                  <td data-label="Provider / Channel / 账号" className="mono">{account.account_kind}</td>
-                  <td data-label="种类">
+                  <td data-label="种类" className="mono">{account.account_kind}</td>
+                  <td data-label="认证">
                     <StateChip
                       meta={authStatusMeta(account.auth_status)}
                       attr={account.auth_status}
                       raw={account.auth_status}
                     />
                   </td>
-                  <td data-label="认证">
+                  <td data-label="运行时">
                     <StateChip
                       meta={runtimeStatusMeta(account.runtime_status)}
                       attr={account.runtime_status}
@@ -980,16 +956,16 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
                     />
                     {account.enabled ? null : <span className="rt-off">已禁用</span>}
                   </td>
-                  <td data-label="运行时"><EntitlementEvidence entitlement={account.entitlement} /></td>
-                  <td data-label="权益证据" className="mono">
+                  <td data-label="权益证据"><EntitlementEvidence entitlement={account.entitlement} /></td>
+                  <td data-label="并发" className="mono">
                     {account.active_leases} / {account.max_concurrency}
                   </td>
-                  <td data-label="并发" className="mono">{formatDue(account.expires_at_ms, nowMs)}</td>
-                  <td data-label="过期" className="row-actions">
+                  <td data-label="过期" className="mono">{formatDue(account.expires_at_ms, nowMs)}</td>
+                  <td data-label="操作" className="row-actions">
                     <button
                       type="button"
                       className="secondary"
-                      disabled={scope === undefined}
+                      disabled={scope === undefined || needsReview || pools.isError || pools.isFetching || act.isPending}
                       title={scope === undefined ? "操作需要选择一个配置版本" : undefined}
                       onClick={() => setTarget({ account, action: "cool_down" })}
                     >
@@ -998,7 +974,7 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
                     <button
                       type="button"
                       className="secondary"
-                      disabled={scope === undefined}
+                      disabled={scope === undefined || needsReview || pools.isError || pools.isFetching || act.isPending}
                       title={scope === undefined ? "操作需要选择一个配置版本" : undefined}
                       onClick={() => setTarget({ account, action: "request_recovery" })}
                     >
@@ -1011,6 +987,8 @@ function ProviderPoolCard({ nowMs }: Readonly<{ nowMs: number }>) {
           </table>
         </>
       )}
+
+      {pools.hasNextPage ? <p className="rt-help">还有未载入的账号。<button className="secondary" disabled={pools.isFetching} onClick={() => void pools.fetchNextPage()}>{pools.isFetching ? "读取中…" : "加载更多账号"}</button></p> : null}
 
       {target === undefined ? null : (
         <PoolActionSheet
@@ -1165,22 +1143,11 @@ function EgressDomainSection({
         </p>
       ) : null}
 
-      {query.isError && conflict === undefined ? (
-        isProjectionUnavailable(query.error) ? (
-          <UnavailableBlock operation="listProviderEgressStatus" />
-        ) : (
-          <StateBlock
-            kind="error"
-            text="读取失败"
-            detail={`${asAppError(query.error).code} · ${asAppError(query.error).message}`}
-          />
-        )
-      ) : query.data === undefined ? (
-        <StateBlock kind="loading" text="读取中…" />
-      ) : rows.length === 0 ? (
+      {conflict === undefined ? <PagedReadStatus query={query}/> : null}
+      {query.data === undefined ? null : rows.length === 0 ? (
         <StateBlock
           kind="empty"
-          text={`本版本在 ${domain} 域没有任何行`}
+          text={query.hasNextPage ? `${domain} 域的已载入页没有记录` : `本次快照在 ${domain} 域没有记录`}
           // The sentence P13-11E4 requires, in the empty state where it is
           // load-bearing. The current source only projects assembled Grok
           // Build/Console runtime state, so production Web and clearance can
@@ -1190,7 +1157,7 @@ function EgressDomainSection({
         />
       ) : (
         <>
-          <table>
+          <div className="tablewrap" role="region" tabIndex={0} aria-label={`${meta.title}列表`}><table>
             <thead>
               <tr>
                 {DOMAIN_COLUMNS[domain].map((label) => (
@@ -1212,28 +1179,16 @@ function EgressDomainSection({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           <p className="rt-footnote">
             {rows.length} 行 · 快照 <span className="mono">{last?.snapshot_id}</span> · 采样于{" "}
             <span className="mono">{formatObservedAt(last?.sampled_at_ms ?? 0)}</span> · 配置 rev{" "}
             <span className="mono">{last?.config_revision}</span> · 运行时 rev{" "}
             <span className="mono">{last?.runtime_revision}</span>
-            {query.hasNextPage ? (
-              <>
-                {" · "}
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={query.isFetchingNextPage}
-                  onClick={() => void query.fetchNextPage()}
-                >
-                  {query.isFetchingNextPage ? "读取中…" : "继续读取"}
-                </button>
-              </>
-            ) : null}
           </p>
         </>
       )}
+      {query.hasNextPage ? <p className="rt-footnote">当前来源尚未完整读取。<button type="button" className="secondary" disabled={query.isFetching || conflict !== undefined} onClick={() => void query.fetchNextPage()}>继续读取</button></p> : null}
     </section>
   );
 }
@@ -1326,6 +1281,14 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
   const [receipt, setReceipt] = useState<PinReceipt | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [invalid, setInvalid] = useState(false);
+  const [needsReview, setNeedsReview] = useState(false);
+  const review = useMutation({
+    mutationFn: async () => {
+      await call("getConfigVersion", { path: { config_version_id: scope } });
+      await call("getRuntimeAvailability", {}, { versionScoped: true });
+    },
+    onSuccess: () => setNeedsReview(false),
+  });
 
   const pin = useMutation({
     mutationFn: (body: PinInput) =>
@@ -1337,11 +1300,11 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
     },
     onError: (cause) => {
       const app = asAppError(cause);
-      setReceipt(undefined);
+      setNeedsReview(requiresWriteReconciliation(cause));
       setError(
         app.code === "management_channel_pin_target_changed"
           ? "目标在这次尝试期间发生了变化 —— 什么都没有发出,请重新读取后再试。"
-          : `${app.code} · ${app.message}`,
+          : `${app.code} · ${app.message}${requiresWriteReconciliation(cause) ? "。本次调用结果未确认，可能已消耗配额。先核对请求日志和当前目标，下一次提交是新的诊断请求。" : ""}`,
       );
     },
   });
@@ -1368,6 +1331,7 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
         className="rt-explain-form"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
+          if (pin.isPending || needsReview || review.isPending) return;
           const data = new FormData(event.currentTarget);
           const normalized = normalizePinInput({
             provider_id: String(data.get("provider_id") ?? ""),
@@ -1418,10 +1382,12 @@ function ChannelPinCard({ scope }: Readonly<{ scope: string }>) {
             ))}
           </select>
         </label>
-        <button type="submit" className="primary" disabled={pin.isPending || scope === ""}>
+        <button type="submit" className="primary" disabled={pin.isPending || needsReview || review.isPending || scope === ""}>
           {pin.isPending ? "调用中…" : "发一次真实请求"}
         </button>
       </form>
+      {needsReview ? <p role="status"><Link to="/monitoring?tab=requests">检查请求日志</Link> · <button className="secondary" disabled={review.isPending} onClick={() => review.mutate()}>读取当前目标后确认新的诊断</button></p> : null}
+      {review.isError ? <p role="alert">目标读取失败：{asAppError(review.error).message}；仍禁止再次诊断。</p> : null}
 
       {invalid ? (
         <p role="alert" className="rt-error-text">
@@ -1514,7 +1480,7 @@ export function RuntimePage() {
       call<AvailabilityRow[]>("getRuntimeAvailability", {}, { versionScoped: true }),
     enabled: scope !== undefined,
     // Poll while the tab is visible; stop dead when it is hidden.
-    refetchInterval: (query) => visible && !isProjectionUnavailable(query.state.error) ? POLL_MS : false,
+    refetchInterval: visible ? POLL_MS : false,
     refetchIntervalInBackground: false,
     placeholderData: (previous) => previous,
   });
@@ -1552,8 +1518,6 @@ export function RuntimePage() {
   const rows = (availability.data ?? []).filter((row) =>
     (targetEndpoint === null || row.endpoint_id === targetEndpoint) &&
     (targetCredential === null || row.credential_id === targetCredential));
-  const availabilityUnavailable = isProjectionUnavailable(availability.error);
-  const catalogUnavailable = isProjectionUnavailable(catalog.error);
   const counts = countByState(rows);
 
   return (
@@ -1569,9 +1533,9 @@ export function RuntimePage() {
       <header className="page-head">
         <h2>{t.nav.runtime}</h2>
         <div className="page-actions rt-poll">
-          <span className="rt-poll-state" data-live={visible && !availabilityUnavailable}>
-            {availabilityUnavailable
-              ? "投影未启用,已停止轮询"
+          <span className="rt-poll-state" data-live={visible}>
+            {availability.isError
+              ? `最近刷新失败 · 上次成功 ${clockUtc(availability.dataUpdatedAt)}`
               : visible
                 ? `每 ${POLL_MS / 1000} 秒刷新 · ${clockUtc(availability.dataUpdatedAt)}`
                 : "页面不可见,轮询已暂停"}
@@ -1579,6 +1543,7 @@ export function RuntimePage() {
           <button
             type="button"
             className="secondary"
+            disabled={availability.isFetching || catalog.isFetching}
             onClick={() => {
               void queryClient.invalidateQueries({ queryKey: ["runtime-availability", scope] });
               void queryClient.invalidateQueries({ queryKey: ["catalog-status", scope] });
@@ -1591,20 +1556,8 @@ export function RuntimePage() {
 
       <div className="detail-links"><Link to="/accounts">账号池</Link><Link to="/catalog">模型目录</Link><Link to="/egress">出口策略</Link></div>
 
-      {availabilityUnavailable ? (
-        <div className="card rt-card" data-gap="top">
-          <CardHead
-            title="可用性矩阵 · endpoint × credential"
-            operation="getRuntimeAvailability"
-            help="调度器对每个绑定组合的实时判定,六态闭集。"
-          />
-          <UnavailableBlock operation="getRuntimeAvailability" />
-        </div>
-      ) : availability.data === undefined ? (
-        <div className="card rt-card" data-gap="top">
-          <StateBlock kind="loading" text="加载可用性投影…" />
-        </div>
-      ) : (
+      <PagedReadStatus query={availability}/>
+      {availability.data === undefined ? null : (
         <>
           {counts.length > 0 ? (
             <div className="rt-summary" data-gap="top">
@@ -1637,8 +1590,7 @@ export function RuntimePage() {
       <CatalogCard
         rows={catalog.data}
         nowMs={nowMs}
-        unavailable={catalogUnavailable}
-        loading={catalog.isLoading}
+        query={catalog}
       />
 
       <ProviderPoolCard nowMs={nowMs} />

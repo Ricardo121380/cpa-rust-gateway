@@ -47,7 +47,7 @@ export function VersionsPage(){
    <button type="button" className="secondary" disabled={lifecycle.active||versions.isFetching} onClick={()=>admission.request(()=>setDialog({kind:"create"}))}>创建空草稿</button>
    <button type="button" className="secondary" disabled={lifecycle.active||!active||context?.configVersionId!==active.id} onClick={()=>active&&lifecycle.start(active,"rollback")}>回滚到上一版本</button>
   </div></header>
-  <ReadStatus pending={versions.isPending} error={versions.error} hasData={versions.data!==undefined} retry={()=>void versions.refetch()}/>
+  <ReadStatus pending={versions.isPending} fetching={versions.isFetching} dataUpdatedAt={versions.dataUpdatedAt} error={versions.error} hasData={versions.data!==undefined} retry={()=>void versions.refetch()}/>
   <button type="button" className="secondary" disabled={versions.isFetching||lifecycle.active} onClick={()=>void versions.refetch()}>重新读取配置</button>
   {reviewId&&target?.status==="draft"?<PendingChangesWorkspace key={`${target.id}:${target.revision}`} target={target} active={active} onClose={()=>removeParams("review","intent")} onAdopt={adopt}/>:reviewId&&target?.status==="active"?<p role="status">此配置已发布，待应用变更已结束。 <button type="button" className="secondary" disabled={lifecycle.active} onClick={()=>removeParams("review","intent")}>关闭变更视图</button></p>:reviewId&&!versions.isPending?<p role="alert">{target?"此配置不再是草稿，请重新核对服务端状态。":"未读取到所选草稿；不会自动替换为另一份配置。"}</p>:null}
   {inspection?<ConfigurationDiff target={versions.data?.find(version=>version.id===inspection.id)??inspection} versions={versions.data??[]} onClose={()=>setInspection(undefined)}/>:null}

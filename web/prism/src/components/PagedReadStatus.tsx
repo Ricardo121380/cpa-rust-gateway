@@ -16,9 +16,11 @@ export function PagedReadStatus({ query }: { query: {
   if (!query.error) return query.isPending ? <p role="status">正在读取…</p> : null;
   const hasData = query.data !== undefined;
   const recovery = pagedRecovery(query.error, hasData, query.isFetchNextPageError === true);
+  const detail = asAppError(query.error);
   const retry = recovery.nextPage && query.fetchNextPage ? query.fetchNextPage : query.refetch;
   return <div className="card read-status" role="alert">
     <strong>{recovery.title}</strong>
+    <p className="small">{detail.code} · {detail.message}</p>
     <p className="small">{hasData ? "已保留先前记录与筛选。" : "暂时无法取得记录，筛选条件已保留。"}{hasData && query.dataUpdatedAt > 0 ? `上次成功读取：${new Date(query.dataUpdatedAt).toLocaleString()}。` : ""}</p>
     <button className="secondary" disabled={query.isFetching} onClick={() => void retry()}>{query.isFetching ? "正在读取…" : recovery.action}</button>
   </div>;

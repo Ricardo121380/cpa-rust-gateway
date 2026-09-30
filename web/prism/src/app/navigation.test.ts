@@ -16,5 +16,6 @@ describe("task-based navigation", () => {
     expect(workspacePages("/catalog").map((item) => item.to)).toEqual(["/models", "/catalog"]);
     expect(workspacePages("/billing").map((item) => item.to)).toEqual(["/usage", "/billing"]);
     expect(primaryRoute("/")).toBe("/");
+    expect(primaryRoute("/overview")).toBe("/");
   });
 });

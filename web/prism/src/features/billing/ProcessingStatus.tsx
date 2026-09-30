@@ -52,7 +52,8 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
   const quarantined = data?.quarantined_failures ?? 0;
   const retryable = data?.unresolved_failures == null || data.quarantined_failures === null
     ? null : Math.max(0, data.unresolved_failures - data.quarantined_failures);
-  const lag = data?.source_ordinal == null ? null : Math.max(0, data.source_ordinal - (data.checkpoint_ordinal ?? 0));
+  const lag = data?.source_ordinal == null || data.checkpoint_ordinal === null
+    ? null : Math.max(0, data.source_ordinal - data.checkpoint_ordinal);
   const stale = data?.observed_at_ms != null && Date.now() - data.observed_at_ms > 60_000;
   const panel = (
     <aside className={`data-panel data-panel--padded${compact ? " billing-processing-compact" : ""}`} aria-label="计费处理状态" data-state={data?.state} data-gap="top">
@@ -67,7 +68,7 @@ export function ProcessingStatus({ compact = false }: Readonly<{ compact?: boole
         </button>
       </header>
       <ReadStatus
-        pending={query.isPending}
+        pending={query.isPending} fetching={query.isFetching} dataUpdatedAt={query.dataUpdatedAt}
         error={query.error}
         hasData={data !== undefined}
         retry={() => void query.refetch()}

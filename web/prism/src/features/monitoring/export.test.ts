@@ -64,6 +64,10 @@ describe("toExportRow", () => {
     expect(row.cost_microunits).toBe(4200);
     expect(JSON.stringify(row)).not.toMatch(/currency|usd|cny|\$/iu);
   });
+  it("preserves known usage provenance and keeps absent legacy evidence unknown", () => {
+    expect(toExportRow(ledger())).toMatchObject({usage_provenance:"unknown",input_accounting:"unknown",cost_confidence:"exact"});
+    expect(toExportRow(ledger({usage_provenance:"estimated",input_accounting:"inclusive"}))).toMatchObject({usage_provenance:"estimated",input_accounting:"inclusive",cost_confidence:"exact"});
+  });
 });
 
 describe("buildJsonl", () => {

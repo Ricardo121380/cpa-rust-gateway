@@ -284,7 +284,9 @@ export function EgressPage() {
         </InlineWorkspace>
       ) : null}
 
-      <ReadStatus pending={policies.isPending} error={policies.error} hasData={policies.data !== undefined} retry={() => void policies.refetch()} />
+      <ReadStatus pending={policies.isPending} fetching={policies.isFetching} dataUpdatedAt={policies.dataUpdatedAt} error={policies.error} hasData={policies.data !== undefined} retry={() => void policies.refetch()} />
+
+      <ReadStatus pending={upstreams.isPending} fetching={upstreams.isFetching} dataUpdatedAt={upstreams.dataUpdatedAt} error={upstreams.error} hasData={upstreams.data !== undefined} retry={() => void upstreams.refetch()} />
 
       <div className="card tablewrap">
         <table className="responsive-table">
@@ -310,7 +312,7 @@ export function EgressPage() {
                     {policy.redirect_mode}
                     {policy.redirect_mode === "revalidate" ? ` ≤${policy.max_redirects}` : ""}
                   </td>
-                  <td data-label="被引用" className="mono">{refs.length > 0 ? refs.map((id) => resourceName(id, "upstream")).join(", ") : "—"}</td>
+                  <td data-label="被引用" className="mono">{!upstreams.isSuccess ? "未确认" : refs.length > 0 ? refs.map((id) => resourceName(id, "upstream")).join(", ") : "—"}</td>
                   <td data-label="操作" className="row-actions">
                     <button className="secondary" onClick={() => admission.request(()=>setInspected(policy))}>详情</button>
                     <button
@@ -324,7 +326,7 @@ export function EgressPage() {
                     <button
                       type="button"
                       className="danger"
-                      disabled={!editable}
+                      disabled={!editable || !upstreams.isSuccess || upstreams.isFetching}
                       onClick={() => admission.request(()=>{submitted.current=false;setReceipt(undefined);setWorkingId(undefined);remove.reset();setDeleteSource(context?{id:context.configVersionId,revision:context.revision}:undefined);setConfirmDelete(policy);})}
                     >
                       删除
@@ -342,24 +344,25 @@ export function EgressPage() {
         ) : null}
       </div>
 
-      <CompatibleProxyPanel upstreams={upstreams.data ?? []} />
+      <CompatibleProxyPanel upstreams={upstreams.data ?? []} upstreamsReady={upstreams.isSuccess && !upstreams.isFetching} />
       <ProviderEgressCard scope={scope} nowMs={nowMs} />
 
       {inspected === undefined ? null : <ObjectInspector title={resourceName(inspected.id, "policy", inspected.name)} scope={`配置版本 ${resourceName(scope ?? "—", "config")} · 出口策略`} onClose={() => setInspected(undefined)} facts={[
         ["策略 ID", inspected.id], ["允许协议", inspected.allowed_schemes.join(" · ")],
         ["精确主机", inspected.allowed_hosts.join(" · ") || "无"], ["端口", inspected.allowed_ports.join(" · ") || "无"],
         ["CIDR", inspected.allowed_cidrs.join(" · ") || "无"], ["重定向模式", inspected.redirect_mode],
-        ["重定向上限", inspected.max_redirects], ["引用上游", referencingUpstreams(inspected.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join(" · ") || "无"],
+        ["重定向上限", inspected.max_redirects], ["引用上游", !upstreams.isSuccess ? "未确认" : referencingUpstreams(inspected.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join(" · ") || "无"],
       ]}><div className="sheet-actions"><button disabled={!editable} onClick={() => { beginDraft(toDraft(inspected)); setInspected(undefined); }}>编辑策略</button></div></ObjectInspector>}
 
       {confirmDelete !== undefined ? (
-        <Sheet title={receipt?"出口策略删除结果":"删除出口策略"} description="此操作会解除关联上游的出口策略；不会删除上游本身。" layout="confirm" tone="danger" onEscape={() => setConfirmDelete(undefined)} busy={remove.isPending} footer={receipt?<SheetDismissButton onDismiss={close}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={submitted.current} onClick={()=>{if(!submitted.current){submitted.current=true;remove.mutate(confirmDelete.id);}}}>确认删除</button></>}>
+        <Sheet title={receipt?"出口策略删除结果":"删除出口策略"} description="此操作会解除关联上游的出口策略；不会删除上游本身。" layout="confirm" tone="danger" onEscape={() => setConfirmDelete(undefined)} busy={remove.isPending} footer={receipt?<SheetDismissButton onDismiss={close}>完成</SheetDismissButton>:<><SheetDismissButton className="secondary" disabled={remove.isPending}>取消</SheetDismissButton><button type="button" className="danger" disabled={submitted.current || !upstreams.isSuccess || upstreams.isFetching} onClick={()=>{if(!submitted.current && upstreams.isSuccess && !upstreams.isFetching){submitted.current=true;remove.mutate(confirmDelete.id);}}}>确认删除</button></>}>
           {receipt?<p role="status">删除已保存到草稿，尚未应用。</p>:null}
           <ConfigurationTaskNotice workingId={workingId} error={remove.error} onReview={review}/>
           <p>
             删除 <span className="mono">{resourceName(confirmDelete.id,"policy",confirmDelete.name)}</span> 后,引用它的上游的
             egress_policy_id 将被清空(不会级联删除上游)。
           </p>
+          {!upstreams.isSuccess ? <p role="alert">引用上游尚未确认，请先重新读取。</p> : null}
           {referencingUpstreams(confirmDelete.id, upstreams.data ?? []).length > 0 ? (
             <p className="reveal-warning">
               当前被引用:{referencingUpstreams(confirmDelete.id, upstreams.data ?? []).map(id=>resourceName(id,"upstream")).join("、")}

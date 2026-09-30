@@ -21,6 +21,7 @@
 //     /admin/operations/billing; this page shows tokens, never money.
 //
 // Nothing here touches the DOM, the clock or the network.
+import type { UsageProvenance } from "./UsageEvidence";
 
 /** Shared with StatusBadge / StateChip (docs/07 §8.6). */
 export type Tone = "good" | "warn" | "serious" | "critical" | "tint" | "muted";
@@ -39,6 +40,7 @@ export type Confidence = (typeof CONFIDENCES)[number];
 export type TokenFamily = Readonly<{
   total: number | null;
   confidence: Confidence;
+  provenance?: UsageProvenance;
 }>;
 
 /** The six families, in the order the contract declares them. */
@@ -146,6 +148,7 @@ export type FamilyTotal = Readonly<{
   /** true when at least one contributor reported `total: null` — the number
    *  above is then a LOWER BOUND, not a total, and the UI must say so. */
   partialCoverage: boolean;
+  provenance: UsageProvenance | "mixed";
 }>;
 
 /**
@@ -160,9 +163,11 @@ export function sumFamily(rows: readonly UsageRow[], family: TokenFamilyName): F
   let total: number | null = null;
   let partialCoverage = false;
   const confidences: Confidence[] = [];
+  const sources = new Set<UsageProvenance>();
   for (const row of rows) {
     const value = row[family];
     confidences.push(value.confidence);
+    sources.add(value.provenance ?? "unknown");
     if (value.total === null) {
       partialCoverage = true;
       continue;
@@ -173,6 +178,7 @@ export function sumFamily(rows: readonly UsageRow[], family: TokenFamilyName): F
     total,
     confidence: partialCoverage ? "unknown" : weakest(confidences),
     partialCoverage,
+    provenance: sources.has("unknown") || sources.size === 0 ? "unknown" : sources.size > 1 ? "mixed" : [...sources][0]!,
   };
 }
 

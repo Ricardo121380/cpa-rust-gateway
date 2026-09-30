@@ -1,8 +1,8 @@
 import { ResourceIdentity } from "../../components/ResourceIdentity";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { call } from "../../api/client";
-import { ReadStatus } from "../../components/ReadStatus";
+import { PagedReadStatus } from "../../components/PagedReadStatus";
 import { ObjectInspector } from "../../components/ObjectInspector";
 import { useVersionStore } from "../config-versions/versionStore";
 
@@ -23,7 +23,6 @@ type Page = Readonly<{
 export function ResourceAudit() {
   const scope = useVersionStore((state) => state.context?.configVersionId);
   const [selected, setSelected] = useState<Event>();
-  const client = useQueryClient();
   const key = ["resource-audit", scope];
   const query = useInfiniteQuery({
     queryKey: key,
@@ -57,7 +56,7 @@ export function ResourceAudit() {
           disabled={!scope || query.isFetching}
           onClick={() => {
             setSelected(undefined);
-            void client.resetQueries({ queryKey: key });
+            void query.refetch();
           }}
         >
           刷新资源审计
@@ -65,18 +64,13 @@ export function ResourceAudit() {
       </header>
       <p className="stat-sub">
         配置 {scope ? <ResourceIdentity id={scope} kind="config" /> : "未选择"} · 已载入 {rows.length} 条 ·
-        最新在前，仅记录安全操作元数据。
+        最新在前，仅记录安全操作元数据。{query.hasNextPage ? "尚有更早记录未载入。" : ""}
       </p>
       {!scope ? (
         <p className="empty-state">选择配置版本以查看资源修改。</p>
       ) : (
         <>
-          <ReadStatus
-            pending={query.isPending}
-            error={query.error}
-            hasData={query.data !== undefined}
-            retry={() => void client.resetQueries({ queryKey: key })}
-          />
+          <PagedReadStatus query={query}/>
           {rows.length > 0 ? (
             <div className="table-scroll">
               <table className="responsive-table">
@@ -114,12 +108,12 @@ export function ResourceAudit() {
               </table>
             </div>
           ) : !query.isPending && !query.isError ? (
-            <p className="empty-state">此版本暂无资源修改记录。</p>
+            <p className="empty-state">{query.hasNextPage ? "已载入页没有记录，后续页仍待核对。" : "此版本暂无资源修改记录。"}</p>
           ) : null}
           {query.hasNextPage ? (
             <button
               className="secondary"
-              disabled={query.isFetching || query.isError}
+              disabled={query.isFetching}
               onClick={() => void query.fetchNextPage()}
             >
               加载更早记录

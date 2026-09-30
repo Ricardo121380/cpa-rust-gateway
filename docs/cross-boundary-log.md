@@ -3525,3 +3525,57 @@ required generated contract; no frontend business-flow edit or deployment.
 See `docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md` and the
 batch B report for protocol limits and local acceptance evidence. The task
 commit carries `Cross-Boundary: web/prism - generated CPAR B Usage contract`.
+
+## 2026-10-01 - Codex - CPAR D management experience and evidence
+
+**Touched:**
+- `web/prism/src/api/errors.ts`
+- `web/prism/src/app/AppShell.tsx`
+- `web/prism/src/app/navigation.test.ts`
+- `web/prism/src/app/navigation.ts`
+- `web/prism/src/components/PagedReadStatus.tsx`
+- `web/prism/src/components/ReadStatus.test.ts`
+- `web/prism/src/components/ReadStatus.tsx`
+- `web/prism/src/features/access/AccessPage.tsx`
+- `web/prism/src/features/accounts/RuntimeApplyNotice.tsx`
+- `web/prism/src/features/audit/AuditBackupPage.tsx`
+- `web/prism/src/features/audit/ResourceAudit.tsx`
+- `web/prism/src/features/billing/BillingPage.tsx`
+- `web/prism/src/features/billing/ProcessingStatus.test.ts`
+- `web/prism/src/features/billing/ProcessingStatus.tsx`
+- `web/prism/src/features/catalog/UpstreamModelBrowser.tsx`
+- `web/prism/src/features/config-versions/ConfigurationDiff.tsx`
+- `web/prism/src/features/config-versions/ConfigurationLifecycleHost.tsx`
+- `web/prism/src/features/config-versions/LifecycleConfirmation.tsx`
+- `web/prism/src/features/config-versions/VersionsPage.tsx`
+- `web/prism/src/features/config-versions/configurationLifecycle.test.ts`
+- `web/prism/src/features/config-versions/configurationLifecycle.ts`
+- `web/prism/src/features/egress/CompatibleProxyPanel.tsx`
+- `web/prism/src/features/egress/EgressPage.tsx`
+- `web/prism/src/features/egress/compatible.css`
+- `web/prism/src/features/models/ModelConnectionsDialog.tsx`
+- `web/prism/src/features/models/ModelsPage.tsx`
+- `web/prism/src/features/monitoring/MonitoringPage.tsx`
+- `web/prism/src/features/monitoring/RequestHistory.tsx`
+- `web/prism/src/features/monitoring/export.test.ts`
+- `web/prism/src/features/monitoring/export.ts`
+- `web/prism/src/features/monitoring/model.ts`
+- `web/prism/src/features/overview/OverviewPage.tsx`
+- `web/prism/src/features/runtime/RuntimePage.tsx`
+- `web/prism/src/features/runtime/runtime.css`
+- `web/prism/src/features/settings/SettingsPage.tsx`
+- `web/prism/src/features/settings/SystemInformation.tsx`
+- `web/prism/src/features/unlock/UnlockPage.tsx`
+- `web/prism/src/features/upstreams/UpstreamsPage.tsx`
+- `web/prism/src/features/usage/UsageCosts.tsx`
+- `web/prism/src/features/usage/UsageEvidence.test.ts`
+- `web/prism/src/features/usage/UsageEvidence.tsx`
+- `web/prism/src/features/usage/UsagePage.tsx`
+- `web/prism/src/features/usage/model.test.ts`
+- `web/prism/src/features/usage/model.ts`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+
+**Why:** Implement spec #9 D / CPAR-42–47 (#51–56): preserve page identities and advanced entries, session return and focus, retained read/write evidence, Usage provenance/accounting, opaque-cursor recovery, and explicit readback before another uncertain operation. Existing backend management contracts supply these facts; no authoritative contract, generated client, schema, provider protocol or production runtime change was needed.
+
+**Other side:** FYI under the explicit user authorization **“授权 Codex 完成本次 D 的前后端”**. This commit includes local regression tests and an EgoLite synthetic acceptance script. Scope and immutable-commit Full evidence will be recorded in `docs/reports/cpar-batch-d-20261001.md`; fixture evidence does not establish real Provider or production acceptance. CPAR-48 (#57) and parent #9 retain the previously recorded C blockers. No remote publication or deployment.
