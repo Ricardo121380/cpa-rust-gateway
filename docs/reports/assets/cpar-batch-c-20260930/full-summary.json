@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "layer": "FORMAL_LOCAL",
+  "source_commit": "b3ca8460f2e89890ffcb6c674bd21f4e3214a16c",
+  "command": "CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-c-20260930/full-check.md bash scripts/check.sh full",
+  "started_at_utc": "2026-09-30T10:54:57Z",
+  "completed_at_utc": "2026-09-30T10:58:56Z",
+  "host": "Darwin 27.0.0 arm64",
+  "result": "PASS",
+  "steps_passed": 44,
+  "steps_failed": 0,
+  "rust": {
+    "passed": 1432,
+    "failed": 0,
+    "ignored": 12
+  },
+  "factory_test_lines": [
+    "test runtime::batch_c::grok::web_unrepresentable_histories_tools_and_limits_reject_before_lease_or_dns ... ok",
+    "test runtime::batch_c::http::codex_rejection_never_replays_without_the_clients_output_limit ... ok",
+    "test runtime::batch_c::official_real_factory_retains_tools_controls_usage_and_quota_ownership ... ok",
+    "test runtime::batch_c::kiro_real_factory_bridges_text_tools_and_effort_without_dropping_limits ... ok",
+    "test runtime::batch_c::grok::grok_factories_bridge_three_protocols_and_preserve_tool_rounds ... ok",
+    "test runtime::batch_c::http::ordinary_native_families_use_the_public_factory_and_preserve_identity ... ok"
+  ],
+  "new_logprobs_regression_passed": true,
+  "browser": "NOT_RUN_NOT_APPLICABLE",
+  "new_build_real_provider_acceptance": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "production_deployment": "NOT_RUN"
+}

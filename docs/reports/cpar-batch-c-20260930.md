@@ -32,6 +32,8 @@
 
 方法：`CARGO_NET_OFFLINE=true cargo test --locked -p gateway runtime::batch_c --all-features`，2026-09-30 macOS 本 checkout；**6 passed / 0 failed**。严格四 crate Clippy（gateway、provider-grok、provider-kiro、protocol-openai-chat，all-targets/all-features，`-D warnings`）**PASS**。
 
+[Local matrix receipt](assets/cpar-batch-c-20260930/local-factory.json) 固定最终源码、执行窗口、合成配置输入、74 个渠道配置／协议／模式组合、模型／参数、已准入连接及合成凭据类型；每组合四轮共 296 请求，加两次首次 quota 请求为 298 正例，15 个负例单列。该回执从已执行测试的断言循环登记，不是每次独立网络 trace；配置输入 revision=0，activate 后 revision 未单独捕获，不推定其值。
+
 入口：[factory fixtures](../../apps/gateway/src/runtime/batch_c.rs)、[ordinary HTTP peers](../../apps/gateway/src/runtime/batch_c/http.rs)、[Grok native peers](../../apps/gateway/src/runtime/batch_c/grok.rs)。每个 fixture 使用独立临时 SQLite 和合成账户，经实际 ManagementService bootstrap、deployment compiler、P12 runtime factory、Client-Key 鉴权、实际 scheduler/lease 和公共三协议 codec 执行。公开模型 `p12-test-model`；合成配置由 `p12_configuration_for(..., "batch-c")` 生成；所有 native 账号与普通凭据分别沿用其真实存储/装配路径。
 
 评审后补强了 [public response oracle](../../apps/gateway/src/runtime/batch_c/public_response.rs)：所有 298 次正例都完整解析 JSON/SSE，校验线上的唯一成功终态、无错误／截断、工具 ID/name、参数对象与完成状态，及回传轮次后的精确文本。Responses/Chat 的原生字段使用严格 wire codec 校验；公开 `cpar_usage` 的六个 nullable 源计数和两个 evidence 枚举独立校验后，只在测试用解码视图中处理。Messages 使用符合公开缺失计数契约的内容／流序校验；未能精确转换的输入 aggregate 保持 absent，不填造计数。该工具／终态断言不等于完整 Usage→ledger 的逐渠道验收。
@@ -144,7 +146,9 @@ Official/Console 当前增量映射不能完整保留 summary、encrypted reason
 
 初轮实现检查点 `bc9b2b5ac62c27acc62a4f3bf53b1806e85522ea` 的 Full：**PASS，44/44，Rust 1,431 passed / 0 failed / 12 ignored**，2026-09-30 10:13:50–10:18:08 UTC。见 [initial Full receipt](assets/cpar-batch-c-20260930/initial-full-check.md) 和 [immutable summary](assets/cpar-batch-c-20260930/initial-full-summary.json)。它证明评审前检查点；后续有行为修复和更强断言，不能直接作为最终源码 Full。
 
-最终实现源码检查点：**待冻结**。最终 Full：**NOT_RUN（待修复后执行）**。命令：`CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-c-20260930/full-check.md bash scripts/check.sh full`。
+最终实现源码检查点：`b3ca8460f2e89890ffcb6c674bd21f4e3214a16c`。最终 Full：**PASS，44/44；Rust 1,432 passed / 0 failed / 12 ignored**，2026-09-30 10:54:57–10:58:56 UTC，Darwin 27.0.0 arm64。见 [Full receipt](assets/cpar-batch-c-20260930/full-check.md) 和 [immutable final summary](assets/cpar-batch-c-20260930/full-summary.json)。命令：`CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-c-20260930/full-check.md bash scripts/check.sh full`。后续仅报告／回执提交与此源码检查点区分；没有源码变化后再重复全量测试。
+
+最终门禁包括全工作区严格 Clippy、前端 double-build/类型与构建检查、实际 loopback gateway Agent 多轮/stream 回归、源码政策（328 Rust 文件、21 crate roots）、边界、107 个契约测试引用、密钥扫描、依赖策略和 RustSec audit。没有独立运行本轮 Prism 单元测试，也没有远端 CI、Linux 发布产物、新构建真实 Provider 或生产部署；这些不能由本地 Full 推定通过。
 
 Standards / Spec 双轴固定点审查：比较 `45a315a...bc9b2b5`，两名独立只读探子均返回终态。见 [separate axis reports](assets/cpar-batch-c-20260930/review.md)。
 

@@ -1,0 +1,1439 @@
+{
+  "schema_version": 1,
+  "layer": "DETERMINISTIC_LOCAL_FACTORY",
+  "source_commit": "b3ca8460f2e89890ffcb6c674bd21f4e3214a16c",
+  "execution_window_utc": [
+    "2026-09-30T10:54:57Z",
+    "2026-09-30T10:58:56Z"
+  ],
+  "method": "gateway runtime::batch_c tests rerun by immutable Full; rows map the asserted fixture loops, not independent network traces",
+  "configuration_input": {
+    "id": "batch-c",
+    "revision": 0,
+    "observed_after_activation_revision": "NOT_CAPTURED"
+  },
+  "successful_matrix_requests": 296,
+  "additional_quota_first_requests": 2,
+  "successful_public_requests": 298,
+  "negative_public_requests": 15,
+  "negative_groups": {
+    "kiro_unrepresentable_output_limits": 8,
+    "grok_web_unrepresentable_requests": 4,
+    "codex_no_limit_dropping_replay": 1,
+    "official_exhausted_quota": 2
+  },
+  "public_oracle": "complete public JSON/SSE parsing; CPAR Usage evidence validated separately; unique wire and Canonical success terminal; expected tool IDs, names, object arguments and text; Messages partial Usage obeys ADR-0100",
+  "real_provider_calls": 0,
+  "all_declared_extensions_acceptance": "NOT_RUN",
+  "kimi_api_real_endpoint_existence": "NOT_RUN",
+  "kiro_messages_positive": "BLOCKED_NATIVE_OUTPUT_LIMIT",
+  "grok_web_multiturn_positive": "BLOCKED_NATIVE_CONTINUITY",
+  "rows": [
+    {
+      "channel": "openai-compatible",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://gateway.example.test/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "openai-compatible",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://gateway.example.test/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "openai-compatible",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://gateway.example.test/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "openai-compatible",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://gateway.example.test/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "openai-compatible",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://gateway.example.test/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "openai-compatible",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://gateway.example.test/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "anthropic-compatible",
+      "configured_variant": "messages",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "anthropic-compatible",
+      "configured_variant": "messages",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "anthropic-compatible",
+      "configured_variant": "messages",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "anthropic-compatible",
+      "configured_variant": "messages",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "anthropic-compatible",
+      "configured_variant": "messages",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "anthropic-compatible",
+      "configured_variant": "messages",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "codex",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://chatgpt.com/backend-api/codex/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_codex_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "codex",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://chatgpt.com/backend-api/codex/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_codex_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "codex",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://chatgpt.com/backend-api/codex/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_codex_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "codex",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://chatgpt.com/backend-api/codex/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_codex_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "codex",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://chatgpt.com/backend-api/codex/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_codex_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "codex",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://chatgpt.com/backend-api/codex/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_codex_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "claude",
+      "configured_variant": "messages",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_claude_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "claude",
+      "configured_variant": "messages",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_claude_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "claude",
+      "configured_variant": "messages",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_claude_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "claude",
+      "configured_variant": "messages",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_claude_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "claude",
+      "configured_variant": "messages",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_claude_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "claude",
+      "configured_variant": "messages",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.anthropic.com/v1/messages",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_claude_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "chat",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "chat",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "chat",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "chat",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "chat",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-coding",
+      "configured_variant": "chat",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.kimi.com/coding/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_kimi_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "chat",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "chat",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "chat",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "chat",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "chat",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "chat",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/chat/completions",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kimi-api",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "upstream-c",
+      "admitted_connection": "https://api.moonshot.cn/v1/responses",
+      "transport_evidence": "owned_loopback_http_after_original_admission",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.official",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4",
+      "admitted_connection": "https://api.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.official",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4",
+      "admitted_connection": "https://api.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.official",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4",
+      "admitted_connection": "https://api.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.official",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4",
+      "admitted_connection": "https://api.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.official",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4",
+      "admitted_connection": "https://api.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.official",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4",
+      "admitted_connection": "https://api.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_api_key",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.build",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.5",
+      "admitted_connection": "https://cli-chat-proxy.grok.com/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_build_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.build",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.5",
+      "admitted_connection": "https://cli-chat-proxy.grok.com/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_build_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.build",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.5",
+      "admitted_connection": "https://cli-chat-proxy.grok.com/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_build_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.build",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.5",
+      "admitted_connection": "https://cli-chat-proxy.grok.com/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_build_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.build",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.5",
+      "admitted_connection": "https://cli-chat-proxy.grok.com/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_build_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.build",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.5",
+      "admitted_connection": "https://cli-chat-proxy.grok.com/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_build_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.console",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.3",
+      "admitted_connection": "https://console.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_console_sso",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.console",
+      "configured_variant": "responses",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.3",
+      "admitted_connection": "https://console.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_console_sso",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.console",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.3",
+      "admitted_connection": "https://console.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_console_sso",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.console",
+      "configured_variant": "responses",
+      "protocol": "messages",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.3",
+      "admitted_connection": "https://console.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_console_sso",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.console",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.3",
+      "admitted_connection": "https://console.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_console_sso",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "grok.console",
+      "configured_variant": "responses",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "grok-4.3",
+      "admitted_connection": "https://console.x.ai/v1/responses",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_native_console_sso",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": 19,
+        "effort": null
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "ide",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://q.eu-west-1.amazonaws.com/generateAssistantResponse",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "ide",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://q.eu-west-1.amazonaws.com/generateAssistantResponse",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "ide",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://q.eu-west-1.amazonaws.com/generateAssistantResponse",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "ide",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://q.eu-west-1.amazonaws.com/generateAssistantResponse",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "cli",
+      "protocol": "chat",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://runtime.us-east-1.kiro.dev/",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "cli",
+      "protocol": "chat",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://runtime.us-east-1.kiro.dev/",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "cli",
+      "protocol": "responses",
+      "mode": "json",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://runtime.us-east-1.kiro.dev/",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    },
+    {
+      "channel": "kiro",
+      "configured_variant": "cli",
+      "protocol": "responses",
+      "mode": "sse",
+      "capability": "two_tool_cycles_with_results_and_text",
+      "public_model": "p12-test-model",
+      "upstream_model": "claude-sonnet-4.5",
+      "admitted_connection": "https://runtime.us-east-1.kiro.dev/",
+      "transport_evidence": "injected_native_transport",
+      "credential_evidence": "synthetic_social_oauth",
+      "credential_identity_scope": "isolated_fixture_per_channel_variant_mode",
+      "parameters": {
+        "output_limit": null,
+        "effort": "high"
+      },
+      "requests": 4,
+      "result": "PASS"
+    }
+  ]
+}
