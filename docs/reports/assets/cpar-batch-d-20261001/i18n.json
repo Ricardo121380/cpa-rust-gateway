@@ -1,0 +1,22 @@
+{
+  "scenario": "i18n",
+  "result": "PASS",
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 32,
+  "checks": [
+    {
+      "name": "aggregated provenance follows actual language selection",
+      "result": "PASS"
+    },
+    {
+      "name": "English usage evidence remains contained on narrow layout",
+      "result": "PASS"
+    },
+    {
+      "name": "request source and input accounting update to English",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "scenario": "maintenance",
+  "result": "PASS",
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 32,
+  "checks": [
+    {
+      "name": "audit empty page retains continuation and cursor recovery",
+      "result": "PASS"
+    },
+    {
+      "name": "successful backup preflight clears prior attempt error",
+      "result": "PASS"
+    },
+    {
+      "name": "preflight failure retains dated prior receipt",
+      "result": "PASS"
+    },
+    {
+      "name": "failed system refresh retains observed admission state with action gated",
+      "result": "PASS"
+    },
+    {
+      "name": "settings no-match recovery restores focus",
+      "result": "PASS"
+    },
+    {
+      "name": "historical difference view restores opener focus",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "scenario": "apply-uncertain",
+  "result": "PASS",
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 32,
+  "checks": [
+    {
+      "name": "unknown runtime apply requires explicit readback before another write",
+      "result": "PASS"
+    },
+    {
+      "name": "failed application readback keeps write gate closed",
+      "result": "PASS"
+    },
+    {
+      "name": "successful service observation permits a deliberate new apply without manufacturing a receipt",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "source_commit": "36530ff2df10aa4264c911325352c859309880bc",
+  "final_code_commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "production_and_unit_source_unchanged": true,
+  "command": "npm --prefix web/prism test",
+  "environment": "local-Darwin-arm64",
+  "node": "v26.8.2",
+  "npm": "11.19.1",
+  "vitest": "3.2.7",
+  "exit_code": 0,
+  "result": "PASS",
+  "test_files": 66,
+  "tests_passed": 469,
+  "duration_seconds": 3.33,
+  "stdout": "frontend-unit.txt",
+  "stdout_raw_sha256": "989cfcaaa19d422c9f83e9ac77d72372ee94901948a1b29dcc00c2a670e14ba5",
+  "stdout_stored_sha256": "be2c8f0d36c573571eba74d6c65f196738699206503bcfa17e3cfc915b54e85a",
+  "stdout_normalization": "Trailing whitespace and redundant final blank lines only; diagnostic text unchanged."
+}

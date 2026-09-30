@@ -1,0 +1,80 @@
+{
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "space_id": 32,
+  "exit_code": 0,
+  "result": "PASS",
+  "scenarios": 13,
+  "checks_passed": 120,
+  "entries": [
+    {
+      "scenario": "inventory",
+      "checks_passed": 65,
+      "file": "inventory.json"
+    },
+    {
+      "scenario": "shell",
+      "checks_passed": 5,
+      "file": "shell.json"
+    },
+    {
+      "scenario": "password",
+      "checks_passed": 2,
+      "file": "password.json"
+    },
+    {
+      "scenario": "usage",
+      "checks_passed": 7,
+      "file": "usage.json"
+    },
+    {
+      "scenario": "runtime",
+      "checks_passed": 5,
+      "file": "runtime.json"
+    },
+    {
+      "scenario": "maintenance",
+      "checks_passed": 6,
+      "file": "maintenance.json"
+    },
+    {
+      "scenario": "catalog",
+      "checks_passed": 5,
+      "file": "catalog.json"
+    },
+    {
+      "scenario": "pin-uncertain",
+      "checks_passed": 3,
+      "file": "pin-uncertain.json"
+    },
+    {
+      "scenario": "recovery-uncertain",
+      "checks_passed": 6,
+      "file": "recovery-uncertain.json"
+    },
+    {
+      "scenario": "apply-uncertain",
+      "checks_passed": 3,
+      "file": "apply-uncertain.json"
+    },
+    {
+      "scenario": "details",
+      "checks_passed": 8,
+      "file": "details.json"
+    },
+    {
+      "scenario": "permissions-egress",
+      "checks_passed": 2,
+      "file": "permissions-egress.json"
+    },
+    {
+      "scenario": "i18n",
+      "checks_passed": 3,
+      "file": "i18n.json"
+    }
+  ],
+  "stdout_raw_sha256": "82468300ea1361b7fb00ba3ef0266f4f95363708e90a97b2fe939e01e90db925",
+  "stdout_stored_sha256": "410cc8ad388efcadf9e76b5eb9aa57a99ada03067724f58822b61da08ffa8b9f",
+  "stdout_normalization": "Trailing whitespace and redundant final blank lines only; diagnostic text unchanged."
+}

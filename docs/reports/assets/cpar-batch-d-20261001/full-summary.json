@@ -1,0 +1,22 @@
+{
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "commit_after": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "command": "CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-d-20261001/full-check.md bash scripts/check.sh full",
+  "environment": "local-Darwin-arm64",
+  "host": "macOS-27.0-arm64-arm-64bit",
+  "started_at": "2026-09-30T19:38:55.767909+00:00",
+  "completed_at": "2026-09-30T19:42:39.763529+00:00",
+  "exit_code": 0,
+  "result": "PASS",
+  "preexisting_tracked_change": "AGENTS.md (preserved, not committed)",
+  "source_clean_at_start": true,
+  "steps_passed": 44,
+  "rust_tests": {
+    "passed": 1432,
+    "failed": 0,
+    "ignored": 12
+  },
+  "stdout_raw_sha256": "cd6908d16effada47754a370731c59162a9fad0b9c35b458c5164b013c399670",
+  "stdout_stored_sha256": "f7b076df8c6cf25f013084ea61d504cc6c11b27ab419206df0d87cf43ad86e81",
+  "stdout_normalization": "Trailing whitespace and redundant final blank lines only; diagnostic text unchanged."
+}

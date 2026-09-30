@@ -1,0 +1,58 @@
+{
+  "scenario": "details",
+  "result": "PASS",
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 32,
+  "checks": [
+    {
+      "name": "request detail fits viewport with keyboard dismissal",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "history workspace retains focus return in both layouts",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "request detail fits viewport with keyboard dismissal",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "history workspace retains focus return in both layouts",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "request detail fits viewport with keyboard dismissal",
+      "result": "PASS",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "name": "history workspace retains focus return in both layouts",
+      "result": "PASS",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "name": "request detail fits viewport with keyboard dismissal",
+      "result": "PASS",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "name": "history workspace retains focus return in both layouts",
+      "result": "PASS",
+      "width": 375,
+      "theme": "dark"
+    }
+  ]
+}

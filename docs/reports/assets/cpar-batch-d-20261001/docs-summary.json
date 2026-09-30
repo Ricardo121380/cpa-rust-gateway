@@ -1,0 +1,8 @@
+{
+  "code_commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "command": "CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-d-20261001/docs-check.md bash scripts/check.sh docs",
+  "result": "PASS",
+  "exit_code": 0,
+  "steps_passed": 7,
+  "scope": "Final report and staged evidence; whitespace additionally checked by git diff --cached --check"
+}

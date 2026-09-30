@@ -1,0 +1,18 @@
+{
+  "scenario": "permissions-egress",
+  "result": "PASS",
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 32,
+  "checks": [
+    {
+      "name": "permission denial is distinct from empty route grants",
+      "result": "PASS"
+    },
+    {
+      "name": "failed dependency reads remain unknown rather than zero",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "scenario": "runtime",
+  "result": "PASS",
+  "commit": "353c0ec4b9aeaefc11b8b4dd6425b5fe696356b7",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 32,
+  "checks": [
+    {
+      "name": "initial runtime failure has recoverable error state",
+      "result": "PASS"
+    },
+    {
+      "name": "runtime refresh retains last availability matrix",
+      "result": "PASS"
+    },
+    {
+      "name": "account lookup continues beyond an empty first page",
+      "result": "PASS"
+    },
+    {
+      "name": "lost pool write is not replayed and requires readback",
+      "result": "PASS"
+    },
+    {
+      "name": "failed reconciliation keeps pool actions disabled",
+      "result": "PASS"
+    }
+  ]
+}
