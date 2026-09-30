@@ -575,7 +575,9 @@ impl ChatSseEncoder {
             }
             CanonicalEvent::ToolCallEnd(end) => {
                 let (_, tool) = self.tool_mut(&end.call_id)?;
-                if tool.arguments != end.arguments.get() {
+                // RawJson excludes outer JSON whitespace; retain the streamed bytes while
+                // comparing the same JSON representation inside that boundary.
+                if tool.arguments.trim() != end.arguments.get() {
                     return Err(stream_error());
                 }
                 Ok(Vec::new())
@@ -1182,6 +1184,19 @@ mod tests {
             &canonical,
             ChatResponseMetadata::try_new("public-model", 7, false)?,
         )?)
+    }
+
+    #[test]
+    fn outer_json_whitespace_preserves_tool_bytes_and_still_checks_final_arguments()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let chunks = [" \n", "{\"q\":", "\"fragmented\"}", " \t"];
+        let output = encode_tool_response(&chunks)?;
+        assert_eq!(
+            output["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"],
+            chunks.concat()
+        );
+        assert!(encode_tool_response(&[" {\"q\":\"different\"} "]).is_err());
+        Ok(())
     }
 
     #[test]

@@ -400,10 +400,12 @@ const fn profile_matches_credential(
         (credential, profile),
         (
             KiroCredentialKind::Social,
-            KiroProfileArnSource::BuilderDefault
+            KiroProfileArnSource::BuilderDefault | KiroProfileArnSource::CliCatalog
         ) | (
             KiroCredentialKind::Enterprise,
-            KiroProfileArnSource::EnterpriseLookup | KiroProfileArnSource::EnterpriseFallback
+            KiroProfileArnSource::EnterpriseLookup
+                | KiroProfileArnSource::EnterpriseFallback
+                | KiroProfileArnSource::CliCatalog
         ) | (
             KiroCredentialKind::ApiKey,
             KiroProfileArnSource::ApiKeyOmitted

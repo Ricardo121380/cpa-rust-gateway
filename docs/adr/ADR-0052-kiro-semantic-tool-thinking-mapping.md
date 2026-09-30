@@ -31,3 +31,18 @@ silently replaces a supplied question or fabricates missing choices.
 This decision has no network I/O, Credential selection, HTTP/account/quota classification,
 Tool execution, scheduler state mutation, route publication, or real probe. P7-08 owns Kiro
 runtime error taxonomy; P7-09 owns its bounded real adapter and differential evidence.
+
+## CPAR C amendment — 2026-09-30
+
+Canonical `tool` messages containing only correlated Tool results use Kiro's user-input result
+context, including when the final message is a Tool result. Ordinary Tool-role text remains
+unsupported. This extends the earlier user-role result representation without flattening roles
+or fabricating a user prompt. Explicit effort is limited to `low`, `medium`, `high`, `xhigh`, or
+`max`; enabled/disabled flags, numeric budgets and private extensions are not approximate effort.
+
+After valid framing, completed Tool JSON and clean semantic EOF, the mapper reports `tool_use`
+when a Tool completed and `end_turn` otherwise. Partial frames or Tools never produce a successful
+terminal. Public runtime assembly now accepts the existing CanonicalBridge mode. Output limits
+still require exact native support: no proven field is available in the inspected reference,
+so mandatory Messages `max_tokens` remains a software blocker rather than being removed.
+See [C evidence](../reports/cpar-batch-c-20260930.md) for local and real-channel status.

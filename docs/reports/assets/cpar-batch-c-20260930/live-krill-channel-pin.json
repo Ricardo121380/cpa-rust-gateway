@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "layer": "LIVE_EXISTING_RUNTIME",
+  "method": "protected_exact_channel_pin",
+  "value_free": true,
+  "rows": [
+    {
+      "kind": "pin",
+      "capability": "single_fixed_text_probe",
+      "parameters": {
+        "output_limit": 8
+      },
+      "observed_at_ms": 1790759628331,
+      "http_status": 200,
+      "receipt": {
+        "request_id": "channel-pin-7f5783a765955283-1",
+        "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "config_revision": 1,
+        "provider_id": "p12-12-production-krill-upstream",
+        "channel_id": "p12-12-production-krill-responses-endpoint",
+        "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+        "requested_model": "gpt-6-sol",
+        "protocol": "openai_responses",
+        "mode": "json",
+        "outcome": "failed",
+        "upstream_sent": true,
+        "attempt_count": 1,
+        "response_started": false,
+        "observed_at_ms": 1790759628337,
+        "stage": "decoder"
+      },
+      "account_sha256_12": "5afbb699ec53",
+      "result": "FAIL"
+    },
+    {
+      "kind": "pin",
+      "capability": "single_fixed_text_probe",
+      "parameters": {
+        "output_limit": 8
+      },
+      "observed_at_ms": 1790759631205,
+      "http_status": 200,
+      "receipt": {
+        "request_id": "channel-pin-7f5783a765955283-2",
+        "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "config_revision": 1,
+        "provider_id": "p12-12-production-krill-upstream",
+        "channel_id": "p12-12-production-krill-responses-endpoint",
+        "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+        "requested_model": "gpt-6-sol",
+        "protocol": "openai_responses",
+        "mode": "sse",
+        "outcome": "failed",
+        "upstream_sent": true,
+        "attempt_count": 1,
+        "response_started": true,
+        "observed_at_ms": 1790759631212,
+        "stage": "decoder"
+      },
+      "account_sha256_12": "5afbb699ec53",
+      "result": "FAIL"
+    },
+    {
+      "kind": "pin",
+      "capability": "single_fixed_text_probe",
+      "parameters": {
+        "output_limit": 8
+      },
+      "observed_at_ms": 1790759634228,
+      "http_status": 200,
+      "receipt": {
+        "request_id": "channel-pin-7f5783a765955283-3",
+        "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "config_revision": 1,
+        "provider_id": "p12-12-production-krill-upstream",
+        "channel_id": "p12-12-production-krill-responses-endpoint",
+        "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+        "requested_model": "gpt-6-sol",
+        "protocol": "openai_chat_completions",
+        "mode": "json",
+        "outcome": "rejected",
+        "upstream_sent": false,
+        "attempt_count": 0,
+        "response_started": false,
+        "observed_at_ms": 1790759634235
+      },
+      "account_sha256_12": "5afbb699ec53",
+      "result": "FAIL"
+    },
+    {
+      "kind": "pin",
+      "capability": "single_fixed_text_probe",
+      "parameters": {
+        "output_limit": 8
+      },
+      "observed_at_ms": 1790759634235,
+      "http_status": 200,
+      "receipt": {
+        "request_id": "channel-pin-7f5783a765955283-4",
+        "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "config_revision": 1,
+        "provider_id": "p12-12-production-krill-upstream",
+        "channel_id": "p12-12-production-krill-responses-endpoint",
+        "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+        "requested_model": "gpt-6-sol",
+        "protocol": "openai_chat_completions",
+        "mode": "sse",
+        "outcome": "rejected",
+        "upstream_sent": false,
+        "attempt_count": 0,
+        "response_started": false,
+        "observed_at_ms": 1790759634241
+      },
+      "account_sha256_12": "5afbb699ec53",
+      "result": "FAIL"
+    },
+    {
+      "kind": "pin",
+      "capability": "single_fixed_text_probe",
+      "parameters": {
+        "output_limit": 8
+      },
+      "observed_at_ms": 1790759634242,
+      "http_status": 200,
+      "receipt": {
+        "request_id": "channel-pin-7f5783a765955283-5",
+        "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "config_revision": 1,
+        "provider_id": "p12-12-production-krill-upstream",
+        "channel_id": "p12-12-production-krill-responses-endpoint",
+        "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+        "requested_model": "gpt-6-sol",
+        "protocol": "anthropic_messages",
+        "mode": "json",
+        "outcome": "rejected",
+        "upstream_sent": false,
+        "attempt_count": 0,
+        "response_started": false,
+        "observed_at_ms": 1790759634248
+      },
+      "account_sha256_12": "5afbb699ec53",
+      "result": "FAIL"
+    },
+    {
+      "kind": "pin",
+      "capability": "single_fixed_text_probe",
+      "parameters": {
+        "output_limit": 8
+      },
+      "observed_at_ms": 1790759634249,
+      "http_status": 200,
+      "receipt": {
+        "request_id": "channel-pin-7f5783a765955283-6",
+        "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "config_revision": 1,
+        "provider_id": "p12-12-production-krill-upstream",
+        "channel_id": "p12-12-production-krill-responses-endpoint",
+        "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+        "requested_model": "gpt-6-sol",
+        "protocol": "anthropic_messages",
+        "mode": "sse",
+        "outcome": "rejected",
+        "upstream_sent": false,
+        "attempt_count": 0,
+        "response_started": false,
+        "observed_at_ms": 1790759634255
+      },
+      "account_sha256_12": "5afbb699ec53",
+      "result": "FAIL"
+    }
+  ],
+  "before": {
+    "kind": "before",
+    "snapshot": {
+      "active_configuration": [
+        {
+          "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+          "status": "active",
+          "revision": "rev-1"
+        }
+      ],
+      "runtime_pid": 499070,
+      "runtime_executable": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0/gateway",
+      "observed_at_ms": 1790759628325
+    }
+  },
+  "inventory": {
+    "kind": "inventory",
+    "accounts": [
+      {
+        "account_sha256_12": "60c641a66eb5",
+        "category": "grok",
+        "provider": "Grok Console",
+        "status": "enabled",
+        "native": true,
+        "account_revision": null,
+        "native_auth_status": "active",
+        "authentication": null
+      },
+      {
+        "account_sha256_12": "a6d65643d5ac",
+        "category": "grok",
+        "provider": "Grok Console",
+        "status": "enabled",
+        "native": true,
+        "account_revision": null,
+        "native_auth_status": "active",
+        "authentication": null
+      },
+      {
+        "account_sha256_12": "5afbb699ec53",
+        "category": "api",
+        "provider": "API",
+        "status": "enabled",
+        "native": false,
+        "account_revision": 0,
+        "native_auth_status": null,
+        "authentication": "api_key"
+      },
+      {
+        "account_sha256_12": "88c42108fcd4",
+        "category": "kimi",
+        "provider": "Kimi",
+        "status": "enabled",
+        "native": false,
+        "account_revision": 593,
+        "native_auth_status": null,
+        "authentication": "oauth"
+      },
+      {
+        "account_sha256_12": "319bde2905a6",
+        "category": "grok",
+        "provider": "Grok Build",
+        "status": "enabled",
+        "native": true,
+        "account_revision": 92,
+        "native_auth_status": "active",
+        "authentication": null
+      },
+      {
+        "account_sha256_12": "071b294bce46",
+        "category": "codex",
+        "provider": "Codex",
+        "status": "enabled",
+        "native": false,
+        "account_revision": 1,
+        "native_auth_status": null,
+        "authentication": "oauth"
+      },
+      {
+        "account_sha256_12": "a6370161014a",
+        "category": "grok",
+        "provider": "Grok Build",
+        "status": "enabled",
+        "native": true,
+        "account_revision": null,
+        "native_auth_status": "active",
+        "authentication": null
+      },
+      {
+        "account_sha256_12": "78f9a5c88de7",
+        "category": "grok",
+        "provider": "Grok Build",
+        "status": "reauth_required",
+        "native": true,
+        "account_revision": 98,
+        "native_auth_status": "reauth_required",
+        "authentication": null
+      }
+    ]
+  },
+  "after": {
+    "kind": "after",
+    "snapshot": {
+      "active_configuration": [
+        {
+          "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+          "status": "active",
+          "revision": "rev-1"
+        }
+      ],
+      "runtime_pid": 499070,
+      "runtime_executable": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0/gateway",
+      "observed_at_ms": 1790759634266
+    },
+    "unchanged_runtime_and_config": true
+  },
+  "completed": true
+}

@@ -156,7 +156,7 @@ pub struct KiroConversationRequestBuilder;
 impl KiroConversationRequestBuilder {
     /// Converts one narrow Canonical text conversation into Kiro's request envelope.
     ///
-    /// The final Canonical message must be a user message. Earlier user/assistant messages become
+    /// The final Canonical message must be a user message or a correlated tool result. Earlier messages become
     /// ordered Kiro history, including paired historical Tool calls and results. Declared Tools
     /// are placed only on the current user context. Thinking follows the explicit IDE/CLI policy.
     /// Opaque content, cache controls, and unscoped Canonical extensions still fail closed.
@@ -208,7 +208,12 @@ impl KiroConversationRequestBuilder {
             user_input_context.insert("toolResults".to_owned(), Value::Array(current.tool_results));
         }
         if let Some(thinking) = &request.thinking {
-            if !thinking.extensions.is_empty() {
+            if !thinking.extensions.is_empty()
+                || !matches!(
+                    thinking.effort.as_str(),
+                    "low" | "medium" | "high" | "xhigh" | "max"
+                )
+            {
                 return Err(KiroConversationRequestError::UnsupportedCanonicalField);
             }
             match policy.thinking_placement() {
@@ -316,7 +321,7 @@ fn split_current_message(
     let Some((current, history)) = messages.split_last() else {
         return Err(KiroConversationRequestError::MissingCurrentUserMessage);
     };
-    if current.role.0 != "user" {
+    if !matches!(current.role.0.as_str(), "user" | "tool") {
         return Err(KiroConversationRequestError::CurrentMessageMustBeUser);
     }
     Ok((current, history))
@@ -329,7 +334,7 @@ fn encode_history_message(
     historical_tools: &mut HistoricalToolState,
 ) -> Result<Value, KiroConversationRequestError> {
     match message.role.0.as_str() {
-        "user" => {
+        "user" | "tool" => {
             let user = encode_user_message(message, historical_tools)?;
             let mut user_input = Map::new();
             if let Some(content) = user.content {
@@ -396,6 +401,16 @@ fn encode_user_message(
     historical_tools: &mut HistoricalToolState,
 ) -> Result<EncodedUserMessage, KiroConversationRequestError> {
     if !message.extensions.is_empty() || message.content.is_empty() {
+        return Err(KiroConversationRequestError::UnsupportedMessageContent);
+    }
+    // Canonical tool results have their own role. Kiro carries them in a user-input context;
+    // only actual results may use this representation, never ordinary tool-role text.
+    if message.role.0 == "tool"
+        && !message
+            .content
+            .iter()
+            .all(|part| matches!(part, MessageContent::ToolResult(_)))
+    {
         return Err(KiroConversationRequestError::UnsupportedMessageContent);
     }
 

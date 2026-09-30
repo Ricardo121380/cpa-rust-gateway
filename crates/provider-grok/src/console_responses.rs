@@ -405,7 +405,6 @@ fn observed_probe_model(model: &str) -> Option<ConsoleModelSpec> {
     .then_some(ConsoleModelSpec {
         maximum_output_tokens: 32,
         default_reasoning_effort: None,
-        search_tools: false,
     })
 }
 
@@ -413,7 +412,6 @@ fn observed_probe_model(model: &str) -> Option<ConsoleModelSpec> {
 struct ConsoleModelSpec {
     maximum_output_tokens: u64,
     default_reasoning_effort: Option<&'static str>,
-    search_tools: bool,
 }
 
 const CONSOLE_MODELS: [(&str, u64, Option<&str>); 6] = [
@@ -434,7 +432,6 @@ fn console_model(model: &str) -> Option<ConsoleModelSpec> {
         |(_, maximum_output_tokens, default_reasoning_effort)| ConsoleModelSpec {
             maximum_output_tokens: *maximum_output_tokens,
             default_reasoning_effort: *default_reasoning_effort,
-            search_tools: true,
         },
     )
 }
@@ -470,28 +467,6 @@ fn normalize_console_body(
             "reasoning.encrypted_content".to_owned(),
         )]),
     );
-    if spec.search_tools {
-        let tools = root
-            .entry("tools".to_owned())
-            .or_insert_with(|| Value::Array(Vec::new()));
-        if let Value::Array(tools) = tools {
-            tools.insert(
-                0,
-                Value::Object(Map::from_iter([
-                    ("type".to_owned(), Value::String("x_search".to_owned())),
-                    ("enable_video_understanding".to_owned(), Value::Bool(true)),
-                ])),
-            );
-            tools.insert(
-                0,
-                Value::Object(Map::from_iter([
-                    ("type".to_owned(), Value::String("web_search".to_owned())),
-                    ("enable_image_understanding".to_owned(), Value::Bool(true)),
-                ])),
-            );
-            root.insert("tool_choice".to_owned(), Value::String("auto".to_owned()));
-        }
-    }
 }
 
 /// Strict Console JSON decoder with explicit public-protocol terminal semantics.

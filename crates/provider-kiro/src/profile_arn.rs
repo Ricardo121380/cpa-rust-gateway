@@ -20,6 +20,8 @@ pub enum KiroProfileArnSource {
     EnterpriseLookup,
     /// The deterministic Enterprise region-family fallback.
     EnterpriseFallback,
+    /// A profile returned by completed, account-bound CLI catalog discovery.
+    CliCatalog,
     /// API keys never carry a profile ARN.
     ApiKeyOmitted,
 }
@@ -49,7 +51,7 @@ impl KiroProfileArn {
                     && id.len() <= 128
                     && id
                         .bytes()
-                        .all(|value| value.is_ascii_uppercase() || value.is_ascii_digit())
+                        .all(|value| value.is_ascii_alphanumeric() || matches!(value, b'_' | b'-'))
             });
         if !valid {
             return Err(KiroProfileArnError::InvalidProfileArn);
@@ -85,6 +87,26 @@ pub struct KiroProfileArnResolution {
     source: KiroProfileArnSource,
 }
 impl KiroProfileArnResolution {
+    /// Binds an observed CLI profile to its exact OAuth family and API region.
+    ///
+    /// # Errors
+    /// Rejects API keys, malformed ARNs, and a profile from another region.
+    pub fn from_cli_catalog(
+        kind: KiroCredentialKind,
+        api_region: &KiroApiRegion,
+        value: String,
+    ) -> Result<Self, KiroProfileArnError> {
+        if kind == KiroCredentialKind::ApiKey
+            || value.split(':').nth(3) != Some(api_region.as_str())
+        {
+            return Err(KiroProfileArnError::InvalidProfileArn);
+        }
+        Ok(Self {
+            arn: Some(KiroProfileArn::try_new(value)?),
+            source: KiroProfileArnSource::CliCatalog,
+        })
+    }
+
     /// Returns the resolved ARN, if this credential family requires one.
     #[must_use]
     pub fn arn(&self) -> Option<&KiroProfileArn> {

@@ -242,6 +242,17 @@ impl fmt::Debug for GrokWebProductionOutboundRequest {
 pub struct GrokWebProductionRequestBuilder;
 
 impl GrokWebProductionRequestBuilder {
+    /// Checks native request semantics without reading a credential or browser session.
+    ///
+    /// # Errors
+    ///
+    /// Rejects every field that the reviewed native conversation body cannot express.
+    pub fn validate_request(
+        request: &CanonicalRequest,
+    ) -> Result<(), GrokWebProductionRequestError> {
+        normalized_message(request).map(|_| ())
+    }
+
     /// Builds one temporary, memory-disabled Web conversation request.
     ///
     /// # Errors
@@ -299,12 +310,12 @@ fn web_mode(model: &str) -> Option<&'static str> {
 }
 
 fn normalized_message(request: &CanonicalRequest) -> Result<String, GrokWebProductionRequestError> {
-    if request.messages.is_empty()
+    if request.messages.len() != 1
         || !request.tools.is_empty()
         || request.thinking.is_some()
         || request.prompt_cache_key.is_some()
         || request.prompt_cache_retention.is_some()
-        || !web_output_limits_are_supported(request)
+        || !request.extensions.is_empty()
     {
         return Err(GrokWebProductionRequestError::UnsupportedRequest);
     }
@@ -315,16 +326,9 @@ fn normalized_message(request: &CanonicalRequest) -> Result<String, GrokWebProdu
         extensions,
     } in &request.messages
     {
-        if !matches!(
-            role.0.as_str(),
-            "assistant" | "developer" | "system" | "user"
-        ) || content.is_empty()
-            || !extensions.is_empty()
-        {
+        if role.0 != "user" || content.is_empty() || !extensions.is_empty() {
             return Err(GrokWebProductionRequestError::UnsupportedRequest);
         }
-        writeln!(&mut output, "[{}]", role.0)
-            .map_err(|_| GrokWebProductionRequestError::InternalEncodingFailure)?;
         for part in content {
             let MessageContent::Text(text) = part else {
                 return Err(GrokWebProductionRequestError::UnsupportedRequest);
@@ -333,18 +337,15 @@ fn normalized_message(request: &CanonicalRequest) -> Result<String, GrokWebProdu
                 return Err(GrokWebProductionRequestError::UnsupportedRequest);
             }
             output.push_str(&text.text);
-            output.push('\n');
         }
-        output.push('\n');
         if output.len() > MAX_GROK_WEB_PRODUCTION_MESSAGE_BYTES {
             return Err(GrokWebProductionRequestError::RequestTooLarge);
         }
     }
-    let normalized = output.trim().to_owned();
-    if normalized.is_empty() {
+    if output.is_empty() {
         Err(GrokWebProductionRequestError::UnsupportedRequest)
     } else {
-        Ok(normalized)
+        Ok(output)
     }
 }
 
@@ -377,35 +378,6 @@ fn estimate_grok_web_tokens(value: &str) -> u64 {
 
 fn estimate_grok_web_prompt_tokens(value: &str) -> u64 {
     estimate_grok_web_tokens(value).saturating_add(4)
-}
-
-/// Accepts only the common text-output ceilings retained by the three public protocol decoders.
-///
-/// Grok Web does not expose an upstream output-limit field in the reviewed grok2api 3.1.1 text
-/// request shape, so the value is an admission bound rather than a serialized control. Unknown,
-/// duplicate-cross-protocol, zero, non-integer, or excessive extensions still fail closed.
-fn web_output_limits_are_supported(request: &CanonicalRequest) -> bool {
-    const OUTPUT_LIMITS: [&str; 3] = [
-        "openai.responses.max_output_tokens",
-        "openai.chat.max_tokens",
-        "anthropic.messages.max_tokens",
-    ];
-    if request.extensions.is_empty() {
-        return true;
-    }
-    if request.extensions.iter().count() != 1 {
-        return false;
-    }
-    let Some((name, raw)) = request.extensions.iter().next() else {
-        return false;
-    };
-    if !OUTPUT_LIMITS.contains(&name) {
-        return false;
-    }
-    serde_json::from_str::<Value>(raw.get())
-        .ok()
-        .and_then(|value| value.as_u64())
-        .is_some_and(|value| value > 0 && value <= 1_000_000)
 }
 
 fn production_payload(message: &str, mode: &str) -> Value {

@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "layer": "LIVE_EXISTING_RUNTIME",
+  "runtime_commit": "b0cf36e387b774439acc23830221389eb3ac74d0",
+  "config_version": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+  "value_free": true,
+  "constraint_enforcement": "UNVERIFIED_EXISTING_RUNTIME",
+  "rows": [
+    {
+      "model": "grok-4.5",
+      "protocol": "responses",
+      "streaming": false,
+      "tool_requested": false,
+      "round": 1,
+      "observed_at_ms": 1790757996843,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "input_tokens": 210,
+        "output_tokens": 50,
+        "total_tokens": 260
+      },
+      "duration_ms": 3354
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "responses",
+      "streaming": false,
+      "tool_requested": true,
+      "round": 1,
+      "observed_at_ms": 1790758000198,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "tool_call",
+      "tool_call_count": 1,
+      "usage": {
+        "input_tokens": 292,
+        "output_tokens": 174,
+        "total_tokens": 466
+      },
+      "duration_ms": 4760
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "responses",
+      "streaming": false,
+      "tool_requested": true,
+      "round": 2,
+      "observed_at_ms": 1790758004958,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "input_tokens": 307,
+        "output_tokens": 1,
+        "total_tokens": 308
+      },
+      "duration_ms": 2511
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "responses",
+      "streaming": true,
+      "tool_requested": false,
+      "round": 1,
+      "observed_at_ms": 1790758007469,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "input_tokens": 210,
+        "output_tokens": 23,
+        "total_tokens": 233
+      },
+      "duration_ms": 2655
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "responses",
+      "streaming": true,
+      "tool_requested": true,
+      "round": 1,
+      "observed_at_ms": 1790758010124,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "tool_call",
+      "tool_call_count": 1,
+      "usage": {
+        "input_tokens": 292,
+        "output_tokens": 130,
+        "total_tokens": 422
+      },
+      "duration_ms": 4028
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "responses",
+      "streaming": true,
+      "tool_requested": true,
+      "round": 2,
+      "observed_at_ms": 1790758014153,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "input_tokens": 307,
+        "output_tokens": 1,
+        "total_tokens": 308
+      },
+      "duration_ms": 2284
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "chat",
+      "streaming": false,
+      "tool_requested": false,
+      "round": 1,
+      "observed_at_ms": 1790758016437,
+      "requested_output_limit": 64,
+      "http_status": 400,
+      "result": "FAIL",
+      "category": "http_error",
+      "request_id": null,
+      "gateway_error_code": "ClientRequestError",
+      "duration_ms": 1605
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "chat",
+      "streaming": false,
+      "tool_requested": true,
+      "round": 1,
+      "observed_at_ms": 1790758018042,
+      "requested_output_limit": 64,
+      "http_status": 400,
+      "result": "FAIL",
+      "category": "http_error",
+      "request_id": null,
+      "gateway_error_code": "ClientRequestError",
+      "duration_ms": 1689
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "chat",
+      "streaming": true,
+      "tool_requested": false,
+      "round": 1,
+      "observed_at_ms": 1790758019731,
+      "requested_output_limit": 64,
+      "http_status": 400,
+      "result": "FAIL",
+      "category": "http_error",
+      "request_id": null,
+      "gateway_error_code": "ClientRequestError",
+      "duration_ms": 1579
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "chat",
+      "streaming": true,
+      "tool_requested": true,
+      "round": 1,
+      "observed_at_ms": 1790758021310,
+      "requested_output_limit": 64,
+      "http_status": 400,
+      "result": "FAIL",
+      "category": "http_error",
+      "request_id": null,
+      "gateway_error_code": "ClientRequestError",
+      "duration_ms": 2078
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "messages",
+      "streaming": false,
+      "tool_requested": false,
+      "round": 1,
+      "observed_at_ms": 1790758023388,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "input_tokens": 210,
+        "output_tokens": 80
+      },
+      "duration_ms": 3898
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "messages",
+      "streaming": false,
+      "tool_requested": true,
+      "round": 1,
+      "observed_at_ms": 1790758027286,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "tool_call",
+      "tool_call_count": 1,
+      "usage": {
+        "input_tokens": 292,
+        "output_tokens": 142
+      },
+      "duration_ms": 4261
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "messages",
+      "streaming": false,
+      "tool_requested": true,
+      "round": 2,
+      "observed_at_ms": 1790758031547,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "input_tokens": 307,
+        "output_tokens": 1
+      },
+      "duration_ms": 2347
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "messages",
+      "streaming": true,
+      "tool_requested": false,
+      "round": 1,
+      "observed_at_ms": 1790758033895,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "output_tokens": 52,
+        "input_tokens": 210
+      },
+      "duration_ms": 3301
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "messages",
+      "streaming": true,
+      "tool_requested": true,
+      "round": 1,
+      "observed_at_ms": 1790758037197,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "tool_call",
+      "tool_call_count": 1,
+      "usage": {
+        "output_tokens": 99,
+        "input_tokens": 292
+      },
+      "duration_ms": 3536
+    },
+    {
+      "model": "grok-4.5",
+      "protocol": "messages",
+      "streaming": true,
+      "tool_requested": true,
+      "round": 2,
+      "observed_at_ms": 1790758040733,
+      "requested_output_limit": 64,
+      "http_status": 200,
+      "request_id": null,
+      "result": "PASS",
+      "category": "text",
+      "tool_call_count": 0,
+      "usage": {
+        "output_tokens": 1,
+        "input_tokens": 307
+      },
+      "duration_ms": 2648
+    }
+  ],
+  "completed": true
+}

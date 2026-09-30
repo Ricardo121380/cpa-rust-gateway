@@ -71,6 +71,7 @@ pub struct KiroEventSemanticMapper {
     response_id: ResponseId,
     started: bool,
     finished: bool,
+    completed_tool: bool,
     open_tools: BTreeMap<String, OpenTool>,
 }
 
@@ -82,6 +83,7 @@ impl KiroEventSemanticMapper {
             response_id,
             started: false,
             finished: false,
+            completed_tool: false,
             open_tools: BTreeMap::new(),
         }
     }
@@ -162,7 +164,14 @@ impl KiroEventSemanticMapper {
                 extensions: RawExtensions::default(),
             }),
             CanonicalEvent::ResponseEnd(ResponseEnd {
-                stop_reason: None,
+                stop_reason: Some(
+                    if self.completed_tool {
+                        "tool_use"
+                    } else {
+                        "end_turn"
+                    }
+                    .to_owned(),
+                ),
                 stop_sequence: None,
                 extensions: RawExtensions::default(),
             }),
@@ -243,6 +252,7 @@ impl KiroEventSemanticMapper {
                 .remove(call_id)
                 .ok_or(KiroEventSemanticError::InvalidToolState)?;
             let arguments = completed_tool_arguments(&tool)?;
+            self.completed_tool = true;
             events.push(CanonicalEvent::ToolCallEnd(ToolCallEnd {
                 call_id: call_id.to_owned(),
                 arguments,
@@ -260,6 +270,7 @@ impl fmt::Debug for KiroEventSemanticMapper {
             .field("response_id", &"<redacted>")
             .field("started", &self.started)
             .field("finished", &self.finished)
+            .field("completed_tool", &self.completed_tool)
             .field("open_tool_count", &self.open_tools.len())
             .finish()
     }

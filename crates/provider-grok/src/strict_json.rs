@@ -24,6 +24,22 @@ pub(crate) fn parse_strict_json(input: &[u8], maximum_bytes: usize) -> Result<Va
     Ok(value.0)
 }
 
+/// Holds an ambiguous blank/empty-object prefix until its native normalization is known.
+pub(crate) fn could_be_empty_tool_arguments(arguments: &str) -> bool {
+    let mut characters = arguments
+        .chars()
+        .filter(|character| !character.is_whitespace());
+    match characters.next() {
+        None => true,
+        Some('{') => match characters.next() {
+            None => true,
+            Some('}') => characters.next().is_none(),
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
 struct StrictJsonValue(Value);
 
 impl<'de> Deserialize<'de> for StrictJsonValue {

@@ -227,7 +227,7 @@ impl RuntimeModelCatalogWorker {
                 ErrorScope::Credential,
             )
         })?;
-        kiro_catalog_pages(
+        let (models, profile) = kiro_catalog_pages(
             policy,
             &credential,
             now,
@@ -271,7 +271,42 @@ impl RuntimeModelCatalogWorker {
                 Ok(bytes)
             },
         )
-        .await
+        .await?;
+        if let Some(profile) = profile {
+            let profile = provider_kiro::profile_arn::KiroProfileArnResolution::from_cli_catalog(
+                credential.kind(),
+                policy.api_region(),
+                profile,
+            )
+            .map_err(|_| invalid())?;
+            // An in-flight discovery cannot attach an old profile to rotated material. The map
+            // belongs to this serving generation and is shared with its inference executor.
+            let current = self.pools.pool(&target.endpoint_id).is_some_and(|pool| {
+                pool.diagnostic_entries().iter().any(|entry| {
+                    entry.credential_id() == lease.credential_id()
+                        && entry.credential_revision() == lease.credential_revision()
+                })
+            });
+            if current
+                && self
+                    .generation_guard
+                    .as_ref()
+                    .is_none_or(|(_, active)| active.load(Ordering::Acquire))
+            {
+                self.kiro_profiles.lock().map_err(|_| invalid())?.insert(
+                    (target.endpoint_id.clone(), lease.credential_id().clone()),
+                    super::KiroProfileSnapshot {
+                        credential_revision: lease.credential_revision(),
+                        valid_until_ms: credential
+                            .expires_at_ms()
+                            .unwrap_or(now)
+                            .min(now.saturating_add(3_600_000)),
+                        profile,
+                    },
+                );
+            }
+        }
+        Ok(models)
     }
 }
 
@@ -282,7 +317,7 @@ async fn kiro_catalog_pages<F, Fut>(
     credential: &provider_kiro::credential::KiroCredential,
     now: i64,
     mut fetch: F,
-) -> Result<Vec<gateway_catalog::DiscoveredModel>, GatewayError>
+) -> Result<(Vec<gateway_catalog::DiscoveredModel>, Option<String>), GatewayError>
 where
     F: FnMut(String, Vec<(String, String)>, UpstreamHttpMethod, Vec<u8>) -> Fut,
     Fut: std::future::Future<Output = Result<Vec<u8>, GatewayError>>,
@@ -339,7 +374,7 @@ where
             return Err(invalid());
         }
         match page.next_token {
-            None => return Ok(models.into_values().collect()),
+            None => return Ok((models.into_values().collect(), profile)),
             Some(token) => {
                 if !seen.insert(token.clone()) {
                     return Err(invalid());
@@ -374,7 +409,7 @@ mod tests {
             br#"{"models":[{"modelId":"Exact-v2"}]}"#.to_vec(),
         ]));
         let calls = RefCell::new(Vec::new());
-        let models =
+        let (models, profile) =
             kiro_catalog_pages(&policy, &credential, 1000, |url, headers, method, body| {
                 calls.borrow_mut().push((url, headers, method, body));
                 std::future::ready(pages.borrow_mut().pop_front().ok_or_else(|| {
@@ -386,6 +421,10 @@ mod tests {
             })
             .await?;
         assert_eq!(models.len(), 2);
+        assert_eq!(
+            profile.as_deref(),
+            Some("arn:aws:codewhisperer:us-east-1:123456789012:profile/observed")
+        );
         assert_eq!(calls.borrow().len(), 3);
         for (url, headers, method, _) in calls.borrow().iter() {
             assert!(url.starts_with("https://management.us-east-1.kiro.dev/"));
@@ -430,7 +469,8 @@ mod tests {
                 });
                 std::future::ready(result)
             })
-            .await?;
+            .await?
+            .0;
             assert_eq!(
                 models
                     .iter()

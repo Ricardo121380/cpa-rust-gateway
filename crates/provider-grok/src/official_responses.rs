@@ -30,7 +30,7 @@ use zeroize::Zeroizing;
 use crate::{
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_PROVIDER_ID, GrokOfficialApiKey,
     GrokOfficialRateLimitMetadata, GrokOfficialRuntimeState, classify_grok_official_http_failure,
-    strict_json::parse_strict_json,
+    strict_json::{could_be_empty_tool_arguments, parse_strict_json},
 };
 
 /// Fixed Official Responses path.
@@ -227,12 +227,16 @@ pub(crate) fn encode_responses_body(
     mode: ResponseMode,
     reasoning_efforts: &[&str],
 ) -> Result<Vec<u8>, GatewayError> {
-    if request.prompt_cache_key.is_some()
-        || request.prompt_cache_retention.is_some()
-        || !request.extensions.is_empty()
-    {
+    if request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some() {
         return Err(client_request_error());
     }
+
+    request.validate_tool_history()?;
+    gateway_router::ToolExecutionConstraints::from_request(
+        request,
+        gateway_router::ProtocolFormat::OpenAiResponses,
+    )
+    .map_err(|_| client_request_error())?;
 
     let mut root = Map::new();
     root.insert("model".to_owned(), Value::String(upstream_model.to_owned()));
@@ -255,6 +259,22 @@ pub(crate) fn encode_responses_body(
             "reasoning".to_owned(),
             encode_reasoning(thinking, reasoning_efforts)?,
         );
+    }
+    for (name, raw) in request.extensions.iter() {
+        let field = name
+            .strip_prefix("openai.responses.")
+            .filter(|field| {
+                matches!(
+                    *field,
+                    "max_output_tokens" | "tool_choice" | "parallel_tool_calls"
+                )
+            })
+            .ok_or_else(client_request_error)?;
+        let value = raw_value(raw)?;
+        if field == "max_output_tokens" && value.as_u64().is_none_or(|limit| limit == 0) {
+            return Err(client_request_error());
+        }
+        root.insert(field.to_owned(), value);
     }
     serde_json::to_vec(&Value::Object(root)).map_err(|_| internal_error())
 }
@@ -541,10 +561,12 @@ struct GrokOfficialResponsesDecodeState {
     message_open: bool,
     item_kinds: BTreeMap<String, OutputItemKind>,
     completed_item_ids: BTreeSet<String>,
+    completed_items: BTreeMap<String, Value>,
     active_content_part_ids: BTreeSet<String>,
     function_call_ids: BTreeMap<String, String>,
     function_call_names: BTreeMap<String, String>,
     function_arguments: BTreeMap<String, String>,
+    emitted_function_arguments: BTreeSet<String>,
     completed_function_calls: BTreeSet<String>,
     text_by_item_id: BTreeMap<String, String>,
     reasoning_by_item_id: BTreeMap<String, String>,
@@ -566,6 +588,7 @@ impl fmt::Debug for GrokOfficialResponsesDecodeState {
             .field("message_open", &self.message_open)
             .field("output_item_count", &self.item_kinds.len())
             .field("completed_item_count", &self.completed_item_ids.len())
+            .field("completed_snapshot_count", &self.completed_items.len())
             .field(
                 "active_content_part_count",
                 &self.active_content_part_ids.len(),
@@ -652,17 +675,10 @@ impl GrokOfficialResponsesDecodeState {
             "response.output_text.delta" => self.handle_text_delta(object, events),
             "response.output_text.done" => self.handle_text_done(object, events),
             "response.content_part.done" => self.handle_content_part_done(object, events),
-            "response.reasoning.delta"
-            | "response.reasoning_text.delta"
-            | "response.reasoning_summary_text.delta" => {
+            "response.reasoning.delta" | "response.reasoning_text.delta" => {
                 self.handle_reasoning_delta(object, events)
             }
-            "response.reasoning.done" | "response.reasoning_summary_text.done" => {
-                self.handle_reasoning_done(object, events)
-            }
-            "response.reasoning_summary_part.added" | "response.reasoning_summary_part.done" => {
-                self.handle_reasoning_summary_part(object)
-            }
+            "response.reasoning.done" => self.handle_reasoning_done(object, events),
             "response.function_call_arguments.delta" => {
                 self.handle_function_arguments_delta(object, events)
             }
@@ -678,6 +694,7 @@ impl GrokOfficialResponsesDecodeState {
                 events,
             ),
             "response.failed" => self.handle_response_failed(object, events),
+            // Summary events have native item semantics this plain-reasoning codec cannot retain.
             _ => Err(stream_protocol_error()),
         }
     }
@@ -717,6 +734,7 @@ impl GrokOfficialResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         self.require_response_started()?;
+        validate_output_semantics(item)?;
         let item_id = required_identifier(item, "id", stream_protocol_error())?;
         if self.item_kinds.contains_key(item_id) {
             return Err(stream_protocol_error());
@@ -769,6 +787,7 @@ impl GrokOfficialResponsesDecodeState {
             return Err(stream_protocol_error());
         }
         let part = required_object(event, "part", stream_protocol_error())?;
+        validate_part_semantics(part)?;
         if required_string(part, "type", stream_protocol_error())? != "output_text"
             || !required_string(part, "text", stream_protocol_error())?.is_empty()
         {
@@ -861,18 +880,6 @@ impl GrokOfficialResponsesDecodeState {
         )
     }
 
-    fn handle_reasoning_summary_part(
-        &self,
-        event: &Map<String, Value>,
-    ) -> Result<(), GatewayError> {
-        let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning) {
-            return Err(stream_protocol_error());
-        }
-        let _part = required_object(event, "part", stream_protocol_error())?;
-        Ok(())
-    }
-
     fn handle_function_arguments_delta(
         &mut self,
         event: &Map<String, Value>,
@@ -898,18 +905,27 @@ impl GrokOfficialResponsesDecodeState {
         if next_length > MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES {
             return Err(stream_protocol_error());
         }
+        let arguments = self
+            .function_arguments
+            .entry(call_id.to_owned())
+            .or_default();
+        arguments.push_str(delta);
+        let delta = if self.emitted_function_arguments.contains(call_id) {
+            delta.to_owned()
+        } else if could_be_empty_tool_arguments(arguments) {
+            return Ok(());
+        } else {
+            arguments.clone()
+        };
         self.emit(
             events,
             CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
                 call_id: call_id.to_owned(),
-                delta: delta.to_owned(),
+                delta,
                 extensions: RawExtensions::default(),
             }),
         )?;
-        self.function_arguments
-            .entry(call_id.to_owned())
-            .or_default()
-            .push_str(delta);
+        self.emitted_function_arguments.insert(call_id.to_owned());
         Ok(())
     }
 
@@ -944,6 +960,7 @@ impl GrokOfficialResponsesDecodeState {
             return Err(stream_protocol_error());
         }
         let part = required_object(event, "part", stream_protocol_error())?;
+        validate_part_semantics(part)?;
         if required_string(part, "type", stream_protocol_error())? != "output_text" {
             return Err(stream_protocol_error());
         }
@@ -959,6 +976,7 @@ impl GrokOfficialResponsesDecodeState {
         item: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
+        validate_output_semantics(item)?;
         let item_id = required_identifier(item, "id", stream_protocol_error())?;
         let Some(kind) = self.item_kinds.get(item_id).copied() else {
             return Err(stream_protocol_error());
@@ -1004,6 +1022,8 @@ impl GrokOfficialResponsesDecodeState {
                 )?;
             }
         }
+        self.completed_items
+            .insert(item_id.to_owned(), normalized_completed_item(item)?);
         self.completed_item_ids.insert(item_id.to_owned());
         Ok(())
     }
@@ -1021,9 +1041,13 @@ impl GrokOfficialResponsesDecodeState {
         let mut completed_ids = BTreeSet::new();
         for item in output {
             let item = item.as_object().ok_or_else(stream_protocol_error)?;
+            validate_output_semantics(item)?;
             let item_id = required_identifier(item, "id", stream_protocol_error())?;
             if !completed_ids.insert(item_id.to_owned())
                 || !self.completed_item_ids.contains(item_id)
+                // Reviewed sparse terminals may confirm only an already completed item ID.
+                // Any supplied snapshot data must exactly confirm the observed item.
+                || (item.len() > 1 && self.completed_items.get(item_id) != Some(&normalized_completed_item(item)?))
             {
                 return Err(stream_protocol_error());
             }
@@ -1050,7 +1074,20 @@ impl GrokOfficialResponsesDecodeState {
             )?;
             self.message_open = false;
         }
-        self.emit(events, CanonicalEvent::ResponseEnd(ResponseEnd::default()))
+        self.emit(
+            events,
+            CanonicalEvent::ResponseEnd(ResponseEnd {
+                stop_reason: Some(
+                    if self.completed_function_calls.is_empty() {
+                        "end_turn"
+                    } else {
+                        "tool_use"
+                    }
+                    .to_owned(),
+                ),
+                ..ResponseEnd::default()
+            }),
+        )
     }
 
     fn handle_response_failed(
@@ -1155,6 +1192,17 @@ impl GrokOfficialResponsesDecodeState {
                 Err(stream_protocol_error())
             };
         }
+        if !self.emitted_function_arguments.contains(call_id) {
+            self.emit(
+                events,
+                CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
+                    call_id: call_id.to_owned(),
+                    delta: arguments.clone(),
+                    extensions: RawExtensions::default(),
+                }),
+            )?;
+            self.emitted_function_arguments.insert(call_id.to_owned());
+        }
         self.emit(
             events,
             CanonicalEvent::ToolCallEnd(ToolCallEnd {
@@ -1211,6 +1259,59 @@ impl GrokOfficialResponsesDecodeState {
         events.push(event);
         Ok(())
     }
+}
+
+fn normalized_completed_item(item: &Map<String, Value>) -> Result<Value, GatewayError> {
+    let mut completed = item.clone();
+    if item.get("type").and_then(Value::as_str) == Some("function_call") {
+        completed.insert(
+            "arguments".into(),
+            Value::String(normalize_tool_arguments(required_string(
+                item,
+                "arguments",
+                stream_protocol_error(),
+            )?)?),
+        );
+    }
+    Ok(Value::Object(completed))
+}
+
+fn validate_output_semantics(item: &Map<String, Value>) -> Result<(), GatewayError> {
+    // These fields require native item ownership; this codec currently represents plain
+    // reasoning only. Reject rather than deleting ciphertext, summaries or annotations.
+    if item
+        .get("encrypted_content")
+        .is_some_and(|value| !value.is_null())
+    {
+        return Err(stream_protocol_error());
+    }
+    if let Some(value) = item.get("summary")
+        && !value.is_null()
+        && value.as_array().is_none_or(|parts| !parts.is_empty())
+    {
+        return Err(stream_protocol_error());
+    }
+    if let Some(parts) = item.get("content") {
+        for part in parts.as_array().ok_or_else(stream_protocol_error)? {
+            validate_part_semantics(part.as_object().ok_or_else(stream_protocol_error)?)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_part_semantics(part: &Map<String, Value>) -> Result<(), GatewayError> {
+    if part.get("signature").is_some_and(|value| !value.is_null()) {
+        return Err(stream_protocol_error());
+    }
+    for field in ["annotations", "logprobs"] {
+        if let Some(value) = part.get(field)
+            && !value.is_null()
+            && value.as_array().is_none_or(|values| !values.is_empty())
+        {
+            return Err(stream_protocol_error());
+        }
+    }
+    Ok(())
 }
 
 fn normalize_tool_arguments(arguments: &str) -> Result<String, GatewayError> {

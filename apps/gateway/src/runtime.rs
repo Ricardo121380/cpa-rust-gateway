@@ -164,7 +164,10 @@ use provider_grok::{
 };
 use provider_kiro::{
     CanonicalEventSource, InferenceAdapter,
-    conversation_request::{KiroConversationContext, KiroConversationId, KiroEnvironmentState},
+    conversation_request::{
+        KiroConversationContext, KiroConversationId, KiroConversationRequestBuilder,
+        KiroEnvironmentState,
+    },
     credential::KiroCredential,
     endpoint_policy::{KiroApiRegion, KiroEndpointKind, KiroEndpointPolicy},
     inference::{KiroInferenceAdapter, KiroUpstreamTransport},
@@ -498,6 +501,8 @@ fn p13_channel_pin_request_id() -> Result<RequestId, ManagementChannelPinError> 
 mod account_quota;
 #[cfg(test)]
 mod batch_a_native;
+#[cfg(test)]
+mod batch_c;
 mod catalog_refresh;
 mod kimi_metadata;
 /// Production pieces that must be attached to the separate P12 listeners together.
@@ -1073,6 +1078,8 @@ impl GatewayEventSink for P12FanoutEventSink {
 }
 
 struct P12RoutedResponsesExecutor {
+    kiro_profiles: KiroProfileSnapshots,
+    runtime_quota: Arc<RuntimeQuotaRegistry>,
     generation_active: Option<Arc<AtomicBool>>,
     reasoning_codec: provider_grok::GrokBuildReasoningCodec,
     registry: Arc<RouteSnapshotRegistry>,
@@ -1307,7 +1314,7 @@ impl P12RoutedResponsesExecutor {
         let orchestrator = Arc::new(AttemptOrchestrator::with_runtime_quota_and_clock_config(
             scheduler,
             runtime_health,
-            runtime_quota,
+            Arc::clone(&runtime_quota),
             Arc::new(SystemRuntimeHealthClock),
             AttemptOrchestratorConfig::default(),
         ));
@@ -1317,6 +1324,7 @@ impl P12RoutedResponsesExecutor {
         let client_pool = Arc::new(UpstreamClientPool::new(
             NonZeroUsize::new(cached_clients).ok_or(RuntimeCompositionError::Unavailable)?,
         ));
+        let kiro_profiles = Arc::new(Mutex::new(BTreeMap::new()));
         let model_catalog_worker = RuntimeModelCatalogWorker::try_new(
             database,
             configuration,
@@ -1325,10 +1333,13 @@ impl P12RoutedResponsesExecutor {
             Arc::clone(&pools),
             endpoints.as_ref(),
             client_pool.as_ref().clone(),
+            Arc::clone(&kiro_profiles),
         )?;
 
         Ok((
             Self {
+                runtime_quota,
+                kiro_profiles,
                 generation_active: None,
                 reasoning_codec: provider_grok::GrokBuildReasoningCodec::new(secret_store.clone()),
                 registry,
@@ -1507,6 +1518,8 @@ impl P12RoutedResponsesExecutor {
         };
         let endpoints = Arc::clone(&self.endpoints);
         let driver = EndpointAttemptDriver {
+            runtime_quota: Arc::clone(&self.runtime_quota),
+            kiro_profiles: Arc::clone(&self.kiro_profiles),
             generation_active: self.generation_active.clone(),
             request_id: request_id.clone(),
             client_key_id: request.client_key_id().cloned(),
@@ -1520,7 +1533,6 @@ impl P12RoutedResponsesExecutor {
             compatible_endpoints: Arc::clone(&self.compatible_endpoints),
             client_pool: Arc::clone(&self.client_pool),
             attempt_stages: Arc::clone(&self.attempt_stages),
-            allow_compatibility_retry: false,
             allow_egress_refresh: false,
             channel_pin_observation: Some(Arc::clone(&observation)),
             native_grok_egress: self.native_grok_egress.clone(),
@@ -1936,6 +1948,8 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             }
             let exact_continuation = continuation_pin.is_some();
             let driver = EndpointAttemptDriver {
+                runtime_quota: Arc::clone(&self.runtime_quota),
+                kiro_profiles: Arc::clone(&self.kiro_profiles),
                 generation_active: self.generation_active.clone(),
                 reasoning_binding: Some((
                     self.reasoning_codec.clone(),
@@ -1954,7 +1968,6 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 compatible_endpoints,
                 client_pool,
                 attempt_stages,
-                allow_compatibility_retry: !exact_continuation,
                 allow_egress_refresh: !exact_continuation,
                 channel_pin_observation: None,
                 native_grok_egress: self.native_grok_egress.clone(),
@@ -3493,7 +3506,10 @@ fn validate_p12_route_access_shape(
             || !endpoint_ids.contains(&candidate.endpoint_id)
             || candidate.credential_scope != CredentialScope::EndpointBindings
             || (adapter_id == "kiro.messages"
-                && candidate.transform_mode != TransformMode::Canonical)
+                && !matches!(
+                    candidate.transform_mode,
+                    TransformMode::Canonical | TransformMode::CanonicalBridge
+                ))
             || candidate.priority < 0
             || candidate.weight < 1
             || !p12_candidate_override_is_admissible(
@@ -3631,6 +3647,13 @@ struct EndpointRuntime {
     web_statsig: OnceLock<Result<Arc<GrokWebStatsigRuntime>, GatewayError>>,
 }
 
+type KiroProfileSnapshots = Arc<Mutex<BTreeMap<(EndpointId, CredentialId), KiroProfileSnapshot>>>;
+struct KiroProfileSnapshot {
+    credential_revision: u64,
+    valid_until_ms: i64,
+    profile: provider_kiro::profile_arn::KiroProfileArnResolution,
+}
+
 // Provider-owned parsers retain absolute expiry at publication, even after a failed startup
 // refresh. Expired preferred credentials then cannot obscure a fresh sibling during selection.
 fn ordinary_credential_expiry(
@@ -3680,6 +3703,7 @@ struct RuntimeCatalogTarget {
 /// Background owner for P13-15C/D durable discovery and atomic route publication.
 #[derive(Clone)]
 pub(crate) struct RuntimeModelCatalogWorker {
+    kiro_profiles: KiroProfileSnapshots,
     kimi_metadata: Arc<
         std::sync::Mutex<
             BTreeMap<CredentialId, provider_openai_compatible::KimiAccountObservation>,
@@ -3706,6 +3730,10 @@ pub(crate) struct RuntimeModelCatalogWorker {
 }
 
 impl RuntimeModelCatalogWorker {
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the catalog and inference owners share an explicit generation-bound profile snapshot"
+    )]
     fn try_new(
         database: &Path,
         configuration: &ControlPlaneConfiguration,
@@ -3714,6 +3742,7 @@ impl RuntimeModelCatalogWorker {
         pools: Arc<EndpointCredentialPools>,
         endpoints: &BTreeMap<EndpointId, EndpointRuntime>,
         client_pool: UpstreamClientPool,
+        kiro_profiles: KiroProfileSnapshots,
     ) -> Result<Option<Self>, RuntimeCompositionError> {
         let mut targets = Vec::new();
         let mut metadata_targets = Vec::new();
@@ -3783,6 +3812,7 @@ impl RuntimeModelCatalogWorker {
         let base_snapshot = Arc::new(base_snapshot.materialize_binding_counts(&binding_counts));
         let worker =
             Self {
+                kiro_profiles,
                 kimi_metadata: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
                 account_quotas: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
                 metadata_revision: Arc::new(std::sync::atomic::AtomicI64::new(0)),
@@ -4102,6 +4132,16 @@ impl EndpointAdapter {
 /// idle deadline. A non-streaming attempt is still entirely pre-first-byte for the client, so it
 /// keeps one short bounded total that a failed attempt could legally be retried against.
 struct P12TransportProfiles {
+    #[cfg(test)]
+    http: Option<Arc<batch_c::http::Peer>>,
+    #[cfg(test)]
+    kiro: Option<Arc<dyn provider_kiro::inference::KiroTransport>>,
+    #[cfg(test)]
+    official: Option<Arc<dyn provider_grok::GrokOfficialTransport>>,
+    #[cfg(test)]
+    build: Option<Arc<dyn provider_grok::GrokBuildTransport>>,
+    #[cfg(test)]
+    console: Option<Arc<dyn provider_grok::GrokConsoleTransport>>,
     streaming: UpstreamTransportProfile,
     non_streaming: UpstreamTransportProfile,
     web_streaming: UpstreamTransportProfile,
@@ -4165,6 +4205,16 @@ impl P12TransportProfiles {
             maximum_idle_connections_per_host,
         );
         Ok(Self {
+            #[cfg(test)]
+            http: None,
+            #[cfg(test)]
+            kiro: None,
+            #[cfg(test)]
+            official: None,
+            #[cfg(test)]
+            build: None,
+            #[cfg(test)]
+            console: None,
             streaming,
             non_streaming,
             web_streaming,
@@ -4318,6 +4368,8 @@ struct CompatibleEgressSelection {
 }
 
 struct EndpointAttemptDriver {
+    kiro_profiles: KiroProfileSnapshots,
+    runtime_quota: Arc<RuntimeQuotaRegistry>,
     generation_active: Option<Arc<AtomicBool>>,
     reasoning_binding: Option<(
         provider_grok::GrokBuildReasoningCodec,
@@ -4336,7 +4388,6 @@ struct EndpointAttemptDriver {
     compatible_endpoints: Arc<BTreeMap<EndpointId, Arc<CompatibleEndpointRuntime>>>,
     client_pool: Arc<UpstreamClientPool>,
     attempt_stages: Arc<P12AttemptStageStore>,
-    allow_compatibility_retry: bool,
     allow_egress_refresh: bool,
     channel_pin_observation: Option<Arc<P13ChannelPinObservation>>,
     native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
@@ -4501,9 +4552,22 @@ impl EndpointAttemptDriver {
         ) {
             return Err(ProtocolTransformRejection::PairUnregistered);
         }
-        project_registered_protocol_request(ProtocolTransformInput {
+        // Kiro consumes the Canonical conversation directly. It does not serialize a native
+        // Anthropic Messages body, so imposing that body's mandatory output limit or converting
+        // qualitative effort into Anthropic budget semantics would be incorrect.
+        let projection_target = if matches!(runtime.adapter, EndpointAdapter::KiroMessages(_)) {
+            if candidate.transform_mode() == gateway_router::SnapshotTransformMode::Canonical
+                && self.client_protocol != target
+            {
+                return Err(ProtocolTransformRejection::CanonicalProtocolMismatch);
+            }
+            self.client_protocol
+        } else {
+            target
+        };
+        let projected = project_registered_protocol_request(ProtocolTransformInput {
             source: self.client_protocol,
-            target,
+            target: projection_target,
             mode: candidate.transform_mode(),
             native_payload: if self.native_payload.is_some() {
                 NativePayloadAvailability::Exact
@@ -4519,7 +4583,35 @@ impl EndpointAttemptDriver {
             )?
             .requires_parallel_tools(),
             target_capabilities: candidate.effective_capabilities(),
-        })
+        })?;
+        if let ProjectedProtocolRequest::Canonical(request) = &projected {
+            match &runtime.adapter {
+                EndpointAdapter::KiroMessages(policy) => {
+                    let conversation = KiroConversationContext::new(
+                        KiroConversationId::try_new(self.request_id.as_str())
+                            .map_err(|_| ProtocolTransformRejection::IncompatibleRole)?,
+                        KiroEnvironmentState::try_new(
+                            P12_KIRO_OPERATING_SYSTEM,
+                            P12_KIRO_WORKING_DIRECTORY,
+                        )
+                        .map_err(|_| ProtocolTransformRejection::IncompatibleRole)?,
+                    );
+                    KiroConversationRequestBuilder::build(
+                        policy,
+                        &conversation,
+                        candidate.upstream_model(),
+                        request,
+                    )
+                    .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
+                }
+                EndpointAdapter::GrokWebResponses => {
+                    provider_grok::GrokWebProductionRequestBuilder::validate_request(request)
+                        .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
+                }
+                _ => {}
+            }
+        }
+        Ok(projected)
     }
 }
 
@@ -4691,9 +4783,27 @@ impl EndpointAttemptDriver {
             .policy
             .admit_url(outbound.url(), runtime.resolver.as_ref())
             .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
-        let request = outbound
-            .into_transport_request(admitted)
-            .map_err(AttemptFailure::NonRetryable)?;
+        let request = UpstreamHttpRequest::try_new(
+            admitted,
+            UpstreamHttpMethod::Post,
+            p12_runtime_transport_headers(
+                outbound
+                    .header("accept")
+                    .ok_or_else(|| AttemptFailure::NonRetryable(internal_error()))?,
+                outbound
+                    .header("authorization")
+                    .ok_or_else(|| AttemptFailure::NonRetryable(internal_error()))?,
+                outbound
+                    .header("content-type")
+                    .ok_or_else(|| AttemptFailure::NonRetryable(internal_error()))?,
+                false,
+                None,
+                credential.kimi_device_id(),
+            )
+            .map_err(AttemptFailure::NonRetryable)?,
+            outbound.body().to_vec(),
+        )
+        .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
         let mut response = self
             .send_admitted_request(
                 runtime,
@@ -4779,60 +4889,33 @@ impl EndpointAttemptDriver {
                     .map_err(AttemptFailure::NonRetryable)?;
             }
         }
-        let mut retried_rejected_max_output_tokens = false;
-        let mut response = loop {
-            self.attempt_stages.record_stage(
-                &self.request_id,
-                ManagementRequestAttemptStage::EgressAdmission,
-            );
-            let admitted = runtime
-                .policy
-                .admit_url(outbound.url(), runtime.resolver.as_ref())
-                .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
-            if is_codex_oauth {
-                let request =
-                    p12_transport_request(&outbound, admitted, true, credential.account_id(), None)
-                        .map_err(AttemptFailure::NonRetryable)?;
-                match self
-                    .send_codex_admitted_request(
-                        runtime,
-                        request,
-                        HttpFailureProfile::OpenAiCompatible,
-                        true,
-                        compatible,
-                    )
-                    .await
-                {
-                    Ok(response) => break response,
-                    Err(P12SendFailure::RetryWithoutMaxOutputTokens)
-                        if self.allow_compatibility_retry
-                            && !retried_rejected_max_output_tokens =>
-                    {
-                        retried_rejected_max_output_tokens = true;
-                        outbound
-                            .remove_root_field("max_output_tokens")
-                            .map_err(AttemptFailure::NonRetryable)?;
-                    }
-                    Err(P12SendFailure::RetryWithoutMaxOutputTokens) => {
-                        return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
-                    }
-                    Err(P12SendFailure::Attempt(failure)) => return Err(failure),
-                }
-            } else {
-                let request =
-                    p12_transport_request(&outbound, admitted, false, None, kimi_device_id)
-                        .map_err(AttemptFailure::NonRetryable)?;
-                break self
-                    .send_admitted_request(
-                        runtime,
-                        request,
-                        HttpFailureProfile::OpenAiCompatible,
-                        false,
-                        compatible,
-                    )
-                    .await?;
-            }
-        };
+        self.attempt_stages.record_stage(
+            &self.request_id,
+            ManagementRequestAttemptStage::EgressAdmission,
+        );
+        let admitted = runtime
+            .policy
+            .admit_url(outbound.url(), runtime.resolver.as_ref())
+            .map_err(|_| AttemptFailure::NonRetryable(egress_rejected_error()))?;
+        let request = p12_transport_request(
+            &outbound,
+            admitted,
+            is_codex_oauth,
+            credential.account_id(),
+            kimi_device_id,
+        )
+        .map_err(AttemptFailure::NonRetryable)?;
+        // An upstream rejection is a failure of this exact request. Removing a client output
+        // ceiling and replaying the same lease would change its semantics.
+        let mut response = self
+            .send_admitted_request(
+                runtime,
+                request,
+                HttpFailureProfile::OpenAiCompatible,
+                is_codex_oauth,
+                compatible,
+            )
+            .await?;
 
         match self.mode {
             ResponsesResponseMode::NonStreaming if is_codex_oauth => {
@@ -4976,6 +5059,9 @@ impl EndpointAttemptDriver {
             self.client_pool.as_ref().clone(),
             runtime.transports.for_mode(self.mode).clone(),
         );
+        let transport: Arc<dyn provider_grok::GrokBuildTransport> = Arc::new(transport);
+        #[cfg(test)]
+        let transport = runtime.transports.build.clone().unwrap_or(transport);
         let native_egress = self
             .native_grok_egress
             .as_ref()
@@ -4986,7 +5072,7 @@ impl EndpointAttemptDriver {
             build_credential,
             candidate.upstream_model(),
             grok_build_execution_mode(self.mode),
-            Arc::new(transport),
+            transport,
         )
         .map_err(AttemptFailure::NonRetryable)?
         .with_provider_egress_attempt(native_egress)
@@ -5048,6 +5134,9 @@ impl EndpointAttemptDriver {
             self.client_pool.as_ref().clone(),
             runtime.transports.for_mode(self.mode).clone(),
         );
+        let transport: Arc<dyn provider_grok::GrokConsoleTransport> = Arc::new(transport);
+        #[cfg(test)]
+        let transport = runtime.transports.console.clone().unwrap_or(transport);
         let native_egress = self
             .native_grok_egress
             .as_ref()
@@ -5058,7 +5147,7 @@ impl EndpointAttemptDriver {
             console_credential,
             candidate.upstream_model(),
             grok_console_execution_mode(self.mode),
-            Arc::new(transport),
+            transport,
         )
         .map_err(AttemptFailure::NonRetryable)?
         .with_provider_egress_attempt(native_egress);
@@ -5200,19 +5289,29 @@ impl EndpointAttemptDriver {
         };
         let secret = std::str::from_utf8(credential.secret_bytes())
             .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
+        let runtime_state = provider_grok::GrokOfficialRuntimeState::try_new(
+            candidate.endpoint_id().clone(),
+            credential.credential_id().clone(),
+            Arc::clone(&self.runtime_quota),
+        )
+        .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
         let credential =
             GrokOfficialApiKey::try_new(secret.to_owned()).map_err(AttemptFailure::NonRetryable)?;
-        let transport = GrokOfficialUpstreamTransport::new(
-            runtime.policy.clone(),
-            Arc::clone(&runtime.resolver),
-            self.client_pool.as_ref().clone(),
-            runtime.transports.for_mode(self.mode).clone(),
-        );
-        let adapter = GrokOfficialInferenceAdapter::try_new(
+        let transport: Arc<dyn provider_grok::GrokOfficialTransport> =
+            Arc::new(GrokOfficialUpstreamTransport::new(
+                runtime.policy.clone(),
+                Arc::clone(&runtime.resolver),
+                self.client_pool.as_ref().clone(),
+                runtime.transports.for_mode(self.mode).clone(),
+            ));
+        #[cfg(test)]
+        let transport = runtime.transports.official.clone().unwrap_or(transport);
+        let adapter = GrokOfficialInferenceAdapter::try_new_with_runtime_state(
             credential,
             candidate.upstream_model(),
             grok_official_execution_mode(self.mode),
-            Arc::new(transport),
+            transport,
+            runtime_state,
         )
         .map_err(AttemptFailure::NonRetryable)?;
         self.attempt_stages.record_stage(
@@ -5260,11 +5359,33 @@ impl EndpointAttemptDriver {
         let kiro_credential =
             KiroCredential::import_runtime_secret(credential.secret_bytes(), system_now_ms()?)
                 .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
-        let profile = resolve_profile_arn(
-            kiro_credential.kind(),
-            policy.api_region(),
-            &P12KiroNoEnterpriseLookup,
-        );
+        let profile = {
+            let profiles = self
+                .kiro_profiles
+                .lock()
+                .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+            match profiles.get(&(
+                candidate.endpoint_id().clone(),
+                credential.credential_id().clone(),
+            )) {
+                Some(snapshot)
+                    if snapshot.credential_revision == credential.credential_revision()
+                        && snapshot.valid_until_ms > system_now_ms()?
+                        && kiro_credential.kind()
+                            != provider_kiro::credential::KiroCredentialKind::ApiKey =>
+                {
+                    snapshot.profile.clone()
+                }
+                Some(_) => {
+                    return Err(AttemptFailure::NonRetryable(credential_unavailable_error()));
+                }
+                None => resolve_profile_arn(
+                    kiro_credential.kind(),
+                    policy.api_region(),
+                    &P12KiroNoEnterpriseLookup,
+                ),
+            }
+        };
         // The conversation identity is the request identity, so one attempt cannot inherit another
         // request's Kiro conversation. The environment projection is fixed and host-independent:
         // the converter must never read a real working directory or OS from this server.
@@ -5274,19 +5395,22 @@ impl EndpointAttemptDriver {
             KiroEnvironmentState::try_new(P12_KIRO_OPERATING_SYSTEM, P12_KIRO_WORKING_DIRECTORY)
                 .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?,
         );
-        let transport = KiroUpstreamTransport::new(
-            runtime.policy.clone(),
-            Arc::clone(&runtime.resolver),
-            self.client_pool.as_ref().clone(),
-            runtime.transports.for_mode(self.mode).clone(),
-        );
+        let transport: Arc<dyn provider_kiro::inference::KiroTransport> =
+            Arc::new(KiroUpstreamTransport::new(
+                runtime.policy.clone(),
+                Arc::clone(&runtime.resolver),
+                self.client_pool.as_ref().clone(),
+                runtime.transports.for_mode(self.mode).clone(),
+            ));
+        #[cfg(test)]
+        let transport = runtime.transports.kiro.clone().unwrap_or(transport);
         let adapter = KiroInferenceAdapter::try_new(
             kiro_credential,
             policy.clone(),
             conversation,
             candidate.upstream_model(),
             profile,
-            Arc::new(transport),
+            transport,
         )
         .map_err(AttemptFailure::NonRetryable)?;
         self.attempt_stages.record_stage(
@@ -5303,7 +5427,7 @@ impl EndpointAttemptDriver {
         );
         self.mark_upstream_sent();
         let source = adapter
-            .execute(context, p12_kiro_request_projection(request))
+            .execute(context, request.clone())
             .await
             .map_err(p12_classify_kiro_start_failure)?;
         self.attempt_stages
@@ -5320,68 +5444,34 @@ impl EndpointAttemptDriver {
         runtime: &EndpointRuntime,
         request: UpstreamHttpRequest,
         failure_profile: HttpFailureProfile,
-        allow_missing_content_type: bool,
+        codex_sse_transport: bool,
         compatible: Option<CompatibleTransportContext<'_>>,
     ) -> Result<UpstreamHttpResponse, AttemptFailure> {
-        self.send_admitted_request_inner(
-            runtime,
-            request,
-            failure_profile,
-            allow_missing_content_type,
-            false,
-            compatible,
-        )
-        .await
-        .map_err(P12SendFailure::into_attempt)
-    }
-
-    /// The official Codex OAuth path needs one narrowly scoped compatibility retry copied from
-    /// CPA/sub2api: when the upstream explicitly rejects the root `max_output_tokens` field, the
-    /// caller removes that field and replays the same leased credential once. The marker never
-    /// escapes this request-local loop and is not handed to the route-level failover scheduler.
-    async fn send_codex_admitted_request(
-        &self,
-        runtime: &EndpointRuntime,
-        request: UpstreamHttpRequest,
-        failure_profile: HttpFailureProfile,
-        allow_missing_content_type: bool,
-        compatible: Option<CompatibleTransportContext<'_>>,
-    ) -> Result<UpstreamHttpResponse, P12SendFailure> {
-        self.send_admitted_request_inner(
-            runtime,
-            request,
-            failure_profile,
-            allow_missing_content_type,
-            true,
-            compatible,
-        )
-        .await
-    }
-
-    async fn send_admitted_request_inner(
-        &self,
-        runtime: &EndpointRuntime,
-        request: UpstreamHttpRequest,
-        failure_profile: HttpFailureProfile,
-        allow_missing_content_type: bool,
-        detect_codex_rejected_field: bool,
-        compatible: Option<CompatibleTransportContext<'_>>,
-    ) -> Result<UpstreamHttpResponse, P12SendFailure> {
         if self
             .generation_active
             .as_ref()
             .is_some_and(|active| !active.load(Ordering::Acquire))
         {
-            return Err(P12SendFailure::Attempt(AttemptFailure::NonRetryable(
-                stale_runtime_error(),
-            )));
+            return Err(AttemptFailure::NonRetryable(stale_runtime_error()));
         }
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
         );
         self.mark_upstream_sent();
-        let base_profile = runtime.transports.for_mode(self.mode);
+        let transport_mode = if codex_sse_transport {
+            ResponsesResponseMode::Streaming
+        } else {
+            self.mode
+        };
+        let base_profile = runtime.transports.for_mode(transport_mode);
+        #[cfg(test)]
+        let request = match &runtime.transports.http {
+            Some(peer) => peer
+                .handoff(&request)
+                .map_err(AttemptFailure::NonRetryable)?,
+            None => request,
+        };
         let compatible_profile = compatible.map(|context| {
             base_profile
                 .clone()
@@ -5390,16 +5480,14 @@ impl EndpointAttemptDriver {
         let transport_profile = compatible_profile.as_ref().unwrap_or(base_profile);
         let Ok(mut response) = self.client_pool.send(request, transport_profile).await else {
             if let Some(context) = compatible {
-                let now_ms = system_now_ms().map_err(P12SendFailure::Attempt)?;
+                let now_ms = system_now_ms()?;
                 context
                     .runtime
                     .record_transport_failure(context.lease, now_ms, DEFAULT_TRANSIENT_COOLDOWN)
-                    .map_err(|_| {
-                        P12SendFailure::Attempt(AttemptFailure::NonRetryable(internal_error()))
-                    })?;
-                return Err(P12SendFailure::Attempt(AttemptFailure::CompatibleEgress));
+                    .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+                return Err(AttemptFailure::CompatibleEgress);
             }
-            return Err(P12SendFailure::Attempt(AttemptFailure::Connection));
+            return Err(AttemptFailure::Connection);
         };
 
         self.attempt_stages
@@ -5412,63 +5500,29 @@ impl EndpointAttemptDriver {
                     .and_then(|value| value.to_str().ok())
                     .and_then(|value| value.parse::<u64>().ok());
                 let body = read_provider_error_body(&mut response).await?;
-                if detect_codex_rejected_field
-                    && status == 400
-                    && p12_openai_rejects_max_output_tokens(&body)
-                {
-                    return Err(P12SendFailure::RetryWithoutMaxOutputTokens);
-                }
-                return Err(P12SendFailure::Attempt(
-                    classify_openai_response_failure_body(status, &body, retry_after_seconds),
+                return Err(classify_openai_response_failure_body(
+                    status,
+                    &body,
+                    retry_after_seconds,
                 ));
             }
             status if failure_profile == HttpFailureProfile::AnthropicCompatible => {
-                return Err(P12SendFailure::Attempt(
-                    classify_anthropic_response_failure(&mut response, status).await,
-                ));
+                return Err(classify_anthropic_response_failure(&mut response, status).await);
             }
             429 => {
-                return Err(P12SendFailure::Attempt(AttemptFailure::RateLimited {
-                    retry_after: None,
-                }));
+                return Err(AttemptFailure::RateLimited { retry_after: None });
             }
-            500..=599 => return Err(P12SendFailure::Attempt(AttemptFailure::ServerError)),
+            500..=599 => return Err(AttemptFailure::ServerError),
             _ => {
-                return Err(P12SendFailure::Attempt(AttemptFailure::NonRetryable(
-                    provider_permanent_error(),
-                )));
+                return Err(AttemptFailure::NonRetryable(provider_permanent_error()));
             }
         }
         self.attempt_stages
             .record_stage(&self.request_id, ManagementRequestAttemptStage::ContentType);
-        if !has_expected_content_type(&response, self.mode, allow_missing_content_type) {
-            return Err(P12SendFailure::Attempt(AttemptFailure::NonRetryable(
-                upstream_protocol_error(),
-            )));
+        if !has_expected_content_type(&response, transport_mode, codex_sse_transport) {
+            return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         }
         Ok(response)
-    }
-}
-
-enum P12SendFailure {
-    Attempt(AttemptFailure),
-    RetryWithoutMaxOutputTokens,
-}
-
-impl From<AttemptFailure> for P12SendFailure {
-    fn from(failure: AttemptFailure) -> Self {
-        Self::Attempt(failure)
-    }
-}
-
-impl P12SendFailure {
-    fn into_attempt(self) -> AttemptFailure {
-        match self {
-            Self::Attempt(failure) => failure,
-            Self::RetryWithoutMaxOutputTokens => {
-                AttemptFailure::NonRetryable(upstream_protocol_error())
-            }
-        }
     }
 }
 
@@ -5549,16 +5603,6 @@ fn classify_openai_response_failure_body(
             AttemptFailure::NonRetryable(disposition.error().clone())
         }
     }
-}
-
-/// Recognizes the bounded field-rejection signal used by CPA/sub2api's Responses retry loop.
-///
-/// The official `ChatGPT` endpoint has emitted both an OpenAI-shaped `error` object and a compact
-/// `detail` string. Only the explicit `unknown/unsupported` + `max_output_tokens` combination is
-/// eligible; authentication, quota, account, and arbitrary 400 responses remain permanent.
-fn p12_openai_rejects_max_output_tokens(body: &[u8]) -> bool {
-    let text = String::from_utf8_lossy(body).to_ascii_lowercase();
-    (text.contains("unknown") || text.contains("unsupported")) && text.contains("max_output_tokens")
 }
 
 async fn classify_anthropic_response_failure(
@@ -5662,23 +5706,36 @@ fn p12_transport_request(
         return Err(egress_rejected_error());
     }
 
-    let accept = outbound
-        .header("accept")
-        .ok_or_else(internal_error)?
-        .to_owned();
-    let authorization = outbound
-        .header("authorization")
-        .ok_or_else(internal_error)?
-        .to_owned();
-    let content_type = outbound
-        .header("content-type")
-        .ok_or_else(internal_error)?
-        .to_owned();
+    UpstreamHttpRequest::try_new(
+        admitted,
+        UpstreamHttpMethod::Post,
+        p12_runtime_transport_headers(
+            outbound.header("accept").ok_or_else(internal_error)?,
+            outbound
+                .header("authorization")
+                .ok_or_else(internal_error)?,
+            outbound.header("content-type").ok_or_else(internal_error)?,
+            codex_oauth,
+            account_id,
+            kimi_device_id,
+        )?,
+        outbound.body().to_vec(),
+    )
+    .map_err(|_| internal_error())
+}
 
+fn p12_runtime_transport_headers(
+    accept: &str,
+    authorization: &str,
+    content_type: &str,
+    codex_oauth: bool,
+    account_id: Option<&str>,
+    kimi_device_id: Option<&str>,
+) -> Result<Vec<(String, String)>, GatewayError> {
     let mut headers = vec![
-        ("accept".to_owned(), accept),
-        ("authorization".to_owned(), authorization),
-        ("content-type".to_owned(), content_type),
+        ("accept".to_owned(), accept.to_owned()),
+        ("authorization".to_owned(), authorization.to_owned()),
+        ("content-type".to_owned(), content_type.to_owned()),
         (
             "user-agent".to_owned(),
             if codex_oauth {
@@ -5718,13 +5775,7 @@ fn p12_transport_request(
         ));
         headers.push(("x-msh-device-id".to_owned(), device_id.to_owned()));
     }
-    UpstreamHttpRequest::try_new(
-        admitted,
-        UpstreamHttpMethod::Post,
-        headers,
-        outbound.body().to_vec(),
-    )
-    .map_err(|_| internal_error())
+    Ok(headers)
 }
 
 #[cfg(test)]
@@ -6156,44 +6207,6 @@ async fn decode_json_response_with_reasoning_policy(
 /// path or kernel version into an upstream request would be both wrong and a disclosure.
 const P12_KIRO_OPERATING_SYSTEM: &str = "linux";
 const P12_KIRO_WORKING_DIRECTORY: &str = "/";
-
-/// Kiro's request shape has no output-token limit at all: `conversationState` carries `content`,
-/// `modelId`, `origin`, `envState`, optional `tools` and optional `outputConfig.effort`, and nothing
-/// that expresses a maximum. Anthropic Messages, meanwhile, *requires* `max_tokens`, which the
-/// inbound decoder retains as [`P12_ANTHROPIC_MAX_TOKENS_EXTENSION`] rather than inventing a
-/// canonical field for it. `BC-PROVIDER-007` rejects every root extension, which is correct for a
-/// converter that must not silently discard a client's semantics.
-///
-/// Composing the two as-is makes the channel reject 100% of requests, because a compliant Anthropic
-/// client always sends `max_tokens`. This projection is the deliberate resolution: drop that one
-/// output *ceiling* the upstream protocol cannot express, and only for Kiro. It is the same choice
-/// the reference kiro-rs implementation makes -- it accepts `max_tokens` on its Anthropic surface and
-/// forwards nothing, because Kiro has nowhere to put it.
-///
-/// Dropping a ceiling cannot corrupt a response: the client asked for at most N tokens and receives
-/// a complete answer, which may be shorter or longer. Every *other* extension is retained, so a
-/// semantic a client actually depends on still fails closed inside the converter -- with the
-/// converter's own classification -- rather than being silently ignored here.
-fn p12_kiro_request_projection(request: &CanonicalRequest) -> CanonicalRequest {
-    if request.extensions.is_empty() {
-        return request.clone();
-    }
-    let mut retained = RawExtensions::default();
-    for (name, value) in request.extensions.iter() {
-        if name == P12_ANTHROPIC_MAX_TOKENS_EXTENSION {
-            continue;
-        }
-        // `try_insert` fails only on a duplicate name, and the source is itself a map keyed by
-        // name, so a collision is unreachable. Silently ignoring the result would be a real drop,
-        // so on the impossible branch keep the request whole and let the converter judge it.
-        if retained.try_insert(name.to_owned(), value.clone()).is_err() {
-            return request.clone();
-        }
-    }
-    let mut projected = request.clone();
-    projected.extensions = retained;
-    projected
-}
 
 /// Refuses hidden Enterprise profile I/O in the request path.
 ///
@@ -8327,10 +8340,9 @@ mod tests {
         has_p12_https_only_egress_shape, has_p12_unlisted_model_override, p12_adapter_capabilities,
         p12_adapter_id_serves, p12_api_format_adapter_registry, p12_attempt_start_timeout,
         p12_candidate_override_is_admissible, p12_classify_kiro_start_failure,
-        p12_kiro_endpoint_shape, p12_kiro_request_projection, p12_openai_compatible_request,
-        p12_transport_headers, p12_transport_request, p13_channel_pin_request_id,
-        provider_egress_status_facade, queue_event, validate_endpoint_shape,
-        validate_p12_credential_bindings,
+        p12_kiro_endpoint_shape, p12_openai_compatible_request, p12_transport_headers,
+        p12_transport_request, p13_channel_pin_request_id, provider_egress_status_facade,
+        queue_event, validate_endpoint_shape, validate_p12_credential_bindings,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -9578,6 +9590,8 @@ mod tests {
             r#"{"model":"gateway-model","input":"fail over safely","stream":false}"#,
         )?;
         let driver = EndpointAttemptDriver {
+            runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
+            kiro_profiles: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             generation_active: None,
             reasoning_binding: None,
             request_id: request_id.clone(),
@@ -9594,7 +9608,6 @@ mod tests {
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
             )),
             attempt_stages: Arc::clone(&attempt_stages),
-            allow_compatibility_retry: true,
             allow_egress_refresh: true,
             channel_pin_observation: None,
             native_grok_egress: None,
@@ -9917,6 +9930,8 @@ mod tests {
             "../../../tests/fixtures/openai-responses/request-canonical.json"
         ))?;
         let driver = EndpointAttemptDriver {
+            runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
+            kiro_profiles: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             generation_active: None,
             reasoning_binding: None,
             request_id: request_id.clone(),
@@ -9933,7 +9948,6 @@ mod tests {
                 NonZeroUsize::new(4).ok_or("client pool needs capacity")?,
             )),
             attempt_stages: Arc::clone(&attempt_stages),
-            allow_compatibility_retry: true,
             allow_egress_refresh: true,
             channel_pin_observation: None,
             native_grok_egress: None,
@@ -12468,68 +12482,6 @@ mod tests {
             p12_classify_kiro_start_failure(transient),
             AttemptFailure::Connection
         ));
-    }
-
-    #[test]
-    fn p12_kiro_drops_only_the_inexpressible_output_ceiling_and_keeps_every_other_extension()
-    -> Result<(), Box<dyn Error>> {
-        let openai = decode_request(include_str!(
-            "../../../tests/fixtures/openai-responses/request-canonical.json"
-        ))?;
-
-        // A request with no root extensions is passed through untouched, so the projection cannot
-        // become a silent rewrite of the common case.
-        assert_eq!(p12_kiro_request_projection(&openai.request), openai.request);
-
-        // Every Anthropic Messages client sends the required `max_tokens`, which the decoder retains
-        // under this namespace. Kiro's wire shape cannot express an output ceiling, so this one
-        // extension is dropped -- otherwise `BC-PROVIDER-007` would reject 100% of real requests.
-        let mut anthropic = openai.request.clone();
-        anthropic.extensions.try_insert(
-            "anthropic.messages.max_tokens",
-            gateway_core::RawJson::from_json_string("19".to_owned())?,
-        )?;
-        let projected = p12_kiro_request_projection(&anthropic);
-        assert!(
-            projected
-                .extensions
-                .get("anthropic.messages.max_tokens")
-                .is_none()
-        );
-        // Only the ceiling was removed: every other extension the decoder retained is still here,
-        // and no canonical field moved.
-        let mut expected = anthropic.clone();
-        expected.extensions = RawExtensions::default();
-        for (name, value) in anthropic.extensions.iter() {
-            if name != "anthropic.messages.max_tokens" {
-                expected.extensions.try_insert(name, value.clone())?;
-            }
-        }
-        assert_eq!(projected, expected);
-
-        // A foreign extension is *retained*, so the converter still fails closed on a semantic the
-        // client may actually depend on, with the converter's own classification rather than a
-        // silent drop here.
-        let mut foreign = anthropic.clone();
-        foreign.extensions.try_insert(
-            "vendor.private.beta_feature",
-            gateway_core::RawJson::from_json_string("true".to_owned())?,
-        )?;
-        let projected = p12_kiro_request_projection(&foreign);
-        assert!(
-            projected
-                .extensions
-                .get("anthropic.messages.max_tokens")
-                .is_none()
-        );
-        assert_eq!(
-            projected
-                .extensions
-                .get("vendor.private.beta_feature")
-                .map(gateway_core::RawJson::get),
-            Some("true")
-        );
-        Ok(())
     }
 
     #[test]

@@ -189,6 +189,19 @@ fn blank_tool_arguments_keep_the_existing_empty_object_contract() -> Result {
                 )),
             ))?,
         ] {
+            let deltas = source
+                .events()
+                .iter()
+                .filter_map(|event| match event {
+                    CanonicalEvent::ToolCallArgumentsDelta(delta)
+                        if delta.call_id == "call-native" =>
+                    {
+                        Some(delta.delta.as_str())
+                    }
+                    _ => None,
+                })
+                .collect::<String>();
+            assert_eq!(deltas, "{}", "arguments={arguments:?}");
             let encoded =
                 encode_response(&source, OpenAiResponseMetadata::try_new("exact-model", 0)?)?;
             let mut expected = upstream.clone();

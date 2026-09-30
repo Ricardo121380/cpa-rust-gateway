@@ -63,10 +63,9 @@ fn console_request_pins_target_headers_and_stateless_normalization() -> TestResu
     assert_eq!(body["max_output_tokens"], 1_000_000);
     assert_eq!(body["reasoning"]["effort"], "xhigh");
     assert_eq!(body["include"][0], "reasoning.encrypted_content");
-    assert_eq!(body["tools"][0]["type"], "web_search");
-    assert_eq!(body["tools"][1]["type"], "x_search");
-    assert_eq!(body["tools"][2]["name"], "lookup_weather");
-    assert_eq!(body["tool_choice"], "auto");
+    assert_eq!(body["tools"].as_array().map(Vec::len), Some(1));
+    assert_eq!(body["tools"][0]["name"], "lookup_weather");
+    assert!(body.get("tool_choice").is_none());
 
     let diagnostic = format!("{outbound:?}");
     for secret in ["synthetic-console-sso", "Weather?", "lookup_weather"] {
@@ -186,9 +185,8 @@ fn source_observed_catalog_model_keeps_its_verified_console_profile() -> TestRes
     let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
     assert_eq!(body["max_output_tokens"], 1_000_000);
     assert_eq!(body["reasoning"]["effort"], "medium");
-    assert_eq!(body["tools"][0]["type"], "web_search");
-    assert_eq!(body["tools"][1]["type"], "x_search");
-    assert_eq!(body["tool_choice"], "auto");
+    assert!(body.get("tools").is_none());
+    assert!(body.get("tool_choice").is_none());
     Ok(())
 }
 
@@ -384,7 +382,7 @@ fn web_production_binding_uses_exact_browser_profile_and_live_decoder() -> TestR
     assert_eq!(body["enableImageStreaming"], true);
     assert_eq!(body["enableSideBySide"], true);
     assert_eq!(body["imageGenerationCount"], 2);
-    assert_eq!(body["message"], "[user]\nready");
+    assert_eq!(body["message"], "ready");
 
     let mut decoder = GrokWebProductionStreamDecoder::new();
     let stream = concat!(
@@ -432,15 +430,28 @@ fn web_production_binding_rejects_tools_reasoning_and_unknown_models() -> TestRe
 }
 
 #[test]
-fn web_production_accepts_real_responses_harness_shape() -> TestResult {
+fn web_production_preserves_exact_text_and_refuses_inexpressible_constraints() -> TestResult {
     let session = web_session()?;
+    let text = "  Reply with OK.\n\n";
+    let request =
+        decode_request(&serde_json::json!({"model":"public","input":text}).to_string())?.request;
+    let outbound =
+        GrokWebProductionRequestBuilder::build(&session, None, "grok-chat-auto", &request, NOW_MS)?;
+    let body: serde_json::Value = serde_json::from_slice(outbound.body())?;
+    assert_eq!(body["message"], text);
     let request = decode_request(
         r#"{"model":"grok-cpar-web","input":[{"type":"message","role":"user","content":"Reply with OK."}],"max_output_tokens":8,"stream":false}"#,
     )?
     .request;
-    let outbound =
-        GrokWebProductionRequestBuilder::build(&session, None, "grok-chat-auto", &request, NOW_MS)?;
-    assert!(outbound.header("x-statsig-id").is_none());
+    assert!(
+        GrokWebProductionRequestBuilder::build(&session, None, "grok-chat-auto", &request, NOW_MS)
+            .is_err()
+    );
+    let history = decode_request(r#"{"model":"public","input":[{"role":"user","content":"first"},{"role":"assistant","content":"answer"},{"role":"user","content":"next"}]}"#)?.request;
+    assert!(
+        GrokWebProductionRequestBuilder::build(&session, None, "grok-chat-auto", &history, NOW_MS)
+            .is_err()
+    );
     Ok(())
 }
 

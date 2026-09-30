@@ -27,7 +27,10 @@ use protocol_openai_responses::ResponseMode;
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
-use crate::{GrokBuildCacheIdentity, GrokBuildCredential, strict_json::parse_strict_json};
+use crate::{
+    GrokBuildCacheIdentity, GrokBuildCredential,
+    strict_json::{could_be_empty_tool_arguments, parse_strict_json},
+};
 
 /// Frozen Grok CLI chat-proxy base URL used by OAuth Build credentials.
 pub const GROK_BUILD_RESPONSES_BASE_URL: &str = "https://cli-chat-proxy.grok.com/v1";
@@ -1074,6 +1077,7 @@ struct GrokBuildResponsesDecodeState {
     function_call_ids: BTreeMap<String, String>,
     function_call_names: BTreeMap<String, String>,
     function_arguments: BTreeMap<String, String>,
+    emitted_function_arguments: BTreeSet<String>,
     completed_function_calls: BTreeSet<String>,
     parts_by_item: BTreeMap<(String, String, usize), String>,
     completed_items: BTreeMap<String, Value>,
@@ -1094,6 +1098,10 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
             .field("function_call_count", &self.function_call_ids.len())
             .field("function_call_name_count", &self.function_call_names.len())
             .field("function_arguments_count", &self.function_arguments.len())
+            .field(
+                "emitted_function_arguments_count",
+                &self.emitted_function_arguments.len(),
+            )
             .field(
                 "completed_function_call_count",
                 &self.completed_function_calls.len(),
@@ -1746,18 +1754,26 @@ impl GrokBuildResponsesDecodeState {
         if next_length > MAX_GROK_BUILD_TOOL_ARGUMENT_BYTES {
             return Err(stream_protocol_error());
         }
+        let arguments = self.function_arguments.entry(call_id.clone()).or_default();
+        arguments.push_str(delta);
+        // Native blank/empty objects normalize to "{}". Hold only that ambiguous
+        // prefix so every public codec observes the same bytes as ToolCallEnd.
+        let delta = if self.emitted_function_arguments.contains(&call_id) {
+            delta.to_owned()
+        } else if could_be_empty_tool_arguments(arguments) {
+            return Ok(());
+        } else {
+            arguments.clone()
+        };
         self.emit(
             events,
             CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
                 call_id: call_id.clone(),
-                delta: delta.to_owned(),
+                delta,
                 extensions: RawExtensions::default(),
             }),
         )?;
-        self.function_arguments
-            .entry(call_id)
-            .or_default()
-            .push_str(delta);
+        self.emitted_function_arguments.insert(call_id);
         Ok(())
     }
 
@@ -2018,6 +2034,17 @@ impl GrokBuildResponsesDecodeState {
 
         let raw_arguments =
             RawJson::from_json_string(arguments.clone()).map_err(|_| stream_protocol_error())?;
+        if !self.emitted_function_arguments.contains(call_id) {
+            self.emit(
+                events,
+                CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
+                    call_id: call_id.to_owned(),
+                    delta: arguments.clone(),
+                    extensions: RawExtensions::default(),
+                }),
+            )?;
+            self.emitted_function_arguments.insert(call_id.to_owned());
+        }
         self.emit(
             events,
             CanonicalEvent::ToolCallEnd(ToolCallEnd {
