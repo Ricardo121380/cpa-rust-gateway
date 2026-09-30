@@ -165,6 +165,7 @@ try {
     await page.waitForFunction(()=>!document.querySelector(".usage-page .read-status"));record("retry shows busy state and prevents duplicate reads");
     await route("/usage?range=all&model=retained-filter&protocol=openai_responses");await waitText("清除(2)");
     await page.click('loc=role:button[name="清除(2)"]');
+    await page.waitForFunction(()=>location.hash==="#/usage?range=all"&&document.querySelector('select[name="protocol"]')?.value===""&&document.querySelector('input[name="model"]')?.value==="");
     assert.equal(await page.evaluate(()=>document.querySelector('select[name="protocol"]')?.value),"");
     assert.equal(await page.evaluate(()=>document.querySelector('input[name="model"]')?.value),"");record("cleared filters update visible form and URL");
     await mode("summarizeRequests","request-evidence");await route("/monitoring?tab=requests");await page.waitForSelector(".request-table tbody button");
