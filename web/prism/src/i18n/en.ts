@@ -9,6 +9,18 @@ import type { Pack } from "./zh";
 
 export const en: Pack = {
   appTitle: "Prism · Gateway admin",
+  runtimeApplication: {
+    saved: "Changes are saved; runtime configuration is awaiting application.", confirmed: "Runtime application confirmed", previous: "Previous confirmed application",
+    blocked: "The previous observation showed new requests paused. Saved authorization is retained; check service state after applying runtime configuration.",
+    uncertain: "Application result is unknown. Read service state before another submission; this request will not be replayed.", uncertaintyRemains: "The previous application result remains unknown. Another application is a new deliberate operation.",
+    failed: "Unable to apply yet. Try again later.", pendingRead: "The current read is incomplete. Read service state before applying.",
+    apply: "Apply runtime configuration", applying: "Applying…", review: "Read service state to reconcile", reviewing: "Reconciling…", reviewFailed: "Service reconciliation failed",
+    observed: "Latest service observation", accepting: "Accepting new requests", paused: "New requests paused", unknown: "Unobserved",
+  },
+  usageEvidence: {
+    measured: "Upstream measured", estimated: "Estimated usage", mixed: "Mixed sources", unknown: "Unknown source",
+    inclusive: "Input includes cached tokens", exclusive: "Input excludes cached tokens", accountingUnknown: "Input/cache accounting unknown",
+  },
   unlock: {
     title: "Administrator sign in",
     username: "Username",

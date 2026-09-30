@@ -4,6 +4,18 @@
 // two packs do not have to import from each other's module.
 export const zh = {
   appTitle: "Prism · 网关管理",
+  runtimeApplication: {
+    saved: "修改已保存，运行配置暂未应用。", confirmed: "运行配置应用已确认", previous: "上次应用确认时间",
+    blocked: "上次观测的新请求准入已暂停。已保存的授权保留；重新应用运行配置后还需核对服务状态。",
+    uncertain: "应用结果未确认，请先读取服务状态核对；不会重新提交。", uncertaintyRemains: "先前应用请求的结果仍未确认，下一次应用是新的明确操作。",
+    failed: "暂时无法应用，请稍后重试。", pendingRead: "当前读取未完成，先重新读取服务状态后再应用。",
+    apply: "应用运行配置", applying: "应用中…", review: "读取服务状态后核对", reviewing: "核对中…", reviewFailed: "服务状态核对失败",
+    observed: "本次服务观测", accepting: "可接收新请求", paused: "新请求已暂停", unknown: "未观测",
+  },
+  usageEvidence: {
+    measured: "上游实测", estimated: "估算用量", mixed: "混合来源", unknown: "来源未知",
+    inclusive: "输入已包含缓存 token", exclusive: "输入不包含缓存 token", accountingUnknown: "输入与缓存关系未知",
+  },
   unlock: {
     title: "管理员登录",
     username: "账号",

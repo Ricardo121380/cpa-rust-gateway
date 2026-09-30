@@ -105,11 +105,12 @@ function ConfidenceChip({ total }: Readonly<{ total: FamilyTotal }>) {
  *  decoration — it means at least one contributor reported no observation, so
  *  the figure is a lower bound. */
 function FamilyCell({ total, label }: Readonly<{ total: FamilyTotal; label:string }>) {
+  const t = useMessages();
   return (
     <td className="mono usage-num" data-label={label}>
       {total.partialCoverage && total.total !== null ? "≥ " : ""}
       {formatTokens(total.total)}
-      <ConfidenceChip total={total} /><small>{provenanceLabel(total.provenance)}</small>
+      <ConfidenceChip total={total} /><small>{provenanceLabel(total.provenance, t.usageEvidence)}</small>
     </td>
   );
 }

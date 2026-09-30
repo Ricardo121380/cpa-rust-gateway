@@ -1,15 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { call } from "../../api/client";
-import { asAppError } from "../../api/errors";
+import { asAppError, requiresWriteReconciliation } from "../../api/errors";
+import { useMessages } from "../../i18n/messages";
 
 export function RuntimeApplyNotice({onApplied,onBusyChange,disabled=false}:Readonly<{onApplied:()=>void;onBusyChange?:(busy:boolean)=>void;disabled?:boolean}>) {
-  const apply=useMutation({mutationFn:()=>call<{runtime_applied:boolean}>("applyRuntimeConfiguration"),onSuccess:(result)=>{if(result.runtime_applied)onApplied();}});
-  useEffect(()=>{onBusyChange?.(apply.isPending);return()=>onBusyChange?.(false);},[apply.isPending,onBusyChange]);
-  return <div role="status"><p>修改已保存，运行配置暂未应用。</p>
-    <p role="alert">运行重建失败已使新请求被全局阻断，其他账号和渠道的新请求也会受影响。已保存的授权保留；请重新应用运行配置以恢复服务。</p>
-    {apply.isError?<p role="alert">{asAppError(apply.error).message}</p>:apply.data?.runtime_applied===false?<p role="alert">暂时无法应用，请稍后重试。</p>:null}
-    {disabled ? <p>当前读取未完成，先重新读取服务状态后再应用。</p> : null}
-    <button type="button" className="primary" disabled={apply.isPending || disabled} onClick={()=>apply.mutate()}>应用运行配置</button>
+  const t=useMessages().runtimeApplication;
+  const [needsReview,setNeedsReview]=useState(false);
+  const [appliedAt,setAppliedAt]=useState<number>();
+  const apply=useMutation({mutationFn:()=>call<{runtime_applied:boolean}>("applyRuntimeConfiguration"),onSuccess:(result)=>{if(result.runtime_applied){setAppliedAt(Date.now());onApplied();}},onError:cause=>setNeedsReview(requiresWriteReconciliation(cause))});
+  const review=useMutation({mutationFn:()=>call<{accepting_requests:boolean|null}>("getSystemInformation"),onSuccess:()=>setNeedsReview(false)});
+  const busy=apply.isPending||review.isPending;
+  useEffect(()=>{onBusyChange?.(busy);return()=>onBusyChange?.(false);},[busy,onBusyChange]);
+  return <div role="status"><p>{needsReview?t.uncertain:appliedAt?t.confirmed:review.isSuccess?t.uncertaintyRemains:t.saved}</p>
+    {appliedAt?<p>{t.previous}：{new Date(appliedAt).toLocaleString()}</p>:null}
+    {!needsReview&&!appliedAt&&!review.isSuccess?<p>{t.blocked}</p>:null}
+    {apply.isError?<p role="alert">{asAppError(apply.error).code} · {asAppError(apply.error).message}</p>:apply.data?.runtime_applied===false?<p role="alert">{t.failed}</p>:null}
+    {review.data?<p>{t.observed}：{review.data.accepting_requests===true?t.accepting:review.data.accepting_requests===false?t.paused:t.unknown}</p>:null}
+    {review.isError?<p role="alert">{t.reviewFailed}：{asAppError(review.error).message}</p>:null}
+    {disabled ? <p>{t.pendingRead}</p> : null}
+    {needsReview?<button type="button" className="secondary" disabled={busy} onClick={()=>review.mutate()}>{review.isPending?t.reviewing:t.review}</button>:null}
+    <button type="button" className="primary" disabled={busy || disabled || needsReview} onClick={()=>apply.mutate()}>{apply.isPending?t.applying:t.apply}</button>
   </div>;
 }

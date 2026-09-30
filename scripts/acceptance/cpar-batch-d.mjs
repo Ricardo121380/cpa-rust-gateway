@@ -34,6 +34,7 @@ const hook=()=>page.evaluate(async()=>{
     if(mode==="lost")throw new TypeError("D controlled response lost");
     if(mode==="next-error"&&request.query?.cursor)return reply(500,{error:{code:"synthetic_cursor_failed",message:"D controlled next page unavailable"}});
     if(mode==="pool-record")return reply(200,[{id:"d-pool",name:"D controlled pool",upstream_id:"relay-a",enabled:true}]);
+    if(mode==="no-availability")return reply(200,[]);
     if(mode==="pin-receipt")return reply(200,{...request.body,request_id:"d-pin-receipt",config_version_id:request.headers["X-Config-Version"],config_revision:1,credential_revision:1,runtime_credential_revision:1,connection_revision:1,runtime_build:"development:development:development",server_instance:"d-fixture",permission_basis:"management_key_projection",outcome:"failed",upstream_sent:false,attempt_count:1,response_started:false,observed_at_ms:Date.now(),stage:"egress_admission"});
     if(mode==="recovery-receipt")return reply(200,{state:"probe_scheduled"});
     if(mode==="resource-page")return reply(200,{items:request.query?.before_id?[{id:"2",action:"upstream_updated",actor:"admin",occurred_at_ms:Date.now(),config_version_id:request.headers["X-Config-Version"],resource_kind:"upstream",resource_id:"relay-a"}]:[],next_before_id:request.query?.before_id?null:"2"});
@@ -45,6 +46,7 @@ const hook=()=>page.evaluate(async()=>{
     const body=await response.clone().json();
     if(mode==="mandatory") {body.password_change_required=true;delete state.modes[operation];}
     if(mode==="paused")body.accepting_requests=false;
+    if(mode==="recovered")for(const row of body)row.availability="available";
     if(mode==="estimate")for(const row of body.items)for(const family of ["input_tokens","output_tokens","reasoning_tokens","cache_read_tokens","cache_creation_tokens","cached_tokens"])row[family].provenance="estimated";
     if(mode==="request-evidence")for(const row of body.items??[])if(row.usage){row.usage.provenance="estimated";row.usage.input_accounting="inclusive";}
     if(mode==="ledger-evidence")for(const row of body.items){row.usage_provenance="estimated";row.input_accounting="inclusive";}
@@ -229,13 +231,32 @@ try {
     assert.equal((await calls("executeChannelPin")).length,2);record("successful target readback permits a separate deliberate diagnostic without replay");
   } else if(scenario==="recovery-uncertain") {
     await reset();await mode("requestQuotaRecovery","recovery-receipt");await route("/runtime");await page.waitForSelector('loc=css:button:has-text("发起恢复") >> nth=0');
-    await page.click('loc=css:button:has-text("发起恢复") >> nth=0');await waitText("已排程探测");
+    await page.click('loc=css:button:has-text("发起恢复") >> nth=0');await page.waitForSelector('.rt-chip[data-state="probe_scheduled"]');
     await mode("requestQuotaRecovery","lost");await page.click('loc=css:button:has-text("发起恢复") >> nth=0');await waitText("本次结果未确认");
     const blocked=()=>page.evaluate(()=>[...document.querySelectorAll("button")].find(button=>button.textContent==="发起恢复")?.disabled);
     assert.equal(await blocked(),true);assert.equal((await calls("requestQuotaRecovery")).length,2);assert.match(await text(),/已排程探测/u);record("lost recovery response retains prior scheduling fact without claiming recovery");
     await mode("getRuntimeAvailability","error");await page.click('loc=role:button[name="读取状态后核对"]');await waitText("状态核对失败");assert.equal(await blocked(),true);record("failed recovery readback prevents repeated mutation");
     await mode("getRuntimeAvailability",undefined);await page.click('loc=role:button[name="读取状态后核对"]');await page.waitForFunction(()=>[...document.querySelectorAll("button")].find(button=>button.textContent==="发起恢复")?.disabled===false);
     assert.equal((await calls("requestQuotaRecovery")).length,2);record("successful state readback releases a deliberate next action without replay");
+    await mode("getRuntimeAvailability","recovered");await page.click('loc=role:button[name="立即刷新"]');await waitText("当前没有可发起恢复的组合");
+    assert.ok(await page.evaluate(()=>!!document.querySelector('.rt-chip[data-state="probe_scheduled"]')));assert.match(await text(),/本次结果未确认/u);record("recovery outcomes remain visible after targets stop qualifying");
+    await mode("getRuntimeAvailability","no-availability");await page.click('loc=role:button[name="立即刷新"]');await waitText("本次未观测到，保留上次结果");record("recovery identity and receipt survive target disappearance");
+    await mode("getRuntimeAvailability","error");await page.click('loc=role:button[name="立即刷新"]');await waitText("刷新失败");assert.ok(await page.evaluate(()=>!!document.querySelector('.rt-chip[data-state="probe_scheduled"]')));record("later failed reads retain recovery evidence for missing targets");
+  } else if(scenario==="apply-uncertain") {
+    await reset();await mode("getSystemInformation","paused");await route("/settings");await waitText("新请求已暂停");
+    await mode("applyRuntimeConfiguration","lost");await page.click('loc=role:button[name="应用运行配置"]');await waitText("应用结果未确认");
+    const blocked=()=>page.evaluate(()=>[...document.querySelectorAll("button")].find(button=>button.textContent==="应用运行配置")?.disabled);
+    assert.equal(await blocked(),true);assert.equal((await calls("applyRuntimeConfiguration")).length,1);record("unknown runtime apply requires explicit readback before another write");
+    await mode("getSystemInformation","error");await page.click('loc=role:button[name="读取服务状态后核对"]');await waitText("服务状态核对失败");assert.equal(await blocked(),true);record("failed application readback keeps write gate closed");
+    await mode("getSystemInformation","paused");await page.click('loc=role:button[name="读取服务状态后核对"]');await page.waitForFunction(()=>[...document.querySelectorAll("button")].find(button=>button.textContent==="应用运行配置")?.disabled===false);
+    assert.equal((await calls("applyRuntimeConfiguration")).length,1);assert.match(await text(),/先前应用请求的结果仍未确认/u);record("successful service observation permits a deliberate new apply without manufacturing a receipt");
+  } else if(scenario==="i18n") {
+    await reset();await mode("listOperationalUsage","estimate");await mode("summarizeRequests","request-evidence");await route("/settings");await page.click('loc=role:radio[name="English"]');
+    await page.evaluate(()=>location.hash="#/usage?range=all");await waitText("Estimated usage");assert.doesNotMatch(await text(),/估算用量/u);record("aggregated provenance follows actual language selection");
+    await page.cdp("Emulation.setDeviceMetricsOverride",{width:375,height:812,deviceScaleFactor:1,mobile:false});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));record("English usage evidence remains contained on narrow layout");
+    await page.evaluate(()=>location.hash="#/monitoring?tab=requests");await page.waitForSelector(".request-table tbody button");await page.click('loc=css:.request-table tbody tr:first-child button');await page.waitForSelector('[role="dialog"]');await page.click('loc=css:[role="dialog"] summary:has-text("Token 用量")');await waitText("Input includes cached tokens");
+    assert.match(await page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??""),/Estimated usage/u);record("request source and input accounting update to English");await page.keyboard.press("Escape");
+    await page.evaluate(()=>location.hash="#/settings");await page.waitForSelector('loc=role:radio[name="中文"]');await page.click('loc=role:radio[name="中文"]');
   } else if(scenario==="details") {
     await reset();await mode("summarizeRequests","request-evidence");
     for(const width of [1440,375])for(const theme of ["light","dark"]) {

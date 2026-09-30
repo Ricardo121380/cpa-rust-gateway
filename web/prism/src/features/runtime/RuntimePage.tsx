@@ -355,7 +355,7 @@ function AvailabilityMatrixCard({
 // 2. quota recovery — inline on the rows that can carry it
 // ---------------------------------------------------------------------------
 
-type RecoveryOutcome = Readonly<{ state?: string; message?: string; needsReview?: boolean }>;
+type RecoveryOutcome = Readonly<{ target: AvailabilityRow; state?: string; message?: string; needsReview?: boolean }>;
 
 function RecoveryCard({
   rows,
@@ -363,6 +363,10 @@ function RecoveryCard({
 }: Readonly<{ rows: readonly AvailabilityRow[]; scope: string }>) {
   const targets = recoverableRows(rows);
   const [outcomes, setOutcomes] = useState<Readonly<Record<string, RecoveryOutcome>>>({});
+  const currentByKey = new Map(rows.map(row => [cellKey(row.endpoint_id, row.credential_id), row]));
+  const recoverable = new Set(targets.map(row => cellKey(row.endpoint_id, row.credential_id)));
+  const displayed = new Map(targets.map(row => [cellKey(row.endpoint_id, row.credential_id), row]));
+  for (const [key, outcome] of Object.entries(outcomes)) displayed.set(key, currentByKey.get(key) ?? outcome.target);
   const [pendingKey, setPendingKey] = useState<string | undefined>();
   const queryClient = useQueryClient();
   const review = useMutation({
@@ -386,13 +390,14 @@ function RecoveryCard({
     onSuccess: (data, target) =>
       setOutcomes((current) => ({
         ...current,
-        [cellKey(target.endpoint_id, target.credential_id)]: { state: data.state },
+        [cellKey(target.endpoint_id, target.credential_id)]: { target, state: data.state },
       })),
     onError: (error, target) =>
       setOutcomes((current) => ({
         ...current,
         [cellKey(target.endpoint_id, target.credential_id)]: {
           ...current[cellKey(target.endpoint_id, target.credential_id)],
+          target,
           needsReview: requiresWriteReconciliation(error),
           message: `${asAppError(error).code} · ${asAppError(error).message || "请求失败"}${requiresWriteReconciliation(error) ? "。本次结果未确认，请先读取状态核对，不会再次提交。" : ""}`,
         },
@@ -424,7 +429,8 @@ function RecoveryCard({
           text="当前没有可发起恢复的组合"
           detail="没有处于 quota_blocked 或 credential_forbidden 的绑定 —— 其余五态不接受此操作。"
         />
-      ) : (
+      ) : null}
+      {displayed.size > 0 ? (
         <table className="responsive-table">
           <thead>
             <tr>
@@ -436,7 +442,7 @@ function RecoveryCard({
             </tr>
           </thead>
           <tbody>
-            {targets.map((row) => {
+            {[...displayed.values()].map((row) => {
               const key = cellKey(row.endpoint_id, row.credential_id);
               const outcome = outcomes[key];
               return (
@@ -444,17 +450,17 @@ function RecoveryCard({
                   <td data-label="接口"><ResourceIdentity id={row.endpoint_id} kind="endpoint" /></td>
                   <td data-label="账号"><ResourceIdentity id={row.credential_id} kind="account" /></td>
                   <td data-label="当前状态">
-                    <StateChip
+                    {currentByKey.has(key) ? <StateChip
                       meta={availabilityMeta(row.availability)}
                       attr={stateAttr(row.availability)}
                       raw={row.availability}
-                    />
+                    /> : <span>本次未观测到，保留上次结果</span>}
                   </td>
                   <td data-label="操作" className="row-actions">
                     <button
                       type="button"
                       className="secondary"
-                      disabled={pendingKey !== undefined || review.isPending || outcome?.needsReview === true}
+                      disabled={!recoverable.has(key) || pendingKey !== undefined || review.isPending || outcome?.needsReview === true}
                       onClick={() => recover.mutate(row)}
                     >
                       {pendingKey === key ? "请求中…" : "发起恢复"}
@@ -474,7 +480,7 @@ function RecoveryCard({
             })}
           </tbody>
         </table>
-      )}
+      ) : null}
       <p className="rt-footnote">
         操作作用于配置版本 <ResourceIdentity id={scope} kind="config" />,不改写配置,也不产生草稿修订。
       </p>

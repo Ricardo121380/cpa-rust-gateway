@@ -3579,3 +3579,18 @@ commit carries `Cross-Boundary: web/prism - generated CPAR B Usage contract`.
 **Why:** Implement spec #9 D / CPAR-42–47 (#51–56): preserve page identities and advanced entries, session return and focus, retained read/write evidence, Usage provenance/accounting, opaque-cursor recovery, and explicit readback before another uncertain operation. Existing backend management contracts supply these facts; no authoritative contract, generated client, schema, provider protocol or production runtime change was needed.
 
 **Other side:** FYI under the explicit user authorization **“授权 Codex 完成本次 D 的前后端”**. This commit includes local regression tests and an EgoLite synthetic acceptance script. Scope and immutable-commit Full evidence will be recorded in `docs/reports/cpar-batch-d-20261001.md`; fixture evidence does not establish real Provider or production acceptance. CPAR-48 (#57) and parent #9 retain the previously recorded C blockers. No remote publication or deployment.
+
+## 2026-10-01 - Codex - CPAR D review corrections
+
+**Touched:**
+- `web/prism/src/features/accounts/RuntimeApplyNotice.tsx`
+- `web/prism/src/features/runtime/RuntimePage.tsx`
+- `web/prism/src/features/usage/UsageEvidence.test.ts`
+- `web/prism/src/features/usage/UsageEvidence.tsx`
+- `web/prism/src/features/usage/UsagePage.tsx`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+
+**Why:** Independent Standards review identified untranslated Usage evidence; Spec review identified uncertain runtime application and recovery receipts hidden when target eligibility changed. Preserve receipts and target identity, require service readback before a deliberate new runtime application, and use the existing reactive message packs. Controlled management-HTTP scenarios reproduced both state defects before correction and passed afterwards.
+
+**Other side:** FYI under the same explicit D frontend/backend authorization. No contract/schema change or real Provider call. Final immutable-commit gates and coverage inventory follow in the batch report.
