@@ -34,6 +34,8 @@
 
 入口：[factory fixtures](../../apps/gateway/src/runtime/batch_c.rs)、[ordinary HTTP peers](../../apps/gateway/src/runtime/batch_c/http.rs)、[Grok native peers](../../apps/gateway/src/runtime/batch_c/grok.rs)。每个 fixture 使用独立临时 SQLite 和合成账户，经实际 ManagementService bootstrap、deployment compiler、P12 runtime factory、Client-Key 鉴权、实际 scheduler/lease 和公共三协议 codec 执行。公开模型 `p12-test-model`；合成配置由 `p12_configuration_for(..., "batch-c")` 生成；所有 native 账号与普通凭据分别沿用其真实存储/装配路径。
 
+评审后补强了 [public response oracle](../../apps/gateway/src/runtime/batch_c/public_response.rs)：所有 298 次正例都完整解析 JSON/SSE，校验线上的唯一成功终态、无错误／截断、工具 ID/name、参数对象与完成状态，及回传轮次后的精确文本。Responses/Chat 的原生字段使用严格 wire codec 校验；公开 `cpar_usage` 的六个 nullable 源计数和两个 evidence 枚举独立校验后，只在测试用解码视图中处理。Messages 使用符合公开缺失计数契约的内容／流序校验；未能精确转换的输入 aggregate 保持 absent，不填造计数。该工具／终态断言不等于完整 Usage→ledger 的逐渠道验收。
+
 每个正例的四轮依次为工具 call-c、回传 result-c 后文本回答、新 user 轮次产生 call-d、回传 result-d 后文本回答；保留完整历史。普通和 Grok 正例每请求上限 19，校验原生 outbound 字段与工具历史。此断言证明字段保留，不证明真实上游硬上限兑现。
 
 | 实际工厂／连接策略 | 模型／合成凭据 | 下游与本地结果 | 请求数 |
@@ -140,8 +142,17 @@ Official/Console 当前增量映射不能完整保留 summary、encrypted reason
 
 ## 正式门禁与审查
 
-实现源码检查点：**待冻结**。Full：**NOT_RUN（待最终执行）**。命令：`CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-c-20260930/full-check.md bash scripts/check.sh full`。
+初轮实现检查点 `bc9b2b5ac62c27acc62a4f3bf53b1806e85522ea` 的 Full：**PASS，44/44，Rust 1,431 passed / 0 failed / 12 ignored**，2026-09-30 10:13:50–10:18:08 UTC。见 [initial Full receipt](assets/cpar-batch-c-20260930/initial-full-check.md) 和 [immutable summary](assets/cpar-batch-c-20260930/initial-full-summary.json)。它证明评审前检查点；后续有行为修复和更强断言，不能直接作为最终源码 Full。
 
-Standards / Spec 双轴固定点审查：**NOT_RUN（待冻结后执行）**，比较 `45a315a...HEAD`。后续报告更新将记录实际覆盖、发现、主线程修复与验证，不将超时或过程消息计为完整审查。
+最终实现源码检查点：**待冻结**。最终 Full：**NOT_RUN（待修复后执行）**。命令：`CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-c-20260930/full-check.md bash scripts/check.sh full`。
+
+Standards / Spec 双轴固定点审查：比较 `45a315a...bc9b2b5`，两名独立只读探子均返回终态。见 [separate axis reports](assets/cpar-batch-c-20260930/review.md)。
+
+| 审查轴 | 发现、处置与覆盖 |
+|---|---|
+| Standards | 已声明生产增量／测试结构范围 complete；0 文档硬违规。1 个低风险 Duplicated Code 判断：保留不同 native decoder 的所有权与限额，未扩大为状态机重构。1 项证据强度问题：公共成功断言已补强如上。未完整读每条 inventory/pin JSON、未改动代码和外部参考。 |
+| Spec | Coverage PARTIAL，完成判定 FAIL / C BLOCKED。新增 1 个 P2：文本 delta/done 事件级 logprobs 未校验；主线程先执行失败复现，再在处理文本前校验。Official/Console 两类事件拒绝，四项集中 Provider 回归 PASS。已有 hard-cap、Web continuity、metadata、扩展及真实新构建要求继续阻断，没有改为能力支持。 |
+
+评审后主线程承担源码复核与运行验证；没有声称后续修改已经获得完整独立 Spec 审查。正式本地门禁通过也不关闭仍未满足的业务完成条件。
 
 用户已有 AGENTS.md 改动及其他未跟踪产物保留；仅精确暂存本批次文件。没有向 GitHub 发消息、改工单状态或 push。已有账号验证授权已使用；剩余的新构建实测需要独立的受控发布环境或生产部署授权，Kimi 路由发布需要明确共享配置变更范围，而软件阻断仍须实现或由用户明确调整未完成范围。

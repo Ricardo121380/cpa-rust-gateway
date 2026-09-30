@@ -22,6 +22,7 @@ use serde_json::json;
 use std::fmt::Write as _;
 mod grok;
 pub(super) mod http;
+mod public_response;
 
 type TestResult = Result<(), Box<dyn Error>>;
 
@@ -417,11 +418,7 @@ async fn kiro_real_factory_bridges_text_tools_and_effort_without_dropping_limits
                         fixture.events.0.lock().map_err(|_| "events")?,
                         peer.bodies.lock().map_err(|_| "bodies")?.len()
                     );
-                    assert!(String::from_utf8_lossy(&bytes).contains(match round {
-                        0 => "call-c",
-                        2 => "call-d",
-                        _ => "answer",
-                    }));
+                    public_response::assert_round(path, streaming, round, &bytes)?;
                 }
             }
             for (path, body) in [
@@ -600,7 +597,7 @@ async fn official_real_factory_retains_tools_controls_usage_and_quota_ownership(
             fixture.events.0.lock().map_err(|_| "events")?,
             peer.bodies.lock().map_err(|_| "bodies")?.len()
         );
-        assert!(String::from_utf8_lossy(&bytes).contains("call-c"));
+        public_response::assert_round("/v1/responses", streaming, 0, &bytes)?;
         assert!(String::from_utf8_lossy(&bytes).contains("input_tokens"));
         let response = test::call_service(
             &app,

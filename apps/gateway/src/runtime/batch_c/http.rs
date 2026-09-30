@@ -359,11 +359,7 @@ async fn ordinary_native_families_use_the_public_factory_and_preserve_identity()
                         peer.requests.lock().map_err(|_| "requests")?.len(),
                         fixture.events.0.lock().map_err(|_| "events")?
                     );
-                    assert!(String::from_utf8_lossy(&bytes).contains(match round {
-                        0 => "call-c",
-                        2 => "call-d",
-                        _ => "answer",
-                    }));
+                    super::public_response::assert_round(uri, streaming, round, &bytes)?;
                 }
             }
             let requests = peer.requests.lock().map_err(|_| "requests")?;

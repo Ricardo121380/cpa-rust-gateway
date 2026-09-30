@@ -801,6 +801,7 @@ impl GrokOfficialResponsesDecodeState {
         event: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
+        validate_part_semantics(event)?;
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
         if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
             || self.completed_item_ids.contains(item_id)
@@ -829,6 +830,7 @@ impl GrokOfficialResponsesDecodeState {
         event: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
+        validate_part_semantics(event)?;
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
         let text = required_string(event, "text", stream_protocol_error())?.to_owned();
         self.finish_text_item(item_id, text, events)

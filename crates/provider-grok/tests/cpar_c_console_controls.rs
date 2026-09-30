@@ -93,6 +93,44 @@ fn official_and_console_reject_unrepresented_metadata_and_changed_final_snapshot
 }
 
 #[test]
+fn official_and_console_reject_logprobs_on_text_events() -> Result<(), Box<dyn Error>> {
+    let plain = json!({"id":"msg-c","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"answer","annotations":[]}]});
+    for corrupted_kind in ["response.output_text.delta", "response.output_text.done"] {
+        let mut wire = String::new();
+        for mut event in [
+            json!({"type":"response.created","response":{"id":"resp-c"}}),
+            json!({"type":"response.output_item.added","item":{"id":"msg-c","type":"message","role":"assistant","status":"in_progress","content":[]}}),
+            json!({"type":"response.output_text.delta","item_id":"msg-c","delta":"answer"}),
+            json!({"type":"response.output_text.done","item_id":"msg-c","text":"answer"}),
+            json!({"type":"response.output_item.done","item":plain}),
+            json!({"type":"response.completed","response":{"id":"resp-c","status":"completed","output":[plain]}}),
+        ] {
+            if event["type"] == corrupted_kind {
+                event["logprobs"] = json!([{"token":"answer","logprob":-0.25}]);
+            }
+            write!(
+                wire,
+                "event: {}\ndata: {event}\n\n",
+                event["type"].as_str().ok_or("event")?
+            )?;
+        }
+        assert!(
+            GrokOfficialResponsesStreamDecoder::new()
+                .push_bytes(wire.as_bytes())
+                .is_err(),
+            "{corrupted_kind} lost metadata"
+        );
+        assert!(
+            provider_grok::GrokConsoleResponsesStreamDecoder::new()
+                .push_bytes(wire.as_bytes())
+                .is_err(),
+            "{corrupted_kind} lost metadata"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn official_and_console_tool_deltas_match_normalized_final_arguments() -> Result<(), Box<dyn Error>>
 {
     for arguments in ["", " \t", "{}", "{ }", " {\"value\":1} "] {

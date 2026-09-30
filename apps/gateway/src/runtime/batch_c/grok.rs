@@ -226,11 +226,7 @@ async fn grok_factories_bridge_three_protocols_and_preserve_tool_rounds() -> Tes
                         peer.bodies.lock().map_err(|_| "bodies")?.len(),
                         fixture.events.0.lock().map_err(|_| "events")?
                     );
-                    assert!(String::from_utf8_lossy(&bytes).contains(match round {
-                        0 => "call-c",
-                        2 => "call-d",
-                        _ => "answer",
-                    }));
+                    super::public_response::assert_round(uri, streaming, round, &bytes)?;
                 }
             }
             let bodies = peer.bodies.lock().map_err(|_| "bodies")?;
