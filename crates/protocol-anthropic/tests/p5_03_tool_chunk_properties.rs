@@ -213,8 +213,13 @@ fn non_object_tool_arguments_fail_closed() -> TestResult {
             extensions: RawExtensions::default(),
         }),
     ];
-    let response = CanonicalResponse::try_new(events)?;
-    assert_stream_protocol_error(encode_response(&response, metadata()?));
+    assert_stream_protocol_error(CanonicalResponse::try_new(events.clone()));
+    let mut encoder = AnthropicMessagesSseEncoder::new(metadata()?);
+    assert_stream_protocol_error(
+        events
+            .iter()
+            .try_for_each(|event| encoder.encode_event(event).map(|_| ())),
+    );
     Ok(())
 }
 

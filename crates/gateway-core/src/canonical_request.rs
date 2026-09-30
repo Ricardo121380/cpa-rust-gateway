@@ -1,10 +1,13 @@
 //! Canonical inbound request semantics shared by later gateway layers.
 
-use std::fmt;
+use std::{collections::BTreeSet, fmt};
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::{CanonicalMessage, RawExtensions, Thinking, ToolDefinition};
+use crate::{
+    CanonicalMessage, ErrorScope, GatewayError, GatewayErrorCode, MessageContent, RawExtensions,
+    Thinking, ToolDefinition,
+};
 
 /// A protocol-neutral request before model resolution, routing, and provider selection.
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -33,6 +36,67 @@ pub struct CanonicalRequest {
     /// Provider- or protocol-specific fields retained without core interpretation.
     #[serde(default)]
     pub extensions: RawExtensions,
+}
+
+impl CanonicalRequest {
+    /// Validates complete, ordered function-call history before Provider execution.
+    ///
+    /// A result must resolve exactly one earlier assistant call. New conversational turns cannot
+    /// overtake outstanding results, and correlation identities cannot be reused across rounds.
+    /// This also applies to history expanded from an owned stored Response.
+    ///
+    /// # Errors
+    /// Returns a value-free request error for malformed arguments, duplicate identities, orphan
+    /// or repeated results, and incomplete history.
+    pub fn validate_tool_history(&self) -> Result<(), GatewayError> {
+        let invalid =
+            || GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request);
+        let mut calls = BTreeSet::new();
+        let mut pending = BTreeSet::new();
+        for message in &self.messages {
+            if !pending.is_empty()
+                && message.role.0 != "tool"
+                && !(message.role.0 == "assistant"
+                    && !message.content.is_empty()
+                    && message
+                        .content
+                        .iter()
+                        .all(|part| matches!(part, MessageContent::ToolCall(_))))
+            {
+                return Err(invalid());
+            }
+            for part in &message.content {
+                match part {
+                    MessageContent::ToolCall(call) => {
+                        if message.role.0 != "assistant"
+                            || call.id.is_empty()
+                            || call.id.len() > 512
+                            || !call.id.bytes().all(|byte| byte.is_ascii_graphic())
+                            || call.name.trim().is_empty()
+                            || !serde_json::from_str::<serde_json::Value>(call.arguments.get())
+                                .is_ok_and(|value| value.is_object())
+                            || !calls.insert(call.id.as_str())
+                        {
+                            return Err(invalid());
+                        }
+                        pending.insert(call.id.as_str());
+                    }
+                    MessageContent::ToolResult(result) => {
+                        if message.role.0 != "tool" || !pending.remove(result.call_id.as_str()) {
+                            return Err(invalid());
+                        }
+                    }
+                    _ if message.role.0 == "tool" => return Err(invalid()),
+                    _ => {}
+                }
+            }
+        }
+        if pending.is_empty() {
+            Ok(())
+        } else {
+            Err(invalid())
+        }
+    }
 }
 
 fn deserialize_optional_thinking<'de, D>(deserializer: D) -> Result<Option<Thinking>, D::Error>
@@ -176,6 +240,20 @@ mod tests {
         assert!(diagnostic.contains("CanonicalRequest"));
         assert!(diagnostic.contains("message_count: 3"));
 
+        Ok(())
+    }
+
+    #[test]
+    fn reasoning_only_assistant_cannot_overtake_pending_tool_results()
+    -> Result<(), serde_json::Error> {
+        let request: CanonicalRequest = serde_json::from_value(serde_json::json!({
+            "requested_model":"model", "messages":[
+                {"role":"assistant","content":[{"tool_call":{"id":"call-pending","name":"echo","arguments":{}}}]},
+                {"role":"assistant","content":[],"extensions":{"openai.chat.message.reasoning_content":"thought"}},
+                {"role":"tool","content":[{"tool_result":{"call_id":"call-pending","output":"done","is_error":false}}]}
+            ]
+        }))?;
+        assert!(request.validate_tool_history().is_err());
         Ok(())
     }
 

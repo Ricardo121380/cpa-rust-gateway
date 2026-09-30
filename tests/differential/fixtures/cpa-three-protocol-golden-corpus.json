@@ -70,9 +70,9 @@
       "id": "reasoning-to-chat",
       "subject": "reasoning-to-chat",
       "reference_projection": ["reasoning-delta"],
-      "expected_gateway_projection": ["rejected-reasoning-to-chat"],
-      "classification": "UNSUPPORTED_FAIL_CLOSED",
-      "decision": "reasoning-has-no-chat-projection"
+      "expected_gateway_projection": ["reasoning-delta"],
+      "classification": "PARITY",
+      "decision": null
     },
     {
       "id": "multiple-chat-choices",

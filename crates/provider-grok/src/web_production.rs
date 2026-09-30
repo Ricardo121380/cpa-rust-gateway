@@ -961,6 +961,8 @@ impl GrokWebProductionEvents {
             self.usage_emitted = true;
             return Some(CanonicalEvent::UsageDelta(UsageDelta {
                 usage: Usage {
+                    provenance: gateway_core::UsageProvenance::Estimated,
+                    input_accounting: gateway_core::InputTokenAccounting::Inclusive,
                     input_tokens: Some(self.input_tokens),
                     output_tokens: Some(estimate_grok_web_tokens(&self.visible_text)),
                     ..Usage::default()

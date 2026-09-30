@@ -241,7 +241,8 @@ impl Subject {
             | Self::ResponsesJsonReasoningToolUsage
             | Self::ResponsesSseReasoningUsage
             | Self::MessagesJsonReasoningToolUsage
-            | Self::MessagesSseReasoningUsage => (LegacyProtocolClassification::Parity, None),
+            | Self::MessagesSseReasoningUsage
+            | Self::ReasoningToChat => (LegacyProtocolClassification::Parity, None),
             Self::DuplicateJsonMember => (
                 LegacyProtocolClassification::IntentionalHardening,
                 Some(Decision::StrictDuplicateJson),
@@ -249,10 +250,6 @@ impl Subject {
             Self::MissingSseTerminal => (
                 LegacyProtocolClassification::IntentionalHardening,
                 Some(Decision::ExplicitTerminalRequired),
-            ),
-            Self::ReasoningToChat => (
-                LegacyProtocolClassification::UnsupportedFailClosed,
-                Some(Decision::ReasoningHasNoChatProjection),
             ),
             Self::MultipleChatChoices => (
                 LegacyProtocolClassification::UnsupportedFailClosed,
@@ -302,7 +299,7 @@ impl Subject {
             }
             Self::DuplicateJsonMember => &[Marker::RejectedDuplicateJson],
             Self::MissingSseTerminal => &[Marker::RejectedTruncatedStream],
-            Self::ReasoningToChat => &[Marker::RejectedReasoningToChat],
+            Self::ReasoningToChat => &[Marker::ReasoningDelta],
             Self::MultipleChatChoices => &[Marker::RejectedMultipleChoices],
         }
     }
@@ -313,7 +310,6 @@ impl Subject {
 enum Decision {
     StrictDuplicateJson,
     ExplicitTerminalRequired,
-    ReasoningHasNoChatProjection,
     SingleGenerationCanonical,
 }
 
@@ -335,7 +331,6 @@ enum Marker {
     LegacyMultipleChoices,
     RejectedDuplicateJson,
     RejectedTruncatedStream,
-    RejectedReasoningToChat,
     RejectedMultipleChoices,
 }
 
@@ -371,9 +366,13 @@ fn observe(subject: Subject) -> Result<Vec<Marker>, LegacyProtocolError> {
         }
         Subject::ReasoningToChat => {
             let response = reasoning_response()?;
-            if project_protocol_response(&response, ProtocolFormat::OpenAiChatCompletions).is_err()
-            {
-                Ok(vec![Marker::RejectedReasoningToChat])
+            let projected =
+                project_protocol_response(&response, ProtocolFormat::OpenAiChatCompletions)
+                    .map_err(|_| LegacyProtocolError::GatewayProbeUnavailable)?;
+            if projected.events().iter().any(|event| {
+                matches!(event, CanonicalEvent::ReasoningDelta(delta) if delta.text == "reasoning")
+            }) {
+                Ok(vec![Marker::ReasoningDelta])
             } else {
                 Err(LegacyProtocolError::GatewayProbeUnavailable)
             }
@@ -504,6 +503,8 @@ const RESPONSES_SSE: &str = concat!(
     "data: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"d4-reason\",\"delta\":\"think\"}\n\n",
     "data: {\"type\":\"response.output_item.added\",\"item\":{\"id\":\"d4-message\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\"}}\n\n",
     "data: {\"type\":\"response.output_text.delta\",\"item_id\":\"d4-message\",\"delta\":\"ok\"}\n\n",
+    "data: {\"type\":\"response.output_item.done\",\"item\":{\"id\":\"d4-reason\",\"type\":\"reasoning\",\"status\":\"completed\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"think\"}]}}\n\n",
+    "data: {\"type\":\"response.output_item.done\",\"item\":{\"id\":\"d4-message\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"ok\",\"annotations\":[]}]}}\n\n",
     "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"d4-response-sse\",\"status\":\"completed\",\"usage\":{\"input_tokens\":2,\"output_tokens\":3,\"total_tokens\":5}}}\n\n"
 );
 const MESSAGES_JSON: &str = r#"{"id":"d4-message","type":"message","role":"assistant","model":"d4-model","content":[{"type":"thinking","thinking":"think"},{"type":"text","text":"ok"},{"type":"tool_use","id":"d4-call","name":"lookup","input":{"v":1}}],"stop_reason":"tool_use","stop_sequence":null,"usage":{"input_tokens":2,"output_tokens":3}}"#;
@@ -558,3 +559,18 @@ impl fmt::Display for LegacyProtocolError {
 }
 
 impl std::error::Error for LegacyProtocolError {}
+
+#[cfg(test)]
+mod tests {
+    use super::{Subject, observe};
+
+    #[test]
+    fn mandatory_protocol_probes_are_executable() {
+        for subject in Subject::all() {
+            assert!(
+                observe(subject).is_ok(),
+                "synthetic legacy subject {subject:?}"
+            );
+        }
+    }
+}

@@ -28,6 +28,8 @@ pub struct BillingQuote {
 pub enum BillingPricingError {
     /// A checked multiplication or conversion overflowed.
     ArithmeticOverflow,
+    /// A reported subset exceeds its aggregate.
+    InvalidCounters,
 }
 
 /// Prices one final Usage summary against one Provider/Channel/Model catalog entry.
@@ -57,26 +59,20 @@ pub fn quote_usage(
         });
     };
 
+    let Some(dimensions) = pricing_dimensions(entry, usage)? else {
+        return Ok(BillingQuote {
+            catalog_version_id: catalog.catalog_version_id.clone(),
+            cost_microunits: None,
+            confidence: BillingCostConfidence::Unknown,
+        });
+    };
     let mut cost = 0_u128;
     let mut priced_dimensions = 0_u8;
     let mut missing_dimensions = 0_u8;
-    for (tokens, rate) in [
-        (usage.input_tokens, entry.input_microunits_per_million),
-        (usage.output_tokens, entry.output_microunits_per_million),
-        (
-            usage.reasoning_tokens,
-            entry.reasoning_microunits_per_million,
-        ),
-        (
-            usage.cache_read_tokens,
-            entry.cache_read_microunits_per_million,
-        ),
-        (
-            usage.cache_creation_tokens,
-            entry.cache_creation_microunits_per_million,
-        ),
-        (usage.cached_tokens, entry.cached_microunits_per_million),
-    ] {
+    for (tokens, rate) in dimensions {
+        if rate == 0 {
+            continue;
+        }
         let Some(tokens) = tokens else {
             missing_dimensions = missing_dimensions.saturating_add(1);
             continue;
@@ -108,6 +104,99 @@ pub fn quote_usage(
         cost_microunits,
         confidence,
     })
+}
+
+type BillingDimensions = [(Option<u64>, u64); 6];
+
+fn pricing_dimensions(
+    entry: &BillingPriceEntry,
+    usage: &UsageSummary,
+) -> Result<Option<BillingDimensions>, BillingPricingError> {
+    if usage.provenance != gateway_core::UsageProvenance::Measured
+        || usage.input_accounting == gateway_core::InputTokenAccounting::Unknown
+        || usage.input_accounting == gateway_core::InputTokenAccounting::Inclusive
+            && (usage.cache_read_tokens.is_some() || usage.cache_creation_tokens.is_some())
+        || usage.input_accounting == gateway_core::InputTokenAccounting::Exclusive
+            && usage.cached_tokens.is_some()
+    {
+        return Ok(None);
+    }
+    let inclusive = usage.input_accounting == gateway_core::InputTokenAccounting::Inclusive;
+    let same_cached_rate =
+        entry.input_microunits_per_million == entry.cached_microunits_per_million;
+    let same_reasoning_rate =
+        entry.output_microunits_per_million == entry.reasoning_microunits_per_million;
+    let input = if inclusive && !same_cached_rate {
+        usage
+            .input_tokens
+            .zip(usage.cached_tokens)
+            .and_then(|(total, cached)| total.checked_sub(cached))
+    } else {
+        usage.input_tokens
+    };
+    let output = if same_reasoning_rate {
+        usage.output_tokens
+    } else {
+        usage
+            .output_tokens
+            .zip(usage.reasoning_tokens)
+            .and_then(|(total, reasoning)| total.checked_sub(reasoning))
+    };
+    if usage
+        .input_tokens
+        .zip(usage.cached_tokens)
+        .is_some_and(|(total, cached)| inclusive && cached > total)
+        || usage
+            .output_tokens
+            .zip(usage.reasoning_tokens)
+            .is_some_and(|(total, reasoning)| reasoning > total)
+    {
+        return Err(BillingPricingError::InvalidCounters);
+    }
+    Ok(Some([
+        (input, entry.input_microunits_per_million),
+        (output, entry.output_microunits_per_million),
+        (
+            if same_reasoning_rate {
+                None
+            } else {
+                usage.reasoning_tokens
+            },
+            if same_reasoning_rate {
+                0
+            } else {
+                entry.reasoning_microunits_per_million
+            },
+        ),
+        (
+            usage.cache_read_tokens,
+            if inclusive {
+                0
+            } else {
+                entry.cache_read_microunits_per_million
+            },
+        ),
+        (
+            usage.cache_creation_tokens,
+            if inclusive {
+                0
+            } else {
+                entry.cache_creation_microunits_per_million
+            },
+        ),
+        (
+            if inclusive && !same_cached_rate {
+                usage.cached_tokens
+            } else {
+                None
+            },
+            if inclusive && !same_cached_rate {
+                entry.cached_microunits_per_million
+            } else {
+                0
+            },
+        ),
+    ]))
 }
 
 /// Returns the catalog row selected for a Provider/Channel/Model tuple.
@@ -174,12 +263,14 @@ mod tests {
     #[test]
     fn exact_quote_uses_integer_rates() -> Result<(), BillingPricingError> {
         let usage = UsageSummary {
+            provenance: gateway_core::UsageProvenance::Measured,
+            input_accounting: gateway_core::InputTokenAccounting::Exclusive,
             input_tokens: Some(1_000_000),
             output_tokens: Some(500_000),
             reasoning_tokens: Some(0),
             cache_read_tokens: Some(0),
             cache_creation_tokens: Some(0),
-            cached_tokens: Some(0),
+            cached_tokens: None,
         };
         let quote = quote_usage(&catalog(), "provider-a", "channel-a", "model-a", &usage)?;
         assert_eq!(quote.cost_microunits, Some(4_000_000));
@@ -190,6 +281,8 @@ mod tests {
     #[test]
     fn missing_dimensions_are_partial_or_unknown_not_zero() -> Result<(), BillingPricingError> {
         let partial = UsageSummary {
+            provenance: gateway_core::UsageProvenance::Measured,
+            input_accounting: gateway_core::InputTokenAccounting::Exclusive,
             input_tokens: Some(1_000_000),
             ..UsageSummary::default()
         };
@@ -202,6 +295,106 @@ mod tests {
         assert_eq!(quote.cost_microunits, None);
         assert_eq!(quote.confidence, BillingCostConfidence::Unknown);
         Ok(())
+    }
+
+    #[test]
+    fn cache_and_reasoning_subsets_are_not_charged_twice() -> Result<(), BillingPricingError> {
+        let usage = UsageSummary {
+            provenance: gateway_core::UsageProvenance::Measured,
+            input_accounting: gateway_core::InputTokenAccounting::Inclusive,
+            input_tokens: Some(1_000_000),
+            output_tokens: Some(500_000),
+            reasoning_tokens: Some(50_000),
+            cached_tokens: Some(400_000),
+            ..UsageSummary::default()
+        };
+        let quote = quote_usage(&catalog(), "provider-a", "channel-a", "model-a", &usage)?;
+        // 600k uncached input, 400k cached input, 450k visible output, 50k reasoning.
+        assert_eq!(quote.cost_microunits, Some(3_150_000));
+        assert_eq!(quote.confidence, BillingCostConfidence::Exact);
+
+        let exclusive = UsageSummary {
+            input_accounting: gateway_core::InputTokenAccounting::Exclusive,
+            input_tokens: Some(500_000),
+            output_tokens: Some(400_000),
+            cache_read_tokens: Some(200_000),
+            cache_creation_tokens: Some(100_000),
+            cached_tokens: None,
+            ..usage
+        };
+        let quote = quote_usage(&catalog(), "provider-a", "channel-a", "model-a", &exclusive)?;
+        assert_eq!(quote.cost_microunits, Some(2_600_000));
+        assert_eq!(quote.confidence, BillingCostConfidence::Exact);
+        Ok(())
+    }
+
+    #[test]
+    fn estimates_and_ambiguous_cache_evidence_are_not_exact_costs()
+    -> Result<(), BillingPricingError> {
+        let measured = UsageSummary {
+            provenance: gateway_core::UsageProvenance::Measured,
+            input_accounting: gateway_core::InputTokenAccounting::Inclusive,
+            input_tokens: Some(20),
+            output_tokens: Some(10),
+            reasoning_tokens: Some(4),
+            cached_tokens: Some(6),
+            ..UsageSummary::default()
+        };
+        for usage in [
+            UsageSummary {
+                provenance: gateway_core::UsageProvenance::Estimated,
+                ..measured.clone()
+            },
+            UsageSummary {
+                provenance: gateway_core::UsageProvenance::Unknown,
+                ..measured.clone()
+            },
+            UsageSummary {
+                input_accounting: gateway_core::InputTokenAccounting::Unknown,
+                ..measured.clone()
+            },
+            UsageSummary {
+                cache_read_tokens: Some(6),
+                ..measured.clone()
+            },
+            UsageSummary {
+                input_accounting: gateway_core::InputTokenAccounting::Exclusive,
+                ..measured
+            },
+        ] {
+            let quote = quote_usage(&catalog(), "provider-a", "channel-a", "model-a", &usage)?;
+            assert_eq!(quote.cost_microunits, None);
+            assert_eq!(quote.confidence, BillingCostConfidence::Unknown);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn subsets_larger_than_their_totals_are_invalid() {
+        let measured = UsageSummary {
+            provenance: gateway_core::UsageProvenance::Measured,
+            input_accounting: gateway_core::InputTokenAccounting::Inclusive,
+            input_tokens: Some(20),
+            output_tokens: Some(10),
+            reasoning_tokens: Some(4),
+            cached_tokens: Some(6),
+            ..UsageSummary::default()
+        };
+        for usage in [
+            UsageSummary {
+                cached_tokens: Some(21),
+                ..measured.clone()
+            },
+            UsageSummary {
+                reasoning_tokens: Some(11),
+                ..measured
+            },
+        ] {
+            assert_eq!(
+                quote_usage(&catalog(), "provider-a", "channel-a", "model-a", &usage),
+                Err(BillingPricingError::InvalidCounters),
+            );
+        }
     }
 
     #[test]

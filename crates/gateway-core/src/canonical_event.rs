@@ -249,10 +249,42 @@ impl fmt::Debug for ToolCallEnd {
     }
 }
 
-/// Token usage values reported by an upstream without core-side estimation.
+/// Whether counters were measured, estimated, or have no trustworthy provenance.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageProvenance {
+    /// Counter values reported by the upstream protocol.
+    Measured,
+    /// Counter values estimated by an adapter.
+    Estimated,
+    /// Legacy or absent evidence must never be promoted to measured usage.
+    #[default]
+    Unknown,
+}
+
+/// Whether the upstream input total already includes cache dimensions.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InputTokenAccounting {
+    /// OpenAI-style input totals include the cached subset.
+    Inclusive,
+    /// Anthropic-style input totals exclude cache read and creation dimensions.
+    Exclusive,
+    /// No safe billing or aggregate conversion can be inferred.
+    #[default]
+    Unknown,
+}
+
+/// Token counters with explicit provenance and aggregate semantics.
 #[derive(Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Usage {
+    /// Evidence behind these counters; legacy serialized data defaults to unknown.
+    #[serde(default)]
+    pub provenance: UsageProvenance,
+    /// Input accounting semantics of the source, independent of client protocol.
+    #[serde(default)]
+    pub input_accounting: InputTokenAccounting,
     /// Input tokens, when reported by an upstream.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input_tokens: Option<u64>,
@@ -280,6 +312,8 @@ impl fmt::Debug for Usage {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Usage")
+            .field("provenance", &self.provenance)
+            .field("input_accounting", &self.input_accounting)
             .field("input_tokens_reported", &self.input_tokens.is_some())
             .field("output_tokens_reported", &self.output_tokens.is_some())
             .field(
@@ -297,6 +331,84 @@ impl fmt::Debug for Usage {
             .field("cached_tokens_reported", &self.cached_tokens.is_some())
             .field("extensions", &self.extensions)
             .finish()
+    }
+}
+
+impl Usage {
+    /// Merges cumulative snapshots without treating an absent counter as zero.
+    #[must_use]
+    pub fn merge_snapshot(previous: Option<&Self>, update: &Self) -> Self {
+        let mut merged = previous.cloned().unwrap_or_default();
+        if update.provenance != UsageProvenance::Unknown {
+            merged.provenance = update.provenance;
+        }
+        if update.input_accounting != InputTokenAccounting::Unknown {
+            merged.input_accounting = update.input_accounting;
+        }
+        if update.input_tokens.is_some() {
+            merged.input_tokens = update.input_tokens;
+        }
+        if update.output_tokens.is_some() {
+            merged.output_tokens = update.output_tokens;
+        }
+        if update.reasoning_tokens.is_some() {
+            merged.reasoning_tokens = update.reasoning_tokens;
+        }
+        if update.cache_read_tokens.is_some() {
+            merged.cache_read_tokens = update.cache_read_tokens;
+        }
+        if update.cache_creation_tokens.is_some() {
+            merged.cache_creation_tokens = update.cache_creation_tokens;
+        }
+        if update.cached_tokens.is_some() {
+            merged.cached_tokens = update.cached_tokens;
+        }
+        if !update.extensions.is_empty() {
+            merged.extensions = update.extensions.clone();
+        }
+        merged
+    }
+
+    /// Returns the closed public evidence object, retaining absent counters as null.
+    #[must_use]
+    pub fn evidence(&self) -> serde_json::Value {
+        serde_json::json!({"provenance":self.provenance,"input_accounting":self.input_accounting,
+            "input_tokens":self.input_tokens,"output_tokens":self.output_tokens,
+            "reasoning_tokens":self.reasoning_tokens,"cache_read_tokens":self.cache_read_tokens,
+            "cache_creation_tokens":self.cache_creation_tokens,"cached_tokens":self.cached_tokens})
+    }
+
+    /// Converts only a proven input aggregate; missing cache detail remains unknown.
+    ///
+    /// # Errors
+    /// Returns a stream protocol error for overflowing or inconsistent measured subsets.
+    pub fn input_for(&self, target: InputTokenAccounting) -> Result<Option<u64>, GatewayError> {
+        let invalid =
+            || GatewayError::new(GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream);
+        if self.input_accounting == target || self.input_accounting == InputTokenAccounting::Unknown
+        {
+            return Ok(self.input_tokens);
+        }
+        let Some(input) = self.input_tokens else {
+            return Ok(None);
+        };
+        match (self.input_accounting, target) {
+            (InputTokenAccounting::Exclusive, InputTokenAccounting::Inclusive) => {
+                let Some((read, created)) = self.cache_read_tokens.zip(self.cache_creation_tokens)
+                else {
+                    return Ok(None);
+                };
+                let cache = read.checked_add(created).ok_or_else(invalid)?;
+                input.checked_add(cache).map(Some).ok_or_else(invalid)
+            }
+            (InputTokenAccounting::Inclusive, InputTokenAccounting::Exclusive) => {
+                let Some(cache) = self.cached_tokens else {
+                    return Ok(None);
+                };
+                input.checked_sub(cache).map(Some).ok_or_else(invalid)
+            }
+            _ => Ok(None),
+        }
     }
 }
 
@@ -608,14 +720,14 @@ impl OpenResponse {
                 Ok(())
             }
             CanonicalEvent::TextDelta(delta) => {
-                if !self.message_open || delta.text.is_empty() {
+                if !self.message_open || (delta.text.is_empty() && delta.extensions.is_empty()) {
                     return Err(stream_protocol_error());
                 }
 
                 Ok(())
             }
             CanonicalEvent::ReasoningDelta(delta) => {
-                if !self.message_open || delta.text.is_empty() {
+                if !self.message_open || (delta.text.is_empty() && delta.extensions.is_empty()) {
                     return Err(stream_protocol_error());
                 }
 
@@ -668,7 +780,10 @@ impl OpenResponse {
     }
 
     fn end_tool_call(&mut self, end: &ToolCallEnd) -> Result<(), GatewayError> {
-        if !self.message_open {
+        if !self.message_open
+            || !serde_json::from_str::<serde_json::Value>(end.arguments.get())
+                .is_ok_and(|value| value.is_object())
+        {
             return Err(stream_protocol_error());
         }
 

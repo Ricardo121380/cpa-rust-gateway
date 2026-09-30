@@ -7,6 +7,10 @@
 | Task | `P5-01` |
 | Contract | [BC-PROTOCOL-002](../contracts/BC-PROTOCOL-002-anthropic-messages-adapter.md) |
 
+CPAR batch B updates the reviewed metadata, thinking and Usage behavior in
+[ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md). The pure codec ownership
+boundary remains applicable.
+
 ## Context
 
 The gateway has a canonical request/event model and an OpenAI Responses pure codec, but no

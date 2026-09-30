@@ -11,8 +11,10 @@ use std::{
     fmt,
 };
 
+mod annotations;
 mod native_output;
 mod upstream_response;
+pub use annotations::validate as validate_annotations;
 pub use native_output::{
     has_native_output_metadata, native_item_metadata, native_item_metadata_rejection,
     native_part_extensions,
@@ -470,7 +472,11 @@ fn decode_response_id(value: &Value) -> Result<ResponseId, GatewayError> {
 
 fn decode_input_item(item: &Value) -> Result<CanonicalMessage, GatewayError> {
     let item = object(item)?;
-    let item_type = item.get("type").and_then(Value::as_str);
+    let item_type = match item.get("type") {
+        None => None,
+        Some(Value::String(value)) => Some(value.as_str()),
+        Some(_) => return Err(client_request_error()),
+    };
 
     match item_type {
         Some("reasoning") => Ok(CanonicalMessage {
@@ -518,6 +524,9 @@ fn decode_content_part(part: &Value) -> Result<MessageContent, GatewayError> {
     let object = object(part)?;
     match object.get("type").and_then(Value::as_str) {
         Some("input_text" | "output_text") => {
+            if let Some(annotations) = object.get("annotations") {
+                annotations::validate(annotations).map_err(|_| client_request_error())?;
+            }
             let text = required_string(object, "text")?.to_owned();
             Ok(MessageContent::Text(TextContent {
                 text,
@@ -704,12 +713,20 @@ fn reject_unimplemented_execution_controls(root: &Map<String, Value>) -> Result<
     }
 
     if let Some(tool_choice) = root.get("tool_choice")
-        && !matches!(tool_choice.as_str(), Some("auto" | "required"))
+        && !(matches!(tool_choice.as_str(), Some("auto" | "required" | "none"))
+            || tool_choice.as_object().is_some_and(|choice| {
+                choice.len() == 2
+                    && choice.get("type").and_then(Value::as_str) == Some("function")
+                    && choice
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .is_some_and(|name| !name.is_empty())
+            }))
     {
         return Err(client_request_error());
     }
     if let Some(parallel_tool_calls) = root.get("parallel_tool_calls")
-        && parallel_tool_calls.as_bool() != Some(true)
+        && !parallel_tool_calls.is_boolean()
     {
         return Err(client_request_error());
     }
@@ -1962,9 +1979,10 @@ impl OutputStatus {
 
 fn usage_value(usage: &gateway_core::Usage) -> Result<Value, GatewayError> {
     let mut encoded = Map::new();
-    insert_optional_number(&mut encoded, "input_tokens", usage.input_tokens);
+    let input = usage.input_for(gateway_core::InputTokenAccounting::Inclusive)?;
+    insert_optional_number(&mut encoded, "input_tokens", input);
     insert_optional_number(&mut encoded, "output_tokens", usage.output_tokens);
-    if let (Some(input), Some(output)) = (usage.input_tokens, usage.output_tokens) {
+    if let (Some(input), Some(output)) = (input, usage.output_tokens) {
         encoded.insert(
             "total_tokens".to_owned(),
             Value::Number(serde_json::Number::from(
@@ -1991,6 +2009,7 @@ fn usage_value(usage: &gateway_core::Usage) -> Result<Value, GatewayError> {
         );
     }
 
+    encoded.insert("cpar_usage".to_owned(), usage.evidence());
     Ok(Value::Object(encoded))
 }
 
@@ -2010,11 +2029,7 @@ fn ensure_representable_event_extensions(event: &CanonicalEvent) -> Result<(), G
     if let CanonicalEvent::UsageDelta(value) = event {
         // The Responses usage schema cannot losslessly distinguish these canonical values or
         // carry generic raw fields. Reject instead of inventing an aggregate or dropping data.
-        if !value.extensions.is_empty()
-            || !value.usage.extensions.is_empty()
-            || value.usage.cache_read_tokens.is_some()
-            || value.usage.cache_creation_tokens.is_some()
-        {
+        if !value.extensions.is_empty() || !value.usage.extensions.is_empty() {
             return Err(stream_protocol_error());
         }
         return Ok(());
@@ -2592,7 +2607,7 @@ mod tests {
         for request in [
             r#"{"model":"gateway-model","background":true}"#,
             r#"{"model":"gateway-model","tool_choice":"required"}"#,
-            r#"{"model":"gateway-model","parallel_tool_calls":false}"#,
+            r#"{"model":"gateway-model","parallel_tool_calls":"false"}"#,
             r#"{"model":"gateway-model","text":{"format":{"type":"json_schema"}}}"#,
             r#"{"model":"gateway-model","tools":[{"type":"web_search_preview"}]}"#,
         ] {
@@ -2917,8 +2932,6 @@ mod tests {
         )?;
         for usage in [
             r#"{"usage_delta":{"usage":{"input_tokens":1,"extensions":{"vendor":{"trace":"opaque"}}},"extensions":{}}}"#,
-            r#"{"usage_delta":{"usage":{"cache_read_tokens":1,"extensions":{}},"extensions":{}}}"#,
-            r#"{"usage_delta":{"usage":{"cache_creation_tokens":1,"extensions":{}},"extensions":{}}}"#,
             r#"{"usage_delta":{"usage":{"input_tokens":18446744073709551615,"output_tokens":1,"extensions":{}},"extensions":{}}}"#,
         ] {
             let usage: CanonicalEvent = serde_json::from_str(usage)?;

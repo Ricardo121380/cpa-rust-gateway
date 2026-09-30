@@ -40,8 +40,13 @@ Accepted external request
   adapter explicitly wraps an unsupported future content kind in the canonical
   `{"opaque":{"raw":...}}` envelope; it is not automatically inferred from an unknown external
   tag and does not claim media semantics.
-- A Tool declaration retains its name, optional description, JSON Schema, and extensions. The core
-  neither validates Tool arguments nor normalizes empty arguments to `{}`.
+- A Tool declaration retains its name, optional description, JSON Schema, and extensions. The
+  core's history validator requires complete JSON-object arguments but does not validate them
+  against a Tool's JSON Schema or normalize empty arguments to `{}`.
+- Historical calls have unique nonempty ASCII graphic IDs of at most 512 bytes. Results refer to
+  an earlier pending call exactly once. A new non-Tool message cannot bypass pending results,
+  and a submitted execution history cannot end with unresolved calls. HTTP execution validates
+  this order after expanding owned continuation/compaction history, before upstream acquisition.
 - Thinking represents only an explicit client effort request. When the optional request-level
   Thinking object is present, it contains one non-empty open-ended effort label; it is not encoded
   in a `-thinking` model suffix and has no provider-specific mapping, budget, usage, or replay
@@ -66,6 +71,8 @@ Accepted external request
   cache fields, thinking labels, and opaque raw JSON.
 - A later protocol bridge that cannot losslessly represent a retained raw extension, Tool,
   Thinking, or structured content must reject that candidate. It must not delete the information.
+- Every execution mode, including exact native forwarding, validates the reviewed request
+  semantics. Merely retaining an unknown control does not authorize its execution.
 - `CanonicalEvent`, Tool argument streaming, `{}` normalization, HTTP error encoding, and provider
   execution are outside this contract and remain in later tasks.
 
@@ -78,3 +85,10 @@ Accepted external request
   enumeration are lossless, duplicate extension keys and invalid raw JSON are rejected, and
   diagnostics redact client-supplied values. They also reject a supplied Thinking object without
   an explicit effort, including `null`, an empty object, or an empty effort label.
+
+## 2026-09-30 protocol execution note
+
+[ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md) defines exact Tool
+selection/parallel controls, visible thinking, native metadata and source Usage evidence for
+CPAR batch B. Provider-specific budgets remain in reviewed protocol extensions; no approximate
+budget-to-effort mapping is authorized by the canonical effort label.

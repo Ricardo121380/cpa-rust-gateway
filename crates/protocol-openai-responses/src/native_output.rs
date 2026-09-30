@@ -64,7 +64,7 @@ fn native_item_metadata_checked(
             "content",
             "encrypted_content",
         ],
-        "message" => &["id", "type", "status", "role", "content"],
+        "message" => &["id", "type", "status", "role", "content", "phase"],
         "function_call" => &["id", "type", "status", "call_id", "name", "arguments"],
         _ => return Err(stream_protocol_error()),
     };
@@ -114,6 +114,13 @@ fn native_item_metadata_checked(
             }
         }
         Some("message") => {
+            *stage = "item_phase";
+            if item
+                .get("phase")
+                .is_some_and(|value| !matches!(value.as_str(), Some("commentary" | "final_answer")))
+            {
+                return Err(stream_protocol_error());
+            }
             item.entry("role").or_insert_with(|| json!("assistant"));
             *stage = "message_role";
             if item["role"] != "assistant" {
@@ -217,14 +224,26 @@ fn validate_parts(value: &Value, kind: &str, stage: &mut &'static str) -> Result
         } else {
             "part_annotations_value"
         };
-        if part
-            .get("annotations")
-            .is_some_and(|v| kind != "output_text" || v != &json!([]))
-        {
-            return Err(stream_protocol_error());
+        if let Some(annotations) = part.get("annotations") {
+            if kind != "output_text" {
+                return Err(stream_protocol_error());
+            }
+            crate::annotations::validate(annotations)?;
         }
     }
     Ok(())
+}
+
+pub(crate) fn native_annotation_extensions(
+    id: &str,
+    index: usize,
+    annotation_index: usize,
+    annotation: &Value,
+) -> Result<RawExtensions, GatewayError> {
+    crate::annotations::validate_one(annotation)?;
+    let mut extensions = RawExtensions::default();
+    extensions.try_insert(PART, RawJson::from_json_string(json!({"id":id,"field":"content","index":index,"annotation_index":annotation_index,"annotation":annotation}).to_string()).map_err(|_| stream_protocol_error())?).map_err(|_| stream_protocol_error())?;
+    Ok(extensions)
 }
 
 /// Associates a semantic delta with its original output item and part.
@@ -394,14 +413,7 @@ impl OpenAiResponsesSseEncoder {
         text: &str,
         reasoning: bool,
     ) -> Result<Vec<SseFrame>, GatewayError> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Part {
-            id: String,
-            field: String,
-            index: usize,
-        }
-        let part: Part =
+        let part: NativePart =
             serde_json::from_str(ext.get(PART).ok_or_else(stream_protocol_error)?.get())
                 .map_err(|_| stream_protocol_error())?;
         if part.index >= 64
@@ -446,6 +458,12 @@ impl OpenAiResponsesSseEncoder {
             .to_owned();
         content.push_str(text);
         parts[part.index]["text"] = json!(content);
+        append_annotation(
+            &mut parts[part.index],
+            part.annotation.as_ref(),
+            part.annotation_index,
+            text,
+        )?;
         let mut frames = Vec::new();
         let index_key = if part.field == "summary" {
             "summary_index"
@@ -466,6 +484,17 @@ impl OpenAiResponsesSseEncoder {
             frames.push(frame(&mut self.next_sequence_number, event, added_data)?);
         }
         data.insert("delta".into(), json!(text));
+        if let Some(annotation) = part.annotation {
+            data.remove("delta");
+            data.insert("annotation".into(), annotation);
+            data.insert("annotation_index".into(), json!(part.annotation_index));
+            frames.push(frame(
+                &mut self.next_sequence_number,
+                "response.output_text.annotation.added",
+                data,
+            )?);
+            return Ok(frames);
+        }
         let event = if part.field == "summary" {
             "response.reasoning_summary_text.delta"
         } else if reasoning {
@@ -530,6 +559,12 @@ impl OpenAiResponsesSseEncoder {
                             value["type"] == "reasoning",
                         )?);
                     }
+                    frames.extend(self.finish_annotations(
+                        &meta.item_id,
+                        part_index,
+                        previous.get(part_index),
+                        part,
+                    )?);
                     let mut data = function_data(index, &meta.item_id);
                     data.insert(
                         if field == "summary" {
@@ -571,6 +606,77 @@ impl OpenAiResponsesSseEncoder {
         )?);
         Ok(frames)
     }
+
+    fn finish_annotations(
+        &mut self,
+        item_id: &str,
+        part_index: usize,
+        previous: Option<&Value>,
+        part: &Value,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
+        let empty = Vec::new();
+        let prior = previous
+            .and_then(|part| part.get("annotations"))
+            .and_then(Value::as_array)
+            .unwrap_or(&empty);
+        let final_annotations = part
+            .get("annotations")
+            .and_then(Value::as_array)
+            .unwrap_or(&empty);
+        if !final_annotations.starts_with(prior) {
+            return Err(stream_protocol_error());
+        }
+        let mut frames = Vec::new();
+        for (annotation_index, annotation) in final_annotations.iter().enumerate().skip(prior.len())
+        {
+            frames.extend(self.append_native(
+                &native_annotation_extensions(item_id, part_index, annotation_index, annotation)?,
+                "",
+                false,
+            )?);
+        }
+        Ok(frames)
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NativePart {
+    id: String,
+    field: String,
+    index: usize,
+    #[serde(default)]
+    annotation_index: Option<usize>,
+    #[serde(default)]
+    annotation: Option<Value>,
+}
+
+fn append_annotation(
+    part: &mut Value,
+    annotation: Option<&Value>,
+    index: Option<usize>,
+    text: &str,
+) -> Result<(), GatewayError> {
+    if let Some(annotation) = annotation {
+        if part["type"] != "output_text" || !text.is_empty() {
+            return Err(stream_protocol_error());
+        }
+        crate::annotations::validate_one(annotation)?;
+        let annotations = part
+            .as_object_mut()
+            .ok_or_else(stream_protocol_error)?
+            .entry("annotations")
+            .or_insert_with(|| json!([]))
+            .as_array_mut()
+            .ok_or_else(stream_protocol_error)?;
+        if index != Some(annotations.len()) {
+            return Err(stream_protocol_error());
+        }
+        annotations.push(annotation.clone());
+    } else if index.is_some() {
+        return Err(stream_protocol_error());
+    }
+    Ok(())
 }
 
 #[cfg(test)]

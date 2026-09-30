@@ -293,7 +293,7 @@ fn compile_usage_entry(
         None => attempts.into_iter().next_back().map(|(_, value)| value),
     }
     .ok_or(BillingMaterializationError::InvalidLineage)?;
-    if !matches!(attempt.outcome(), AttemptOutcome::Succeeded)
+    if (!matches!(attempt.outcome(), AttemptOutcome::Succeeded) && usage.attempt_id().is_none())
         || attempt.request_id() != request.request_id()
         || usage.request_id() != request.request_id()
     {

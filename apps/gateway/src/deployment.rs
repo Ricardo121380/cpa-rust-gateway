@@ -285,6 +285,10 @@ async fn run_servers(
     let data = web::Data::from(data_source);
     let data_server = HttpServer::new(move || App::new().app_data(data.clone()).configure(configure))
             .workers(1)
+            // Public inference treats a client FIN as cancellation, including while the
+            // handler awaits upstream headers or an idle SSE body awaits its next event.
+            // Otherwise Actix keeps the response alive after its read half has closed.
+            .h1_allow_half_closed(false)
             // Each in-flight request may buffer up to MAX_INFERENCE_REQUEST_BODY_BYTES, so the
             // connection ceiling is what keeps the worst-case resident total inside the unit's
             // MemoryMax. Actix's 25,600 default would not.

@@ -62,12 +62,11 @@ use gateway_core::{
     EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageContent,
     MessageRole, NoopGatewayEventSink, ProviderId, RawExtensions, RawJson, RequestContext,
     RequestId, RouteId, TextContent, TransparentRetryGate, TransparentRetryGateFuture, Usage,
-    UsageDelta,
 };
 #[cfg(test)]
 use gateway_core::{
     CanonicalResponse, MessageEnd, MessageStart, ResponseEnd, ResponseId, ResponseStart,
-    StreamError, TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart,
+    StreamError, TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart, UsageDelta,
 };
 use gateway_http_actix::{
     ResponsesHttpState, SystemResponsesMetadataFactory, default_stream_capacity,
@@ -598,6 +597,7 @@ fn p12_adapter_capabilities(adapter_id: &str) -> Result<CapabilitySet, RuntimeCo
 
     let capabilities: &[SemanticCapability] = match adapter_id {
         "openai-compatible.chat-completions" => &[
+            Reasoning,
             Tools,
             ParallelTools,
             JsonSchema,
@@ -1513,14 +1513,9 @@ impl P12RoutedResponsesExecutor {
             request: canonical,
             client_protocol,
             native_payload: None,
-            usage_projection: match client_protocol {
-                ProtocolFormat::AnthropicMessages => P12ResponseUsageProjection::AnthropicMessages,
-                ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
-                    P12ResponseUsageProjection::OpenAiResponses
-                }
-            },
             mode,
             client_transport: ResponsesClientTransport::Http,
+            requires_stored_response: false,
             endpoints,
             compatible_endpoints: Arc::clone(&self.compatible_endpoints),
             client_pool: Arc::clone(&self.client_pool),
@@ -1897,18 +1892,13 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         let context = execution.context().clone();
         let request = execution.request().clone();
         let client_protocol = execution.client_protocol();
-        let usage_projection = match client_protocol {
-            ProtocolFormat::AnthropicMessages => P12ResponseUsageProjection::AnthropicMessages,
-            ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
-                P12ResponseUsageProjection::OpenAiResponses
-            }
-        };
         let native_payload = execution.native_payload().cloned();
         let route_id = execution.route_id().cloned();
         let exact_upstream_model = execution.exact_upstream_model().map(str::to_owned);
         let route_snapshot = execution.route_snapshot().cloned();
         let mode = execution.mode();
         let client_transport = execution.client_transport();
+        let requires_stored_response = execution.requires_stored_response();
         let retry_gate = Arc::clone(execution.retry_gate());
         let lineage_recorder = execution.lineage_recorder().cloned();
         let mut continuation_pin = execution.continuation_pin().cloned();
@@ -1957,9 +1947,9 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 request,
                 client_protocol,
                 native_payload,
-                usage_projection,
                 mode,
                 client_transport,
+                requires_stored_response,
                 endpoints,
                 compatible_endpoints,
                 client_pool,
@@ -2086,7 +2076,20 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             }
             let (source, selection) = started.into_parts();
             Ok(Box::new(LeaseHoldingEventSource {
-                source: Box::new(ProjectedEventSource::new(source, client_protocol)),
+                source: Box::new(
+                    ProjectedEventSource::new(source, client_protocol).with_tool_constraints(
+                        gateway_router::ToolExecutionConstraints::from_request(
+                            &driver.request,
+                            client_protocol,
+                        )
+                        .map_err(|_| {
+                            GatewayError::new(
+                                GatewayErrorCode::ClientRequestError,
+                                ErrorScope::Request,
+                            )
+                        })?,
+                    ),
+                ),
                 _selection: selection,
             }) as Box<dyn ResponsesEventSource>)
         })
@@ -4238,9 +4241,21 @@ impl ProjectedEventSource {
             projector: ProtocolResponseProjector::new(target),
         }
     }
+
+    fn with_tool_constraints(
+        mut self,
+        constraints: gateway_router::ToolExecutionConstraints,
+    ) -> Self {
+        self.projector = self.projector.with_tool_constraints(constraints);
+        self
+    }
 }
 
 impl ResponsesEventSource for ProjectedEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        self.inner.decoded_usage()
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move {
             loop {
@@ -4258,6 +4273,10 @@ impl ResponsesEventSource for ProjectedEventSource {
 }
 
 impl ResponsesEventSource for LeaseHoldingEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        self.source.decoded_usage()
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         self.source.next_event()
     }
@@ -4276,6 +4295,10 @@ struct CompatibleEgressLeaseHoldingEventSource {
 }
 
 impl ResponsesEventSource for CompatibleEgressLeaseHoldingEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        self.source.decoded_usage()
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         self.source.next_event()
     }
@@ -4306,9 +4329,9 @@ struct EndpointAttemptDriver {
     request: CanonicalRequest,
     client_protocol: ProtocolFormat,
     native_payload: Option<Arc<[u8]>>,
-    usage_projection: P12ResponseUsageProjection,
     mode: ResponsesResponseMode,
     client_transport: ResponsesClientTransport,
+    requires_stored_response: bool,
     endpoints: Arc<BTreeMap<EndpointId, EndpointRuntime>>,
     compatible_endpoints: Arc<BTreeMap<EndpointId, Arc<CompatibleEndpointRuntime>>>,
     client_pool: Arc<UpstreamClientPool>,
@@ -4448,6 +4471,13 @@ impl EndpointAttemptDriver {
         {
             return Err(ProtocolTransformRejection::ResponsesWebSocketUnsupported);
         }
+        if self.requires_stored_response
+            && !candidate
+                .effective_capabilities()
+                .supports(SemanticCapability::StoredResponses)
+        {
+            return Err(ProtocolTransformRejection::StoredResponsesUnsupported);
+        }
         if self.request.messages.iter().flat_map(|m| &m.content).any(|part| {
             matches!(part, gateway_core::MessageContent::Reasoning(history) if history.has_encrypted_content())
         }) && (!matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
@@ -4483,7 +4513,11 @@ impl EndpointAttemptDriver {
             request: &self.request,
             streaming: self.mode == ResponsesResponseMode::Streaming,
             requires_json_schema: false,
-            requires_parallel_tools: false,
+            requires_parallel_tools: gateway_router::ToolExecutionConstraints::from_request(
+                &self.request,
+                self.client_protocol,
+            )?
+            .requires_parallel_tools(),
             target_capabilities: candidate.effective_capabilities(),
         })
     }
@@ -4675,7 +4709,6 @@ impl EndpointAttemptDriver {
                     &mut response,
                     self.attempt_stages.as_ref(),
                     &self.request_id,
-                    self.usage_projection,
                 )
                 .await?;
                 Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
@@ -4685,7 +4718,7 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source = ChatSseEventSource::begin(response, self.usage_projection).await?;
+                let source = ChatSseEventSource::begin(response).await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
         }
@@ -4807,12 +4840,9 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source = OpenAiSseEventSource::begin_with_reasoning_policy(
-                    response,
-                    self.usage_projection,
-                    is_codex_oauth,
-                )
-                .await?;
+                let source =
+                    OpenAiSseEventSource::begin_with_reasoning_policy(response, is_codex_oauth)
+                        .await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
             ResponsesResponseMode::NonStreaming => {
@@ -4820,7 +4850,6 @@ impl EndpointAttemptDriver {
                     &mut response,
                     self.attempt_stages.as_ref(),
                     &self.request_id,
-                    self.usage_projection,
                     is_codex_oauth,
                 )
                 .await?;
@@ -4831,12 +4860,9 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source = OpenAiSseEventSource::begin_with_reasoning_policy(
-                    response,
-                    self.usage_projection,
-                    is_codex_oauth,
-                )
-                .await?;
+                let source =
+                    OpenAiSseEventSource::begin_with_reasoning_policy(response, is_codex_oauth)
+                        .await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
         }
@@ -4915,7 +4941,6 @@ impl EndpointAttemptDriver {
                     &mut response,
                     self.attempt_stages.as_ref(),
                     &self.request_id,
-                    self.usage_projection,
                 )
                 .await?;
                 Ok(Box::new(FiniteEventSource::new(events)) as Box<dyn ResponsesEventSource>)
@@ -4925,8 +4950,7 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source =
-                    AnthropicSseEventSource::begin(response, self.usage_projection).await?;
+                let source = AnthropicSseEventSource::begin(response).await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
         }
@@ -5763,26 +5787,6 @@ fn p12_openai_compatible_request(
     Ok(translated)
 }
 
-/// Selects the protocol-scoped usage projection from the trusted ingress namespace.
-///
-/// The only P12 Messages marker is produced by the Anthropic decoder for its required
-/// `max_tokens` field. Its presence lets this isolated runtime keep `OpenAI` Responses' detailed
-/// usage for a Responses caller while omitting only counters that an Anthropic usage object has no
-/// field to carry. It is not a client-selectable transport flag and does not change the outbound
-/// request conversion.
-#[cfg(test)]
-fn p12_response_usage_projection(request: &CanonicalRequest) -> P12ResponseUsageProjection {
-    if request
-        .extensions
-        .get(P12_ANTHROPIC_MAX_TOKENS_EXTENSION)
-        .is_some()
-    {
-        P12ResponseUsageProjection::AnthropicMessages
-    } else {
-        P12ResponseUsageProjection::OpenAiResponses
-    }
-}
-
 fn upstream_response_mode(mode: ResponsesResponseMode) -> ResponseMode {
     match mode {
         ResponsesResponseMode::NonStreaming => ResponseMode::NonStreaming,
@@ -5847,12 +5851,6 @@ struct FiniteEventSource {
     events: VecDeque<CanonicalEvent>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum P12ResponseUsageProjection {
-    OpenAiResponses,
-    AnthropicMessages,
-}
-
 impl FiniteEventSource {
     fn new(events: Vec<CanonicalEvent>) -> Self {
         Self {
@@ -5862,22 +5860,34 @@ impl FiniteEventSource {
 }
 
 impl ResponsesEventSource for FiniteEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        buffered_usage(self.events.iter())
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move { Ok(self.events.pop_front()) })
     }
+}
+
+fn buffered_usage<'a>(events: impl Iterator<Item = &'a CanonicalEvent>) -> Option<Usage> {
+    events.fold(None, |known, event| match event {
+        CanonicalEvent::UsageDelta(delta) => {
+            Some(Usage::merge_snapshot(known.as_ref(), &delta.usage))
+        }
+        _ => known,
+    })
 }
 
 /// Buffers one complete Anthropic Messages JSON body under the shared response bound.
 ///
 /// The ledger order, the bounded append, and the failure classification are exactly
 /// [`decode_json_response`]'s; only the codec that projects the bytes onto Canonical events
-/// differs. No usage projection applies: the Anthropic decoder already emits exactly the counters
-/// an Anthropic usage object can carry.
+/// differs. All source counters and their accounting evidence are retained for the public codec
+/// and the ledger.
 async fn decode_anthropic_json_response(
     response: &mut UpstreamHttpResponse,
     attempt_stages: &P12AttemptStageStore,
     request_id: &RequestId,
-    usage_projection: P12ResponseUsageProjection,
 ) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
     let mut body = Vec::new();
@@ -5894,7 +5904,7 @@ async fn decode_anthropic_json_response(
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::Decoder);
     let body = std::str::from_utf8(&body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
     let events = decode_upstream_response(body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
-    Ok(project_usage_events(events, usage_projection))
+    Ok(events)
 }
 
 /// Buffers and strictly decodes one complete Chat Completions response.
@@ -5902,7 +5912,6 @@ async fn decode_chat_json_response(
     response: &mut UpstreamHttpResponse,
     attempt_stages: &P12AttemptStageStore,
     request_id: &RequestId,
-    usage_projection: P12ResponseUsageProjection,
 ) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
     let mut body = Vec::new();
@@ -5918,28 +5927,23 @@ async fn decode_chat_json_response(
     let body = std::str::from_utf8(&body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
     let events =
         decode_chat_upstream_response(body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
-    Ok(project_usage_events(events, usage_projection))
+    Ok(events)
 }
 
 /// Streams one native Chat Completions SSE response through the protocol-owned decoder.
 struct ChatSseEventSource {
     response: UpstreamHttpResponse,
     decoder: OpenAiChatSseDecoder,
-    usage_projection: P12ResponseUsageProjection,
     pending: VecDeque<CanonicalEvent>,
     progress_deadline: Duration,
     progress_wait_spent: Duration,
 }
 
 impl ChatSseEventSource {
-    async fn begin(
-        response: UpstreamHttpResponse,
-        usage_projection: P12ResponseUsageProjection,
-    ) -> Result<Self, AttemptFailure> {
+    async fn begin(response: UpstreamHttpResponse) -> Result<Self, AttemptFailure> {
         let mut source = Self {
             response,
             decoder: OpenAiChatSseDecoder::new(),
-            usage_projection,
             pending: VecDeque::new(),
             progress_deadline: P12_STREAMING_PROGRESS_TIMEOUT,
             progress_wait_spent: Duration::ZERO,
@@ -5981,50 +5985,25 @@ impl ChatSseEventSource {
 }
 
 impl ResponsesEventSource for ChatSseEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        let buffered = buffered_usage(self.pending.iter());
+        match self.decoder.decoded_usage() {
+            Some(usage) => Some(Usage::merge_snapshot(buffered.as_ref(), &usage)),
+            None => buffered,
+        }
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move {
             if let Some(event) = self.pending.pop_front() {
-                return Ok(Some(project_usage_event(event, self.usage_projection)));
+                return Ok(Some(event));
             }
             if self.decoder.is_finished() {
                 return Ok(None);
             }
             self.read_until_event().await?;
-            Ok(self
-                .pending
-                .pop_front()
-                .map(|event| project_usage_event(event, self.usage_projection)))
+            Ok(self.pending.pop_front())
         })
-    }
-}
-
-/// Narrows every decoded `UsageDelta` to what the client's protocol can encode.
-///
-/// The upstream format decides which counters exist; the client format decides which may be
-/// emitted. An Anthropic upstream always reports cache-input counters, so a Responses client
-/// would fail its encode without this narrowing.
-fn project_usage_events(
-    events: Vec<CanonicalEvent>,
-    usage_projection: P12ResponseUsageProjection,
-) -> Vec<CanonicalEvent> {
-    events
-        .into_iter()
-        .map(|event| project_usage_event(event, usage_projection))
-        .collect()
-}
-
-/// Narrows one decoded event's Usage to what the client's protocol can encode.
-fn project_usage_event(
-    event: CanonicalEvent,
-    usage_projection: P12ResponseUsageProjection,
-) -> CanonicalEvent {
-    match event {
-        CanonicalEvent::UsageDelta(delta) => {
-            let usage =
-                project_usage_for_response(Some(delta.usage), usage_projection).unwrap_or_default();
-            CanonicalEvent::UsageDelta(UsageDelta { usage, ..delta })
-        }
-        other => other,
     }
 }
 
@@ -6039,8 +6018,6 @@ fn project_usage_event(
 struct AnthropicSseEventSource {
     response: UpstreamHttpResponse,
     decoder: AnthropicMessagesSseDecoder,
-    /// Narrows each decoded `UsageDelta` to what the client's protocol can encode.
-    usage_projection: P12ResponseUsageProjection,
     /// One decoded event held back so bootstrap can prove the stream opened with `ResponseStart`.
     ///
     /// The shared decoder exposes no peek, so the shell owns the one-event lookahead instead.
@@ -6055,16 +6032,8 @@ struct AnthropicSseEventSource {
 }
 
 impl AnthropicSseEventSource {
-    async fn begin(
-        response: UpstreamHttpResponse,
-        usage_projection: P12ResponseUsageProjection,
-    ) -> Result<Self, AttemptFailure> {
-        Self::begin_with_progress_deadline(
-            response,
-            usage_projection,
-            P12_STREAMING_PROGRESS_TIMEOUT,
-        )
-        .await
+    async fn begin(response: UpstreamHttpResponse) -> Result<Self, AttemptFailure> {
+        Self::begin_with_progress_deadline(response, P12_STREAMING_PROGRESS_TIMEOUT).await
     }
 
     /// Starts one streamed source under an explicit semantic-progress deadline.
@@ -6074,13 +6043,11 @@ impl AnthropicSseEventSource {
     /// peer instead of waiting out the production value.
     async fn begin_with_progress_deadline(
         response: UpstreamHttpResponse,
-        usage_projection: P12ResponseUsageProjection,
         progress_deadline: Duration,
     ) -> Result<Self, AttemptFailure> {
         let mut source = Self {
             response,
             decoder: AnthropicMessagesSseDecoder::new(),
-            usage_projection,
             lookahead: None,
             progress_deadline,
             observed_progress_marks: 0,
@@ -6136,22 +6103,23 @@ impl AnthropicSseEventSource {
 }
 
 impl ResponsesEventSource for AnthropicSseEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        self.decoder.decoded_usage()
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move {
             if let Some(event) = self.lookahead.take() {
-                return Ok(Some(project_usage_event(event, self.usage_projection)));
+                return Ok(Some(event));
             }
             if let Some(event) = self.decoder.take_event() {
-                return Ok(Some(project_usage_event(event, self.usage_projection)));
+                return Ok(Some(event));
             }
             if self.decoder.is_finished() {
                 return Ok(None);
             }
             self.read_until_event().await?;
-            Ok(self
-                .lookahead
-                .take()
-                .map(|event| project_usage_event(event, self.usage_projection)))
+            Ok(self.lookahead.take())
         })
     }
 }
@@ -6160,7 +6128,6 @@ async fn decode_json_response_with_reasoning_policy(
     response: &mut UpstreamHttpResponse,
     attempt_stages: &P12AttemptStageStore,
     request_id: &RequestId,
-    usage_projection: P12ResponseUsageProjection,
     suppress_reasoning: bool,
 ) -> Result<Vec<CanonicalEvent>, AttemptFailure> {
     attempt_stages.record_stage(request_id, ManagementRequestAttemptStage::BodyRead);
@@ -6179,7 +6146,7 @@ async fn decode_json_response_with_reasoning_policy(
     let body = std::str::from_utf8(&body).map_err(|_| AttemptFailure::BootstrapTruncated)?;
     let events = decode_responses_upstream_response_with_reasoning_policy(body, suppress_reasoning)
         .map_err(|_| AttemptFailure::BootstrapTruncated)?;
-    Ok(project_usage_events(events, usage_projection))
+    Ok(events)
 }
 
 /// Fixed, host-independent Kiro environment projection.
@@ -6325,20 +6292,12 @@ fn native_grok_egress_attempt_failure(error: GrokNativeEgressAttemptError) -> At
 
 #[cfg(test)]
 fn decode_json_events(body: &[u8]) -> Result<Vec<CanonicalEvent>, GatewayError> {
-    decode_json_events_with_usage_projection(body, P12ResponseUsageProjection::OpenAiResponses)
-}
-
-#[cfg(test)]
-fn decode_json_events_with_usage_projection(
-    body: &[u8],
-    usage_projection: P12ResponseUsageProjection,
-) -> Result<Vec<CanonicalEvent>, GatewayError> {
     let value: Value = serde_json::from_slice(body).map_err(|_| upstream_protocol_error())?;
     let response_id = required_string(&value, "id")?;
     if value.get("status").and_then(Value::as_str) != Some("completed") {
         return Err(upstream_protocol_error());
     }
-    let usage = project_usage_for_response(decode_usage(value.get("usage"))?, usage_projection);
+    let usage = decode_usage(value.get("usage"))?;
     let output = value
         .get("output")
         .and_then(Value::as_array)
@@ -6416,20 +6375,7 @@ fn decode_json_events_with_usage_projection(
 
 #[cfg(test)]
 fn decode_sse_events(body: &str, chunk_size: usize) -> Result<Vec<CanonicalEvent>, GatewayError> {
-    decode_sse_events_with_usage_projection(
-        body,
-        chunk_size,
-        P12ResponseUsageProjection::OpenAiResponses,
-    )
-}
-
-#[cfg(test)]
-fn decode_sse_events_with_usage_projection(
-    body: &str,
-    chunk_size: usize,
-    usage_projection: P12ResponseUsageProjection,
-) -> Result<Vec<CanonicalEvent>, GatewayError> {
-    let mut decoder = OpenAiSseDecoder::new(usage_projection);
+    let mut decoder = OpenAiSseDecoder::new();
     let mut events = Vec::new();
     for chunk in body.as_bytes().chunks(chunk_size.max(1)) {
         decoder.push_chunk(chunk)?;
@@ -6446,33 +6392,6 @@ fn decode_sse_events_with_usage_projection(
     } else {
         Err(stream_truncated_error())
     }
-}
-
-fn project_usage_for_response(
-    usage: Option<Usage>,
-    usage_projection: P12ResponseUsageProjection,
-) -> Option<Usage> {
-    usage.map(|mut usage| {
-        // The projection is CLIENT-scoped: it narrows a decoded upstream Usage to what the
-        // protocol this request arrived on can encode, whatever upstream produced it.
-        match usage_projection {
-            P12ResponseUsageProjection::AnthropicMessages => {
-                // Anthropic reports the aggregate output count but has no representation for the
-                // OpenAI-specific reasoning/cached sub-counters. Keep every representable total
-                // and cache-input field so the Messages boundary does not fail after a decode.
-                usage.reasoning_tokens = None;
-                usage.cached_tokens = None;
-            }
-            P12ResponseUsageProjection::OpenAiResponses => {
-                // The Responses encoder has no field for Anthropic's cache-input counters, which
-                // an Anthropic upstream reports on every response (as `0` when unused, so they
-                // arrive present rather than absent) and would otherwise fail the encode.
-                usage.cache_read_tokens = None;
-                usage.cache_creation_tokens = None;
-            }
-        }
-        usage
-    })
 }
 
 #[cfg(test)]
@@ -6567,7 +6486,6 @@ fn ensure_message(events: &mut Vec<CanonicalEvent>, message_open: &mut bool) {
 struct OpenAiSseEventSource {
     response: UpstreamHttpResponse,
     decoder: OpenAiResponsesSseDecoder,
-    usage_projection: P12ResponseUsageProjection,
     pending: VecDeque<CanonicalEvent>,
     /// Upstream-wait budget between two decoder progress marks before the stream is declared
     /// wedged.
@@ -6603,7 +6521,6 @@ struct OpenAiSseDecoder {
     /// failure into a pre-first-byte decode failure that the orchestrator can still fail over.
     state: CanonicalEventState,
     lifecycle: SseLifecycle,
-    usage_projection: P12ResponseUsageProjection,
     /// Consecutive frames that proved only socket liveness, reset by any progress frame.
     progress_free_frames: usize,
     /// Monotone count of consumed frames that proved generation is advancing.
@@ -6912,7 +6829,7 @@ impl SseToolCall {
 
 #[cfg(test)]
 impl OpenAiSseDecoder {
-    fn new(usage_projection: P12ResponseUsageProjection) -> Self {
+    fn new() -> Self {
         Self {
             buffer: Vec::new(),
             consumed: 0,
@@ -6920,7 +6837,6 @@ impl OpenAiSseDecoder {
             pending: VecDeque::new(),
             state: CanonicalEventState::default(),
             lifecycle: SseLifecycle::AwaitingResponseStart,
-            usage_projection,
             progress_free_frames: 0,
             progress_marks: 0,
         }
@@ -7084,8 +7000,7 @@ impl OpenAiSseDecoder {
         let response = value.get("response").ok_or_else(upstream_protocol_error)?;
         let response_id = ResponseId::try_new(required_string(response, "id")?)
             .map_err(|_| upstream_protocol_error())?;
-        let usage =
-            project_usage_for_response(decode_usage(response.get("usage"))?, self.usage_projection);
+        let usage = decode_usage(response.get("usage"))?;
         self.lifecycle = SseLifecycle::Streaming(SseStreamingState::default());
         queue_event(
             &mut self.state,
@@ -7246,8 +7161,7 @@ impl OpenAiSseDecoder {
         reported_stop_reason: Option<&str>,
     ) -> Result<(), GatewayError> {
         let response = value.get("response").ok_or_else(upstream_protocol_error)?;
-        let usage =
-            project_usage_for_response(decode_usage(response.get("usage"))?, self.usage_projection);
+        let usage = decode_usage(response.get("usage"))?;
         let state = self.lifecycle.streaming_state()?;
         if !state.emitted_content || state.has_open_tool_call() {
             return Err(upstream_protocol_error());
@@ -7306,12 +7220,10 @@ impl OpenAiSseDecoder {
 impl OpenAiSseEventSource {
     async fn begin_with_reasoning_policy(
         response: UpstreamHttpResponse,
-        usage_projection: P12ResponseUsageProjection,
         suppress_reasoning: bool,
     ) -> Result<Self, AttemptFailure> {
         Self::begin_with_progress_deadline_and_reasoning_policy(
             response,
-            usage_projection,
             P12_STREAMING_PROGRESS_TIMEOUT,
             suppress_reasoning,
         )
@@ -7326,21 +7238,14 @@ impl OpenAiSseEventSource {
     #[cfg(test)]
     async fn begin_with_progress_deadline(
         response: UpstreamHttpResponse,
-        usage_projection: P12ResponseUsageProjection,
         progress_deadline: Duration,
     ) -> Result<Self, AttemptFailure> {
-        Self::begin_with_progress_deadline_and_reasoning_policy(
-            response,
-            usage_projection,
-            progress_deadline,
-            false,
-        )
-        .await
+        Self::begin_with_progress_deadline_and_reasoning_policy(response, progress_deadline, false)
+            .await
     }
 
     async fn begin_with_progress_deadline_and_reasoning_policy(
         response: UpstreamHttpResponse,
-        usage_projection: P12ResponseUsageProjection,
         progress_deadline: Duration,
         suppress_reasoning: bool,
     ) -> Result<Self, AttemptFailure> {
@@ -7351,7 +7256,6 @@ impl OpenAiSseEventSource {
             } else {
                 OpenAiResponsesSseDecoder::new()
             },
-            usage_projection,
             pending: VecDeque::new(),
             progress_deadline,
             observed_progress_marks: 0,
@@ -7399,25 +7303,23 @@ impl OpenAiSseEventSource {
                 .progress_wait_spent
                 .saturating_add(wait_started.elapsed());
             let Some(chunk) = next else {
-                self.pending.extend(
-                    self.decoder
-                        .finish()?
-                        .into_iter()
-                        .map(|event| project_usage_event(event, self.usage_projection)),
-                );
+                self.pending.extend(self.decoder.finish()?);
                 return Ok(());
             };
-            self.pending.extend(
-                self.decoder
-                    .push(&chunk)?
-                    .into_iter()
-                    .map(|event| project_usage_event(event, self.usage_projection)),
-            );
+            self.pending.extend(self.decoder.push(&chunk)?);
         }
     }
 }
 
 impl ResponsesEventSource for OpenAiSseEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        let buffered = buffered_usage(self.pending.iter());
+        match self.decoder.decoded_usage() {
+            Some(usage) => Some(Usage::merge_snapshot(buffered.as_ref(), &usage)),
+            None => buffered,
+        }
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move {
             if self.pending.is_empty() && !self.decoder.is_finished() {
@@ -8412,25 +8314,23 @@ mod tests {
         P12_MAX_TOTAL_BINDING_CONCURRENCY, P12_NON_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_IDLE_TIMEOUT, P12_STREAMING_PROGRESS_TIMEOUT, P12_STREAMING_TOTAL_TIMEOUT,
         P12_STREAMING_TTFB_TIMEOUT, P12AttemptStageStore, P12EndpointAdapterFactory,
-        P12FanoutEventSink, P12ResponseUsageProjection, P12RoutedResponsesExecutor,
-        P12TransportProfiles, P13_CHANNEL_PIN_MAX_IN_FLIGHT, P13ChannelPinInFlightGuard,
-        RuntimeCompositionError, RuntimeCompositionStage, SnapshotManagementRuntimeFacade,
-        append_response_chunk, build_data_plane_composition, build_grok_build_responses_adapter,
+        P12FanoutEventSink, P12RoutedResponsesExecutor, P12TransportProfiles,
+        P13_CHANNEL_PIN_MAX_IN_FLIGHT, P13ChannelPinInFlightGuard, RuntimeCompositionError,
+        RuntimeCompositionStage, SnapshotManagementRuntimeFacade, append_response_chunk,
+        build_data_plane_composition, build_grok_build_responses_adapter,
         build_grok_console_responses_adapter, build_grok_official_responses_adapter,
         build_grok_web_responses_adapter, build_kiro_messages_adapter,
         build_openai_responses_adapter, channel_pin_single_transport_adapter,
         classify_anthropic_response_failure, classify_openai_response_failure,
-        compatible_egress_runtime_inputs, decode_json_events,
-        decode_json_events_with_usage_projection, decode_sse_events,
-        decode_sse_events_with_usage_projection, deployment_route_compiler, endpoint_runtimes,
-        expected_content_type_matches, has_p12_https_only_egress_shape,
-        has_p12_unlisted_model_override, p12_adapter_capabilities, p12_adapter_id_serves,
-        p12_api_format_adapter_registry, p12_attempt_start_timeout,
+        compatible_egress_runtime_inputs, decode_json_events, decode_sse_events,
+        deployment_route_compiler, endpoint_runtimes, expected_content_type_matches,
+        has_p12_https_only_egress_shape, has_p12_unlisted_model_override, p12_adapter_capabilities,
+        p12_adapter_id_serves, p12_api_format_adapter_registry, p12_attempt_start_timeout,
         p12_candidate_override_is_admissible, p12_classify_kiro_start_failure,
         p12_kiro_endpoint_shape, p12_kiro_request_projection, p12_openai_compatible_request,
-        p12_response_usage_projection, p12_transport_headers, p12_transport_request,
-        p13_channel_pin_request_id, project_usage_events, provider_egress_status_facade,
-        queue_event, validate_endpoint_shape, validate_p12_credential_bindings,
+        p12_transport_headers, p12_transport_request, p13_channel_pin_request_id,
+        provider_egress_status_facade, queue_event, validate_endpoint_shape,
+        validate_p12_credential_bindings,
     };
 
     const P12_SINGLETON_TEST_ENDPOINT_ID: &str = "p12-krill-endpoint";
@@ -9117,11 +9017,7 @@ mod tests {
     async fn p12_streamed_tool_lifecycle_is_encodable_by_the_anthropic_messages_boundary()
     -> Result<(), Box<dyn Error>> {
         let body = p12_streamed_tool_body();
-        let events = decode_sse_events_with_usage_projection(
-            &body,
-            9,
-            P12ResponseUsageProjection::AnthropicMessages,
-        )?;
+        let events = decode_sse_events(&body, 9)?;
         let app = actix_test::init_service(
             App::new()
                 .app_data(web::Data::new(p12_decoded_messages_http_state(events)?))
@@ -9247,7 +9143,7 @@ mod tests {
 
         // `response.output_text.done` and `response.completed` each repeat the entire answer in
         // one frame, so a megabyte of buffered residue must not be a protocol failure.
-        let mut decoder = OpenAiSseDecoder::new(P12ResponseUsageProjection::OpenAiResponses);
+        let mut decoder = OpenAiSseDecoder::new();
         decoder.push_chunk(&vec![b'x'; ONE_MEBIBYTE])?;
         decoder.push_chunk(b"tail")?;
         assert_eq!(decoder.buffer.len(), ONE_MEBIBYTE + 4);
@@ -9689,9 +9585,9 @@ mod tests {
             request: decoded.request,
             client_protocol: ProtocolFormat::OpenAiResponses,
             native_payload: None,
-            usage_projection: P12ResponseUsageProjection::OpenAiResponses,
             mode: ResponsesResponseMode::NonStreaming,
             client_transport: ResponsesClientTransport::Http,
+            requires_stored_response: false,
             endpoints: Arc::new(endpoints),
             compatible_endpoints: Arc::new(BTreeMap::new()),
             client_pool: Arc::new(UpstreamClientPool::new(
@@ -10028,9 +9924,9 @@ mod tests {
             request: decoded.request,
             client_protocol: ProtocolFormat::OpenAiResponses,
             native_payload: None,
-            usage_projection: P12ResponseUsageProjection::OpenAiResponses,
             mode: ResponsesResponseMode::NonStreaming,
             client_transport: ResponsesClientTransport::Http,
+            requires_stored_response: false,
             endpoints: Arc::new(endpoints),
             compatible_endpoints: Arc::new(BTreeMap::new()),
             client_pool: Arc::new(UpstreamClientPool::new(
@@ -10209,7 +10105,6 @@ mod tests {
             .await?;
         let mut source = OpenAiSseEventSource::begin_with_progress_deadline(
             response,
-            P12ResponseUsageProjection::OpenAiResponses,
             Duration::from_millis(200),
         )
         .await
@@ -10233,6 +10128,46 @@ mod tests {
         // have fired -- and it must fire well before the transport's two-second byte-idle bound
         // would have had a first chance to see silence.
         assert!(started.elapsed() < Duration::from_secs(2));
+        server.abort();
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn validated_chat_usage_survives_a_later_bad_frame_in_the_same_chunk()
+    -> Result<(), Box<dyn Error>> {
+        let listener = actix_web::rt::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let prelude = "data: {\"id\":\"chat-evidence\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"ok\"},\"finish_reason\":null}]}\n\n".to_owned();
+        let server = spawn_live_sse_peer(
+            listener,
+            prelude,
+            String::new(),
+            0,
+            Duration::ZERO,
+            String::new(),
+        );
+        let response = UpstreamClientPool::new(NonZeroUsize::new(1).ok_or("pool size")?)
+            .send(
+                live_transport_request(live_admitted_target(port)?)?,
+                &live_progress_test_profile()?,
+            )
+            .await?;
+        let mut source = super::ChatSseEventSource::begin(response)
+            .await
+            .map_err(|_| std::io::Error::other("bootstrap"))?;
+        while !source.pending.is_empty() {
+            source.next_event().await?;
+        }
+        let tail = concat!(
+            "data: {\"id\":\"chat-evidence\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+            "data: {\"id\":\"chat-evidence\",\"object\":\"chat.completion.chunk\",\"choices\":[],\"usage\":{\"prompt_tokens\":20,\"completion_tokens\":10,\"total_tokens\":30}}\n\n",
+            "data: malformed\n\n"
+        );
+        assert!(source.decoder.push(tail.as_bytes()).is_err());
+        let usage = source.decoded_usage().ok_or("validated usage was lost")?;
+        assert_eq!(usage.input_tokens, Some(20));
+        assert_eq!(usage.output_tokens, Some(10));
+        assert_eq!(usage.provenance, gateway_core::UsageProvenance::Measured);
         server.abort();
         Ok(())
     }
@@ -10268,7 +10203,6 @@ mod tests {
             .await?;
         let mut source = AnthropicSseEventSource::begin_with_progress_deadline(
             response,
-            P12ResponseUsageProjection::AnthropicMessages,
             Duration::from_millis(200),
         )
         .await
@@ -10318,11 +10252,7 @@ mod tests {
                 &live_progress_test_profile()?,
             )
             .await?;
-        assert!(
-            AnthropicSseEventSource::begin(response, P12ResponseUsageProjection::AnthropicMessages)
-                .await
-                .is_err()
-        );
+        assert!(AnthropicSseEventSource::begin(response).await.is_err());
         server.abort();
         Ok(())
     }
@@ -10338,6 +10268,7 @@ mod tests {
             r#"{"type":"response.output_text.delta","item_id":"msg-live","delta":"ok"}"#,
         ]);
         let epilogue = sse_stream_body(&[
+            r#"{"type":"response.output_item.done","item":{"id":"msg-live","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok","annotations":[]}]}}"#,
             r#"{"type":"response.completed","response":{"id":"response-p12-live-stall","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
         ]);
         let server = spawn_live_sse_peer(
@@ -10357,7 +10288,6 @@ mod tests {
             .await?;
         let mut source = OpenAiSseEventSource::begin_with_progress_deadline(
             response,
-            P12ResponseUsageProjection::OpenAiResponses,
             Duration::from_millis(200),
         )
         .await
@@ -10393,9 +10323,17 @@ mod tests {
         let summary_delta = sse_stream_body(&[
             r#"{"type":"response.reasoning_summary_text.delta","item_id":"rs-live","delta":"thinking"}"#,
         ]);
+        let reasoning_done = serde_json::json!({
+            "type": "response.output_item.done",
+            "item": {"id": "rs-live", "type": "reasoning", "status": "completed",
+                "summary": [{"type": "summary_text", "text": "thinking".repeat(30)}]}
+        })
+        .to_string();
         let epilogue = sse_stream_body(&[
+            &reasoning_done,
             r#"{"type":"response.output_item.added","output_index":1,"item":{"id":"msg-live","type":"message","role":"assistant"}}"#,
             r#"{"type":"response.output_text.delta","item_id":"msg-live","delta":"ok"}"#,
+            r#"{"type":"response.output_item.done","item":{"id":"msg-live","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok","annotations":[]}]}}"#,
             r#"{"type":"response.completed","response":{"id":"response-p12-live-thinking","status":"completed","usage":{"input_tokens":3,"output_tokens":5}}}"#,
         ]);
         // Thirty reasoning-progress frames 40 ms apart accumulate 1.2 s of upstream wait -- past
@@ -10418,13 +10356,10 @@ mod tests {
             )
             .await?;
         let started = Instant::now();
-        let mut source = OpenAiSseEventSource::begin_with_progress_deadline(
-            response,
-            P12ResponseUsageProjection::OpenAiResponses,
-            Duration::from_secs(1),
-        )
-        .await
-        .map_err(|_| std::io::Error::other("live SSE bootstrap failed"))?;
+        let mut source =
+            OpenAiSseEventSource::begin_with_progress_deadline(response, Duration::from_secs(1))
+                .await
+                .map_err(|_| std::io::Error::other("live SSE bootstrap failed"))?;
 
         let mut events = Vec::new();
         while let Some(event) = source.next_event().await? {
@@ -10441,7 +10376,13 @@ mod tests {
                 .count(),
             30
         );
-        assert!(labels.ends_with(&["text_delta", "message_end", "usage_delta", "response_end",]));
+        assert!(labels.ends_with(&[
+            "text_delta",
+            "output_item_end",
+            "message_end",
+            "usage_delta",
+            "response_end",
+        ]));
         assert!(CanonicalResponse::try_new(events).is_ok());
         let _joined = server.await;
         Ok(())
@@ -10669,15 +10610,9 @@ mod tests {
             for protocol in protocols {
                 let expected_supported = matches!(
                     (channel, protocol),
-                    (P12F2Channel::OpenAi, _)
-                        | (
-                            P12F2Channel::Claude | P12F2Channel::Grok,
-                            ProtocolFormat::OpenAiResponses
-                        )
-                        | (
-                            P12F2Channel::Claude | P12F2Channel::Kiro,
-                            ProtocolFormat::AnthropicMessages
-                        )
+                    (P12F2Channel::OpenAi | P12F2Channel::Claude, _)
+                        | (P12F2Channel::Grok, ProtocolFormat::OpenAiResponses)
+                        | (P12F2Channel::Kiro, ProtocolFormat::AnthropicMessages)
                 );
                 let semantics = if expected_supported {
                     vec![("text", text_events.clone()), ("tool", tool_events.clone())]
@@ -10854,6 +10789,7 @@ mod tests {
                 vec![
                     Tools,
                     ParallelTools,
+                    Reasoning,
                     JsonSchema,
                     Streaming,
                     ResponsesWebSocket,
@@ -11781,10 +11717,6 @@ mod tests {
             p12_openai_compatible_request(&openai.request)?,
             openai.request
         );
-        assert_eq!(
-            p12_response_usage_projection(&openai.request),
-            P12ResponseUsageProjection::OpenAiResponses
-        );
 
         // `protocol-anthropic`'s valid Messages fixture preserves its required `max_tokens`
         // under this exact source namespace. The binary cannot directly depend on that codec, so
@@ -11800,10 +11732,6 @@ mod tests {
                 .get("anthropic.messages.max_tokens")
                 .map(gateway_core::RawJson::get),
             Some("19")
-        );
-        assert_eq!(
-            p12_response_usage_projection(&anthropic),
-            P12ResponseUsageProjection::AnthropicMessages
         );
 
         let translated = p12_openai_compatible_request(&anthropic)?;
@@ -11950,7 +11878,7 @@ mod tests {
     #[actix_web::test]
     async fn p12_decoded_completed_response_is_encodable_by_the_anthropic_messages_boundary()
     -> Result<(), Box<dyn Error>> {
-        let events = decode_json_events_with_usage_projection(
+        let events = decode_json_events(
             br#"{
               "id":"response-p12-anthropic-http",
               "status":"completed",
@@ -11965,7 +11893,6 @@ mod tests {
                 "output_tokens_details":{"reasoning_tokens":2}
               }
             }"#,
-            P12ResponseUsageProjection::AnthropicMessages,
         )?;
         let app = actix_test::init_service(
             App::new()
@@ -12056,9 +11983,8 @@ mod tests {
     #[actix_web::test]
     async fn p12_decoded_tool_completion_is_encodable_by_the_anthropic_messages_boundary()
     -> Result<(), Box<dyn Error>> {
-        let events = project_usage_events(
-            decode_responses_production(
-                r#"{
+        let events = decode_responses_production(
+            r#"{
               "id":"response-p12-tool-http",
               "object":"response",
               "status":"completed",
@@ -12097,10 +12023,8 @@ mod tests {
                 "total_tokens":8
               }
             }"#,
-            )
-            .map_err(|_| std::io::Error::other("production Responses Tool decode failed"))?,
-            P12ResponseUsageProjection::AnthropicMessages,
-        );
+        )
+        .map_err(|_| std::io::Error::other("production Responses Tool decode failed"))?;
         let events = gateway_router::project_protocol_response(
             &CanonicalResponse::try_new(events)?,
             ProtocolFormat::AnthropicMessages,
@@ -13931,7 +13855,7 @@ mod tests {
 
     #[test]
     fn oversized_sse_frame_is_rejected_without_buffer_growth() -> Result<(), Box<dyn Error>> {
-        let mut decoder = OpenAiSseDecoder::new(P12ResponseUsageProjection::OpenAiResponses);
+        let mut decoder = OpenAiSseDecoder::new();
         decoder.push_chunk(&vec![b'x'; MAX_SSE_FRAME_BYTES])?;
         assert!(decoder.push_chunk(b"y").is_err());
         assert_eq!(decoder.buffer.len(), MAX_SSE_FRAME_BYTES);
@@ -13942,7 +13866,7 @@ mod tests {
     fn sse_frame_budget_counts_only_the_undecoded_residue() -> Result<(), Box<dyn Error>> {
         const HALF_FRAME: usize = MAX_SSE_FRAME_BYTES / 2;
 
-        let mut decoder = OpenAiSseDecoder::new(P12ResponseUsageProjection::OpenAiResponses);
+        let mut decoder = OpenAiSseDecoder::new();
         let mut first = b": keep-alive\n\n".to_vec();
         first.extend_from_slice(&vec![b'x'; HALF_FRAME]);
         decoder.push_chunk(&first)?;

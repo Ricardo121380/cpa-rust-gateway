@@ -18,6 +18,16 @@
   "usage": {
     "cache_creation_input_tokens": 2,
     "cache_read_input_tokens": 5,
+    "cpar_usage": {
+      "cache_creation_tokens": 2,
+      "cache_read_tokens": 5,
+      "cached_tokens": null,
+      "input_accounting": "unknown",
+      "input_tokens": 13,
+      "output_tokens": 7,
+      "provenance": "unknown",
+      "reasoning_tokens": null
+    },
     "input_tokens": 13,
     "output_tokens": 7
   }

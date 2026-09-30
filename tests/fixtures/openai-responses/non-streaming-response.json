@@ -50,6 +50,16 @@
   ],
   "status": "completed",
   "usage": {
+    "cpar_usage": {
+      "cache_creation_tokens": null,
+      "cache_read_tokens": null,
+      "cached_tokens": null,
+      "input_accounting": "unknown",
+      "input_tokens": 12,
+      "output_tokens": 8,
+      "provenance": "unknown",
+      "reasoning_tokens": 3
+    },
     "input_tokens": 12,
     "output_tokens": 8,
     "output_tokens_details": {

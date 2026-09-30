@@ -42,7 +42,7 @@ class Provider(BaseHTTPRequestHandler):
      calls=[item for item in history if item.get('type')=='function_call']
      results=[item for item in history if item.get('type')=='function_call_output']
      valid=len(reasoning)==turns and len(calls)==turns and all(call['call_id']==result['call_id'] and call['status']=='completed' for call,result in zip(calls,results))
-     valid=valid and all(item.get('content')==[{'type':'reasoning_text','text':'synthetic reasoning'}] for item in reasoning)
+     valid=valid and all(item.get('summary')==[{'type':'summary_text','text':'synthetic reasoning'}] and 'content' not in item and item.get('id')==f'rs_{index}' and item.get('status')=='completed' for index,item in enumerate(reasoning))
      if not valid:return self.reply(400,{'error':{'message':'lost or reordered agent history'}})
     items=[{'id':f'rs_{turns}','type':'reasoning','status':'completed','summary':[{'type':'summary_text','text':'synthetic reasoning'}]}]
     if turns<2:items.append({'id':f'fc_{turns}','type':'function_call','status':'completed','call_id':f'call_{turns}','name':'read','arguments':'{"path":"proof.txt"}'})

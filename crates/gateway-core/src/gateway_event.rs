@@ -471,6 +471,12 @@ impl fmt::Debug for AttemptEvent {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::struct_field_names)] // Names intentionally match the frozen Usage contract.
 pub struct UsageSummary {
+    /// Measured, estimated, or unknown source evidence retained without inference.
+    #[serde(default)]
+    pub provenance: crate::UsageProvenance,
+    /// Whether input already includes cache counters.
+    #[serde(default)]
+    pub input_accounting: crate::InputTokenAccounting,
     /// Input tokens reported by the upstream.
     pub input_tokens: Option<u64>,
     /// Output tokens reported by the upstream.
@@ -488,6 +494,8 @@ pub struct UsageSummary {
 impl From<&Usage> for UsageSummary {
     fn from(usage: &Usage) -> Self {
         Self {
+            provenance: usage.provenance,
+            input_accounting: usage.input_accounting,
             input_tokens: usage.input_tokens,
             output_tokens: usage.output_tokens,
             reasoning_tokens: usage.reasoning_tokens,

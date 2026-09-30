@@ -575,7 +575,7 @@ impl SqliteEventStore {
             json_extract(r,'$.request.protocol') AS protocol,
             json_extract(r,'$.request.client_key_id') AS client,
             COALESCE(json_extract(r,'$.request.access_group_id'),'') AS access_group,
-            (r IS NULL OR a IS NULL OR usage_count<>1 OR COALESCE(json_extract(a,'$.attempt.outcome')<>'succeeded',1)) AS invalid
+            (r IS NULL OR a IS NULL OR usage_count<>1 OR (json_extract(a,'$.attempt.outcome') IS NULL OR (json_extract(u,'$.usage.attempt_id') IS NULL AND json_extract(a,'$.attempt.outcome')<>'succeeded'))) AS invalid
             FROM lineages
         ), filtered AS (
             SELECT * FROM projected WHERE (observed IS NULL OR (observed>=?2 AND observed<=?3))

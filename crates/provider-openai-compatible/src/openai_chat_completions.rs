@@ -215,7 +215,6 @@ impl OpenAiChatCompletionsRequestBuilder {
         mode: ResponseMode,
     ) -> Result<OpenAiChatCompletionsOutboundRequest, GatewayError> {
         if upstream_model.is_empty()
-            || request.thinking.is_some()
             || request.prompt_cache_key.is_some()
             || request.prompt_cache_retention.is_some()
             || request.messages.is_empty()
@@ -260,6 +259,15 @@ impl OpenAiChatCompletionsRequestBuilder {
                 ),
             );
         }
+        if let Some(thinking) = &request.thinking {
+            if !thinking.extensions.is_empty() {
+                return Err(protocol_error());
+            }
+            root.insert(
+                "reasoning_effort".to_owned(),
+                Value::String(thinking.effort.as_str().to_owned()),
+            );
+        }
         insert_prefixed(&mut root, &request.extensions, ROOT_PREFIX, ROOT_RESERVED)?;
         let body = serde_json::to_vec(&Value::Object(root)).map_err(|_| internal_error())?;
 
@@ -302,7 +310,7 @@ fn encode_message(message: &CanonicalMessage) -> Result<Value, GatewayError> {
             }
             encoded.insert("content".to_owned(), Value::String(text.text.clone()));
         }
-        "assistant" => encode_assistant_content(&mut encoded, &message.content)?,
+        "assistant" => encode_assistant_content(&mut encoded, message)?,
         "tool" => {
             let [MessageContent::ToolResult(result)] = message.content.as_slice() else {
                 return Err(protocol_error());
@@ -332,11 +340,11 @@ fn encode_message(message: &CanonicalMessage) -> Result<Value, GatewayError> {
 
 fn encode_assistant_content(
     encoded: &mut Map<String, Value>,
-    content: &[MessageContent],
+    message: &CanonicalMessage,
 ) -> Result<(), GatewayError> {
     let mut text = None;
     let mut calls = Vec::new();
-    for (index, part) in content.iter().enumerate() {
+    for (index, part) in message.content.iter().enumerate() {
         match part {
             MessageContent::Text(value) if index == 0 && text.is_none() => {
                 if !value.extensions.is_empty() {
@@ -348,7 +356,13 @@ fn encode_assistant_content(
             _ => return Err(protocol_error()),
         }
     }
-    if text.is_none() && calls.is_empty() {
+    let reasoning_present = message
+        .extensions
+        .get("openai.chat.message.reasoning_content")
+        .is_some_and(|raw| {
+            raw_value(raw).is_ok_and(|value| value.as_str().is_some_and(|text| !text.is_empty()))
+        });
+    if text.is_none() && calls.is_empty() && !reasoning_present {
         return Err(protocol_error());
     }
     encoded.insert(
@@ -473,6 +487,26 @@ mod tests {
     };
 
     struct Resolver;
+
+    #[test]
+    fn reasoning_only_assistant_history_retains_null_content_and_exact_reasoning()
+    -> Result<(), Box<dyn Error>> {
+        let decoded = decode_request(
+            r#"{
+            "model":"public-model","messages":[
+                {"role":"assistant","content":null,"reasoning_content":"visible thought"}
+            ]
+        }"#,
+        )?;
+        let mut message = decoded.request.messages[0].clone();
+        let encoded = super::encode_message(&message)?;
+        assert_eq!(encoded["content"], serde_json::Value::Null);
+        assert_eq!(encoded["reasoning_content"], "visible thought");
+        message.extensions = RawExtensions::default();
+        assert!(super::encode_message(&message).is_err());
+        Ok(())
+    }
+
     impl EgressDnsResolver for Resolver {
         fn resolve(&self, _host: &EgressHost) -> Result<Vec<IpAddr>, EgressDnsError> {
             Ok(vec![IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))])

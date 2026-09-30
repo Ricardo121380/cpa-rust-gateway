@@ -1,0 +1,3232 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_requires_selected_candidate_capability_False",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_requires_selected_candidate_capability_True",
+      "status": "PASS"
+    },
+    {
+      "check": "known_model_permission_before_inference",
+      "status": "PASS"
+    },
+    {
+      "check": "known_model_permission_before_count_tokens_capability",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_chat_to_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_chat_to_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_responses_to_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_responses_to_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "native_exact_thinking_budget",
+      "status": "PASS"
+    },
+    {
+      "check": "native_cache_control_or_exact_rejection_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "native_cache_control_or_exact_rejection_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "native_cache_control_or_exact_rejection_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_chat_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_responses_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_messages_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_chat_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_responses_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_messages_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_chat_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_responses_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_messages_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_chat_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_responses_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_messages_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_chat_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_responses_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_messages_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_chat_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_responses_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_messages_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "unknown_ingress_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "unknown_ingress_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "unknown_ingress_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "malformed_tag_before_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "serial_violation_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "invalid_tool_arguments_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "serial_violation_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "invalid_tool_arguments_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "serial_violation_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "invalid_tool_arguments_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "serial_violation_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "invalid_tool_arguments_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "serial_violation_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "invalid_tool_arguments_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "serial_violation_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "invalid_tool_arguments_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "stream_eof_unique_failure_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "stream_eof_unique_failure_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "stream_eof_unique_failure_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_chat_thinking-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_chat_thinking-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_chat_thinking-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_chat_thinking-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_chat_reasoning-only-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "reasoning_only_null_content_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_chat_reasoning-only-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "reasoning_only_replay_wire_preserved_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_chat_reasoning-only-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "reasoning_only_null_content_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_chat_reasoning-only-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "reasoning_only_replay_wire_preserved_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_responses_thinking-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_responses_thinking-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_responses_thinking-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_responses_thinking-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_messages_signed-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_messages_signed-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_messages_signed-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_messages_signed-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_responses_citation-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_responses_citation-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_responses_citation-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_responses_citation-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_messages_citation-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_messages_citation-round_False",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_messages_citation-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "native_metadata_replay_messages_citation-round_True",
+      "status": "PASS"
+    },
+    {
+      "check": "reasoning_only_cannot_overtake_tool_results_False",
+      "status": "PASS"
+    },
+    {
+      "check": "reasoning_only_cannot_overtake_tool_results_True",
+      "status": "PASS"
+    },
+    {
+      "check": "same_chunk_usage_error_terminal_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "same_chunk_usage_error_keeps_evidence_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "same_chunk_usage_error_terminal_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "same_chunk_usage_error_keeps_evidence_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "same_chunk_usage_error_terminal_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "same_chunk_usage_error_keeps_evidence_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "signed_bridge_explicit_failure_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "signed_bridge_explicit_failure_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "signed_json_bridge_explicit_failure_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "projection_failure_retains_decoded_json_usage_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "signed_json_bridge_explicit_failure_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "projection_failure_retains_decoded_json_usage_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "non_equivalent_effort_rejected_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "non_equivalent_effort_rejected_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "count_tokens_explicit_unsupported",
+      "status": "PASS"
+    },
+    {
+      "check": "count_tokens_authentication_precedes_decode",
+      "status": "PASS"
+    },
+    {
+      "check": "count_tokens_model_visibility_precedes_unsupported",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_tool_root",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_owner_exact_key",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_public_get_before_restart",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_public_get_after_real_process_restart",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_tool_continuation_after_restart",
+      "status": "PASS"
+    },
+    {
+      "check": "continuation_exact_account_and_channel",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_public_success",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_after_real_process_restart",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_malformed_or_corrupt_local_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_malformed_or_corrupt_local_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_owner_exact_key",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_expired_after_restart_local_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_corrupt_after_restart_local_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_upgrade_auth_or_origin",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_upgrade_auth_or_origin",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_real_upgrade",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_fragmented_utf8_parallel_tools",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_usage_measured",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_tool_continuation_exact_account",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_native_reasoning_hierarchy",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_reasoning_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_roots_are_session_scoped",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_cache_collision_cannot_acknowledge_success",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_collision_preserves_prior_root",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_invalid_wire_before_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_invalid_wire_before_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_fragment_count_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_held_upstream_started",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_close_cancels_real_upstream_socket",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_close_releases_capacity",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_pending_test_started",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_pending_turn_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "websocket_pending_overflow_cancels_socket",
+      "status": "PASS"
+    },
+    {
+      "check": "sse_held_upstream_started",
+      "status": "PASS"
+    },
+    {
+      "check": "sse_disconnect_cancels_real_upstream_socket",
+      "status": "PASS"
+    },
+    {
+      "check": "sse_disconnect_releases_capacity",
+      "status": "PASS"
+    },
+    {
+      "check": "cancelled_known_usage_durable",
+      "status": "PASS"
+    },
+    {
+      "check": "ledger_no_duplicate_charging",
+      "status": "PASS"
+    },
+    {
+      "check": "ledger_exact_source_rates_inclusive",
+      "status": "PASS"
+    },
+    {
+      "check": "ledger_exact_source_rates_exclusive",
+      "status": "PASS"
+    },
+    {
+      "check": "management_usage_source_provenance",
+      "status": "PASS"
+    },
+    {
+      "check": "ledger_survives_real_process_restart",
+      "status": "PASS"
+    },
+    {
+      "check": "durable_usage_exact_attempt_lineage",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_payloads_are_encrypted",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_native_metadata_success_thinking-round",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_native_metadata_get_after_restart_thinking-round",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_native_metadata_continue_after_restart_thinking-round",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_native_metadata_success_citation-round",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_native_metadata_get_after_restart_citation-round",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_native_metadata_continue_after_restart_citation-round",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_expired_local_get_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_expired_local_continuation_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_corrupt_local_get_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_corrupt_local_continuation_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_healthy_fallback_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_distinct_connection_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_finite_attempts_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_rejection_not_transparently_retried_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_healthy_sibling_remains_eligible_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_healthy_fallback_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_distinct_connection_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_finite_attempts_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_rejection_not_transparently_retried_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_healthy_sibling_remains_eligible_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "bootstrap_cancel_started_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "bootstrap_cancel_closes_upstream_without_retry_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_healthy_fallback_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_distinct_connection_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_finite_attempts_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_rejection_not_transparently_retried_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_healthy_sibling_remains_eligible_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_healthy_fallback_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_distinct_connection_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_finite_attempts_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_rejection_not_transparently_retried_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_healthy_sibling_remains_eligible_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "bootstrap_cancel_started_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "bootstrap_cancel_closes_upstream_without_retry_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_healthy_fallback_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_distinct_connection_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_finite_attempts_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_rejection_not_transparently_retried_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_healthy_sibling_remains_eligible_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_healthy_fallback_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_distinct_connection_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "early_retry_finite_attempts_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_rejection_not_transparently_retried_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "credential_healthy_sibling_remains_eligible_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "bootstrap_cancel_started_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "bootstrap_cancel_closes_upstream_without_retry_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_get_retains_history_after_lineage_ineligibility",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_ineligible_lineage_zero_fallback",
+      "status": "PASS"
+    },
+    {
+      "check": "compact_ineligible_lineage_zero_fallback",
+      "status": "PASS"
+    },
+    {
+      "check": "cumulative_bootstrap_budget_chat_False",
+      "status": "PASS",
+      "elapsed_ms": 3019
+    },
+    {
+      "check": "cumulative_bootstrap_budget_chat_True",
+      "status": "PASS",
+      "elapsed_ms": 165
+    },
+    {
+      "check": "cumulative_bootstrap_budget_responses_False",
+      "status": "PASS",
+      "elapsed_ms": 3013
+    },
+    {
+      "check": "cumulative_bootstrap_budget_responses_True",
+      "status": "PASS",
+      "elapsed_ms": 158
+    },
+    {
+      "check": "cumulative_bootstrap_budget_messages_False",
+      "status": "PASS",
+      "elapsed_ms": 3011
+    },
+    {
+      "check": "cumulative_bootstrap_budget_messages_True",
+      "status": "PASS",
+      "elapsed_ms": 156
+    }
+  ],
+  "provider_calls": [
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "serial-violation",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "invalid-args",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "serial-violation",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "invalid-args",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "serial-violation",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "invalid-args",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "serial-violation",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "invalid-args",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "serial-violation",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "invalid-args",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "serial-violation",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "invalid-args",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "truncated-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "truncated-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "truncated-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "thinking-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "thinking-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "reasoning-only-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "reasoning-only-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "reasoning-only-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "reasoning-only-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "citation-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "citation-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "citation-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "citation-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "citation-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "citation-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "citation-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "citation-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "usage-error-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "usage-error-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "usage-error-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "signed-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": true
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": true
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": true
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "duplicate-root",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "duplicate-root",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "duplicate-root",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "held-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "held-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "held-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "citation-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "citation-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "retry-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "chat",
+      "scenario": "retry-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "chat",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "auth-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "retry-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "chat",
+      "scenario": "retry-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "always-fail",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "chat",
+      "scenario": "always-fail",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "auth-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "slow-bootstrap",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "retry-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "responses",
+      "scenario": "retry-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "responses",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "auth-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "retry-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "responses",
+      "scenario": "retry-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "always-fail",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "responses",
+      "scenario": "always-fail",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "auth-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "slow-bootstrap",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "retry-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "messages",
+      "scenario": "retry-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "messages",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "auth-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "retry-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "messages",
+      "scenario": "retry-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "always-fail",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "fallback",
+      "protocol": "messages",
+      "scenario": "always-fail",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "auth-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "b",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "slow-bootstrap",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": true
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "slow-bootstrap",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "slow-bootstrap",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "slow-bootstrap",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "slow-bootstrap",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "slow-bootstrap",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "slow-bootstrap",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    }
+  ],
+  "scope": "local_synthetic_only",
+  "base_commit": "24142a9008e58fbc87d0b5791bbb166b45234850",
+  "source_checkpoint": "f6c37ef02c7acb4bcf31e7f2a47d8c55eec1a7fd",
+  "tested_binary_sha256": "817deb257d5643f80a14723e31b2c4018db41819faf6452c15912bb79fa811c7",
+  "recorded_at_utc": "2026-09-30T05:35:50.812863+00:00"
+}

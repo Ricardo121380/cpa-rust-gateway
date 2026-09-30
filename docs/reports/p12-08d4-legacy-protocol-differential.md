@@ -1,5 +1,12 @@
 # P12-08D4 legacy CPA to CPAR protocol differential
 
+> CPAR batch B (2026-09-30) supersedes the historical `reasoning-to-chat`
+> unsupported decision: plain visible reasoning now retains `reasoning_content`.
+> The executable corpus is now seven parity, two hardening and one unsupported
+> case. Native structured reasoning, signatures and citations still require an
+> exact representation under [ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md).
+> The results below retain their original 2026-08-02 scope.
+
 | Field | Value |
 |---|---|
 | Plan | `v1.102` |

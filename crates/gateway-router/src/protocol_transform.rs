@@ -14,7 +14,7 @@ use gateway_core::{
 use gateway_protocol::ApiFormat;
 use serde_json::Value;
 
-use crate::SnapshotTransformMode;
+use crate::{SnapshotTransformMode, ToolExecutionConstraints, tool_controls};
 
 /// Client or Endpoint wire format considered by the P5 transformation boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -180,6 +180,8 @@ pub enum ProtocolTransformRejection {
     StreamingUnsupported,
     /// The Endpoint is not approved for public Responses WebSocket ingress.
     ResponsesWebSocketUnsupported,
+    /// The Endpoint has not declared CPAR owned stored-response semantics.
+    StoredResponsesUnsupported,
     /// The Endpoint cannot provide declared Tool calls.
     ToolsUnsupported,
     /// The Endpoint cannot provide the required JSON Schema semantics.
@@ -255,7 +257,7 @@ pub fn protocol_pair_is_publishable(
     source: ProtocolFormat,
     target: ProtocolFormat,
     mode: SnapshotTransformMode,
-    target_capabilities: &CapabilitySet,
+    _target_capabilities: &CapabilitySet,
 ) -> bool {
     protocol_pair_is_registered(source, target)
         && match mode {
@@ -265,15 +267,13 @@ pub fn protocol_pair_is_publishable(
             SnapshotTransformMode::LosslessBridge => source != target,
             SnapshotTransformMode::CanonicalBridge => true,
         }
-        && !(source == ProtocolFormat::OpenAiChatCompletions
-            && target_capabilities.supports(SemanticCapability::Reasoning))
 }
 
 /// Projects one request only after pair registration and response-side capability admission.
 ///
-/// A Chat client is excluded when the selected Endpoint advertises Reasoning: D2 deliberately has
-/// no private-reasoning-to-visible-Chat degradation, so this proof must happen before a lease or
-/// upstream Attempt rather than after a streamed Reasoning event arrives.
+/// Tool parallelism and request semantics must be provable before a lease or upstream Attempt.
+/// Visible reasoning remains separate in Chat's `reasoning_content`; unrepresentable signed or
+/// structured output is rejected by response projection without changing endpoint capabilities.
 ///
 /// # Errors
 ///
@@ -284,13 +284,6 @@ pub fn project_registered_protocol_request(
 ) -> Result<ProjectedProtocolRequest, ProtocolTransformRejection> {
     if !protocol_pair_is_registered(input.source, input.target) {
         return Err(ProtocolTransformRejection::PairUnregistered);
-    }
-    if input.source == ProtocolFormat::OpenAiChatCompletions
-        && input
-            .target_capabilities
-            .supports(SemanticCapability::Reasoning)
-    {
-        return Err(ProtocolTransformRejection::ResponseReasoningUnsupported);
     }
     project_protocol_request(input)
 }
@@ -346,6 +339,10 @@ pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> Protocol
 pub fn project_protocol_request(
     input: ProtocolTransformInput<'_>,
 ) -> Result<ProjectedProtocolRequest, ProtocolTransformRejection> {
+    input
+        .request
+        .validate_tool_history()
+        .map_err(|_| ProtocolTransformRejection::ToolHistoryUnsupported)?;
     let mode_rejection = match input.mode {
         SnapshotTransformMode::Passthrough if input.source != input.target => {
             Some(ProtocolTransformRejection::PassthroughProtocolMismatch)
@@ -367,7 +364,9 @@ pub fn project_protocol_request(
         return Err(rejection);
     }
 
+    ToolExecutionConstraints::from_request(input.request, input.source)?;
     if input.mode == SnapshotTransformMode::Passthrough {
+        canonical_rejection(input.request, input.source)?;
         capability_rejection(input, input.request)?;
         return Ok(ProjectedProtocolRequest::NativeExact);
     }
@@ -402,12 +401,7 @@ fn project_cross_protocol(
     }
 
     let mut projected = request.clone();
-    projected.extensions = project_root_extensions(
-        &request.extensions,
-        source,
-        target,
-        !request.tools.is_empty(),
-    )?;
+    projected.extensions = project_root_extensions(request, source, target)?;
     projected.thinking = project_thinking(request.thinking.as_ref(), source, target)?;
     if target == ProtocolFormat::AnthropicMessages {
         project_messages_roles(&mut projected)?;
@@ -449,24 +443,24 @@ fn reject_nested_extensions_and_opaque(
 }
 
 fn project_root_extensions(
-    extensions: &RawExtensions,
+    request: &CanonicalRequest,
     source: ProtocolFormat,
     target: ProtocolFormat,
-    has_tools: bool,
 ) -> Result<RawExtensions, ProtocolTransformRejection> {
     let source_output_limit = output_limit_name(source);
     let source_tool_choice = tool_choice_name(source);
     let mut output_limit = None;
-    let mut tool_choice = None;
-    for (name, raw) in extensions.iter() {
+    let controls = ToolExecutionConstraints::from_request(request, source)?;
+    for (name, raw) in request.extensions.iter() {
         if name == source_output_limit {
             if output_limit.replace(raw.clone()).is_some() {
                 return Err(ProtocolTransformRejection::OutputLimitCollision);
             }
-        } else if name == source_tool_choice {
-            if tool_choice.replace(raw.clone()).is_some() {
-                return Err(ProtocolTransformRejection::UnknownRequestExtensions);
-            }
+        } else if name == source_tool_choice
+            || source != ProtocolFormat::AnthropicMessages
+                && name == tool_controls::parallel_name(source)
+        {
+            // Validated controls are mapped below as one exact selection/parallel constraint.
         } else {
             if matches!(
                 name,
@@ -491,45 +485,25 @@ fn project_root_extensions(
         }
         None => {}
     }
-    if let Some(raw) = tool_choice {
-        let mapped = project_forced_tool_choice(&raw, source, target, has_tools)?;
+    if let Some(choice) = controls.mapped_choice(target) {
+        let mapped = RawJson::from_json_string(choice.to_string())
+            .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
         projected
             .try_insert(tool_choice_name(target), mapped)
             .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
     }
+    if target != ProtocolFormat::AnthropicMessages
+        && let Some(parallel) = controls.parallel
+    {
+        projected
+            .try_insert(
+                tool_controls::parallel_name(target),
+                RawJson::from_json_string(parallel.to_string())
+                    .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?,
+            )
+            .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
+    }
     Ok(projected)
-}
-
-fn project_forced_tool_choice(
-    raw: &RawJson,
-    source: ProtocolFormat,
-    target: ProtocolFormat,
-    has_tools: bool,
-) -> Result<RawJson, ProtocolTransformRejection> {
-    if !has_tools {
-        return Err(ProtocolTransformRejection::UnknownRequestExtensions);
-    }
-    let value = serde_json::from_str::<Value>(raw.get())
-        .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
-    let forced = match source {
-        ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
-            value.as_str() == Some("required")
-        }
-        ProtocolFormat::AnthropicMessages => value.as_object().is_some_and(|choice| {
-            choice.len() == 1 && choice.get("type").and_then(Value::as_str) == Some("any")
-        }),
-    };
-    if !forced {
-        return Err(ProtocolTransformRejection::UnknownRequestExtensions);
-    }
-    let mapped = match target {
-        ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
-            r#""required""#.to_owned()
-        }
-        ProtocolFormat::AnthropicMessages => r#"{"type":"any"}"#.to_owned(),
-    };
-    RawJson::from_json_string(mapped)
-        .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)
 }
 
 const fn output_limit_name(protocol: ProtocolFormat) -> &'static str {
@@ -569,92 +543,25 @@ fn project_thinking(
     let Some(thinking) = thinking else {
         return Ok(None);
     };
-    if source == ProtocolFormat::OpenAiChatCompletions
-        || target == ProtocolFormat::OpenAiChatCompletions
-    {
+    if !thinking.extensions.is_empty() {
         return Err(ProtocolTransformRejection::ThinkingUnsupported);
     }
-
-    match (source, target) {
-        (ProtocolFormat::OpenAiResponses, ProtocolFormat::AnthropicMessages) => {
-            if !thinking.extensions.is_empty() {
-                return Err(ProtocolTransformRejection::ThinkingUnsupported);
-            }
-            responses_thinking_to_messages(thinking)
+    let effort = match (source, target, thinking.effort.as_str()) {
+        (ProtocolFormat::OpenAiChatCompletions, ProtocolFormat::OpenAiResponses, effort)
+        | (ProtocolFormat::OpenAiResponses, ProtocolFormat::OpenAiChatCompletions, effort) => {
+            effort
         }
-        (ProtocolFormat::AnthropicMessages, ProtocolFormat::OpenAiResponses) => {
-            messages_thinking_to_responses(thinking)
-        }
-        _ => Err(ProtocolTransformRejection::ThinkingUnsupported),
-    }
-    .map(Some)
-}
-
-fn responses_thinking_to_messages(
-    thinking: &Thinking,
-) -> Result<Thinking, ProtocolTransformRejection> {
-    let (effort, budget) = match thinking.effort.as_str() {
-        "none" => ("disabled", None),
-        "auto" => ("adaptive", None),
-        "minimal" => ("enabled", Some(512)),
-        "low" => ("enabled", Some(1_024)),
-        "medium" => ("enabled", Some(8_192)),
-        "high" => ("enabled", Some(24_576)),
-        "xhigh" => ("enabled", Some(32_768)),
-        "max" => ("enabled", Some(128_000)),
+        (_, ProtocolFormat::AnthropicMessages, "none") => "disabled",
+        (ProtocolFormat::AnthropicMessages, _, "disabled") => "none",
+        // A numeric budget and a qualitative effort have no lossless conversion. In particular,
+        // adaptive/auto are not a promise of equal provider work and are never bucketed here.
         _ => return Err(ProtocolTransformRejection::ThinkingUnsupported),
     };
-    let mut extensions = RawExtensions::default();
-    if let Some(budget) = budget {
-        let raw = RawJson::from_json_string(budget.to_string())
-            .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?;
-        extensions
-            .try_insert(ANTHROPIC_THINKING_BUDGET, raw)
-            .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?;
-    }
-    Ok(Thinking {
-        effort: ThinkingEffort::try_new(effort)
-            .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?,
-        extensions,
-    })
-}
-
-fn messages_thinking_to_responses(
-    thinking: &Thinking,
-) -> Result<Thinking, ProtocolTransformRejection> {
-    let mut budget = None;
-    for (name, raw) in thinking.extensions.iter() {
-        if name != ANTHROPIC_THINKING_BUDGET || budget.is_some() {
-            return Err(ProtocolTransformRejection::ThinkingUnsupported);
-        }
-        budget = match serde_json::from_str::<Value>(raw.get()) {
-            Ok(Value::Number(value)) if value.as_u64().is_some_and(|value| value > 0) => {
-                value.as_u64()
-            }
-            _ => return Err(ProtocolTransformRejection::ThinkingUnsupported),
-        };
-    }
-    let effort = match thinking.effort.as_str() {
-        "disabled" if budget.is_none() => "none",
-        "adaptive" if budget.is_none() => "auto",
-        "enabled" => budget.map_or("auto", budget_to_responses_effort),
-        _ => return Err(ProtocolTransformRejection::ThinkingUnsupported),
-    };
-    Ok(Thinking {
+    Ok(Some(Thinking {
         effort: ThinkingEffort::try_new(effort)
             .map_err(|_| ProtocolTransformRejection::ThinkingUnsupported)?,
         extensions: RawExtensions::default(),
-    })
-}
-
-const fn budget_to_responses_effort(budget: u64) -> &'static str {
-    match budget {
-        1..=512 => "minimal",
-        513..=1_024 => "low",
-        1_025..=8_192 => "medium",
-        8_193..=24_576 => "high",
-        _ => "xhigh",
-    }
+    }))
 }
 
 fn canonical_rejection(
@@ -665,8 +572,9 @@ fn canonical_rejection(
     // Responses cache controls are typed, losslessly retained fields when the target is still
     // Responses. Cross-protocol projection rejects them earlier in `project_cross_protocol`, and
     // Chat/Messages targets continue to fail closed here.
-    if target != ProtocolFormat::OpenAiResponses
+    if target == ProtocolFormat::OpenAiChatCompletions
         && (request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some())
+        || target == ProtocolFormat::AnthropicMessages && request.prompt_cache_key.is_some()
     {
         return Err(ProtocolTransformRejection::CacheControlUnsupported);
     }
@@ -675,68 +583,9 @@ fn canonical_rejection(
     }
 
     for (position, message) in request.messages.iter().enumerate() {
-        if !(message.extensions.is_empty()
-            || target == ProtocolFormat::OpenAiResponses
-                && message.role.0 == "assistant"
-                && message.extensions.iter().all(|(key, raw)| {
-                    let Ok(value) = serde_json::from_str::<serde_json::Value>(raw.get()) else {
-                        return false;
-                    };
-                    match key {
-                        "id" => valid_responses_item_id(&value),
-                        "status" => value.as_str() == Some("completed"),
-                        "phase" => matches!(value.as_str(), Some("commentary" | "final_answer")),
-                        _ => false,
-                    }
-                }))
-        {
-            return Err(ProtocolTransformRejection::UnknownMessageExtensions);
-        }
+        validate_target_message_extensions(message, target)?;
         for content in &message.content {
-            match content {
-                MessageContent::Text(text)
-                    if !(text.extensions.is_empty()
-                        || target == ProtocolFormat::OpenAiResponses
-                            && message.role.0 == "assistant"
-                            && text.extensions.iter().all(|(key, raw)| {
-                                key == "annotations"
-                                    && serde_json::from_str::<serde_json::Value>(raw.get())
-                                        .is_ok_and(|value| {
-                                            value.as_array().is_some_and(Vec::is_empty)
-                                        })
-                            })) =>
-                {
-                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
-                }
-                MessageContent::Opaque(_) => {
-                    return Err(ProtocolTransformRejection::OpaqueContent);
-                }
-                MessageContent::Reasoning(_) if target != ProtocolFormat::OpenAiResponses => {
-                    return Err(ProtocolTransformRejection::ThinkingUnsupported);
-                }
-                MessageContent::ToolCall(call)
-                    if !(call.extensions.is_empty()
-                        || target == ProtocolFormat::OpenAiResponses
-                            && call.extensions.iter().all(|(key, value)| {
-                                serde_json::from_str::<serde_json::Value>(value.get()).is_ok_and(
-                                    |value| match key {
-                                        "id" => valid_responses_item_id(&value),
-                                        "status" => value.as_str() == Some("completed"),
-                                        _ => false,
-                                    },
-                                )
-                            })) =>
-                {
-                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
-                }
-                MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
-                    return Err(ProtocolTransformRejection::UnknownContentExtensions);
-                }
-                MessageContent::Reasoning(_)
-                | MessageContent::Text(_)
-                | MessageContent::ToolCall(_)
-                | MessageContent::ToolResult(_) => {}
-            }
+            validate_target_content(content, &message.role.0, target)?;
         }
         if !target_supports_role(target, &message.role.0) {
             return Err(ProtocolTransformRejection::IncompatibleRole);
@@ -745,7 +594,20 @@ fn canonical_rejection(
     }
 
     for tool in &request.tools {
-        if !tool.extensions.is_empty() {
+        if !(tool.extensions.is_empty()
+            || target == ProtocolFormat::AnthropicMessages
+                && tool.extensions.iter().all(|extension| {
+                    extension.0 == "anthropic.cache_control"
+                        && valid_anthropic_text_extension(extension)
+                })
+            || tool.extensions.iter().all(|(key, raw)| {
+                key == match target {
+                    ProtocolFormat::OpenAiChatCompletions => "openai.chat.tool.strict",
+                    ProtocolFormat::OpenAiResponses => "strict",
+                    ProtocolFormat::AnthropicMessages => "anthropic.strict",
+                } && serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| value.is_boolean())
+            }))
+        {
             return Err(ProtocolTransformRejection::UnknownToolDefinitionExtensions);
         }
         if tool.name.is_empty()
@@ -757,6 +619,171 @@ fn canonical_rejection(
     }
 
     validate_target_thinking(request.thinking.as_ref(), target)
+}
+
+fn validate_target_content(
+    content: &MessageContent,
+    role: &str,
+    target: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
+    match content {
+        MessageContent::Text(text)
+            if !(text.extensions.is_empty()
+                || target == ProtocolFormat::OpenAiResponses
+                    && role == "assistant"
+                    && text.extensions.iter().all(|(key, raw)| {
+                        serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| match key {
+                            "annotations" => value.as_array().is_some_and(|items| {
+                                items.len() <= 64
+                                    && items.iter().all(|item| {
+                                        matches!(
+                                            item.get("type").and_then(Value::as_str),
+                                            Some(
+                                                "url_citation"
+                                                    | "file_citation"
+                                                    | "container_file_citation"
+                                                    | "file_path"
+                                            )
+                                        )
+                                    })
+                            }),
+                            "logprobs" => {
+                                value.is_null() || value.as_array().is_some_and(Vec::is_empty)
+                            }
+                            _ => false,
+                        })
+                    })
+                || target == ProtocolFormat::AnthropicMessages
+                    && text.extensions.iter().all(valid_anthropic_text_extension)) =>
+        {
+            return Err(ProtocolTransformRejection::UnknownContentExtensions);
+        }
+        MessageContent::Opaque(content)
+            if !(target == ProtocolFormat::AnthropicMessages
+                && role == "assistant"
+                && valid_anthropic_thinking_history(content.raw())) =>
+        {
+            return Err(ProtocolTransformRejection::OpaqueContent);
+        }
+        MessageContent::Reasoning(_) if target != ProtocolFormat::OpenAiResponses => {
+            return Err(ProtocolTransformRejection::ThinkingUnsupported);
+        }
+        MessageContent::ToolCall(call)
+            if !(call.extensions.is_empty()
+                || target == ProtocolFormat::OpenAiResponses
+                    && call.extensions.iter().all(|(key, value)| {
+                        serde_json::from_str::<serde_json::Value>(value.get()).is_ok_and(|value| {
+                            match key {
+                                "id" => valid_responses_item_id(&value),
+                                "status" => value.as_str() == Some("completed"),
+                                _ => false,
+                            }
+                        })
+                    })) =>
+        {
+            return Err(ProtocolTransformRejection::UnknownContentExtensions);
+        }
+        MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
+            return Err(ProtocolTransformRejection::UnknownContentExtensions);
+        }
+        MessageContent::Opaque(_)
+        | MessageContent::Reasoning(_)
+        | MessageContent::Text(_)
+        | MessageContent::ToolCall(_)
+        | MessageContent::ToolResult(_) => {}
+    }
+    Ok(())
+}
+
+fn validate_target_message_extensions(
+    message: &gateway_core::CanonicalMessage,
+    target: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
+    if message.extensions.is_empty()
+        || target == ProtocolFormat::OpenAiResponses
+            && message.role.0 == "assistant"
+            && message.extensions.iter().all(|(key, raw)| {
+                let Ok(value) = serde_json::from_str::<Value>(raw.get()) else {
+                    return false;
+                };
+                match key {
+                    "id" => valid_responses_item_id(&value),
+                    "status" => value.as_str() == Some("completed"),
+                    "phase" => matches!(value.as_str(), Some("commentary" | "final_answer")),
+                    _ => false,
+                }
+            })
+        || target == ProtocolFormat::OpenAiChatCompletions
+            && message.role.0 == "assistant"
+            && message.extensions.iter().all(|(key, raw)| {
+                key == "openai.chat.message.reasoning_content"
+                    && serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| value.is_string())
+            })
+    {
+        Ok(())
+    } else {
+        Err(ProtocolTransformRejection::UnknownMessageExtensions)
+    }
+}
+
+fn valid_anthropic_text_extension((key, raw): (&str, &RawJson)) -> bool {
+    let Ok(value) = serde_json::from_str::<Value>(raw.get()) else {
+        return false;
+    };
+    match key {
+        "anthropic.citations" => value.as_array().is_some_and(|items| {
+            items.len() <= 64
+                && items.iter().all(|item| {
+                    matches!(
+                        item.get("type").and_then(Value::as_str),
+                        Some(
+                            "char_location"
+                                | "page_location"
+                                | "content_block_location"
+                                | "web_search_result_location"
+                                | "search_result_location"
+                        )
+                    )
+                })
+        }),
+        "anthropic.cache_control" => value.as_object().is_some_and(|value| {
+            value.get("type").and_then(Value::as_str) == Some("ephemeral")
+                && value
+                    .keys()
+                    .all(|key| matches!(key.as_str(), "type" | "ttl"))
+                && value
+                    .get("ttl")
+                    .is_none_or(|value| matches!(value.as_str(), Some("5m" | "1h")))
+        }),
+        _ => false,
+    }
+}
+
+fn valid_anthropic_thinking_history(raw: &RawJson) -> bool {
+    let Ok(value) = serde_json::from_str::<Value>(raw.get()) else {
+        return false;
+    };
+    let Some(value) = value.as_object() else {
+        return false;
+    };
+    match value.get("type").and_then(Value::as_str) {
+        Some("thinking") => {
+            value.len() == 3
+                && value.get("thinking").is_some_and(Value::is_string)
+                && value
+                    .get("signature")
+                    .and_then(Value::as_str)
+                    .is_some_and(|value| !value.is_empty())
+        }
+        Some("redacted_thinking") => {
+            value.len() == 2
+                && value
+                    .get("data")
+                    .and_then(Value::as_str)
+                    .is_some_and(|value| !value.is_empty())
+        }
+        _ => false,
+    }
 }
 
 fn valid_responses_item_id(value: &serde_json::Value) -> bool {
@@ -775,7 +802,13 @@ fn validate_target_root_extensions(
         if name == expected_output_limit {
             validate_output_limit(raw)?;
         } else if name == expected_tool_choice {
-            validate_tool_choice(raw, target, !request.tools.is_empty())?;
+            ToolExecutionConstraints::from_request(request, target)?;
+        } else if target != ProtocolFormat::AnthropicMessages
+            && name == tool_controls::parallel_name(target)
+        {
+            if !serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| value.is_boolean()) {
+                return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+            }
         } else if target == ProtocolFormat::OpenAiResponses && name == "openai.responses.include" {
             // Pi requests encrypted reasoning alongside summaries. Keep the reviewed selector
             // intact for the Responses builder; other output expansions remain unsupported.
@@ -815,36 +848,6 @@ const fn tool_choice_name(protocol: ProtocolFormat) -> &'static str {
     }
 }
 
-fn validate_tool_choice(
-    raw: &RawJson,
-    target: ProtocolFormat,
-    has_tools: bool,
-) -> Result<(), ProtocolTransformRejection> {
-    let value = serde_json::from_str::<Value>(raw.get())
-        .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
-    let valid = match target {
-        ProtocolFormat::OpenAiChatCompletions => value.as_str() == Some("required") && has_tools,
-        ProtocolFormat::OpenAiResponses => match value.as_str() {
-            Some("auto") => true,
-            Some("required") => has_tools,
-            _ => false,
-        },
-        ProtocolFormat::AnthropicMessages => match value.as_object() {
-            Some(choice) if choice.len() == 1 => match choice.get("type").and_then(Value::as_str) {
-                Some("auto") => true,
-                Some("any") => has_tools,
-                _ => false,
-            },
-            _ => false,
-        },
-    };
-    if valid {
-        Ok(())
-    } else {
-        Err(ProtocolTransformRejection::UnknownRequestExtensions)
-    }
-}
-
 fn validate_target_thinking(
     thinking: Option<&Thinking>,
     target: ProtocolFormat,
@@ -853,12 +856,10 @@ fn validate_target_thinking(
         return Ok(());
     };
     match target {
-        ProtocolFormat::OpenAiChatCompletions => {
-            Err(ProtocolTransformRejection::ThinkingUnsupported)
-        }
-        ProtocolFormat::OpenAiResponses => {
+        ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
             if !thinking.extensions.iter().all(|(name, raw)| {
-                name == "summary"
+                target == ProtocolFormat::OpenAiResponses
+                    && name == "summary"
                     && serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| {
                         matches!(value.as_str(), Some("auto" | "concise" | "detailed"))
                     })
@@ -870,7 +871,25 @@ fn validate_target_thinking(
                 _ => Err(ProtocolTransformRejection::ThinkingUnsupported),
             }
         }
-        ProtocolFormat::AnthropicMessages => messages_thinking_to_responses(thinking).map(|_| ()),
+        ProtocolFormat::AnthropicMessages => {
+            let budget = thinking.extensions.get(ANTHROPIC_THINKING_BUDGET);
+            if thinking
+                .extensions
+                .iter()
+                .any(|(name, _)| name != ANTHROPIC_THINKING_BUDGET)
+                || !matches!(
+                    (thinking.effort.as_str(), budget),
+                    ("disabled" | "adaptive", None) | ("enabled", Some(_))
+                )
+                || budget.is_some_and(|raw| {
+                    !serde_json::from_str::<Value>(raw.get())
+                        .is_ok_and(|value| value.as_u64().is_some_and(|value| value > 0))
+                })
+            {
+                return Err(ProtocolTransformRejection::ThinkingUnsupported);
+            }
+            Ok(())
+        }
     }
 }
 
@@ -879,7 +898,16 @@ fn validate_target_message(
     position: usize,
     target: ProtocolFormat,
 ) -> Result<(), ProtocolTransformRejection> {
-    if message.content.is_empty() {
+    let reasoning_only_chat = target == ProtocolFormat::OpenAiChatCompletions
+        && message.role.0 == "assistant"
+        && message
+            .extensions
+            .get("openai.chat.message.reasoning_content")
+            .is_some_and(|raw| {
+                serde_json::from_str::<Value>(raw.get())
+                    .is_ok_and(|value| value.as_str().is_some_and(|text| !text.is_empty()))
+            });
+    if message.content.is_empty() && !reasoning_only_chat {
         return Err(ProtocolTransformRejection::IncompatibleRole);
     }
     let role = message.role.0.as_str();
@@ -887,7 +915,7 @@ fn validate_target_message(
         ProtocolFormat::OpenAiChatCompletions => match role {
             "system" | "developer" | "user"
                 if matches!(message.content.as_slice(), [MessageContent::Text(_)]) => {}
-            "assistant" if valid_assistant_tool_history(&message.content) => {}
+            "assistant" if valid_assistant_tool_history(&message.content, target) => {}
             "tool" if valid_tool_result_message(&message.content, target) => {}
             _ => return Err(ProtocolTransformRejection::ToolHistoryUnsupported),
         },
@@ -903,7 +931,7 @@ fn validate_target_message(
             if role == "tool" && !valid_tool_result_message(&message.content, target) {
                 return Err(ProtocolTransformRejection::ToolHistoryUnsupported);
             }
-            if role == "assistant" && !valid_assistant_tool_history(&message.content) {
+            if role == "assistant" && !valid_assistant_tool_history(&message.content, target) {
                 return Err(ProtocolTransformRejection::ToolHistoryUnsupported);
             }
             if matches!(role, "system" | "user")
@@ -919,7 +947,7 @@ fn validate_target_message(
     Ok(())
 }
 
-fn valid_assistant_tool_history(content: &[MessageContent]) -> bool {
+fn valid_assistant_tool_history(content: &[MessageContent], target: ProtocolFormat) -> bool {
     let mut saw_text = false;
     content.iter().enumerate().all(|(index, part)| match part {
         MessageContent::Text(_) if index == 0 && !saw_text => {
@@ -927,6 +955,10 @@ fn valid_assistant_tool_history(content: &[MessageContent]) -> bool {
             true
         }
         MessageContent::ToolCall(call) => !call.id.is_empty() && !call.name.is_empty(),
+        MessageContent::Text(_) if target == ProtocolFormat::AnthropicMessages => true,
+        MessageContent::Opaque(content) if target == ProtocolFormat::AnthropicMessages => {
+            valid_anthropic_thinking_history(content.raw())
+        }
         _ => false,
     })
 }
@@ -954,7 +986,7 @@ fn valid_responses_content(role: &str, content: &[MessageContent]) -> bool {
             .all(|part| matches!(part, MessageContent::Text(_))),
         "assistant" => {
             matches!(content, [MessageContent::Reasoning(_)])
-                || valid_assistant_tool_history(content)
+                || valid_assistant_tool_history(content, ProtocolFormat::OpenAiResponses)
         }
         "tool" => valid_tool_result_message(content, ProtocolFormat::OpenAiResponses),
         _ => false,
@@ -1003,7 +1035,11 @@ fn capability_rejection(
     {
         return Err(ProtocolTransformRejection::JsonSchemaUnsupported);
     }
-    if input.requires_parallel_tools && !capabilities.supports(SemanticCapability::ParallelTools) {
+    if (input.requires_parallel_tools
+        || ToolExecutionConstraints::from_request(input.request, input.source)?
+            .requires_parallel_tools())
+        && !capabilities.supports(SemanticCapability::ParallelTools)
+    {
         return Err(ProtocolTransformRejection::ParallelToolsUnsupported);
     }
     let has_reasoning = request.thinking.is_some()
@@ -1204,11 +1240,11 @@ mod tests {
     }
 
     #[test]
-    fn chat_response_reasoning_is_rejected_before_request_projection()
+    fn chat_response_reasoning_is_admitted_without_lowering_capabilities()
     -> Result<(), Box<dyn std::error::Error>> {
         let request = request();
         let reasoning = capabilities([SemanticCapability::Reasoning])?;
-        assert_eq!(
+        assert!(
             project_registered_protocol_request(input(
                 &request,
                 ProtocolFormat::OpenAiChatCompletions,
@@ -1216,10 +1252,10 @@ mod tests {
                 SnapshotTransformMode::Canonical,
                 NativePayloadAvailability::Exact,
                 &reasoning,
-            )),
-            Err(ProtocolTransformRejection::ResponseReasoningUnsupported),
+            ))
+            .is_ok(),
         );
-        assert!(!protocol_pair_is_publishable(
+        assert!(protocol_pair_is_publishable(
             ProtocolFormat::OpenAiChatCompletions,
             ProtocolFormat::OpenAiChatCompletions,
             SnapshotTransformMode::Canonical,
@@ -1279,7 +1315,7 @@ mod tests {
             )),
             ProtocolTransformRejection::PassthroughNativePayloadUnavailable,
         );
-        assert_eq!(
+        assert_rejected(
             analyze_protocol_transform(input(
                 &request,
                 ProtocolFormat::OpenAiResponses,
@@ -1288,7 +1324,7 @@ mod tests {
                 NativePayloadAvailability::Exact,
                 &no_capabilities,
             )),
-            ProtocolTransformAdmission::Approved
+            ProtocolTransformRejection::UnknownRequestExtensions,
         );
         Ok(())
     }
@@ -1663,7 +1699,7 @@ mod tests {
                     NativePayloadAvailability::Unavailable,
                     &all_capabilities,
                 )),
-                Err(ProtocolTransformRejection::UnknownRequestExtensions),
+                Err(ProtocolTransformRejection::ToolHistoryUnsupported),
             );
         }
 
@@ -1795,8 +1831,7 @@ mod tests {
     }
 
     #[test]
-    fn automatic_tool_choice_still_fails_closed_across_protocols()
-    -> Result<(), Box<dyn std::error::Error>> {
+    fn automatic_tool_choice_is_exact_across_protocols() -> Result<(), Box<dyn std::error::Error>> {
         let all_capabilities = all_capabilities()?;
         let mut with_tools = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
         with_tools.tools.push(ToolDefinition {
@@ -1809,16 +1844,20 @@ mod tests {
             super::RESPONSES_TOOL_CHOICE,
             RawJson::from_json_string(r#""auto""#.to_owned())?,
         )?;
+        let projected = canonical_projection(project_protocol_request(input(
+            &with_tools,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::OpenAiChatCompletions,
+            SnapshotTransformMode::LosslessBridge,
+            NativePayloadAvailability::Unavailable,
+            &all_capabilities,
+        )))?;
         assert_eq!(
-            project_protocol_request(input(
-                &with_tools,
-                ProtocolFormat::OpenAiResponses,
-                ProtocolFormat::OpenAiChatCompletions,
-                SnapshotTransformMode::LosslessBridge,
-                NativePayloadAvailability::Unavailable,
-                &all_capabilities,
-            )),
-            Err(ProtocolTransformRejection::UnknownRequestExtensions),
+            projected
+                .extensions
+                .get(super::CHAT_TOOL_CHOICE)
+                .map(RawJson::get),
+            Some("\"auto\"")
         );
 
         let mut without_tools = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
@@ -1835,7 +1874,7 @@ mod tests {
                 NativePayloadAvailability::Unavailable,
                 &all_capabilities,
             )),
-            Err(ProtocolTransformRejection::UnknownRequestExtensions),
+            Err(ProtocolTransformRejection::ToolHistoryUnsupported),
         );
         Ok(())
     }
@@ -2270,11 +2309,28 @@ mod tests {
         ] {
             let mut invalid = body.clone();
             invalid["input"][1]["content"][0]["annotations"] = annotation;
-            let parsed = protocol_openai_responses::decode_request(&invalid.to_string())?;
-            assert!(
-                super::canonical_rejection(&parsed.request, ProtocolFormat::OpenAiResponses)
-                    .is_err()
-            );
+            assert!(protocol_openai_responses::decode_request(&invalid.to_string()).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn reasoning_only_chat_history_is_native_and_not_silently_bridged()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let decoded = protocol_openai_chat::decode_request(
+            r#"{
+            "model":"public-model", "messages":[
+                {"role":"assistant","content":null,"reasoning_content":"visible thought"},
+                {"role":"user","content":"next"}
+            ]
+        }"#,
+        )?;
+        super::canonical_rejection(&decoded.request, ProtocolFormat::OpenAiChatCompletions)?;
+        for target in [
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::AnthropicMessages,
+        ] {
+            assert!(super::canonical_rejection(&decoded.request, target).is_err());
         }
         Ok(())
     }
@@ -2326,7 +2382,11 @@ mod tests {
             ProtocolFormat::OpenAiResponses,
             ProtocolFormat::AnthropicMessages,
         ] {
-            let request = request();
+            let request = if protocol == ProtocolFormat::AnthropicMessages {
+                with_output_limit(request(), protocol, 64)?
+            } else {
+                request()
+            };
             assert_eq!(
                 project_protocol_request(input(
                     &request,
@@ -2402,50 +2462,39 @@ mod tests {
     }
 
     #[test]
-    fn reasoning_levels_follow_the_pinned_legacy_budget_table()
+    fn thinking_effort_is_exact_between_openai_protocols_and_not_a_numeric_budget()
     -> Result<(), Box<dyn std::error::Error>> {
         let reasoning = capabilities([SemanticCapability::Reasoning])?;
-        let mut responses = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
-        responses.thinking = Some(Thinking {
-            effort: ThinkingEffort::try_new("high")?,
-            extensions: RawExtensions::default(),
-        });
-        let messages = canonical_projection(project_protocol_request(input(
-            &responses,
-            ProtocolFormat::OpenAiResponses,
-            ProtocolFormat::AnthropicMessages,
-            SnapshotTransformMode::LosslessBridge,
-            NativePayloadAvailability::Unavailable,
-            &reasoning,
-        )))?;
-        let thinking = messages
-            .thinking
-            .as_ref()
-            .ok_or_else(|| std::io::Error::other("thinking was not projected"))?;
-        assert_eq!(thinking.effort.as_str(), "enabled");
-        assert_eq!(
-            thinking
-                .extensions
-                .get(super::ANTHROPIC_THINKING_BUDGET)
-                .map(RawJson::get),
-            Some("24576")
-        );
-
-        let round_trip = canonical_projection(project_protocol_request(input(
-            &messages,
-            ProtocolFormat::AnthropicMessages,
-            ProtocolFormat::OpenAiResponses,
-            SnapshotTransformMode::LosslessBridge,
-            NativePayloadAvailability::Unavailable,
-            &reasoning,
-        )))?;
-        assert_eq!(
-            round_trip
-                .thinking
-                .as_ref()
-                .map(|thinking| thinking.effort.as_str()),
-            Some("high")
-        );
+        for effort in ["minimal", "low", "medium", "high", "xhigh", "max"] {
+            let mut request = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 64)?;
+            request.thinking = Some(Thinking {
+                effort: ThinkingEffort::try_new(effort)?,
+                extensions: RawExtensions::default(),
+            });
+            let chat = canonical_projection(project_protocol_request(input(
+                &request,
+                ProtocolFormat::OpenAiResponses,
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::LosslessBridge,
+                NativePayloadAvailability::Unavailable,
+                &reasoning,
+            )))?;
+            assert_eq!(
+                chat.thinking.as_ref().map(|value| value.effort.as_str()),
+                Some(effort)
+            );
+            assert_eq!(
+                project_protocol_request(input(
+                    &request,
+                    ProtocolFormat::OpenAiResponses,
+                    ProtocolFormat::AnthropicMessages,
+                    SnapshotTransformMode::LosslessBridge,
+                    NativePayloadAvailability::Unavailable,
+                    &reasoning
+                )),
+                Err(ProtocolTransformRejection::ThinkingUnsupported)
+            );
+        }
         Ok(())
     }
 

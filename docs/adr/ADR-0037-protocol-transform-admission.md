@@ -7,6 +7,10 @@
 | Task | `P5-04` |
 | Contract | [BC-ROUTER-004](../contracts/BC-ROUTER-004-protocol-transform-admission.md) |
 
+CPAR batch B supersedes native unknown-control bypasses and approximate thinking mappings in
+[ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md). Every execution mode validates
+reviewed semantics; unsupported transformations still fail before upstream acquisition.
+
 ## Context
 
 P2 persisted three Route transform modes: `passthrough`, `canonical`, and `lossless_bridge`.

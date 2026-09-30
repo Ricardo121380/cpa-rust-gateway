@@ -2128,6 +2128,8 @@ fn parse_usage(
         return Ok(None);
     }
     Ok(Some(Usage {
+        provenance: gateway_core::UsageProvenance::Measured,
+        input_accounting: gateway_core::InputTokenAccounting::Inclusive,
         input_tokens,
         output_tokens,
         reasoning_tokens,

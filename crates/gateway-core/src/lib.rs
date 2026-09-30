@@ -22,9 +22,10 @@ pub use account_entitlement::{
     ProviderAccountEntitlementSource, ProviderAccountEntitlementTier,
 };
 pub use canonical_event::{
-    CanonicalEvent, CanonicalEventState, CanonicalResponse, MessageEnd, MessageStart,
-    OutputItemMetadata, ReasoningDelta, ResponseEnd, ResponseStart, StreamError, TextDelta,
-    ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart, Usage, UsageDelta,
+    CanonicalEvent, CanonicalEventState, CanonicalResponse, InputTokenAccounting, MessageEnd,
+    MessageStart, OutputItemMetadata, ReasoningDelta, ResponseEnd, ResponseStart, StreamError,
+    TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart, Usage, UsageDelta,
+    UsageProvenance,
 };
 pub use canonical_request::CanonicalRequest;
 pub use error::{ErrorScope, GatewayError, GatewayErrorCode};

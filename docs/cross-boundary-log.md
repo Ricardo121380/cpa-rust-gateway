@@ -3508,3 +3508,20 @@ remain unverified; see the release report for exact scope.
 **Why:** Implement spec #9 A / CPAR-01–17 (#10–26), including honest saved/application states, uncertain readback without replay, exact permissions and safe account retirement.
 
 **Other side:** FYI under the user's explicit answer **“授权 Codex 完成本次 A 的前后端”**. Codex owns this batch's frontend and backend implementation; no separate Claude Code write is required. Local unit/high-level HTTP and EgoLite synthetic acceptance are distinguished from real Provider and production. No remote push or production release. The task commit carries `Cross-Boundary: web/prism - authorized CPAR A frontend and contract implementation`.
+
+## 2026-09-30 - Codex - CPAR B Usage evidence contract synchronization
+
+**What:** `web/prism/contracts/management-v1.json`, synchronized with
+`npm --prefix web/prism run sync-contract` from the backend-owned contract.
+The generated `web/prism/src/generated/management-client.ts` was regenerated
+and remained byte-identical.
+
+**Why:** CPAR-23 preserves measured/estimated/unknown source Usage and input
+accounting in persistent read models and billing. The API exposes optional
+provenance/accounting fields without changing existing confidence enums.
+
+**Other side:** FYI. Batch B changes backend behavior and synchronizes the
+required generated contract; no frontend business-flow edit or deployment.
+See `docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md` and the
+batch B report for protocol limits and local acceptance evidence. The task
+commit carries `Cross-Boundary: web/prism - generated CPAR B Usage contract`.

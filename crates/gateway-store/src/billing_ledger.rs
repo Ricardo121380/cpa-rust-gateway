@@ -79,7 +79,7 @@ pub struct BillingPriceCatalog {
 const LEDGER_ROW_SELECT: &str = "SELECT ledger_id, source_event_id, source_fingerprint, request_id, response_id, \
          provider_id, channel_id, account_id, model, occurred_at_ms, catalog_version_id, \
          input_tokens, output_tokens, reasoning_tokens, cache_read_tokens, cache_creation_tokens, \
-         cached_tokens, cost_microunits, cost_confidence, retention_expires_at_ms, recorded_at_ms \
+         cached_tokens, cost_microunits, cost_confidence, retention_expires_at_ms, recorded_at_ms, usage_evidence_json \
          FROM billing_ledger_entries";
 
 // Conflicting immutable Usage observations cannot become unambiguous by retrying. Keep the
@@ -238,6 +238,15 @@ impl BillingLedgerEntryInput {
                 .to_be_bytes(),
         );
         digest.update(self.cost_confidence.as_sql().as_bytes());
+        if self.usage.provenance != gateway_core::UsageProvenance::Unknown
+            || self.usage.input_accounting != gateway_core::InputTokenAccounting::Unknown
+        {
+            digest.update(
+                serde_json::json!([self.usage.provenance, self.usage.input_accounting])
+                    .to_string()
+                    .as_bytes(),
+            );
+        }
         let digest = digest.finalize();
         format!("{digest:x}")
     }
@@ -624,8 +633,8 @@ impl SqliteBillingLedger {
              (source_event_id, source_fingerprint, request_id, response_id, provider_id, channel_id, \
               account_id, model, occurred_at_ms, catalog_version_id, input_tokens, output_tokens, \
               reasoning_tokens, cache_read_tokens, cache_creation_tokens, cached_tokens, \
-              cost_microunits, cost_confidence, billing_status, retention_expires_at_ms, recorded_at_ms) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)",
+              cost_microunits, cost_confidence, billing_status, retention_expires_at_ms, recorded_at_ms, usage_evidence_json) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)",
             params![
                 input.source_event_id,
                 fingerprint,
@@ -648,6 +657,7 @@ impl SqliteBillingLedger {
                 input.cost_confidence.billing_status(),
                 i64_from_u64(input.retention_expires_at_ms)?,
                 i64_from_u64(input.recorded_at_ms)?,
+                serde_json::json!({"provenance":input.usage.provenance,"input_accounting":input.usage.input_accounting}).to_string(),
             ],
         )?;
         let ledger_id = transaction.last_insert_rowid();
@@ -1114,6 +1124,7 @@ fn decode_ledger_row(row: &rusqlite::Row<'_>) -> StoreResult<BillingLedgerEntry>
         row.get::<_, String>(18)?,
         row.get::<_, i64>(19)?,
         row.get::<_, i64>(20)?,
+        row.get::<_, String>(21)?,
     );
     let (
         ledger_id,
@@ -1137,7 +1148,10 @@ fn decode_ledger_row(row: &rusqlite::Row<'_>) -> StoreResult<BillingLedgerEntry>
         cost_confidence,
         retention_expires_at_ms,
         recorded_at_ms,
+        usage_evidence_json,
     ) = row;
+    let evidence: UsageSummary = serde_json::from_str(&usage_evidence_json)
+        .map_err(|_| StoreError::InvalidPersistedBillingRecord)?;
     if source_fingerprint.len() != 64
         || !source_fingerprint
             .bytes()
@@ -1158,6 +1172,8 @@ fn decode_ledger_row(row: &rusqlite::Row<'_>) -> StoreResult<BillingLedgerEntry>
         occurred_at_ms: u64_from_i64(occurred_at_ms)?,
         catalog_version_id,
         usage: UsageSummary {
+            provenance: evidence.provenance,
+            input_accounting: evidence.input_accounting,
             input_tokens: input_tokens.map(u64_from_i64).transpose()?,
             output_tokens: output_tokens.map(u64_from_i64).transpose()?,
             reasoning_tokens: reasoning_tokens.map(u64_from_i64).transpose()?,
@@ -1208,6 +1224,8 @@ mod tests {
             occurred_at_ms: 100,
             catalog_version_id: Some("catalog-1".to_owned()),
             usage: UsageSummary {
+                provenance: gateway_core::UsageProvenance::Measured,
+                input_accounting: gateway_core::InputTokenAccounting::Exclusive,
                 input_tokens: Some(1_000_000),
                 output_tokens: Some(500_000),
                 reasoning_tokens: None,

@@ -196,6 +196,7 @@ struct Assembly {
     message: MessagePhase,
     content: Vec<ContentBlock>,
     active_content_index: Option<usize>,
+    source_block_index: Option<u64>,
     next_sse_index: usize,
     active_sse_index: Option<usize>,
     tools: BTreeMap<String, ToolState>,
@@ -212,12 +213,17 @@ enum ContentBlock {
         deltas: Vec<String>,
         emitted_deltas: usize,
         closed: bool,
+        citations: Vec<Value>,
+        emitted_citations: usize,
     },
     Thinking {
         thinking: String,
         deltas: Vec<String>,
         emitted_deltas: usize,
         closed: bool,
+        signature: String,
+        signature_deltas: Vec<String>,
+        emitted_signatures: usize,
     },
     Tool {
         call_id: String,
@@ -243,9 +249,25 @@ fn content_block_kind(content: Option<&ContentBlock>) -> Option<ContentKind> {
 impl ContentBlock {
     fn completed_value(&self) -> Result<Value, GatewayError> {
         match self {
-            Self::Text { text, .. } => Ok(json!({"type": "text", "text": text})),
-            Self::Thinking { thinking, .. } => {
-                Ok(json!({"type": "thinking", "thinking": thinking}))
+            Self::Text {
+                text, citations, ..
+            } => {
+                let mut value = json!({"type": "text", "text": text});
+                if !citations.is_empty() {
+                    value["citations"] = json!(citations);
+                }
+                Ok(value)
+            }
+            Self::Thinking {
+                thinking,
+                signature,
+                ..
+            } => {
+                let mut value = json!({"type": "thinking", "thinking": thinking});
+                if !signature.is_empty() {
+                    value["signature"] = json!(signature);
+                }
+                Ok(value)
             }
             Self::Tool {
                 call_id,
@@ -308,8 +330,12 @@ impl Assembly {
                 Ok(Vec::new())
             }
             CanonicalEvent::MessageStart(start) => self.start_message(&start.role.0, metadata),
-            CanonicalEvent::TextDelta(delta) => self.append_text(&delta.text),
-            CanonicalEvent::ReasoningDelta(delta) => self.append_thinking(&delta.text),
+            CanonicalEvent::TextDelta(delta) => {
+                self.append_content_metadata(&delta.text, ContentKind::Text, &delta.extensions)
+            }
+            CanonicalEvent::ReasoningDelta(delta) => {
+                self.append_content_metadata(&delta.text, ContentKind::Thinking, &delta.extensions)
+            }
             CanonicalEvent::ToolCallStart(start) => self.start_tool(&start.call_id, &start.name),
             CanonicalEvent::ToolCallArgumentsDelta(delta) => {
                 self.append_tool_arguments(&delta.call_id, &delta.delta)
@@ -342,7 +368,7 @@ impl Assembly {
         // terminal `message_delta` must carry it instead of silently losing it.
         let usage = self.usage.as_ref();
         self.deferred_input_usage = usage.and_then(|usage| usage.input_tokens).is_none();
-        let input_usage = initial_usage_value(usage);
+        let input_usage = initial_usage_value(usage)?;
         self.message = MessagePhase::Started;
         Ok(vec![frame(
             "message_start",
@@ -362,12 +388,42 @@ impl Assembly {
         )])
     }
 
-    fn append_text(&mut self, text: &str) -> Result<Vec<SseFrame>, GatewayError> {
-        self.append_content_delta(text, ContentKind::Text)
-    }
-
-    fn append_thinking(&mut self, thinking: &str) -> Result<Vec<SseFrame>, GatewayError> {
-        self.append_content_delta(thinking, ContentKind::Thinking)
+    fn append_content_metadata(
+        &mut self,
+        value: &str,
+        kind: ContentKind,
+        extensions: &gateway_core::RawExtensions,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
+        let metadata = crate::content_metadata::decode(extensions, kind == ContentKind::Thinking)?;
+        if let Some(index) = metadata.index {
+            if self
+                .source_block_index
+                .is_some_and(|existing| existing != index)
+            {
+                self.close_active_content_block()?;
+            }
+            self.source_block_index = Some(index);
+        }
+        let mut frames = self.append_content_delta(value, kind)?;
+        let index = self
+            .active_content_index
+            .ok_or_else(stream_protocol_error)?;
+        match self.content.get_mut(index) {
+            Some(ContentBlock::Thinking {
+                signature,
+                signature_deltas,
+                ..
+            }) => {
+                if let Some(fragment) = metadata.signature {
+                    signature.push_str(&fragment);
+                    signature_deltas.push(fragment);
+                }
+            }
+            Some(ContentBlock::Text { citations, .. }) => citations.extend(metadata.citations),
+            _ => return Err(stream_protocol_error()),
+        }
+        frames.extend(self.flush_serialized_blocks()?);
+        Ok(frames)
     }
 
     fn append_content_delta(
@@ -397,7 +453,9 @@ impl Assembly {
                 }),
             ) => {
                 accumulated.push_str(value);
-                deltas.push(value.to_owned());
+                if !value.is_empty() {
+                    deltas.push(value.to_owned());
+                }
             }
             _ => return Err(stream_protocol_error()),
         }
@@ -418,12 +476,17 @@ impl Assembly {
                 deltas: Vec::new(),
                 emitted_deltas: 0,
                 closed: false,
+                citations: Vec::new(),
+                emitted_citations: 0,
             },
             ContentKind::Thinking => ContentBlock::Thinking {
                 thinking: String::new(),
                 deltas: Vec::new(),
                 emitted_deltas: 0,
                 closed: false,
+                signature: String::new(),
+                signature_deltas: Vec::new(),
+                emitted_signatures: 0,
             },
         });
         self.active_content_index = Some(index);
@@ -675,6 +738,21 @@ impl Assembly {
                 }
             }
         }
+        if let Some(ContentBlock::Text {
+            citations,
+            emitted_citations,
+            ..
+        }) = self.content.get_mut(index)
+        {
+            for citation in &citations[*emitted_citations..] {
+                frames.push(frame(
+                    "content_block_delta",
+                    json!({"type":"content_block_delta",
+                    "index":index,"delta":{"type":"citations_delta","citation":citation}}),
+                ));
+            }
+            *emitted_citations = citations.len();
+        }
         Ok(closed)
     }
 
@@ -715,6 +793,21 @@ impl Assembly {
                     return Err(stream_protocol_error());
                 }
             }
+        }
+        if let Some(ContentBlock::Thinking {
+            signature_deltas,
+            emitted_signatures,
+            ..
+        }) = self.content.get_mut(index)
+        {
+            for signature in &signature_deltas[*emitted_signatures..] {
+                frames.push(frame(
+                    "content_block_delta",
+                    json!({"type":"content_block_delta",
+                    "index":index,"delta":{"type":"signature_delta","signature":signature}}),
+                ));
+            }
+            *emitted_signatures = signature_deltas.len();
         }
         Ok(closed)
     }
@@ -843,29 +936,7 @@ impl Assembly {
 }
 
 pub(crate) fn merge_usage(previous: Option<&Usage>, update: &Usage) -> Usage {
-    let mut merged = previous.cloned().unwrap_or_default();
-    if update.input_tokens.is_some() {
-        merged.input_tokens = update.input_tokens;
-    }
-    if update.output_tokens.is_some() {
-        merged.output_tokens = update.output_tokens;
-    }
-    if update.reasoning_tokens.is_some() {
-        merged.reasoning_tokens = update.reasoning_tokens;
-    }
-    if update.cache_read_tokens.is_some() {
-        merged.cache_read_tokens = update.cache_read_tokens;
-    }
-    if update.cache_creation_tokens.is_some() {
-        merged.cache_creation_tokens = update.cache_creation_tokens;
-    }
-    if update.cached_tokens.is_some() {
-        merged.cached_tokens = update.cached_tokens;
-    }
-    if !update.extensions.is_empty() {
-        merged.extensions = update.extensions.clone();
-    }
-    merged
+    Usage::merge_snapshot(previous, update)
 }
 
 /// Encodes the `message_start` input Usage from whatever the canonical stream has reported.
@@ -873,45 +944,35 @@ pub(crate) fn merge_usage(previous: Option<&Usage>, update: &Usage) -> Usage {
 /// An upstream whose protocol reports Usage only in its terminal event leaves the input count
 /// genuinely unknown here. The field is then omitted rather than estimated — `0` would falsely
 /// claim a measured value — and the exact count is required in the terminal `message_delta`.
-fn initial_usage_value(usage: Option<&Usage>) -> Value {
+fn initial_usage_value(usage: Option<&Usage>) -> Result<Value, GatewayError> {
     let mut encoded = Map::new();
-    if let Some(input_tokens) = usage.and_then(|usage| usage.input_tokens) {
-        encoded.insert("input_tokens".to_owned(), Value::from(input_tokens));
-    }
-    encoded.insert("output_tokens".to_owned(), Value::from(0_u64));
     if let Some(usage) = usage {
+        if let Some(input) = usage.input_for(gateway_core::InputTokenAccounting::Exclusive)? {
+            encoded.insert("input_tokens".into(), json!(input));
+        }
         insert_anthropic_cache_usage(&mut encoded, usage);
+        encoded.insert("cpar_usage".into(), usage.evidence());
     }
-    Value::Object(encoded)
-}
-
-/// Encodes the terminal `message_delta` Usage.
-///
-/// `deferred_input` repays the placeholder written by [`initial_usage_value`]: the exact input
-/// count becomes mandatory here, so a stream that never reports one fails closed instead of
-/// leaving the client with the placeholder.
-fn output_usage_value(usage: &Usage, deferred_input: bool) -> Result<Value, GatewayError> {
-    let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
-    if !deferred_input {
-        return Ok(json!({"output_tokens": output_tokens}));
-    }
-    // `message_start` carried no input-side Usage at all in the deferred case, so this frame repays
-    // every exact input-side count, not only `input_tokens`.
-    let input_tokens = usage.input_tokens.ok_or_else(stream_protocol_error)?;
-    let mut encoded = Map::new();
-    encoded.insert("input_tokens".to_owned(), Value::from(input_tokens));
-    encoded.insert("output_tokens".to_owned(), Value::from(output_tokens));
-    insert_anthropic_cache_usage(&mut encoded, usage);
+    // No output has been generated when the stream opens. This is protocol framing, not a
+    // fabricated measured snapshot; the evidence object retains the absent upstream counter.
+    encoded.insert("output_tokens".into(), json!(0));
     Ok(Value::Object(encoded))
 }
 
+fn output_usage_value(usage: &Usage, _deferred_input: bool) -> Result<Value, GatewayError> {
+    completed_usage_value(usage)
+}
+
 fn completed_usage_value(usage: &Usage) -> Result<Value, GatewayError> {
-    let input_tokens = usage.input_tokens.ok_or_else(stream_protocol_error)?;
-    let output_tokens = usage.output_tokens.ok_or_else(stream_protocol_error)?;
     let mut encoded = Map::new();
-    encoded.insert("input_tokens".to_owned(), Value::from(input_tokens));
-    encoded.insert("output_tokens".to_owned(), Value::from(output_tokens));
+    if let Some(input) = usage.input_for(gateway_core::InputTokenAccounting::Exclusive)? {
+        encoded.insert("input_tokens".into(), json!(input));
+    }
+    if let Some(output) = usage.output_tokens {
+        encoded.insert("output_tokens".into(), json!(output));
+    }
     insert_anthropic_cache_usage(&mut encoded, usage);
+    encoded.insert("cpar_usage".into(), usage.evidence());
     Ok(Value::Object(encoded))
 }
 
@@ -945,16 +1006,17 @@ fn ensure_representable(event: &CanonicalEvent) -> Result<(), GatewayError> {
         CanonicalEvent::OutputItemStart(_) | CanonicalEvent::OutputItemEnd(_) => false,
         CanonicalEvent::ResponseStart(value) => value.extensions.is_empty(),
         CanonicalEvent::MessageStart(value) => value.extensions.is_empty(),
-        CanonicalEvent::TextDelta(value) => value.extensions.is_empty(),
-        CanonicalEvent::ReasoningDelta(value) => value.extensions.is_empty(),
+        CanonicalEvent::TextDelta(value) => {
+            crate::content_metadata::decode(&value.extensions, false).is_ok()
+        }
+        CanonicalEvent::ReasoningDelta(value) => {
+            crate::content_metadata::decode(&value.extensions, true).is_ok()
+        }
         CanonicalEvent::ToolCallStart(value) => value.extensions.is_empty(),
         CanonicalEvent::ToolCallArgumentsDelta(value) => value.extensions.is_empty(),
         CanonicalEvent::ToolCallEnd(value) => value.extensions.is_empty(),
         CanonicalEvent::UsageDelta(value) => {
-            value.extensions.is_empty()
-                && value.usage.extensions.is_empty()
-                && value.usage.reasoning_tokens.is_none()
-                && value.usage.cached_tokens.is_none()
+            value.extensions.is_empty() && value.usage.extensions.is_empty()
         }
         CanonicalEvent::MessageEnd(value) => value.extensions.is_empty(),
         CanonicalEvent::ResponseEnd(value) => {
@@ -1146,7 +1208,7 @@ mod tests {
             .ok_or("missing message_delta")?;
         assert_eq!(
             delta.data()["usage"],
-            serde_json::json!({"input_tokens": 7, "output_tokens": 3})
+            serde_json::json!({"input_tokens": 7, "output_tokens": 3, "cpar_usage": gateway_core::Usage {input_tokens:Some(7), output_tokens:Some(3), ..gateway_core::Usage::default()}.evidence()})
         );
         Ok(())
     }
@@ -1181,14 +1243,15 @@ mod tests {
                 "input_tokens": 1000,
                 "output_tokens": 20,
                 "cache_read_input_tokens": 900,
-                "cache_creation_input_tokens": 40
+                "cache_creation_input_tokens": 40,
+                "cpar_usage": gateway_core::Usage {input_tokens:Some(1000),output_tokens:Some(20),cache_read_tokens:Some(900),cache_creation_tokens:Some(40),..gateway_core::Usage::default()}.evidence()
             })
         );
         Ok(())
     }
 
     #[test]
-    fn deferred_initial_usage_that_is_never_reported_fails_closed()
+    fn deferred_initial_usage_that_is_never_reported_remains_unknown()
     -> Result<(), Box<dyn std::error::Error>> {
         let metadata = AnthropicResponseMetadata::try_new("gateway-claude")?;
         let mut encoder = AnthropicMessagesSseEncoder::new(metadata);
@@ -1205,7 +1268,16 @@ mod tests {
         for event in &events[..5] {
             assert!(encoder.encode_event(event).is_ok());
         }
-        assert!(encoder.encode_event(&events[5]).is_err());
+        let frames = encoder.encode_event(&events[5])?;
+        let usage = frames
+            .iter()
+            .find(|frame| frame.event() == "message_delta")
+            .ok_or("missing usage")?
+            .data()["usage"]
+            .clone();
+        assert!(usage.get("input_tokens").is_none());
+        assert!(usage["cpar_usage"]["input_tokens"].is_null());
+        assert_eq!(usage["cpar_usage"]["output_tokens"], 3);
         Ok(())
     }
 
@@ -1223,7 +1295,7 @@ mod tests {
             ]"#,
         )?;
         assert!(encoder.encode_event(&events[0]).is_ok());
-        assert!(encoder.encode_event(&events[1]).is_err());
+        assert!(encoder.encode_event(&events[1]).is_ok());
 
         let events: Vec<CanonicalEvent> = serde_json::from_str(
             r#"[

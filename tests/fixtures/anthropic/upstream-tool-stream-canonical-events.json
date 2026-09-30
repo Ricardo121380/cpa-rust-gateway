@@ -1,8 +1,8 @@
 [
   {"response_start":{"response_id":"msg_upstream_tool","extensions":{}}},
-  {"usage_delta":{"usage":{"input_tokens":17,"extensions":{}},"is_final":false,"extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":17,"extensions":{},"provenance":"measured","input_accounting":"exclusive"},"is_final":false,"extensions":{}}},
   {"message_start":{"role":"assistant","extensions":{}}},
-  {"text_delta":{"text":"Checking tools.","extensions":{}}},
+  {"text_delta":{"text":"Checking tools.","extensions":{"anthropic.content_block.index":0}}},
   {"tool_call_start":{"call_id":"tool-weather","name":"lookup_weather","extensions":{}}},
   {"tool_call_arguments_delta":{"call_id":"tool-weather","delta":"{\"city\":","extensions":{}}},
   {"tool_call_arguments_delta":{"call_id":"tool-weather","delta":"\"Jakarta\"}","extensions":{}}},
@@ -10,6 +10,6 @@
   {"tool_call_start":{"call_id":"tool-enter-plan","name":"EnterPlanMode","extensions":{}}},
   {"tool_call_end":{"call_id":"tool-enter-plan","arguments":{},"extensions":{}}},
   {"message_end":{"extensions":{}}},
-  {"usage_delta":{"usage":{"input_tokens":17,"output_tokens":23,"extensions":{}},"is_final":true,"extensions":{}}},
+  {"usage_delta":{"usage":{"input_tokens":17,"output_tokens":23,"extensions":{},"provenance":"measured","input_accounting":"exclusive"},"is_final":true,"extensions":{}}},
   {"response_end":{"stop_reason":"tool_use","extensions":{}}}
 ]

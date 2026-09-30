@@ -17,7 +17,10 @@ use gateway_core::{
 };
 use serde_json::{Map, Value};
 
-use super::reject_duplicate_json_names;
+use super::{
+    native_output::{native_annotation_extensions, native_item_metadata, native_part_extensions},
+    reject_duplicate_json_names,
+};
 
 const MAX_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
 const MAX_FRAME_BYTES: usize = MAX_RESPONSE_BYTES;
@@ -38,12 +41,7 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
     decode_upstream_response_with_reasoning_policy(input, false)
 }
 
-/// Decodes one complete Responses envelope with an explicit private-reasoning policy.
-///
-/// Official `ChatGPT` Codex OAuth responses can contain encrypted reasoning output that cannot be
-/// represented by the public bridge protocols. CPA/sub2api discard that private item and retain
-/// visible message/tool output. The default decoder remains strict; this opt-in is reserved for
-/// an explicitly admitted route whose capability contract excludes reasoning.
+/// Compatibility entry point; the legacy suppression flag cannot discard unsupported output.
 ///
 /// # Errors
 ///
@@ -51,7 +49,7 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
 /// failed, unknown, or semantically unrepresentable response.
 pub fn decode_upstream_response_with_reasoning_policy(
     input: &str,
-    suppress_reasoning: bool,
+    _suppress_reasoning: bool,
 ) -> Result<Vec<CanonicalEvent>, GatewayError> {
     if input.len() > MAX_RESPONSE_BYTES {
         return Err(protocol_error());
@@ -91,10 +89,7 @@ pub fn decode_upstream_response_with_reasoning_policy(
             extensions: RawExtensions::default(),
         }));
     }
-    let mut state = CompletedState {
-        suppress_reasoning,
-        ..CompletedState::default()
-    };
+    let mut state = CompletedState::default();
     for item in output {
         state.decode_item(item, &mut events)?;
     }
@@ -117,6 +112,27 @@ pub fn decode_upstream_response_with_reasoning_policy(
     CanonicalResponse::try_new(events)
         .map(CanonicalResponse::into_events)
         .map_err(|_| protocol_error())
+}
+
+fn wire_item_metadata(
+    item: &Map<String, Value>,
+    completed: bool,
+) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+    let mut item = item.clone();
+    // These paired, validated turn IDs identify an upstream wire envelope, not response content.
+    item.remove("metadata");
+    item.remove("internal_chat_message_metadata_passthrough");
+    native_item_metadata(&Value::Object(item), completed)
+}
+fn part_index(value: &Value, field: &str) -> Result<usize, GatewayError> {
+    match value.get(field) {
+        None => Ok(0),
+        Some(value) => value
+            .as_u64()
+            .and_then(|value| usize::try_from(value).ok())
+            .filter(|value| *value < 64)
+            .ok_or_else(protocol_error),
+    }
 }
 
 const RESPONSE_FIELDS: &[&str] = &[
@@ -162,7 +178,6 @@ struct CompletedState {
     message_open: bool,
     emitted_content: bool,
     call_ids: BTreeSet<String>,
-    suppress_reasoning: bool,
 }
 
 impl CompletedState {
@@ -182,12 +197,20 @@ impl CompletedState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item = object(item)?;
+        self.ensure_message(events);
+        events.push(CanonicalEvent::OutputItemStart(wire_item_metadata(
+            item, false,
+        )?));
         match required_string(item, "type")? {
-            "message" => self.decode_message(item, events),
-            "reasoning" => self.decode_reasoning(item, events),
-            "function_call" => self.decode_tool(item, events),
-            _ => Err(protocol_error()),
+            "message" => self.decode_message(item, events)?,
+            "reasoning" => self.decode_reasoning(item, events)?,
+            "function_call" => self.decode_tool(item, events)?,
+            _ => return Err(protocol_error()),
         }
+        events.push(CanonicalEvent::OutputItemEnd(wire_item_metadata(
+            item, true,
+        )?));
+        Ok(())
     }
 
     fn decode_message(
@@ -219,24 +242,24 @@ impl CompletedState {
             .get("content")
             .and_then(Value::as_array)
             .ok_or_else(protocol_error)?;
-        for part in content {
+        for (part_index, part) in content.iter().enumerate() {
             let part = object(part)?;
             require_only_keys(part, &["annotations", "logprobs", "text", "type"])?;
             if part.get("type").and_then(Value::as_str) != Some("output_text")
-                || part
-                    .get("annotations")
-                    .is_some_and(|value| !value.as_array().is_some_and(Vec::is_empty))
                 || part.get("logprobs").is_some_and(|value| {
                     !value.is_null() && !value.as_array().is_some_and(Vec::is_empty)
                 })
             {
                 return Err(protocol_error());
             }
+            if let Some(annotations) = part.get("annotations") {
+                super::annotations::validate(annotations)?;
+            }
             let text = required_string(part, "text")?;
             self.ensure_message(events);
             events.push(CanonicalEvent::TextDelta(TextDelta {
                 text: text.to_owned(),
-                extensions: RawExtensions::default(),
+                extensions: native_part_extensions(identifier(item, "id")?, "content", part_index)?,
             }));
             self.emitted_content = true;
         }
@@ -260,12 +283,6 @@ impl CompletedState {
             ],
         )?;
         let _ = identifier(item, "id")?;
-        if self.suppress_reasoning {
-            if !completed_or_absent(item.get("status")) {
-                return Err(protocol_error());
-            }
-            return Ok(());
-        }
         if !completed_or_absent(item.get("status"))
             || item
                 .get("encrypted_content")
@@ -278,7 +295,7 @@ impl CompletedState {
                 continue;
             };
             let parts = parts.as_array().ok_or_else(protocol_error)?;
-            for part in parts {
+            for (part_index, part) in parts.iter().enumerate() {
                 let part = object(part)?;
                 require_only_keys(part, &["text", "type"])?;
                 if part.get("type").and_then(Value::as_str) != Some(part_type) {
@@ -291,7 +308,7 @@ impl CompletedState {
                 self.ensure_message(events);
                 events.push(CanonicalEvent::ReasoningDelta(ReasoningDelta {
                     text: text.to_owned(),
-                    extensions: RawExtensions::default(),
+                    extensions: native_part_extensions(identifier(item, "id")?, field, part_index)?,
                 }));
                 self.emitted_content = true;
             }
@@ -333,6 +350,7 @@ impl CompletedState {
         if arguments.len() > MAX_TOOL_ARGUMENT_BYTES {
             return Err(protocol_error());
         }
+        reject_duplicate_json_names(arguments).map_err(|_| protocol_error())?;
         let arguments =
             RawJson::from_json_string(arguments.to_owned()).map_err(|_| protocol_error())?;
         self.ensure_message(events);
@@ -372,7 +390,6 @@ pub struct OpenAiResponsesSseDecoder {
     pending: Vec<CanonicalEvent>,
     progress_free_frames: usize,
     progress_marks: u64,
-    suppress_reasoning: bool,
 }
 
 impl Default for OpenAiResponsesSseDecoder {
@@ -386,7 +403,6 @@ impl Default for OpenAiResponsesSseDecoder {
             pending: Vec::new(),
             progress_free_frames: 0,
             progress_marks: 0,
-            suppress_reasoning: false,
         }
     }
 }
@@ -408,7 +424,7 @@ impl fmt::Debug for OpenAiResponsesSseDecoder {
 
 enum SseLifecycle {
     AwaitingStart,
-    Streaming(SseState),
+    Streaming(Box<SseState>),
     Finished,
 }
 
@@ -417,7 +433,12 @@ struct SseState {
     message_open: bool,
     emitted_content: bool,
     output_items: BTreeSet<String>,
+    ended_items: BTreeSet<String>,
     text_items: BTreeSet<String>,
+    text_parts: BTreeMap<(String, usize), String>,
+    annotations: BTreeMap<(String, usize), Vec<Value>>,
+    completed_items: BTreeMap<String, gateway_core::OutputItemMetadata>,
+    retained_text_bytes: usize,
     reasoning_items: BTreeMap<String, OpenReasoning>,
     retained_reasoning_bytes: usize,
     tools: BTreeMap<String, OpenTool>,
@@ -427,12 +448,13 @@ struct SseState {
 
 #[derive(Default)]
 struct OpenReasoning {
-    text: String,
+    parts: BTreeMap<(String, usize), String>,
     ended: bool,
 }
 
 struct OpenTool {
     call_id: String,
+    name: String,
     assembled: String,
     released: usize,
     ended: bool,
@@ -445,17 +467,10 @@ impl OpenAiResponsesSseDecoder {
         Self::default()
     }
 
-    /// Creates a decoder that discards private reasoning items while preserving visible output.
-    ///
-    /// This is used only by the official `ChatGPT` Codex OAuth bridge. Item identifiers and
-    /// lifecycle order remain validated, but encrypted/private reasoning is never projected into
-    /// the downstream Canonical stream.
+    /// Compatibility constructor that retains strict reasoning and ciphertext validation.
     #[must_use]
     pub fn new_with_reasoning_suppressed() -> Self {
-        Self {
-            suppress_reasoning: true,
-            ..Self::default()
-        }
+        Self::default()
     }
 
     /// Returns whether a unique terminal semantic frame was accepted.
@@ -468,6 +483,17 @@ impl OpenAiResponsesSseDecoder {
     #[must_use]
     pub const fn progress_marks(&self) -> u64 {
         self.progress_marks
+    }
+
+    /// Returns validated Usage still buffered if a later frame in the same chunk fails.
+    #[must_use]
+    pub fn decoded_usage(&self) -> Option<Usage> {
+        self.pending.iter().fold(None, |known, event| match event {
+            CanonicalEvent::UsageDelta(delta) => {
+                Some(Usage::merge_snapshot(known.as_ref(), &delta.usage))
+            }
+            _ => known,
+        })
     }
 
     /// Appends arbitrary transport bytes and returns every newly decoded Canonical event.
@@ -581,6 +607,7 @@ impl OpenAiResponsesSseDecoder {
             "response.created" => self.start(&value),
             "response.output_item.added" => self.output_item_added(&value),
             "response.output_text.delta" => self.text_delta(&value),
+            "response.output_text.annotation.added" => self.annotation(&value),
             "response.reasoning_summary_text.delta" | "response.reasoning_text.delta" => {
                 self.reasoning_delta(&value)
             }
@@ -621,18 +648,23 @@ impl OpenAiResponsesSseDecoder {
         }
         let response = object(value.get("response").ok_or_else(protocol_error)?)?;
         let id = ResponseId::try_new(identifier(response, "id")?).map_err(|_| protocol_error())?;
-        self.lifecycle = SseLifecycle::Streaming(SseState {
+        self.lifecycle = SseLifecycle::Streaming(Box::new(SseState {
             response_id: id.as_str().to_owned(),
             message_open: false,
             emitted_content: false,
             output_items: BTreeSet::new(),
+            ended_items: BTreeSet::new(),
             text_items: BTreeSet::new(),
+            text_parts: BTreeMap::new(),
+            annotations: BTreeMap::new(),
+            completed_items: BTreeMap::new(),
+            retained_text_bytes: 0,
             reasoning_items: BTreeMap::new(),
             retained_reasoning_bytes: 0,
             tools: BTreeMap::new(),
             call_ids: BTreeSet::new(),
             retained_argument_bytes: 0,
-        });
+        }));
         self.emit(CanonicalEvent::ResponseStart(ResponseStart {
             response_id: id,
             extensions: RawExtensions::default(),
@@ -653,34 +685,32 @@ impl OpenAiResponsesSseDecoder {
         let item = object(value.get("item").ok_or_else(protocol_error)?)?;
         let kind = required_string(item, "type")?;
         let item_id = identifier(item, "id")?.to_owned();
-        let suppress_reasoning = self.suppress_reasoning;
         let state = self.streaming_mut()?;
         if state.output_items.len() >= MAX_OUTPUT_ITEMS
             || !state.output_items.insert(item_id.clone())
         {
             return Err(protocol_error());
         }
+        self.ensure_message()?;
+        self.emit(CanonicalEvent::OutputItemStart(wire_item_metadata(
+            item, false,
+        )?))?;
         match kind {
             "message" if item.get("role").and_then(Value::as_str) == Some("assistant") => {
-                state.text_items.insert(item_id);
+                self.streaming_mut()?.text_items.insert(item_id);
                 self.ensure_message()
             }
             "reasoning" => {
-                if !suppress_reasoning
-                    && item
-                        .get("encrypted_content")
-                        .is_some_and(|value| !value.is_null())
+                if item
+                    .get("encrypted_content")
+                    .is_some_and(|value| !value.is_null())
                 {
                     return Err(protocol_error());
                 }
-                state
+                self.streaming_mut()?
                     .reasoning_items
                     .insert(item_id, OpenReasoning::default());
-                if suppress_reasoning {
-                    Ok(())
-                } else {
-                    self.ensure_message()
-                }
+                self.ensure_message()
             }
             "function_call" => self.start_tool(item_id, item),
             _ => Err(protocol_error()),
@@ -690,15 +720,114 @@ impl OpenAiResponsesSseDecoder {
     fn text_delta(&mut self, value: &Value) -> Result<(), GatewayError> {
         let item_id = required_string_value(value, "item_id")?;
         let delta = string_value(value, "delta")?;
-        if !self.streaming_mut()?.text_items.contains(&item_id) {
+        let state = self.streaming_mut()?;
+        if !state.text_items.contains(&item_id) || state.ended_items.contains(&item_id) {
             return Err(protocol_error());
         }
+        let index = part_index(value, "content_index")?;
+        state.retained_text_bytes = state
+            .retained_text_bytes
+            .checked_add(delta.len())
+            .filter(|size| *size <= MAX_RESPONSE_BYTES)
+            .ok_or_else(protocol_error)?;
+        state
+            .text_parts
+            .entry((item_id.clone(), index))
+            .or_default()
+            .push_str(&delta);
         if !delta.is_empty() {
             self.streaming_mut()?.emitted_content = true;
             self.emit(CanonicalEvent::TextDelta(TextDelta {
                 text: delta,
-                extensions: RawExtensions::default(),
+                extensions: native_part_extensions(&item_id, "content", index)?,
             }))?;
+        }
+        Ok(())
+    }
+
+    fn annotation(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let id = required_string_value(value, "item_id")?;
+        let state = self.streaming_mut()?;
+        if !state.text_items.contains(&id) || state.ended_items.contains(&id) {
+            return Err(protocol_error());
+        }
+        let annotation = value.get("annotation").ok_or_else(protocol_error)?;
+        let index = part_index(value, "content_index")?;
+        let annotation_index = part_index(value, "annotation_index")?;
+        let extensions = native_annotation_extensions(&id, index, annotation_index, annotation)?;
+        let annotations = state.annotations.entry((id, index)).or_default();
+        if annotation_index != annotations.len() {
+            return Err(protocol_error());
+        }
+        annotations.push(annotation.clone());
+        self.emit(CanonicalEvent::TextDelta(TextDelta {
+            text: String::new(),
+            extensions,
+        }))
+    }
+
+    fn finish_text(&mut self, item: &Map<String, Value>) -> Result<(), GatewayError> {
+        let id = identifier(item, "id")?;
+        let parts = item
+            .get("content")
+            .and_then(Value::as_array)
+            .ok_or_else(protocol_error)?;
+        let state = self.streaming_mut()?;
+        if state
+            .text_parts
+            .keys()
+            .chain(state.annotations.keys())
+            .any(|(item, index)| item == id && *index >= parts.len())
+        {
+            return Err(protocol_error());
+        }
+        let mut events = Vec::new();
+        for (index, part) in parts.iter().enumerate() {
+            let key = (id.to_owned(), index);
+            let text = part
+                .get("text")
+                .and_then(Value::as_str)
+                .ok_or_else(protocol_error)?;
+            let emitted = state.text_parts.get(&key).map_or("", String::as_str);
+            let suffix = text.strip_prefix(emitted).ok_or_else(protocol_error)?;
+            state.retained_text_bytes = state
+                .retained_text_bytes
+                .checked_add(suffix.len())
+                .filter(|size| *size <= MAX_RESPONSE_BYTES)
+                .ok_or_else(protocol_error)?;
+            if !suffix.is_empty() {
+                events.push(CanonicalEvent::TextDelta(TextDelta {
+                    text: suffix.to_owned(),
+                    extensions: native_part_extensions(id, "content", index)?,
+                }));
+            }
+            state.text_parts.insert(key.clone(), text.to_owned());
+            let annotations = part
+                .get("annotations")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let emitted = state.annotations.entry(key).or_default();
+            if !annotations.starts_with(emitted) {
+                return Err(protocol_error());
+            }
+            for (annotation_index, annotation) in annotations.iter().enumerate().skip(emitted.len())
+            {
+                events.push(CanonicalEvent::TextDelta(TextDelta {
+                    text: String::new(),
+                    extensions: native_annotation_extensions(
+                        id,
+                        index,
+                        annotation_index,
+                        annotation,
+                    )?,
+                }));
+            }
+            *emitted = annotations;
+        }
+        for event in events {
+            self.streaming_mut()?.emitted_content = true;
+            self.emit(event)?;
         }
         Ok(())
     }
@@ -706,27 +835,42 @@ impl OpenAiResponsesSseDecoder {
     fn reasoning_delta(&mut self, value: &Value) -> Result<(), GatewayError> {
         let item_id = required_string_value(value, "item_id")?;
         let delta = string_value(value, "delta")?;
-        let suppress = self.suppress_reasoning;
         let state = self.streaming_mut()?;
         let reasoning = state
             .reasoning_items
             .get_mut(&item_id)
             .filter(|item| !item.ended)
             .ok_or_else(protocol_error)?;
-        if suppress {
-            return Ok(());
-        }
         state.retained_reasoning_bytes = state
             .retained_reasoning_bytes
             .checked_add(delta.len())
             .filter(|size| *size <= MAX_RESPONSE_BYTES)
             .ok_or_else(protocol_error)?;
-        reasoning.text.push_str(&delta);
+        let field = if value.get("type").and_then(Value::as_str)
+            == Some("response.reasoning_summary_text.delta")
+        {
+            "summary"
+        } else {
+            "content"
+        };
+        let index = part_index(
+            value,
+            if field == "summary" {
+                "summary_index"
+            } else {
+                "content_index"
+            },
+        )?;
+        reasoning
+            .parts
+            .entry((field.to_owned(), index))
+            .or_default()
+            .push_str(&delta);
         if !delta.is_empty() {
             state.emitted_content = true;
             self.emit(CanonicalEvent::ReasoningDelta(ReasoningDelta {
                 text: delta,
-                extensions: RawExtensions::default(),
+                extensions: native_part_extensions(&item_id, field, index)?,
             }))?;
         }
         Ok(())
@@ -748,11 +892,9 @@ impl OpenAiResponsesSseDecoder {
         if !completed_or_absent(item.get("status")) {
             return Err(protocol_error());
         }
-        let suppress = self.suppress_reasoning;
-        if !suppress
-            && item
-                .get("encrypted_content")
-                .is_some_and(|value| !value.is_null())
+        if item
+            .get("encrypted_content")
+            .is_some_and(|value| !value.is_null())
         {
             return Err(protocol_error());
         }
@@ -761,49 +903,55 @@ impl OpenAiResponsesSseDecoder {
             .reasoning_items
             .get_mut(id)
             .ok_or_else(protocol_error)?;
-        if suppress {
-            reasoning.ended = true;
-            return Ok(());
-        }
-        let mut final_text = String::new();
+        let previous = reasoning.parts.clone();
+        let already_ended = reasoning.ended;
+        reasoning.ended = true;
+        let mut seen = BTreeSet::new();
+        let mut deltas = Vec::new();
+        let mut completed_parts = BTreeMap::new();
         for (field, kind) in [("summary", "summary_text"), ("content", "reasoning_text")] {
             if let Some(parts) = item.get(field) {
-                let parts = parts.as_array().ok_or_else(protocol_error)?;
-                for part in parts {
+                for (index, part) in parts
+                    .as_array()
+                    .ok_or_else(protocol_error)?
+                    .iter()
+                    .enumerate()
+                {
                     let part = object(part)?;
                     require_only_keys(part, &["type", "text"])?;
                     if part.get("type").and_then(Value::as_str) != Some(kind) {
                         return Err(protocol_error());
                     }
-                    final_text.push_str(required_string(part, "text")?);
+                    let key = (field.to_owned(), index);
+                    seen.insert(key.clone());
+                    let emitted = previous.get(&key).map_or("", String::as_str);
+                    let suffix = required_string(part, "text")?
+                        .strip_prefix(emitted)
+                        .ok_or_else(protocol_error)?;
+                    completed_parts.insert(key, required_string(part, "text")?.to_owned());
+                    if already_ended && !suffix.is_empty() {
+                        return Err(protocol_error());
+                    }
+                    if !suffix.is_empty() {
+                        deltas.push(CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                            text: suffix.to_owned(),
+                            extensions: native_part_extensions(id, field, index)?,
+                        }));
+                    }
                 }
             }
         }
-        let suffix = if item.contains_key("summary") || item.contains_key("content") {
-            final_text
-                .strip_prefix(&reasoning.text)
-                .ok_or_else(protocol_error)?
-                .to_owned()
-        } else {
-            String::new()
-        };
-        if reasoning.ended && !suffix.is_empty() {
+        if previous.keys().any(|key| !seen.contains(key)) {
             return Err(protocol_error());
         }
-        state.retained_reasoning_bytes = state
-            .retained_reasoning_bytes
-            .checked_add(suffix.len())
-            .filter(|size| *size <= MAX_RESPONSE_BYTES)
-            .ok_or_else(protocol_error)?;
-        reasoning.text.push_str(&suffix);
-        reasoning.ended = true;
-        if !suffix.is_empty() {
-            state.emitted_content = true;
-            self.ensure_message()?;
-            self.emit(CanonicalEvent::ReasoningDelta(ReasoningDelta {
-                text: suffix,
-                extensions: RawExtensions::default(),
-            }))?;
+        self.streaming_mut()?
+            .reasoning_items
+            .get_mut(id)
+            .ok_or_else(protocol_error)?
+            .parts = completed_parts;
+        for delta in deltas {
+            self.streaming_mut()?.emitted_content = true;
+            self.emit(delta)?;
         }
         Ok(())
     }
@@ -823,6 +971,7 @@ impl OpenAiResponsesSseDecoder {
             item_id,
             OpenTool {
                 call_id: call_id.clone(),
+                name: name.clone(),
                 assembled: String::new(),
                 released: 0,
                 ended: false,
@@ -885,17 +1034,35 @@ impl OpenAiResponsesSseDecoder {
         }
         match required_string(item, "type")? {
             "function_call" => {
-                self.finish_tool(item_id, item.get("arguments").and_then(Value::as_str), true)
+                let tool = self
+                    .streaming_mut()?
+                    .tools
+                    .get(item_id)
+                    .ok_or_else(protocol_error)?;
+                if item.get("call_id").and_then(Value::as_str) != Some(tool.call_id.as_str())
+                    || item.get("name").and_then(Value::as_str) != Some(tool.name.as_str())
+                {
+                    return Err(protocol_error());
+                }
+                self.finish_tool(item_id, item.get("arguments").and_then(Value::as_str), true)?;
             }
             "message"
                 if self.streaming_mut()?.text_items.contains(item_id)
                     && completed_or_absent(item.get("status")) =>
             {
-                Ok(())
+                self.finish_text(item)?;
             }
-            "reasoning" => self.finish_reasoning(item),
-            _ => Err(protocol_error()),
+            "reasoning" => self.finish_reasoning(item)?,
+            _ => return Err(protocol_error()),
         }
+        if !self.streaming_mut()?.ended_items.insert(item_id.to_owned()) {
+            return Err(protocol_error());
+        }
+        let metadata = wire_item_metadata(item, true)?;
+        self.streaming_mut()?
+            .completed_items
+            .insert(item_id.to_owned(), metadata.clone());
+        self.emit(CanonicalEvent::OutputItemEnd(metadata))
     }
 
     fn finish_tool(
@@ -907,6 +1074,13 @@ impl OpenAiResponsesSseDecoder {
         let state = self.streaming_mut()?;
         let call = state.tools.get_mut(item_id).ok_or_else(protocol_error)?;
         if call.ended {
+            if reported.is_some_and(|arguments| {
+                call.arguments()
+                    .ok()
+                    .is_none_or(|current| current.get() != arguments.trim())
+            }) {
+                return Err(protocol_error());
+            }
             return Ok(());
         }
         if call.value_bounds().0 == call.value_bounds().1 {
@@ -955,11 +1129,19 @@ impl OpenAiResponsesSseDecoder {
         // Some providers repeat or supply final private reasoning only in the completion
         // snapshot. Validate it as well as output_item.done; never silently discard it.
         if let Some(output) = response.get("output") {
+            let mut ids = BTreeSet::new();
             for item in output.as_array().ok_or_else(protocol_error)? {
                 let item = object(item)?;
-                if item.get("type").and_then(Value::as_str) == Some("reasoning") {
-                    self.finish_reasoning(item)?;
+                let id = identifier(item, "id")?;
+                if !ids.insert(id.to_owned())
+                    || self.streaming_mut()?.completed_items.get(id)
+                        != Some(&wire_item_metadata(item, true)?)
+                {
+                    return Err(protocol_error());
                 }
+            }
+            if ids != self.streaming_mut()?.ended_items {
+                return Err(protocol_error());
             }
         }
         let state = self.streaming_mut()?;
@@ -972,6 +1154,7 @@ impl OpenAiResponsesSseDecoder {
             || response.get("status").and_then(Value::as_str) != Some(expected_status)
             || !state.emitted_content
             || state.tools.values().any(|tool| !tool.ended)
+            || state.output_items != state.ended_items
         {
             return Err(protocol_error());
         }
@@ -1065,6 +1248,7 @@ impl OpenTool {
         } else {
             &self.assembled[start..end]
         };
+        reject_duplicate_json_names(value).map_err(|_| protocol_error())?;
         RawJson::from_json_string(value.to_owned()).map_err(|_| protocol_error())
     }
 }
@@ -1098,6 +1282,8 @@ fn decode_usage(value: Option<&Value>) -> Result<Option<Usage>, GatewayError> {
     let cached_tokens = decode_input_token_details(value)?;
     let reasoning_tokens = nested_optional_u64(value, "output_tokens_details", "reasoning_tokens")?;
     Ok(Some(Usage {
+        provenance: gateway_core::UsageProvenance::Measured,
+        input_accounting: gateway_core::InputTokenAccounting::Inclusive,
         input_tokens: input,
         output_tokens: output,
         cached_tokens,
@@ -1240,6 +1426,8 @@ fn validate_proven_turn_metadata(item: &Map<String, Value>) -> Result<(), Gatewa
 
 fn initial_usage(usage: &Usage) -> Usage {
     Usage {
+        provenance: usage.provenance,
+        input_accounting: usage.input_accounting,
         input_tokens: usage.input_tokens,
         cached_tokens: usage.cached_tokens,
         ..Usage::default()
@@ -1376,6 +1564,21 @@ mod tests {
         include_str!("../../../tests/fixtures/openai-responses/upstream-completed-response.json");
     const SSE: &str =
         include_str!("../../../tests/fixtures/openai-responses/upstream-completed-stream.sse");
+
+    #[test]
+    fn validated_initial_usage_survives_a_later_invalid_frame()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut decoder = OpenAiResponsesSseDecoder::new();
+        let created = SSE.split("\n\n").next().ok_or("created frame")?;
+        let wire = format!("{created}\n\nevent: response.in_progress\ndata: malformed\n\n");
+        assert!(decoder.push(wire.as_bytes()).is_err());
+        let usage = decoder.decoded_usage().ok_or("validated Usage lost")?;
+        assert_eq!(usage.input_tokens, Some(10));
+        assert_eq!(usage.cached_tokens, Some(2));
+        assert_eq!(usage.output_tokens, None);
+        assert_eq!(usage.provenance, gateway_core::UsageProvenance::Measured);
+        Ok(())
+    }
 
     #[derive(Debug, Eq, PartialEq)]
     struct Digest {
@@ -1533,7 +1736,7 @@ mod tests {
     }
 
     #[test]
-    fn codex_reasoning_suppression_discards_encrypted_private_output()
+    fn legacy_suppression_cannot_discard_unowned_encrypted_reasoning()
     -> Result<(), Box<dyn std::error::Error>> {
         let mut response: serde_json::Value = serde_json::from_str(JSON)?;
         let output = response
@@ -1552,19 +1755,14 @@ mod tests {
             }),
         );
         assert!(decode_upstream_response(&response.to_string()).is_err());
-        let events = decode_upstream_response_with_reasoning_policy(&response.to_string(), true)?;
         assert!(
-            events
-                .iter()
-                .all(|event| !matches!(event, CanonicalEvent::ReasoningDelta(_)))
+            decode_upstream_response_with_reasoning_policy(&response.to_string(), true).is_err()
         );
-        assert!(!digest(&events).text.is_empty());
         Ok(())
     }
 
     #[test]
-    fn streamed_codex_reasoning_suppression_keeps_visible_text()
-    -> Result<(), Box<dyn std::error::Error>> {
+    fn streamed_legacy_suppression_cannot_discard_unowned_encrypted_reasoning() {
         let sse = concat!(
             "event: response.created\n",
             "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-codex\",\"usage\":null}}\n\n",
@@ -1582,22 +1780,7 @@ mod tests {
             "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp-codex\",\"status\":\"completed\",\"usage\":null}}\n\n",
         );
         let mut decoder = OpenAiResponsesSseDecoder::new_with_reasoning_suppressed();
-        let events = decoder.push(sse.as_bytes())?;
-        let events = events
-            .into_iter()
-            .chain(decoder.finish()?)
-            .collect::<Vec<_>>();
-        assert!(
-            events
-                .iter()
-                .any(|event| matches!(event, CanonicalEvent::TextDelta(_)))
-        );
-        assert!(
-            events
-                .iter()
-                .all(|event| !matches!(event, CanonicalEvent::ReasoningDelta(_)))
-        );
-        Ok(())
+        assert!(decoder.push(sse.as_bytes()).is_err());
     }
 
     #[test]

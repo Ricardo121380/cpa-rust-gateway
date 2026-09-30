@@ -12,6 +12,16 @@
   "stop_sequence": null,
   "type": "message",
   "usage": {
+    "cpar_usage": {
+      "cache_creation_tokens": null,
+      "cache_read_tokens": null,
+      "cached_tokens": null,
+      "input_accounting": "unknown",
+      "input_tokens": 11,
+      "output_tokens": 3,
+      "provenance": "unknown",
+      "reasoning_tokens": null
+    },
     "input_tokens": 11,
     "output_tokens": 3
   }

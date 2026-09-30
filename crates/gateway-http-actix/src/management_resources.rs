@@ -4139,6 +4139,7 @@ struct OperationalUsageItemResponse {
 struct OperationalTokenMetricResponse {
     total: Option<u64>,
     confidence: &'static str,
+    provenance: gateway_core::UsageProvenance,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -4200,6 +4201,8 @@ struct OperationalBillingItemResponse {
     cache_read_tokens: Option<u64>,
     cache_creation_tokens: Option<u64>,
     cached_tokens: Option<u64>,
+    usage_provenance: gateway_core::UsageProvenance,
+    input_accounting: gateway_core::InputTokenAccounting,
     occurred_at_ms: u64,
     catalog_version_id: Option<String>,
     cost_microunits: Option<u64>,
@@ -10701,6 +10704,7 @@ fn operational_token_metric_response(
     OperationalTokenMetricResponse {
         total: value.total,
         confidence: operational_token_confidence_response(value.confidence),
+        provenance: value.provenance,
     }
 }
 
@@ -10825,6 +10829,8 @@ fn operational_billing_page_response(
                 cache_read_tokens: item.usage.cache_read_tokens,
                 cache_creation_tokens: item.usage.cache_creation_tokens,
                 cached_tokens: item.usage.cached_tokens,
+                usage_provenance: item.usage.provenance,
+                input_accounting: item.usage.input_accounting,
                 occurred_at_ms: item.occurred_at_ms,
                 catalog_version_id: item.catalog_version_id,
                 cost_microunits: item.cost_microunits,

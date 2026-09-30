@@ -7,6 +7,10 @@
 | Task | `P5-05` |
 | Contract | [BC-ROUTER-005](../contracts/BC-ROUTER-005-endpoint-format-isolated-protocol-routing.md) |
 
+CPAR batch B extends the reviewed registry to Chat Completions and exact parallel/thinking
+admission in [ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md). Endpoint format and
+runtime-health isolation remain applicable.
+
 ## Context
 
 The control plane already persists one `api_format` per Endpoint and rejects duplicate formats

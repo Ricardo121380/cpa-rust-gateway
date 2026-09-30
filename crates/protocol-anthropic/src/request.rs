@@ -343,6 +343,10 @@ fn decode_content_block(
     cache_controls: &mut CacheControlCollector,
 ) -> Result<MessageContent, gateway_core::GatewayError> {
     let block = object(value)?;
+    if let Some(citations) = block.get("citations") {
+        crate::content_metadata::validate_citations(citations)
+            .map_err(|_| client_request_error())?;
+    }
     if let Some(cache_control) = block.get("cache_control") {
         cache_controls.observe(cache_control)?;
     }

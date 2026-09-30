@@ -6,16 +6,14 @@
 //! state machine can be driven from arbitrary chunk boundaries: only frame contents, never network
 //! segmentation, may change the emitted Canonical sequence.
 //!
-//! Two representation limits are deliberate and fail closed rather than degrade: a thinking
-//! block's `signature_delta` has no Canonical representation, because a Canonical event extension
-//! would make the sibling `Anthropic` encoder reject the stream, and an unknown content block type
-//! or completion reason is refused rather than approximated. Unreported `usage` sub-fields are the
+//! Reviewed signatures, citations and block indices remain in bounded protocol extensions.
+//! Unknown content block types or completion reasons fail explicitly. Unreported `usage` sub-fields are the
 //! single documented exception: an upstream's `service_tier` and its `cache_creation` breakdown
 //! carry no counter the four Canonical `Anthropic` counters do not already hold, so they are read
 //! past rather than rejected.
 
 use std::{
-    collections::{BTreeSet, VecDeque},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     fmt,
 };
 
@@ -106,8 +104,14 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
         .ok_or_else(stream_protocol_error)?;
     let mut call_ids = BTreeSet::new();
     let mut emitted_content = false;
-    for block in content {
-        decode_completed_block(block, &mut events, &mut call_ids, &mut emitted_content)?;
+    for (index, block) in content.iter().enumerate() {
+        decode_completed_block(
+            index,
+            block,
+            &mut events,
+            &mut call_ids,
+            &mut emitted_content,
+        )?;
     }
     if !emitted_content {
         return Err(stream_protocol_error());
@@ -131,6 +135,7 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
 }
 
 fn decode_completed_block(
+    index: usize,
     block: &Value,
     events: &mut Vec<CanonicalEvent>,
     call_ids: &mut BTreeSet<String>,
@@ -139,25 +144,37 @@ fn decode_completed_block(
     let block = block.as_object().ok_or_else(stream_protocol_error)?;
     match block.get("type").and_then(Value::as_str) {
         Some("text") => {
+            if block
+                .keys()
+                .any(|key| !["type", "text", "citations"].contains(&key.as_str()))
+            {
+                return Err(stream_protocol_error());
+            }
             let text = required_str(block, "text")?;
-            if text.is_empty() {
+            if text.is_empty() && block.get("citations").is_none() {
                 return Ok(());
             }
             events.push(CanonicalEvent::TextDelta(TextDelta {
                 text: text.to_owned(),
-                extensions: RawExtensions::default(),
+                extensions: crate::content_metadata::encode(index, None, block.get("citations"))?,
             }));
             *emitted_content = true;
             Ok(())
         }
         Some("thinking") => {
+            if block
+                .keys()
+                .any(|key| !["type", "thinking", "signature"].contains(&key.as_str()))
+            {
+                return Err(stream_protocol_error());
+            }
             let thinking = required_str(block, "thinking")?;
-            if thinking.is_empty() {
+            if thinking.is_empty() && block.get("signature").is_none() {
                 return Ok(());
             }
             events.push(CanonicalEvent::ReasoningDelta(ReasoningDelta {
                 text: thinking.to_owned(),
-                extensions: RawExtensions::default(),
+                extensions: crate::content_metadata::encode(index, block.get("signature"), None)?,
             }));
             *emitted_content = true;
             Ok(())
@@ -256,8 +273,9 @@ enum SseLifecycle {
 struct StreamingState {
     /// Input-side usage reported at `message_start`; the terminal frame supplies the output count.
     usage: Usage,
-    /// `Anthropic` keeps exactly one content block open at a time.
-    active: Option<ActiveBlock>,
+    /// Parallel tools retain independent argument buffers keyed by their wire block index.
+    active: BTreeMap<usize, ActiveBlockKind>,
+    retained_tool_bytes: usize,
     /// Count of started blocks, which is also the next legal `index`.
     block_count: usize,
     tool_call_ids: BTreeSet<String>,
@@ -265,11 +283,6 @@ struct StreamingState {
     message_ended: bool,
     stop_reason: Option<String>,
     stop_sequence: Option<String>,
-}
-
-struct ActiveBlock {
-    index: usize,
-    kind: ActiveBlockKind,
 }
 
 enum ActiveBlockKind {
@@ -326,6 +339,7 @@ impl ToolArguments {
         };
         let retained =
             RawJson::from_json_string(arguments.clone()).map_err(|_| stream_protocol_error())?;
+        crate::json::reject_duplicate_names(&arguments).map_err(|_| stream_protocol_error())?;
         if retained.get() != arguments
             || !serde_json::from_str::<Value>(&arguments).is_ok_and(|value| value.is_object())
         {
@@ -336,6 +350,17 @@ impl ToolArguments {
 }
 
 impl AnthropicMessagesSseDecoder {
+    /// Returns validated Usage evidence still buffered for the current response.
+    #[must_use]
+    pub fn decoded_usage(&self) -> Option<Usage> {
+        self.pending.iter().fold(None, |known, event| match event {
+            CanonicalEvent::UsageDelta(delta) => {
+                Some(Usage::merge_snapshot(known.as_ref(), &delta.usage))
+            }
+            _ => known,
+        })
+    }
+
     /// Creates a fresh decoder for one streamed upstream response.
     #[must_use]
     pub fn new() -> Self {
@@ -599,13 +624,22 @@ impl AnthropicMessagesSseDecoder {
         } = self;
         let streaming = streaming_state(lifecycle)?;
         let index = frame_index(frame)?;
-        if streaming.message_ended || streaming.active.is_some() || index != streaming.block_count {
+        if streaming.message_ended || index != streaming.block_count || index >= 4096 {
             return Err(stream_protocol_error());
         }
         let block = frame
             .get("content_block")
             .and_then(Value::as_object)
             .ok_or_else(stream_protocol_error)?;
+        if !streaming.active.is_empty()
+            && (block.get("type").and_then(Value::as_str) != Some("tool_use")
+                || streaming
+                    .active
+                    .values()
+                    .any(|kind| !matches!(kind, ActiveBlockKind::Tool(_))))
+        {
+            return Err(stream_protocol_error());
+        }
         let kind = match block.get("type").and_then(Value::as_str) {
             Some("text") => {
                 require_empty_initial_value(block, "text")?;
@@ -653,7 +687,7 @@ impl AnthropicMessagesSseDecoder {
             }
             _ => return Err(stream_protocol_error()),
         };
-        streaming.active = Some(ActiveBlock { index, kind });
+        streaming.active.insert(index, kind);
         streaming.block_count = streaming
             .block_count
             .checked_add(1)
@@ -661,6 +695,7 @@ impl AnthropicMessagesSseDecoder {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)] // Closed delta dispatch retains the block and tool correlation checks together.
     fn consume_content_block_delta(
         &mut self,
         frame: &Map<String, Value>,
@@ -679,12 +714,9 @@ impl AnthropicMessagesSseDecoder {
             .ok_or_else(stream_protocol_error)?;
         let active = streaming
             .active
-            .as_mut()
+            .get_mut(&index)
             .ok_or_else(stream_protocol_error)?;
-        if active.index != index {
-            return Err(stream_protocol_error());
-        }
-        let emitted = match (&mut active.kind, delta.get("type").and_then(Value::as_str)) {
+        let emitted = match (active, delta.get("type").and_then(Value::as_str)) {
             (ActiveBlockKind::Text, Some("text_delta")) => {
                 let text = required_str(delta, "text")?;
                 if text.is_empty() {
@@ -695,7 +727,7 @@ impl AnthropicMessagesSseDecoder {
                     pending,
                     CanonicalEvent::TextDelta(TextDelta {
                         text: text.to_owned(),
-                        extensions: RawExtensions::default(),
+                        extensions: crate::content_metadata::encode(index, None, None)?,
                     }),
                 )?;
                 true
@@ -710,22 +742,22 @@ impl AnthropicMessagesSseDecoder {
                     pending,
                     CanonicalEvent::ReasoningDelta(ReasoningDelta {
                         text: thinking.to_owned(),
-                        extensions: RawExtensions::default(),
+                        extensions: crate::content_metadata::encode(index, None, None)?,
                     }),
                 )?;
                 true
             }
             (ActiveBlockKind::Tool(arguments), Some("input_json_delta")) => {
                 let partial = required_str(delta, "partial_json")?;
-                let retained = arguments
-                    .assembled
-                    .len()
+                let retained = streaming
+                    .retained_tool_bytes
                     .checked_add(partial.len())
                     .ok_or_else(stream_protocol_error)?;
                 if retained > MAX_TOOL_ARGUMENT_BYTES {
                     return Err(stream_protocol_error());
                 }
                 arguments.assembled.push_str(partial);
+                streaming.retained_tool_bytes = retained;
                 let call_id = arguments.call_id.clone();
                 match arguments.release() {
                     None => false,
@@ -743,13 +775,34 @@ impl AnthropicMessagesSseDecoder {
                     }
                 }
             }
-            // A `signature_delta` closes every extended-thinking block and `citations_delta`
-            // accompanies citation-enabled text, so both arrive on healthy streams. Neither has a
-            // Canonical representation, but this dispatch runs past the unretryable boundary:
-            // rejecting them would truncate an answer the client is already receiving. They are
-            // consumed without emitting, exactly as the buffered path already treats a thinking
-            // signature, and they spend the progress-free budget because they prove no generation.
-            (_, Some("signature_delta" | "citations_delta")) => false,
+            (ActiveBlockKind::Thinking, Some("signature_delta")) => {
+                let signature = delta.get("signature").ok_or_else(stream_protocol_error)?;
+                push_event(
+                    state,
+                    pending,
+                    CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                        text: String::new(),
+                        extensions: crate::content_metadata::encode(index, Some(signature), None)?,
+                    }),
+                )?;
+                true
+            }
+            (ActiveBlockKind::Text, Some("citations_delta")) => {
+                let citation = delta.get("citation").ok_or_else(stream_protocol_error)?;
+                push_event(
+                    state,
+                    pending,
+                    CanonicalEvent::TextDelta(TextDelta {
+                        text: String::new(),
+                        extensions: crate::content_metadata::encode(
+                            index,
+                            None,
+                            Some(&Value::Array(vec![citation.clone()])),
+                        )?,
+                    }),
+                )?;
+                true
+            }
             // Any other delta shape would change what the client receives if it were dropped, so
             // it still fails closed.
             _ => return Err(stream_protocol_error()),
@@ -772,17 +825,10 @@ impl AnthropicMessagesSseDecoder {
         } = self;
         let streaming = streaming_state(lifecycle)?;
         let index = frame_index(frame)?;
-        if streaming
-            .active
-            .as_ref()
-            .is_none_or(|active| active.index != index)
-        {
-            return Err(stream_protocol_error());
-        }
-        let Some(active) = streaming.active.take() else {
+        let Some(active) = streaming.active.remove(&index) else {
             return Err(stream_protocol_error());
         };
-        match active.kind {
+        match active {
             ActiveBlockKind::Text | ActiveBlockKind::Thinking => Ok(()),
             ActiveBlockKind::Tool(arguments) => push_event(
                 state,
@@ -809,7 +855,7 @@ impl AnthropicMessagesSseDecoder {
             ..
         } = self;
         let streaming = streaming_state(lifecycle)?;
-        if streaming.active.is_some() || streaming.message_ended || !streaming.emitted_content {
+        if !streaming.active.is_empty() || streaming.message_ended || !streaming.emitted_content {
             return Err(stream_protocol_error());
         }
         let delta = frame
@@ -990,6 +1036,8 @@ fn decode_usage(value: Option<&Value>) -> Result<Usage, GatewayError> {
         .and_then(Value::as_object)
         .ok_or_else(stream_protocol_error)?;
     Ok(Usage {
+        provenance: gateway_core::UsageProvenance::Measured,
+        input_accounting: gateway_core::InputTokenAccounting::Exclusive,
         input_tokens: optional_u64(usage, "input_tokens")?,
         output_tokens: optional_u64(usage, "output_tokens")?,
         cache_read_tokens: optional_u64(usage, "cache_read_input_tokens")?,
@@ -1001,6 +1049,8 @@ fn decode_usage(value: Option<&Value>) -> Result<Usage, GatewayError> {
 /// Narrows one usage report to the input-side counts that may precede the first output token.
 fn input_usage_snapshot(usage: &Usage) -> Usage {
     Usage {
+        provenance: usage.provenance,
+        input_accounting: usage.input_accounting,
         input_tokens: usage.input_tokens,
         cache_read_tokens: usage.cache_read_tokens,
         cache_creation_tokens: usage.cache_creation_tokens,
@@ -1218,7 +1268,7 @@ mod tests {
         for body in [
             // unknown content block type
             format!("{START}event: content_block_start\ndata: {{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{{\"type\":\"redacted_thinking\",\"data\":\"x\"}}}}\n\n"),
-            // thinking signature has no canonical representation
+            // A signature without a completed message still cannot synthesize success at EOF.
             format!("{START}event: content_block_start\ndata: {{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{{\"type\":\"thinking\",\"thinking\":\"\"}}}}\n\nevent: content_block_delta\ndata: {{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{{\"type\":\"signature_delta\",\"signature\":\"abc\"}}}}\n\n"),
             // missing output usage in the terminal frame
             format!("{START}{TEXT_OPEN}{TEXT_DELTA}{TEXT_CLOSE}event: message_delta\ndata: {{\"type\":\"message_delta\",\"delta\":{{\"stop_reason\":\"end_turn\",\"stop_sequence\":null}},\"usage\":{{}}}}\n\n"),

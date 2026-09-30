@@ -751,7 +751,11 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
     assert_eq!(usage_body["items"][0]["input_tokens"]["total"], 11);
     assert_eq!(
         usage_body["items"][0]["input_tokens"]["confidence"],
-        "exact"
+        "unknown"
+    );
+    assert_eq!(
+        usage_body["items"][0]["input_tokens"]["provenance"],
+        "unknown"
     );
     assert_eq!(usage_body["items"][0]["cost_microunits"], Value::Null);
     assert_eq!(usage_body["items"][0]["cost_confidence"], "unpriced");

@@ -22,6 +22,7 @@ mod runtime_management_status;
 mod runtime_probe;
 mod runtime_quota;
 mod token_count;
+mod tool_controls;
 
 use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
@@ -140,6 +141,7 @@ pub use token_count::{
     CountTokensExecution, CountTokensExecutor, CountTokensFuture, ProviderCountTokensExecutor,
     UnsupportedCountTokensExecutor,
 };
+pub use tool_controls::{ToolExecutionConstraints, ToolSelection};
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-router";
@@ -190,6 +192,7 @@ pub struct ResponsesExecution {
     route_snapshot: Option<Arc<RouteSnapshot>>,
     mode: ResponsesResponseMode,
     client_transport: ResponsesClientTransport,
+    requires_stored_response: bool,
     retry_gate: Arc<dyn TransparentRetryGate>,
     lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
     continuation_pin: Option<ResponsesContinuationPin>,
@@ -228,6 +231,7 @@ impl ResponsesExecution {
             route_snapshot: None,
             mode,
             client_transport: ResponsesClientTransport::Http,
+            requires_stored_response: false,
             retry_gate,
             lineage_recorder: None,
             continuation_pin: None,
@@ -259,6 +263,7 @@ impl ResponsesExecution {
             route_snapshot: None,
             mode,
             client_transport: ResponsesClientTransport::Http,
+            requires_stored_response: false,
             retry_gate,
             lineage_recorder: None,
             continuation_pin: None,
@@ -344,6 +349,19 @@ impl ResponsesExecution {
         self.client_transport
     }
 
+    /// Requires the selected candidate to declare CPAR stored-response semantics.
+    #[must_use]
+    pub const fn with_stored_response_required(mut self, required: bool) -> Self {
+        self.requires_stored_response = required;
+        self
+    }
+
+    /// Returns the ingress requirement for an owned stored-response root.
+    #[must_use]
+    pub const fn requires_stored_response(&self) -> bool {
+        self.requires_stored_response
+    }
+
     /// Returns the request's downstream-owned retry and cancellation gate.
     #[must_use]
     pub fn retry_gate(&self) -> &Arc<dyn TransparentRetryGate> {
@@ -404,6 +422,7 @@ impl fmt::Debug for ResponsesExecution {
             .field("route_snapshot_pinned", &self.route_snapshot.is_some())
             .field("mode", &self.mode)
             .field("client_transport", &self.client_transport)
+            .field("requires_stored_response", &self.requires_stored_response)
             .field("retry_gate", &"<downstream-owned>")
             .field("lineage_recorder", &self.lineage_recorder.is_some())
             .field("continuation_pin", &self.continuation_pin.is_some())
@@ -458,6 +477,15 @@ pub trait ResponsesExecutor: Send + Sync {
 pub trait ResponsesEventSource: Send {
     /// Returns the next canonical event or normal end-of-source.
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>>;
+
+    /// Returns Usage already validated by the current attempt's decoder but still buffered.
+    ///
+    /// This never reads more upstream data or predicts counters. A transport may retain this
+    /// evidence when content projection fails or the client cancels before the Usage event is
+    /// consumed. Sources without buffered evidence retain the default `None`.
+    fn decoded_usage(&self) -> Option<gateway_core::Usage> {
+        None
+    }
 }
 
 /// One deterministic P1 mock event scheduled relative to the preceding source pull.

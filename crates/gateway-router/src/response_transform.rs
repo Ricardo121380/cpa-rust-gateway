@@ -1,19 +1,19 @@
 //! Target-protocol projection for already validated Canonical responses.
 //!
 //! Upstream codecs retain every typed Usage counter and stop reason they can prove. Client
-//! protocols do not all expose the same vocabulary, so this boundary narrows only fields whose
-//! aggregate remains represented and rejects semantic content that the target cannot carry.
+//! protocols do not all expose the same vocabulary. This boundary retains source Usage evidence
+//! and rejects semantic content that the target cannot carry.
 
 use std::fmt;
 
 use gateway_core::{CanonicalEvent, CanonicalEventState, CanonicalResponse, ResponseEnd};
 
-use crate::ProtocolFormat;
+use crate::{ProtocolFormat, ToolExecutionConstraints, ToolSelection};
 
 /// Stable, value-free reason why a Canonical response cannot be encoded for one client protocol.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolResponseRejection {
-    /// Chat Completions has no supported public Reasoning content representation.
+    /// Structured reasoning metadata has no equivalent target representation.
     ReasoningUnsupported,
     /// An event or Usage value carries an opaque extension.
     UnknownExtensions,
@@ -23,6 +23,8 @@ pub enum ProtocolResponseRejection {
     StopSequenceUnsupported,
     /// Target-specific projection unexpectedly violated the Canonical lifecycle.
     InvalidCanonicalLifecycle,
+    /// The upstream violated a declared tool, selection, or serial-call constraint.
+    ToolConstraintViolated,
 }
 
 /// Stateful target projection for one streamed Canonical response.
@@ -35,6 +37,8 @@ pub struct ProtocolResponseProjector {
     target: ProtocolFormat,
     input_state: CanonicalEventState,
     output_state: CanonicalEventState,
+    tool_constraints: Option<ToolExecutionConstraints>,
+    tool_count: usize,
 }
 
 impl ProtocolResponseProjector {
@@ -45,11 +49,20 @@ impl ProtocolResponseProjector {
             target,
             input_state: CanonicalEventState::default(),
             output_state: CanonicalEventState::default(),
+            tool_constraints: None,
+            tool_count: 0,
         }
     }
 
-    /// Validates and projects one event, returning `None` only for a non-final Usage snapshot that
-    /// Chat cannot encode and whose counters remain owed by the final snapshot.
+    /// Adds the exact constraints admitted before this execution acquired a credential.
+    #[must_use]
+    pub fn with_tool_constraints(mut self, constraints: ToolExecutionConstraints) -> Self {
+        self.tool_constraints = Some(constraints);
+        self
+    }
+
+    /// Validates and projects one event; reviewed native identity envelopes may be consumed when
+    /// the target retains all text/tool semantics through its own equivalent lifecycle.
     ///
     /// # Errors
     ///
@@ -58,6 +71,31 @@ impl ProtocolResponseProjector {
         &mut self,
         event: &CanonicalEvent,
     ) -> Result<Option<CanonicalEvent>, ProtocolResponseRejection> {
+        let mut tool_count = self.tool_count;
+        if let Some(constraints) = &self.tool_constraints {
+            match event {
+                CanonicalEvent::ToolCallStart(call) => {
+                    if !constraints.declared.contains(&call.name)
+                        || matches!(constraints.selection, Some(ToolSelection::None))
+                        || matches!(&constraints.selection, Some(ToolSelection::Named(name)) if name != &call.name)
+                        || constraints.parallel == Some(false) && tool_count > 0
+                    {
+                        return Err(ProtocolResponseRejection::ToolConstraintViolated);
+                    }
+                    tool_count += 1;
+                }
+                CanonicalEvent::ResponseEnd(_)
+                    if tool_count == 0
+                        && matches!(
+                            constraints.selection,
+                            Some(ToolSelection::Required | ToolSelection::Named(_))
+                        ) =>
+                {
+                    return Err(ProtocolResponseRejection::ToolConstraintViolated);
+                }
+                _ => {}
+            }
+        }
         let mut next_input = self.input_state.clone();
         next_input
             .apply(event)
@@ -71,6 +109,7 @@ impl ProtocolResponseProjector {
         }
         self.input_state = next_input;
         self.output_state = next_output;
+        self.tool_count = tool_count;
         Ok(projected)
     }
 }
@@ -82,7 +121,8 @@ impl fmt::Debug for ProtocolResponseProjector {
             .field("target", &self.target)
             .field("input_state", &self.input_state)
             .field("output_state", &self.output_state)
-            .finish()
+            .field("tool_count", &self.tool_count)
+            .finish_non_exhaustive()
     }
 }
 
@@ -122,6 +162,47 @@ fn project_event(
     event: &CanonicalEvent,
     target: ProtocolFormat,
 ) -> Result<Option<CanonicalEvent>, ProtocolResponseRejection> {
+    let content_extensions = match event {
+        CanonicalEvent::TextDelta(delta) => Some(&delta.extensions),
+        CanonicalEvent::ReasoningDelta(delta) => Some(&delta.extensions),
+        _ => None,
+    };
+    if let Some(extensions) = content_extensions
+        && extensions.get("anthropic.content_block.index").is_some()
+    {
+        if extensions.iter().any(|(key, _)| {
+            !matches!(
+                key,
+                "anthropic.content_block.index"
+                    | "anthropic.content_block.signature"
+                    | "anthropic.content_block.citations"
+            )
+        }) {
+            return Err(ProtocolResponseRejection::UnknownExtensions);
+        }
+        if target == ProtocolFormat::AnthropicMessages {
+            return Ok(Some(event.clone()));
+        }
+        // Content identity can be reconstructed by another codec; signatures and document
+        // citations have no equivalent representation in the supported OpenAI protocols.
+        if extensions
+            .iter()
+            .any(|(key, _)| key != "anthropic.content_block.index")
+        {
+            return Err(ProtocolResponseRejection::UnknownExtensions);
+        }
+        let mut projected = event.clone();
+        match &mut projected {
+            CanonicalEvent::TextDelta(delta) => {
+                delta.extensions = gateway_core::RawExtensions::default();
+            }
+            CanonicalEvent::ReasoningDelta(delta) => {
+                delta.extensions = gateway_core::RawExtensions::default();
+            }
+            _ => return Err(ProtocolResponseRejection::UnknownExtensions),
+        }
+        return project_event(&projected, target);
+    }
     if has_native_output_metadata(event) {
         if target != ProtocolFormat::OpenAiResponses {
             return project_native_identity(event);
@@ -130,29 +211,6 @@ fn project_event(
         reject_extensions(event)?;
     }
     match event {
-        CanonicalEvent::ReasoningDelta(_) if target == ProtocolFormat::OpenAiChatCompletions => {
-            Err(ProtocolResponseRejection::ReasoningUnsupported)
-        }
-        CanonicalEvent::UsageDelta(delta) => {
-            let mut delta = delta.clone();
-            match target {
-                ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
-                    delta.usage.cache_read_tokens = None;
-                    delta.usage.cache_creation_tokens = None;
-                }
-                ProtocolFormat::AnthropicMessages => {
-                    delta.usage.reasoning_tokens = None;
-                    delta.usage.cached_tokens = None;
-                }
-            }
-            // Chat's usage object is terminal and requires both aggregate counts. Earlier partial
-            // snapshots have no Chat representation and carry no counter absent from the later
-            // final snapshot.
-            Ok(
-                (target != ProtocolFormat::OpenAiChatCompletions || delta.is_final)
-                    .then_some(CanonicalEvent::UsageDelta(delta)),
-            )
-        }
         CanonicalEvent::ResponseEnd(end) => Ok(Some(CanonicalEvent::ResponseEnd(
             project_response_end(end, target)?,
         ))),
@@ -183,6 +241,16 @@ fn project_native_identity(
             };
             if value["id"] != item.item_id
                 || object.keys().any(|key| !fields.contains(&key.as_str()))
+                || value
+                    .get("content")
+                    .and_then(serde_json::Value::as_array)
+                    .is_some_and(|parts| {
+                        parts.iter().any(|part| {
+                            part.get("annotations")
+                                .and_then(serde_json::Value::as_array)
+                                .is_some_and(|annotations| !annotations.is_empty())
+                        })
+                    })
             {
                 return Err(invalid());
             }
@@ -390,16 +458,10 @@ mod tests {
                 .ok_or_else(|| std::io::Error::other("missing final usage"))?;
             assert_eq!(usage.input_tokens, Some(10));
             assert_eq!(usage.output_tokens, Some(5));
-            match target {
-                ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses => {
-                    assert!(usage.cache_read_tokens.is_none());
-                    assert!(usage.cache_creation_tokens.is_none());
-                }
-                ProtocolFormat::AnthropicMessages => {
-                    assert!(usage.reasoning_tokens.is_none());
-                    assert!(usage.cached_tokens.is_none());
-                }
-            }
+            assert_eq!(usage.reasoning_tokens, Some(1));
+            assert_eq!(usage.cached_tokens, Some(4));
+            assert_eq!(usage.cache_read_tokens, Some(3));
+            assert_eq!(usage.cache_creation_tokens, Some(2));
         }
         Ok(())
     }
@@ -407,9 +469,16 @@ mod tests {
     #[test]
     fn reasoning_never_degrades_into_chat_text() -> Result<(), Box<dyn std::error::Error>> {
         let response = response(true)?;
-        assert_eq!(
-            project_protocol_response(&response, ProtocolFormat::OpenAiChatCompletions),
-            Err(ProtocolResponseRejection::ReasoningUnsupported)
+        let chat = project_protocol_response(&response, ProtocolFormat::OpenAiChatCompletions)?;
+        assert!(chat.events().iter().any(|event| matches!(event, CanonicalEvent::ReasoningDelta(delta) if delta.text == "fixture reasoning")));
+        assert!(
+            chat.events()
+                .iter()
+                .filter_map(|event| match event {
+                    CanonicalEvent::TextDelta(delta) => Some(delta.text.as_str()),
+                    _ => None,
+                })
+                .all(|text| text == "fixture answer")
         );
         assert!(project_protocol_response(&response, ProtocolFormat::OpenAiResponses).is_ok());
         assert!(project_protocol_response(&response, ProtocolFormat::AnthropicMessages).is_ok());
@@ -443,13 +512,18 @@ mod tests {
         for event in response(false)?.events().iter().take(3) {
             let _ = projector.project_event(event)?;
         }
+        let mut extensions = RawExtensions::default();
+        extensions.try_insert(
+            "vendor.private",
+            gateway_core::RawJson::from_json_string("true".to_owned())?,
+        )?;
         let reasoning = CanonicalEvent::ReasoningDelta(ReasoningDelta {
             text: "must remain private".to_owned(),
-            extensions: RawExtensions::default(),
+            extensions,
         });
         assert_eq!(
             projector.project_event(&reasoning),
-            Err(ProtocolResponseRejection::ReasoningUnsupported)
+            Err(ProtocolResponseRejection::UnknownExtensions)
         );
         let text = CanonicalEvent::TextDelta(TextDelta {
             text: "still valid after rejection".to_owned(),

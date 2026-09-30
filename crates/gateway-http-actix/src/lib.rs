@@ -620,7 +620,7 @@ struct WebSocketSessionTurn {
     retained_bytes: usize,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct WebSocketSessionCache {
     turns: VecDeque<WebSocketSessionTurn>,
     retained_bytes: usize,
@@ -896,7 +896,9 @@ fn prepare_responses_execution(
     } else {
         execution = execution.with_exact_upstream_model(route.exact_upstream_model);
     }
-    execution = execution.with_route_snapshot(route.snapshot);
+    execution = execution
+        .with_stored_response_required(decoded.store)
+        .with_route_snapshot(route.snapshot);
     if let Some(recorder) = lineage_recorder.as_ref() {
         execution = execution.with_lineage_recorder(Arc::clone(recorder));
     }
@@ -1495,6 +1497,7 @@ async fn execute_responses_websocket_turn(
         owned_continuation,
         true,
     );
+    execution.request().validate_tool_history()?;
     let canonical_request_for_session = execution.request().clone();
     execution = execution.with_client_transport(ResponsesClientTransport::WebSocket);
     let mut source = state
@@ -1646,7 +1649,11 @@ async fn deliver_responses_websocket_turn(
         events.push(event.clone());
         let completed = matches!(event, CanonicalEvent::ResponseEnd(_));
         let failed = matches!(event, CanonicalEvent::StreamError(_));
-        if completed {
+        let frames = encoder.encode_event(&event)?;
+        // Validate the bounded cache update before acknowledging the terminal. A session has
+        // only one active turn, so its prepared update can be committed after all writes without
+        // racing another writer. Encoding/write failure leaves the original roots intact.
+        let completed_cache = if completed {
             let response = CanonicalResponse::try_new(events.clone())?;
             let response_id = response
                 .events()
@@ -1657,15 +1664,19 @@ async fn deliver_responses_websocket_turn(
                 })
                 .ok_or_else(internal_error)?;
             let lineage = lineage_recorder.lineage()?.ok_or_else(internal_error)?;
-            cache.lock().await.insert(
+            let mut prepared = cache.lock().await.clone();
+            prepared.insert(
                 response_id,
                 public_model.clone(),
                 canonical_request.clone(),
                 response,
                 lineage,
             )?;
-        }
-        for frame in encoder.encode_event(&event)? {
+            Some(prepared)
+        } else {
+            None
+        };
+        for frame in frames {
             let message = serde_json::to_string(frame.data()).map_err(|_| internal_error())?;
             if message.len() > RESPONSES_WEBSOCKET_MAX_MESSAGE_BYTES {
                 return Err(internal_error());
@@ -1681,6 +1692,9 @@ async fn deliver_responses_websocket_turn(
                 let _delivery = tracker.mark_delivered(&event);
                 observation.delivered(&event);
             }
+        }
+        if let Some(prepared) = completed_cache {
+            *cache.lock().await = prepared;
         }
         if completed || failed {
             return Ok(());
@@ -1838,6 +1852,9 @@ async fn chat_completions(
             .await;
         }
     };
+    if let Err(error) = decoded.request.validate_tool_history() {
+        return pre_header_chat_error(&error);
+    }
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
         public_model,
@@ -2068,6 +2085,10 @@ async fn responses(
         owned_continuation,
         false,
     );
+    if let Err(error) = execution.request().validate_tool_history() {
+        usage_observer.fail(&error);
+        return pre_header_error(&error);
+    }
     let mut source = match state
         .executor
         .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
@@ -2293,12 +2314,16 @@ async fn compact_responses(
             return pre_header_stored_response_error(&error);
         }
     };
-    let canonical = match tokio::time::timeout(
+    let collected = tokio::time::timeout(
         STORED_RESPONSE_COMPACTION_TOTAL_TIMEOUT,
         collect_bounded_source(&mut source, &mut usage_observer),
     )
-    .await
-    {
+    .await;
+    if let Err(error) = usage_observer.flush_usage().await {
+        usage_observer.fail(&error);
+        return pre_header_stored_response_error(&error);
+    }
+    let canonical = match collected {
         Ok(Ok(canonical)) => canonical,
         Ok(Err(error)) => {
             usage_observer.fail(&error);
@@ -2523,6 +2548,9 @@ async fn messages(
             .await;
         }
     };
+    if let Err(error) = decoded.request.validate_tool_history() {
+        return pre_header_anthropic_error(&error);
+    }
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
         public_model,
@@ -3132,9 +3160,32 @@ async fn start_bounded_transport(
 
 async fn pump_source(
     mut source: Box<dyn ResponsesEventSource>,
-    mut sender: CanonicalEventSender,
+    sender: CanonicalEventSender,
     cancellation: StreamCancellation,
     mut usage_observer: UsageEventObserver,
+    stored_response: Option<StoredResponseWriteContext>,
+    first: CanonicalEvent,
+) {
+    pump_source_events(
+        source.as_mut(),
+        sender,
+        cancellation,
+        &mut usage_observer,
+        stored_response,
+        first,
+    )
+    .await;
+    usage_observer.remember_decoded_usage(source.decoded_usage());
+    if let Err(error) = usage_observer.flush_usage().await {
+        usage_observer.fail(&error);
+    }
+}
+
+async fn pump_source_events(
+    source: &mut dyn ResponsesEventSource,
+    mut sender: CanonicalEventSender,
+    cancellation: StreamCancellation,
+    usage_observer: &mut UsageEventObserver,
     stored_response: Option<StoredResponseWriteContext>,
     first: CanonicalEvent,
 ) {
@@ -3267,6 +3318,15 @@ async fn collect_bounded_source(
     source: &mut Box<dyn ResponsesEventSource>,
     observer: &mut UsageEventObserver,
 ) -> Result<CanonicalResponse, GatewayError> {
+    let result = collect_bounded_source_events(source, observer).await;
+    observer.remember_decoded_usage(source.decoded_usage());
+    result
+}
+
+async fn collect_bounded_source_events(
+    source: &mut Box<dyn ResponsesEventSource>,
+    observer: &mut UsageEventObserver,
+) -> Result<CanonicalResponse, GatewayError> {
     let mut events = Vec::new();
     let mut serialized_bytes = 0_usize;
     let mut lifecycle = gateway_core::CanonicalEventState::default();
@@ -3295,6 +3355,12 @@ async fn persist_completed_response(
     response: CanonicalResponse,
 ) -> Result<(), GatewayError> {
     tokio::task::spawn_blocking(move || {
+        // A replay root must be publicly encodable before its successful terminal is persisted.
+        let metadata = OpenAiResponseMetadata::try_new(
+            context.public_model.clone(),
+            context.created_at_seconds,
+        )?;
+        let _encoded = encode_response(&response, metadata)?;
         let response_id = response
             .events()
             .first()
@@ -3359,16 +3425,17 @@ fn system_now_ms() -> Result<i64, GatewayError> {
     i64::try_from(elapsed.as_millis()).map_err(|_| internal_error())
 }
 
-/// Per-request observer that turns a canonical final Usage event into a non-blocking record.
+/// Per-request observer that durably records the last known source Usage once.
 ///
-/// It observes an event only after the bounded canonical stream accepted it, so invalid source
-/// events cannot create a Usage record. This boundary intentionally emits final totals only and
-/// discards canonical raw extensions.
+/// It accepts lifecycle-validated events and Usage already validated by the attempt's decoder.
+/// Completion, failure and cancellation flush known counters; unknown counters stay absent.
+/// Canonical raw extensions are excluded from the durable record.
 struct UsageEventObserver {
     request_id: RequestId,
     event_sink: Arc<dyn GatewayEventSink>,
     response_id: Option<ResponseId>,
     final_usage_emitted: bool,
+    latest_usage: Option<gateway_core::Usage>,
     observation: RequestObservation,
     guard: Option<RequestGuard>,
 }
@@ -3386,6 +3453,7 @@ impl UsageEventObserver {
             event_sink,
             response_id: None,
             final_usage_emitted: false,
+            latest_usage: None,
             observation: guard.observation.clone(),
             guard: Some(guard),
         }
@@ -3396,26 +3464,47 @@ impl UsageEventObserver {
     fn fail(&self, error: &GatewayError) {
         self.observation.fail(error);
     }
+    fn remember_decoded_usage(&mut self, usage: Option<gateway_core::Usage>) {
+        if let Some(usage) = usage {
+            self.latest_usage = Some(gateway_core::Usage::merge_snapshot(
+                self.latest_usage.as_ref(),
+                &usage,
+            ));
+        }
+    }
     async fn observe(&mut self, event: &CanonicalEvent) -> Result<(), GatewayError> {
         self.observation.observe(event);
         match event {
             CanonicalEvent::ResponseStart(start) => {
                 self.response_id = Some(start.response_id.clone());
             }
-            CanonicalEvent::UsageDelta(delta) if delta.is_final && !self.final_usage_emitted => {
-                self.final_usage_emitted = true;
-                if let Some(response_id) = self.response_id.clone() {
-                    self.event_sink
-                        .emit_confirmed(GatewayEvent::Usage(UsageEvent::from_usage(
-                            self.request_id.clone(),
-                            response_id,
-                            &delta.usage,
-                        )))
-                        .await
-                        .into_result()?;
+            CanonicalEvent::UsageDelta(delta) => {
+                self.remember_decoded_usage(Some(delta.usage.clone()));
+                if delta.is_final {
+                    self.flush_usage().await?;
                 }
             }
+            CanonicalEvent::ResponseEnd(_) | CanonicalEvent::StreamError(_) => {
+                self.flush_usage().await?;
+            }
             _ => {}
+        }
+        Ok(())
+    }
+    async fn flush_usage(&mut self) -> Result<(), GatewayError> {
+        if !self.final_usage_emitted
+            && let (Some(response_id), Some(usage)) =
+                (self.response_id.clone(), self.latest_usage.as_ref())
+        {
+            self.event_sink
+                .emit_confirmed(GatewayEvent::Usage(UsageEvent::from_usage(
+                    self.request_id.clone(),
+                    response_id,
+                    usage,
+                )))
+                .await
+                .into_result()?;
+            self.final_usage_emitted = true;
         }
         Ok(())
     }
@@ -3597,6 +3686,10 @@ where
     E: CanonicalSseEncoder,
 {
     loop {
+        if state.stream.control().is_cancelled() {
+            state.pending.clear();
+            return None;
+        }
         if let Some(chunk) = state.pending.pop_front() {
             state.keepalive_deadline = next_keepalive_deadline();
             return Some((chunk, state));
@@ -6024,6 +6117,159 @@ mod tests {
         assert!(body.contains("event: response.output_text.delta"));
         assert!(body.contains("event: response.completed"));
         assert!(!body.contains("event: response.failed"));
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn chat_json_and_sse_keep_visible_reasoning_separate_from_answer() -> TestResult {
+        let upstream = serde_json::json!({"id":"thinking-chat","object":"chat.completion",
+            "created":1,"model":"synthetic","choices":[{"index":0,"finish_reason":"stop",
+                "message":{"role":"assistant","content":"answer","reasoning_content":"visible thought"}}],
+            "usage":{"prompt_tokens":3,"completion_tokens":4,"total_tokens":7}});
+        let events = protocol_openai_chat::decode_upstream_response(&upstream.to_string())?;
+        for streaming in [false, true] {
+            let app = test::init_service(
+                App::new()
+                    .app_data(web::Data::new(mock_state(events.clone())?))
+                    .configure(configure),
+            )
+            .await;
+            let request = authorized(
+                test::TestRequest::post()
+                    .uri("/v1/chat/completions")
+                    .set_json(serde_json::json!({"model":"mock-model",
+                    "messages":[{"role":"user","content":"hello"}],"stream":streaming})),
+            )
+            .to_request();
+            let response = test::call_service(&app, request).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+            assert!(body.contains("reasoning_content"));
+            assert!(body.contains("visible thought"));
+            if !streaming {
+                let body: serde_json::Value = serde_json::from_str(&body)?;
+                assert_eq!(body["choices"][0]["message"]["content"], "answer");
+                assert_eq!(
+                    body["choices"][0]["message"]["reasoning_content"],
+                    "visible thought"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn messages_json_and_sse_preserve_thinking_signature_and_citation() -> TestResult {
+        let upstream = serde_json::json!({"id":"signed-message","type":"message",
+            "role":"assistant","model":"synthetic","stop_reason":"end_turn",
+            "stop_sequence":null,"usage":{"input_tokens":3,"output_tokens":4},
+            "content":[{"type":"thinking","thinking":"thinking text","signature":"synthetic-signature"},
+                {"type":"text","text":"answer","citations":[{"type":"page_location",
+                    "cited_text":"source text","document_index":0,"document_title":"source",
+                    "start_page_number":1,"end_page_number":2}]}]});
+        let events = protocol_anthropic::decode_upstream_response(&upstream.to_string())?;
+        for streaming in [false, true] {
+            let app = test::init_service(
+                App::new()
+                    .app_data(web::Data::new(mock_state(events.clone())?))
+                    .configure(configure),
+            )
+            .await;
+            let request = authorized(
+                test::TestRequest::post()
+                    .uri("/v1/messages")
+                    .set_json(serde_json::json!({"model":"mock-model","max_tokens":20,
+                    "messages":[{"role":"user","content":"hello"}],"stream":streaming})),
+            )
+            .to_request();
+            let response = test::call_service(&app, request).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+            assert!(
+                body.contains("synthetic-signature"),
+                "signature absent: stream={streaming}"
+            );
+            assert!(
+                body.contains("source text"),
+                "citation absent: stream={streaming}"
+            );
+            if streaming {
+                assert!(body.contains("signature_delta"));
+                assert!(body.contains("citations_delta"));
+                assert!(body.contains("message_stop"));
+            } else {
+                let body: serde_json::Value = serde_json::from_str(&body)?;
+                assert_eq!(body["content"], upstream["content"]);
+            }
+        }
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn three_protocols_reject_orphan_tool_results_before_execution() -> TestResult {
+        for (path, body) in [
+            (
+                "/v1/chat/completions",
+                serde_json::json!({"model": SNAPSHOT_PUBLIC_MODEL,
+                "messages": [{"role":"user","content":"hello"},
+                    {"role":"tool","tool_call_id":"unknown-call","content":"result"}]}),
+            ),
+            (
+                "/v1/responses",
+                serde_json::json!({"model": SNAPSHOT_PUBLIC_MODEL,
+                "input": [{"role":"user","content":"hello"},
+                    {"type":"function_call_output","call_id":"unknown-call","output":"result"}]}),
+            ),
+            (
+                "/v1/messages",
+                serde_json::json!({"model": SNAPSHOT_PUBLIC_MODEL,"max_tokens":20,
+                "messages": [{"role":"user","content":[
+                    {"type":"tool_result","tool_use_id":"unknown-call","content":"result"}]}]}),
+            ),
+        ] {
+            let calls = Arc::new(AtomicUsize::new(0));
+            let (state, key) = snapshot_auth_state_with_executor(Arc::new(CountingExecutor {
+                calls: calls.clone(),
+            }))?;
+            let app = test::init_service(
+                App::new()
+                    .app_data(web::Data::new(state))
+                    .configure(configure),
+            )
+            .await;
+            let request = test::TestRequest::post()
+                .uri(path)
+                .insert_header((header::AUTHORIZATION, format!("Bearer {key}")))
+                .set_json(body)
+                .to_request();
+            let response = test::call_service(&app, request).await;
+            assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{path}");
+            assert_eq!(calls.load(Ordering::Acquire), 0, "{path}");
+        }
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn responses_rejects_non_string_item_type_before_execution() -> TestResult {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (state, key) = snapshot_auth_state_with_executor(Arc::new(CountingExecutor {
+            calls: calls.clone(),
+        }))?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(configure),
+        )
+        .await;
+        let request = test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header((header::AUTHORIZATION, format!("Bearer {key}")))
+            .set_json(serde_json::json!({"model": SNAPSHOT_PUBLIC_MODEL,
+                "input": [{"type": 123, "role": "user", "content": "hello"}]}))
+            .to_request();
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(calls.load(Ordering::Acquire), 0);
         Ok(())
     }
 

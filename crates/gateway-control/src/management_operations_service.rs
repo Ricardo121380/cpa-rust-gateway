@@ -421,6 +421,8 @@ pub enum OperationalTokenConfidence {
 /// One bounded aggregated token counter with an explicit confidence label.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct OperationalTokenMetric {
+    /// Source evidence; an estimated or unknown counter cannot receive exact confidence.
+    pub provenance: gateway_core::UsageProvenance,
     /// Checked sum when at least one observation supplied a value.
     pub total: Option<u64>,
     /// Whether the total is exact, partial, or unavailable.
@@ -1263,10 +1265,20 @@ struct UsageTokenAccumulator {
     total: u64,
     observed: u64,
     missing: u64,
+    estimated: bool,
+    unknown: bool,
 }
 
 impl UsageTokenAccumulator {
-    fn add(&mut self, value: Option<u64>) -> Result<(), ManagementOperationsError> {
+    fn add(
+        &mut self,
+        value: Option<u64>,
+        provenance: gateway_core::UsageProvenance,
+    ) -> Result<(), ManagementOperationsError> {
+        if value.is_some() {
+            self.estimated |= provenance == gateway_core::UsageProvenance::Estimated;
+            self.unknown |= provenance == gateway_core::UsageProvenance::Unknown;
+        }
         match value {
             Some(value) => {
                 self.total = self
@@ -1289,6 +1301,8 @@ impl UsageTokenAccumulator {
     }
 
     fn merge(&mut self, other: &Self) -> Result<(), ManagementOperationsError> {
+        self.estimated |= other.estimated;
+        self.unknown |= other.unknown;
         self.total = self
             .total
             .checked_add(other.total)
@@ -1312,7 +1326,22 @@ impl UsageTokenAccumulator {
         } else {
             (Some(self.total), OperationalTokenConfidence::Partial)
         };
-        OperationalTokenMetric { total, confidence }
+        let provenance = if self.observed == 0 || self.unknown {
+            gateway_core::UsageProvenance::Unknown
+        } else if self.estimated {
+            gateway_core::UsageProvenance::Estimated
+        } else {
+            gateway_core::UsageProvenance::Measured
+        };
+        OperationalTokenMetric {
+            total,
+            provenance,
+            confidence: if provenance == gateway_core::UsageProvenance::Measured {
+                confidence
+            } else {
+                OperationalTokenConfidence::Unknown
+            },
+        }
     }
 }
 
@@ -1374,13 +1403,18 @@ impl UsageAccumulator {
             .checked_add(1)
             .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
         let usage = usage.usage();
-        self.input_tokens.add(usage.input_tokens)?;
-        self.output_tokens.add(usage.output_tokens)?;
-        self.reasoning_tokens.add(usage.reasoning_tokens)?;
-        self.cache_read_tokens.add(usage.cache_read_tokens)?;
+        self.input_tokens
+            .add(usage.input_tokens, usage.provenance)?;
+        self.output_tokens
+            .add(usage.output_tokens, usage.provenance)?;
+        self.reasoning_tokens
+            .add(usage.reasoning_tokens, usage.provenance)?;
+        self.cache_read_tokens
+            .add(usage.cache_read_tokens, usage.provenance)?;
         self.cache_creation_tokens
-            .add(usage.cache_creation_tokens)?;
-        self.cached_tokens.add(usage.cached_tokens)?;
+            .add(usage.cache_creation_tokens, usage.provenance)?;
+        self.cached_tokens
+            .add(usage.cached_tokens, usage.provenance)?;
         Ok(())
     }
 
@@ -1695,9 +1729,28 @@ pub fn compile_operational_usage_page(
         let request = requests
             .get(&request_id)
             .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
-        let attempt = attempts
-            .get(&request_id)
-            .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
+        let attempt = if let Some(id) = usage.attempt_id() {
+            let mut matching = events.iter().filter_map(|stored| match stored.event() {
+                GatewayEvent::Attempt(attempt)
+                    if attempt.request_id().as_str() == request_id
+                        && attempt.attempt_id() == id =>
+                {
+                    Some(attempt)
+                }
+                _ => None,
+            });
+            let exact = matching
+                .next()
+                .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
+            if matching.any(|other| other != exact) {
+                return Err(ManagementOperationsError::InconsistentConfiguration);
+            }
+            exact
+        } else {
+            attempts
+                .get(&request_id)
+                .ok_or(ManagementOperationsError::InconsistentConfiguration)?
+        };
         let mut accumulator = UsageAccumulator::new(request, attempt)?;
         let candidate = accumulator.clone().into_item();
         if !usage_item_matches_query(&candidate, query) {
@@ -1708,7 +1761,10 @@ pub fn compile_operational_usage_page(
             excluded_request_groups += 1;
             continue;
         }
-        if conflicting || !matches!(attempt.outcome(), AttemptOutcome::Succeeded) {
+        if conflicting
+            || usage.attempt_id().is_none()
+                && !matches!(attempt.outcome(), AttemptOutcome::Succeeded)
+        {
             return Err(ManagementOperationsError::InconsistentConfiguration);
         }
         observed_through_ms = Some(
@@ -2067,6 +2123,8 @@ mod tests {
             request_one.request_id().clone(),
             gateway_core::ResponseId::try_new("usage-response-a")?,
             &Usage {
+                provenance: gateway_core::UsageProvenance::Measured,
+                input_accounting: gateway_core::InputTokenAccounting::Inclusive,
                 input_tokens: Some(3),
                 output_tokens: Some(5),
                 ..Usage::default()
@@ -2076,6 +2134,8 @@ mod tests {
             request_two.request_id().clone(),
             gateway_core::ResponseId::try_new("usage-response-b")?,
             &Usage {
+                provenance: gateway_core::UsageProvenance::Measured,
+                input_accounting: gateway_core::InputTokenAccounting::Inclusive,
                 input_tokens: Some(7),
                 ..Usage::default()
             },
@@ -2141,6 +2201,8 @@ mod tests {
                     request.request_id().clone(),
                     gateway_core::ResponseId::try_new(format!("response-{name}"))?,
                     &Usage {
+                        provenance: gateway_core::UsageProvenance::Measured,
+                        input_accounting: gateway_core::InputTokenAccounting::Inclusive,
                         input_tokens: Some(tokens),
                         ..Usage::default()
                     },

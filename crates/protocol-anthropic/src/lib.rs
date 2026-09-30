@@ -8,12 +8,14 @@
 
 #![deny(unsafe_code)]
 
+mod content_metadata;
 mod json;
 mod request;
 mod response;
 mod upstream_request;
 mod upstream_response;
 
+pub use content_metadata::validate_citations;
 pub use request::{
     DecodedCountTokensRequest, DecodedMessagesRequest, ResponseMode, decode_count_tokens_request,
     decode_request,

@@ -47,11 +47,12 @@ ResponseStart -> any valid partial sequence -> StreamError
   not interpret Responses fields. Older producers need no output-item metadata.
 - A response begins once and terminates once. `ResponseEnd` and `StreamError` are terminal; no
   later semantic event is accepted.
-- At most one Message is active at a time. Text and Reasoning deltas must be non-empty and belong
-  to its active Message; a later sequential Message may begin only after the current one ends.
+- At most one Message is active at a time. Text and Reasoning deltas belong to its active Message;
+  empty text is accepted only with explicit metadata extensions, such as a native signature or
+  citation update. A later sequential Message may begin only after the current one ends.
 - A Tool Call begins once inside its active Message, has a stable non-empty correlation ID and
   non-empty name, accepts zero or more argument deltas only before its end, and cannot be reused.
-  Its end carries complete valid JSON arguments but this task does not derive or normalize them.
+  Its end carries complete valid JSON-object arguments; the core does not derive or normalize them.
   `ToolCallEnd` is the atomic `ArgumentsComplete -> Emitted` transition: `RawJson` proves that the
   already-assembled arguments are complete, while incremental assembly and normalization remain
   outside this core task. Multiple open Tool Calls may have argument deltas interleaved.
@@ -60,6 +61,10 @@ ResponseStart -> any valid partial sequence -> StreamError
 - Usage updates may occur before a terminal event. An explicitly final Usage update is accepted at
   most once. A response may end normally whether an upstream reported no Usage updates, interim
   Usage updates, or a final Usage update; an interim report never requires a final report.
+- Usage retains six optional source counters plus measured/estimated/unknown provenance and
+  inclusive/exclusive/unknown input accounting. Missing counters remain absent. Cache and
+  reasoning subsets are not independent additions to totals; the observer retains the last known
+  snapshot on completion, failure or cancellation without inventing a final measurement.
 - Raw extensions remain explicit and opaque on non-error events. `StreamError` contains only a
   safe `GatewayError`, never raw upstream diagnostics. Event `Debug` output must redact client- or
   provider-supplied text, Tool names/arguments, IDs, and raw JSON.
@@ -87,3 +92,10 @@ ResponseStart -> any valid partial sequence -> StreamError
 [CR-RESPONSES-NATIVE-FIDELITY-001](../change-requests/CR-RESPONSES-NATIVE-FIDELITY-001.md)
 adds the optional item events. Old stored payloads still decode; new item events require
 this binary for continuation. Rollback must preserve data and disclose this replay boundary.
+
+## 2026-09-30 metadata and Usage note
+
+[ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md) allows reviewed native
+metadata updates and defines source Usage evidence. Legacy payloads default the two evidence
+fields to unknown. Protocol projection validates metadata ownership and rejects an output shape
+that cannot represent it, before a successful saved/session replay root is registered.

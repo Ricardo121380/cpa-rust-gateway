@@ -11,9 +11,9 @@ const CORPUS: &str = include_str!("../fixtures/cpa-three-protocol-golden-corpus.
 #[test]
 fn all_legacy_protocol_differences_are_closed_and_classified() -> Result<(), LegacyProtocolError> {
     let outcome = validate_legacy_protocol_corpus(CORPUS)?;
-    assert_eq!(outcome.parity, 6);
+    assert_eq!(outcome.parity, 7);
     assert_eq!(outcome.intentional_hardening, 2);
-    assert_eq!(outcome.unsupported_fail_closed, 2);
+    assert_eq!(outcome.unsupported_fail_closed, 1);
     assert_eq!(outcome.total(), 10);
     Ok(())
 }

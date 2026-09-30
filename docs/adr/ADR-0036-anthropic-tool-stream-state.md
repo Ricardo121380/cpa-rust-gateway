@@ -7,6 +7,10 @@
 | Task | `P5-03` |
 | Contract | [BC-PROTOCOL-004](../contracts/BC-PROTOCOL-004-anthropic-tool-stream-state.md) |
 
+CPAR batch B updates parallel upstream block decoding and metadata preservation in
+[ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md). Independent bounded Tool
+argument buffers and complete object input remain required.
+
 ## Context
 
 The Canonical lifecycle permits several Tool Calls to be declared and receive argument fragments

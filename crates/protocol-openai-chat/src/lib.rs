@@ -13,7 +13,7 @@ use std::{collections::BTreeSet, fmt};
 use gateway_core::{
     CanonicalEvent, CanonicalEventState, CanonicalMessage, CanonicalRequest, CanonicalResponse,
     ErrorScope, GatewayError, GatewayErrorCode, MessageContent, MessageRole, RawExtensions,
-    RawJson, TextContent, ToolCall, ToolDefinition, ToolResult, Usage,
+    RawJson, TextContent, Thinking, ThinkingEffort, ToolCall, ToolDefinition, ToolResult, Usage,
 };
 use serde::{Deserialize, de};
 use serde_json::{Map, Value, json};
@@ -79,16 +79,34 @@ pub fn decode_request(input: &str) -> Result<DecodedChatRequest, GatewayError> {
     }
     if root
         .get("parallel_tool_calls")
-        .is_some_and(|value| value.as_bool() != Some(true))
+        .is_some_and(|value| !value.is_boolean())
     {
         return Err(client_error());
     }
-    let required_tool = match root.get("tool_choice") {
-        None => false,
-        Some(Value::String(choice)) if choice == "auto" => false,
-        Some(Value::String(choice)) if choice == "required" => true,
-        Some(_) => return Err(client_error()),
-    };
+    let required_tool = root
+        .get("tool_choice")
+        .is_some_and(|value| value.as_str() == Some("required") || value.is_object());
+    if let Some(choice) = root.get("tool_choice") {
+        let valid = matches!(choice.as_str(), Some("auto" | "required" | "none"))
+            || choice.as_object().is_some_and(|choice| {
+                choice.len() == 2
+                    && choice.get("type").and_then(Value::as_str) == Some("function")
+                    && choice
+                        .get("function")
+                        .and_then(Value::as_object)
+                        .is_some_and(|function| {
+                            function.len() == 1
+                                && function
+                                    .get("name")
+                                    .and_then(Value::as_str)
+                                    .is_some_and(|name| !name.is_empty())
+                        })
+            });
+        if !valid {
+            return Err(client_error());
+        }
+    }
+    let thinking = decode_reasoning_effort(root.get("reasoning_effort"))?;
 
     let include_usage = decode_stream_options(root.get("stream_options"), mode)?;
     let messages = array(required(root, "messages")?)?
@@ -115,16 +133,16 @@ pub fn decode_request(input: &str) -> Result<DecodedChatRequest, GatewayError> {
             "tool_choice",
             "parallel_tool_calls",
             "n",
+            "reasoning_effort",
         ],
         "openai.chat.",
     )?;
-    if required_tool {
-        extensions
-            .try_insert(
-                "openai.chat.tool_choice",
-                raw_json(root.get("tool_choice").ok_or_else(client_error)?)?,
-            )
-            .map_err(|_| client_error())?;
+    for name in ["tool_choice", "parallel_tool_calls"] {
+        if let Some(value) = root.get(name) {
+            extensions
+                .try_insert(format!("openai.chat.{name}"), raw_json(value)?)
+                .map_err(|_| client_error())?;
+        }
     }
 
     Ok(DecodedChatRequest {
@@ -132,7 +150,7 @@ pub fn decode_request(input: &str) -> Result<DecodedChatRequest, GatewayError> {
             requested_model,
             messages,
             tools,
-            thinking: None,
+            thinking,
             prompt_cache_key: None,
             prompt_cache_retention: None,
             extensions,
@@ -156,6 +174,26 @@ fn decode_stream_options(value: Option<&Value>, mode: ResponseMode) -> Result<bo
         Some(Value::Bool(true)) => Ok(true),
         Some(_) => Err(client_error()),
     }
+}
+
+fn decode_reasoning_effort(value: Option<&Value>) -> Result<Option<Thinking>, GatewayError> {
+    value
+        .map(|value| {
+            let effort = value
+                .as_str()
+                .filter(|value| {
+                    matches!(
+                        *value,
+                        "none" | "auto" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
+                    )
+                })
+                .ok_or_else(client_error)?;
+            Ok(Thinking {
+                effort: ThinkingEffort::try_new(effort).map_err(|_| client_error())?,
+                extensions: RawExtensions::default(),
+            })
+        })
+        .transpose()
 }
 
 fn decode_message(value: &Value) -> Result<CanonicalMessage, GatewayError> {
@@ -205,7 +243,11 @@ fn decode_assistant_message(
             content.push(MessageContent::ToolCall(decode_tool_call(value)?));
         }
     }
-    if content.is_empty() {
+    let reasoning = message
+        .get("reasoning_content")
+        .map(|value| value.as_str().ok_or_else(client_error))
+        .transpose()?;
+    if content.is_empty() && reasoning.is_none_or(str::is_empty) {
         return Err(client_error());
     }
     Ok(CanonicalMessage {
@@ -499,7 +541,12 @@ impl ChatSseEncoder {
                 self.state_mut()?.text.push_str(&delta.text);
                 Ok(vec![self.chunk(&json!({"content":delta.text}), true)?])
             }
-            CanonicalEvent::ReasoningDelta(_) => Err(stream_error()),
+            CanonicalEvent::ReasoningDelta(delta) => {
+                self.state_mut()?.reasoning.push_str(&delta.text);
+                Ok(vec![
+                    self.chunk(&json!({"reasoning_content":delta.text}), true)?,
+                ])
+            }
             CanonicalEvent::ToolCallStart(start) => {
                 let state = self.state_mut()?;
                 let index = state.tools.len();
@@ -557,16 +604,10 @@ impl ChatSseEncoder {
                 });
                 Ok(frames)
             }
-            CanonicalEvent::StreamError(error) => Ok(vec![
-                ChatSseFrame {
-                    data: Some(encode_error(&error.error)),
-                    semantic: true,
-                },
-                ChatSseFrame {
-                    data: None,
-                    semantic: false,
-                },
-            ]),
+            CanonicalEvent::StreamError(error) => Ok(vec![ChatSseFrame {
+                data: Some(encode_error(&error.error)),
+                semantic: true,
+            }]),
         }
     }
 
@@ -639,6 +680,7 @@ impl fmt::Debug for ChatSseEncoder {
 struct ChatState {
     id: String,
     text: String,
+    reasoning: String,
     tools: Vec<ChatToolState>,
     usage: Option<Usage>,
     finish_reason: Option<String>,
@@ -649,6 +691,7 @@ impl ChatState {
         Self {
             id,
             text: String::new(),
+            reasoning: String::new(),
             tools: Vec::new(),
             usage: None,
             finish_reason: None,
@@ -658,6 +701,12 @@ impl ChatState {
     fn message_value(&self) -> Value {
         let mut message = Map::new();
         message.insert("role".to_owned(), Value::String("assistant".to_owned()));
+        if !self.reasoning.is_empty() {
+            message.insert(
+                "reasoning_content".to_owned(),
+                Value::String(self.reasoning.clone()),
+            );
+        }
         message.insert(
             "content".to_owned(),
             if self.text.is_empty() {
@@ -691,16 +740,21 @@ struct ChatToolState {
 }
 
 fn usage_value(usage: &Usage) -> Result<Value, GatewayError> {
-    if usage.cache_read_tokens.is_some() || usage.cache_creation_tokens.is_some() {
-        return Err(stream_error());
-    }
-    let prompt = usage.input_tokens.ok_or_else(stream_error)?;
-    let completion = usage.output_tokens.ok_or_else(stream_error)?;
-    let total = prompt.checked_add(completion).ok_or_else(stream_error)?;
     let mut encoded = Map::new();
-    encoded.insert("prompt_tokens".to_owned(), json!(prompt));
-    encoded.insert("completion_tokens".to_owned(), json!(completion));
-    encoded.insert("total_tokens".to_owned(), json!(total));
+    let prompt = usage.input_for(gateway_core::InputTokenAccounting::Inclusive)?;
+    if let Some(prompt) = prompt {
+        encoded.insert("prompt_tokens".to_owned(), json!(prompt));
+    }
+    if let Some(completion) = usage.output_tokens {
+        encoded.insert("completion_tokens".to_owned(), json!(completion));
+    }
+    if let (Some(prompt), Some(completion)) = (prompt, usage.output_tokens) {
+        encoded.insert(
+            "total_tokens".to_owned(),
+            json!(prompt.checked_add(completion).ok_or_else(stream_error)?),
+        );
+    }
+    encoded.insert("cpar_usage".to_owned(), usage.evidence());
     if let Some(cached_tokens) = usage.cached_tokens {
         encoded.insert(
             "prompt_tokens_details".to_owned(),
@@ -1134,9 +1188,7 @@ mod tests {
     fn unrepresentable_usage_fails_closed() -> Result<(), Box<dyn std::error::Error>> {
         for usage in [
             json!({"input_tokens":u64::MAX,"output_tokens":1,"extensions":{}}),
-            json!({"input_tokens":1,"extensions":{}}),
-            json!({"input_tokens":1,"output_tokens":1,"cache_read_tokens":1,"extensions":{}}),
-            json!({"input_tokens":1,"output_tokens":1,"cache_creation_tokens":1,"extensions":{}}),
+            json!({"input_tokens":1,"extensions":{"vendor":"unknown"}}),
         ] {
             let canonical = response(json!([
                 {"response_start":{"response_id":"opaque","extensions":{}}},
@@ -1186,8 +1238,53 @@ mod tests {
     }
 
     #[test]
-    fn reasoning_is_rejected_instead_of_becoming_visible_chat_text()
+    fn reasoning_only_output_can_be_replayed_as_assistant_history()
     -> Result<(), Box<dyn std::error::Error>> {
+        let canonical = CanonicalResponse::try_new(serde_json::from_value(json!([
+            {"response_start":{"response_id":"opaque","extensions":{}}},
+            {"message_start":{"role":"assistant","extensions":{}}},
+            {"reasoning_delta":{"text":"visible thought","extensions":{}}},
+            {"message_end":{"extensions":{}}},
+            {"response_end":{"stop_reason":"stop","extensions":{}}}
+        ]))?)?;
+        let output = encode_response(
+            &canonical,
+            ChatResponseMetadata::try_new("public-model", 7, false)?,
+        )?;
+        let message = &output["choices"][0]["message"];
+        assert_eq!(message["content"], Value::Null);
+        let decoded = decode_request(
+            &json!({
+                "model":"public-model", "messages":[
+                    {"role":"user","content":"first"}, message,
+                    {"role":"user","content":"next"}
+                ]
+            })
+            .to_string(),
+        )?;
+        assert_eq!(
+            decoded.request.messages[1]
+                .extensions
+                .get("openai.chat.message.reasoning_content")
+                .map(RawJson::get),
+            Some("\"visible thought\"")
+        );
+        for reasoning in [Value::Null, json!(7), json!("")] {
+            assert!(
+                decode_request(
+                    &json!({"model":"public-model","messages":[
+                        {"role":"assistant","content":null,"reasoning_content":reasoning}
+                    ]})
+                    .to_string()
+                )
+                .is_err()
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn reasoning_is_retained_in_a_separate_chat_field() -> Result<(), Box<dyn std::error::Error>> {
         let events = serde_json::from_value::<Vec<CanonicalEvent>>(json!([
             {"response_start":{"response_id":"opaque","extensions":{}}},
             {"message_start":{"role":"assistant","extensions":{}}},
@@ -1197,10 +1294,15 @@ mod tests {
             ChatSseEncoder::new(ChatResponseMetadata::try_new("public-model", 7, false)?);
         assert!(encoder.encode_event(&events[0]).is_ok());
         assert!(encoder.encode_event(&events[1]).is_ok());
-        let error = encoder.encode_event(&events[2]);
+        let frames = encoder.encode_event(&events[2])?;
         assert_eq!(
-            error.err().as_ref().map(gateway_core::GatewayError::code),
-            Some(GatewayErrorCode::UpstreamProtocolError)
+            frames[0].data.as_ref().ok_or("missing frame")?["choices"][0]["delta"]["reasoning_content"],
+            "private"
+        );
+        assert!(
+            frames[0].data.as_ref().ok_or("missing frame")?["choices"][0]["delta"]
+                .get("content")
+                .is_none()
         );
         Ok(())
     }

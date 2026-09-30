@@ -52,7 +52,16 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
         return Err(protocol_error());
     }
     let message = object(required(choice, "message")?)?;
-    require_only_keys(message, &["role", "content", "tool_calls", "refusal"])?;
+    require_only_keys(
+        message,
+        &[
+            "role",
+            "content",
+            "tool_calls",
+            "refusal",
+            "reasoning_content",
+        ],
+    )?;
     if message.get("refusal").is_some_and(|value| !value.is_null()) {
         return Err(protocol_error());
     }
@@ -70,21 +79,7 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
             extensions: RawExtensions::default(),
         }),
     ];
-    let mut emitted = false;
-    if let Some(content) = message.get("content") {
-        match content {
-            Value::Null => {}
-            Value::String(text) if text.is_empty() => {}
-            Value::String(text) => {
-                events.push(CanonicalEvent::TextDelta(TextDelta {
-                    text: text.clone(),
-                    extensions: RawExtensions::default(),
-                }));
-                emitted = true;
-            }
-            _ => return Err(protocol_error()),
-        }
-    }
+    let mut emitted = decode_completed_content(message, &mut events)?;
     if let Some(calls) = message.get("tool_calls") {
         let calls = calls.as_array().ok_or_else(protocol_error)?;
         if calls.is_empty() || calls.len() > MAX_TOOL_CALLS {
@@ -116,6 +111,37 @@ pub fn decode_upstream_response(input: &str) -> Result<Vec<CanonicalEvent>, Gate
         .map_err(|_| protocol_error())
 }
 
+fn decode_completed_content(
+    message: &Map<String, Value>,
+    events: &mut Vec<CanonicalEvent>,
+) -> Result<bool, GatewayError> {
+    let mut emitted = false;
+    if let Some(reasoning) = decode_reasoning_content(message)? {
+        events.push(CanonicalEvent::ReasoningDelta(
+            gateway_core::ReasoningDelta {
+                text: reasoning,
+                extensions: RawExtensions::default(),
+            },
+        ));
+        emitted = true;
+    }
+    if let Some(content) = message.get("content") {
+        match content {
+            Value::Null => {}
+            Value::String(text) if text.is_empty() => {}
+            Value::String(text) => {
+                events.push(CanonicalEvent::TextDelta(TextDelta {
+                    text: text.clone(),
+                    extensions: RawExtensions::default(),
+                }));
+                emitted = true;
+            }
+            _ => return Err(protocol_error()),
+        }
+    }
+    Ok(emitted)
+}
+
 fn decode_completed_tool_call(
     value: &Value,
     position: usize,
@@ -142,6 +168,7 @@ fn decode_completed_tool_call(
         .ok_or_else(protocol_error)?;
     validate_identifier(&id)?;
     validate_identifier(&name)?;
+    reject_duplicate_json_names(arguments).map_err(|_| protocol_error())?;
     let arguments =
         RawJson::from_json_string(arguments.to_owned()).map_err(|_| protocol_error())?;
     events.push(CanonicalEvent::ToolCallStart(ToolCallStart {
@@ -162,6 +189,14 @@ fn decode_completed_tool_call(
         extensions: RawExtensions::default(),
     }));
     Ok(())
+}
+
+fn decode_reasoning_content(message: &Map<String, Value>) -> Result<Option<String>, GatewayError> {
+    match message.get("reasoning_content") {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(text)) => Ok((!text.is_empty()).then(|| text.clone())),
+        Some(_) => Err(protocol_error()),
+    }
 }
 
 /// Bounded, transport-free decoder for an OpenAI-compatible Chat SSE body.
@@ -227,6 +262,17 @@ impl OpenAiChatSseDecoder {
     #[must_use]
     pub fn is_finished(&self) -> bool {
         matches!(self.lifecycle, StreamLifecycle::Finished)
+    }
+
+    /// Returns validated Usage still buffered if a later frame in the same chunk fails.
+    #[must_use]
+    pub fn decoded_usage(&self) -> Option<Usage> {
+        self.pending.iter().fold(None, |known, event| match event {
+            CanonicalEvent::UsageDelta(delta) => {
+                Some(Usage::merge_snapshot(known.as_ref(), &delta.usage))
+            }
+            _ => known,
+        })
     }
 
     /// Appends arbitrary transport bytes and returns all newly decoded Canonical events.
@@ -462,12 +508,7 @@ impl OpenAiChatSseDecoder {
         if delta.get("refusal").is_some_and(|value| !value.is_null()) {
             return Err(protocol_error());
         }
-        if delta
-            .get("reasoning_content")
-            .is_some_and(|value| !value.is_null() && value.as_str() != Some(""))
-        {
-            return Err(protocol_error());
-        }
+        let reasoning = decode_reasoning_content(delta)?;
         let StreamLifecycle::Streaming(state) = &mut self.lifecycle else {
             return Err(protocol_error());
         };
@@ -487,9 +528,21 @@ impl OpenAiChatSseDecoder {
             Some(Value::Array(calls)) => Some(calls.clone()),
             Some(_) => return Err(protocol_error()),
         };
-        if let Some(text) = text {
+        if reasoning.is_some() || text.is_some() {
             state.content_seen = true;
-            state.content.push_str(&text);
+        }
+        if let Some(text) = &text {
+            state.content.push_str(text);
+        }
+        if let Some(text) = reasoning {
+            self.emit(CanonicalEvent::ReasoningDelta(
+                gateway_core::ReasoningDelta {
+                    text,
+                    extensions: RawExtensions::default(),
+                },
+            ))?;
+        }
+        if let Some(text) = text {
             self.emit(CanonicalEvent::TextDelta(TextDelta {
                 text,
                 extensions: RawExtensions::default(),
@@ -683,6 +736,7 @@ impl OpenAiChatSseDecoder {
         }
         let tools = std::mem::take(&mut state.tools);
         for (_, tool) in tools {
+            reject_duplicate_json_names(&tool.arguments).map_err(|_| protocol_error())?;
             let arguments =
                 RawJson::from_json_string(tool.arguments).map_err(|_| protocol_error())?;
             self.emit(CanonicalEvent::ToolCallEnd(ToolCallEnd {
@@ -812,6 +866,8 @@ fn decode_usage(value: &Value) -> Result<Usage, GatewayError> {
         }
     };
     Ok(Usage {
+        provenance: gateway_core::UsageProvenance::Measured,
+        input_accounting: gateway_core::InputTokenAccounting::Inclusive,
         input_tokens: Some(input_tokens),
         output_tokens: Some(output_tokens),
         reasoning_tokens,
@@ -894,6 +950,46 @@ mod tests {
     use gateway_core::{CanonicalEvent, GatewayErrorCode};
 
     use super::{OpenAiChatSseDecoder, decode_upstream_response};
+
+    #[test]
+    fn known_usage_on_failure_is_independent_of_transport_chunk_boundaries()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let wire = concat!(
+            "data: {\"id\":\"chat-evidence\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"ok\"},\"finish_reason\":null}]}\n\n",
+            "data: {\"id\":\"chat-evidence\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+            "data: {\"id\":\"chat-evidence\",\"object\":\"chat.completion.chunk\",\"choices\":[],\"usage\":{\"prompt_tokens\":20,\"completion_tokens\":10,\"total_tokens\":30}}\n\n",
+            "data: malformed\n\n"
+        );
+        for chunk_size in 1..=wire.len() {
+            let mut decoder = OpenAiChatSseDecoder::new();
+            let mut known = None;
+            let mut failed = false;
+            for chunk in wire.as_bytes().chunks(chunk_size) {
+                if let Ok(events) = decoder.push(chunk) {
+                    for event in events {
+                        if let CanonicalEvent::UsageDelta(delta) = event {
+                            known = Some(gateway_core::Usage::merge_snapshot(
+                                known.as_ref(),
+                                &delta.usage,
+                            ));
+                        }
+                    }
+                } else {
+                    failed = true;
+                    break;
+                }
+            }
+            if let Some(usage) = decoder.decoded_usage() {
+                known = Some(gateway_core::Usage::merge_snapshot(known.as_ref(), &usage));
+            }
+            assert!(failed, "chunk size {chunk_size}");
+            let usage = known.ok_or("known usage lost")?;
+            assert_eq!(usage.input_tokens, Some(20), "chunk size {chunk_size}");
+            assert_eq!(usage.output_tokens, Some(10), "chunk size {chunk_size}");
+            assert_eq!(usage.provenance, gateway_core::UsageProvenance::Measured);
+        }
+        Ok(())
+    }
 
     #[test]
     fn non_streaming_text_tool_usage_and_finish_are_canonical()
@@ -1102,11 +1198,11 @@ mod tests {
     }
 
     #[test]
-    fn streaming_rejects_unproven_message_reasoning_and_duplicate_usage()
+    fn streaming_rejects_unproven_message_malformed_reasoning_and_duplicate_usage()
     -> Result<(), Box<dyn std::error::Error>> {
         for final_frame in [
             "data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"message\":{\"role\":\"assistant\",\"content\":\"different\"},\"finish_reason\":\"stop\"}]}\n\n",
-            "data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":\"private\"},\"finish_reason\":\"stop\"}]}\n\n",
+            "data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"reasoning_content\":1},\"finish_reason\":\"stop\"}]}\n\n",
             "data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":1},\"finish_reason\":\"stop\"}]}\n\n",
             "data: {\"id\":\"x\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":{}},\"finish_reason\":\"stop\"}]}\n\n",
         ] {

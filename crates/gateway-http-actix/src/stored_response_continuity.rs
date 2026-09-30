@@ -264,7 +264,8 @@ mod tests {
             return Err("stored reasoning lost".into());
         };
         let item: serde_json::Value = serde_json::from_str(history.raw().get())?;
-        assert_eq!(item["content"][0]["text"], "synthetic reasoning");
+        assert_eq!(item["summary"][0]["text"], "synthetic reasoning");
+        assert_eq!(item["id"], "rs");
         let MessageContent::ToolCall(call) = &replay[1].content[0] else {
             return Err("stored call lost".into());
         };
