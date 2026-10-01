@@ -96,7 +96,10 @@ execution observation at the selection/lease seam, or provide an equivalent
 protected collector. A time-window join or current inventory is insufficient.
 For an existing protected collector, `observation_dir` can replace `collector`:
 each file is `<sha256(cpar-evidence:<response-id>)>.json` containing `correlation`,
-`request_id`, exact `attempts`, `usages` and `ledger`. Neither input supports a
+`request_id`, exact `attempts`, `usages`, `ledger`, and the per-response observed
+`runtime`. A wrapper with `runtime` and `evidence` is also accepted. Both paths
+verify the same process, artifact, source and observation freshness after every
+turn; missing runtime blocks and contradictory runtime fails. Neither input supports a
 manual success override.
 
 ## Audit controlled boundaries and declared extensions

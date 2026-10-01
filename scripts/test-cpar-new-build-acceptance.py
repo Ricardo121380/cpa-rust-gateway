@@ -101,7 +101,7 @@ def target(protocol="responses", mode="json"):
 
 
 def evidence(current_target, value, number=1):
-    source = {"input_tokens": 3, "output_tokens": 2, "cache_read_tokens": None, "cache_creation_tokens": None, "cached_tokens": None, "reasoning_tokens": None, "provenance": "measured", "input_accounting": "inclusive"}
+    source = {"input_tokens": 3, "output_tokens": 2, "cache_read_tokens": None, "cache_creation_tokens": None, "cached_tokens": None, "reasoning_tokens": None, "provenance": "measured", "input_accounting": "exclusive" if current_target["protocol"] == "messages" else "inclusive"}
     value["usage"]["cpar_usage"] = source
     request_id, attempt_id = "request_" + str(number), "attempt_" + str(number)
     attempt = {field: current_target[field] for field in oracle.TARGET_FIELDS}
@@ -133,7 +133,7 @@ def bundle(protocol="responses", mode="json"):
                 elif protocol == "chat":value["choices"][0]["message"]["content"] = text
                 else:value["content"][0]["text"] = text
             lineage = evidence(current_target, value, number)
-            sample = {"http_status": 200, "request": copy.deepcopy(request), "wire": wire(protocol, value, mode), "evidence": lineage}
+            sample = {"http_status": 200, "request": copy.deepcopy(request), "wire": wire(protocol, value, mode), "evidence": lineage, "runtime": runtime()}
             samples.append(sample)
             if number == count - 1:
                 sample["expected_text"] = "ACCEPT:synthetic"
@@ -168,7 +168,50 @@ class FormalOracle(unittest.TestCase):
         value = response()
         source = {"input_tokens": 3, "output_tokens": 2, "reasoning_tokens": 1, "cache_read_tokens": None, "cache_creation_tokens": None, "cached_tokens": 1, "provenance": "measured", "input_accounting": "inclusive"}
         value["usage"]["cpar_usage"] = source
+        value["usage"].update(input_tokens_details={"cached_tokens": 1}, output_tokens_details={"reasoning_tokens": 1})
         self.assertEqual(oracle.native_usage("responses", value)["source"], source)
+
+    def test_native_input_and_details_must_match_source_accounting(self):
+        for protocol in oracle.PROTOCOLS:
+            value = bundle(protocol)
+            sample = value["scenarios"]["single_tool"][0]
+            decoded = json.loads(sample["wire"])
+            decoded["usage"]["prompt_tokens" if protocol == "chat" else "input_tokens"] = 999
+            if "total_tokens" in decoded["usage"]:decoded["usage"]["total_tokens"] = 1001
+            sample["wire"] = json.dumps(decoded)
+            self.assertEqual(oracle.audit_bundle(value)["basic_status"], "FAIL", protocol)
+
+    def test_usage_accounting_conversion_and_detail_negatives(self):
+        for protocol in oracle.PROTOCOLS:
+            value = response(protocol)
+            source = {"input_tokens": 3 if protocol != "messages" else 6, "output_tokens": 2, "reasoning_tokens": 1, "cache_read_tokens": 1, "cache_creation_tokens": 2, "cached_tokens": 3, "provenance": "measured", "input_accounting": "exclusive" if protocol != "messages" else "inclusive"}
+            value["usage"]["cpar_usage"] = source
+            field = "prompt_tokens" if protocol == "chat" else "input_tokens"
+            value["usage"][field] = 6 if protocol != "messages" else 3
+            if protocol == "messages":value["usage"].update(cache_read_input_tokens=1, cache_creation_input_tokens=2)
+            else:
+                value["usage"].update(total_tokens=8)
+                value["usage"]["prompt_tokens_details" if protocol == "chat" else "input_tokens_details"] = {"cached_tokens": 3}
+                value["usage"]["completion_tokens_details" if protocol == "chat" else "output_tokens_details"] = {"reasoning_tokens": 1}
+            oracle.native_usage(protocol, value)
+            changed = copy.deepcopy(value)
+            if protocol == "messages":changed["usage"]["cache_read_input_tokens"] = 999
+            else:changed["usage"]["completion_tokens_details" if protocol == "chat" else "output_tokens_details"]["reasoning_tokens"] = 999
+            with self.assertRaises(ValueError):oracle.native_usage(protocol, changed)
+            changed = copy.deepcopy(value)
+            changed["usage"]["cpar_usage"]["cached_tokens" if protocol == "messages" else "cache_read_tokens"] = None
+            with self.assertRaises(oracle.Blocked):oracle.native_usage(protocol, changed)
+
+    def test_public_failure_projection_excludes_private_input(self):
+        value = bundle()
+        value["target"]["credential_evidence_id"] = "synthetic.private@example.invalid"
+        rendered = json.dumps(oracle.audit_bundle(value))
+        self.assertNotIn("synthetic.private@example.invalid", rendered)
+        value = bundle()
+        value["execution_failure"] = {"status": "FAIL", "category": "synthetic_failure", "wire": "PRIVATE_BODY", "secret": "PRIVATE_KEY"}
+        rendered = json.dumps(oracle.audit_bundle(value))
+        self.assertNotIn("PRIVATE_BODY", rendered)
+        self.assertNotIn("PRIVATE_KEY", rendered)
 
     def test_all_six_basic_combinations(self):
         for protocol in oracle.PROTOCOLS:
@@ -303,13 +346,16 @@ class FormalOracle(unittest.TestCase):
 
     def test_extension_rejections_need_authenticated_exact_operation(self):
         current_target = target()
-        sample = {"target": current_target, "http_status": 404, "authenticated": True, "operation": "stored_read", "owner_client_evidence_id": oracle.opaque("owner"), "actual_client_evidence_id": oracle.opaque("other"), "evidence": {"upstream_send_count": 0}}
+        sample = {"target": current_target, "http_status": 404, "authenticated": True, "operation": "stored_read", "read_response_id": "owned-response", "owner_read_http_status": 200, "owner_read_wire": json.dumps({"id": "owned-response"}), "owner_client_evidence_id": oracle.opaque("owner"), "actual_client_evidence_id": oracle.opaque("other"), "evidence": {"upstream_send_count": 0}}
         oracle.extension_check("stored", "foreign_owner", sample, current_target)
         for field, value in (("http_status", 401), ("authenticated", False), ("actual_client_evidence_id", sample["owner_client_evidence_id"])):
             changed = copy.deepcopy(sample);changed[field] = value
             with self.assertRaises(ValueError):oracle.extension_check("stored", "foreign_owner", changed, current_target)
         changed = copy.deepcopy(sample);changed["evidence"]["upstream_send_count"] = 1
         with self.assertRaises(ValueError):oracle.extension_check("stored", "foreign_owner", changed, current_target)
+        for field, value in (("operation", "unrelated_endpoint"), ("read_response_id", "unrelated-response")):
+            changed = copy.deepcopy(sample);changed[field] = value
+            with self.assertRaises(ValueError):oracle.extension_check("stored", "foreign_owner", changed, current_target)
 
     def test_no_secrets_or_wire_bodies_in_receipt(self):
         value = bundle()
@@ -391,7 +437,11 @@ class FormalOracle(unittest.TestCase):
                             lineage = evidence(current_target, value, len(observed))
                             if fault[0] == "wrong_target":lineage["attempts"][0]["endpoint_id"] = "other-endpoint"
                             if fault[0] == "missing_revision":lineage["attempts"][0]["credential_revision"] = None
-                            Path(directory, oracle.opaque(value["id"]) + ".json").write_text(json.dumps(lineage))
+                            current_runtime = runtime()
+                            if fault[0] == "wrong_model":value["model"] = "other-model"
+                            if fault[0] == "wrong_runtime":current_runtime["artifact_sha"] = "2" * 40
+                            if fault[0] == "missing_runtime":current_runtime = None
+                            Path(directory, oracle.opaque(value["id"]) + ".json").write_text(json.dumps({**lineage, "runtime": current_runtime}))
                             raw = wire(protocol, value, mode).encode()
                             self.send_response(503 if fault[0] == "http_error" else 200)
                             self.send_header("Content-Type", "text/event-stream" if mode == "sse" else "application/json")
@@ -407,12 +457,13 @@ class FormalOracle(unittest.TestCase):
                         self.assertEqual(oracle.audit_bundle(result)["basic_status"], "PASS")
                         if os.environ.get("CPAR_TEST_RECEIPT_DIR"):
                             oracle.write_receipt(Path(os.environ["CPAR_TEST_RECEIPT_DIR"]) / (protocol + "-" + mode + ".json"), oracle.audit_bundle(result))
-                        for kind, status in (("wrong_target", "FAIL"), ("missing_revision", "BLOCKED"), ("http_error", "FAIL")):
-                            fault[0] = kind
-                            before = len(observed)
-                            rejected = oracle.run_basic(plan, runtime(), "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
-                            self.assertEqual(len(observed) - before, 1, kind)
-                            self.assertEqual(oracle.audit_bundle(rejected)["status"], status, rejected.get("execution_failure"))
+                        for kind, status in (("wrong_target", "FAIL"), ("missing_revision", "BLOCKED"), ("http_error", "FAIL"), ("wrong_model", "FAIL"), ("wrong_runtime", "FAIL"), ("missing_runtime", "BLOCKED")):
+                            with self.subTest(fault=kind):
+                                fault[0] = kind
+                                before = len(observed)
+                                rejected = oracle.run_basic(plan, runtime(), "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
+                                self.assertEqual(len(observed) - before, 1, kind)
+                                self.assertEqual(oracle.audit_bundle(rejected)["status"], status, rejected.get("execution_failure"))
                     finally:
                         server.shutdown();server.server_close();thread.join(2)
 

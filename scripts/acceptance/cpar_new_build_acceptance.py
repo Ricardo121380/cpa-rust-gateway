@@ -370,11 +370,30 @@ def native_usage(protocol, value):
         for source_field, native_field in (("output_tokens", fields[1]),):
             if source[source_field] is not None:
                 require(source[source_field] == usage[native_field], "native_source_usage_changed")
+        expected_input = source["input_tokens"]
+        target_accounting = "exclusive" if protocol == "messages" else "inclusive"
+        if source["input_accounting"] not in (target_accounting, "unknown") and expected_input is not None:
+            if target_accounting == "inclusive":
+                available(source["cache_read_tokens"] is not None and source["cache_creation_tokens"] is not None, "native_input_accounting_unconfirmed")
+                expected_input += source["cache_read_tokens"] + source["cache_creation_tokens"]
+            else:
+                available(source["cached_tokens"] is not None, "native_input_accounting_unconfirmed")
+                expected_input -= source["cached_tokens"]
+        available(expected_input is not None, "source_input_usage_unknown")
+        require(integer(expected_input) and expected_input == usage[fields[0]], "native_source_usage_changed")
     native = {field: usage.get(field) for field in (*fields, "total_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")}
     for details_name, field in (("prompt_tokens_details" if protocol == "chat" else "input_tokens_details", "cached_tokens"), ("completion_tokens_details" if protocol == "chat" else "output_tokens_details", "reasoning_tokens")):
         details = usage.get(details_name) or {}
         require(isinstance(details, dict) and (details.get(field) is None or integer(details[field])), "invalid_native_usage_detail")
         native[field] = details.get(field)
+        if source is not None and protocol != "messages" and source[field] is not None:
+            available(native[field] is not None, "native_usage_detail_missing")
+            require(native[field] == source[field], "native_source_usage_changed")
+    for source_field, native_field in (("cache_read_tokens", "cache_read_input_tokens"), ("cache_creation_tokens", "cache_creation_input_tokens")):
+        require(usage.get(native_field) is None or integer(usage[native_field]), "invalid_native_usage_detail")
+        if source is not None and protocol == "messages" and source[source_field] is not None:
+            available(usage.get(native_field) is not None, "native_usage_detail_missing")
+            require(usage[native_field] == source[source_field], "native_source_usage_changed")
     return {"native": native, "source": None if source is None else {field: source[field] for field in USAGE_FIELDS}}
 
 
@@ -390,6 +409,12 @@ def verify_runtime(runtime, source_sha, layer):
         available(runtime.get("manifest_sha256") is not None and runtime.get("manifest_matches") is True, "artifact_manifest_unconfirmed")
     observed = datetime.datetime.fromisoformat(runtime["observed_at_utc"])
     available(observed.tzinfo is not None and -30 <= (datetime.datetime.now(datetime.timezone.utc) - observed).total_seconds() <= 600, "runtime_observation_stale")
+
+
+def verify_turn_runtime(observed, baseline, source_sha, layer):
+    available(isinstance(observed, dict), "per_turn_runtime_unavailable")
+    verify_runtime({**observed, "manifest_sha256": baseline.get("manifest_sha256"), "manifest_matches": baseline.get("manifest_matches")}, source_sha, layer)
+    require(all(observed.get(key) == baseline.get(key) for key in ("instance", "pid", "process_start", "artifact_sha256")), "runtime_changed_during_acceptance")
 
 
 def verify_target(target):
@@ -556,10 +581,16 @@ def extension_check(name, case, sample, target):
         require(sample.get("http_status") in statuses, "extension_rejection_missing")
         require(evidence.get("upstream_send_count") == 0, "rejected_extension_sent_upstream")
         available(sample.get("operation") is not None, "extension_operation_unknown")
+        operation = {"foreign_owner": "stored_read", "deleted_read": "stored_read", "expired_read": "stored_read", "lineage_rejection": "responses_continue", "compact_foreign_owner": "responses_compact", "compact_lineage_rejection": "responses_compact", "ws_handshake_rejection": "responses_ws_upgrade"}[case]
+        require(sample["operation"] == operation, "wrong_extension_operation")
         require(sample.get("authenticated") is True, "extension_authentication_unconfirmed")
         if case in {"foreign_owner", "compact_foreign_owner"}:
             available(sample.get("owner_client_evidence_id") is not None and sample.get("actual_client_evidence_id") is not None, "extension_owner_unknown")
             require(sample["owner_client_evidence_id"] != sample["actual_client_evidence_id"], "foreign_owner_not_tested")
+            owned = load_json(sample.get("owner_read_wire", "null"))
+            require(sample.get("owner_read_http_status") == 200 and isinstance(owned, dict) and owned.get("id") == sample.get("read_response_id") and sample.get("read_response_id") is not None, "extension_resource_unconfirmed")
+            if case == "compact_foreign_owner":
+                require(sample.get("compact_request", {}).get("previous_response_id") == sample["read_response_id"], "extension_resource_unconfirmed")
         if case == "deleted_read":
             require(sample.get("delete_http_status") in (200, 204) and sample.get("deleted_response_id") == sample.get("read_response_id") and sample.get("read_response_id") is not None, "deletion_not_observed")
         if case == "expired_read":
@@ -643,11 +674,45 @@ def verdict(action):
         return {"status": "FAIL", "category": category}
 
 
+def public_identity(key, value):
+    if value is None:
+        return None
+    if key in ("credential_evidence_id", "egress_evidence_id", "source_sha", "artifact_sha", "artifact_sha256", "manifest_sha256"):
+        width = 40 if key in ("source_sha", "artifact_sha") else 64
+        return value if isinstance(value, str) and re.fullmatch("[0-9a-f]{" + str(width) + "}", value) else None
+    if type(value) in (int, bool):
+        return value
+    return value if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_./:+-]{1,256}", value) else None
+
+
+def public_failure(value):
+    return {"status": value.get("status") if value.get("status") in ("FAIL", "BLOCKED") else "FAIL", "category": value.get("category") if isinstance(value.get("category"), str) and re.fullmatch("[a-z_]{1,80}", value["category"]) else "malformed_observation"}
+
+
+def basic_answer(target, sample, scenario, index, turns_needed, seen_ids):
+    request = sample["request"]
+    require(request.get("model") == target["public_model"] and request.get("stream") is (target["mode"] == "sse"), "wrong_request_target")
+    require(all(request.get(key) == expected for key, expected in target.get("parameters", {}).items()), "changed_request_control")
+    require(sample.get("http_status") == 200, "http_error")
+    answer = decode_stream(target["protocol"], sample["wire"].encode()) if target["mode"] == "sse" else load_json(sample["wire"])
+    text, calls = observe(target["protocol"], answer)
+    require(answer["model"] == target["response_model"], "wrong_response_model")
+    if scenario != "text_multi_turn" and index < turns_needed - 1:
+        require(len(calls) == 1 and calls[0][2] == {"value": 1}, "missing_tool_cycle")
+        require(calls[0][0] not in seen_ids, "reused_tool_cycle_id")
+        seen_ids.add(calls[0][0])
+    else:
+        require(bool(text) and not calls, "missing_final_answer")
+        if index == turns_needed - 1:
+            require(sample.get("expected_text") is not None and text.strip() == sample["expected_text"], "history_or_result_not_used")
+    return answer, calls, native_usage(target["protocol"], answer)
+
+
 def audit_bundle(bundle):
     layer = bundle.get("layer")
     require(layer in ("LOCAL_SIMULATED", "LIVE_NEW_BUILD", "PRODUCTION"), "invalid_evidence_layer")
     target = bundle.get("target", {})
-    receipt = {"schema_version": 2, "layer": layer, "source_sha": bundle.get("source_sha"), "observed_at_utc": now(), "runtime": {key: bundle.get("runtime", {}).get(key) for key in RUNTIME_FIELDS}, "target": {key: target.get(key) for key in (*TARGET_FIELDS, "protocol", "mode", "public_model", "response_model")}, "parameters_sha256": digest(target.get("parameters")), "capabilities": {key: target.get("capabilities", {}).get(key) for key in EXTENSIONS} if isinstance(target.get("capabilities"), dict) else None, "declaration_observed_at_utc": target.get("declaration_observed_at_utc"), "value_free": True, "checks": [], "evidence_paths": bundle.get("evidence_paths", [])}
+    receipt = {"schema_version": 2, "layer": layer, "source_sha": public_identity("source_sha", bundle.get("source_sha")), "observed_at_utc": now(), "runtime": {key: public_identity(key, bundle.get("runtime", {}).get(key)) for key in RUNTIME_FIELDS}, "target": {key: public_identity(key, target.get(key)) for key in (*TARGET_FIELDS, "protocol", "mode", "public_model", "response_model")}, "parameters_sha256": digest(target.get("parameters")), "capabilities": {key: target["capabilities"][key] if isinstance(target["capabilities"].get(key), bool) else None for key in EXTENSIONS} if isinstance(target.get("capabilities"), dict) else None, "declaration_observed_at_utc": public_identity("observed_at_utc", target.get("declaration_observed_at_utc")), "value_free": True, "checks": [], "evidence_paths": [path for path in bundle.get("evidence_paths", []) if isinstance(path, str) and re.fullmatch(r"[A-Za-z0-9_./-]{1,256}", path) and not path.startswith("/") and ".." not in path]}
     preflight = verdict(lambda: (verify_runtime(bundle.get("runtime", {}), bundle.get("source_sha"), layer), verify_target(target)))
     receipt["preflight"] = preflight
     if preflight["status"] != "PASS":
@@ -656,7 +721,7 @@ def audit_bundle(bundle):
     receipt["parameters"] = target.get("parameters", {})
     receipt["sent_requests"] = sum(len(rows) for rows in bundle.get("scenarios", {}).values())
     if bundle.get("execution_failure"):
-        receipt["checks"].append({"case": "execution", **bundle["execution_failure"]})
+        receipt["checks"].append({"case": "execution", **public_failure(bundle["execution_failure"])})
     for scenario, turns_needed in (("text_multi_turn", 2), ("single_tool", 2), ("two_tool_cycles", 3)):
         samples = bundle.get("scenarios", {}).get(scenario)
         row = {"case": scenario, "status": "NOT_RUN", "category": "samples_unavailable"}
@@ -668,27 +733,13 @@ def audit_bundle(bundle):
                 seen_ids, previous, answer, calls, token = set(), None, None, [], None
                 for index, sample in enumerate(samples):
                     request = sample["request"]
-                    require(request.get("model") == target["public_model"] and request.get("stream") is (target["mode"] == "sse"), "wrong_request_target")
-                    for key, expected in target.get("parameters", {}).items():
-                        require(request.get(key) == expected, "changed_request_control")
                     if previous is not None:
                         check_history(target["protocol"], previous, request, answer, calls, token)
-                    require(sample.get("http_status") == 200, "http_error")
-                    answer = decode_stream(target["protocol"], sample["wire"].encode()) if target["mode"] == "sse" else load_json(sample["wire"])
-                    text, calls = observe(target["protocol"], answer)
-                    require(answer["model"] == target["response_model"], "wrong_response_model")
-                    if scenario != "text_multi_turn" and index < turns_needed - 1:
-                        require(len(calls) == 1 and calls[0][2] == {"value": 1}, "missing_tool_cycle")
-                        require(calls[0][0] not in seen_ids, "reused_tool_cycle_id")
-                        seen_ids.add(calls[0][0])
-                    else:
-                        require(bool(text) and not calls, "missing_final_answer")
-                        if index == turns_needed - 1:
-                            require(sample.get("expected_text") is not None and text.strip() == sample["expected_text"], "history_or_result_not_used")
-                    native = native_usage(target["protocol"], answer)
+                    answer, calls, native = basic_answer(target, sample, scenario, index, turns_needed, seen_ids)
+                    verify_turn_runtime(sample.get("runtime"), bundle["runtime"], bundle["source_sha"], layer)
                     attribution = verify_attempts(target, sample.get("evidence", {}), answer["id"])
                     verify_usage_lineage(native, sample["evidence"])
-                    row.setdefault("turns", []).append({"round": index + 1, "response_evidence_id": opaque(answer["id"]), "native_usage": native, "tool_call_count": len(calls), **attribution})
+                    row.setdefault("turns", []).append({"round": index + 1, "response_evidence_id": opaque(answer["id"]), "native_usage": native, "tool_call_count": len(calls), "runtime": {key: public_identity(key, sample["runtime"].get(key)) for key in RUNTIME_FIELDS}, **attribution})
                     previous, token = request, sample.get("next_token")
                     if index < turns_needed - 1:
                         require(isinstance(token, str) and bool(token), "missing_history_token")
@@ -954,35 +1005,27 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
             sample["request"] = copy.deepcopy(request)
             sample["sent_at_utc"] = now()
             samples.append(sample)
+            if index == count - 1:
+                sample["expected_text"] = token
             if progress:
                 progress(bundle)
-            require(sample["http_status"] == 200, "http_error")
-            answer = decode_stream(protocol, sample["wire"].encode()) if target["mode"] == "sse" else load_json(sample["wire"])
-            text, calls = observe(protocol, answer)
-            if scenario != "text_multi_turn" and index < count - 1:
-                require(len(calls) == 1 and calls[0][2] == {"value": 1} and calls[0][0] not in seen, "missing_or_reused_tool_cycle")
-                seen.add(calls[0][0])
-            else:
-                require(text and not calls, "missing_final_answer")
+            answer, calls, usage = basic_answer(target, sample, scenario, index, count, seen)
             # The private observation directory must be supplied by the existing protected
             # event/ledger collector. It is independent of public success; no inferred account.
             if plan.get("collector"):
                 config = plan["collector"]
                 observed = collect_attempt(config["host"], config.get("service", "cpa-rust-gateway.service"), answer["id"], config.get("sudo", False))
-                verify_runtime({**observed["runtime"], "manifest_sha256": runtime.get("manifest_sha256"), "manifest_matches": runtime.get("manifest_matches")}, plan["source_sha"], plan["layer"])
-                require(observed["runtime"]["artifact_sha256"] == runtime["artifact_sha256"] and observed["runtime"]["process_start"] == runtime["process_start"], "runtime_changed_during_acceptance")
                 sample["evidence"] = observed["evidence"]
             else:
                 path = Path(plan["observation_dir"]) / (opaque(answer["id"]) + ".json")
                 available(path.is_file(), "exact_attempt_observation_required")
-                sample["evidence"] = load_json(path.read_text())
-            usage = native_usage(protocol, answer)
+                observed = load_json(path.read_text())
+                sample["evidence"] = observed.get("evidence", observed)
+            sample["runtime"] = observed.get("runtime")
+            verify_turn_runtime(sample["runtime"], runtime, plan["source_sha"], plan["layer"])
             verify_attempts(target, sample["evidence"], answer["id"])
             verify_usage_lineage(usage, sample["evidence"])
-            if index == count - 1:
-                sample["expected_text"] = token
-                require(text.strip() == token, "history_or_result_not_used")
-            else:
+            if index < count - 1:
                 next_token = "Repeat the remembered token exactly." if scenario == "text_multi_turn" else "Call lookup with value 1 again." if index < count - 2 else "Return exactly " + token
                 sample["next_token"] = next_token
                 request = conversation_step(protocol, request, answer, calls, next_token)
