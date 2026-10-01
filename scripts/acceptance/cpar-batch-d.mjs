@@ -23,7 +23,7 @@ const hook=()=>page.evaluate(async()=>{
   const url=performance.getEntriesByType("resource").map(row=>row.name).find(url=>/\/src\/generated\/management-client\.ts\?t=/u.test(url))??"/src/generated/management-client.ts";
   const {ManagementApi}=await import(url);
   const original=ManagementApi.prototype.request;
-  window.CPAR_D_HTTP={modes:{},calls:[],cache:{},release:{},applied:[]};
+  window.CPAR_D_HTTP={modes:{},calls:[],cache:{},release:{},applied:[],replies:[]};
   const reply=(status,body)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
   ManagementApi.prototype.request=async function(operation,request){
     const state=window.CPAR_D_HTTP,mode=state.modes[operation];
@@ -43,6 +43,7 @@ const hook=()=>page.evaluate(async()=>{
     if(mode==="resource-next-error")return reply(200,{items:[],next_before_id:"2"});
     if(mode==="hold")await new Promise(resolve=>{state.release[operation]=resolve;});
     const response=await original.call(this,operation,request);
+    state.replies.push({operation,status:response.status});
     if(mode==="lost-after-write"&&response.ok){state.applied.push({operation,status:response.status});throw new TypeError("D controlled response lost after fixture mutation");}
     if(!response.ok||!mode)return response;
     const body=await response.clone().json();
@@ -323,7 +324,14 @@ try {
     }
     await desktop();await page.click('loc=role:button[name="编辑路由"]');await page.fill('loc=role:spinbutton[name="最大尝试次数"]',"3");await mode("updateRoute","lost-after-write");await page.click('loc=role:button[name="保存路由"]');await waitText("修改结果未确认");
     assert.equal((await calls("updateRoute")).length,3);assert.equal(await page.evaluate(()=>window.CPAR_D_HTTP.applied.filter(row=>row.operation==='updateRoute').length),1);assert.equal(await page.evaluate(()=>!!document.querySelector('#route-action-form')),false);record("applied-then-lost fixture write is uncertain and cannot be replayed");
-    await page.click('loc=role:button[name="核对草稿"]');await route("/versions");await page.waitForFunction(()=>!document.querySelector('[role="dialog"]')&&!document.querySelector('#app[inert]'));await readyButton("接续待应用修改");await page.click('loc=role:button[name="接续待应用修改"]');await page.waitForSelector('loc=role:button[name="接续草稿"]');await page.click('loc=role:button[name="接续草稿"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));await route("/models");
+    await page.click('loc=role:button[name="核对草稿"]');await route("/versions");await page.waitForFunction(()=>!document.querySelector('[role="dialog"]')&&!document.querySelector('#app[inert]'));await readyButton("接续待应用修改");
+    const readsBefore=await page.evaluate(()=>window.CPAR_D_HTTP.replies.filter(row=>row.operation==='getConfigVersion'&&row.status===200).length);
+    await page.click('loc=role:button[name="接续待应用修改"]');
+    await page.waitForFunction(before=>window.CPAR_D_HTTP.replies.filter(row=>row.operation==='getConfigVersion'&&row.status===200).length>before&&(!document.querySelector('[role="dialog"]')||[...document.querySelectorAll('[role="dialog"] button')].some(button=>button.textContent==='接续草稿'&&!button.disabled)),readsBefore);
+    // Reading a newer ETag retires the stale adoption owner. Make a new explicit
+    // read-only selection after observing that retirement; never replay a write.
+    if(!await page.evaluate(()=>!!document.querySelector('[role="dialog"]'))){await readyButton("接续待应用修改");await page.click('loc=role:button[name="接续待应用修改"]');record("draft readback retires stale confirmation before a fresh explicit selection");}
+    await page.waitForSelector('loc=role:button[name="接续草稿"]');await page.click('loc=role:button[name="接续草稿"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));await route("/models");
     await page.click('loc=css:.models-advanced > summary');await page.click('loc=role:button[name="打开路由"]');await page.click('loc=role:button[name="编辑路由"]');await page.waitForSelector('#route-action-form');assert.equal(await page.evaluate(()=>document.querySelector('#route-action-form input')?.value),"3");assert.equal((await calls("updateRoute")).length,3);await page.keyboard.press("Escape");record("public draft readback observes the applied value without resubmitting");
   } else if(scenario==="model-connections") {
     await reset();await prepareTarget();await mode("listRoutes","error");await route("/models");
