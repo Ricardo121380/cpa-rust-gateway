@@ -1,0 +1,34 @@
+{
+  "scenario": "recovery-uncertain",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "lost recovery response retains prior scheduling fact without claiming recovery",
+      "result": "PASS"
+    },
+    {
+      "name": "failed recovery readback prevents repeated mutation",
+      "result": "PASS"
+    },
+    {
+      "name": "successful state readback releases a deliberate next action without replay",
+      "result": "PASS"
+    },
+    {
+      "name": "recovery outcomes remain visible after targets stop qualifying",
+      "result": "PASS"
+    },
+    {
+      "name": "recovery identity and receipt survive target disappearance",
+      "result": "PASS"
+    },
+    {
+      "name": "later failed reads retain recovery evidence for missing targets",
+      "result": "PASS"
+    }
+  ]
+}

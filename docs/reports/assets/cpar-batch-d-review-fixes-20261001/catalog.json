@@ -1,0 +1,30 @@
+{
+  "scenario": "catalog",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "failed catalog read retains selection and observed source",
+      "result": "PASS"
+    },
+    {
+      "name": "successful read-only catalog refresh preserves valid selection",
+      "result": "PASS"
+    },
+    {
+      "name": "lost catalog refresh response blocks replay",
+      "result": "PASS"
+    },
+    {
+      "name": "failed catalog readback leaves write gate closed",
+      "result": "PASS"
+    },
+    {
+      "name": "hard-expired directory blocks admission after successful readback",
+      "result": "PASS"
+    }
+  ]
+}

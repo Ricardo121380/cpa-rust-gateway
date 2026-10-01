@@ -1,0 +1,26 @@
+{
+  "scenario": "model-connections",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "initial topology failure stays unknown rather than empty",
+      "result": "PASS"
+    },
+    {
+      "name": "successful retry restores observed model sources",
+      "result": "PASS"
+    },
+    {
+      "name": "failed topology refresh retains the dated source snapshot",
+      "result": "PASS"
+    },
+    {
+      "name": "successfully observed empty topology has a genuine empty state",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "result": "PASS",
+  "final_script_commit": "7478d276ea1fb017491c1e3f9c34f666bbf3fc10",
+  "commits": [
+    "7478d276ea1fb017491c1e3f9c34f666bbf3fc10",
+    "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+  ],
+  "frontend_git_trees": {
+    "7478d276ea1fb017491c1e3f9c34f666bbf3fc10": "1ad46373a00becd3e54119c2524337441a95c0b6",
+    "d1ee7702937a87777cc53e3d0de392d1e2528b84": "1ad46373a00becd3e54119c2524337441a95c0b6"
+  },
+  "frontend_sources_identical": true,
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "space_id": 33,
+  "origin": "http://127.0.0.1:5188",
+  "scenario_count": 16,
+  "check_count": 167,
+  "scenarios": [
+    {
+      "scenario": "inventory",
+      "result": "PASS",
+      "checks": 69,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "shell",
+      "result": "PASS",
+      "checks": 5,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "password",
+      "result": "PASS",
+      "checks": 2,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "usage",
+      "result": "PASS",
+      "checks": 7,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "runtime",
+      "result": "PASS",
+      "checks": 5,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "maintenance",
+      "result": "PASS",
+      "checks": 6,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "catalog",
+      "result": "PASS",
+      "checks": 5,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "pin-uncertain",
+      "result": "PASS",
+      "checks": 3,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "recovery-uncertain",
+      "result": "PASS",
+      "checks": 6,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "apply-uncertain",
+      "result": "PASS",
+      "checks": 3,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "details",
+      "result": "PASS",
+      "checks": 8,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "permissions-egress",
+      "result": "PASS",
+      "checks": 2,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "i18n",
+      "result": "PASS",
+      "checks": 5,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "model-connections",
+      "result": "PASS",
+      "checks": 4,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "failures",
+      "result": "PASS",
+      "checks": 16,
+      "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84"
+    },
+    {
+      "scenario": "models-routes",
+      "result": "PASS",
+      "checks": 21,
+      "commit": "7478d276ea1fb017491c1e3f9c34f666bbf3fc10"
+    }
+  ],
+  "final_script_sha256": "1bd75fe42486cad13d7567dd5ef808c2849ccd79a33e1ed1cf0b3a4577d317f3",
+  "timing_note": "15 scenarios ran at d1ee770; models-routes reran at the final script commit. The later commit only adds response completion observations and corrects the models-routes draft readback sequence."
+}

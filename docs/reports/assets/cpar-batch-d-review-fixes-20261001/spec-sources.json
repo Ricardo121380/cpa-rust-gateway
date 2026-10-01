@@ -1,0 +1,55 @@
+{
+  "captured_at": "2026-10-01T04:08:22.093336+00:00",
+  "method": "gh issue view --json number,title,body,state,labels,comments",
+  "issues": [
+    {
+      "number": 9,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9",
+      "title": "\u5b9e\u65bd\u89c4\u683c\uff1aCPAR \u73b0\u6709\u6e20\u9053\u53ef\u9760\u6027\u4e0e\u7ba1\u7406\u4f53\u9a8c\u6536\u655b",
+      "state": "OPEN",
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7"
+    },
+    {
+      "number": 51,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/51",
+      "title": "CPAR-42\uff1a\u516c\u5171\u5916\u58f3\u3001\u767b\u5f55\u4e0e\u5168\u5c40\u53cd\u9988\u57fa\u7840\u7edf\u4e00",
+      "state": "OPEN",
+      "body_sha256": "3c5a65154a996dde5b775d1a696dfbf50b6f8c605a92a45430c977e297faed90"
+    },
+    {
+      "number": 52,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/52",
+      "title": "CPAR-43\uff1a\u6982\u89c8\u3001\u8bf7\u6c42\u4e0e\u5931\u8d25\u9875\u9762\u57fa\u7840\u4f53\u9a8c",
+      "state": "OPEN",
+      "body_sha256": "d77702b254190e187c52eb5e5ac89034b77b5db6fe3fec44022ddcb43b7f6079"
+    },
+    {
+      "number": 53,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/53",
+      "title": "CPAR-44\uff1a\u7528\u91cf\uff0f\u8ba1\u8d39\u9875\u9762\u4e0e\u4e0d\u5b8c\u6574\u5386\u53f2\u53cd\u9988",
+      "state": "OPEN",
+      "body_sha256": "e357555cb4000b54b7eba589c51bc92bc642d73eb4cce87b7572d01fe91eacb0"
+    },
+    {
+      "number": 54,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/54",
+      "title": "CPAR-45\uff1a\u6a21\u578b\u76ee\u5f55\u3001\u8def\u7531\u4e0e\u8bbf\u95ee\u63a7\u5236\u57fa\u7840\u4f53\u9a8c",
+      "state": "OPEN",
+      "body_sha256": "135ecaf7b9bef06dd56d57877d68562412c8e50744c5938cec8b06fa8174d230"
+    },
+    {
+      "number": 55,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/55",
+      "title": "CPAR-46\uff1a\u8fd0\u884c\u8bca\u65ad\u4e0e\u51fa\u53e3\u7b56\u7565\u57fa\u7840\u4f53\u9a8c",
+      "state": "OPEN",
+      "body_sha256": "92ed09baae179037d119ba289ec7d692ed069d9458e45f998057fd3a097e65e2"
+    },
+    {
+      "number": 56,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/56",
+      "title": "CPAR-47\uff1a\u914d\u7f6e\u7248\u672c\u3001\u5ba1\u8ba1\u5907\u4efd\u4e0e\u8bbe\u7f6e\u57fa\u7840\u4f53\u9a8c",
+      "state": "OPEN",
+      "body_sha256": "a0a09ce23bd6c5de8f14ca6a0beaff6010843b94966ffd21c98536147dea3f09"
+    }
+  ]
+}

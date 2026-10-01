@@ -1,0 +1,9 @@
+{
+  "scenario": "model-connections",
+  "result": "FAIL",
+  "commit": "2fa1a4240c6a8f5728353690c77206287a52d9cf+regression-test",
+  "environment": "local-synthetic",
+  "spaceId": 33,
+  "checks": [],
+  "error": "The input was expected to not match the regular expression /尚未连接提供商/u. Input:\n\n'minimax-m3 · 来源连接查看此模型的上游来源，并选择要维护的路径。×读取失败synthetic_read_failed · D controlled source unavailable重试读取尚未连接提供商。关闭添加来源连接'\n"
+}

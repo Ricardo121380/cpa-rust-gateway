@@ -1,0 +1,30 @@
+{
+  "scenario": "shell",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "failed login preserves original destination and filters",
+      "result": "PASS"
+    },
+    {
+      "name": "overview alias retains page identity",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow navigation moves focus to new workspace",
+      "result": "PASS"
+    },
+    {
+      "name": "Escape returns focus to navigation opener",
+      "result": "PASS"
+    },
+    {
+      "name": "expired session reauthenticates without losing destination",
+      "result": "PASS"
+    }
+  ]
+}

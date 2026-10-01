@@ -2,6 +2,8 @@
 
 ## 范围与完成边界
 
+本文保留 D 首次交付的实现、历史审查与验证记录。固定起点复核后的问题修复、补充产品验收及最终两轴结论见 [D 评审修复报告](cpar-batch-d-review-fixes-20261001.md)。历史 PARTIAL 审查不改写为最终独立 PASS。
+
 **D / CPAR-42–47（#51–56）：本地实现与本次适用门槛 PASS。**父规格为 [#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)。用户明确授权“授权 Codex 完成本次 D 的前后端”。本次没有远程 push、工单写入、真实 Provider 调用或生产部署。
 
 - 分支：`codex/prism-v4-delivery`；固定比较起点 `ff23f2d8b838b8e5189222d4433acf53c92308e4`。
@@ -112,7 +114,7 @@
 | EgoLite 实际产品 UI | **PASS** | `353c0ec`，13 场景／120 检查，exit 0，独立 TaskSpace32，本地 Vite+synthetic management HTTP seam。见 [browser summary](assets/cpar-batch-d-20261001/browser-summary.json)、[完整结果输出](assets/cpar-batch-d-20261001/browser.txt)。 |
 | 仓库正式 Full | **PASS** | `353c0ec`，44/44；Rust 1,432 passed／0 failed／12 ignored；Darwin27/arm64，2026-09-30 19:38:55–19:42:39 UTC（北京时间2026-10-01 03:38:55–03:42:39），约224秒。完整命令见下方及 [不可变提交 metadata](assets/cpar-batch-d-20261001/full-summary.json)。 |
 | 实际 gateway loopback 回归 | **PASS** | Full 的 Agent multi-turn/stream regression 12 组，通过受保护管理面和实际 gateway 进程，Provider 为自有 loopback TLS mock，`real_provider_calls=0`。decode failure、Usage/账本及来源边界由该层核验；不能等同真实 Provider。 |
-| 最终报告静态检查 | **PASS** | docs 7/7、798个Markdown链接、107个契约引用、计划状态、密钥扫描与Git空白检查；见 [docs回执](assets/cpar-batch-d-20261001/docs-check.md)。新增最终回执链接另经doc-links复核。 |
+| 最终报告静态检查 | **PASS** | docs 7/7、798个Markdown文件、107个契约引用、计划状态、密钥扫描与Git空白检查；见 [docs回执](assets/cpar-batch-d-20261001/docs-check.md)。新增最终回执链接另经doc-links复核。 |
 | 本次临时环境收尾 | **PASS** | TaskSpace32 已 finish；只终止核对命令匹配的本次 Vite PID86316，127.0.0.1:5188 不再监听。见 [cleanup receipt](assets/cpar-batch-d-20261001/cleanup.json)。 |
 
 ```bash

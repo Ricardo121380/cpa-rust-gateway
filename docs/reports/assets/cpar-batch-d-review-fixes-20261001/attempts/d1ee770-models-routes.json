@@ -1,0 +1,102 @@
+{
+  "scenario": "models-routes",
+  "result": "FAIL",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "model maintenance starts from a publicly created draft",
+      "result": "PASS"
+    },
+    {
+      "name": "model no-match search recovers through visible controls",
+      "result": "PASS"
+    },
+    {
+      "name": "model source and search filters survive navigation return",
+      "result": "PASS"
+    },
+    {
+      "name": "source cancel keeps edits until explicit discard without writes",
+      "result": "PASS"
+    },
+    {
+      "name": "source save returns to the draft model with confirmed weight",
+      "result": "PASS"
+    },
+    {
+      "name": "public model cancel preserves the original display name",
+      "result": "PASS"
+    },
+    {
+      "name": "public model save confirms draft state before returning",
+      "result": "PASS"
+    },
+    {
+      "name": "route Escape and cancel share the discard gate without writes",
+      "result": "PASS"
+    },
+    {
+      "name": "known route rejection keeps the editable form and target",
+      "result": "PASS"
+    },
+    {
+      "name": "explicit route retry confirms draft write and returns to workbench",
+      "result": "PASS"
+    },
+    {
+      "name": "route editor fits both layouts and themes with focus return",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "model source editor fits and returns without changes",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "route editor fits both layouts and themes with focus return",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "model source editor fits and returns without changes",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "route editor fits both layouts and themes with focus return",
+      "result": "PASS",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "name": "model source editor fits and returns without changes",
+      "result": "PASS",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "name": "route editor fits both layouts and themes with focus return",
+      "result": "PASS",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "name": "model source editor fits and returns without changes",
+      "result": "PASS",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "name": "applied-then-lost fixture write is uncertain and cannot be replayed",
+      "result": "PASS"
+    }
+  ],
+  "error": "page.waitForSelector timed out after 10000ms: loc=role:button[name=\"接续草稿\"]"
+}

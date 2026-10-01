@@ -1,0 +1,22 @@
+{
+  "scenario": "pin-uncertain",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "lost pin response retains prior receipt and blocks automatic repeat",
+      "result": "PASS"
+    },
+    {
+      "name": "failed target readback leaves pin disabled",
+      "result": "PASS"
+    },
+    {
+      "name": "successful target readback permits a separate deliberate diagnostic without replay",
+      "result": "PASS"
+    }
+  ]
+}

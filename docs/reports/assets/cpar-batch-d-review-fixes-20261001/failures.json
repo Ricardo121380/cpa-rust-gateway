@@ -1,0 +1,82 @@
+{
+  "scenario": "failures",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "failure workspace distinguishes loading and prevents duplicate reads",
+      "result": "PASS"
+    },
+    {
+      "name": "failure records are attributed attempts rather than request totals",
+      "result": "PASS"
+    },
+    {
+      "name": "failure filters and attempt detail survive keyboard return",
+      "result": "PASS"
+    },
+    {
+      "name": "exact binding diagnosis returns to the filtered failure task",
+      "result": "PASS"
+    },
+    {
+      "name": "failure no-match state does not claim an empty configuration",
+      "result": "PASS"
+    },
+    {
+      "name": "failure refresh error preserves dated attribution rows",
+      "result": "PASS"
+    },
+    {
+      "name": "failure retry remains busy with retained rows and recovers",
+      "result": "PASS"
+    },
+    {
+      "name": "failure permission denial does not become empty data",
+      "result": "PASS"
+    },
+    {
+      "name": "initial failure read error stays unknown",
+      "result": "PASS"
+    },
+    {
+      "name": "successful unfiltered empty failure data is explicit",
+      "result": "PASS"
+    },
+    {
+      "name": "failure cursor error retains a partial loaded projection",
+      "result": "PASS"
+    },
+    {
+      "name": "failure retry resumes the same opaque cursor",
+      "result": "PASS"
+    },
+    {
+      "name": "failure projection and attempts fit with keyboard return",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "failure projection and attempts fit with keyboard return",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "failure projection and attempts fit with keyboard return",
+      "result": "PASS",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "name": "failure projection and attempts fit with keyboard return",
+      "result": "PASS",
+      "width": 375,
+      "theme": "dark"
+    }
+  ]
+}

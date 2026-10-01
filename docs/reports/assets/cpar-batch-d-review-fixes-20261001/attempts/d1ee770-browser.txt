@@ -1,0 +1,219 @@
+{"scenario":"inventory","result":"PASS","checks":69,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"shell","result":"PASS","checks":5,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"password","result":"PASS","checks":2,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"usage","result":"PASS","checks":7,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"runtime","result":"PASS","checks":5,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"maintenance","result":"PASS","checks":6,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"catalog","result":"PASS","checks":5,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"pin-uncertain","result":"PASS","checks":3,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"recovery-uncertain","result":"PASS","checks":6,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"apply-uncertain","result":"PASS","checks":3,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"details","result":"PASS","checks":8,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"permissions-egress","result":"PASS","checks":2,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"i18n","result":"PASS","checks":5,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"model-connections","result":"PASS","checks":4,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+{"scenario":"failures","result":"PASS","checks":16,"commit":"d1ee7702937a87777cc53e3d0de392d1e2528b84","spaceId":33}
+
+
+Error: page.waitForSelector timed out after 10000ms: loc=role:button[name="接续草稿"]
+    at waitForSelectorInPage (file:////[eval1]:16159:11)
+    at async file:////[eval1]:16691:28
+[p1 "Prism · Gateway Management" | space "CPAR D code review fixes"(33): 1 managed, 0 untracked — p1* "Prism · Gateway Management"]
+root
+  svg_root
+  container
+    container
+      container
+        text "管理"
+        text "/"
+      text "配置版本"
+    button "搜索工作区" [ref=314, loc=css:button[aria-label="搜索工作区"]]
+      svg_root
+      text "搜索工作区"
+      text "⌘ K"
+    button "切换深浅外观" [ref=315, loc=css:button[aria-label="切换深浅外观"]]
+      svg_root
+  container
+    svg_root
+    container
+      svg_root
+      container
+        text "Prism"
+        text "CPAR CONSOLE"
+    container
+      text "我的网关"
+      text "Prism 管理控制台"
+    container
+      text "运行"
+      anchor [ref=316, loc=href:/#/, url=http://127.0.0.1:5188/#/]
+        svg_root
+        text "仪表盘"
+      anchor [ref=317, loc=href:/#/monitoring, url=http://127.0.0.1:5188/#/monitoring]
+        svg_root
+        text "请求日志"
+      anchor [ref=318, loc=href:/#/usage, url=http://127.0.0.1:5188/#/usage]
+        svg_root
+        text "用量与费用"
+    container
+      text "资源"
+      anchor [ref=319, loc=href:/#/oauth, url=http://127.0.0.1:5188/#/oauth]
+        svg_root
+        text "OAuth 授权"
+      anchor [ref=320, loc=href:/#/accounts, url=http://127.0.0.1:5188/#/accounts]
+        svg_root
+        text "账号管理"
+      anchor [ref=321, loc=href:/#/upstreams, url=http://127.0.0.1:5188/#/upstreams]
+        svg_root
+        text "AI 提供商"
+      anchor [ref=322, loc=href:/#/models, url=http://127.0.0.1:5188/#/models]
+        svg_root
+        text "模型管理"
+      anchor [ref=323, loc=href:/#/access, url=http://127.0.0.1:5188/#/access]
+        svg_root
+        text "API 密钥"
+    anchor [ref=324, url=http://127.0.0.1:5188/#/settings]
+      svg_root
+      text "设置"
+    container
+      text "A"
+      container
+        text "admin"
+        text "管理会话"
+  container "配置版本" [ref=325]
+    status
+      text "正在编辑草稿：未发布的修改不会影响当前服务。"
+      anchor [ref=326, url=http://127.0.0.1:5188/#/versions]
+        text "查看配置上下文"
+    container "工作区页面"
+      anchor [ref=327, url=http://127.0.0.1:5188/#/settings]
+        text "通用"
+      anchor [ref=328, loc=href:/#/egress, url=http://127.0.0.1:5188/#/egress]
+        text "出口策略"
+      anchor [ref=329, loc=href:/#/runtime, url=http://127.0.0.1:5188/#/runtime]
+        text "运行诊断"
+      anchor [ref=330, url=http://127.0.0.1:5188/#/versions]
+        text "配置版本"
+      anchor [ref=331, loc=href:/#/audit, url=http://127.0.0.1:5188/#/audit]
+        text "审计与备份"
+    container
+      container
+        container
+          heading
+            text "配置版本"
+          paragraph
+            text "接续一份草稿，核对完整变更后统一应用。"
+        container
+          button [ref=332]
+            text "接续待应用修改"
+          button [ref=333]
+            text "创建空草稿"
+          button [ref=334]
+            text "回滚到上一版本"
+      button [ref=335]
+        text "重新读取配置"
+      container
+        container
+          text "已发布配置"
+          heading
+            text "两站 minimax-m3 聚合(演示数据)"
+          paragraph
+            text "创建于"
+            text "2026/7/14 11:33:20"
+          container [ref=336]
+            text "关联信息"
+          container [ref=337]
+            text "配置与程序版本有什么区别？"
+        container
+          button [ref=338]
+            text "查看历史差异"
+          button [ref=339]
+            text "查看已发布配置"
+      group "配置集合"
+        button [ref=340]
+          text "草稿 ·"
+          text "2"
+        button [ref=341]
+          text "历史 ·"
+          text "0"
+      table
+        table_row
+          table_cell
+            text "配置"
+          table_cell
+            text "创建时间"
+          table_cell
+            text "操作"
+        table_row
+          table_cell
+            text "新增 grok.build 凭据池(演示数据)"
+            container [ref=342]
+              text "关联信息"
+          table_cell
+            text "2026/7/26 01:20:00"
+          table_cell
+            button [ref=343]
+              text "查看变更"
+            button [ref=344]
+              text "编辑草稿"
+            button [ref=345]
+              text "验证"
+            button [ref=346]
+              text "校验并应用"
+        table_row
+          table_cell
+            text "编辑服务配置"
+            paragraph
+              text "当前待应用批次"
+            container [ref=347]
+              text "关联信息"
+          table_cell
+            text "2026/10/1 12:09:45"
+          table_cell
+            button [ref=348]
+              text "查看变更"
+            button [ref=349]
+              text "正在查看"
+            button [ref=350]
+              text "验证"
+            button [ref=351]
+              text "校验并应用"
+  container
+    svg_root
+    container
+      text "待应用变更"
+      paragraph
+        text "草稿已保存 ·"
+        text "当前服务未改变"
+    button [ref=352]
+      text "查看变更"
+
+
+ego's nodejs process exited with code 1.

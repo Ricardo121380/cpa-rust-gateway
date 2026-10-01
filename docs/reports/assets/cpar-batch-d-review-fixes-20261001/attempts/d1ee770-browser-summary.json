@@ -1,0 +1,103 @@
+{
+  "result": "FAIL",
+  "commit_before": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "commit_after": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "scenarios": [
+    {
+      "scenario": "inventory",
+      "checks": 69,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "shell",
+      "checks": 5,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "password",
+      "checks": 2,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "usage",
+      "checks": 7,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "runtime",
+      "checks": 5,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "maintenance",
+      "checks": 6,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "catalog",
+      "checks": 5,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "pin-uncertain",
+      "checks": 3,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "recovery-uncertain",
+      "checks": 6,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "apply-uncertain",
+      "checks": 3,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "details",
+      "checks": 8,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "permissions-egress",
+      "checks": 2,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "i18n",
+      "checks": 5,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "model-connections",
+      "checks": 4,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "failures",
+      "checks": 16,
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "scenario": "models-routes",
+      "checks": 19,
+      "result": "FAIL",
+      "exit_code": 1
+    }
+  ]
+}

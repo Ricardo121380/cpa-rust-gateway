@@ -1,0 +1,22 @@
+{
+  "command": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "test"
+  ],
+  "commit_before": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "commit_after": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "started_at": "2026-10-01T04:07:08.377268+00:00",
+  "ended_at": "2026-10-01T04:07:11.934409+00:00",
+  "host": "macOS-27.0-arm64-arm-64bit",
+  "environment": "local",
+  "exit_code": 0,
+  "result": "PASS",
+  "test_files": [
+    "66"
+  ],
+  "tests": [
+    "469"
+  ]
+}

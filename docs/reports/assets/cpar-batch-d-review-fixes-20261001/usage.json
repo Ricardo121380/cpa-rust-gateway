@@ -1,0 +1,38 @@
+{
+  "scenario": "usage",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "cost cursor failure retains loaded sources",
+      "result": "PASS"
+    },
+    {
+      "name": "cost recovery retries the failed opaque cursor",
+      "result": "PASS"
+    },
+    {
+      "name": "usage refresh retains values and evidence",
+      "result": "PASS"
+    },
+    {
+      "name": "retry shows busy state and prevents duplicate reads",
+      "result": "PASS"
+    },
+    {
+      "name": "cleared filters update visible form and URL",
+      "result": "PASS"
+    },
+    {
+      "name": "request details separate usage source and pricing",
+      "result": "PASS"
+    },
+    {
+      "name": "ledger displays usage provenance and input accounting",
+      "result": "PASS"
+    }
+  ]
+}

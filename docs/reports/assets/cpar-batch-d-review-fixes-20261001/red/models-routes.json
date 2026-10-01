@@ -1,0 +1,56 @@
+{
+  "scenario": "models-routes",
+  "result": "FAIL",
+  "commit": "working-review-fixes",
+  "environment": "local-synthetic",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "model maintenance starts from a publicly created draft",
+      "result": "PASS"
+    },
+    {
+      "name": "model no-match search recovers through visible controls",
+      "result": "PASS"
+    },
+    {
+      "name": "model source and search filters survive navigation return",
+      "result": "PASS"
+    },
+    {
+      "name": "source cancel keeps edits until explicit discard without writes",
+      "result": "PASS"
+    },
+    {
+      "name": "source save returns to the draft model with confirmed weight",
+      "result": "PASS"
+    },
+    {
+      "name": "public model cancel preserves the original display name",
+      "result": "PASS"
+    },
+    {
+      "name": "public model save confirms draft state before returning",
+      "result": "PASS"
+    },
+    {
+      "name": "route Escape and cancel share the discard gate without writes",
+      "result": "PASS"
+    },
+    {
+      "name": "known route rejection keeps the editable form and target",
+      "result": "PASS"
+    },
+    {
+      "name": "explicit route retry confirms draft write and returns to workbench",
+      "result": "PASS"
+    },
+    {
+      "name": "route editor fits both layouts and themes with focus return",
+      "result": "PASS",
+      "width": 1440,
+      "theme": "light"
+    }
+  ],
+  "error": "false == true"
+}

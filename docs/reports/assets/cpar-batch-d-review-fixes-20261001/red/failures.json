@@ -1,0 +1,26 @@
+{
+  "scenario": "failures",
+  "result": "FAIL",
+  "commit": "working-before-failure-state-fix",
+  "environment": "local-synthetic",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "failure workspace distinguishes loading and prevents duplicate reads",
+      "result": "PASS"
+    },
+    {
+      "name": "failure records are attributed attempts rather than request totals",
+      "result": "PASS"
+    },
+    {
+      "name": "failure filters and attempt detail survive keyboard return",
+      "result": "PASS"
+    },
+    {
+      "name": "exact binding diagnosis returns to the filtered failure task",
+      "result": "PASS"
+    }
+  ],
+  "error": "The input did not match the regular expression /没有符合筛选条件的失败尝试/u. Input:\n\n'请求日志从请求终态出发，展开每次尝试与关联证据。失败归因 · v-2026-07请求记录计费账本失败归因提供商全部 / 未指定指定历史资源…接口全部 / 未指定指定历史资源…账号全部 / 未指定missing-d-account · 当前引用runtime.member@example.test · API未提供账号身份 · APIgrok.runtime@example.test · Grok Build未提供账号身份 · Grok Build未提供账号身份 · API指定历史资源…应用筛选清除重新读取失败记录0已加载失败尝试下面的分布只统计已加载的这些行 —— 这条投影没有服务端汇总, 所以它不是整个窗口的分布。要更完整就继续翻页。一次请求可以产生多条失败尝试,所以行数不是失败请求数。该配置版本下没有归因到账号的失败尝试。计费处理刷新处理状态待修复 · 部分事件已保留供重试；即使水位追平，账本仍可能缺少这些事件。处理水位与观测待处理序号跨度0已处理事件序号246源事件水位246未入账事件1已隔离0等待重试1上次成功观测2026/10/1 11:46:37处理状态跨配置版本；空账本不等于零消费。'\n"
+}

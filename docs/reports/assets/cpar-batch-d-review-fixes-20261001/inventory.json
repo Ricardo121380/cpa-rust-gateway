@@ -1,0 +1,560 @@
+{
+  "scenario": "inventory",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/overview",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/accounts",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/oauth",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/catalog",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/usage",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring?tab=failures",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/billing",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/versions",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/upstreams",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/models",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/access",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/egress",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/runtime",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/audit",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/settings",
+      "width": 1440,
+      "theme": "light",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/overview",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/accounts",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/oauth",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/catalog",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/usage",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring?tab=failures",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/billing",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/versions",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/upstreams",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/models",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/access",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/egress",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/runtime",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/audit",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/settings",
+      "width": 1440,
+      "theme": "dark",
+      "canvasScroll": 1440
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/overview",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/accounts",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/oauth",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/catalog",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/usage",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring?tab=failures",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 997
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/billing",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/versions",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/upstreams",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/models",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/access",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/egress",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 732
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/runtime",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/audit",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/settings",
+      "width": 375,
+      "theme": "light",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/overview",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/accounts",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/oauth",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/catalog",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/usage",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/monitoring?tab=failures",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 997
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/billing",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/versions",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/upstreams",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/models",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/access",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/egress",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 732
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/runtime",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/audit",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "reachable page and contained layout",
+      "result": "PASS",
+      "path": "/settings",
+      "width": 375,
+      "theme": "dark",
+      "canvasScroll": 375
+    },
+    {
+      "name": "landscape with reduced motion",
+      "result": "PASS",
+      "width": 812,
+      "height": 375
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "at": "2026-10-01T04:21:08.822587+00:00",
+  "task_space": 33,
+  "finish_keep": [],
+  "task_finish_receipt": {
+    "closed": [
+      "p1"
+    ],
+    "retained": [],
+    "space_closed": true
+  },
+  "vite_exec_session": 62495,
+  "shutdown": "Ctrl-C sent only to task-owned Vite session",
+  "port": 5188,
+  "listener_remaining": false,
+  "existing_gateway_untouched": true,
+  "original_task_finish_receipt": {
+    "spaceId": 33,
+    "closedSpace": true,
+    "keptManagedLabels": [],
+    "closedManagedLabels": [
+      "p1"
+    ],
+    "preservedUnmanagedCount": 0
+  },
+  "vite_pid": 98021
+}

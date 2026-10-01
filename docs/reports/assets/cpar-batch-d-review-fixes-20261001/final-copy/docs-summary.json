@@ -1,0 +1,20 @@
+{
+  "command": [
+    "bash",
+    "scripts/check.sh",
+    "docs"
+  ],
+  "commit_before": "d837056bbc4eb29bdf52594b4db4b8ee18f4f70b",
+  "commit_after": "d837056bbc4eb29bdf52594b4db4b8ee18f4f70b",
+  "started_at": "2026-10-01T05:18:53.828584+00:00",
+  "ended_at": "2026-10-01T05:19:23.295339+00:00",
+  "host": "macOS-27.0-arm64-arm-64bit",
+  "environment": "local",
+  "exit_code": 0,
+  "result": "PASS",
+  "environment_variables": {
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-batch-d-review-fixes-20261001/final-copy/docs-check.md"
+  },
+  "passed_steps": 7,
+  "failed_steps": 0
+}

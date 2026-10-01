@@ -1,0 +1,30 @@
+{
+  "scenario": "i18n",
+  "result": "PASS",
+  "commit": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+  "environment": "local-synthetic",
+  "browser": "EgoLite",
+  "spaceId": 33,
+  "checks": [
+    {
+      "name": "aggregated provenance follows actual language selection",
+      "result": "PASS"
+    },
+    {
+      "name": "English usage evidence remains contained on narrow layout",
+      "result": "PASS"
+    },
+    {
+      "name": "request source and input accounting update to English",
+      "result": "PASS"
+    },
+    {
+      "name": "filtered failure no-match follows English selection",
+      "result": "PASS"
+    },
+    {
+      "name": "unfiltered empty failure state remains distinct in English",
+      "result": "PASS"
+    }
+  ]
+}
