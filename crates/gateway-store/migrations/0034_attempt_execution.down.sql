@@ -1,0 +1,3 @@
+DROP TRIGGER gateway_attempt_execution_no_update;
+DROP TRIGGER gateway_attempt_execution_no_delete;
+DROP TABLE gateway_attempt_execution;

@@ -6,6 +6,7 @@ mod account_entitlement;
 mod canonical_event;
 mod canonical_request;
 mod error;
+mod execution_identity;
 mod gateway_event;
 mod id;
 mod message;
@@ -29,6 +30,7 @@ pub use canonical_event::{
 };
 pub use canonical_request::CanonicalRequest;
 pub use error::{ErrorScope, GatewayError, GatewayErrorCode};
+pub use execution_identity::{AttemptExecutionIdentity, EffectiveCapabilities, ExecutionEgress};
 pub use gateway_event::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, DiagnosticEvent, EventEmission,
     EventEmissionFuture, GatewayEvent, GatewayEventPriority, GatewayEventSink, GatewayProtocol,

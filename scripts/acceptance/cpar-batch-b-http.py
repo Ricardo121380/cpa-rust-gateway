@@ -24,6 +24,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import cpar_execution_evidence_http
 
 os.umask(0o077)
 repo = pathlib.Path.cwd()
@@ -51,6 +52,7 @@ keys = {name: "synthetic-" + secrets.token_hex(24) for name in ["a", "b"]}
 calls = []
 calls_lock = threading.Lock()
 held_started, held_closed = threading.Event(), threading.Event()
+identity_release = threading.Event()
 checks = []
 cancelled_response_ids = []
 fallback_candidates = {}
@@ -83,7 +85,7 @@ class Provider(BaseHTTPRequestHandler):
             return self.reply(401, {"error": {"type": "invalid_api_key"}})
         protocol = "chat" if self.path.endswith("/chat/completions") else "messages" if self.path.endswith("/messages") else "responses"
         text = json.dumps(body, ensure_ascii=False)
-        markers = ["parallel-round", "tool-round", "invalid-args", "serial-violation", "thinking-round", "reasoning-only-round", "usage-error-round", "signed-round", "citation-round", "private-reasoning", "truncated-round", "held-round", "retry-round", "always-fail", "slow-bootstrap", "duplicate-root", "auth-round"]
+        markers = ["identity-switch", "parallel-round", "tool-round", "invalid-args", "serial-violation", "thinking-round", "reasoning-only-round", "usage-error-round", "signed-round", "citation-round", "private-reasoning", "truncated-round", "held-round", "retry-round", "always-fail", "slow-bootstrap", "duplicate-root", "auth-round"]
         scenario = next((marker for marker in markers if marker in text), "text-round")
         has_result = '"tool_call_id"' in text or '"function_call_output"' in text or '"tool_result"' in text
         compact = "Create a concise factual conversation summary" in text
@@ -91,6 +93,10 @@ class Provider(BaseHTTPRequestHandler):
         call = {"account": owner, "connection": connection_kind, "protocol": protocol, "scenario": scenario, "stream": bool(body.get("stream")), "has_result": has_result, "compact": compact, "body": body}
         with calls_lock:
             calls.append(call)
+        if scenario == "identity-switch":
+            held_started.set()
+            if not identity_release.wait(10):
+                return self.reply(503, {"error": {"type": "fixture_deadline"}})
         if scenario == "auth-round" and owner == "a":
             # Credential-local rejection must leave the healthy binding on this endpoint usable.
             # Shared endpoint 5xx behavior is covered by the cross-endpoint Rust loopback tests.
@@ -290,7 +296,7 @@ client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 headers = {"X-Management-Key": (credentials / "management-key").read_text(), "Content-Type": "application/json"}
 scope, revision = None, None
 log = (root / "gateway.log").open("ab")
-binary = pathlib.Path(os.environ.get("CARGO_TARGET_DIR", str(repo / "target"))) / "debug/gateway"
+binary = pathlib.Path(os.environ.get("CPAR_GATEWAY_BINARY", str(pathlib.Path(os.environ.get("CARGO_TARGET_DIR", str(repo / "target"))) / "debug/gateway"))).resolve()
 subprocess.run([str(binary), "admin-login", "init", "--state-dir", str(state), "--password-file", str(root / "initial-password")], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}"], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
 
@@ -620,6 +626,7 @@ try:
     api("POST", "/admin/billing/catalogs", {"catalog_version_id": "local-prices", "effective_at_ms": 0, "source": "operator", "entries": entries}, expected=201)
     publish()
     check("publication_has_no_inference_side_effect", not calls)
+    execution_initial_ids = cpar_execution_evidence_http.initial(globals())
     for stream in [False, True]:
         request = body_for("responses", "chat", "text-round", stream)
         request["store"] = True
@@ -1085,6 +1092,8 @@ try:
             # Streaming startup uses the strict remaining 150 ms route budget.
             check("cumulative_bootstrap_budget_" + source + "_" + str(stream), status >= 400 and elapsed < (1.5 if stream else 5) and len(calls) == before + 1)
             checks[-1]["elapsed_ms"] = round(elapsed * 1000)
+    cpar_execution_evidence_http.final(globals(), execution_initial_ids)
+    cpar_execution_evidence_http.rotations(globals())
     passed = True
     print(json.dumps({"status": "PASS", "checks": len(checks), "private_state": str(root)}))
 finally:
@@ -1093,5 +1102,5 @@ finally:
     provider.shutdown()
     fallback_provider.shutdown()
     log.close()
-    receipt = {"status": "PASS" if passed else "FAIL", "checks": checks, "provider_calls": [{key: call[key] for key in ["account", "connection", "protocol", "scenario", "stream", "has_result", "compact"]} for call in calls], "private_state": str(root), "scope": "local_synthetic_only"}
+    receipt = {"status": "PASS" if passed else "FAIL", "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "checks": checks, "provider_calls": [{key: call[key] for key in ["account", "connection", "protocol", "scenario", "stream", "has_result", "compact"]} for call in calls], "private_state": str(root), "scope": "local_synthetic_only"}
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")

@@ -362,6 +362,37 @@ async fn ordinary_native_families_use_the_public_factory_and_preserve_identity()
                     super::public_response::assert_round(uri, streaming, round, &bytes)?;
                 }
             }
+            let expected_channel = if base.contains("chatgpt.com") {
+                "codex"
+            } else if base.contains("kimi.com") {
+                "kimi-coding"
+            } else if base.contains("moonshot.cn") {
+                "kimi-api"
+            } else if secret == claude {
+                "claude"
+            } else if format == "anthropic/messages" {
+                "anthropic-compatible"
+            } else {
+                "openai-compatible"
+            };
+            let events = fixture.events.0.lock().map_err(|_| "events")?;
+            let attempts = events
+                .iter()
+                .filter_map(|event| match event {
+                    GatewayEvent::Attempt(attempt) => Some(attempt),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(attempts.len(), 12);
+            for attempt in attempts {
+                let actual = attempt.execution_identity().ok_or("execution identity")?;
+                assert!(actual.is_valid());
+                assert_eq!(actual.channel, expected_channel, "{base} {format}");
+                assert_eq!(actual.config_version_id, "batch-c");
+                assert_eq!(actual.credential_revision, 1);
+                assert_eq!(actual.egress, gateway_core::ExecutionEgress::Direct);
+            }
+            drop(events);
             let requests = peer.requests.lock().map_err(|_| "requests")?;
             assert_eq!(requests.len(), 12);
             for request in requests.iter() {

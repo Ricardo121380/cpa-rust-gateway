@@ -27,7 +27,8 @@
       "compact": null,
       "websocket": null
     },
-    "declaration_observed_at_utc": null
+    "declaration_observed_at_utc": null,
+    "declaration_evidence": null
   },
   "collector": {"host": "new-vps", "service": "cpa-rust-gateway.service", "sudo": true},
   "boundaries": {},

@@ -171,6 +171,7 @@ struct EventRecord {
     request_id: Option<String>,
     occurred_at_ms: Option<i64>,
     payload_json: String,
+    execution_json: Option<String>,
 }
 
 impl EventRecord {
@@ -215,6 +216,19 @@ impl EventRecord {
         };
         let payload_json =
             serde_json::to_string(event).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+        let execution_json = match event {
+            GatewayEvent::Attempt(attempt) => attempt
+                .execution_identity()
+                .map(|identity| {
+                    if !identity.is_valid() {
+                        return Err(StoreError::InvalidPersistedGatewayEvent);
+                    }
+                    serde_json::to_string(identity)
+                        .map_err(|_| StoreError::InvalidPersistedGatewayEvent)
+                })
+                .transpose()?,
+            _ => None,
+        };
         // The durable schema bounds both identifier columns. Enforcing that bound here, before the
         // insert, is what makes an over-long identifier a record-level poison instead of a raw
         // SQLite CHECK violation: the latter is indistinguishable from a transient store failure
@@ -236,6 +250,7 @@ impl EventRecord {
             request_id,
             occurred_at_ms,
             payload_json,
+            execution_json,
         })
     }
 }
@@ -318,6 +333,10 @@ impl SqliteEventStore {
     ///
     /// Returns [`StoreError`] and leaves no partial rows when any record is invalid, conflicts,
     /// or `SQLite` rejects the transaction.
+    #[allow(
+        clippy::too_many_lines,
+        reason = "atomic append, exact replay and required lifecycle state share one transaction"
+    )]
     pub fn append_batch(&mut self, events: &[GatewayEvent]) -> StoreResult<usize> {
         let records = events
             .iter()
@@ -368,6 +387,23 @@ impl SqliteEventStore {
                 if existing != record.payload_json {
                     return Err(StoreError::ConflictingGatewayEventReplay);
                 }
+                if record.kind == GatewayEventLogKind::Attempt {
+                    let execution: Option<(String, String, String)> = transaction.query_row(
+                        "SELECT request_id,attempt_payload_sha256,evidence_json FROM gateway_attempt_execution WHERE attempt_id=?1",
+                        [&record.event_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                    ).optional()?;
+                    if execution.as_ref().is_some_and(|(request, checksum, _)| {
+                        Some(request) != record.request_id.as_ref()
+                            || checksum
+                                != &format!("{:x}", Sha256::digest(record.payload_json.as_bytes()))
+                    }) {
+                        return Err(StoreError::InvalidPersistedGatewayEvent);
+                    }
+                    // Never enrich a historical unknown Attempt by replaying current inventory.
+                    if execution.map(|(_, _, json)| json) != record.execution_json {
+                        return Err(StoreError::ConflictingGatewayEventReplay);
+                    }
+                }
                 continue;
             }
 
@@ -383,6 +419,14 @@ impl SqliteEventStore {
                     record.payload_json,
                 ],
             )?;
+            if let Some(execution_json) = &record.execution_json {
+                transaction.execute(
+                    "INSERT INTO gateway_attempt_execution(attempt_id,request_id,attempt_payload_sha256,evidence_json) \
+                     VALUES (?1,?2,?3,?4)",
+                    params![record.event_id, record.request_id,
+                        format!("{:x}", Sha256::digest(record.payload_json.as_bytes())), execution_json],
+                )?;
+            }
             match event {
                 GatewayEvent::Request(request) if request.started_at_ms().is_some() => {
                     transaction.execute(
@@ -790,10 +834,48 @@ impl SqliteEventStore {
                     occurred_at_ms,
                     &payload_json,
                 )
+                .and_then(|event| self.attach_execution_identity(event, &payload_json))
                 .ok(),
             });
         }
         Ok(events)
+    }
+
+    fn attach_execution_identity(
+        &self,
+        mut stored: StoredGatewayEvent,
+        payload_json: &str,
+    ) -> StoreResult<StoredGatewayEvent> {
+        let GatewayEvent::Attempt(attempt) = &mut stored.event else {
+            return Ok(stored);
+        };
+        // A protected read-only collector can also open a historical pre-34 database.
+        let exists: bool = self.connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='gateway_attempt_execution')",
+            [], |row| row.get(0),
+        )?;
+        if !exists {
+            return Ok(stored);
+        }
+        let row: Option<(String, String, String)> = self.connection.query_row(
+            "SELECT request_id,attempt_payload_sha256,evidence_json FROM gateway_attempt_execution WHERE attempt_id=?1",
+            [attempt.attempt_id().as_str()], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).optional()?;
+        if let Some((request_id, checksum, json)) = row {
+            let identity: gateway_core::AttemptExecutionIdentity = serde_json::from_str(&json)
+                .map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
+            if request_id != attempt.request_id().as_str()
+                || checksum != format!("{:x}", Sha256::digest(payload_json.as_bytes()))
+                || !identity.is_valid()
+                || serde_json::to_string(&identity)
+                    .map_err(|_| StoreError::InvalidPersistedGatewayEvent)?
+                    != json
+            {
+                return Err(StoreError::InvalidPersistedGatewayEvent);
+            }
+            *attempt = attempt.clone().with_execution_identity(identity);
+        }
+        Ok(stored)
     }
 }
 
@@ -1897,7 +1979,9 @@ mod tests {
         )))
     }
 
-    fn attempt_event(sequence: usize) -> Result<GatewayEvent, Box<dyn std::error::Error>> {
+    pub(super) fn attempt_event(
+        sequence: usize,
+    ) -> Result<GatewayEvent, Box<dyn std::error::Error>> {
         Ok(GatewayEvent::Attempt(AttemptEvent::new(
             RequestId::try_new(format!("quarantine-request-{sequence:04}"))?,
             1,
@@ -2611,3 +2695,7 @@ mod tests {
 #[cfg(test)]
 #[path = "event_durability_tests.rs"]
 mod durability_tests;
+
+#[cfg(test)]
+#[path = "execution_identity_tests.rs"]
+mod execution_identity_tests;

@@ -4,6 +4,8 @@
 
 ## 编号与文件约定
 
+CPAR 执行证据补充：[BC-OBS-005 Attempt execution identity](BC-OBS-005-attempt-execution-identity.md)。
+
 - 契约 ID：`BC-<domain>-NNN`，例如 `BC-STREAM-001`。
 - 契约说明：`BC-<domain>-NNN-short-title.md`。
 - Fixture 放入 `tests/fixtures/<domain>/`，不得包含真实凭据或未脱敏生产响应。

@@ -40,12 +40,40 @@ target fields are `channel`, `endpoint_id`, `route_id`, `route_candidate_id`,
 `upstream_model`, `credential_evidence_id`, `credential_revision`,
 `config_version_id`, `config_revision`, `egress_evidence_id`, `egress_revision`,
 `public_model`, `response_model`, `protocol`, `mode`, `parameters`, `capabilities`
-and `declaration_observed_at_utc`. Opaque identities use SHA-256 of
+and `declaration_observed_at_utc`, plus `declaration_evidence`. Opaque identities use SHA-256 of
 `cpar-evidence:` followed by the actual identity; never put account materials in
 the plan. Each of `reasoning`, `parallel`, `stored`, `continuation`, `compact`,
 `websocket` must be an observed boolean. Null means unknown and blocks the plan;
 false is allowed only after reading the effective declaration. Keep exact
-revision representations from the corresponding actual observation.
+revision scope from the corresponding actual observation. Credential revision is the integer
+revision of the actual lease; configuration revision is the integer loaded graph revision. An ETag
+such as `rev-1` or a native account revision is not a lease revision. Direct egress uses
+`{"source":"not_applicable"}`; version-owned egress uses
+`{"source":"config_version","config_version_id":"...","revision":1}`; process proxy uses
+`{"source":"transport_fingerprint","sha256":"..."}`. None of these invents a node revision.
+
+An inspection now GETs `/admin/models/effective` for each visible Client Key and retains each
+source's optional `capability_evidence`. The source must be `serving_snapshot`, from the loaded
+configuration and the same route/candidate/endpoint/upstream model and Client Key scope. The
+formal preflight requires this fresh projection and compares it with the frozen declaration.
+Public capabilities, configured overrides and management inventory do not replace this proof.
+
+Given an **existing authorized** protected Channel Pin receipt, freeze the observed combination
+without sending inference:
+
+```sh
+python3 scripts/acceptance/cpar-batch-c-live.py --new-build freeze \
+  --plan /absolute/path/to/private/draft-plan.json \
+  --runtime /absolute/path/to/current-environment.json \
+  --pin /absolute/path/to/private/channel-pin.json \
+  --out /absolute/path/to/private/frozen-plan.json
+```
+
+The draft retains protocol/mode/public and response models, parameters and source. Unknown identity
+fields and capability booleans can be filled only from this actual receipt plus its matching
+current declaration; conflicting previously frozen facts fail. The receipt must be successful,
+single-attempt, fresh, Client Key scoped and from the same running build. Obtaining a new Channel
+Pin is itself one inference request and needs the appropriate target/budget authorization.
 
 ```sh
 python3 scripts/acceptance/cpar-batch-c-live.py --new-build run \
@@ -89,11 +117,12 @@ python3 scripts/acceptance/cpar-batch-c-live.py --new-build collect \
   --out /absolute/path/to/attribution.json
 ```
 
-The current AttemptEvent schema has no channel, credential revision, config
-version/revision or egress identity/revision. Collection preserves those as null.
-Before formal real acceptance, add a value-free, request/attempt-bound actual
-execution observation at the selection/lease seam, or provide an equivalent
-protected collector. A time-window join or current inventory is insufficient.
+Schema 34 adds a bounded, append-only execution sidecar bound to the exact original Attempt
+payload by Request ID, Attempt ID and SHA256. Original strict event bytes remain unchanged. The
+collector reads actual channel, material lease revision, loaded configuration and selected egress
+and declarations from that record. It also requires the Request's actual Client Key/protocol/mode
+and known terminal outcome, then exact Usage/ledger sources. Missing legacy sidecars remain null;
+malformed or mismatched bindings fail. A time-window join or current inventory is insufficient.
 For an existing protected collector, `observation_dir` can replace `collector`:
 each file is `<sha256(cpar-evidence:<response-id>)>.json` containing `correlation`,
 `request_id`, exact `attempts`, `usages`, `ledger`, and the per-response observed
@@ -149,6 +178,9 @@ Successful samples require actual wire and Usage/Attempt/ledger attribution.
 An unknown declaration blocks the whole plan. A known true declaration with
 missing checks yields `NOT_RUN`. Explicitly false checks are shown as
 inapplicable `NOT_RUN`; this does not redefine the specification.
+The six compiled declarations are kept intact. Stored/continuation/compact/WebSocket checks are
+separately inapplicable to Chat/Messages; a true declaration is not rewritten to false. The existing
+Grok Build owned-reasoning continuation requires Reasoning and remains a distinct kind.
 
 Public receipts allowlist operational observations, parameters, Usage, checks,
 opaque identities, time and evidence paths. They contain no secret, raw request,
@@ -171,3 +203,19 @@ wrong/missing target and runtime evidence, exact ledger source, slow-body
 deadline and no redirect/retry. `CPAR_TEST_RECEIPT_DIR=/absolute/path` optionally
 exports value-free synthetic basic receipts. The suite is included in Fast/Full.
 No real Provider request is made by this suite.
+
+The extended real-gateway regression additionally runs against an isolated SQLite database, local
+TLS upstream and two actual loopback SOCKS5 relays. It verifies all six ordinary execution paths,
+error/cancel/timeout identities, changed retry candidates, in-flight publication and material
+rotation, protected pin redaction, and formal collection through actual Usage/ledger sources:
+
+```sh
+cargo build --locked -p gateway --bin gateway
+python3 scripts/acceptance/cpar-batch-b-http.py /absolute/path/to/owned-output
+```
+
+`CPAR_GATEWAY_BINARY=/absolute/path/to/reviewed/gateway` selects an immutable release candidate
+for the same harness. Receipts bind the actual binary SHA256 and checkout SHA. Raw synthetic keys
+and wire captures stay in its private temporary directory. Schema 34 compatibility/rollback and
+atomic tamper regressions live in `gateway-store::execution_identity_tests`; old binaries reject
+newer schemas, so a binary-only deployment rollback is not supported.

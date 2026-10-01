@@ -33,6 +33,7 @@ provider-openai-compatible = { path = "../../crates/provider-openai-compatible" 
 reqwest = { workspace = true, features = ["blocking"] }
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 tracing.workspace = true
 tokio.workspace = true
 zeroize.workspace = true

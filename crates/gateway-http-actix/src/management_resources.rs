@@ -1494,6 +1494,19 @@ pub enum ManagementChannelPinError {
 }
 
 /// Value-free receipt returned by the Channel Pin executor.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ManagementChannelPinExecution {
+    /// Actual one-shot attempt correlation, not a management account identity.
+    pub attempt_id: String,
+    /// Candidate actually selected by the serving scheduler.
+    pub route_candidate_id: String,
+    /// Model actually sent to the selected upstream.
+    pub upstream_model: String,
+    /// Actual pinned configuration, lease, transport and declaration.
+    pub identity: gateway_core::AttemptExecutionIdentity,
+}
+
+/// Value-free receipt returned by the Channel Pin executor.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ManagementChannelPinReceipt {
     request_id: RequestId,
@@ -1513,6 +1526,7 @@ pub struct ManagementChannelPinReceipt {
     observed_at_ms: i64,
     stage: Option<ManagementRequestAttemptStage>,
     runtime_build: Option<String>,
+    execution: Option<ManagementChannelPinExecution>,
 }
 
 impl ManagementChannelPinReceipt {
@@ -1582,6 +1596,7 @@ impl ManagementChannelPinReceipt {
             observed_at_ms,
             stage,
             runtime_build: None,
+            execution: None,
         })
     }
 
@@ -1596,6 +1611,37 @@ impl ManagementChannelPinReceipt {
     #[must_use]
     pub fn runtime_build(&self) -> Option<&str> {
         self.runtime_build.as_deref()
+    }
+
+    /// Adds bounded facts captured during the actual attempt. Older embeddings retain unknown.
+    /// # Errors
+    /// Returns an unavailable receipt when captured facts contradict its exact scope.
+    pub fn with_execution(
+        mut self,
+        execution: Option<ManagementChannelPinExecution>,
+    ) -> Result<Self, ManagementChannelPinError> {
+        if execution.as_ref().is_some_and(|actual| {
+            !actual.identity.is_valid()
+                || self.attempt_count != 1
+                || actual.attempt_id
+                    != gateway_core::AttemptId::from_request_sequence(&self.request_id, 1).as_str()
+                || actual.route_candidate_id.is_empty()
+                || actual.route_candidate_id.len() > 512
+                || actual.upstream_model.is_empty()
+                || actual.upstream_model.len() > 512
+                || actual.identity.config_version_id != self.config_version_id.as_str()
+                || actual.identity.config_revision != self.config_revision.as_i64()
+        }) {
+            return Err(ManagementChannelPinError::Unavailable);
+        }
+        self.execution = execution;
+        Ok(self)
+    }
+
+    /// Actual attempt facts; absence means unknown, never a preflight-account revision.
+    #[must_use]
+    pub fn execution(&self) -> Option<&ManagementChannelPinExecution> {
+        self.execution.as_ref()
     }
 
     /// Returns the opaque request correlation identity.
@@ -1759,6 +1805,9 @@ pub struct ManagementModelCatalogEvidence {
 /// Safe compiler provenance for one exact model Candidate.
 #[derive(Clone, Debug, Serialize)]
 pub struct ManagementEffectiveModelSource {
+    /// Complete loaded candidate declaration; absent means unknown, never false.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub capability_evidence: Option<ManagementCapabilityEvidence>,
     /// Candidate identity in the serving snapshot.
     pub candidate_id: String,
     /// Endpoint identity, never a URL.
@@ -1771,6 +1820,19 @@ pub struct ManagementEffectiveModelSource {
     pub catalog_admission: &'static str,
     /// Empty means no durable discovery observation, not zero-valued evidence.
     pub catalog_evidence: Vec<ManagementModelCatalogEvidence>,
+}
+
+/// Configuration-bound gateway declaration, not a successful Provider validation.
+#[derive(Clone, Debug, Serialize)]
+pub struct ManagementCapabilityEvidence {
+    /// Closed declaration source.
+    pub source: &'static str,
+    /// Actual loaded configuration version.
+    pub config_version_id: String,
+    /// Actual loaded configuration revision.
+    pub config_revision: i64,
+    /// Complete compiled semantic declaration.
+    pub capabilities: gateway_core::EffectiveCapabilities,
 }
 
 /// One exact model visible to the selected serving authorization context.
@@ -3490,6 +3552,8 @@ struct ChannelPinResponse {
     observed_at_ms: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     stage: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    execution: Option<ManagementChannelPinExecution>,
 }
 
 #[derive(Serialize)]
@@ -11090,6 +11154,7 @@ impl From<ManagementChannelPinReceipt> for ChannelPinResponse {
             response_started: value.response_started(),
             observed_at_ms: value.observed_at_ms(),
             stage: value.stage().map(ManagementRequestAttemptStage::as_str),
+            execution: value.execution().cloned(),
         }
     }
 }

@@ -225,6 +225,15 @@ pub trait AttemptDriver: Send + Sync {
         bootstrap_timeout: Duration,
     ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>>;
 
+    /// Returns actual execution facts for this selected binding, or unknown for an embedding.
+    fn execution_identity(
+        &self,
+        _candidate: &SnapshotRouteCandidate,
+        _credential: &CredentialLease,
+    ) -> Option<gateway_core::AttemptExecutionIdentity> {
+        None
+    }
+
     /// Returns the wall-clock ceiling applied to one in-flight [`Self::start`] invocation.
     ///
     /// The default keeps the historical bound: one Attempt may run only as long as the remaining
@@ -823,6 +832,7 @@ impl AttemptOrchestrator {
             Ok(output) => {
                 if retry_gate.is_cancelled() {
                     self.emit_pinned_attempt(
+                        driver,
                         request_id,
                         route_id,
                         &selection,
@@ -836,6 +846,7 @@ impl AttemptOrchestrator {
                     return Err(request_cancelled_error());
                 }
                 self.emit_pinned_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -854,6 +865,7 @@ impl AttemptOrchestrator {
             }
             Err(AttemptFailure::Cancelled) => {
                 self.emit_pinned_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -877,6 +889,7 @@ impl AttemptOrchestrator {
                     AttemptRetryDecision::NonRetryable
                 };
                 self.emit_pinned_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -988,6 +1001,7 @@ impl AttemptOrchestrator {
             Ok(output) => {
                 if retry_gate.is_cancelled() {
                     self.emit_pinned_attempt(
+                        driver,
                         request_id,
                         route_id,
                         &selection,
@@ -1001,6 +1015,7 @@ impl AttemptOrchestrator {
                     return Err(request_cancelled_error());
                 }
                 self.emit_pinned_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1019,6 +1034,7 @@ impl AttemptOrchestrator {
             }
             Err(AttemptFailure::Cancelled) => {
                 self.emit_pinned_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1035,6 +1051,7 @@ impl AttemptOrchestrator {
                 let safe_failure = failure.safe_error();
                 if let Err(error) = self.record_runtime_state(&selection, &failure) {
                     self.emit_pinned_attempt(
+                        driver,
                         request_id,
                         route_id,
                         &selection,
@@ -1053,6 +1070,7 @@ impl AttemptOrchestrator {
                     AttemptRetryDecision::NonRetryable
                 };
                 self.emit_pinned_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1187,6 +1205,7 @@ impl AttemptOrchestrator {
                     }
                     if retry_gate.is_cancelled() {
                         self.emit_attempt(
+                            driver,
                             request_id,
                             route_id,
                             &selection,
@@ -1200,6 +1219,7 @@ impl AttemptOrchestrator {
                         return Err(request_cancelled_error());
                     }
                     self.emit_attempt(
+                        driver,
                         request_id,
                         route_id,
                         &selection,
@@ -1221,6 +1241,7 @@ impl AttemptOrchestrator {
 
             if matches!(failure, AttemptFailure::Cancelled) {
                 self.emit_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1236,6 +1257,7 @@ impl AttemptOrchestrator {
             let safe_failure = failure.safe_error();
             if let Err(error) = self.record_runtime_state(&selection, &failure) {
                 self.emit_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1251,6 +1273,7 @@ impl AttemptOrchestrator {
             if !failure.is_retryable() {
                 if retry_gate.is_cancelled() {
                     self.emit_attempt(
+                        driver,
                         request_id,
                         route_id,
                         &selection,
@@ -1264,6 +1287,7 @@ impl AttemptOrchestrator {
                     return Err(request_cancelled_error());
                 }
                 self.emit_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1280,6 +1304,7 @@ impl AttemptOrchestrator {
             exclusions.insert(selection.candidate(), selection.lease().credential_id());
             if retry_gate.is_cancelled() {
                 self.emit_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1294,6 +1319,7 @@ impl AttemptOrchestrator {
             }
             if !retry_gate.allows_transparent_retry() {
                 self.emit_attempt(
+                    driver,
                     request_id,
                     route_id,
                     &selection,
@@ -1307,6 +1333,7 @@ impl AttemptOrchestrator {
                 return Err(safe_failure);
             }
             self.emit_attempt(
+                driver,
                 request_id,
                 route_id,
                 &selection,
@@ -1379,8 +1406,9 @@ impl AttemptOrchestrator {
     }
 
     #[allow(clippy::too_many_arguments)]
-    async fn emit_attempt(
+    async fn emit_attempt<D: AttemptDriver>(
         &self,
+        driver: &D,
         request_id: Option<&RequestId>,
         route_id: &RouteId,
         selection: &SelectedRouteCredential,
@@ -1411,6 +1439,10 @@ impl AttemptOrchestrator {
             outcome,
             retry_decision,
         );
+        let event = match driver.execution_identity(selection.candidate(), selection.lease()) {
+            Some(identity) => event.with_execution_identity(identity),
+            None => event,
+        };
         event_sink
             .emit_confirmed(GatewayEvent::Attempt(event))
             .await
@@ -1418,8 +1450,9 @@ impl AttemptOrchestrator {
     }
 
     #[allow(clippy::too_many_arguments)]
-    async fn emit_pinned_attempt(
+    async fn emit_pinned_attempt<D: AttemptDriver>(
         &self,
+        driver: &D,
         request_id: &RequestId,
         route_id: &RouteId,
         selection: &SelectedRouteCredential,
@@ -1430,6 +1463,7 @@ impl AttemptOrchestrator {
         event_sink: &dyn GatewayEventSink,
     ) -> Result<(), GatewayError> {
         self.emit_attempt(
+            driver,
             Some(request_id),
             route_id,
             selection,

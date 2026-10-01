@@ -3629,3 +3629,18 @@ commit carries `Cross-Boundary: web/prism - generated CPAR B Usage contract`.
 **Why:** Add the isolated formal acceptance oracle regression to the existing Fast/Full entry point. The suite exercises the existing C live runner's new-build path against actual loopback HTTP and controlled protocol/event/ledger samples, including failures that HTTP status alone misses. Preserve the existing smoke entry point and its old-runtime receipt layer.
 
 **Other side:** FYI under the user's explicit implementation request for new-build real-channel acceptance tooling and required project gates. No frontend ownership, authoritative API/schema, Provider adaptation, remote configuration, service or production change. Full evidence will pin the tested source revision in `docs/reports/cpar-new-build-acceptance-20261001.md`; local simulated requests do not establish real Provider acceptance.
+
+## 2026-10-02 - Codex - CPAR execution identity and effective capabilities (#57)
+
+**Touched:** `docs/openapi/management-v1.json`, `web/prism/contracts/management-v1.json`.
+
+**Why:** Optional protected `EffectiveModelSource.capability_evidence` exposes the serving compiled
+candidate's actual configuration and complete declarations in the selected Client Key scope.
+Optional Channel Pin `execution` exposes actual lease/config/egress facts, separate from native or
+management account revisions. These remove the formal acceptance tool's historical attribution gap.
+
+**Other side:** FYI under this task's explicit contract/schema/client synchronization authorization.
+Ran `npm --prefix web/prism run sync-contract`; the generated generic client has no code diff.
+Existing response fields and frontend business code remain compatible. Schema 34 stores original
+Attempt and bounded evidence atomically without changing old event bytes. Old/missing evidence
+stays unknown. Release, deployment, real Provider and C/#57 completion remain distinct.

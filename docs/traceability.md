@@ -220,6 +220,12 @@
 
 ## 后续 Phase 映射
 
+CPAR C 执行证据与 ARM64 候选：#9、#39–#50、#57 对应
+[ADR-0102](adr/ADR-0102-attempt-execution-identity-and-capability-evidence.md) 与
+[BC-OBS-005](contracts/BC-OBS-005-attempt-execution-identity.md)。实际 lease、snapshot、egress
+证据及受保护有效能力声明接入既有正式验收工具；原事件/账本保留、旧数据不倒填。
+最终回归/门槛、候选源码、发布与 #57 剩余工作记录在本轮交付报告；本条不关闭 C 或父规格。
+
 | 矩阵模块 | 主要 Phase |
 |---|---|
 | A 接口与服务器 | P1、P3、P5、P12 |

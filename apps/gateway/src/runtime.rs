@@ -504,8 +504,9 @@ mod batch_a_native;
 #[cfg(test)]
 mod batch_c;
 mod catalog_refresh;
-mod kimi_metadata;
 /// Production pieces that must be attached to the separate P12 listeners together.
+mod execution_identity;
+mod kimi_metadata;
 mod reload;
 pub(crate) use reload::RuntimePublicationController;
 
@@ -1518,6 +1519,8 @@ impl P12RoutedResponsesExecutor {
         };
         let endpoints = Arc::clone(&self.endpoints);
         let driver = EndpointAttemptDriver {
+            execution_configuration: Some((self.snapshot_version.clone(), self.config_revision)),
+            execution_egress: std::sync::Mutex::new(None),
             runtime_quota: Arc::clone(&self.runtime_quota),
             kiro_profiles: Arc::clone(&self.kiro_profiles),
             generation_active: self.generation_active.clone(),
@@ -1583,6 +1586,7 @@ impl P12RoutedResponsesExecutor {
                     });
             return self.channel_pin_receipt(
                 &request,
+                &observation,
                 request_id,
                 ManagementChannelPinOutcome::Failed,
                 u8::from(observation.attempted()),
@@ -1623,6 +1627,7 @@ impl P12RoutedResponsesExecutor {
                         stage = Some(ManagementRequestAttemptStage::BodyRead);
                         return self.channel_pin_receipt(
                             &request,
+                            &observation,
                             request_id,
                             ManagementChannelPinOutcome::Failed,
                             attempt_count,
@@ -1638,6 +1643,7 @@ impl P12RoutedResponsesExecutor {
                             stage = Some(ManagementRequestAttemptStage::Decoder);
                             return self.channel_pin_receipt(
                                 &request,
+                                &observation,
                                 request_id,
                                 ManagementChannelPinOutcome::Failed,
                                 attempt_count,
@@ -1653,6 +1659,7 @@ impl P12RoutedResponsesExecutor {
                                 stage = Some(ManagementRequestAttemptStage::BodyRead);
                                 return self.channel_pin_receipt(
                                     &request,
+                                    &observation,
                                     request_id,
                                     ManagementChannelPinOutcome::Failed,
                                     attempt_count,
@@ -1666,6 +1673,7 @@ impl P12RoutedResponsesExecutor {
                                 stage = Some(ManagementRequestAttemptStage::Decoder);
                                 return self.channel_pin_receipt(
                                     &request,
+                                    &observation,
                                     request_id,
                                     ManagementChannelPinOutcome::Failed,
                                     attempt_count,
@@ -1679,6 +1687,7 @@ impl P12RoutedResponsesExecutor {
                                 stage = Some(ManagementRequestAttemptStage::Decoder);
                                 return self.channel_pin_receipt(
                                     &request,
+                                    &observation,
                                     request_id,
                                     ManagementChannelPinOutcome::Failed,
                                     attempt_count,
@@ -1705,6 +1714,7 @@ impl P12RoutedResponsesExecutor {
                 };
                 self.channel_pin_receipt(
                     &request,
+                    &observation,
                     request_id,
                     if lifecycle_complete {
                         ManagementChannelPinOutcome::Succeeded
@@ -1720,6 +1730,7 @@ impl P12RoutedResponsesExecutor {
             }
             Err(_) => self.channel_pin_receipt(
                 &request,
+                &observation,
                 request_id,
                 if attempt_count == 0 {
                     ManagementChannelPinOutcome::Rejected
@@ -1739,6 +1750,7 @@ impl P12RoutedResponsesExecutor {
     fn channel_pin_receipt(
         &self,
         request: &ManagementChannelPinRequest,
+        observation: &P13ChannelPinObservation,
         request_id: RequestId,
         outcome: ManagementChannelPinOutcome,
         attempt_count: u8,
@@ -1765,6 +1777,15 @@ impl P12RoutedResponsesExecutor {
             observed_at_ms,
             stage,
         )
+        .and_then(|receipt| {
+            receipt.with_execution(
+                observation
+                    .execution
+                    .lock()
+                    .map_err(|_| ManagementChannelPinError::Unavailable)?
+                    .clone(),
+            )
+        })
         .map(|receipt| {
             receipt.with_runtime_build(format!(
                 "{}:{}:{}",
@@ -1948,6 +1969,8 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             }
             let exact_continuation = continuation_pin.is_some();
             let driver = EndpointAttemptDriver {
+                execution_configuration: Some((snapshot_version.clone(), self.config_revision)),
+                execution_egress: std::sync::Mutex::new(None),
                 runtime_quota: Arc::clone(&self.runtime_quota),
                 kiro_profiles: Arc::clone(&self.kiro_profiles),
                 generation_active: self.generation_active.clone(),
@@ -2931,6 +2954,7 @@ fn endpoint_runtimes(
             .insert(
                 configured.id.clone(),
                 EndpointRuntime {
+                    channel: execution_identity::endpoint_channel(configuration, configured)?,
                     adapter,
                     policy,
                     resolver: Arc::clone(&resolver),
@@ -3640,6 +3664,7 @@ fn validate_endpoint_shape(
 
 /// One Endpoint's declared-format adapter plus the egress and transport state it executes on.
 struct EndpointRuntime {
+    channel: String,
     adapter: EndpointAdapter,
     policy: EgressPolicy,
     resolver: Arc<dyn EgressDnsResolver>,
@@ -4368,6 +4393,8 @@ struct CompatibleEgressSelection {
 }
 
 struct EndpointAttemptDriver {
+    execution_configuration: Option<(SnapshotVersion, ConfigRevision)>,
+    execution_egress: Mutex<Option<execution_identity::CapturedEgress>>,
     kiro_profiles: KiroProfileSnapshots,
     runtime_quota: Arc<RuntimeQuotaRegistry>,
     generation_active: Option<Arc<AtomicBool>>,
@@ -4401,6 +4428,8 @@ struct P13ChannelPinObservation {
     expected_credential_revision: Option<i64>,
     attempted: AtomicBool,
     upstream_sent: AtomicBool,
+    execution:
+        Mutex<Option<gateway_http_actix::management_resources::ManagementChannelPinExecution>>,
 }
 
 impl P13ChannelPinObservation {
@@ -4625,24 +4654,7 @@ impl AttemptDriver for EndpointAttemptDriver {
         _bootstrap_timeout: Duration,
     ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>> {
         Box::pin(async move {
-            if self
-                .generation_active
-                .as_ref()
-                .is_some_and(|active| !active.load(Ordering::Acquire))
-            {
-                return Err(AttemptFailure::NonRetryable(stale_runtime_error()));
-            }
-            if let Some(observation) = &self.channel_pin_observation {
-                if observation
-                    .expected_credential_revision
-                    .is_some_and(|revision| {
-                        u64::try_from(revision).ok() != Some(credential.credential_revision())
-                    })
-                {
-                    return Err(AttemptFailure::NonRetryable(stale_runtime_error()));
-                }
-                observation.mark_attempted();
-            }
+            self.begin_execution_attempt(candidate, credential)?;
             self.attempt_stages.record_stage(
                 &self.request_id,
                 ManagementRequestAttemptStage::RequestConversion,
@@ -4666,6 +4678,12 @@ impl AttemptDriver for EndpointAttemptDriver {
                 .map_err(|_| AttemptFailure::NonRetryable(upstream_protocol_error()))?;
             let compatible_selection =
                 self.compatible_egress_for_candidate(runtime, candidate, credential)?;
+            self.capture_egress(
+                runtime,
+                candidate,
+                credential,
+                compatible_selection.as_ref(),
+            )?;
             let compatible_context = Self::compatible_context(compatible_selection.as_ref());
             let result = match &runtime.adapter {
                 EndpointAdapter::OpenAiChatCompletions(endpoint) => {
@@ -4724,6 +4742,14 @@ impl AttemptDriver for EndpointAttemptDriver {
             };
             result.map(|source| Self::wrap_compatible_source(compatible_selection, source))
         })
+    }
+
+    fn execution_identity(
+        &self,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+    ) -> Option<gateway_core::AttemptExecutionIdentity> {
+        self.actual_execution_identity(candidate, credential)
     }
 
     fn start_timeout(&self, remaining_bootstrap: Duration) -> Duration {
@@ -4972,6 +4998,11 @@ impl EndpointAttemptDriver {
         // namespaced extension directly and fails closed on a request that carries no lossless
         // Anthropic representation, rather than inventing one.
         let credential = anthropic_runtime_credential(credential.secret_bytes())?;
+        if matches!(credential, ClaudeRuntimeCredential::OAuth(_))
+            && endpoint.url() == "https://api.anthropic.com/v1/messages"
+        {
+            self.record_claude_channel()?;
+        }
         let authorization = credential
             .authorization_at(system_now_ms()?)
             .map_err(AttemptFailure::NonRetryable)?;
@@ -7391,6 +7422,8 @@ fn required_u64(value: &Value) -> Result<u64, GatewayError> {
 }
 
 struct SnapshotManagementRuntimeFacade {
+    execution_configuration: Option<(SnapshotVersion, ConfigRevision)>,
+    execution_owned_reasoning: BTreeSet<EndpointId>,
     registry: Arc<RouteSnapshotRegistry>,
     attempt_stages: Arc<P12AttemptStageStore>,
     runtime_health: Arc<RuntimeHealthRegistry>,
@@ -7619,6 +7652,9 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                     .candidates
                     .into_iter()
                     .map(|candidate| ManagementEffectiveModelSource {
+                        capability_evidence: self.execution_configuration.as_ref().filter(|(version, _)| version == snapshot.version()).map(|(version, revision)| gateway_http_actix::management_resources::ManagementCapabilityEvidence {
+                            source: "serving_snapshot", config_version_id: version.as_str().to_owned(), config_revision: revision.as_i64(), capabilities: execution_identity::effective_capabilities(candidate, self.execution_owned_reasoning.contains(candidate.endpoint_id())),
+                        }),
                         candidate_id: candidate.id().as_str().to_owned(),
                         endpoint_id: candidate.endpoint_id().as_str().to_owned(),
                         upstream_id: candidate.upstream_id().as_str().to_owned(),
@@ -9558,6 +9594,7 @@ mod tests {
             endpoints.insert(
                 configured.id.clone(),
                 EndpointRuntime {
+                    channel: "openai-compatible".to_owned(),
                     adapter: EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
                         &configured.base_url,
                         &configured.inference_path,
@@ -9590,6 +9627,8 @@ mod tests {
             r#"{"model":"gateway-model","input":"fail over safely","stream":false}"#,
         )?;
         let driver = EndpointAttemptDriver {
+            execution_configuration: None,
+            execution_egress: std::sync::Mutex::new(None),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             kiro_profiles: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             generation_active: None,
@@ -9884,6 +9923,7 @@ mod tests {
         endpoints.insert(
             endpoint_id.clone(),
             EndpointRuntime {
+                channel: "openai-compatible".to_owned(),
                 adapter: EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
                     &format!("http://relay.test:{dead_port}/v1"),
                     "/responses",
@@ -9930,6 +9970,8 @@ mod tests {
             "../../../tests/fixtures/openai-responses/request-canonical.json"
         ))?;
         let driver = EndpointAttemptDriver {
+            execution_configuration: None,
+            execution_egress: std::sync::Mutex::new(None),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             kiro_profiles: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             generation_active: None,
@@ -11415,6 +11457,8 @@ mod tests {
             ManagementActor::try_new("p12-obs-test")?,
         )?;
         let mut facade = SnapshotManagementRuntimeFacade {
+            execution_configuration: None,
+            execution_owned_reasoning: BTreeSet::new(),
             registry: Arc::clone(lifecycle.registry()),
             attempt_stages,
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
@@ -11545,6 +11589,8 @@ mod tests {
             ManagementActor::try_new("p12-ledger-test")?,
         )?;
         let mut facade = SnapshotManagementRuntimeFacade {
+            execution_configuration: None,
+            execution_owned_reasoning: BTreeSet::new(),
             registry: Arc::clone(lifecycle.registry()),
             attempt_stages,
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
@@ -13219,6 +13265,8 @@ mod tests {
             Vec::new(),
         ))?);
         let mut facade = SnapshotManagementRuntimeFacade {
+            execution_configuration: None,
+            execution_owned_reasoning: BTreeSet::new(),
             registry: Arc::new(RouteSnapshotRegistry::new(snapshot)),
             attempt_stages: Arc::new(P12AttemptStageStore::new()),
             runtime_health: Arc::new(RuntimeHealthRegistry::new()),
@@ -13349,6 +13397,8 @@ mod tests {
         let runtime_quota = Arc::new(RuntimeQuotaRegistry::new());
         let registry = Arc::new(RouteSnapshotRegistry::new(snapshot));
         let mut facade = SnapshotManagementRuntimeFacade {
+            execution_configuration: None,
+            execution_owned_reasoning: BTreeSet::new(),
             registry,
             attempt_stages: Arc::new(P12AttemptStageStore::new()),
             runtime_health: Arc::clone(&runtime_health),
@@ -13428,6 +13478,8 @@ mod tests {
         )));
         let runtime_quota = Arc::new(RuntimeQuotaRegistry::with_clock(runtime_clock));
         let facade = SnapshotManagementRuntimeFacade {
+            execution_configuration: None,
+            execution_owned_reasoning: std::collections::BTreeSet::new(),
             registry: Arc::new(RouteSnapshotRegistry::new(snapshot)),
             attempt_stages: Arc::new(P12AttemptStageStore::new()),
             runtime_health: Arc::clone(&runtime_health),

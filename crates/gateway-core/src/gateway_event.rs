@@ -328,6 +328,10 @@ pub struct AttemptEvent {
     ended_at_ms: i64,
     outcome: AttemptOutcome,
     retry_decision: AttemptRetryDecision,
+    // Preserve the legacy payload bytes and strict readers. The event store persists this
+    // metadata atomically beside the Attempt, and reattaches it on protected reads.
+    #[serde(skip)]
+    execution_identity: Option<crate::AttemptExecutionIdentity>,
 }
 
 impl AttemptEvent {
@@ -363,7 +367,21 @@ impl AttemptEvent {
             ended_at_ms,
             outcome,
             retry_decision,
+            execution_identity: None,
         }
+    }
+
+    /// Attaches actual execution facts; the store validates and commits them with this Attempt.
+    #[must_use]
+    pub fn with_execution_identity(mut self, identity: crate::AttemptExecutionIdentity) -> Self {
+        self.execution_identity = Some(identity);
+        self
+    }
+
+    /// Returns actual execution facts, or unknown for legacy/embedding observations.
+    #[must_use]
+    pub const fn execution_identity(&self) -> Option<&crate::AttemptExecutionIdentity> {
+        self.execution_identity.as_ref()
     }
 
     /// Returns the external request correlation identifier.
@@ -462,6 +480,7 @@ impl fmt::Debug for AttemptEvent {
             .field("ended_at_ms", &self.ended_at_ms)
             .field("outcome", &self.outcome)
             .field("retry_decision", &self.retry_decision)
+            .field("execution_identity", &self.execution_identity)
             .finish()
     }
 }

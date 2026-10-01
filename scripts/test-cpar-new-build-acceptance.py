@@ -93,11 +93,13 @@ def wire(protocol, value, mode):
 
 
 def runtime():
-    return {"method": "proc_executable", "instance": "isolated-fixture", "pid": 1, "process_start": "1", "observed_at_utc": oracle.now(), "stable_process": True, "artifact_sha": SOURCE_SHA, "source_sha": SOURCE_SHA, "artifact_sha256": "1" * 64}
+    return {"method": "proc_executable", "instance": "isolated-fixture", "pid": 1, "process_start": "1", "observed_at_utc": oracle.now(), "stable_process": True, "artifact_sha": SOURCE_SHA, "source_sha": SOURCE_SHA, "artifact_sha256": "1" * 64, "capability_observations": [target()["declaration_evidence"]]}
 
 
 def target(protocol="responses", mode="json"):
-    return {"channel": "openai-compatible", "endpoint_id": "local-endpoint", "route_id": "local-route", "route_candidate_id": "local-candidate", "upstream_model": "local-model", "public_model": "local-model", "response_model": "local-model", "credential_evidence_id": oracle.opaque("synthetic-account"), "credential_revision": 3, "config_version_id": "local", "config_revision": 4, "egress_evidence_id": oracle.opaque("direct"), "egress_revision": 1, "protocol": protocol, "mode": mode, "parameters": {"max_output_tokens" if protocol == "responses" else "max_tokens": 128}, "capabilities": {key: False for key in oracle.EXTENSIONS}, "declaration_observed_at_utc": oracle.now()}
+    result = {"channel": "openai-compatible", "endpoint_id": "local-endpoint", "route_id": "local-route", "route_candidate_id": "local-candidate", "upstream_model": "local-model", "public_model": "local-model", "response_model": "local-model", "credential_evidence_id": oracle.opaque("synthetic-account"), "credential_revision": 3, "config_version_id": "local", "config_revision": 4, "egress_evidence_id": oracle.opaque("direct"), "egress_revision": {"source": "not_applicable"}, "protocol": protocol, "mode": mode, "parameters": {"max_output_tokens" if protocol == "responses" else "max_tokens": 128}, "capabilities": {key: False for key in oracle.EXTENSIONS}, "declaration_observed_at_utc": oracle.now()}
+    result["declaration_evidence"] = {"source": "serving_snapshot", "projection_id": "1" * 64, "observed_at_utc": oracle.now(), "client_key_evidence_id": oracle.opaque("synthetic-client"), **{field: result[field] for field in ("config_version_id", "config_revision", "route_id", "route_candidate_id", "endpoint_id", "upstream_model", "capabilities")}}
+    return result
 
 
 def evidence(current_target, value, number=1):
@@ -105,9 +107,9 @@ def evidence(current_target, value, number=1):
     value["usage"]["cpar_usage"] = source
     request_id, attempt_id = "request_" + str(number), "attempt_" + str(number)
     attempt = {field: current_target[field] for field in oracle.TARGET_FIELDS}
-    attempt.update(request_id=request_id, attempt_id=attempt_id, outcome="success")
+    attempt.update(request_id=request_id, attempt_id=attempt_id, outcome="success", capabilities=current_target["capabilities"])
     usage = {"request_id": request_id, "attempt_id": attempt_id, "response_id": value["id"], "usage": source}
-    return {"correlation": "response_id_usage", "request_id": request_id, "attempts": [attempt], "usages": [usage], "ledger": [copy.deepcopy(usage)]}
+    return {"correlation": "response_id_usage", "request_id": request_id, "client_key_evidence_id": current_target["declaration_evidence"]["client_key_evidence_id"], "protocol": {"responses": "openai_responses", "chat": "openai_chat_completions", "messages": "anthropic_messages"}[current_target["protocol"]], "stream": current_target["mode"] == "sse", "request_outcome": "succeeded", "attempts": [attempt], "usages": [usage], "ledger": [copy.deepcopy(usage)]}
 
 
 def bundle(protocol="responses", mode="json"):
@@ -164,6 +166,37 @@ class LegacyDefects(unittest.TestCase):
 
 @unittest.skipIf(bool(os.environ.get("CPAR_TEST_LEGACY")), "formal mode only")
 class FormalOracle(unittest.TestCase):
+    def test_freeze_uses_actual_lease_and_scoped_effective_declaration(self):
+        original = target()
+        plan = {"layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": copy.deepcopy(original)}
+        for field in (*oracle.TARGET_FIELDS, "declaration_evidence", "declaration_observed_at_utc"):
+            plan["target"][field] = None
+        plan["target"]["capabilities"] = {name: None for name in oracle.EXTENSIONS}
+        pin = {"outcome": "succeeded", "attempt_count": 1, "upstream_sent": True,
+               "runtime_build": SOURCE_SHA + ":1.97.1:aarch64-unknown-linux-gnu", "observed_at_ms": int(time.time() * 1000),
+               "config_version_id": "local", "config_revision": 4, "requested_model": "local-model",
+               "protocol": "openai_responses", "mode": "json", "channel_id": "local-endpoint", "route_id": "local-route",
+               "credential_id": "synthetic-account", "credential_revision": 99, "client_key_id": "synthetic-client",
+               "execution": {"attempt_id": "request-attempt-1", "route_candidate_id": "local-candidate", "upstream_model": "local-model",
+                             "identity": {"channel": "openai-compatible", "credential_revision": 3, "config_version_id": "local", "config_revision": 4,
+                                          "egress": {"kind": "direct"}, "capabilities": original["capabilities"]}}}
+        frozen = oracle.freeze_from_pin(plan, runtime(), pin)
+        self.assertEqual(frozen["target"]["credential_revision"], 3)
+        self.assertEqual(frozen["target"]["egress_revision"], {"source": "not_applicable"})
+        self.assertEqual(frozen["target"]["declaration_evidence"]["source"], "serving_snapshot")
+        self.assertIsNone(plan["target"]["credential_revision"])
+        for mutation in ("legacy", "unknown_revision", "wrong_access", "wrong_configuration", "wrong_capabilities", "wrong_egress"):
+            changed = copy.deepcopy(pin)
+            actual = changed["execution"]["identity"]
+            if mutation == "legacy":changed.pop("execution")
+            if mutation == "unknown_revision":actual["credential_revision"] = None
+            if mutation == "wrong_access":changed["client_key_id"] = "unrelated-client"
+            if mutation == "wrong_configuration":actual["config_revision"] = 98
+            if mutation == "wrong_capabilities":actual["capabilities"]["parallel"] = True
+            if mutation == "wrong_egress":actual["egress"] = {"kind": "configured_proxy", "target_id": "pool", "node_id": "node", "config_version_id": "local", "config_revision": 98}
+            with self.subTest(mutation=mutation), self.assertRaises((oracle.Blocked, ValueError)):
+                oracle.freeze_from_pin(plan, runtime(), changed)
+
     def test_repository_source_usage_fields_are_retained(self):
         value = response()
         source = {"input_tokens": 3, "output_tokens": 2, "reasoning_tokens": 1, "cache_read_tokens": None, "cache_creation_tokens": None, "cached_tokens": 1, "provenance": "measured", "input_accounting": "inclusive"}
@@ -229,6 +262,53 @@ class FormalOracle(unittest.TestCase):
             self.assertEqual(oracle.audit_bundle(value)["basic_status"], "FAIL", field)
             attempt[field] = None
             self.assertEqual(oracle.audit_bundle(value)["basic_status"], "BLOCKED", field)
+
+    def test_execution_revision_sources_do_not_substitute_for_lease(self):
+        for value in (None, "rev-3", True):
+            changed = bundle()
+            changed["target"]["credential_revision"] = value
+            self.assertEqual(oracle.audit_bundle(changed)["status"], "BLOCKED")
+        changed = bundle()
+        changed["target"]["egress_revision"] = {"source": "config_version", "config_version_id": "other", "revision": 4}
+        self.assertEqual(oracle.audit_bundle(changed)["status"], "FAIL")
+
+    def test_unknown_and_contradictory_capabilities_stop_before_any_send(self):
+        for kind, status in (("missing", "BLOCKED"), ("null", "BLOCKED"), ("wrong_revision", "FAIL"), ("wrong_declaration", "FAIL"), ("stale", "BLOCKED")):
+            current = runtime()
+            if kind == "missing":current.pop("capability_observations")
+            if kind == "null":current["capability_observations"][0]["capabilities"] = None
+            if kind == "wrong_revision":current["capability_observations"][0]["config_revision"] += 1
+            if kind == "wrong_declaration":current["capability_observations"][0]["capabilities"]["reasoning"] = True
+            if kind == "stale":current["capability_observations"][0]["observed_at_utc"] = "2020-01-01T00:00:00+00:00"
+            current_plan = {"layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": target()}
+            sent = []
+            saved = oracle.http_call
+            oracle.http_call = lambda *_: sent.append(True)
+            try:
+                result = oracle.run_basic(current_plan, current, "synthetic", "http://127.0.0.1:1")
+            finally:
+                oracle.http_call = saved
+            self.assertEqual(sent, [], kind)
+            self.assertEqual(oracle.audit_bundle(result)["status"], status, kind)
+
+    def test_protocol_applicability_keeps_gateway_declaration(self):
+        changed = bundle("chat")
+        changed["target"]["capabilities"]["stored"] = True
+        receipt = oracle.audit_bundle(changed)
+        self.assertIs(receipt["capabilities"]["stored"], True)
+        row = next(row for row in receipt["checks"] if row.get("extension") == "stored")
+        self.assertFalse(row["applicable"])
+        self.assertTrue(row["declared"])
+        self.assertEqual(row["category"], "protocol_not_applicable")
+
+    def test_request_terminal_access_and_execution_binding_must_match(self):
+        for field, replacement, expected in (("request_outcome", "failed", "FAIL"), ("request_outcome", None, "BLOCKED"), ("protocol", "anthropic_messages", "FAIL"), ("stream", True, "FAIL"), ("client_key_evidence_id", "f" * 64, "FAIL")):
+            changed = bundle()
+            changed["scenarios"]["text_multi_turn"][0]["evidence"][field] = replacement
+            self.assertEqual(oracle.audit_bundle(changed)["basic_status"], expected, field)
+        changed = bundle()
+        changed["scenarios"]["text_multi_turn"][0]["evidence"]["attempts"][0]["execution_evidence_valid"] = False
+        self.assertEqual(oracle.audit_bundle(changed)["basic_status"], "FAIL")
 
     def test_operator_commit_cannot_attest_runtime(self):
         value = bundle()
@@ -406,6 +486,47 @@ class FormalOracle(unittest.TestCase):
             self.assertIsNone(collect()["ledger"][0]["usage"]["provenance"])
             database.close()
 
+    def test_collector_reads_only_bound_execution_sidecar_and_legacy_stays_unknown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = sqlite3.connect(str(Path(directory, "control.sqlite3")))
+            database.executescript("CREATE TABLE gateway_event_log(event_id TEXT,event_type TEXT,request_id TEXT,event_ordinal INTEGER,payload_json TEXT); CREATE TABLE gateway_attempt_execution(attempt_id TEXT,request_id TEXT,attempt_payload_sha256 TEXT,evidence_json TEXT); CREATE TABLE billing_ledger_entries(source_event_id TEXT,request_id TEXT,response_id TEXT);")
+            value = response()
+            lineage = evidence(target(), value)
+            usage, attempt = lineage["usages"][0], lineage["attempts"][0]
+            payload = json.dumps({"attempt": attempt})
+            for event_id, kind, body, ordinal in (("request_1", "request", {"client_key_id": "synthetic-client", "protocol": "openai_responses", "streaming": False}, 1), (attempt["attempt_id"], "attempt", attempt, 2), ("source-a", "usage", usage, 3), ("request_1", "request_finished", {"outcome": "succeeded"}, 4)):
+                database.execute("INSERT INTO gateway_event_log VALUES(?,?,?,?,?)", (event_id, kind, usage["request_id"], ordinal, json.dumps({kind: body})))
+            identity = {"channel": "openai-compatible", "credential_revision": 3, "config_version_id": "local", "config_revision": 4, "egress": {"kind": "direct"}, "capabilities": target()["capabilities"]}
+            def collect():
+                database.commit()
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    exec(oracle.REMOTE_COLLECT.replace("RESPONSE_ID", repr(value["id"])), {"opts": {"--state-dir": directory}, "pathlib": __import__("pathlib"), "json": json, "datetime": datetime, "hashlib": hashlib, "opaque": oracle.opaque, "runtime": runtime()})
+                return json.loads(output.getvalue())["evidence"]
+            legacy_attempt = collect()["attempts"][0]
+            self.assertIsNone(legacy_attempt["credential_revision"])
+            self.assertIsNone(legacy_attempt["capabilities"])
+            database.execute("INSERT INTO gateway_attempt_execution VALUES(?,?,?,?)", (attempt["attempt_id"], usage["request_id"], hashlib.sha256(payload.encode()).hexdigest(), json.dumps(identity)))
+            actual = collect()
+            self.assertIs(actual["attempts"][0]["execution_evidence_valid"], True)
+            self.assertEqual(actual["attempts"][0]["credential_revision"], 3)
+            self.assertEqual(actual["attempts"][0]["egress_revision"], {"source": "not_applicable"})
+            self.assertIs(actual["stream"], False)
+            self.assertEqual(actual["request_outcome"], "succeeded")
+            database.execute("UPDATE gateway_attempt_execution SET attempt_payload_sha256=?", ("0" * 64,))
+            self.assertIs(collect()["attempts"][0]["execution_evidence_valid"], False)
+            database.execute("UPDATE gateway_attempt_execution SET attempt_payload_sha256=?", (hashlib.sha256(payload.encode()).hexdigest(),))
+            invalid = {**identity, "egress": {"kind": "configured_proxy", "target_id": "pool", "node_id": "node", "config_version_id": "local", "config_revision": 99}}
+            database.execute("UPDATE gateway_attempt_execution SET evidence_json=?", (json.dumps(invalid),))
+            self.assertIs(collect()["attempts"][0]["execution_evidence_valid"], False)
+            invalid = {**identity, "raw_body": "PRIVATE_BODY", "secret": "PRIVATE_KEY"}
+            database.execute("UPDATE gateway_attempt_execution SET evidence_json=?", (json.dumps(invalid),))
+            rendered = json.dumps(collect())
+            self.assertNotIn("PRIVATE_BODY", rendered)
+            self.assertNotIn("PRIVATE_KEY", rendered)
+            self.assertIs(collect()["attempts"][0]["execution_evidence_valid"], False)
+            database.close()
+
     def test_real_http_runner_and_current_receipts(self):
         for protocol in oracle.PROTOCOLS:
             for mode in ("json", "sse"):
@@ -437,6 +558,8 @@ class FormalOracle(unittest.TestCase):
                             lineage = evidence(current_target, value, len(observed))
                             if fault[0] == "wrong_target":lineage["attempts"][0]["endpoint_id"] = "other-endpoint"
                             if fault[0] == "missing_revision":lineage["attempts"][0]["credential_revision"] = None
+                            if fault[0] == "missing_capabilities":lineage["attempts"][0]["capabilities"] = None
+                            if fault[0] == "wrong_capabilities":lineage["attempts"][0]["capabilities"] = {**current_target["capabilities"], "parallel": True}
                             current_runtime = runtime()
                             if fault[0] == "wrong_model":value["model"] = "other-model"
                             if fault[0] == "wrong_runtime":current_runtime["artifact_sha"] = "2" * 40
@@ -457,7 +580,7 @@ class FormalOracle(unittest.TestCase):
                         self.assertEqual(oracle.audit_bundle(result)["basic_status"], "PASS")
                         if os.environ.get("CPAR_TEST_RECEIPT_DIR"):
                             oracle.write_receipt(Path(os.environ["CPAR_TEST_RECEIPT_DIR"]) / (protocol + "-" + mode + ".json"), oracle.audit_bundle(result))
-                        for kind, status in (("wrong_target", "FAIL"), ("missing_revision", "BLOCKED"), ("http_error", "FAIL"), ("wrong_model", "FAIL"), ("wrong_runtime", "FAIL"), ("missing_runtime", "BLOCKED")):
+                        for kind, status in (("wrong_target", "FAIL"), ("missing_revision", "BLOCKED"), ("http_error", "FAIL"), ("wrong_model", "FAIL"), ("wrong_runtime", "FAIL"), ("missing_runtime", "BLOCKED"), ("missing_capabilities", "BLOCKED"), ("wrong_capabilities", "FAIL")):
                             with self.subTest(fault=kind):
                                 fault[0] = kind
                                 before = len(observed)

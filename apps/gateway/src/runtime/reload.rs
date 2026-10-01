@@ -1,7 +1,7 @@
 //! Complete serving generations, prepared before publication and captured once per request.
 use super::{
     Arc, AtomicBool, ClientKeyService, ConfigRevision, ConfigVersionId, ControlPlaneConfiguration,
-    GatewayEventSink, GrokBuildCacheIdentityDeriver, ManagementChannelPinFacade,
+    EndpointId, GatewayEventSink, GrokBuildCacheIdentityDeriver, ManagementChannelPinFacade,
     ManagementChannelPinRequest, ManagementRuntimeError, ManagementRuntimeFacade,
     ModelCatalogTarget, Mutex, NoActiveConfigurationExecutor, Ordering, P12AttemptStageStore,
     P12ChannelPinFacade, P12RoutedResponsesExecutor, ProviderAccountPoolComposition,
@@ -91,6 +91,13 @@ impl RuntimeFactory {
         let flaresolverr_port = self.flaresolverr_port;
         let mut routing_price_snapshot: Option<Arc<RoutingPriceSnapshot>> = None;
         let active = Arc::new(AtomicBool::new(false));
+        let execution_configuration = configuration
+            .map(|configuration| {
+                ConfigRevision::try_new(configuration.version.revision)
+                    .map(|revision| (registry.load().version().clone(), revision))
+                    .map_err(|_| RuntimeCompositionError::Unavailable)
+            })
+            .transpose()?;
         let (
             executor,
             provider_account_pools,
@@ -246,6 +253,19 @@ impl RuntimeFactory {
                 active: Arc::clone(&active),
                 data: Arc::new(data),
                 runtime: Mutex::new(Box::new(SnapshotManagementRuntimeFacade {
+                    execution_configuration,
+                    execution_owned_reasoning: configuration
+                        .map(|configuration| {
+                            configuration
+                                .endpoints
+                                .iter()
+                                .filter(|endpoint| endpoint.adapter_id == "grok.build.responses")
+                                .filter_map(|endpoint| {
+                                    EndpointId::try_new(endpoint.id.as_str()).ok()
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default(),
                     registry,
                     attempt_stages,
                     runtime_health,

@@ -422,6 +422,22 @@ def verify_target(target):
     require(target.get("protocol") in PROTOCOLS and target.get("mode") in ("json", "sse"), "invalid_combination")
     available(isinstance(target["capabilities"], dict) and all(isinstance(target["capabilities"].get(key), bool) for key in EXTENSIONS), "capabilities_unknown")
     available(not (set(target["capabilities"]) - EXTENSIONS), "unreviewed_declared_capability")
+    available(integer(target.get("credential_revision")) and integer(target.get("config_revision")), "execution_revision_unknown")
+    revision = target.get("egress_revision")
+    available(isinstance(revision, dict) and revision.get("source") in ("not_applicable", "config_version", "transport_fingerprint"), "egress_revision_unknown")
+    if revision["source"] == "config_version":
+        require(set(revision) == {"source", "config_version_id", "revision"}, "unreviewed_egress_revision")
+        require(revision.get("config_version_id") == target["config_version_id"] and revision.get("revision") == target["config_revision"], "egress_revision_mismatch")
+    if revision["source"] == "transport_fingerprint":
+        require(set(revision) == {"source", "sha256"}, "unreviewed_egress_revision")
+        require(re.fullmatch("[0-9a-f]{64}", revision.get("sha256", "")) is not None, "invalid_egress_fingerprint")
+    if revision["source"] == "not_applicable":
+        require(set(revision) == {"source"}, "unreviewed_egress_revision")
+    declaration = target.get("declaration_evidence")
+    available(isinstance(declaration, dict) and declaration.get("source") == "serving_snapshot", "capability_source_unknown")
+    available(all(declaration.get(field) is not None for field in ("projection_id", "observed_at_utc", "client_key_evidence_id", "capabilities", "config_version_id", "config_revision", "route_id", "route_candidate_id", "endpoint_id", "upstream_model")), "capability_source_incomplete")
+    require(all(declaration[field] == target[field] for field in ("config_version_id", "config_revision", "route_id", "route_candidate_id", "endpoint_id", "upstream_model", "capabilities")), "capability_declaration_mismatch")
+    require(re.fullmatch("[0-9a-f]{64}", declaration["client_key_evidence_id"]) is not None, "invalid_client_identity")
     for field in ("credential_evidence_id", "egress_evidence_id"):
         require(re.fullmatch("[0-9a-f]{64}", target[field]) is not None, "invalid_opaque_identity")
     validate_parameters(target.get("parameters", {}))
@@ -430,6 +446,62 @@ def verify_target(target):
     if target["channel"] == "kiro" and (target["protocol"] == "messages" or any(key in target.get("parameters", {}) for key in ("max_tokens", "max_completion_tokens", "max_output_tokens"))):
         raise Blocked("software_kiro_native_output_cap")
     require(target["protocol"] != "messages" or integer(target.get("parameters", {}).get("max_tokens")) and target["parameters"]["max_tokens"] > 0, "messages_output_limit_required")
+
+
+def verify_current_declaration(target, runtime):
+    declarations = runtime.get("capability_observations")
+    available(isinstance(declarations, list), "current_capabilities_unavailable")
+    frozen = target["declaration_evidence"]
+    matches = [row for row in declarations if all(row.get(key) == frozen[key] for key in
+        ("client_key_evidence_id", "route_id", "route_candidate_id", "endpoint_id", "upstream_model"))]
+    available(len(matches) == 1 and matches[0].get("source") == "serving_snapshot", "current_capability_source_unknown")
+    actual = matches[0]
+    available(isinstance(actual.get("capabilities"), dict) and all(isinstance(actual["capabilities"].get(key), bool) for key in EXTENSIONS), "current_capabilities_unknown")
+    available(integer(actual.get("config_revision")), "current_configuration_revision_unknown")
+    require(all(actual.get(key) == frozen[key] for key in ("config_version_id", "config_revision", "projection_id", "capabilities")), "current_capability_declaration_changed")
+    for row in (actual, frozen):
+        observed = datetime.datetime.fromisoformat(row["observed_at_utc"])
+        available(observed.tzinfo is not None and -30 <= (datetime.datetime.now(datetime.timezone.utc) - observed).total_seconds() <= 600, "capability_observation_stale")
+
+
+def freeze_from_pin(plan, runtime, pin):
+    """Freeze existing protected facts without sending inference or consulting inventory revisions."""
+    result = copy.deepcopy(plan)
+    verify_runtime(runtime, result["source_sha"], result["layer"])
+    actual = pin.get("execution")
+    available(isinstance(actual, dict) and isinstance(actual.get("identity"), dict), "pin_execution_unknown")
+    require(pin.get("outcome") == "succeeded" and pin.get("attempt_count") == 1 and pin.get("upstream_sent") is True, "pin_execution_not_successful")
+    require(isinstance(pin.get("runtime_build"), str) and pin["runtime_build"].split(":")[0] == runtime["artifact_sha"], "wrong_pin_runtime")
+    available(integer(pin.get("observed_at_ms")), "pin_observation_unknown")
+    observed = datetime.datetime.fromtimestamp(pin["observed_at_ms"] / 1000, datetime.timezone.utc)
+    available(-30 <= (datetime.datetime.now(datetime.timezone.utc) - observed).total_seconds() <= 600, "pin_observation_stale")
+    identity, target = actual["identity"], result["target"]
+    require(identity.get("config_version_id") == pin.get("config_version_id") and identity.get("config_revision") == pin.get("config_revision"), "pin_configuration_mismatch")
+    require(pin.get("requested_model") == target.get("public_model") and pin.get("protocol") == {"chat": "openai_chat_completions", "responses": "openai_responses", "messages": "anthropic_messages"}.get(target.get("protocol")) and pin.get("mode") == target.get("mode"), "wrong_pin_combination")
+    observed_target = {"channel": identity.get("channel"), "endpoint_id": pin.get("channel_id"), "route_id": pin.get("route_id"), "route_candidate_id": actual.get("route_candidate_id"), "upstream_model": actual.get("upstream_model"), "credential_evidence_id": opaque(pin.get("credential_id")), "credential_revision": identity.get("credential_revision"), "config_version_id": identity.get("config_version_id"), "config_revision": identity.get("config_revision"), "capabilities": identity.get("capabilities")}
+    egress = identity.get("egress") or {}
+    if egress.get("kind") == "direct":
+        observed_target.update(egress_evidence_id=opaque("direct"), egress_revision={"source": "not_applicable"})
+    elif egress.get("kind") == "configured_proxy":
+        observed_target.update(egress_evidence_id=opaque(json.dumps(["configured_proxy", egress.get("target_id"), egress.get("node_id")], separators=(",", ":"))), egress_revision={"source": "config_version", "config_version_id": egress.get("config_version_id"), "revision": egress.get("config_revision")})
+    elif egress.get("kind") == "process_proxy":
+        observed_target.update(egress_evidence_id=opaque("process_proxy:" + str(egress.get("transport_fingerprint"))), egress_revision={"source": "transport_fingerprint", "sha256": egress.get("transport_fingerprint")})
+    else:
+        raise Blocked("pin_egress_unknown")
+    for key, value in observed_target.items():
+        if target.get(key) is not None and key != "capabilities":
+            require(target[key] == value, "pin_target_changed")
+        if key == "capabilities" and isinstance(target.get(key), dict):
+            require(all(frozen is None or isinstance(value, dict) and value.get(name) == frozen for name, frozen in target[key].items()), "pin_capabilities_changed")
+        target[key] = value
+    available(pin.get("client_key_id") is not None, "pin_client_scope_unknown")
+    matches = [row for row in runtime.get("capability_observations", []) if row.get("client_key_evidence_id") == opaque(pin["client_key_id"]) and all(row.get(key) == target[key] for key in ("route_id", "route_candidate_id", "endpoint_id", "upstream_model"))]
+    available(len(matches) == 1, "pin_capability_source_unknown")
+    target["declaration_evidence"] = copy.deepcopy(matches[0])
+    target["declaration_observed_at_utc"] = matches[0].get("observed_at_utc")
+    verify_target(target)
+    verify_current_declaration(target, runtime)
+    return result
 
 
 def validate_parameters(parameters):
@@ -455,11 +527,21 @@ def verify_attempts(target, evidence, response_id, expected="success"):
     require(len({attempt.get("attempt_id") for attempt in attempts}) == len(attempts), "duplicate_attempt")
     require(len(attempts) == 1, "unexpected_retry")
     for attempt in attempts:
+        require(attempt.get("execution_evidence_valid") is not False, "execution_evidence_mismatch")
         require(attempt.get("request_id") == request_id, "wrong_request_attribution")
         for field in TARGET_FIELDS:
             available(attempt.get(field) is not None, "attempt_identity_incomplete")
             require(attempt[field] == target[field], "wrong_attempt_target")
         require(attempt.get("outcome") == expected, "wrong_attempt_outcome")
+        available(attempt.get("capabilities") is not None, "attempt_capabilities_unknown")
+        require(attempt["capabilities"] == target["capabilities"], "attempt_capability_declaration_changed")
+    available(evidence.get("client_key_evidence_id") is not None, "request_access_identity_unknown")
+    require(evidence["client_key_evidence_id"] == target["declaration_evidence"]["client_key_evidence_id"], "wrong_execution_client")
+    available(evidence.get("protocol") is not None and evidence.get("stream") is not None, "request_protocol_unknown")
+    require(evidence["protocol"] == {"responses": "openai_responses", "chat": "openai_chat_completions", "messages": "anthropic_messages"}[target["protocol"]] and evidence["stream"] is (target["mode"] == "sse"), "wrong_execution_protocol")
+    if expected == "success":
+        available(evidence.get("request_outcome") is not None, "request_terminal_unknown")
+        require(evidence["request_outcome"] == "succeeded", "wrong_request_outcome")
     usages = evidence.get("usages", [])
     available(bool(usages), "durable_usage_unavailable")
     require(all(row.get("request_id") == request_id and row.get("response_id") == response_id and row.get("attempt_id") == attempts[0]["attempt_id"] for row in usages), "usage_attribution_mismatch")
@@ -677,6 +759,9 @@ def verdict(action):
 def public_identity(key, value):
     if value is None:
         return None
+    if key == "egress_revision" and isinstance(value, dict):
+        fields = {"not_applicable": ("source",), "config_version": ("source", "config_version_id", "revision"), "transport_fingerprint": ("source", "sha256")}.get(value.get("source"), ())
+        return {field: public_identity(field, value.get(field)) for field in fields} or None
     if key in ("credential_evidence_id", "egress_evidence_id", "source_sha", "artifact_sha", "artifact_sha256", "manifest_sha256"):
         width = 40 if key in ("source_sha", "artifact_sha") else 64
         return value if isinstance(value, str) and re.fullmatch("[0-9a-f]{" + str(width) + "}", value) else None
@@ -750,10 +835,11 @@ def audit_bundle(bundle):
         receipt["checks"].append({"case": case, **(verdict(lambda s=sample: boundary_check(s, target)) if sample is not None else {"status": "NOT_RUN", "category": "controlled_boundary_sample_required"})})
     for extension in sorted(EXTENSIONS):
         declared = target["capabilities"][extension]
-        for case in sorted(EXTENSION_CHECKS[extension]) if declared else ["declaration"]:
+        protocol_applicable = target["protocol"] == "responses" or extension in ("reasoning", "parallel")
+        for case in sorted(EXTENSION_CHECKS[extension]) if declared and protocol_applicable else ["declaration"]:
             sample = bundle.get("extensions", {}).get(extension, {}).get(case)
-            result = verdict(lambda n=extension, c=case, s=sample: extension_check(n, c, s, target)) if sample is not None and declared else {"status": "NOT_RUN", "category": "declared_extension_sample_required" if declared else "explicitly_not_declared"}
-            receipt["checks"].append({"extension": extension, "case": case, "applicable": declared, **result})
+            result = verdict(lambda n=extension, c=case, s=sample: extension_check(n, c, s, target)) if sample is not None and declared and protocol_applicable else {"status": "NOT_RUN", "category": "protocol_not_applicable" if not protocol_applicable else "declared_extension_sample_required" if declared else "explicitly_not_declared"}
+            receipt["checks"].append({"extension": extension, "case": case, "declared": declared, "applicable": declared and protocol_applicable, **result})
     applicable = [row["status"] for row in receipt["checks"] if row.get("applicable", True)]
     receipt["status"] = next((status for status in ("FAIL", "BLOCKED", "NOT_RUN") if status in applicable), "PASS")
     receipt["basic_status"] = next((status for status in ("FAIL", "BLOCKED", "NOT_RUN") if any(row["case"] in ("text_multi_turn", "single_tool", "two_tool_cycles") and row["status"] == status for row in receipt["checks"])), "PASS")
@@ -856,6 +942,32 @@ if INVENTORY:
         grants,_,error=get('/admin/access-groups/'+urllib.parse.quote(group['id'],safe='')+'/routes')
         grants=grants.get('items',[]) if isinstance(grants,dict) else grants
         result['route_grants'].append({'access_group_evidence_id':opaque(group['id']),'error':error,'routes':[{k:row.get(k) for k in ['route_id','enabled']} for row in grants or []]})
+    runtime['capability_observations']=[]
+    keys,_,error=get('/admin/client-keys')
+    keys=keys.get('items',[]) if isinstance(keys,dict) else keys
+    result['capability_read_errors']=[]
+    for key in keys or []:
+        path='/admin/models/effective?client_key_id='+urllib.parse.quote(key['id'],safe='')+'&limit=200'
+        for page_number in range(20):
+            page,_,error=get(path)
+            if error:
+                result['capability_read_errors'].append({'client_key_evidence_id':opaque(key['id']),'error':error})
+                break
+            for model in page.get('items',[]):
+                for candidate in model.get('sources',[]):
+                    declaration=candidate.get('capability_evidence') or {}
+                    runtime['capability_observations'].append({
+                        'source':declaration.get('source'),'config_version_id':declaration.get('config_version_id'),
+                        'config_revision':declaration.get('config_revision'),'capabilities':declaration.get('capabilities'),
+                        'client_key_evidence_id':opaque(key['id']),'projection_id':page.get('projection_id'),
+                        'observed_at_utc':datetime.datetime.fromtimestamp(page['observed_at_ms']/1000,datetime.timezone.utc).isoformat(),
+                        'route_id':model.get('route_id'),'route_candidate_id':candidate.get('candidate_id'),
+                        'endpoint_id':candidate.get('endpoint_id'),'upstream_model':model.get('id'),
+                    })
+            cursor=page.get('next_cursor')
+            if not cursor:break
+            path=path.split('&cursor=')[0]+'&cursor='+urllib.parse.quote(cursor,safe='')
+        else:result['capability_read_errors'].append({'client_key_evidence_id':opaque(key['id']),'error':'pagination_limit'})
     result['bindings']=[]
     endpoints,_,_=get('/admin/endpoints')
     endpoints=endpoints.get('items',[]) if isinstance(endpoints,dict) else endpoints
@@ -883,6 +995,7 @@ REMOTE_COLLECT = r'''
 import sqlite3
 database=sqlite3.connect('file:'+str(pathlib.Path(opts['--state-dir'])/'control.sqlite3')+'?mode=ro',uri=True,timeout=5)
 database.row_factory=sqlite3.Row
+database.execute('BEGIN')
 response_id=RESPONSE_ID
 usage_sources={row[0]:json.loads(row[1])['usage'] for row in database.execute("SELECT event_id,payload_json FROM gateway_event_log WHERE event_type='usage' AND json_extract(payload_json,'$.usage.response_id')=? LIMIT 3",(response_id,))}
 observations=[{k:row.get(k) for k in ['request_id','response_id','attempt_id','usage']} for row in usage_sources.values()]
@@ -890,14 +1003,63 @@ request_ids=sorted(set(row['request_id'] for row in observations))
 evidence={'correlation':'response_id_usage' if len(request_ids)==1 else None,'request_id':request_ids[0] if len(request_ids)==1 else None,'attempts':[],'usages':observations,'ledger':None,'observed_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
 if len(request_ids)==1:
     request_id=request_ids[0]
-    attempts=[json.loads(row[0])['attempt'] for row in database.execute("SELECT payload_json FROM gateway_event_log WHERE event_type='attempt' AND request_id=? ORDER BY event_ordinal LIMIT 17",(request_id,))]
-    fields=['request_id','attempt_id','channel','endpoint_id','route_id','route_candidate_id','upstream_model','credential_revision','config_version_id','config_revision','egress_revision','started_at_ms','ended_at_ms','retry_decision']
-    for row in attempts:
+    request_rows=list(database.execute("SELECT payload_json FROM gateway_event_log WHERE event_type='request' AND request_id=? LIMIT 2",(request_id,)))
+    if len(request_rows)==1:
+        request=json.loads(request_rows[0][0])['request']
+        evidence['client_key_evidence_id']=opaque(request.get('client_key_id'))
+        evidence['access_group_evidence_id']=opaque(request.get('access_group_id'))
+        evidence['protocol']=request.get('protocol')
+        evidence['stream']=request.get('streaming')
+    terminals=list(database.execute("SELECT payload_json FROM gateway_event_log WHERE event_type='request_finished' AND request_id=? LIMIT 2",(request_id,)))
+    evidence['request_outcome']=json.loads(terminals[0][0])['request_finished'].get('outcome') if len(terminals)==1 else None
+    has_execution=database.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='gateway_attempt_execution'").fetchone()[0]==1
+    attempts=list(database.execute("SELECT payload_json FROM gateway_event_log WHERE event_type='attempt' AND request_id=? ORDER BY event_ordinal LIMIT 17",(request_id,)))
+    fields=['request_id','attempt_id','endpoint_id','route_id','route_candidate_id','upstream_model','started_at_ms','ended_at_ms','retry_decision']
+    for record in attempts:
+        payload=record[0]
+        row=json.loads(payload)['attempt']
         item={k:row.get(k) for k in fields}
+        item.update(channel=None,credential_revision=None,config_version_id=None,config_revision=None,egress_revision=None,capabilities=None)
         item['credential_evidence_id']=opaque(row.get('credential_id'))
-        item['egress_evidence_id']=opaque(row.get('egress_id'))
+        item['egress_evidence_id']=None
         item['outcome']='success' if row.get('outcome')=='succeeded' else 'failed'
-        item['source_record_sha256']=hashlib.sha256(json.dumps(row,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        item['source_record_sha256']=hashlib.sha256(payload.encode()).hexdigest()
+        sidecar=database.execute('SELECT request_id,attempt_payload_sha256,evidence_json FROM gateway_attempt_execution WHERE attempt_id=?',(row['attempt_id'],)).fetchone() if has_execution else None
+        if sidecar:
+            item['execution_evidence_valid']=sidecar[0]==request_id and sidecar[1]==item['source_record_sha256']
+            if item['execution_evidence_valid']:
+                actual=json.loads(sidecar[2])
+                identifier=lambda value:isinstance(value,str) and 0<len(value.encode())<=512
+                number=lambda value:type(value) is int and value>=0
+                caps=actual.get('capabilities')
+                cap_fields={'reasoning','parallel','stored','continuation','compact','websocket'}
+                valid=set(actual)=={'channel','credential_revision','config_version_id','config_revision','egress','capabilities'} and actual.get('channel') in {'openai-compatible','anthropic-compatible','codex','claude','grok.build','grok.console','grok.web','grok.official','kimi-coding','kimi-api','kiro'} and number(actual.get('credential_revision')) and number(actual.get('config_revision')) and identifier(actual.get('config_version_id')) and isinstance(caps,dict) and set(caps)==cap_fields and all(type(value) is bool for value in caps.values()) and (not caps.get('compact') or caps.get('stored'))
+                egress=actual.get('egress')
+                valid=valid and isinstance(egress,dict)
+                if valid:
+                    kind=egress.get('kind')
+                    if kind in ('direct','unknown','not_selected'):valid=set(egress)=={'kind'}
+                    elif kind=='configured_proxy':valid=set(egress)=={'kind','target_id','node_id','config_version_id','config_revision'} and identifier(egress.get('target_id')) and identifier(egress.get('node_id')) and egress.get('config_version_id')==actual['config_version_id'] and egress.get('config_revision')==actual['config_revision']
+                    elif kind=='process_proxy':valid=set(egress)=={'kind','transport_fingerprint'} and isinstance(egress.get('transport_fingerprint'),str) and len(egress['transport_fingerprint'])==64 and all(char in '0123456789abcdef' for char in egress['transport_fingerprint'])
+                    else:valid=False
+                item['execution_evidence_valid']=valid
+                if not valid:
+                    evidence['attempts'].append(item)
+                    continue
+                for field in ['channel','credential_revision','config_version_id','config_revision','capabilities']:
+                    item[field]=actual.get(field)
+                egress=actual.get('egress') or {}
+                item['egress_status']=egress.get('kind')
+                if egress.get('kind')=='direct':
+                    item['egress_evidence_id']=opaque('direct')
+                    item['egress_revision']={'source':'not_applicable'}
+                elif egress.get('kind')=='configured_proxy':
+                    item['egress_evidence_id']=opaque(json.dumps(['configured_proxy',egress.get('target_id'),egress.get('node_id')],separators=(',',':')))
+                    item['egress_revision']={'source':'config_version','config_version_id':egress.get('config_version_id'),'revision':egress.get('config_revision')}
+                elif egress.get('kind')=='process_proxy':
+                    item['egress_evidence_id']=opaque('process_proxy:'+str(egress.get('transport_fingerprint')))
+                    item['egress_revision']={'source':'transport_fingerprint','sha256':egress.get('transport_fingerprint')}
+                item['execution_evidence_sha256']=hashlib.sha256(sidecar[2].encode()).hexdigest()
         evidence['attempts'].append(item)
     evidence['ledger']=[]
     columns={row[1] for row in database.execute('PRAGMA table_info(billing_ledger_entries)')}
@@ -994,6 +1156,7 @@ def run_basic(plan, runtime, key, base_url, progress=None):
 def execute_basic(plan, runtime, key, base_url, bundle, progress):
     verify_runtime(runtime, plan["source_sha"], plan["layer"])
     verify_target(plan["target"])
+    verify_current_declaration(plan["target"], runtime)
     target, protocol = plan["target"], plan["target"]["protocol"]
     for scenario, count in (("text_multi_turn", 2), ("single_tool", 2), ("two_tool_cycles", 3)):
         token = "ACCEPT:" + os.urandom(12).hex()
@@ -1036,6 +1199,11 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    freeze = commands.add_parser("freeze", help="Build a frozen plan from an already obtained protected Channel Pin and current effective-model observation; no inference")
+    freeze.add_argument("--plan", type=Path, required=True)
+    freeze.add_argument("--runtime", type=Path, required=True)
+    freeze.add_argument("--pin", type=Path, required=True)
+    freeze.add_argument("--out", type=Path, required=True)
     inspect = commands.add_parser("inspect", help="GET-only current process/config/account/route inventory")
     inspect.add_argument("--host", required=True)
     inspect.add_argument("--service", default="cpa-rust-gateway.service")
@@ -1061,6 +1229,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     receipt = {"schema_version": 2, "status": "BLOCKED", "observed_at_utc": now(), "value_free": True}
     try:
+        if args.command == "freeze":
+            observed = load_json(args.runtime.read_text())
+            runtime = observed.get("runtime", observed)
+            frozen = freeze_from_pin(load_json(args.plan.read_text()), runtime, load_json(args.pin.read_text()))
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json.dumps(frozen, indent=2) + "\n")
+            args.out.chmod(0o600)
+            print(json.dumps({"status": "PASS", "layer": "FROZEN_PROTECTED_EVIDENCE", "sent_requests": 0}))
+            return 0
         if args.command == "inspect":
             receipt = remote_read(args.host, args.service, True, args.sudo)
             receipt.update(schema_version=2, layer="READ_ONLY_ENVIRONMENT", value_free=True, status="PASS")
@@ -1077,6 +1254,7 @@ def main(argv=None):
             receipt = audit_bundle({"layer": plan.get("layer"), "source_sha": plan.get("source_sha"), "runtime": runtime, "target": plan.get("target", {})})
             verify_runtime(runtime, plan.get("source_sha"), plan.get("layer"))
             verify_target(plan.get("target", {}))
+            verify_current_declaration(plan["target"], runtime)
             available(args.execute, "execution_not_requested")
             available(plan.get("collector") is not None or plan.get("observation_dir") is not None and Path(plan["observation_dir"]).is_dir(), "exact_attempt_collector_required")
             key = os.environ.get(args.client_key_env)
