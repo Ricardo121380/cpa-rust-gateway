@@ -120,7 +120,8 @@ def observe(protocol, value):
 def followup(protocol, first, answer, calls):
     result = copy.deepcopy(first)
     if protocol == "responses":
-        result["input"] = [{"role": "user", "content": first["input"]}, *answer["output"], *[{"type": "function_call_output", "call_id": identity, "output": "1"} for identity, _, _ in calls]]
+        history = [{"role": "user", "content": first["input"]}] if isinstance(first["input"], str) else copy.deepcopy(first["input"])
+        result["input"] = [*history, *answer["output"], *[{"type": "function_call_output", "call_id": identity, "output": "1"} for identity, _, _ in calls]]
     elif protocol == "chat":
         result["messages"] += [answer["choices"][0]["message"], *[{"role": "tool", "tool_call_id": identity, "content": "1"} for identity, _, _ in calls]]
     else:
@@ -202,4 +203,8 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
+    if sys.argv[1:2] == ["--new-build"]:
+        from cpar_new_build_acceptance import main as new_build_main
+        raise SystemExit(new_build_main(sys.argv[2:]))
     main()

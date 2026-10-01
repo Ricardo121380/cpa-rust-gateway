@@ -153,3 +153,13 @@ Freeze graph edits during this short acceptance window; the observation is not a
 Four synthetic Pi turns are intended, with 512 output tokens, low reasoning, no SDK/route retry,
 and a pre-send fsync allowance record. Stop at the first failure; never restart this script
 as an automatic retry or reset the ledger. An HTTP200 stream failure is still failure.
+
+## CPAR new-build channel acceptance (#57)
+
+The existing `cpar-batch-c-live.py --new-build` entry point provides read-only
+runtime inspection, exact Usage/Attempt/ledger collection, frozen-target basic
+execution and controlled-evidence audit. See
+[the complete commands and evidence contract](cpar-new-build-acceptance.md).
+Unknown runtime, target revisions or declarations block execution. The isolated
+regression is included in `scripts/check.sh fast|full`; its receipts are
+`LOCAL_SIMULATED`. The historical C smoke path remains `LIVE_EXISTING_RUNTIME`.

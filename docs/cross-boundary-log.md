@@ -3621,3 +3621,11 @@ commit carries `Cross-Boundary: web/prism - generated CPAR B Usage contract`.
 **Why:** Final independent Standards review found that the new settings section-search empty state and clear-search button still used literal Chinese. Put both strings in the existing zh/en packs and read them through the page's reactive `useMessages()` accessor. Preserve the existing search, clear and focus behavior.
 
 **Other side:** FYI under the same explicit D frontend/backend and review-fix authorization. This closes the remaining documented copy-standard finding; no new behavior, contract, schema, Provider call or deployment. Earlier EgoLite results retain their actual pre-copy-fix commits. Final type, unit and Full evidence will pin this correction separately in the review-fix report.
+
+## 2026-10-01 - Codex - CPAR new-build acceptance preparation (#57)
+
+**Touched:** `scripts/check.sh`
+
+**Why:** Add the isolated formal acceptance oracle regression to the existing Fast/Full entry point. The suite exercises the existing C live runner's new-build path against actual loopback HTTP and controlled protocol/event/ledger samples, including failures that HTTP status alone misses. Preserve the existing smoke entry point and its old-runtime receipt layer.
+
+**Other side:** FYI under the user's explicit implementation request for new-build real-channel acceptance tooling and required project gates. No frontend ownership, authoritative API/schema, Provider adaptation, remote configuration, service or production change. Full evidence will pin the tested source revision in `docs/reports/cpar-new-build-acceptance-20261001.md`; local simulated requests do not establish real Provider acceptance.

@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": null,
+  "target": {
+    "channel": null,
+    "endpoint_id": null,
+    "route_id": null,
+    "route_candidate_id": null,
+    "upstream_model": null,
+    "public_model": null,
+    "response_model": null,
+    "credential_evidence_id": null,
+    "credential_revision": null,
+    "config_version_id": null,
+    "config_revision": null,
+    "egress_evidence_id": null,
+    "egress_revision": null,
+    "protocol": "responses",
+    "mode": "json",
+    "parameters": {"max_output_tokens": 128},
+    "capabilities": {
+      "reasoning": null,
+      "parallel": null,
+      "stored": null,
+      "continuation": null,
+      "compact": null,
+      "websocket": null
+    },
+    "declaration_observed_at_utc": null
+  },
+  "collector": {"host": "new-vps", "service": "cpa-rust-gateway.service", "sudo": true},
+  "boundaries": {},
+  "extensions": {}
+}

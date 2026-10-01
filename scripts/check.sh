@@ -141,6 +141,7 @@ run_step "P12 grok2api memory export" python3 "$repo_root/scripts/test-p12-10g-g
 run_step "P12 Autoreg Console memory export" python3 "$repo_root/scripts/test-p12-10i-autoreg-console-memory-export.py"
 run_step "P12 production observer" python3 "$repo_root/scripts/test-p12-10-observe.py"
 run_step "P12 Grok CPAR curl E2E harness" python3 "$repo_root/scripts/test-p12-10h-grok-cpar-e2e.py"
+run_step "CPAR new-build acceptance oracle" python3 "$repo_root/scripts/test-cpar-new-build-acceptance.py"
 run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
