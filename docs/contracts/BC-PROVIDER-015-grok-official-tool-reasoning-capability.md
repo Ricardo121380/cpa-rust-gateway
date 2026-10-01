@@ -45,6 +45,7 @@
 - `intermediate_snapshots_annotations_and_terminal_order_must_agree`
 - `native_event_only_metadata_and_correlation_cannot_disappear`
 - `optional_function_event_ids_confirm_the_started_call`
+- `completed_items_reject_late_text_and_reasoning_confirmation`
 - `official_console_plain_reasoning_keeps_its_existing_bridges`
 - `completed_parts_cannot_reopen_and_replace_citations`
 - `text_and_reasoning_done_seal_the_part_before_item_completion`

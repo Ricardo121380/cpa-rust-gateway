@@ -535,6 +535,52 @@ fn text_and_reasoning_done_seal_the_part_before_item_completion() {
 }
 
 #[test]
+fn completed_items_reject_late_text_and_reasoning_confirmation() -> TestResult {
+    let mut accepted = Vec::new();
+    for (part_kind, field, done_kind) in [
+        ("output_text", "content", "response.output_text.done"),
+        ("reasoning_text", "content", "response.reasoning_text.done"),
+        (
+            "summary_text",
+            "summary",
+            "response.reasoning_summary_text.done",
+        ),
+    ] {
+        let mut item = if part_kind == "output_text" {
+            json!({"id":"late-c","type":"message","role":"assistant","status":"completed"})
+        } else {
+            json!({"id":"late-c","type":"reasoning","status":"completed"})
+        };
+        item[field] = json!([{"type":part_kind,"text":"answer"}]);
+        let response = json!({"id":"resp-late-c","status":"completed","output":[item]});
+        let index_key = if field == "summary" {
+            "summary_index"
+        } else {
+            "content_index"
+        };
+        let mut done =
+            json!({"type":done_kind,"item_id":"late-c","output_index":0,"text":"answer"});
+        done[index_key] = json!(0);
+        let mut events = native_events(&response);
+        events.insert(3, done.clone());
+        for channel in ["official", "console", "build"] {
+            decode_stream(channel, &events, 7)?;
+        }
+        events.insert(5, done);
+        for channel in ["official", "console", "build"] {
+            if decode_stream(channel, &events, 7).is_ok() {
+                accepted.push(format!("{channel}:{done_kind}"));
+            }
+        }
+    }
+    assert!(
+        accepted.is_empty(),
+        "late confirmation accepted: {accepted:?}"
+    );
+    Ok(())
+}
+
+#[test]
 fn lifecycle_fields_and_events_after_terminal_cannot_disappear() {
     let response = json!({"id":"resp-life","status":"completed","output":[{"id":"msg-life","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"answer"}]}]});
     let original = native_events(&response);

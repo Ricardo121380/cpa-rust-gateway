@@ -2165,6 +2165,9 @@ impl GrokBuildResponsesDecodeState {
         text: &str,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
+        if self.done_item_ids.contains(id) {
+            return Err(stream_protocol_error());
+        }
         let key = (id.to_owned(), field.to_owned(), index);
         let emitted = self.parts_by_item.get(&key).map_or("", String::as_str);
         if self.finished_parts.contains(&key) {
