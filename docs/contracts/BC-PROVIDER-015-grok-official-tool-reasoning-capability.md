@@ -46,4 +46,9 @@
 - `native_event_only_metadata_and_correlation_cannot_disappear`
 - `optional_function_event_ids_confirm_the_started_call`
 - `official_console_plain_reasoning_keeps_its_existing_bridges`
+- `completed_parts_cannot_reopen_and_replace_citations`
+- `text_and_reasoning_done_seal_the_part_before_item_completion`
+- `lifecycle_fields_and_events_after_terminal_cannot_disappear`
+- `initial_item_citations_are_preserved_and_must_be_confirmed`
+- `annotations_only_in_completed_snapshots_share_the_retained_budget`
 - `runtime::batch_c::grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges`

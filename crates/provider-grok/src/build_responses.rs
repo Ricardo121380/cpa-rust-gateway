@@ -1081,8 +1081,9 @@ struct GrokBuildResponsesDecodeState {
     emitted_function_arguments: BTreeSet<String>,
     completed_function_calls: BTreeSet<String>,
     parts_by_item: BTreeMap<(String, String, usize), String>,
+    finished_parts: BTreeSet<(String, String, usize)>,
     part_snapshots: BTreeMap<(String, String, usize), Value>,
-    annotations_by_part: BTreeMap<(String, usize), Vec<Value>>,
+    annotations: native::AnnotationState,
     completed_items: BTreeMap<String, Value>,
     item_order: Vec<String>,
     item_phases: BTreeMap<String, Value>,
@@ -1111,8 +1112,9 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
                 &self.completed_function_calls.len(),
             )
             .field("part_count", &self.parts_by_item.len())
+            .field("finished_part_count", &self.finished_parts.len())
             .field("part_snapshot_count", &self.part_snapshots.len())
-            .field("annotation_part_count", &self.annotations_by_part.len())
+            .field("annotation_part_count", &self.annotations.part_count())
             .field("phase_count", &self.item_phases.len())
             .field("completed_snapshot_count", &self.completed_items.len())
             .field("ordered_item_count", &self.item_order.len())
@@ -1201,7 +1203,7 @@ impl GrokBuildResponsesDecodeState {
         if required_string(object, "type", stream_protocol_error())? != event_name {
             return Err(stream_protocol_error());
         }
-        native::validate_event(object, &self.item_order)?;
+        native::validate_event(object, &self.item_order, self.canonical.is_terminal())?;
 
         self.handle_sse_event(&event_name, object, events)
     }
@@ -1368,6 +1370,46 @@ impl GrokBuildResponsesDecodeState {
         }
         self.item_order.push(item_id.to_owned());
         self.item_kinds.insert(item_id.to_owned(), kind);
+        for field in ["content", "summary"] {
+            for (index, part) in item
+                .get(field)
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .enumerate()
+            {
+                let part = part.as_object().ok_or_else(stream_protocol_error)?;
+                self.append_part(
+                    item_id,
+                    field,
+                    index,
+                    required_string(part, "text", stream_protocol_error())?,
+                    events,
+                )?;
+                for event in native::record_part_annotations(
+                    item_id,
+                    index,
+                    part,
+                    false,
+                    &mut self.annotations,
+                )? {
+                    self.emit(events, event)?;
+                }
+            }
+        }
+        if kind == OutputItemKind::FunctionCall
+            && item
+                .get("arguments")
+                .and_then(Value::as_str)
+                .is_some_and(|arguments| !arguments.is_empty())
+        {
+            self.handle_function_arguments_delta(
+                serde_json::json!({"item_id":item_id,"delta":item["arguments"]})
+                    .as_object()
+                    .ok_or_else(stream_protocol_error)?,
+                events,
+            )?;
+        }
         Ok(())
     }
 
@@ -1492,7 +1534,7 @@ impl GrokBuildResponsesDecodeState {
         *stage = "parts_snapshot";
         self.reconcile_completed_parts(item_id, kind, &mut completed)?;
         native::confirm_part_snapshots(&completed, &self.part_snapshots)?;
-        native::confirm_annotations(&completed, &self.annotations_by_part)?;
+        native::confirm_annotations(&completed, &self.annotations)?;
         *stage = "normalized_arguments";
         if kind == OutputItemKind::FunctionCall {
             let call_id = required_identifier(item, "call_id", stream_protocol_error())?;
@@ -1506,8 +1548,36 @@ impl GrokBuildResponsesDecodeState {
                 ),
             );
         }
+        self.record_completed_item(item_id, completed, events, stage)
+    }
+
+    fn record_completed_item(
+        &mut self,
+        item_id: &str,
+        completed: Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+        stage: &mut &'static str,
+    ) -> Result<(), GatewayError> {
         *stage = "metadata";
         let metadata = self.item_metadata(&completed, true)?;
+        for (index, part) in completed
+            .get("content")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            for event in native::record_part_annotations(
+                item_id,
+                index,
+                part.as_object().ok_or_else(stream_protocol_error)?,
+                true,
+                &mut self.annotations,
+            )? {
+                self.emit(events, event)?;
+            }
+        }
+        native::retain_item_annotations(&completed, &mut self.annotations)?;
         *stage = "canonical_item_end";
         self.emit(events, CanonicalEvent::OutputItemEnd(metadata))?;
         self.completed_items
@@ -1591,17 +1661,16 @@ impl GrokBuildResponsesDecodeState {
         let id = required_identifier(event, "item_id", stream_protocol_error())?;
         if self.item_kinds.get(id) != Some(&OutputItemKind::Message)
             || self.done_item_ids.contains(id)
+            || self.part_snapshots.contains_key(&(
+                id.to_owned(),
+                "content".into(),
+                part_index(event, "content_index")?,
+            ))
         {
             return Err(stream_protocol_error());
         }
-        let extensions = native::record_annotation(event, &mut self.annotations_by_part)?;
-        self.emit(
-            events,
-            CanonicalEvent::TextDelta(TextDelta {
-                text: String::new(),
-                extensions,
-            }),
-        )
+        let annotation = native::record_annotation(event, &mut self.annotations)?;
+        self.emit(events, annotation)
     }
 
     fn handle_text_content_part_added(
@@ -1619,6 +1688,12 @@ impl GrokBuildResponsesDecodeState {
             return Err(stream_protocol_error());
         }
         let index = part_index(event, "content_index")?;
+        if self
+            .finished_parts
+            .contains(&(item_id.to_owned(), "content".into(), index))
+        {
+            return Err(stream_protocol_error());
+        }
         let part = required_object(event, "part", stream_protocol_error())?;
         native::validate_part(part)?;
         if required_string(part, "type", stream_protocol_error())? != expected_kind
@@ -1629,16 +1704,10 @@ impl GrokBuildResponsesDecodeState {
         {
             return Err(stream_protocol_error());
         }
-        for extensions in
-            native::record_part_annotations(item_id, index, part, &mut self.annotations_by_part)?
+        for event in
+            native::record_part_annotations(item_id, index, part, false, &mut self.annotations)?
         {
-            self.emit(
-                events,
-                CanonicalEvent::TextDelta(TextDelta {
-                    text: String::new(),
-                    extensions,
-                }),
-            )?;
+            self.emit(events, event)?;
         }
         Ok(())
     }
@@ -1668,6 +1737,12 @@ impl GrokBuildResponsesDecodeState {
         }
         let text = required_string(part, "text", stream_protocol_error())?.to_owned();
         self.finish_part(item_id, "content", index, &text, events)?;
+        for event in
+            native::record_part_annotations(item_id, index, part, true, &mut self.annotations)?
+        {
+            self.emit(events, event)?;
+        }
+        native::retain_part_annotations(part, &mut self.annotations)?;
         self.part_snapshots.insert(
             (item_id.to_owned(), "content".to_owned(), index),
             Value::Object(part.clone()),
@@ -1742,6 +1817,14 @@ impl GrokBuildResponsesDecodeState {
             return Err(stream_protocol_error());
         }
         let part = required_object(event, "part", stream_protocol_error())?;
+        let index = part_index(event, "summary_index")?;
+        if event["type"] == "response.reasoning_summary_part.added"
+            && self
+                .finished_parts
+                .contains(&(id.to_owned(), "summary".into(), index))
+        {
+            return Err(stream_protocol_error());
+        }
         if part.is_empty() {
             return Ok(());
         }
@@ -1750,7 +1833,6 @@ impl GrokBuildResponsesDecodeState {
             return Err(stream_protocol_error());
         }
         let text = required_string(part, "text", stream_protocol_error())?;
-        let index = part_index(event, "summary_index")?;
         if event["type"] == "response.reasoning_summary_part.done" {
             if !self
                 .active_content_parts
@@ -2040,11 +2122,16 @@ impl GrokBuildResponsesDecodeState {
         delta: &str,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
+        if self.done_item_ids.contains(id)
+            || index >= 64
+            || self
+                .finished_parts
+                .contains(&(id.to_owned(), field.to_owned(), index))
+        {
+            return Err(stream_protocol_error());
+        }
         if delta.is_empty() {
             return Ok(());
-        }
-        if self.done_item_ids.contains(id) || index >= 64 {
-            return Err(stream_protocol_error());
         }
         let key = (id.to_owned(), field.to_owned(), index);
         let retained: usize = self.parts_by_item.values().map(String::len).sum();
@@ -2078,15 +2165,22 @@ impl GrokBuildResponsesDecodeState {
         text: &str,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        let emitted = self
-            .parts_by_item
-            .get(&(id.to_owned(), field.to_owned(), index))
-            .map_or("", String::as_str);
+        let key = (id.to_owned(), field.to_owned(), index);
+        let emitted = self.parts_by_item.get(&key).map_or("", String::as_str);
+        if self.finished_parts.contains(&key) {
+            return if emitted == text {
+                Ok(())
+            } else {
+                Err(stream_protocol_error())
+            };
+        }
         let suffix = text
             .strip_prefix(emitted)
             .ok_or_else(stream_protocol_error)?
             .to_owned();
-        self.append_part(id, field, index, &suffix, events)
+        self.append_part(id, field, index, &suffix, events)?;
+        self.finished_parts.insert(key);
+        Ok(())
     }
 
     fn finish_function_call(

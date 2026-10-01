@@ -433,6 +433,14 @@ fn optional_function_event_ids_confirm_the_started_call() -> TestResult {
             encode_response(&source, OpenAiResponseMetadata::try_new("grok-c", 0)?)?["output"],
             response["output"]
         );
+        let mut initial_arguments = events.clone();
+        initial_arguments[1]["item"]["arguments"] = response["output"][0]["arguments"].clone();
+        initial_arguments.remove(2);
+        let source = decode_stream(channel, &initial_arguments, 1)?;
+        assert_eq!(
+            encode_response(&source, OpenAiResponseMetadata::try_new("grok-c", 0)?)?["output"],
+            response["output"]
+        );
         for (index, field, value) in [
             (2, "call_id", "wrong-call"),
             (3, "call_id", "wrong-call"),
@@ -443,6 +451,189 @@ fn optional_function_event_ids_confirm_the_started_call() -> TestResult {
             assert!(
                 decode_stream(channel, &corrupted, 7).is_err(),
                 "{channel} accepted changed {field}"
+            );
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn completed_parts_cannot_reopen_and_replace_citations() -> TestResult {
+    let response = native_response();
+    let mut events = events_with_parts(&response, false);
+    events.retain(|event| event["type"] != "response.output_text.annotation.added");
+    let index = events
+        .iter()
+        .position(|event| {
+            event["type"] == "response.content_part.done"
+                && event["item_id"] == "msg-c"
+                && event["content_index"] == 0
+        })
+        .ok_or("part end")?;
+    let confirmation = events[index].clone();
+    events[index]["part"]["annotations"][0]["title"] = json!("Earlier citation");
+    events.insert(index + 1, json!({"type":"response.content_part.added","item_id":"msg-c","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}));
+    events.insert(index + 2, confirmation);
+    for channel in ["official", "console", "build"] {
+        assert!(
+            decode_stream(channel, &events, 4096).is_err(),
+            "{channel} replaced a completed part"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn text_and_reasoning_done_seal_the_part_before_item_completion() {
+    for (part_kind, field, delta_kind, done_kind) in [
+        (
+            "output_text",
+            "content",
+            "response.output_text.delta",
+            "response.output_text.done",
+        ),
+        (
+            "reasoning_text",
+            "content",
+            "response.reasoning_text.delta",
+            "response.reasoning_text.done",
+        ),
+        (
+            "summary_text",
+            "summary",
+            "response.reasoning_summary_text.delta",
+            "response.reasoning_summary_text.done",
+        ),
+    ] {
+        let mut item = if part_kind == "output_text" {
+            json!({"id":"part-c","type":"message","role":"assistant","status":"completed"})
+        } else {
+            json!({"id":"part-c","type":"reasoning","status":"completed"})
+        };
+        item[field] = json!([{"type":part_kind,"text":"ab"}]);
+        let response = json!({"id":"resp-part-c","status":"completed","output":[item]});
+        let mut events = native_events(&response);
+        events[2]["delta"] = json!("a");
+        let index_key = if field == "summary" {
+            "summary_index"
+        } else {
+            "content_index"
+        };
+        let mut done = json!({"type":done_kind,"item_id":"part-c","output_index":0,"text":"a"});
+        done[index_key] = json!(0);
+        let mut delta = json!({"type":delta_kind,"item_id":"part-c","output_index":0,"delta":"b"});
+        delta[index_key] = json!(0);
+        events.insert(3, done);
+        events.insert(4, delta);
+        for channel in ["official", "console", "build"] {
+            assert!(
+                decode_stream(channel, &events, 7).is_err(),
+                "{channel} appended after {done_kind}"
+            );
+        }
+    }
+}
+
+#[test]
+fn lifecycle_fields_and_events_after_terminal_cannot_disappear() {
+    let response = json!({"id":"resp-life","status":"completed","output":[{"id":"msg-life","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"answer"}]}]});
+    let original = native_events(&response);
+    for channel in ["official", "console", "build"] {
+        for kind in [
+            "response.created",
+            "response.in_progress",
+            "response.completed",
+        ] {
+            for (field, value) in [
+                ("signature", json!("synthetic-signature")),
+                ("logprobs", json!([{"token":"answer"}])),
+                ("sequence_number", json!("invalid")),
+            ] {
+                let mut events = original.clone();
+                let index = if kind == "response.in_progress" {
+                    events.insert(1, json!({"type":kind,"response":{"id":"resp-life"}}));
+                    1
+                } else if kind == "response.created" {
+                    0
+                } else {
+                    events.len() - 1
+                };
+                events[index][field] = value;
+                assert!(
+                    decode_stream(channel, &events, 7).is_err(),
+                    "{channel} dropped {kind}.{field}"
+                );
+            }
+        }
+        let mut events = original.clone();
+        events.push(json!({"type":"response.in_progress","response":{"id":"resp-life"}}));
+        assert!(
+            decode_stream(channel, &events, 7).is_err(),
+            "{channel} accepted lifecycle regression"
+        );
+    }
+}
+
+#[test]
+fn initial_item_citations_are_preserved_and_must_be_confirmed() -> TestResult {
+    let response = native_response();
+    let mut events = native_events(&response);
+    let index = events
+        .iter()
+        .position(|event| {
+            event["type"] == "response.output_item.added" && event["item"]["id"] == "msg-c"
+        })
+        .ok_or("message start")?;
+    events[index]["item"]["content"] = response["output"][1]["content"].clone();
+    events.retain(|event| {
+        !(event["type"] == "response.output_text.delta" && event["item_id"] == "msg-c")
+    });
+    for channel in ["official", "console", "build"] {
+        let source = decode_stream(channel, &events, 7)?;
+        assert_eq!(
+            encode_response(&source, OpenAiResponseMetadata::try_new("grok-c", 0)?)?["output"],
+            response["output"]
+        );
+        let mut changed = events.clone();
+        let item = changed
+            .iter_mut()
+            .find(|event| {
+                event["type"] == "response.output_item.done" && event["item"]["id"] == "msg-c"
+            })
+            .ok_or("message end")?;
+        item["item"]["content"][0]["annotations"] = json!([]);
+        changed.last_mut().ok_or("terminal")?["response"]["output"][1]["content"][0]["annotations"] =
+            json!([]);
+        assert!(
+            decode_stream(channel, &changed, 7).is_err(),
+            "{channel} dropped an initial citation"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn annotations_only_in_completed_snapshots_share_the_retained_budget() -> TestResult {
+    let title = "a".repeat(62 * 1024);
+    let output = (0..17).map(|index| json!({"id":format!("msg-budget-{index}"),"type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"answer","annotations":[{"type":"url_citation","url":"https://example.test/source","title":title,"start_index":0,"end_index":6}]}]})).collect::<Vec<_>>();
+    let response = json!({"id":"resp-budget","status":"completed","output":output});
+    for completed_parts in [false, true] {
+        let mut events = if completed_parts {
+            events_with_parts(&response, false)
+        } else {
+            native_events(&response)
+        };
+        events.retain(|event| event["type"] != "response.output_text.annotation.added");
+        events.last_mut().ok_or("terminal")?["response"]["output"] = json!(
+            output
+                .iter()
+                .map(|item| json!({"id":item["id"]}))
+                .collect::<Vec<_>>()
+        );
+        for channel in ["official", "console", "build"] {
+            assert!(
+                decode_stream(channel, &events, 4096).is_err(),
+                "{channel} bypassed annotation budget, parts={completed_parts}"
             );
         }
     }

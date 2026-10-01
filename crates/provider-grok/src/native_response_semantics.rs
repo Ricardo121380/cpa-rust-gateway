@@ -1,6 +1,27 @@
 //! Closed native Responses event schemas shared by the isolated Grok decoders.
-use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode, RawExtensions};
+use gateway_core::{CanonicalEvent, ErrorScope, GatewayError, GatewayErrorCode, TextDelta};
 use serde_json::{Map, Value, json};
+
+#[derive(Clone, Default)]
+pub(crate) struct AnnotationState {
+    observed: std::collections::BTreeMap<(String, usize), Vec<Value>>,
+    retained_bytes: usize,
+}
+
+impl AnnotationState {
+    pub(crate) fn part_count(&self) -> usize {
+        self.observed.len()
+    }
+
+    fn retain(&mut self, bytes: usize) -> Result<(), GatewayError> {
+        self.retained_bytes = self
+            .retained_bytes
+            .checked_add(bytes)
+            .filter(|bytes| *bytes <= 1024 * 1024)
+            .ok_or_else(protocol_error)?;
+        Ok(())
+    }
+}
 
 fn protocol_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::UpstreamProtocolError, ErrorScope::Stream)
@@ -9,12 +30,22 @@ fn protocol_error() -> GatewayError {
 pub(crate) fn validate_event(
     event: &Map<String, Value>,
     item_order: &[String],
+    terminal: bool,
 ) -> Result<(), GatewayError> {
     let kind = event
         .get("type")
         .and_then(Value::as_str)
         .ok_or_else(protocol_error)?;
+    if terminal && kind != "keepalive" {
+        return Err(protocol_error());
+    }
     let fields: &[&str] = match kind {
+        "response.created"
+        | "response.in_progress"
+        | "response.completed"
+        | "response.incomplete"
+        | "response.failed" => &["response"],
+        "keepalive" => &[],
         "response.output_item.added" | "response.output_item.done" => &["item", "output_index"],
         "response.output_text.delta" => &[
             "item_id",
@@ -61,7 +92,7 @@ pub(crate) fn validate_event(
         "response.function_call_arguments.done" => {
             &["item_id", "output_index", "call_id", "name", "arguments"]
         }
-        _ => return Ok(()),
+        _ => return Err(protocol_error()),
     };
     if event.keys().any(|key| {
         !matches!(key.as_str(), "type" | "sequence_number") && !fields.contains(&key.as_str())
@@ -102,8 +133,8 @@ pub(crate) fn validate_event(
 
 pub(crate) fn record_annotation(
     event: &Map<String, Value>,
-    annotations: &mut std::collections::BTreeMap<(String, usize), Vec<Value>>,
-) -> Result<RawExtensions, GatewayError> {
+    annotations: &mut AnnotationState,
+) -> Result<CanonicalEvent, GatewayError> {
     let id = event
         .get("item_id")
         .and_then(Value::as_str)
@@ -119,56 +150,107 @@ fn record_annotation_value(
     index: usize,
     annotation_index: usize,
     annotation: &Value,
-    annotations: &mut std::collections::BTreeMap<(String, usize), Vec<Value>>,
-) -> Result<RawExtensions, GatewayError> {
+    annotations: &mut AnnotationState,
+) -> Result<CanonicalEvent, GatewayError> {
     let extensions = protocol_openai_responses::native_annotation_extensions(
         id,
         index,
         annotation_index,
         annotation,
     )?;
-    let retained: usize = annotations
-        .values()
-        .flatten()
-        .map(|value| value.to_string().len())
-        .sum();
-    if retained.saturating_add(annotation.to_string().len()) > 1024 * 1024 {
-        return Err(protocol_error());
-    }
-    let observed = annotations.entry((id.to_owned(), index)).or_default();
+    annotations.retain(annotation.to_string().len())?;
+    let observed = annotations
+        .observed
+        .entry((id.to_owned(), index))
+        .or_default();
     if annotation_index != observed.len() {
         return Err(protocol_error());
     }
     observed.push(annotation.clone());
-    Ok(extensions)
+    Ok(CanonicalEvent::TextDelta(TextDelta {
+        text: String::new(),
+        extensions,
+    }))
 }
 
 pub(crate) fn record_part_annotations(
     id: &str,
     index: usize,
     part: &Map<String, Value>,
-    annotations: &mut std::collections::BTreeMap<(String, usize), Vec<Value>>,
-) -> Result<Vec<RawExtensions>, GatewayError> {
-    part.get("annotations")
+    completed: bool,
+    annotations: &mut AnnotationState,
+) -> Result<Vec<CanonicalEvent>, GatewayError> {
+    let values = part.get("annotations").and_then(Value::as_array);
+    if completed
+        && annotations
+            .observed
+            .get(&(id.to_owned(), index))
+            .is_some_and(|observed| values.is_none_or(|values| !values.starts_with(observed)))
+    {
+        return Err(protocol_error());
+    }
+    let mut extensions = Vec::new();
+    for (annotation_index, value) in values.into_iter().flatten().enumerate() {
+        if let Some(observed) = annotations
+            .observed
+            .get(&(id.to_owned(), index))
+            .and_then(|values| values.get(annotation_index))
+        {
+            if observed != value {
+                return Err(protocol_error());
+            }
+        } else {
+            extensions.push(record_annotation_value(
+                id,
+                index,
+                annotation_index,
+                value,
+                annotations,
+            )?);
+        }
+    }
+    Ok(extensions)
+}
+
+pub(crate) fn retain_part_annotations(
+    part: &Map<String, Value>,
+    annotations: &mut AnnotationState,
+) -> Result<(), GatewayError> {
+    for value in part
+        .get("annotations")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .enumerate()
-        .map(|(annotation_index, annotation)| {
-            record_annotation_value(id, index, annotation_index, annotation, annotations)
-        })
-        .collect()
+    {
+        annotations.retain(value.to_string().len())?;
+    }
+    Ok(())
+}
+
+pub(crate) fn retain_item_annotations(
+    item: &Map<String, Value>,
+    annotations: &mut AnnotationState,
+) -> Result<(), GatewayError> {
+    for part in item
+        .get("content")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        retain_part_annotations(part.as_object().ok_or_else(protocol_error)?, annotations)?;
+    }
+    Ok(())
 }
 
 pub(crate) fn confirm_annotations(
     item: &Map<String, Value>,
-    annotations: &std::collections::BTreeMap<(String, usize), Vec<Value>>,
+    annotations: &AnnotationState,
 ) -> Result<(), GatewayError> {
     let id = item
         .get("id")
         .and_then(Value::as_str)
         .ok_or_else(protocol_error)?;
-    for ((item_id, index), observed) in annotations {
+    for ((item_id, index), observed) in &annotations.observed {
         if item_id == id
             && item
                 .get("content")
