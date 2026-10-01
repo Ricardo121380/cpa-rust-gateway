@@ -69,6 +69,7 @@ export const zh = {
   navigation: {
     operations: "运行", resources: "资源", management: "管理",
     menu: "打开全部栏目", search: "搜索栏目", theme: "切换深浅外观",
+    noMatch: "没有匹配的栏目。", clearSearch: "清除搜索",
   },
   version: {
     none: "未选择版本",

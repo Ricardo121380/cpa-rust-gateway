@@ -74,6 +74,7 @@ export const en: Pack = {
   navigation: {
     operations: "Operations", resources: "Resources", management: "Management",
     menu: "Open all sections", search: "Find a section", theme: "Toggle appearance",
+    noMatch: "No matching sections.", clearSearch: "Clear search",
   },
   version: {
     none: "No version selected",

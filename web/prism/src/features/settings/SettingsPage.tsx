@@ -98,7 +98,7 @@ export function SettingsPage() {
         <summary>{t.navigation.search}</summary>
         <div className="data-toolbar"><input ref={searchRef} aria-label={t.navigation.search} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.navigation.search} /></div>
         <div className="section-search">{matchingPages.map(item => <Link key={item.to} to={item.to}>{t.nav[item.key]}</Link>)}</div>
-        {matchingPages.length === 0 ? <p role="status">没有匹配的栏目。<button className="secondary" onClick={()=>{setSearch("");searchRef.current?.focus();}}>清除搜索</button></p> : null}
+        {matchingPages.length === 0 ? <p role="status">{t.navigation.noMatch}<button className="secondary" onClick={()=>{setSearch("");searchRef.current?.focus();}}>{t.navigation.clearSearch}</button></p> : null}
       </details>
       <details className="card settings-technical" data-gap="top"><summary>{t.settings.render} / {t.settings.build}</summary>
       <div className="card" data-gap="top">

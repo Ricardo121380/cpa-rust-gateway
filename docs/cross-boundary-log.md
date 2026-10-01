@@ -3610,3 +3610,14 @@ commit carries `Cross-Boundary: web/prism - generated CPAR B Usage contract`.
 **Why:** Correct the final D review's unknown-versus-empty model topology state and consolidate identical table scrolling rules. Fill missing EgoLite acceptance for failure attribution and model/source/route editing and return. Those checks also reproduced filtered failures incorrectly described as an empty configuration and focus leaving a dialog when its editing step replaced the focused button; correct both with localized state copy and focus retention in the existing Sheet. Regression failures precede corrections at the existing management HTTP and actual UI seams. The extended acceptance includes a fixture mutation whose response is lost after application, followed by public draft readback without replay.
 
 **Other side:** FYI under the explicit D frontend/backend authorization and the user's request **“修复一下当前codereview指出的问题”**. No authoritative contract, generated client, backend, schema, Provider or deployment change. Immutable-commit tests and remaining C / #57 boundaries will be recorded in the D review-fix report. Preserve unrelated `AGENTS.md` and untracked workspace files.
+
+## 2026-10-01 - Codex - CPAR D settings search copy closeout
+
+**Touched:**
+- `web/prism/src/features/settings/SettingsPage.tsx`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+
+**Why:** Final independent Standards review found that the new settings section-search empty state and clear-search button still used literal Chinese. Put both strings in the existing zh/en packs and read them through the page's reactive `useMessages()` accessor. Preserve the existing search, clear and focus behavior.
+
+**Other side:** FYI under the same explicit D frontend/backend and review-fix authorization. This closes the remaining documented copy-standard finding; no new behavior, contract, schema, Provider call or deployment. Earlier EgoLite results retain their actual pre-copy-fix commits. Final type, unit and Full evidence will pin this correction separately in the review-fix report.
