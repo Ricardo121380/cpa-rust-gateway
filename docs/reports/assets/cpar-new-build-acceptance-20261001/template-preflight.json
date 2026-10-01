@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "status": "BLOCKED",
+  "observed_at_utc": "2026-10-01T14:52:16.266734+00:00",
+  "value_free": true,
+  "category": "source_version_unknown",
+  "command": "cpar-batch-c-live.py --new-build run",
+  "environment": {
+    "platform": "darwin",
+    "python": "3.9.6"
+  },
+  "tool_sha256": "1615a84a72e785b91bfa60b2369f23329fa122d303660ea6deb4668bb45b7a04",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

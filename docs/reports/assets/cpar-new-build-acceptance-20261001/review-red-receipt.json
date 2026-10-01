@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "layer": "LOCAL_SIMULATED",
+  "baseline_source_sha": "64e5cf9ac8776173cae9eb22b0772e923867dcbd",
+  "test_source_sha": "ff4b59edda6cd480782e036dbb7cecee762873be",
+  "baseline_tool_sha256": "a5aa0011260fb8d7caf84a8bad7c6e67b17741bf6fd3f16408d638ed5636cbb9",
+  "test_sha256": "48a5d5c24100f2f4484d0d3d2a7e12bdbe7764b5edb6a01326c2d377d973f7b1",
+  "observed_at_utc": "2026-10-01T15:31:34.210353+00:00",
+  "tests": [
+    "FormalOracle.test_native_input_and_details_must_match_source_accounting",
+    "FormalOracle.test_public_failure_projection_excludes_private_input",
+    "FormalOracle.test_extension_rejections_need_authenticated_exact_operation",
+    "FormalOracle.test_real_http_runner_and_current_receipts"
+  ],
+  "test_methods_run": 4,
+  "negative_assertions_failed": 21,
+  "errors": 0,
+  "status": "PASS",
+  "purpose": "immutable reproduction of pre-fix defects; expected red, not final code acceptance",
+  "log": "review-red.log",
+  "real_provider_calls": 0,
+  "command": "Load git show 64e5cf9a acceptance sources in a temporary directory; run four named methods from ff4b59ed tests"
+}

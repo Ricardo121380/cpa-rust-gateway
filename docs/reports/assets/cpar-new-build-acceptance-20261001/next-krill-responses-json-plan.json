@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": "ff4b59edda6cd480782e036dbb7cecee762873be",
+  "target": {
+    "channel": "openai-compatible",
+    "endpoint_id": "p12-12-production-krill-responses-endpoint",
+    "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+    "route_candidate_id": "candidate-95857499-eff9-4b29-8bb5-34e55dbabcb0",
+    "upstream_model": "gpt-6-sol",
+    "public_model": "gpt-6-sol",
+    "response_model": null,
+    "credential_evidence_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+    "credential_revision": 0,
+    "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+    "config_revision": "rev-1",
+    "egress_evidence_id": null,
+    "egress_revision": null,
+    "protocol": "responses",
+    "mode": "json",
+    "parameters": {
+      "max_output_tokens": 128
+    },
+    "capabilities": {
+      "reasoning": null,
+      "parallel": null,
+      "stored": null,
+      "continuation": null,
+      "compact": null,
+      "websocket": null
+    },
+    "declaration_observed_at_utc": null
+  },
+  "collector": {
+    "host": "new-vps",
+    "service": "cpa-rust-gateway.service",
+    "sudo": true
+  },
+  "boundaries": {},
+  "extensions": {}
+}

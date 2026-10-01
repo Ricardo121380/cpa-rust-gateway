@@ -1,0 +1,179 @@
+test_native_input_and_details_must_match_source_accounting (immutable_tests.FormalOracle) ... FAIL
+test_public_failure_projection_excludes_private_input (immutable_tests.FormalOracle) ... FAIL
+test_extension_rejections_need_authenticated_exact_operation (immutable_tests.FormalOracle) ... FAIL
+test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) ...
+======================================================================
+FAIL: test_native_input_and_details_must_match_source_accounting (immutable_tests.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 182, in test_native_input_and_details_must_match_source_accounting
+    self.assertEqual(oracle.audit_bundle(value)["basic_status"], "FAIL", protocol)
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+ : chat
+
+======================================================================
+FAIL: test_public_failure_projection_excludes_private_input (immutable_tests.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 209, in test_public_failure_projection_excludes_private_input
+    self.assertNotIn("synthetic.private@example.invalid", rendered)
+AssertionError: 'synthetic.private@example.invalid' unexpectedly found in '{"schema_version": 2, "layer": "LOCAL_SIMULATED", "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb", "observed_at_utc": "2026-10-01T15:31:30.729477+00:00", "runtime": {"method": "proc_executable", "instance": "isolated-fixture", "pid": 1, "process_start": "1", "observed_at_utc": "2026-10-01T15:31:30.729192+00:00", "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111", "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb", "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb", "stable_process": true, "manifest_sha256": null, "manifest_matches": null}, "target": {"channel": "openai-compatible", "endpoint_id": "local-endpoint", "route_id": "local-route", "route_candidate_id": "local-candidate", "upstream_model": "local-model", "credential_evidence_id": "synthetic.private@example.invalid", "credential_revision": 3, "config_version_id": "local", "config_revision": 4, "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6", "egress_revision": 1, "protocol": "responses", "mode": "json", "public_model": "local-model", "response_model": "local-model"}, "parameters_sha256": "4fdaa0fea8992966d96fd099e55b39e96dea459db7a2bb7fe36b5aa40149ecc4", "capabilities": {"parallel": false, "websocket": false, "continuation": false, "reasoning": false, "stored": false, "compact": false}, "declaration_observed_at_utc": "2026-10-01T15:31:30.729190+00:00", "value_free": true, "checks": [], "evidence_paths": [], "preflight": {"status": "FAIL", "category": "invalid_opaque_identity"}, "status": "FAIL"}'
+
+======================================================================
+FAIL: test_extension_rejections_need_authenticated_exact_operation (immutable_tests.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 358, in test_extension_rejections_need_authenticated_exact_operation
+    with self.assertRaises(ValueError):oracle.extension_check("stored", "foreign_owner", changed, current_target)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_model', protocol='chat', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_model
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_runtime', protocol='chat', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='missing_runtime', protocol='chat', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : missing_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_model', protocol='chat', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_model
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_runtime', protocol='chat', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='missing_runtime', protocol='chat', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : missing_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_model', protocol='messages', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_model
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_runtime', protocol='messages', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='missing_runtime', protocol='messages', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : missing_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_model', protocol='messages', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_model
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_runtime', protocol='messages', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='missing_runtime', protocol='messages', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : missing_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_model', protocol='responses', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_model
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_runtime', protocol='responses', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='missing_runtime', protocol='responses', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : missing_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_model', protocol='responses', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_model
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='wrong_runtime', protocol='responses', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : wrong_runtime
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (immutable_tests.FormalOracle) (fault='missing_runtime', protocol='responses', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 465, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed) - before, 1, kind)
+AssertionError: 7 != 1 : missing_runtime
+
+----------------------------------------------------------------------
+Ran 4 tests in 3.300s
+
+FAILED (failures=21)

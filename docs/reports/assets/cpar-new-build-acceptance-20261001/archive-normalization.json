@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-10-01T15:44:46.892766+00:00",
+  "logs": [
+    {
+      "path": "docs/reports/assets/cpar-new-build-acceptance-20261001/full.log",
+      "original_sha256": "2956aab4e5b4e0758dbc7d49289505bd93f0ac9ac3c0d8f99a69e641b1e89a7c",
+      "archived_sha256": "4fcb7821a45f18a9f136c41acf81baee4ded4ac39fd36d35c2426eacafa07ca4",
+      "changed_lines": 28,
+      "transform": "remove trailing horizontal whitespace solely for repository whitespace gate; preserve content, order, counts and diagnostics"
+    },
+    {
+      "path": "docs/reports/assets/cpar-new-build-acceptance-20261001/review-red.log",
+      "original_sha256": "8fbd9a3c0aec344cc690f90b5ca8994b1a547a6e8bc0ad7d2552ac69bd388a9b",
+      "archived_sha256": "f6c97581b4c106ca41c79c6a1947e9149457b62610e6b327be687aba6d7907a2",
+      "changed_lines": 1,
+      "transform": "remove trailing horizontal whitespace solely for repository whitespace gate; preserve content, order, counts and diagnostics"
+    }
+  ],
+  "spec_markdown": "Remove extra EOF blank lines in spec.md; original GitHub issue body remains unchanged in issue-9.json"
+}

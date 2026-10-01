@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source_sha": "ff4b59edda6cd480782e036dbb7cecee762873be",
+  "started_at_utc": "2026-10-01T15:22:12.748754+00:00",
+  "command": "CARGO_NET_OFFLINE=true CPAR_TEST_RECEIPT_DIR=docs/reports/assets/cpar-new-build-acceptance-20261001/local-receipts CHECK_REPORT_PATH=docs/reports/assets/cpar-new-build-acceptance-20261001/full-check.md bash scripts/check.sh full",
+  "environment": {
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.9.6",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)"
+  },
+  "tracked_changes_at_start": [
+    "AGENTS.md"
+  ],
+  "real_provider_calls": 0,
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "status": "PASS",
+  "source_files_sha256": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "ec57c9a1a2cf4f0ef5ec6af35e9743c1ee6eda6028a0b8cf19782521cab23709",
+    "scripts/acceptance/cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+    "scripts/test-cpar-new-build-acceptance.py": "48a5d5c24100f2f4484d0d3d2a7e12bdbe7764b5edb6a01326c2d377d973f7b1",
+    "scripts/check.sh": "d11d38f6c9fa5a1741632a728c17760c19fc4de3c37fbadde729dfdffcaa4cab"
+  },
+  "ended_at_utc": "2026-10-01T15:25:56.930631+00:00",
+  "exit_code": 0,
+  "head_after": "ff4b59edda6cd480782e036dbb7cecee762873be"
+}

@@ -1,0 +1,492 @@
+{
+  "schema_version": 2,
+  "layer": "LOCAL_SIMULATED",
+  "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+  "observed_at_utc": "2026-10-01T15:22:47.599249+00:00",
+  "runtime": {
+    "method": "proc_executable",
+    "instance": "isolated-fixture",
+    "pid": 1,
+    "process_start": "1",
+    "observed_at_utc": "2026-10-01T15:22:47.583494+00:00",
+    "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+    "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+    "stable_process": true,
+    "manifest_sha256": null,
+    "manifest_matches": null
+  },
+  "target": {
+    "channel": "openai-compatible",
+    "endpoint_id": "local-endpoint",
+    "route_id": "local-route",
+    "route_candidate_id": "local-candidate",
+    "upstream_model": "local-model",
+    "credential_evidence_id": "4c1eac00f57ef39b10a112029f3eb0388e3c1585d8745415278ecc5b1ba2f09a",
+    "credential_revision": 3,
+    "config_version_id": "local",
+    "config_revision": 4,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": 1,
+    "protocol": "responses",
+    "mode": "sse",
+    "public_model": "local-model",
+    "response_model": "local-model"
+  },
+  "parameters_sha256": "4fdaa0fea8992966d96fd099e55b39e96dea459db7a2bb7fe36b5aa40149ecc4",
+  "capabilities": {
+    "websocket": false,
+    "reasoning": false,
+    "continuation": false,
+    "parallel": false,
+    "stored": false,
+    "compact": false
+  },
+  "declaration_observed_at_utc": "2026-10-01T15:22:47.582294+00:00",
+  "value_free": true,
+  "checks": [
+    {
+      "case": "text_multi_turn",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "ad3e845e83f67b7df7cc1ef933b7779ecc183a814ff3be1269333113f791296a",
+          "native_usage": {
+            "native": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "total_tokens": 5,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "reasoning_tokens": null,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": null,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "isolated-fixture",
+            "pid": 1,
+            "process_start": "1",
+            "observed_at_utc": "2026-10-01T15:22:47.584234+00:00",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "5f8d422291b0b1ca08f0069b13e49c23492fc513127473c4023429bbaa613f30",
+          "attempt_evidence_ids": [
+            "05f6651c5298f77a8c5cab9e9739d5c0cb094d7f299e3072df849ebf66f6283a"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "7f91ca1c75aa81135596a2a8cfc3c2152a663b27106f050ed7862a8c8237b16d",
+          "native_usage": {
+            "native": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "total_tokens": 5,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "reasoning_tokens": null,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": null,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "isolated-fixture",
+            "pid": 1,
+            "process_start": "1",
+            "observed_at_utc": "2026-10-01T15:22:47.586813+00:00",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "5237efa1ee1388d2347eb9619d43ae1c233a4372d8e19acfedb6156a1eab1e9a",
+          "attempt_evidence_ids": [
+            "8bc45c0e6233ce7042435d8bc7677c3e21f9b0f12d0775e6eab227eb791014f8"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "single_tool",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "fdf8445e927ac1428043bce52409d5177b0df23c96af75ab4f80cbfd8ed13bc0",
+          "native_usage": {
+            "native": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "total_tokens": 5,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "reasoning_tokens": null,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": null,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "isolated-fixture",
+            "pid": 1,
+            "process_start": "1",
+            "observed_at_utc": "2026-10-01T15:22:47.588891+00:00",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "9b7e4ecd3a87c241972dbf20344196e33dadb9b835a34e822bf3180fdb7507a6",
+          "attempt_evidence_ids": [
+            "f2e66450a7d9d57cb97c6e332d5db1c4f2fcc1600cd850da2d0113e029f9b600"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "1df4f8a8a7353fbd24483f18cc6338151fe08a0062bda854c9ff08f4f873695f",
+          "native_usage": {
+            "native": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "total_tokens": 5,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "reasoning_tokens": null,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": null,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "isolated-fixture",
+            "pid": 1,
+            "process_start": "1",
+            "observed_at_utc": "2026-10-01T15:22:47.590924+00:00",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "e12a0764aaf229d72cd5c398489cb7d2a559e401a735473e61bb07caaa495341",
+          "attempt_evidence_ids": [
+            "dd3aa7595f7775414d42a85df4c8f1432b80d61b70a40e63283d0642f7c08322"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "two_tool_cycles",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "63a0fc62b2af767059709cd9ae12742f83eaa89f618cf9dbd6d15bf62d0ed87a",
+          "native_usage": {
+            "native": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "total_tokens": 5,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "reasoning_tokens": null,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": null,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "isolated-fixture",
+            "pid": 1,
+            "process_start": "1",
+            "observed_at_utc": "2026-10-01T15:22:47.593130+00:00",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "dc63970d0f71a05e7b66f6e0db6ce425f148f6d3207265404b56f83fb20a4529",
+          "attempt_evidence_ids": [
+            "11023cbacfb944645543744f9d40109498e600c828b94664a0bce463f9712407"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "548be71a5f96a9712cb1d21860c848ca7f4d78a1614d4152c4db804b29940800",
+          "native_usage": {
+            "native": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "total_tokens": 5,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "reasoning_tokens": null,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": null,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "isolated-fixture",
+            "pid": 1,
+            "process_start": "1",
+            "observed_at_utc": "2026-10-01T15:22:47.594977+00:00",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "7e1bf64ea43785d75de9f2e9149625ea47535d7694115bac850420311a887c4d",
+          "attempt_evidence_ids": [
+            "afa18ca900993c5e99b7f8959a5e9c773d36d39a4946505fcbe166d707102586"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 3,
+          "response_evidence_id": "82f1524b1ef647819a3cbf1705fccd7ffb0b549b5b06d56c9151cbdb683e1127",
+          "native_usage": {
+            "native": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "total_tokens": 5,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 3,
+              "output_tokens": 2,
+              "reasoning_tokens": null,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": null,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "isolated-fixture",
+            "pid": 1,
+            "process_start": "1",
+            "observed_at_utc": "2026-10-01T15:22:47.596775+00:00",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "artifact_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "69762662f7f9b41dc91134d404d2b22dd54e196876fe26c2cd341ecaeaa73ba8",
+          "attempt_evidence_ids": [
+            "be452f29a7bf68cbc7ff32e857bc1b81250a0080e3b54f6c2b9c66fbc90a35eb"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "cancel_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_before_send",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "error",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "no_retry_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "retry_before_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "truncation",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "declaration",
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "continuation",
+      "case": "declaration",
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "parallel",
+      "case": "declaration",
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "reasoning",
+      "case": "declaration",
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "stored",
+      "case": "declaration",
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "websocket",
+      "case": "declaration",
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    }
+  ],
+  "evidence_paths": [],
+  "preflight": {
+    "status": "PASS",
+    "category": "verified"
+  },
+  "parameters": {
+    "max_output_tokens": 128
+  },
+  "sent_requests": 7,
+  "status": "NOT_RUN",
+  "basic_status": "PASS",
+  "tool_sha256": "ec57c9a1a2cf4f0ef5ec6af35e9743c1ee6eda6028a0b8cf19782521cab23709",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

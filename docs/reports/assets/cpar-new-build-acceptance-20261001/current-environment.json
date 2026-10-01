@@ -1,0 +1,1131 @@
+{
+  "runtime": {
+    "method": "proc_executable",
+    "instance": "instance-20260726-2136",
+    "pid": 499070,
+    "process_start": "551409035",
+    "observed_at_utc": "2026-10-01T15:22:19.004574+00:00",
+    "artifact_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "artifact_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "executable": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0/gateway",
+    "stable_process": true
+  },
+  "active_configuration": {
+    "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+    "status": "active",
+    "revision": "rev-1"
+  },
+  "inventory": {
+    "upstreams": {
+      "items": [
+        {
+          "id": "kimi-coding",
+          "kind": "kimi-coding",
+          "enabled": true,
+          "egress_policy_id": "kimi-coding-egress"
+        },
+        {
+          "id": "p12-06-codex-bridge-upstream",
+          "kind": "openai-compatible",
+          "enabled": true,
+          "egress_policy_id": "p12-06-codex-bridge-egress"
+        },
+        {
+          "id": "p12-12-production-grok-build-upstream",
+          "kind": "grok-build-native",
+          "enabled": true,
+          "egress_policy_id": "p12-12-production-grok-build-egress"
+        },
+        {
+          "id": "p12-12-production-grok-console-upstream",
+          "kind": "grok-console-native",
+          "enabled": true,
+          "egress_policy_id": "p12-12-production-grok-console-egress"
+        },
+        {
+          "id": "p12-12-production-krill-upstream",
+          "kind": "openai-compatible",
+          "enabled": true,
+          "egress_policy_id": "p12-12-production-krill-egress"
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "egress_policy_id",
+        "enabled",
+        "id",
+        "kind",
+        "name",
+        "tags"
+      ]
+    },
+    "endpoints": {
+      "items": [
+        {
+          "id": "kimi-coding-responses",
+          "upstream_id": "kimi-coding",
+          "adapter_id": "openai-compatible.responses",
+          "api_format": "openai/responses",
+          "base_url": "https://api.kimi.com/coding",
+          "inference_path": "/v1/responses",
+          "enabled": true
+        },
+        {
+          "id": "p12-06-codex-bridge-endpoint",
+          "upstream_id": "p12-06-codex-bridge-upstream",
+          "adapter_id": "openai-compatible.responses",
+          "api_format": "openai/responses",
+          "base_url": "https://chatgpt.com/backend-api/codex",
+          "inference_path": "/responses",
+          "enabled": true
+        },
+        {
+          "id": "p12-12-production-grok-build-endpoint",
+          "upstream_id": "p12-12-production-grok-build-upstream",
+          "adapter_id": "grok.build.responses",
+          "api_format": "openai/responses",
+          "base_url": "https://cli-chat-proxy.grok.com/v1",
+          "inference_path": "/responses",
+          "enabled": true
+        },
+        {
+          "id": "p12-12-production-grok-console-endpoint",
+          "upstream_id": "p12-12-production-grok-console-upstream",
+          "adapter_id": "grok.console.responses",
+          "api_format": "openai/responses",
+          "base_url": "https://console.x.ai",
+          "inference_path": "/v1/responses",
+          "enabled": true
+        },
+        {
+          "id": "p12-12-production-krill-chat-endpoint",
+          "upstream_id": "p12-12-production-krill-upstream",
+          "adapter_id": "openai-compatible.chat-completions",
+          "api_format": "openai/chat-completions",
+          "base_url": "https://api.krill-ai.com/codex/v1",
+          "inference_path": "/chat/completions",
+          "enabled": true
+        },
+        {
+          "id": "p12-12-production-krill-responses-endpoint",
+          "upstream_id": "p12-12-production-krill-upstream",
+          "adapter_id": "openai-compatible.responses",
+          "api_format": "openai/responses",
+          "base_url": "https://api.krill-ai.com/codex/v1",
+          "inference_path": "/responses",
+          "enabled": true
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "adapter_id",
+        "api_format",
+        "base_url",
+        "enabled",
+        "id",
+        "inference_path",
+        "models_path",
+        "transport",
+        "upstream_id"
+      ]
+    },
+    "credentials": {
+      "items": [
+        {
+          "id": "1ceff7357ee0421e659b09e62000159898f9516abddd7ac9b3f36ff91e03871a",
+          "upstream_id": null,
+          "kind": null,
+          "status": null,
+          "revision": null,
+          "secret_present": null,
+          "provider": "Grok Console",
+          "native": true
+        },
+        {
+          "id": "f045c46f2469bb53335be8c7aed68bcba369073b43ef6f41be8a75371b294c03",
+          "upstream_id": null,
+          "kind": null,
+          "status": null,
+          "revision": null,
+          "secret_present": null,
+          "provider": "Grok Console",
+          "native": true
+        },
+        {
+          "id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "upstream_id": "p12-12-production-krill-upstream",
+          "kind": "bearer",
+          "status": "active",
+          "revision": 0,
+          "secret_present": true,
+          "provider": "API",
+          "native": false
+        },
+        {
+          "id": "aedc86f78ed254b1242a97f2f5e6c2c75b3a9b9e7885f8aacdb0df08781fce5b",
+          "upstream_id": "kimi-coding",
+          "kind": "oauth_json",
+          "status": "active",
+          "revision": 847,
+          "secret_present": true,
+          "provider": "Kimi",
+          "native": false
+        },
+        {
+          "id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+          "upstream_id": null,
+          "kind": null,
+          "status": null,
+          "revision": null,
+          "secret_present": null,
+          "provider": "Grok Build",
+          "native": true
+        },
+        {
+          "id": "279f8dd33afde739596b81dc10a5af872f078a0f28aca487494891a8e2f3ea57",
+          "upstream_id": "p12-06-codex-bridge-upstream",
+          "kind": "oauth_json",
+          "status": "active",
+          "revision": 1,
+          "secret_present": true,
+          "provider": "Codex",
+          "native": false
+        },
+        {
+          "id": "fc78df8341bd92916ca24d94d4a56b1cbf7a57b3ea7aac01b357b4b2619529b2",
+          "upstream_id": null,
+          "kind": null,
+          "status": null,
+          "revision": null,
+          "secret_present": null,
+          "provider": "Grok Build",
+          "native": true
+        },
+        {
+          "id": "50d8e3f4fc8660dd44617997ed19618a71916320ee53aa832f35d89aff7327ae",
+          "upstream_id": null,
+          "kind": null,
+          "status": null,
+          "revision": null,
+          "secret_present": null,
+          "provider": "Grok Build",
+          "native": true
+        }
+      ],
+      "etags": [
+        null
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "category",
+        "id",
+        "identity",
+        "managed",
+        "name",
+        "native",
+        "native_account",
+        "operations",
+        "plan",
+        "plan_source",
+        "provider",
+        "status"
+      ]
+    },
+    "routes": {
+      "items": [
+        {
+          "id": "p12-06-codex-bridge-route",
+          "public_model_id": "p12-06-codex-bridge-model",
+          "max_attempts": 1,
+          "bootstrap_timeout_ms": 15000
+        },
+        {
+          "id": "p12-12-production-grok-build-route",
+          "public_model_id": "p12-12-production-grok-build-model",
+          "max_attempts": 1,
+          "bootstrap_timeout_ms": 15000
+        },
+        {
+          "id": "p12-12-production-grok-console-route",
+          "public_model_id": "p12-12-production-grok-console-model",
+          "max_attempts": 1,
+          "bootstrap_timeout_ms": 15000
+        },
+        {
+          "id": "p12-12-production-krill-responses-route",
+          "public_model_id": "p12-12-production-krill-responses-model",
+          "max_attempts": 1,
+          "bootstrap_timeout_ms": 15000
+        },
+        {
+          "id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+          "public_model_id": "model-9f828e8b-a0c1-4db5-87ce-a39b3138fd5e",
+          "max_attempts": 1,
+          "bootstrap_timeout_ms": 30000
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "bootstrap_timeout_ms",
+        "id",
+        "max_attempts",
+        "policy",
+        "public_model_id"
+      ]
+    },
+    "candidates": {
+      "items": [
+        {
+          "id": "candidate-95857499-eff9-4b29-8bb5-34e55dbabcb0",
+          "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+          "endpoint_id": "p12-12-production-krill-responses-endpoint",
+          "upstream_model": "gpt-6-sol",
+          "enabled": true,
+          "capability_override": {},
+          "credential_scope": "all_active",
+          "transform_mode": "canonical_bridge"
+        },
+        {
+          "id": "p12-06-codex-bridge-candidate",
+          "route_id": "p12-06-codex-bridge-route",
+          "endpoint_id": "p12-06-codex-bridge-endpoint",
+          "upstream_model": "gpt-5.6-terra",
+          "enabled": true,
+          "capability_override": {
+            "allow_unlisted_model": true,
+            "reasoning": false
+          },
+          "credential_scope": "all_active",
+          "transform_mode": "canonical_bridge"
+        },
+        {
+          "id": "p12-12-production-grok-build-candidate",
+          "route_id": "p12-12-production-grok-build-route",
+          "endpoint_id": "p12-12-production-grok-build-endpoint",
+          "upstream_model": "grok-4.5",
+          "enabled": true,
+          "capability_override": {
+            "allow_unlisted_model": true
+          },
+          "credential_scope": "all_active",
+          "transform_mode": "canonical_bridge"
+        },
+        {
+          "id": "p12-12-production-grok-console-candidate",
+          "route_id": "p12-12-production-grok-console-route",
+          "endpoint_id": "p12-12-production-grok-console-endpoint",
+          "upstream_model": "grok-4.20-0309",
+          "enabled": true,
+          "capability_override": {
+            "allow_unlisted_model": true,
+            "reasoning": false
+          },
+          "credential_scope": "all_active",
+          "transform_mode": "canonical_bridge"
+        },
+        {
+          "id": "p12-12-production-krill-responses-candidate",
+          "route_id": "p12-12-production-krill-responses-route",
+          "endpoint_id": "p12-12-production-krill-chat-endpoint",
+          "upstream_model": "gpt-5.5",
+          "enabled": false,
+          "capability_override": {
+            "allow_unlisted_model": true
+          },
+          "credential_scope": "all_active",
+          "transform_mode": "canonical_bridge"
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "capability_override",
+        "credential_scope",
+        "enabled",
+        "endpoint_id",
+        "id",
+        "priority",
+        "route_id",
+        "transform_mode",
+        "upstream_model",
+        "weight"
+      ]
+    },
+    "public_models": {
+      "items": [
+        {
+          "id": "model-9f828e8b-a0c1-4db5-87ce-a39b3138fd5e",
+          "model_name": "gpt-6-sol",
+          "status": "active",
+          "capabilities": {}
+        },
+        {
+          "id": "p12-06-codex-bridge-model",
+          "model_name": "gpt-5.6-terra",
+          "status": "active",
+          "capabilities": {}
+        },
+        {
+          "id": "p12-12-production-grok-build-model",
+          "model_name": "grok-4.5",
+          "status": "active",
+          "capabilities": {}
+        },
+        {
+          "id": "p12-12-production-grok-console-model",
+          "model_name": "grok-4.20-0309",
+          "status": "active",
+          "capabilities": {}
+        },
+        {
+          "id": "p12-12-production-krill-responses-model",
+          "model_name": "gpt-5.5",
+          "status": "disabled",
+          "capabilities": {}
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "capabilities",
+        "display_name",
+        "id",
+        "model_name",
+        "status"
+      ]
+    },
+    "client_keys": {
+      "items": [
+        {
+          "id": "4154a728ad5abcb01d21935755d1a35fe218a906449da23cc220848e9ee0705f",
+          "access_group_id": "3d761b989c95fad2443a5e5b2efaf366b370e60f8f34b3b2f42c625db71b2268",
+          "status": "active",
+          "expires_at_ms": 1791086540553
+        },
+        {
+          "id": "7b7960db5735b8850100838480b35002ca5e8953467bb04c740ce1a7f5d90127",
+          "access_group_id": "e1740a9b61bd046e841826b387febd78e019bf2164db3901fd44674f02b50cc6",
+          "status": "active",
+          "expires_at_ms": null
+        },
+        {
+          "id": "402652a6ab96549b9a236b83f5a0da2c12a1dff28ed0d8d87209f8a041cbe684",
+          "access_group_id": "e1740a9b61bd046e841826b387febd78e019bf2164db3901fd44674f02b50cc6",
+          "status": "active",
+          "expires_at_ms": null
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "access_group_id",
+        "expires_at_ms",
+        "id",
+        "last_request_at_ms",
+        "prefix",
+        "status"
+      ]
+    },
+    "access_groups": {
+      "items": [
+        {
+          "id": "3d761b989c95fad2443a5e5b2efaf366b370e60f8f34b3b2f42c625db71b2268",
+          "status": "active"
+        },
+        {
+          "id": "7ac113498dbf488a6cbf55e3b4dd0ee58923413d856f1fd419cc27defb104440",
+          "status": "active"
+        },
+        {
+          "id": "e1740a9b61bd046e841826b387febd78e019bf2164db3901fd44674f02b50cc6",
+          "status": "active"
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "id",
+        "limits",
+        "name",
+        "status"
+      ]
+    },
+    "native_accounts": {
+      "items": [
+        {
+          "id": "1ceff7357ee0421e659b09e62000159898f9516abddd7ac9b3f36ff91e03871a",
+          "provider": "grok_console",
+          "auth_status": "active",
+          "enabled": true,
+          "revision": 0
+        },
+        {
+          "id": "fc78df8341bd92916ca24d94d4a56b1cbf7a57b3ea7aac01b357b4b2619529b2",
+          "provider": "grok_build",
+          "auth_status": "active",
+          "enabled": true,
+          "revision": 0
+        },
+        {
+          "id": "50d8e3f4fc8660dd44617997ed19618a71916320ee53aa832f35d89aff7327ae",
+          "provider": "grok_build",
+          "auth_status": "reauth_required",
+          "enabled": true,
+          "revision": 98
+        },
+        {
+          "id": "f045c46f2469bb53335be8c7aed68bcba369073b43ef6f41be8a75371b294c03",
+          "provider": "grok_console",
+          "auth_status": "active",
+          "enabled": true,
+          "revision": 0
+        },
+        {
+          "id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+          "provider": "grok_build",
+          "auth_status": "active",
+          "enabled": true,
+          "revision": 97
+        }
+      ],
+      "etags": [
+        null
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "adapter_models",
+        "auth_status",
+        "enabled",
+        "id",
+        "identity",
+        "import_batch_id",
+        "provider",
+        "revision"
+      ]
+    },
+    "availability": {
+      "items": [
+        {
+          "endpoint_id": "kimi-coding-responses",
+          "credential_id": "aedc86f78ed254b1242a97f2f5e6c2c75b3a9b9e7885f8aacdb0df08781fce5b",
+          "upstream_model": null,
+          "availability": "available",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-06-codex-bridge-endpoint",
+          "credential_id": "279f8dd33afde739596b81dc10a5af872f078a0f28aca487494891a8e2f3ea57",
+          "upstream_model": null,
+          "availability": "expired",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-12-production-grok-build-endpoint",
+          "credential_id": "fc78df8341bd92916ca24d94d4a56b1cbf7a57b3ea7aac01b357b4b2619529b2",
+          "upstream_model": null,
+          "availability": "expired",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-12-production-grok-build-endpoint",
+          "credential_id": "50d8e3f4fc8660dd44617997ed19618a71916320ee53aa832f35d89aff7327ae",
+          "upstream_model": null,
+          "availability": "expired",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-12-production-grok-build-endpoint",
+          "credential_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+          "upstream_model": null,
+          "availability": "available",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-12-production-grok-console-endpoint",
+          "credential_id": "1ceff7357ee0421e659b09e62000159898f9516abddd7ac9b3f36ff91e03871a",
+          "upstream_model": null,
+          "availability": "credential_unauthorized",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-12-production-grok-console-endpoint",
+          "credential_id": "f045c46f2469bb53335be8c7aed68bcba369073b43ef6f41be8a75371b294c03",
+          "upstream_model": null,
+          "availability": "credential_unauthorized",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-12-production-krill-chat-endpoint",
+          "credential_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "upstream_model": null,
+          "availability": "available",
+          "reason": null,
+          "snapshot_version": null
+        },
+        {
+          "endpoint_id": "p12-12-production-krill-responses-endpoint",
+          "credential_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "upstream_model": null,
+          "availability": "available",
+          "reason": null,
+          "snapshot_version": null
+        }
+      ],
+      "etags": [
+        null
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": []
+    },
+    "account_pools": {
+      "items": [
+        {
+          "provider_id": "kimi-coding",
+          "provider_kind": "kimi-coding",
+          "channel_id": "kimi-coding-responses",
+          "adapter_id": "openai-compatible.responses",
+          "api_format": "openai/responses",
+          "account_id": "aedc86f78ed254b1242a97f2f5e6c2c75b3a9b9e7885f8aacdb0df08781fce5b",
+          "account_kind": "oauth_json",
+          "account_revision": 847,
+          "account_status": "active",
+          "binding_enabled": true,
+          "configured_enabled": true,
+          "route_ids": [],
+          "egress_policy_id": "kimi-coding-egress"
+        },
+        {
+          "provider_id": "p12-06-codex-bridge-upstream",
+          "provider_kind": "openai-compatible",
+          "channel_id": "p12-06-codex-bridge-endpoint",
+          "adapter_id": "openai-compatible.responses",
+          "api_format": "openai/responses",
+          "account_id": "279f8dd33afde739596b81dc10a5af872f078a0f28aca487494891a8e2f3ea57",
+          "account_kind": "oauth_json",
+          "account_revision": 1,
+          "account_status": "active",
+          "binding_enabled": true,
+          "configured_enabled": true,
+          "route_ids": [
+            "p12-06-codex-bridge-route"
+          ],
+          "egress_policy_id": "p12-06-codex-bridge-egress"
+        },
+        {
+          "provider_id": "p12-12-production-krill-upstream",
+          "provider_kind": "openai-compatible",
+          "channel_id": "p12-12-production-krill-chat-endpoint",
+          "adapter_id": "openai-compatible.chat-completions",
+          "api_format": "openai/chat-completions",
+          "account_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "account_kind": "bearer",
+          "account_revision": 0,
+          "account_status": "active",
+          "binding_enabled": true,
+          "configured_enabled": true,
+          "route_ids": [
+            "p12-12-production-krill-responses-route"
+          ],
+          "egress_policy_id": "p12-12-production-krill-egress"
+        },
+        {
+          "provider_id": "p12-12-production-krill-upstream",
+          "provider_kind": "openai-compatible",
+          "channel_id": "p12-12-production-krill-responses-endpoint",
+          "adapter_id": "openai-compatible.responses",
+          "api_format": "openai/responses",
+          "account_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "account_kind": "bearer",
+          "account_revision": 0,
+          "account_status": "active",
+          "binding_enabled": true,
+          "configured_enabled": true,
+          "route_ids": [
+            "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca"
+          ],
+          "egress_policy_id": "p12-12-production-krill-egress"
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "account_id",
+        "account_kind",
+        "account_revision",
+        "account_status",
+        "adapter_id",
+        "api_format",
+        "binding_enabled",
+        "channel_enabled",
+        "channel_id",
+        "concurrency",
+        "configured_enabled",
+        "egress_policy_id",
+        "priority",
+        "provider_enabled",
+        "provider_id",
+        "provider_kind",
+        "provider_name",
+        "route_ids",
+        "transport",
+        "weight"
+      ]
+    },
+    "native_pools": {
+      "items": [
+        {
+          "provider_id": "kimi-coding",
+          "channel_id": "kimi-coding-responses",
+          "account_id": "aedc86f78ed254b1242a97f2f5e6c2c75b3a9b9e7885f8aacdb0df08781fce5b",
+          "account_kind": "oauth_json",
+          "active_leases": 0,
+          "auth_status": "active",
+          "enabled": true,
+          "expires_at_ms": 1790868642393,
+          "max_concurrency": 1,
+          "runtime_status": "available",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-06-codex-bridge-upstream",
+          "channel_id": "p12-06-codex-bridge-endpoint",
+          "account_id": "279f8dd33afde739596b81dc10a5af872f078a0f28aca487494891a8e2f3ea57",
+          "account_kind": "oauth_json",
+          "active_leases": 0,
+          "auth_status": "expired",
+          "enabled": true,
+          "expires_at_ms": 1786812614000,
+          "max_concurrency": 1,
+          "runtime_status": "expired",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-12-production-grok-build-upstream",
+          "channel_id": "p12-12-production-grok-build-endpoint",
+          "account_id": "fc78df8341bd92916ca24d94d4a56b1cbf7a57b3ea7aac01b357b4b2619529b2",
+          "account_kind": "grok_build_oauth",
+          "active_leases": 0,
+          "auth_status": "expired",
+          "enabled": true,
+          "expires_at_ms": 1785955613000,
+          "max_concurrency": 1,
+          "runtime_status": "expired",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-12-production-grok-build-upstream",
+          "channel_id": "p12-12-production-grok-build-endpoint",
+          "account_id": "50d8e3f4fc8660dd44617997ed19618a71916320ee53aa832f35d89aff7327ae",
+          "account_kind": "grok_build_oauth",
+          "active_leases": 0,
+          "auth_status": "expired",
+          "enabled": true,
+          "expires_at_ms": 1790409765697,
+          "max_concurrency": 1,
+          "runtime_status": "expired",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-12-production-grok-build-upstream",
+          "channel_id": "p12-12-production-grok-build-endpoint",
+          "account_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+          "account_kind": "grok_build_oauth",
+          "active_leases": 0,
+          "auth_status": "active",
+          "enabled": true,
+          "expires_at_ms": 1790885322391,
+          "max_concurrency": 1,
+          "runtime_status": "available",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-12-production-grok-console-upstream",
+          "channel_id": "p12-12-production-grok-console-endpoint",
+          "account_id": "1ceff7357ee0421e659b09e62000159898f9516abddd7ac9b3f36ff91e03871a",
+          "account_kind": "grok_console_sso",
+          "active_leases": 0,
+          "auth_status": "active",
+          "enabled": true,
+          "expires_at_ms": null,
+          "max_concurrency": 8,
+          "runtime_status": "unauthorized",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-12-production-grok-console-upstream",
+          "channel_id": "p12-12-production-grok-console-endpoint",
+          "account_id": "f045c46f2469bb53335be8c7aed68bcba369073b43ef6f41be8a75371b294c03",
+          "account_kind": "grok_console_sso",
+          "active_leases": 0,
+          "auth_status": "active",
+          "enabled": true,
+          "expires_at_ms": null,
+          "max_concurrency": 1,
+          "runtime_status": "unauthorized",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-12-production-krill-upstream",
+          "channel_id": "p12-12-production-krill-chat-endpoint",
+          "account_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "account_kind": "bearer",
+          "active_leases": 0,
+          "auth_status": "active",
+          "enabled": true,
+          "expires_at_ms": null,
+          "max_concurrency": 2,
+          "runtime_status": "available",
+          "credential_revision": null
+        },
+        {
+          "provider_id": "p12-12-production-krill-upstream",
+          "channel_id": "p12-12-production-krill-responses-endpoint",
+          "account_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "account_kind": "bearer",
+          "active_leases": 0,
+          "auth_status": "active",
+          "enabled": true,
+          "expires_at_ms": null,
+          "max_concurrency": 2,
+          "runtime_status": "available",
+          "credential_revision": null
+        }
+      ],
+      "etags": [
+        null
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "account_id",
+        "account_kind",
+        "active_leases",
+        "auth_status",
+        "channel_id",
+        "enabled",
+        "entitlement",
+        "expires_at_ms",
+        "max_concurrency",
+        "presentation",
+        "priority",
+        "provider_id",
+        "quota_sync_due_at_ms",
+        "refresh_due_at_ms",
+        "runtime_status",
+        "weight"
+      ]
+    },
+    "provider_egress": {
+      "items": [
+        {
+          "provider_id": "grok.build",
+          "channel_id": "p12-12-production-grok-build-endpoint",
+          "domain": "egress",
+          "target_kind": "direct",
+          "target_id": null,
+          "credential_id": null,
+          "credential_revision": null,
+          "session_revision": null,
+          "state": "available",
+          "deadline_ms": null,
+          "expires_at_ms": null
+        },
+        {
+          "provider_id": "grok.console",
+          "channel_id": "p12-12-production-grok-console-endpoint",
+          "domain": "egress",
+          "target_kind": "direct",
+          "target_id": null,
+          "credential_id": null,
+          "credential_revision": null,
+          "session_revision": null,
+          "state": "available",
+          "deadline_ms": null,
+          "expires_at_ms": null
+        },
+        {
+          "provider_id": "grok.console",
+          "channel_id": "p12-12-production-grok-console-endpoint",
+          "domain": "session",
+          "target_kind": null,
+          "target_id": null,
+          "credential_id": "1ceff7357ee0421e659b09e62000159898f9516abddd7ac9b3f36ff91e03871a",
+          "credential_revision": 1,
+          "session_revision": 1,
+          "state": "absent",
+          "deadline_ms": null,
+          "expires_at_ms": null
+        },
+        {
+          "provider_id": "grok.console",
+          "channel_id": "p12-12-production-grok-console-endpoint",
+          "domain": "session",
+          "target_kind": null,
+          "target_id": null,
+          "credential_id": "f045c46f2469bb53335be8c7aed68bcba369073b43ef6f41be8a75371b294c03",
+          "credential_revision": 1,
+          "session_revision": 1,
+          "state": "absent",
+          "deadline_ms": null,
+          "expires_at_ms": null
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "channel_id",
+        "channel_kind",
+        "credential_id",
+        "credential_revision",
+        "deadline_ms",
+        "domain",
+        "expires_at_ms",
+        "provider_id",
+        "session_revision",
+        "state",
+        "target_id",
+        "target_kind",
+        "upstream_id"
+      ]
+    },
+    "egress_policies": {
+      "items": [
+        {
+          "id": "kimi-coding-egress",
+          "allowed_hosts": [
+            "api.kimi.com"
+          ],
+          "allowed_ports": [
+            443
+          ],
+          "allowed_schemes": [
+            "https"
+          ],
+          "max_redirects": 0,
+          "redirect_mode": "deny"
+        },
+        {
+          "id": "p12-06-codex-bridge-egress",
+          "allowed_hosts": [
+            "chatgpt.com"
+          ],
+          "allowed_ports": [
+            443
+          ],
+          "allowed_schemes": [
+            "https"
+          ],
+          "max_redirects": 0,
+          "redirect_mode": "deny"
+        },
+        {
+          "id": "p12-12-production-grok-build-egress",
+          "allowed_hosts": [
+            "cli-chat-proxy.grok.com"
+          ],
+          "allowed_ports": [
+            443
+          ],
+          "allowed_schemes": [
+            "https"
+          ],
+          "max_redirects": 0,
+          "redirect_mode": "deny"
+        },
+        {
+          "id": "p12-12-production-grok-console-egress",
+          "allowed_hosts": [
+            "console.x.ai"
+          ],
+          "allowed_ports": [
+            443
+          ],
+          "allowed_schemes": [
+            "https"
+          ],
+          "max_redirects": 0,
+          "redirect_mode": "deny"
+        },
+        {
+          "id": "p12-12-production-krill-egress",
+          "allowed_hosts": [
+            "api.krill-ai.com"
+          ],
+          "allowed_ports": [
+            443
+          ],
+          "allowed_schemes": [
+            "https"
+          ],
+          "max_redirects": 0,
+          "redirect_mode": "deny"
+        }
+      ],
+      "etags": [
+        "\"rev-1\""
+      ],
+      "error": null,
+      "complete": true,
+      "item_field_names": [
+        "allowed_cidrs",
+        "allowed_hosts",
+        "allowed_ports",
+        "allowed_schemes",
+        "id",
+        "max_redirects",
+        "name",
+        "redirect_mode"
+      ]
+    }
+  },
+  "configuration_stable": true,
+  "route_grants": [
+    {
+      "access_group_evidence_id": "3d761b989c95fad2443a5e5b2efaf366b370e60f8f34b3b2f42c625db71b2268",
+      "error": null,
+      "routes": [
+        {
+          "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "access_group_evidence_id": "7ac113498dbf488a6cbf55e3b4dd0ee58923413d856f1fd419cc27defb104440",
+      "error": null,
+      "routes": [
+        {
+          "route_id": "p12-06-codex-bridge-route",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "access_group_evidence_id": "e1740a9b61bd046e841826b387febd78e019bf2164db3901fd44674f02b50cc6",
+      "error": null,
+      "routes": [
+        {
+          "route_id": "p12-06-codex-bridge-route",
+          "enabled": true
+        },
+        {
+          "route_id": "p12-12-production-grok-build-route",
+          "enabled": true
+        },
+        {
+          "route_id": "p12-12-production-grok-console-route",
+          "enabled": true
+        },
+        {
+          "route_id": "p12-12-production-krill-responses-route",
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "endpoint_id": "kimi-coding-responses",
+      "error": null,
+      "items": [
+        {
+          "credential_evidence_id": "aedc86f78ed254b1242a97f2f5e6c2c75b3a9b9e7885f8aacdb0df08781fce5b",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "endpoint_id": "p12-06-codex-bridge-endpoint",
+      "error": null,
+      "items": [
+        {
+          "credential_evidence_id": "279f8dd33afde739596b81dc10a5af872f078a0f28aca487494891a8e2f3ea57",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "endpoint_id": "p12-12-production-grok-build-endpoint",
+      "error": null,
+      "items": []
+    },
+    {
+      "endpoint_id": "p12-12-production-grok-console-endpoint",
+      "error": null,
+      "items": []
+    },
+    {
+      "endpoint_id": "p12-12-production-krill-chat-endpoint",
+      "error": null,
+      "items": [
+        {
+          "credential_evidence_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "endpoint_id": "p12-12-production-krill-responses-endpoint",
+      "error": null,
+      "items": [
+        {
+          "credential_evidence_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "inventory_observed_at_utc": "2026-10-01T15:22:19.092619+00:00",
+  "schema_version": 2,
+  "layer": "READ_ONLY_ENVIRONMENT",
+  "value_free": true,
+  "status": "PASS",
+  "command": "cpar-batch-c-live.py --new-build inspect",
+  "environment": {
+    "platform": "darwin",
+    "python": "3.9.6"
+  },
+  "tool_sha256": "ec57c9a1a2cf4f0ef5ec6af35e9743c1ee6eda6028a0b8cf19782521cab23709",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

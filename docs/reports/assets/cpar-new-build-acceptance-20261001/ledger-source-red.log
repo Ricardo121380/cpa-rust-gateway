@@ -1,0 +1,14 @@
+test_collector_requires_exact_ledger_source_event (__main__.FormalOracle) ... FAIL
+
+======================================================================
+FAIL: test_collector_requires_exact_ledger_source_event (__main__.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 312, in test_collector_requires_exact_ledger_source_event
+    self.assertIsNone(collect()["ledger"][0]["attempt_id"])
+AssertionError: 'attempt_1' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.005s
+
+FAILED (failures=1)

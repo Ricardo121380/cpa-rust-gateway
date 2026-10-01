@@ -1,0 +1,62 @@
+{
+  "schema_version": 2,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": "ff4b59edda6cd480782e036dbb7cecee762873be",
+  "observed_at_utc": "2026-10-01T15:28:10.497564+00:00",
+  "runtime": {
+    "method": "proc_executable",
+    "instance": "instance-20260726-2136",
+    "pid": 499070,
+    "process_start": "551409035",
+    "observed_at_utc": "2026-10-01T15:22:19.004574+00:00",
+    "artifact_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "artifact_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "stable_process": true,
+    "manifest_sha256": null,
+    "manifest_matches": null
+  },
+  "target": {
+    "channel": "openai-compatible",
+    "endpoint_id": "p12-12-production-krill-responses-endpoint",
+    "route_id": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+    "route_candidate_id": "candidate-95857499-eff9-4b29-8bb5-34e55dbabcb0",
+    "upstream_model": "gpt-6-sol",
+    "credential_evidence_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+    "credential_revision": 0,
+    "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+    "config_revision": "rev-1",
+    "egress_evidence_id": null,
+    "egress_revision": null,
+    "protocol": "responses",
+    "mode": "json",
+    "public_model": "gpt-6-sol",
+    "response_model": null
+  },
+  "parameters_sha256": "4fdaa0fea8992966d96fd099e55b39e96dea459db7a2bb7fe36b5aa40149ecc4",
+  "capabilities": {
+    "stored": null,
+    "websocket": null,
+    "parallel": null,
+    "compact": null,
+    "reasoning": null,
+    "continuation": null
+  },
+  "declaration_observed_at_utc": null,
+  "value_free": true,
+  "checks": [],
+  "evidence_paths": [],
+  "preflight": {
+    "status": "FAIL",
+    "category": "wrong_runtime_version"
+  },
+  "status": "FAIL",
+  "category": "wrong_runtime_version",
+  "command": "cpar-batch-c-live.py --new-build run",
+  "environment": {
+    "platform": "darwin",
+    "python": "3.9.6"
+  },
+  "tool_sha256": "ec57c9a1a2cf4f0ef5ec6af35e9743c1ee6eda6028a0b8cf19782521cab23709",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

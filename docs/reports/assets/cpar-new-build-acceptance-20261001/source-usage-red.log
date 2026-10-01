@@ -1,0 +1,34 @@
+test_repository_source_usage_fields_are_retained (__main__.FormalOracle) ... FAIL
+
+======================================================================
+FAIL: test_repository_source_usage_fields_are_retained (__main__.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 167, in test_repository_source_usage_fields_are_retained
+    self.assertEqual(oracle.native_usage("responses", value)["source"], source)
+AssertionError: {'inp[31 chars] 2, 'total_tokens': None, 'cache_read_input_to[126 chars]ive'} != {'inp[31 chars] 2, 'reasoning_tokens': 1, 'cache_read_tokens'[112 chars]ive'}
+- {'cache_creation_input_tokens': None,
+?                  ------
+
++ {'cache_creation_tokens': None,
+-  'cache_read_input_tokens': None,
+?              ------
+
++  'cache_read_tokens': None,
++  'cached_tokens': 1,
+   'input_accounting': 'inclusive',
+   'input_tokens': 3,
+   'output_tokens': 2,
+   'provenance': 'measured',
+-  'reasoning_tokens': 1,
+?                       ^
+
++  'reasoning_tokens': 1}
+?                       ^
+
+-  'total_tokens': None}
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)

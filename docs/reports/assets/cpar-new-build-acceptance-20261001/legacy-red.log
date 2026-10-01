@@ -1,0 +1,32 @@
+test_duplicate_success_terminal_is_rejected (__main__.LegacyDefects) ... FAIL
+test_semantic_output_after_success_is_rejected (__main__.LegacyDefects) ... FAIL
+test_stop_with_tool_calls_is_not_success (__main__.LegacyDefects) ... FAIL
+
+======================================================================
+FAIL: test_duplicate_success_terminal_is_rejected (__main__.LegacyDefects)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 152, in test_duplicate_success_terminal_is_rejected
+    oracle.decode_stream("responses", frames([*wire_events("responses", response()), event]))
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_semantic_output_after_success_is_rejected (__main__.LegacyDefects)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 156, in test_semantic_output_after_success_is_rejected
+    oracle.decode_stream("responses", frames([*wire_events("responses", response()), {"type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": "late"}]))
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_stop_with_tool_calls_is_not_success (__main__.LegacyDefects)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 162, in test_stop_with_tool_calls_is_not_success
+    oracle.observe("chat", value)
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+FAILED (failures=3)

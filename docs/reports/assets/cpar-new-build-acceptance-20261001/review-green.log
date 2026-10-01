@@ -1,0 +1,28 @@
+test_all_six_basic_combinations (__main__.FormalOracle) ... ok
+test_boundaries_count_actual_sends (__main__.FormalOracle) ... ok
+test_cancel_timeout_and_truncation_boundaries (__main__.FormalOracle) ... ok
+test_cli_preflight_retains_layer_and_never_sends (__main__.FormalOracle) ... ok
+test_collector_requires_exact_ledger_source_event (__main__.FormalOracle) ... ok
+test_declared_extensions_never_disappear (__main__.FormalOracle) ... ok
+test_extension_rejections_need_authenticated_exact_operation (__main__.FormalOracle) ... ok
+test_http_absolute_deadline_and_redirect_no_retry (__main__.FormalOracle) ... ok
+test_live_requires_matching_artifact_manifest (__main__.FormalOracle) ... ok
+test_native_input_and_details_must_match_source_accounting (__main__.FormalOracle) ... ok
+test_no_secrets_or_wire_bodies_in_receipt (__main__.FormalOracle) ... ok
+test_operator_commit_cannot_attest_runtime (__main__.FormalOracle) ... ok
+test_public_failure_projection_excludes_private_input (__main__.FormalOracle) ... ok
+test_real_http_runner_and_current_receipts (__main__.FormalOracle) ... ok
+test_remote_get_projection_and_process_script (__main__.FormalOracle) ... ok
+test_repository_source_usage_fields_are_retained (__main__.FormalOracle) ... ok
+test_second_cycle_and_results_are_required (__main__.FormalOracle) ... ok
+test_target_and_revision_fail_closed (__main__.FormalOracle) ... ok
+test_tool_argument_id_and_terminal_mutations (__main__.FormalOracle) ... ok
+test_usage_missing_unknown_and_misattributed (__main__.FormalOracle) ... ok
+test_duplicate_success_terminal_is_rejected (__main__.LegacyDefects) ... ok
+test_semantic_output_after_success_is_rejected (__main__.LegacyDefects) ... ok
+test_stop_with_tool_calls_is_not_success (__main__.LegacyDefects) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 3.767s
+
+OK

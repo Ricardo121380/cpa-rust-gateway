@@ -1,0 +1,83 @@
+{
+  "runtime": {
+    "method": "proc_executable",
+    "instance": "instance-20260726-2136",
+    "pid": 499070,
+    "process_start": "551409035",
+    "observed_at_utc": "2026-10-01T14:45:58.863987+00:00",
+    "artifact_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "artifact_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "executable": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0/gateway",
+    "stable_process": true
+  },
+  "evidence": {
+    "correlation": "response_id_usage",
+    "request_id": "p1-request-9981dfd415151686b77a73146904578a-55",
+    "attempts": [
+      {
+        "request_id": "p1-request-9981dfd415151686b77a73146904578a-55",
+        "attempt_id": "attempt:46:p1-request-9981dfd415151686b77a73146904578a-55:1",
+        "channel": null,
+        "endpoint_id": "p12-12-production-grok-build-endpoint",
+        "route_id": "p12-12-production-grok-build-route",
+        "route_candidate_id": "p12-12-production-grok-build-candidate",
+        "upstream_model": "grok-4.5",
+        "credential_revision": null,
+        "config_version_id": null,
+        "config_revision": null,
+        "egress_revision": null,
+        "started_at_ms": 1790758042383,
+        "ended_at_ms": 1790758042804,
+        "retry_decision": "completed",
+        "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+        "egress_evidence_id": null,
+        "outcome": "success",
+        "source_record_sha256": "24dd82966e657fcbc2c310841ecd0e44192e9a45f7be655b1ef085f60393bf62"
+      }
+    ],
+    "usages": [
+      {
+        "request_id": "p1-request-9981dfd415151686b77a73146904578a-55",
+        "response_id": "fd077ef2-5dff-9189-aab4-759dccce9173",
+        "attempt_id": "attempt:46:p1-request-9981dfd415151686b77a73146904578a-55:1",
+        "usage": {
+          "input_tokens": 307,
+          "output_tokens": 1,
+          "reasoning_tokens": null,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cached_tokens": null
+        }
+      }
+    ],
+    "ledger": [
+      {
+        "request_id": "p1-request-9981dfd415151686b77a73146904578a-55",
+        "response_id": "fd077ef2-5dff-9189-aab4-759dccce9173",
+        "attempt_id": "attempt:46:p1-request-9981dfd415151686b77a73146904578a-55:1",
+        "usage": {
+          "input_tokens": 307,
+          "output_tokens": 1,
+          "reasoning_tokens": null,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cached_tokens": null,
+          "provenance": null,
+          "input_accounting": null
+        },
+        "attribution_method": "exact_usage_source_event",
+        "source_event_evidence_id": "c38c4c5c382534614a62519b3e75b11054cc06f376b9830c95b92b3d055a5c51"
+      }
+    ],
+    "observed_at_utc": "2026-10-01T14:45:58.894428+00:00"
+  },
+  "schema_version": 2,
+  "layer": "READ_ONLY_ATTRIBUTION",
+  "value_free": true,
+  "status": "PASS",
+  "purpose": "historical_record_schema_probe_no_inference",
+  "command": "collect --host new-vps --sudo --response-id <existing response ID>",
+  "tool_sha256": "22624ef84a5da43e576529456cf82cb0185090694840b0f1b70277b5bf562b6d",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

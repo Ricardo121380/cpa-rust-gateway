@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "layer": "READ_ONLY_EGRESS",
+  "runtime": {
+    "method": "proc_executable",
+    "instance": "instance-20260726-2136",
+    "pid": 499070,
+    "process_start": "551409035",
+    "observed_at_utc": "2026-10-01T15:25:20.973937+00:00",
+    "artifact_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "artifact_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "executable": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0/gateway",
+    "stable_process": true
+  },
+  "observed_at_utc": "2026-10-01T15:25:21.173281+00:00",
+  "method": "host_direct_dns_tcp_tls_only",
+  "probes": [
+    {
+      "host": "api.krill-ai.com",
+      "port": 443,
+      "http_requests": 0,
+      "inference_requests": 0,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-01T15:25:21.006643+00:00",
+      "resolved_addresses": 3,
+      "tcp_connected": true,
+      "tls_version": "TLSv1.3",
+      "certificate_sha256": "aaa44ce7732d8dde177deaff7041e4eac271b4082ddc07a7680614189c20b086",
+      "duration_ms": 165
+    },
+    {
+      "host": "api.kimi.com",
+      "port": 443,
+      "http_requests": 0,
+      "inference_requests": 0,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-01T15:25:21.007001+00:00",
+      "resolved_addresses": 4,
+      "tcp_connected": true,
+      "tls_version": "TLSv1.3",
+      "certificate_sha256": "4c5e863c23eb0298e6bfafd16bb7009d5e1015d832103059014fbeecf5067b30",
+      "duration_ms": 136
+    },
+    {
+      "host": "chatgpt.com",
+      "port": 443,
+      "http_requests": 0,
+      "inference_requests": 0,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-01T15:25:21.007446+00:00",
+      "resolved_addresses": 4,
+      "tcp_connected": true,
+      "tls_version": "TLSv1.3",
+      "certificate_sha256": "be5f74c3a40b862eafbfc7c18647a45eff7b5e297e4587dcf98d1d75fa9d359a",
+      "duration_ms": 115
+    },
+    {
+      "host": "cli-chat-proxy.grok.com",
+      "port": 443,
+      "http_requests": 0,
+      "inference_requests": 0,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-01T15:25:21.007726+00:00",
+      "resolved_addresses": 4,
+      "tcp_connected": true,
+      "tls_version": "TLSv1.3",
+      "certificate_sha256": "4b2cfe3eab7e0c0fbd822d56e451273523fef05149438f8afe53664b8e5ad524",
+      "duration_ms": 111
+    },
+    {
+      "host": "console.x.ai",
+      "port": 443,
+      "http_requests": 0,
+      "inference_requests": 0,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-01T15:25:21.008918+00:00",
+      "resolved_addresses": 4,
+      "tcp_connected": true,
+      "tls_version": "TLSv1.3",
+      "certificate_sha256": "6a6d42f1253e21ee29bf04e2f2ec76cab646107151f8846e66578069258e10bc",
+      "duration_ms": 112
+    }
+  ],
+  "actual_gateway_proxy_path_verified": false,
+  "provider_permission_or_model_verified": false,
+  "real_provider_calls": 0,
+  "command": "SSH new-vps: DNS/TCP/TLS 443 only to five currently configured endpoint hosts"
+}

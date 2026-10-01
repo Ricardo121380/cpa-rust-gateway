@@ -1,0 +1,16 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n补齐 grok.console 的特有差异，并按三协议分别完成基础调用及已声明扩展的本地／真实证据。\n\n实施编号 CPAR-39；实施批次：C。覆盖用户故事 27, 28, 31, 32, 34, 36, 37, 54, 55, 56, 57, 61, 64, 65, 69, 70, 71, 72, 73, 74, 83, 84, 85；验收场景 T08, T09, T10, T11, T14。\n\n扩展验收关联（不阻塞基础路径开工）：[保存 #35](https://github.com/Ricardo121380/cpa-rust-gateway/issues/35)、[续接 #36](https://github.com/Ricardo121380/cpa-rust-gateway/issues/36)、[压缩 #37](https://github.com/Ricardo121380/cpa-rust-gateway/issues/37)、[WebSocket #38](https://github.com/Ricardo121380/cpa-rust-gateway/issues/38) 分别提供对应共性实现。仅实际声明的能力需要对应证据；未完成时该能力继续待验证，不能以基础通过替代。\n\n## Acceptance criteria\n\n- [ ] 冻结本渠道实际账号证据标识、接入配置、模型、参数及能力声明；保留 SSO 账号及原生运行／额度／出口的真实观察，不借用 Web 或 Build 的能力和会话。\n- [ ] 三个下游协议分别验证非流式／流式多轮文本、工具调用与结果回传、连续多轮工具交互，从公共入口进入真实应用装配；受控故障证据复用共性工单而非只测 adapter。\n- [ ] 保留 reasoning／WS；parallel、续接和压缩未声明时不自动承诺。 未声明项目不扩张；已声明项目不得关掉后声称通过。\n- [ ] 在另行明确授权的账号、环境和请求预算内执行代表性真实关键闭环；登录、目录、健康、额度查询不能代替推理。没有条件的组合标 BLOCKED／NOT_RUN，不关闭该承诺。\n- [ ] 软件缺陷与授权失效、上游拒绝、缺账号分别归因；修复本渠道所属差异，不跨渠道合并身份、凭据、出口或失败范围。\n- [ ] 每个协议／能力分别记录 PASS／FAIL／NOT_RUN／BLOCKED、构建、配置、时间及脱敏证据；已通过组合可独立交付，其他组合继续留在台账。\n- [ ] 本票可先推进基础路径。声明扩展使用 26–29 的对应实现及证据，只在相应能力完成前要求其结果，不把未声明扩展设为全渠道开工前置；未完成扩展仍阻断该能力完成。\n- [ ] 本票完成要求本渠道全部承诺基础组合及已声明扩展满足相应证据门槛；单个组合可先记录通过，不能据此关闭其余未完成承诺。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#16](https://github.com/Ricardo121380/cpa-rust-gateway/issues/16)：Grok 原生账号接入与运行应用反馈。原因：本渠道完整接入路径。\n- [#27](https://github.com/Ricardo121380/cpa-rust-gateway/issues/27)：三协议文本多轮与严格请求准入。原因：完整基础验收需要对应公共语义正确；不以 adapter 单测绕过已知共性缺口。\n- [#29](https://github.com/Ricardo121380/cpa-rust-gateway/issues/29)：流式工具与并行控制保持完整。原因：完整基础验收需要对应公共语义正确；不以 adapter 单测绕过已知共性缺口。\n- [#30](https://github.com/Ricardo121380/cpa-rust-gateway/issues/30)：思考语义与 Chat 准入一致。原因：完整基础验收需要对应公共语义正确；不以 adapter 单测绕过已知共性缺口。\n- [#31](https://github.com/Ricardo121380/cpa-rust-gateway/issues/31)：签名、引用与缓存语义保真。原因：完整基础验收需要对应公共语义正确；不以 adapter 单测绕过已知共性缺口。\n- [#32](https://github.com/Ricardo121380/cpa-rust-gateway/issues/32)：用量细项从响应到 Usage／账本保真。原因：完整基础验收需要对应公共语义正确；不以 adapter 单测绕过已知共性缺口。\n- [#33](https://github.com/Ricardo121380/cpa-rust-gateway/issues/33)：流终态、取消与透明重试正确。原因：完整基础验收需要对应公共语义正确；不以 adapter 单测绕过已知共性缺口。\n- [#34](https://github.com/Ricardo121380/cpa-rust-gateway/issues/34)：公开错误、模型权限与失败范围隔离。原因：完整基础验收需要对应公共语义正确；不以 adapter 单测绕过已知共性缺口。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 48,
+  "state": "OPEN",
+  "title": "CPAR-39：grok.console 渠道差异与逐组合验收"
+}

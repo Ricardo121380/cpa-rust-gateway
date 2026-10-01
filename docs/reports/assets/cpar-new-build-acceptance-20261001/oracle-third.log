@@ -1,0 +1,36 @@
+test_all_six_basic_combinations (__main__.FormalOracle) ... ok
+test_boundaries_count_actual_sends (__main__.FormalOracle) ... ok
+test_declared_extensions_never_disappear (__main__.FormalOracle) ... ok
+test_http_absolute_deadline_and_redirect_no_retry (__main__.FormalOracle) ... ERROR
+test_live_requires_matching_artifact_manifest (__main__.FormalOracle) ... ok
+test_no_secrets_or_wire_bodies_in_receipt (__main__.FormalOracle) ... ok
+test_operator_commit_cannot_attest_runtime (__main__.FormalOracle) ... ok
+test_real_http_runner_and_current_receipts (__main__.FormalOracle) ... ok
+test_remote_get_projection_and_process_script (__main__.FormalOracle) ... ok
+test_repository_source_usage_fields_are_retained (__main__.FormalOracle) ... ok
+test_second_cycle_and_results_are_required (__main__.FormalOracle) ... ok
+test_target_and_revision_fail_closed (__main__.FormalOracle) ... ok
+test_tool_argument_id_and_terminal_mutations (__main__.FormalOracle) ... ok
+test_usage_missing_unknown_and_misattributed (__main__.FormalOracle) ... ok
+test_duplicate_success_terminal_is_rejected (__main__.LegacyDefects) ... ok
+test_semantic_output_after_success_is_rejected (__main__.LegacyDefects) ... ok
+test_stop_with_tool_calls_is_not_success (__main__.LegacyDefects) ... ok
+
+======================================================================
+ERROR: test_http_absolute_deadline_and_redirect_no_retry (__main__.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 377, in test_http_absolute_deadline_and_redirect_no_retry
+    with self.assertRaises(TimeoutError):oracle.http_call(base, "synthetic-key", "responses", request, timeout=.12)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar_new_build_acceptance.py", line 905, in http_call
+    chunk = wire_response.read1(min(65536, MAX_BODY + 1 - len(raw)))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/http/client.py", line 636, in read1
+    result = self.fp.read1(n)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/socket.py", line 704, in readinto
+    return self._sock.recv_into(b)
+socket.timeout: timed out
+
+----------------------------------------------------------------------
+Ran 17 tests in 3.717s
+
+FAILED (errors=1)

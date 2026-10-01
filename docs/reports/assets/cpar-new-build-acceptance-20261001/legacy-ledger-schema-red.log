@@ -1,0 +1,17 @@
+test_collector_requires_exact_ledger_source_event (__main__.FormalOracle) ... ERROR
+
+======================================================================
+ERROR: test_collector_requires_exact_ledger_source_event (__main__.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 318, in test_collector_requires_exact_ledger_source_event
+    self.assertIsNone(collect()["ledger"][0]["usage"]["provenance"])
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 310, in collect
+    exec(oracle.REMOTE_COLLECT.replace("RESPONSE_ID", repr(value["id"])), {"opts": {"--state-dir": directory}, "pathlib": __import__("pathlib"), "json": json, "datetime": datetime, "hashlib": hashlib, "opaque": oracle.opaque, "runtime": runtime()})
+  File "<string>", line 22, in <module>
+sqlite3.OperationalError: no such column: usage_evidence_json
+
+----------------------------------------------------------------------
+Ran 1 test in 0.009s
+
+FAILED (errors=1)
