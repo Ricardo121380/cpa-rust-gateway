@@ -118,12 +118,12 @@ impl EndpointAttemptDriver {
                     _ => ExecutionEgress::Unknown,
                 },
             }
+        } else if matches!(&runtime.adapter, EndpointAdapter::GrokWebResponses) {
+            // The actual Web transport constructor decides whether a relay owns the send.
+            // A configured fallback profile cannot attest that relay's onward egress.
+            ExecutionEgress::Unknown
         } else {
-            let transport = if matches!(&runtime.adapter, EndpointAdapter::GrokWebResponses) {
-                runtime.transports.for_web_mode(self.mode)
-            } else {
-                runtime.transports.for_mode(self.mode)
-            };
+            let transport = runtime.transports.for_mode(self.mode);
             transport_identity(transport.proxy())
         };
         *self
@@ -172,6 +172,32 @@ impl EndpointAttemptDriver {
                 matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses),
             ),
         })
+    }
+
+    pub(super) fn record_web_transport(
+        &self,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+        transport: &provider_grok::GrokWebProductionUpstreamTransport,
+    ) -> Result<(), AttemptFailure> {
+        {
+            let mut capture = self
+                .execution_egress
+                .lock()
+                .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?;
+            let observed = capture
+                .as_mut()
+                .filter(|observed| {
+                    observed.candidate_id == *candidate.id()
+                        && observed.credential_id == *credential.credential_id()
+                        && observed.credential_revision == credential.credential_revision()
+                })
+                .ok_or_else(|| AttemptFailure::NonRetryable(internal_error()))?;
+            observed.egress = transport
+                .execution_proxy()
+                .map_or(ExecutionEgress::Unknown, transport_identity);
+        }
+        self.record_pin_execution(candidate, credential)
     }
 
     pub(super) fn record_claude_channel(&self) -> Result<(), AttemptFailure> {
@@ -463,6 +489,76 @@ mod tests {
             assert!(!json.contains(private));
         }
         assert!(!format!("{old:?}").contains("execution-before"));
+        Ok(())
+    }
+
+    #[test]
+    fn web_relay_execution_never_claims_the_unused_proxy() -> TestResult {
+        let (mut driver, candidate, pool) = fixture()?;
+        let runtime = Arc::get_mut(&mut driver.endpoints)
+            .ok_or("exclusive endpoints")?
+            .get_mut(candidate.endpoint_id())
+            .ok_or("runtime")?;
+        runtime.adapter = EndpointAdapter::GrokWebResponses;
+        let mut profiles = P12TransportProfiles::try_new_with_web_proxy(
+            UpstreamProxy::try_socks5("socks5://127.0.0.1:19081")?,
+            None,
+            8191,
+        )?;
+        profiles.browser_relay_url = Some("http://127.0.0.1:19082/relay".to_owned());
+        runtime.transports = Arc::new(profiles);
+        let lease = pool.try_lease().ok_or("lease")?;
+        let runtime = driver
+            .endpoints
+            .get(candidate.endpoint_id())
+            .ok_or("runtime")?;
+        driver
+            .capture_egress(runtime, &candidate, &lease, None)
+            .map_err(|_| "capture")?;
+        assert_eq!(
+            driver
+                .actual_execution_identity(&candidate, &lease)
+                .ok_or("identity")?
+                .egress,
+            ExecutionEgress::Unknown
+        );
+        let profiles = runtime.transports.as_ref();
+        let transport =
+            provider_grok::GrokWebProductionUpstreamTransport::new_with_browser_relay_url(
+                runtime.policy.clone(),
+                Arc::clone(&runtime.resolver),
+                driver.client_pool.as_ref().clone(),
+                profiles.for_web_mode(driver.mode).clone(),
+                profiles.browser_relay_url().map(str::to_owned),
+            );
+        driver
+            .record_web_transport(&candidate, &lease, &transport)
+            .map_err(|_| "record")?;
+        assert_eq!(
+            driver
+                .actual_execution_identity(&candidate, &lease)
+                .ok_or("identity")?
+                .egress,
+            ExecutionEgress::Unknown
+        );
+        let direct_transport =
+            provider_grok::GrokWebProductionUpstreamTransport::new_with_browser_relay_url(
+                runtime.policy.clone(),
+                Arc::clone(&runtime.resolver),
+                driver.client_pool.as_ref().clone(),
+                profiles.for_web_mode(driver.mode).clone(),
+                None,
+            );
+        driver
+            .record_web_transport(&candidate, &lease, &direct_transport)
+            .map_err(|_| "record")?;
+        assert_eq!(
+            driver
+                .actual_execution_identity(&candidate, &lease)
+                .ok_or("identity")?
+                .egress,
+            transport_identity(profiles.for_web_mode(driver.mode).proxy())
+        );
         Ok(())
     }
 

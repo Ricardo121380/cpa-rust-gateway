@@ -496,7 +496,7 @@ class FormalOracle(unittest.TestCase):
             payload = json.dumps({"attempt": attempt})
             for event_id, kind, body, ordinal in (("request_1", "request", {"client_key_id": "synthetic-client", "protocol": "openai_responses", "streaming": False}, 1), (attempt["attempt_id"], "attempt", attempt, 2), ("source-a", "usage", usage, 3), ("request_1", "request_finished", {"outcome": "succeeded"}, 4)):
                 database.execute("INSERT INTO gateway_event_log VALUES(?,?,?,?,?)", (event_id, kind, usage["request_id"], ordinal, json.dumps({kind: body})))
-            identity = {"channel": "openai-compatible", "credential_revision": 3, "config_version_id": "local", "config_revision": 4, "egress": {"kind": "direct"}, "capabilities": target()["capabilities"]}
+            identity = {"channel": "openai-compatible", "credential_revision": 3, "config_version_id": "local", "config_revision": 4, "egress": {"kind": "direct"}, "capabilities": {name: False for name in ("reasoning", "parallel", "stored", "continuation", "compact", "websocket")}}
             def collect():
                 database.commit()
                 output = io.StringIO()
@@ -506,13 +506,21 @@ class FormalOracle(unittest.TestCase):
             legacy_attempt = collect()["attempts"][0]
             self.assertIsNone(legacy_attempt["credential_revision"])
             self.assertIsNone(legacy_attempt["capabilities"])
-            database.execute("INSERT INTO gateway_attempt_execution VALUES(?,?,?,?)", (attempt["attempt_id"], usage["request_id"], hashlib.sha256(payload.encode()).hexdigest(), json.dumps(identity)))
+            canonical = json.dumps(identity, separators=(",", ":"), ensure_ascii=False)
+            database.execute("INSERT INTO gateway_attempt_execution VALUES(?,?,?,?)", (attempt["attempt_id"], usage["request_id"], hashlib.sha256(payload.encode()).hexdigest(), canonical))
             actual = collect()
             self.assertIs(actual["attempts"][0]["execution_evidence_valid"], True)
             self.assertEqual(actual["attempts"][0]["credential_revision"], 3)
             self.assertEqual(actual["attempts"][0]["egress_revision"], {"source": "not_applicable"})
             self.assertIs(actual["stream"], False)
             self.assertEqual(actual["request_outcome"], "succeeded")
+            duplicated = json.dumps(identity).replace('"credential_revision": 3', '"credential_revision": 99, "credential_revision": 3')
+            database.execute("UPDATE gateway_attempt_execution SET evidence_json=?", (duplicated,))
+            self.assertIs(collect()["attempts"][0]["execution_evidence_valid"], False)
+            for invalid_json in (json.dumps(identity), canonical.replace('"credential_revision":3', '"credential_revision":18446744073709551616')):
+                database.execute("UPDATE gateway_attempt_execution SET evidence_json=?", (invalid_json,))
+                self.assertIs(collect()["attempts"][0]["execution_evidence_valid"], False)
+            database.execute("UPDATE gateway_attempt_execution SET evidence_json=?", (canonical,))
             database.execute("UPDATE gateway_attempt_execution SET attempt_payload_sha256=?", ("0" * 64,))
             self.assertIs(collect()["attempts"][0]["execution_evidence_valid"], False)
             database.execute("UPDATE gateway_attempt_execution SET attempt_payload_sha256=?", (hashlib.sha256(payload.encode()).hexdigest(),))

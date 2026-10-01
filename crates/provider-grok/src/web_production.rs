@@ -508,6 +508,13 @@ struct GrokWebBrowserRelay {
 }
 
 impl GrokWebProductionUpstreamTransport {
+    /// Returns the actual upstream-facing transport proxy when this process owns the send.
+    /// A browser relay's onward egress is unobserved here, so it has no proxy evidence.
+    #[must_use]
+    pub fn execution_proxy(&self) -> Option<&UpstreamProxy> {
+        self.relay.is_none().then_some(self.profile.proxy())
+    }
+
     /// Creates one explicit egress/client/profile binding.
     #[must_use]
     pub fn new(

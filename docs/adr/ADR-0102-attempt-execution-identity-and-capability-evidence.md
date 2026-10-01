@@ -32,6 +32,8 @@ actual lease material revisions. Empty public capabilities do not declare a cand
    selected node and owning configuration revision. A process proxy records SHA256 of its validated
    secret-free actual transport identity. That fingerprint is separate from a resource revision;
    raw proxy addresses are not persisted. These types do not create a node revision mechanism.
+   Web's actual transport constructor supplies its selected proxy; browser relay onward egress
+   remains Unknown instead of claiming the unused fallback profile.
 4. Record the compiled candidate's six effective declarations. Missing override inherits existing
    profile/model rules. Continuation means stored/compact/WebSocket, or the existing Grok Build
    owned-reasoning path with Reasoning. Protocol applicability remains a separate acceptance rule.

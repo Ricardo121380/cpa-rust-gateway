@@ -59,8 +59,10 @@ backups and retention of new accepted history, as specified in ADR-0102.
 - `execution_identity_is_atomic_bound_and_replay_exact`
 - `execution_identity_legacy_unknown_and_schema_rollback_preserve_attempts`
 - `execution_identity_invalid_revision_and_corrupt_binding_fail_closed`
+- `execution_identity_noncanonical_json_and_overflow_are_invalid`
 - `actual_execution_identity_retains_refreshed_lease_and_configuration`
 - `actual_execution_identity_proxy_fingerprint_and_owned_reasoning_are_explicit`
+- `web_relay_execution_never_claims_the_unused_proxy`
 - `ordinary_native_families_use_the_public_factory_and_preserve_identity`
 - Python formal oracle: `python3 scripts/test-cpar-new-build-acceptance.py`.
 - Actual gateway/SQLite/TLS/SOCKS: `python3 scripts/acceptance/cpar-batch-b-http.py <owned-output>`;

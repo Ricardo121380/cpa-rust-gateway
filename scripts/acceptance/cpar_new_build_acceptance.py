@@ -993,6 +993,12 @@ def remote_read(host, service, inventory=False, sudo=False):
 
 REMOTE_COLLECT = r'''
 import sqlite3
+def execution_pairs(pairs):
+    result={}
+    for key,value in pairs:
+        if key in result: raise ValueError('duplicate_execution_field')
+        result[key]=value
+    return result
 database=sqlite3.connect('file:'+str(pathlib.Path(opts['--state-dir'])/'control.sqlite3')+'?mode=ro',uri=True,timeout=5)
 database.row_factory=sqlite3.Row
 database.execute('BEGIN')
@@ -1028,20 +1034,31 @@ if len(request_ids)==1:
         if sidecar:
             item['execution_evidence_valid']=sidecar[0]==request_id and sidecar[1]==item['source_record_sha256']
             if item['execution_evidence_valid']:
-                actual=json.loads(sidecar[2])
+                try:
+                    actual=json.loads(sidecar[2],object_pairs_hook=execution_pairs)
+                except (ValueError,TypeError):
+                    item['execution_evidence_valid']=False
+                    evidence['attempts'].append(item)
+                    continue
                 identifier=lambda value:isinstance(value,str) and 0<len(value.encode())<=512
                 number=lambda value:type(value) is int and value>=0
-                caps=actual.get('capabilities')
+                caps=actual.get('capabilities') if isinstance(actual,dict) else None
                 cap_fields={'reasoning','parallel','stored','continuation','compact','websocket'}
-                valid=set(actual)=={'channel','credential_revision','config_version_id','config_revision','egress','capabilities'} and actual.get('channel') in {'openai-compatible','anthropic-compatible','codex','claude','grok.build','grok.console','grok.web','grok.official','kimi-coding','kimi-api','kiro'} and number(actual.get('credential_revision')) and number(actual.get('config_revision')) and identifier(actual.get('config_version_id')) and isinstance(caps,dict) and set(caps)==cap_fields and all(type(value) is bool for value in caps.values()) and (not caps.get('compact') or caps.get('stored'))
-                egress=actual.get('egress')
+                valid=isinstance(actual,dict) and set(actual)=={'channel','credential_revision','config_version_id','config_revision','egress','capabilities'} and actual.get('channel') in {'openai-compatible','anthropic-compatible','codex','claude','grok.build','grok.console','grok.web','grok.official','kimi-coding','kimi-api','kiro'} and number(actual.get('credential_revision')) and actual['credential_revision']<=2**64-1 and number(actual.get('config_revision')) and actual['config_revision']<=2**63-1 and identifier(actual.get('config_version_id')) and isinstance(caps,dict) and set(caps)==cap_fields and all(type(value) is bool for value in caps.values()) and (not caps.get('compact') or caps.get('stored'))
+                egress=actual.get('egress') if isinstance(actual,dict) else None
                 valid=valid and isinstance(egress,dict)
                 if valid:
                     kind=egress.get('kind')
                     if kind in ('direct','unknown','not_selected'):valid=set(egress)=={'kind'}
-                    elif kind=='configured_proxy':valid=set(egress)=={'kind','target_id','node_id','config_version_id','config_revision'} and identifier(egress.get('target_id')) and identifier(egress.get('node_id')) and egress.get('config_version_id')==actual['config_version_id'] and egress.get('config_revision')==actual['config_revision']
+                    elif kind=='configured_proxy':valid=set(egress)=={'kind','target_id','node_id','config_version_id','config_revision'} and identifier(egress.get('target_id')) and identifier(egress.get('node_id')) and number(egress.get('config_revision')) and egress.get('config_version_id')==actual['config_version_id'] and egress.get('config_revision')==actual['config_revision']
                     elif kind=='process_proxy':valid=set(egress)=={'kind','transport_fingerprint'} and isinstance(egress.get('transport_fingerprint'),str) and len(egress['transport_fingerprint'])==64 and all(char in '0123456789abcdef' for char in egress['transport_fingerprint'])
                     else:valid=False
+                if valid:
+                    egress_order=('kind','target_id','node_id','config_version_id','config_revision') if kind=='configured_proxy' else ('kind','transport_fingerprint') if kind=='process_proxy' else ('kind',)
+                    canonical={key:actual[key] for key in ('channel','credential_revision','config_version_id','config_revision','egress','capabilities')}
+                    canonical['egress']={key:egress[key] for key in egress_order}
+                    canonical['capabilities']={key:caps[key] for key in ('reasoning','parallel','stored','continuation','compact','websocket')}
+                    valid=json.dumps(canonical,separators=(',',':'),ensure_ascii=False)==sidecar[2] and len(sidecar[2].encode())<=8192
                 item['execution_evidence_valid']=valid
                 if not valid:
                     evidence['attempts'].append(item)

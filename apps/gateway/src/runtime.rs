@@ -5215,13 +5215,13 @@ impl EndpointAttemptDriver {
             return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         };
         let now_ms = system_now_ms()?;
-        let credential = GrokWebCredential::import_sso_json(credential.secret_bytes(), now_ms)
+        let web_credential = GrokWebCredential::import_sso_json(credential.secret_bytes(), now_ms)
             .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
         let session = Arc::new(
             GrokWebBrowserEgressSession::try_new(
-                GrokWebEgressSessionId::try_new(credential.account_reference())
+                GrokWebEgressSessionId::try_new(web_credential.account_reference())
                     .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?,
-                credential,
+                web_credential,
                 GrokWebBrowserUserAgent::try_new(GROK_WEB_PRODUCTION_USER_AGENT)
                     .map_err(|_| AttemptFailure::NonRetryable(internal_error()))?,
                 GrokWebTlsProfile::try_new("chrome_146")
@@ -5255,6 +5255,7 @@ impl EndpointAttemptDriver {
             runtime.transports.for_web_mode(self.mode).clone(),
             runtime.transports.browser_relay_url().map(str::to_owned),
         );
+        self.record_web_transport(candidate, credential, &transport)?;
         let flaresolverr_transport = P12GrokWebFlareSolverrTransport::new(
             Arc::clone(&self.client_pool),
             runtime.transports.for_mode(self.mode).clone(),

@@ -4,6 +4,43 @@ use gateway_core::{AttemptExecutionIdentity, EffectiveCapabilities, ExecutionEgr
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
+#[test]
+fn execution_identity_noncanonical_json_and_overflow_are_invalid() -> TestResult {
+    let mut store = SqliteEventStore::open_in_memory()?;
+    store.append_batch(&[observed_attempt(3)?])?;
+    let canonical: String = store.connection.query_row(
+        "SELECT evidence_json FROM gateway_attempt_execution",
+        [],
+        |row| row.get(0),
+    )?;
+    store
+        .connection
+        .execute_batch("DROP TRIGGER gateway_attempt_execution_no_update;")?;
+    for invalid in [
+        canonical.replacen(
+            "\"credential_revision\":3",
+            "\"credential_revision\":99,\"credential_revision\":3",
+            1,
+        ),
+        canonical.replacen(
+            "\"credential_revision\":3",
+            "\"credential_revision\":18446744073709551616",
+            1,
+        ),
+        format!(" {canonical}"),
+    ] {
+        store.connection.execute(
+            "UPDATE gateway_attempt_execution SET evidence_json=?1",
+            [invalid],
+        )?;
+        assert!(matches!(
+            store.list_events(),
+            Err(StoreError::InvalidPersistedGatewayEvent)
+        ));
+    }
+    Ok(())
+}
+
 fn identity(revision: u64) -> AttemptExecutionIdentity {
     AttemptExecutionIdentity {
         channel: "openai-compatible".to_owned(),
