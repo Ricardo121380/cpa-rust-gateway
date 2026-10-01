@@ -742,6 +742,7 @@ mod tests {
                 "credential_refresh_state",
                 "egress_policies",
                 "endpoint_credential_bindings",
+                "gateway_attempt_execution",
                 "gateway_event_log",
                 "gateway_event_quarantine",
                 "gateway_request_recording",
