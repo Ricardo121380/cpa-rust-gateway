@@ -212,6 +212,12 @@
 |---|---|---|---|---|---|
 | CPAR-A / CPAR-01–17 | [规格 #9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)；工单 #10–26；用户授权 Codex 完成本次 A 前后端 | [ADR-0099](adr/ADR-0099-account-workflow-evidence-and-retirement.md)；权威 management-v1 OpenAPI | 账号导入/授权/批次 receipt、draft review/CAS、原生 schema 0032 与 identity 原子写入、目录证据与映射恢复、Key default-closed、refresh/disable/stream retirement、删除与恢复 review、精确显式 Pin | [A 本地报告](reports/cpar-batch-a-20260930.md)，controlled gateway HTTP、EgoLite fixture、定向回归与独立只读审查；真实 Provider/生产 NOT_RUN | LOCAL_PASS |
 
+## CPAR 渠道差异 C 批次补充
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| CPAR-C / CPAR-30, 35, 38, 39 | [规格 #9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)；#39、#44、#47、#48；收口 #57 | [ADR-0100](adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md)、[ADR-0101](adr/ADR-0101-grok-native-item-metadata-fidelity.md)、[BC-PROVIDER-015](contracts/BC-PROVIDER-015-grok-official-tool-reasoning-capability.md) | Kiro 错误后丢弃待发事件并封闭事件源；Grok 原生身份、reasoning 分层、phase、citations、严格 SSE 关联及显式 Responses 历史回放；实际 runtime factory 回归 | `p7_09_native_inference_adapter::corrupt_frame_discards_queued_events_and_seals_the_source`；`cpar_c_native_metadata`；`runtime::batch_c`；不可变提交 Gate、评审和真实验收条件按 #57 单独归集 | LOCAL_IMPLEMENTED_PENDING_GATE_AND_REAL_ACCEPTANCE；Kiro 输出硬上限、Web 多轮以及其余真实/声明扩展组合保持未完成 |
+
 ## 后续 Phase 映射
 
 | 矩阵模块 | 主要 Phase |

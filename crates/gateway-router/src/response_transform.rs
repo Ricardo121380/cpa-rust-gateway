@@ -219,7 +219,8 @@ fn project_event(
 }
 
 // Message/tool identities are optional envelope metadata in Chat/Messages. Their complete
-// semantic deltas remain in the stream. Reasoning metadata is Responses-only; never flatten it.
+// semantic deltas remain in the stream. A single plain reasoning body can bridge exactly;
+// summary, signatures, ciphertext, and structured reasoning remain Responses-only.
 fn project_native_identity(
     event: &CanonicalEvent,
 ) -> Result<Option<CanonicalEvent>, ProtocolResponseRejection> {
@@ -237,6 +238,32 @@ fn project_native_identity(
             let fields: &[&str] = match value["type"].as_str() {
                 Some("message") => &["id", "type", "status", "role", "content"],
                 Some("function_call") => &["id", "type", "status", "call_id", "name", "arguments"],
+                Some("reasoning")
+                    if value
+                        .get("summary")
+                        .is_none_or(|summary| summary.as_array().is_some_and(Vec::is_empty))
+                        && value.get("encrypted_content").is_none()
+                        && value.get("content").is_none_or(|content| {
+                            content.as_array().is_some_and(|parts| {
+                                parts.len() <= 1
+                                    && parts.iter().all(|part| {
+                                        part.get("type").and_then(serde_json::Value::as_str)
+                                            == Some("reasoning_text")
+                                            && part.as_object().is_some_and(|part| {
+                                                part.keys().all(|key| {
+                                                    matches!(key.as_str(), "type" | "text")
+                                                })
+                                            })
+                                            && part
+                                                .get("text")
+                                                .and_then(serde_json::Value::as_str)
+                                                .is_some_and(|text| !text.contains('\0'))
+                                    })
+                            })
+                        }) =>
+                {
+                    &["id", "type", "status", "content", "summary"]
+                }
                 _ => return Err(ProtocolResponseRejection::ReasoningUnsupported),
             };
             if value["id"] != item.item_id
@@ -256,10 +283,14 @@ fn project_native_identity(
             }
             Ok(None)
         }
-        CanonicalEvent::TextDelta(delta) => {
+        CanonicalEvent::TextDelta(_) | CanonicalEvent::ReasoningDelta(_) => {
+            let extensions = match event {
+                CanonicalEvent::TextDelta(delta) => &delta.extensions,
+                CanonicalEvent::ReasoningDelta(delta) => &delta.extensions,
+                _ => return Err(invalid()),
+            };
             let value: serde_json::Value = serde_json::from_str(
-                delta
-                    .extensions
+                extensions
                     .get("openai.responses.output_part")
                     .ok_or_else(invalid)?
                     .get(),
@@ -269,12 +300,21 @@ fn project_native_identity(
                 || value["id"].as_str().is_none_or(str::is_empty)
                 || value["index"].as_u64().is_none_or(|index| index >= 64)
                 || value.as_object().ok_or_else(invalid)?.len() != 3
+                || (matches!(event, CanonicalEvent::ReasoningDelta(_)) && value["index"] != 0)
             {
                 return Err(invalid());
             }
-            let mut delta = delta.clone();
-            delta.extensions = gateway_core::RawExtensions::default();
-            Ok(Some(CanonicalEvent::TextDelta(delta)))
+            let mut projected = event.clone();
+            match &mut projected {
+                CanonicalEvent::TextDelta(delta) => {
+                    delta.extensions = gateway_core::RawExtensions::default();
+                }
+                CanonicalEvent::ReasoningDelta(delta) => {
+                    delta.extensions = gateway_core::RawExtensions::default();
+                }
+                _ => return Err(invalid()),
+            }
+            Ok(Some(projected))
         }
         _ => Err(ProtocolResponseRejection::ReasoningUnsupported),
     }

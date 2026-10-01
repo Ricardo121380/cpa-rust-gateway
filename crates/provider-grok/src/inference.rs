@@ -355,7 +355,6 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let transport = Arc::clone(&self.transport);
         let egress_attempt = self.egress_attempt.clone();
         let cache_identity_deriver = self.cache_identity_deriver.clone();
-        let reasoning_policy = ReasoningPolicy::from_request(&request);
         let reasoning_owner = self.reasoning_owner.clone();
 
         Box::pin(async move {
@@ -425,11 +424,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         &bytes,
                         reasoning_owner,
                     )?;
-                    let events = decoded
-                        .into_events()
-                        .into_iter()
-                        .filter(|event| reasoning_policy.retains(event))
-                        .collect();
+                    let events = decoded.into_events();
                     let source =
                         Box::new(BufferedEventSource::new(events)) as Box<dyn CanonicalEventSource>;
                     Ok(wrap_egress_source(source, egress_attempt))
@@ -437,11 +432,8 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 GrokBuildExecutionMode::Streaming
                     if content_type == GrokBuildResponseContentType::EventStream =>
                 {
-                    let source = Box::new(StreamingEventSource::new(
-                        body,
-                        reasoning_policy,
-                        reasoning_owner,
-                    )) as Box<dyn CanonicalEventSource>;
+                    let source = Box::new(StreamingEventSource::new(body, reasoning_owner))
+                        as Box<dyn CanonicalEventSource>;
                     Ok(wrap_egress_source(source, egress_attempt))
                 }
                 _ => Err(provider_protocol_error()),
@@ -505,13 +497,11 @@ struct StreamingEventSource {
     response_started: bool,
     terminal_failure_emitted: bool,
     finished: bool,
-    reasoning_policy: ReasoningPolicy,
 }
 
 impl StreamingEventSource {
     fn new(
         body: Box<dyn GrokBuildResponseBody>,
-        reasoning_policy: ReasoningPolicy,
         owner: Option<crate::GrokBuildReasoningOwner>,
     ) -> Self {
         Self {
@@ -521,21 +511,15 @@ impl StreamingEventSource {
             response_started: false,
             terminal_failure_emitted: false,
             finished: false,
-            reasoning_policy,
         }
     }
 
     fn next_pending(&mut self) -> Option<CanonicalEvent> {
-        while let Some(event) = self.pending.pop_front() {
-            if !self.reasoning_policy.retains(&event) {
-                continue;
-            }
-            if matches!(event, CanonicalEvent::ResponseStart(_)) {
-                self.response_started = true;
-            }
-            return Some(event);
+        let event = self.pending.pop_front()?;
+        if matches!(event, CanonicalEvent::ResponseStart(_)) {
+            self.response_started = true;
         }
-        None
+        Some(event)
     }
 
     fn terminal_failure(
@@ -551,37 +535,6 @@ impl StreamingEventSource {
         self.terminal_failure_emitted = true;
         self.finished = true;
         Ok(Some(CanonicalEvent::StreamError(StreamError { error })))
-    }
-}
-
-#[derive(Clone, Copy)]
-enum ReasoningPolicy {
-    SuppressUnrequested,
-    RetainRequested,
-}
-
-impl ReasoningPolicy {
-    fn from_request(request: &CanonicalRequest) -> Self {
-        if request.thinking.is_some() {
-            Self::RetainRequested
-        } else {
-            Self::SuppressUnrequested
-        }
-    }
-
-    fn retains(self, event: &CanonicalEvent) -> bool {
-        if matches!(self, Self::RetainRequested) {
-            return true;
-        }
-        match event {
-            CanonicalEvent::ReasoningDelta(_) => false,
-            CanonicalEvent::OutputItemStart(item) | CanonicalEvent::OutputItemEnd(item) => !item
-                .extensions
-                .get("openai.responses.output_item")
-                .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw.get()).ok())
-                .is_some_and(|item| item["type"] == "reasoning"),
-            _ => true,
-        }
     }
 }
 

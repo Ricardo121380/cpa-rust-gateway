@@ -12,6 +12,7 @@ struct Peer {
     bodies: Mutex<Vec<Value>>,
     urls: Mutex<Vec<String>>,
     console_session: std::sync::atomic::AtomicBool,
+    native_output: Option<Value>,
 }
 impl Peer {
     fn reply(&self, url: &str, body: &[u8]) -> Result<(bool, Vec<u8>), GatewayError> {
@@ -30,7 +31,9 @@ impl Peer {
             .map_err(|_| internal_error())?
             .push(url.into());
         self.bodies.lock().map_err(|_| internal_error())?.push(body);
-        let output = if tools {
+        let output = if let Some(output) = &self.native_output {
+            output.clone()
+        } else if tools {
             json!([{"id":"fc-c","type":"function_call","status":"completed","call_id":call_id,"name":"lookup","arguments":"{}"}])
         } else {
             json!([{"id":"msg-c","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"answer","annotations":[]}]}])
@@ -44,9 +47,16 @@ impl Peer {
         }
         let start = json!({"type":"response.created","response":{"id":"resp-c","status":"in_progress","output":[]}});
         let mut frames = format!("event: response.created\ndata: {start}\n\n");
-        for kind in ["response.output_item.added", "response.output_item.done"] {
-            let event = json!({"type":kind,"output_index":0,"item":response["output"][0]});
-            write!(frames, "event: {kind}\ndata: {event}\n\n").map_err(|_| internal_error())?;
+        for (index, item) in response["output"]
+            .as_array()
+            .ok_or_else(internal_error)?
+            .iter()
+            .enumerate()
+        {
+            for kind in ["response.output_item.added", "response.output_item.done"] {
+                let event = json!({"type":kind,"output_index":index,"item":item});
+                write!(frames, "event: {kind}\ndata: {event}\n\n").map_err(|_| internal_error())?;
+            }
         }
         let end = json!({"type":"response.completed","response":response});
         write!(frames, "event: response.completed\ndata: {end}\n\n")
@@ -150,9 +160,8 @@ impl GrokOfficialTransport for Peer {
     }
 }
 
-#[actix_web::test]
-async fn grok_factories_bridge_three_protocols_and_preserve_tool_rounds() -> TestResult {
-    for (adapter, base, path, model, secret) in [
+fn native_channels() -> [(Channel, &'static str); 3] {
+    [
         (
             "grok.build.responses",
             provider_grok::GROK_BUILD_RESPONSES_BASE_URL,
@@ -174,31 +183,40 @@ async fn grok_factories_bridge_three_protocols_and_preserve_tool_rounds() -> Tes
             "grok-4",
             "synthetic-api-key",
         ),
-    ] {
+    ].map(|(adapter, base, path, model, secret)| (Channel { adapter, format: "openai/responses", base, path, model }, secret))
+}
+
+fn install_peer(
+    endpoint: &mut EndpointRuntime,
+    adapter: &str,
+    peer: &Arc<Peer>,
+) -> Result<(), Box<dyn Error>> {
+    let mut profiles = P12TransportProfiles::try_new()?;
+    if adapter == "grok.build.responses" {
+        profiles.build = Some(peer.clone());
+    } else if adapter == "grok.console.responses" {
+        profiles.console = Some(peer.clone());
+    } else {
+        profiles.official = Some(peer.clone());
+    }
+    endpoint.transports = Arc::new(profiles);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn grok_factories_bridge_three_protocols_and_preserve_tool_rounds() -> TestResult {
+    for (channel, secret) in native_channels() {
+        let Channel {
+            adapter,
+            base,
+            path,
+            ..
+        } = channel;
         for streaming in [false, true] {
             let peer = Arc::new(Peer::default());
-            let fixture = fixture(
-                Channel {
-                    adapter,
-                    format: "openai/responses",
-                    base,
-                    path,
-                    model,
-                },
-                secret.as_bytes(),
-                |endpoint| {
-                    let mut profiles = P12TransportProfiles::try_new()?;
-                    if adapter == "grok.build.responses" {
-                        profiles.build = Some(peer.clone());
-                    } else if adapter == "grok.console.responses" {
-                        profiles.console = Some(peer.clone());
-                    } else {
-                        profiles.official = Some(peer.clone());
-                    }
-                    endpoint.transports = Arc::new(profiles);
-                    Ok(())
-                },
-            )?;
+            let fixture = fixture(channel, secret.as_bytes(), |endpoint| {
+                install_peer(endpoint, adapter, &peer)
+            })?;
             let app = test::init_service(
                 App::new()
                     .app_data(web::Data::new(fixture.state.clone()))
@@ -262,6 +280,126 @@ async fn grok_factories_bridge_three_protocols_and_preserve_tool_rounds() -> Tes
                         attempt.credential_id().as_str().starts_with("grok-")
                     })
             );
+        }
+    }
+    Ok(())
+}
+
+fn public_frames(bytes: &[u8]) -> Result<Vec<Value>, Box<dyn Error>> {
+    let wire = std::str::from_utf8(bytes)?;
+    if !wire.ends_with("\n\n") {
+        return Err("truncated SSE".into());
+    }
+    wire.split("\n\n")
+        .filter(|record| !record.is_empty())
+        .map(|record| {
+            let data = record
+                .lines()
+                .find_map(|line| line.strip_prefix("data: "))
+                .ok_or("SSE data missing")?;
+            Ok(serde_json::from_str(data)?)
+        })
+        .collect()
+}
+
+#[actix_web::test]
+async fn grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges() -> TestResult {
+    let output = json!([
+        {"id":"reason-public","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":"summary"}],"content":[{"type":"reasoning_text","text":"body"}]},
+        {"id":"message-public","type":"message","role":"assistant","status":"completed","phase":"final_answer","content":[{"type":"output_text","text":"answer","annotations":[{"type":"url_citation","url":"https://example.test/source","title":"Source","start_index":0,"end_index":6}],"logprobs":null}]}
+    ]);
+    for (channel, secret) in native_channels() {
+        for streaming in [false, true] {
+            let peer = Arc::new(Peer {
+                native_output: Some(output.clone()),
+                ..Peer::default()
+            });
+            let fixture = fixture(channel, secret.as_bytes(), |endpoint| {
+                install_peer(endpoint, channel.adapter, &peer)
+            })?;
+            let app = test::init_service(
+                App::new()
+                    .app_data(web::Data::new(fixture.state.clone()))
+                    .configure(gateway_http_actix::configure),
+            )
+            .await;
+            let mut history = output.as_array().ok_or("output")?.clone();
+            history.push(json!({"role":"user","content":"next-question"}));
+            for input in [json!("question"), Value::Array(history)] {
+                let response = test::call_service(&app, test::TestRequest::post().uri("/v1/responses").insert_header(("authorization", format!("Bearer {}", fixture.key))).set_json(json!({"model":"p12-test-model","input":input,"stream":streaming,"max_output_tokens":19})).to_request()).await;
+                let status = response.status();
+                let bytes = test::read_body(response).await;
+                assert_eq!(
+                    status,
+                    StatusCode::OK,
+                    "{}: {}",
+                    channel.adapter,
+                    String::from_utf8_lossy(&bytes)
+                );
+                let encoded = if streaming {
+                    let frames = public_frames(&bytes)?;
+                    assert_eq!(
+                        frames
+                            .iter()
+                            .filter(|frame| frame["type"] == "response.completed")
+                            .count(),
+                        1
+                    );
+                    frames.last().ok_or("terminal")?["response"].clone()
+                } else {
+                    serde_json::from_slice(&bytes)?
+                };
+                assert_eq!(encoded["output"], output);
+            }
+            {
+                let bodies = peer.bodies.lock().map_err(|_| "bodies")?;
+                assert_eq!(
+                    &bodies[1]["input"].as_array().ok_or("input")?[..2],
+                    output.as_array().ok_or("output")?
+                );
+            }
+            for (uri, body) in [
+                (
+                    "/v1/chat/completions",
+                    json!({"model":"p12-test-model","messages":[{"role":"user","content":"question"}],"stream":streaming,"max_tokens":19}),
+                ),
+                (
+                    "/v1/messages",
+                    json!({"model":"p12-test-model","messages":[{"role":"user","content":"question"}],"stream":streaming,"max_tokens":19}),
+                ),
+            ] {
+                let before = peer.bodies.lock().map_err(|_| "bodies")?.len();
+                let response = test::call_service(
+                    &app,
+                    test::TestRequest::post()
+                        .uri(uri)
+                        .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                        .set_json(body)
+                        .to_request(),
+                )
+                .await;
+                let status = response.status();
+                let bytes = test::read_body(response).await;
+                if streaming && status.is_success() {
+                    let frames = public_frames(&bytes)?;
+                    assert_eq!(frames.iter().filter(|frame| frame.get("error").is_some() || frame["type"] == "error").count(), 1);
+                    assert!(frames.iter().all(|frame| frame["type"] != "message_stop"
+                        && frame["type"] != "response.completed"
+                        && frame["choices"].as_array().is_none_or(|choices| {
+                            choices
+                                .iter()
+                                .all(|choice| choice["finish_reason"].is_null())
+                        })));
+                } else {
+                    assert!(!status.is_success());
+                    assert!(
+                        serde_json::from_slice::<Value>(&bytes)?
+                            .get("error")
+                            .is_some()
+                    );
+                }
+                assert_eq!(peer.bodies.lock().map_err(|_| "bodies")?.len(), before + 1);
+            }
         }
     }
     Ok(())

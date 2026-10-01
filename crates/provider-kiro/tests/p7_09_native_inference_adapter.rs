@@ -203,6 +203,58 @@ fn adapter_rejects_a_profile_resolution_from_the_wrong_credential_family() -> Te
     Ok(())
 }
 
+#[tokio::test]
+async fn corrupt_frame_discards_queued_events_and_seals_the_source() -> TestResult {
+    for started in [false, true] {
+        let valid = event_frame("assistantResponseEvent", &json!({"content":"queued"}))?;
+        let mut corrupt = event_frame("assistantResponseEvent", &json!({"content":"invalid"}))?;
+        let last = corrupt.last_mut().ok_or("empty frame")?;
+        *last ^= 1;
+        let mut chunks = Vec::new();
+        if started {
+            chunks.push(event_frame(
+                "assistantResponseEvent",
+                &json!({"content":"first"}),
+            )?);
+        }
+        chunks.push([valid, corrupt].concat());
+        let transport = Arc::new(FixtureTransport::new([FixtureResponse::ok(chunks)]));
+        let adapter = adapter(
+            KiroEndpointKind::Ide,
+            social_credential()?,
+            transport.clone(),
+        )?;
+        let mut source = adapter.execute(context()?, request(false)?).await?;
+        if started {
+            loop {
+                let event = source.next_event().await?.ok_or("missing initial text")?;
+                if matches!(event, CanonicalEvent::TextDelta(ref delta) if delta.text == "first") {
+                    break;
+                }
+            }
+            assert!(matches!(
+                source.next_event().await?,
+                Some(CanonicalEvent::StreamError(_))
+            ));
+        } else {
+            let error = source
+                .next_event()
+                .await
+                .err()
+                .ok_or("corrupt frame accepted")?;
+            assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
+        }
+        assert_eq!(
+            source.next_event().await?,
+            None,
+            "event emitted after failure, started={started}"
+        );
+        assert_eq!(source.next_event().await?, None);
+        assert_eq!(transport.call_count(), 1);
+    }
+    Ok(())
+}
+
 fn adapter(
     kind: KiroEndpointKind,
     credential: KiroCredential,

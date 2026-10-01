@@ -234,12 +234,19 @@ fn validate_parts(value: &Value, kind: &str, stage: &mut &'static str) -> Result
     Ok(())
 }
 
-pub(crate) fn native_annotation_extensions(
+/// Associates a reviewed citation with its exact native output part.
+///
+/// # Errors
+/// Rejects invalid citations and unbounded part or annotation indices.
+pub fn native_annotation_extensions(
     id: &str,
     index: usize,
     annotation_index: usize,
     annotation: &Value,
 ) -> Result<RawExtensions, GatewayError> {
+    if index >= 64 || annotation_index >= 64 {
+        return Err(stream_protocol_error());
+    }
     crate::annotations::validate_one(annotation)?;
     let mut extensions = RawExtensions::default();
     extensions.try_insert(PART, RawJson::from_json_string(json!({"id":id,"field":"content","index":index,"annotation_index":annotation_index,"annotation":annotation}).to_string()).map_err(|_| stream_protocol_error())?).map_err(|_| stream_protocol_error())?;

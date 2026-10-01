@@ -27,6 +27,7 @@ use protocol_openai_responses::ResponseMode;
 use serde_json::{Map, Value};
 use zeroize::Zeroizing;
 
+use crate::native_response_semantics as native;
 use crate::{
     GROK_OFFICIAL_API_BASE_URL, GROK_OFFICIAL_PROVIDER_ID, GrokOfficialApiKey,
     GrokOfficialRateLimitMetadata, GrokOfficialRuntimeState, classify_grok_official_http_failure,
@@ -180,9 +181,10 @@ pub struct GrokOfficialResponsesRequestBuilder;
 impl GrokOfficialResponsesRequestBuilder {
     /// Builds one API-key-authenticated Official Responses request.
     ///
-    /// P8-04 accepts extension-free text, Function Tools, historical Function Calls/Results, and
-    /// bounded named Reasoning effort. Cache, opaque content, native Search, and raw provider
-    /// extensions remain rejected until they have their own lossless Canonical contracts.
+    /// Accepts text, Function Tools, historical Function Calls/Results, bounded named Reasoning
+    /// effort, and reviewed native assistant item/part history metadata. Cache, opaque content,
+    /// native Search, and unknown provider extensions remain rejected until they have their own
+    /// lossless Canonical contracts.
     ///
     /// # Errors
     ///
@@ -285,7 +287,15 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
         let role = message.role.0.as_str();
         if !matches!(role, "assistant" | "developer" | "system" | "tool" | "user")
             || message.content.is_empty()
-            || !message.extensions.is_empty()
+        {
+            return Err(client_request_error());
+        }
+        if !message.extensions.is_empty()
+            && (role != "assistant"
+                || message
+                    .content
+                    .iter()
+                    .any(|part| !matches!(part, MessageContent::Text(_))))
         {
             return Err(client_request_error());
         }
@@ -294,23 +304,24 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
             match part {
                 MessageContent::Text(text) => content.push(encode_text_part(role, text)?),
                 MessageContent::Reasoning(history) => {
-                    flush_message_content(&mut input, role, &mut content)?;
+                    flush_message_content(&mut input, role, &message.extensions, &mut content)?;
                     if role != "assistant" {
                         return Err(client_request_error());
                     }
-                    input.push(protocol_openai_responses::encode_reasoning_history(
-                        history,
-                    )?);
+                    let item = protocol_openai_responses::encode_reasoning_history(history)?;
+                    item_metadata(item.as_object().ok_or_else(client_request_error)?, true)
+                        .map_err(|_| client_request_error())?;
+                    input.push(item);
                 }
                 MessageContent::ToolCall(call) => {
-                    flush_message_content(&mut input, role, &mut content)?;
+                    flush_message_content(&mut input, role, &message.extensions, &mut content)?;
                     if role != "assistant" {
                         return Err(client_request_error());
                     }
                     input.push(encode_tool_call(call)?);
                 }
                 MessageContent::ToolResult(result) => {
-                    flush_message_content(&mut input, role, &mut content)?;
+                    flush_message_content(&mut input, role, &message.extensions, &mut content)?;
                     if role != "tool" || result.is_error {
                         return Err(client_request_error());
                     }
@@ -319,7 +330,7 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
                 MessageContent::Opaque(_) => return Err(client_request_error()),
             }
         }
-        flush_message_content(&mut input, role, &mut content)?;
+        flush_message_content(&mut input, role, &message.extensions, &mut content)?;
     }
     Ok(input)
 }
@@ -327,6 +338,7 @@ fn encode_input(messages: &[CanonicalMessage]) -> Result<Vec<Value>, GatewayErro
 fn flush_message_content(
     input: &mut Vec<Value>,
     role: &str,
+    extensions: &RawExtensions,
     content: &mut Vec<Value>,
 ) -> Result<(), GatewayError> {
     if content.is_empty() {
@@ -335,16 +347,18 @@ fn flush_message_content(
     if role == "tool" {
         return Err(client_request_error());
     }
-    input.push(Value::Object(Map::from_iter([
+    let mut item = Map::from_iter([
         ("type".to_owned(), Value::String("message".to_owned())),
         ("role".to_owned(), Value::String(role.to_owned())),
         ("content".to_owned(), Value::Array(std::mem::take(content))),
-    ])));
+    ]);
+    insert_history_fields(&mut item, extensions)?;
+    input.push(Value::Object(item));
     Ok(())
 }
 
 fn encode_text_part(role: &str, text: &gateway_core::TextContent) -> Result<Value, GatewayError> {
-    if !text.extensions.is_empty() {
+    if role != "assistant" && !text.extensions.is_empty() {
         return Err(client_request_error());
     }
     let content_type = match role {
@@ -352,23 +366,60 @@ fn encode_text_part(role: &str, text: &gateway_core::TextContent) -> Result<Valu
         "developer" | "system" | "user" => "input_text",
         _ => return Err(client_request_error()),
     };
-    Ok(Value::Object(Map::from_iter([
+    let mut part = Map::from_iter([
         ("type".to_owned(), Value::String(content_type.to_owned())),
         ("text".to_owned(), Value::String(text.text.clone())),
-    ])))
+    ]);
+    for (key, value) in text.extensions.iter() {
+        if !matches!(key, "annotations" | "logprobs") {
+            return Err(client_request_error());
+        }
+        part.insert(key.to_owned(), raw_value(value)?);
+    }
+    if role == "assistant" {
+        native::validate_part(&part).map_err(|_| client_request_error())?;
+    }
+    Ok(Value::Object(part))
 }
 
 fn encode_tool_call(call: &gateway_core::ToolCall) -> Result<Value, GatewayError> {
-    if call.id.is_empty() || call.name.is_empty() || !call.extensions.is_empty() {
+    if call.id.is_empty() || call.name.is_empty() {
         return Err(client_request_error());
     }
     let arguments = normalize_outbound_tool_arguments(call.arguments.get())?;
-    Ok(Value::Object(Map::from_iter([
+    let mut item = Map::from_iter([
         ("type".to_owned(), Value::String("function_call".to_owned())),
         ("call_id".to_owned(), Value::String(call.id.clone())),
         ("name".to_owned(), Value::String(call.name.clone())),
         ("arguments".to_owned(), Value::String(arguments)),
-    ])))
+    ]);
+    insert_history_fields(&mut item, &call.extensions)?;
+    Ok(Value::Object(item))
+}
+
+fn insert_history_fields(
+    item: &mut Map<String, Value>,
+    extensions: &RawExtensions,
+) -> Result<(), GatewayError> {
+    for (key, raw) in extensions.iter() {
+        let value = raw_value(raw)?;
+        match key {
+            "id" if value.as_str().is_some_and(|id| {
+                !id.is_empty() && id.len() <= 512 && id.bytes().all(|byte| byte.is_ascii_graphic())
+            }) => {}
+            "status"
+                if matches!(
+                    value.as_str(),
+                    Some("completed" | "incomplete" | "in_progress")
+                ) => {}
+            "phase"
+                if item.get("type").and_then(Value::as_str) == Some("message")
+                    && matches!(value.as_str(), Some("commentary" | "final_answer")) => {}
+            _ => return Err(client_request_error()),
+        }
+        item.insert(key.to_owned(), value);
+    }
+    Ok(())
 }
 
 fn encode_tool_result(result: &gateway_core::ToolResult) -> Result<Value, GatewayError> {
@@ -562,14 +613,17 @@ struct GrokOfficialResponsesDecodeState {
     item_kinds: BTreeMap<String, OutputItemKind>,
     completed_item_ids: BTreeSet<String>,
     completed_items: BTreeMap<String, Value>,
-    active_content_part_ids: BTreeSet<String>,
+    item_order: Vec<String>,
+    item_phases: BTreeMap<String, Value>,
+    active_content_parts: BTreeSet<(String, String, usize)>,
+    part_snapshots: BTreeMap<(String, String, usize), Value>,
+    annotations_by_part: BTreeMap<(String, usize), Vec<Value>>,
     function_call_ids: BTreeMap<String, String>,
     function_call_names: BTreeMap<String, String>,
     function_arguments: BTreeMap<String, String>,
     emitted_function_arguments: BTreeSet<String>,
     completed_function_calls: BTreeSet<String>,
-    text_by_item_id: BTreeMap<String, String>,
-    reasoning_by_item_id: BTreeMap<String, String>,
+    parts_by_item: BTreeMap<(String, String, usize), String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -591,15 +645,11 @@ impl fmt::Debug for GrokOfficialResponsesDecodeState {
             .field("completed_snapshot_count", &self.completed_items.len())
             .field(
                 "active_content_part_count",
-                &self.active_content_part_ids.len(),
+                &self.active_content_parts.len(),
             )
             .field("function_call_count", &self.function_call_ids.len())
             .field("function_argument_count", &self.function_arguments.len())
-            .field("text_item_value_count", &self.text_by_item_id.len())
-            .field(
-                "reasoning_item_value_count",
-                &self.reasoning_by_item_id.len(),
-            )
+            .field("part_count", &self.parts_by_item.len())
             .finish_non_exhaustive()
     }
 }
@@ -657,6 +707,7 @@ impl GrokOfficialResponsesDecodeState {
         if required_string(object, "type", stream_protocol_error())? != event_name {
             return Err(stream_protocol_error());
         }
+        native::validate_event(object, &self.item_order)?;
         match event_name.as_str() {
             "response.created" => self.handle_response_created(
                 required_object(object, "response", stream_protocol_error())?,
@@ -671,14 +722,23 @@ impl GrokOfficialResponsesDecodeState {
                 required_object(object, "item", stream_protocol_error())?,
                 events,
             ),
-            "response.content_part.added" => self.handle_content_part_added(object),
+            "response.content_part.added" | "response.reasoning_summary_part.added" => {
+                self.handle_content_part_added(object, events)
+            }
             "response.output_text.delta" => self.handle_text_delta(object, events),
             "response.output_text.done" => self.handle_text_done(object, events),
-            "response.content_part.done" => self.handle_content_part_done(object, events),
-            "response.reasoning.delta" | "response.reasoning_text.delta" => {
+            "response.output_text.annotation.added" => self.handle_annotation(object, events),
+            "response.content_part.done" | "response.reasoning_summary_part.done" => {
+                self.handle_content_part_done(object, events)
+            }
+            "response.reasoning.delta"
+            | "response.reasoning_text.delta"
+            | "response.reasoning_summary_text.delta" => {
                 self.handle_reasoning_delta(object, events)
             }
-            "response.reasoning.done" => self.handle_reasoning_done(object, events),
+            "response.reasoning.done"
+            | "response.reasoning_text.done"
+            | "response.reasoning_summary_text.done" => self.handle_reasoning_done(object, events),
             "response.function_call_arguments.delta" => {
                 self.handle_function_arguments_delta(object, events)
             }
@@ -694,7 +754,6 @@ impl GrokOfficialResponsesDecodeState {
                 events,
             ),
             "response.failed" => self.handle_response_failed(object, events),
-            // Summary events have native item semantics this plain-reasoning codec cannot retain.
             _ => Err(stream_protocol_error()),
         }
     }
@@ -734,9 +793,9 @@ impl GrokOfficialResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         self.require_response_started()?;
-        validate_output_semantics(item)?;
+        let metadata = item_metadata(item, false)?;
         let item_id = required_identifier(item, "id", stream_protocol_error())?;
-        if self.item_kinds.contains_key(item_id) {
+        if self.item_kinds.contains_key(item_id) || self.item_order.len() >= 256 {
             return Err(stream_protocol_error());
         }
         let kind = match required_string(item, "type", stream_protocol_error())? {
@@ -748,6 +807,7 @@ impl GrokOfficialResponsesDecodeState {
             _ => return Err(stream_protocol_error()),
         };
         self.ensure_message(events)?;
+        self.emit(events, CanonicalEvent::OutputItemStart(metadata))?;
         if kind == OutputItemKind::FunctionCall {
             let call_id = required_identifier(item, "call_id", stream_protocol_error())?;
             let name = required_identifier(item, "name", stream_protocol_error())?;
@@ -771,6 +831,10 @@ impl GrokOfficialResponsesDecodeState {
             self.function_call_names
                 .insert(item_id.to_owned(), name.to_owned());
         }
+        if let Some(phase) = item.get("phase") {
+            self.item_phases.insert(item_id.to_owned(), phase.clone());
+        }
+        self.item_order.push(item_id.to_owned());
         self.item_kinds.insert(item_id.to_owned(), kind);
         Ok(())
     }
@@ -778,20 +842,43 @@ impl GrokOfficialResponsesDecodeState {
     fn handle_content_part_added(
         &mut self,
         event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
-            || self.completed_item_ids.contains(item_id)
-            || !self.active_content_part_ids.insert(item_id.to_owned())
+        let field = event_part_field(event);
+        let index = native::part_index(
+            event,
+            if field == "summary" {
+                "summary_index"
+            } else {
+                "content_index"
+            },
+        )?;
+        if self.completed_item_ids.contains(item_id)
+            || !self
+                .active_content_parts
+                .insert((item_id.to_owned(), field.to_owned(), index))
         {
             return Err(stream_protocol_error());
         }
         let part = required_object(event, "part", stream_protocol_error())?;
-        validate_part_semantics(part)?;
-        if required_string(part, "type", stream_protocol_error())? != "output_text"
+        native::validate_part(part)?;
+        if required_string(part, "type", stream_protocol_error())?
+            != self.part_kind(item_id, field)?
             || !required_string(part, "text", stream_protocol_error())?.is_empty()
         {
             return Err(stream_protocol_error());
+        }
+        for extensions in
+            native::record_part_annotations(item_id, index, part, &mut self.annotations_by_part)?
+        {
+            self.emit(
+                events,
+                CanonicalEvent::TextDelta(TextDelta {
+                    text: String::new(),
+                    extensions,
+                }),
+            )?;
         }
         Ok(())
     }
@@ -801,28 +888,40 @@ impl GrokOfficialResponsesDecodeState {
         event: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        validate_part_semantics(event)?;
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
         if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
             || self.completed_item_ids.contains(item_id)
         {
             return Err(stream_protocol_error());
         }
-        let delta = required_string(event, "delta", stream_protocol_error())?;
-        if !delta.is_empty() {
-            self.emit(
-                events,
-                CanonicalEvent::TextDelta(TextDelta {
-                    text: delta.to_owned(),
-                    extensions: RawExtensions::default(),
-                }),
-            )?;
-            self.text_by_item_id
-                .entry(item_id.to_owned())
-                .or_default()
-                .push_str(delta);
+        self.append_part(
+            item_id,
+            "content",
+            native::part_index(event, "content_index")?,
+            required_string(event, "delta", stream_protocol_error())?,
+            events,
+        )
+    }
+
+    fn handle_annotation(
+        &mut self,
+        event: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let id = required_identifier(event, "item_id", stream_protocol_error())?;
+        if self.item_kinds.get(id) != Some(&OutputItemKind::Message)
+            || self.completed_item_ids.contains(id)
+        {
+            return Err(stream_protocol_error());
         }
-        Ok(())
+        let extensions = native::record_annotation(event, &mut self.annotations_by_part)?;
+        self.emit(
+            events,
+            CanonicalEvent::TextDelta(TextDelta {
+                text: String::new(),
+                extensions,
+            }),
+        )
     }
 
     fn handle_text_done(
@@ -830,10 +929,17 @@ impl GrokOfficialResponsesDecodeState {
         event: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        validate_part_semantics(event)?;
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        let text = required_string(event, "text", stream_protocol_error())?.to_owned();
-        self.finish_text_item(item_id, text, events)
+        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message) {
+            return Err(stream_protocol_error());
+        }
+        self.finish_part(
+            item_id,
+            "content",
+            native::part_index(event, "content_index")?,
+            required_string(event, "text", stream_protocol_error())?,
+            events,
+        )
     }
 
     fn handle_reasoning_delta(
@@ -847,23 +953,21 @@ impl GrokOfficialResponsesDecodeState {
         {
             return Err(stream_protocol_error());
         }
-        let delta = required_string(event, "delta", stream_protocol_error())?;
-        if delta.is_empty() {
-            return Ok(());
-        }
-        self.ensure_message(events)?;
-        self.emit(
+        let field = event_part_field(event);
+        self.append_part(
+            item_id,
+            field,
+            native::part_index(
+                event,
+                if field == "summary" {
+                    "summary_index"
+                } else {
+                    "content_index"
+                },
+            )?,
+            required_string(event, "delta", stream_protocol_error())?,
             events,
-            CanonicalEvent::ReasoningDelta(ReasoningDelta {
-                text: delta.to_owned(),
-                extensions: RawExtensions::default(),
-            }),
-        )?;
-        self.reasoning_by_item_id
-            .entry(item_id.to_owned())
-            .or_default()
-            .push_str(delta);
-        Ok(())
+        )
     }
 
     fn handle_reasoning_done(
@@ -875,9 +979,19 @@ impl GrokOfficialResponsesDecodeState {
         if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning) {
             return Err(stream_protocol_error());
         }
-        self.finish_reasoning_item(
+        let field = event_part_field(event);
+        self.finish_part(
             item_id,
-            required_string(event, "text", stream_protocol_error())?.to_owned(),
+            field,
+            native::part_index(
+                event,
+                if field == "summary" {
+                    "summary_index"
+                } else {
+                    "content_index"
+                },
+            )?,
+            required_string(event, "text", stream_protocol_error())?,
             events,
         )
     }
@@ -888,9 +1002,15 @@ impl GrokOfficialResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        let call_id = required_identifier(event, "call_id", stream_protocol_error())?;
-        if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id)
-            || self.completed_function_calls.contains(call_id)
+        let call_id = self
+            .function_call_ids
+            .get(item_id)
+            .cloned()
+            .ok_or_else(stream_protocol_error)?;
+        if event
+            .get("call_id")
+            .is_some_and(|value| value.as_str() != Some(call_id.as_str()))
+            || self.completed_function_calls.contains(&call_id)
         {
             return Err(stream_protocol_error());
         }
@@ -900,19 +1020,16 @@ impl GrokOfficialResponsesDecodeState {
         }
         let next_length = self
             .function_arguments
-            .get(call_id)
+            .get(&call_id)
             .map_or(0, String::len)
             .checked_add(delta.len())
             .ok_or_else(stream_protocol_error)?;
         if next_length > MAX_GROK_OFFICIAL_TOOL_ARGUMENT_BYTES {
             return Err(stream_protocol_error());
         }
-        let arguments = self
-            .function_arguments
-            .entry(call_id.to_owned())
-            .or_default();
+        let arguments = self.function_arguments.entry(call_id.clone()).or_default();
         arguments.push_str(delta);
-        let delta = if self.emitted_function_arguments.contains(call_id) {
+        let delta = if self.emitted_function_arguments.contains(&call_id) {
             delta.to_owned()
         } else if could_be_empty_tool_arguments(arguments) {
             return Ok(());
@@ -922,12 +1039,12 @@ impl GrokOfficialResponsesDecodeState {
         self.emit(
             events,
             CanonicalEvent::ToolCallArgumentsDelta(ToolCallArgumentsDelta {
-                call_id: call_id.to_owned(),
+                call_id: call_id.clone(),
                 delta,
                 extensions: RawExtensions::default(),
             }),
         )?;
-        self.emitted_function_arguments.insert(call_id.to_owned());
+        self.emitted_function_arguments.insert(call_id);
         Ok(())
     }
 
@@ -937,14 +1054,23 @@ impl GrokOfficialResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        let call_id = required_identifier(event, "call_id", stream_protocol_error())?;
-        if self.function_call_ids.get(item_id).map(String::as_str) != Some(call_id)
+        let call_id = self
+            .function_call_ids
+            .get(item_id)
+            .cloned()
+            .ok_or_else(stream_protocol_error)?;
+        if event
+            .get("call_id")
+            .is_some_and(|value| value.as_str() != Some(call_id.as_str()))
+            || event.get("name").is_some_and(|value| {
+                value.as_str() != self.function_call_names.get(item_id).map(String::as_str)
+            })
             || self.completed_item_ids.contains(item_id)
         {
             return Err(stream_protocol_error());
         }
         self.finish_function_call(
-            call_id,
+            &call_id,
             required_string(event, "arguments", stream_protocol_error())?,
             events,
         )
@@ -956,21 +1082,40 @@ impl GrokOfficialResponsesDecodeState {
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
         let item_id = required_identifier(event, "item_id", stream_protocol_error())?;
-        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
-            || !self.active_content_part_ids.remove(item_id)
+        let field = event_part_field(event);
+        let index = native::part_index(
+            event,
+            if field == "summary" {
+                "summary_index"
+            } else {
+                "content_index"
+            },
+        )?;
+        if !self
+            .active_content_parts
+            .remove(&(item_id.to_owned(), field.to_owned(), index))
         {
             return Err(stream_protocol_error());
         }
         let part = required_object(event, "part", stream_protocol_error())?;
-        validate_part_semantics(part)?;
-        if required_string(part, "type", stream_protocol_error())? != "output_text" {
+        native::validate_part(part)?;
+        if required_string(part, "type", stream_protocol_error())?
+            != self.part_kind(item_id, field)?
+        {
             return Err(stream_protocol_error());
         }
-        self.finish_text_item(
+        self.finish_part(
             item_id,
-            required_string(part, "text", stream_protocol_error())?.to_owned(),
+            field,
+            index,
+            required_string(part, "text", stream_protocol_error())?,
             events,
-        )
+        )?;
+        self.part_snapshots.insert(
+            (item_id.to_owned(), field.to_owned(), index),
+            Value::Object(part.clone()),
+        );
+        Ok(())
     }
 
     fn handle_output_item_done(
@@ -978,13 +1123,24 @@ impl GrokOfficialResponsesDecodeState {
         item: &Map<String, Value>,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        validate_output_semantics(item)?;
+        let completed = normalized_completed_item(item)?;
+        let completed = completed.as_object().ok_or_else(stream_protocol_error)?;
+        let metadata = item_metadata(completed, true)?;
+        native::confirm_part_snapshots(completed, &self.part_snapshots)?;
+        native::confirm_annotations(completed, &self.annotations_by_part)?;
         let item_id = required_identifier(item, "id", stream_protocol_error())?;
         let Some(kind) = self.item_kinds.get(item_id).copied() else {
             return Err(stream_protocol_error());
         };
         if self.completed_item_ids.contains(item_id)
-            || self.active_content_part_ids.contains(item_id)
+            || self
+                .active_content_parts
+                .iter()
+                .any(|(id, _, _)| id == item_id)
+            || self
+                .item_phases
+                .get(item_id)
+                .is_some_and(|phase| item.get("phase") != Some(phase))
             || required_string(item, "status", stream_protocol_error())? != "completed"
         {
             return Err(stream_protocol_error());
@@ -996,15 +1152,13 @@ impl GrokOfficialResponsesDecodeState {
                 {
                     return Err(stream_protocol_error());
                 }
-                self.finish_text_item(item_id, output_text(item, "output_text")?, events)?;
+                self.finish_item_parts(item_id, item, events)?;
             }
             OutputItemKind::Reasoning => {
                 if required_string(item, "type", stream_protocol_error())? != "reasoning" {
                     return Err(stream_protocol_error());
                 }
-                if let Some(text) = optional_reasoning_text(item)? {
-                    self.finish_reasoning_item(item_id, text, events)?;
-                }
+                self.finish_item_parts(item_id, item, events)?;
             }
             OutputItemKind::FunctionCall => {
                 if required_string(item, "type", stream_protocol_error())? != "function_call" {
@@ -1024,6 +1178,7 @@ impl GrokOfficialResponsesDecodeState {
                 )?;
             }
         }
+        self.emit(events, CanonicalEvent::OutputItemEnd(metadata))?;
         self.completed_items
             .insert(item_id.to_owned(), normalized_completed_item(item)?);
         self.completed_item_ids.insert(item_id.to_owned());
@@ -1041,11 +1196,11 @@ impl GrokOfficialResponsesDecodeState {
         }
         let output = required_array(response, "output", stream_protocol_error())?;
         let mut completed_ids = BTreeSet::new();
-        for item in output {
+        for (index, item) in output.iter().enumerate() {
             let item = item.as_object().ok_or_else(stream_protocol_error)?;
-            validate_output_semantics(item)?;
             let item_id = required_identifier(item, "id", stream_protocol_error())?;
-            if !completed_ids.insert(item_id.to_owned())
+            if self.item_order.get(index).map(String::as_str) != Some(item_id)
+                || !completed_ids.insert(item_id.to_owned())
                 || !self.completed_item_ids.contains(item_id)
                 // Reviewed sparse terminals may confirm only an already completed item ID.
                 // Any supplied snapshot data must exactly confirm the observed item.
@@ -1107,63 +1262,110 @@ impl GrokOfficialResponsesDecodeState {
         )
     }
 
-    fn finish_text_item(
+    fn append_part(
         &mut self,
-        item_id: &str,
-        final_text: String,
+        id: &str,
+        field: &str,
+        index: usize,
+        delta: &str,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Message)
-            || self.completed_item_ids.contains(item_id)
-        {
+        self.part_kind(id, field)?;
+        if self.completed_item_ids.contains(id) || index >= 64 {
             return Err(stream_protocol_error());
         }
-        let emitted = self.text_by_item_id.get(item_id).map_or("", String::as_str);
-        if !emitted.is_empty() && emitted != final_text {
+        let retained: usize = self.parts_by_item.values().map(String::len).sum();
+        if retained.saturating_add(delta.len()) > MAX_GROK_OFFICIAL_NON_STREAMING_RESPONSE_BYTES {
             return Err(stream_protocol_error());
         }
-        if emitted.is_empty() && !final_text.is_empty() {
-            self.emit(
-                events,
-                CanonicalEvent::TextDelta(TextDelta {
-                    text: final_text.clone(),
-                    extensions: RawExtensions::default(),
-                }),
-            )?;
-            self.text_by_item_id.insert(item_id.to_owned(), final_text);
+        if delta.is_empty() {
+            return Ok(());
         }
+        let extensions = protocol_openai_responses::native_part_extensions(id, field, index)?;
+        let event = if self.item_kinds.get(id) == Some(&OutputItemKind::Message) {
+            CanonicalEvent::TextDelta(TextDelta {
+                text: delta.to_owned(),
+                extensions,
+            })
+        } else {
+            CanonicalEvent::ReasoningDelta(ReasoningDelta {
+                text: delta.to_owned(),
+                extensions,
+            })
+        };
+        self.emit(events, event)?;
+        self.parts_by_item
+            .entry((id.to_owned(), field.to_owned(), index))
+            .or_default()
+            .push_str(delta);
         Ok(())
     }
 
-    fn finish_reasoning_item(
+    fn part_kind(&self, id: &str, field: &str) -> Result<&'static str, GatewayError> {
+        match (self.item_kinds.get(id), field) {
+            (Some(OutputItemKind::Message), "content") => Ok("output_text"),
+            (Some(OutputItemKind::Reasoning), "content") => Ok("reasoning_text"),
+            (Some(OutputItemKind::Reasoning), "summary") => Ok("summary_text"),
+            _ => Err(stream_protocol_error()),
+        }
+    }
+
+    fn finish_part(
         &mut self,
-        item_id: &str,
-        final_text: String,
+        id: &str,
+        field: &str,
+        index: usize,
+        text: &str,
         events: &mut Vec<CanonicalEvent>,
     ) -> Result<(), GatewayError> {
-        if self.item_kinds.get(item_id) != Some(&OutputItemKind::Reasoning)
-            || self.completed_item_ids.contains(item_id)
-        {
-            return Err(stream_protocol_error());
-        }
-        let emitted = self
-            .reasoning_by_item_id
-            .get(item_id)
-            .map_or("", String::as_str);
-        if !emitted.is_empty() && emitted != final_text {
-            return Err(stream_protocol_error());
-        }
-        if emitted.is_empty() && !final_text.is_empty() {
-            self.ensure_message(events)?;
-            self.emit(
-                events,
-                CanonicalEvent::ReasoningDelta(ReasoningDelta {
-                    text: final_text.clone(),
-                    extensions: RawExtensions::default(),
-                }),
-            )?;
-            self.reasoning_by_item_id
-                .insert(item_id.to_owned(), final_text);
+        let key = (id.to_owned(), field.to_owned(), index);
+        let emitted = self.parts_by_item.get(&key).map_or("", String::as_str);
+        let suffix = text
+            .strip_prefix(emitted)
+            .ok_or_else(stream_protocol_error)?
+            .to_owned();
+        self.append_part(id, field, index, &suffix, events)
+    }
+
+    fn finish_item_parts(
+        &mut self,
+        id: &str,
+        item: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        for field in ["content", "summary"] {
+            if let Some(parts) = item.get(field) {
+                for (index, part) in parts
+                    .as_array()
+                    .ok_or_else(stream_protocol_error)?
+                    .iter()
+                    .enumerate()
+                {
+                    self.finish_part(
+                        id,
+                        field,
+                        index,
+                        part.get("text")
+                            .and_then(Value::as_str)
+                            .ok_or_else(stream_protocol_error)?,
+                        events,
+                    )?;
+                }
+            }
+            for ((item_id, part_field, index), text) in &self.parts_by_item {
+                if item_id == id
+                    && part_field == field
+                    && item
+                        .get(field)
+                        .and_then(Value::as_array)
+                        .and_then(|parts| parts.get(*index))
+                        .and_then(|part| part.get("text"))
+                        .and_then(Value::as_str)
+                        != Some(text.as_str())
+                {
+                    return Err(stream_protocol_error());
+                }
+            }
         }
         Ok(())
     }
@@ -1278,42 +1480,31 @@ fn normalized_completed_item(item: &Map<String, Value>) -> Result<Value, Gateway
     Ok(Value::Object(completed))
 }
 
-fn validate_output_semantics(item: &Map<String, Value>) -> Result<(), GatewayError> {
-    // These fields require native item ownership; this codec currently represents plain
-    // reasoning only. Reject rather than deleting ciphertext, summaries or annotations.
+fn item_metadata(
+    item: &Map<String, Value>,
+    completed: bool,
+) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+    // An owned-token prefix alone is not authentication. Official/Console have no
+    // ciphertext owner, so they cannot borrow the separate Build ownership path.
     if item
         .get("encrypted_content")
         .is_some_and(|value| !value.is_null())
     {
         return Err(stream_protocol_error());
     }
-    if let Some(value) = item.get("summary")
-        && !value.is_null()
-        && value.as_array().is_none_or(|parts| !parts.is_empty())
-    {
-        return Err(stream_protocol_error());
-    }
-    if let Some(parts) = item.get("content") {
-        for part in parts.as_array().ok_or_else(stream_protocol_error)? {
-            validate_part_semantics(part.as_object().ok_or_else(stream_protocol_error)?)?;
-        }
-    }
-    Ok(())
+    protocol_openai_responses::native_item_metadata(&Value::Object(item.clone()), completed)
 }
 
-fn validate_part_semantics(part: &Map<String, Value>) -> Result<(), GatewayError> {
-    if part.get("signature").is_some_and(|value| !value.is_null()) {
-        return Err(stream_protocol_error());
+fn event_part_field(event: &Map<String, Value>) -> &'static str {
+    if event
+        .get("type")
+        .and_then(Value::as_str)
+        .is_some_and(|kind| kind.contains("summary"))
+    {
+        "summary"
+    } else {
+        "content"
     }
-    for field in ["annotations", "logprobs"] {
-        if let Some(value) = part.get(field)
-            && !value.is_null()
-            && value.as_array().is_none_or(|values| !values.is_empty())
-        {
-            return Err(stream_protocol_error());
-        }
-    }
-    Ok(())
 }
 
 fn normalize_tool_arguments(arguments: &str) -> Result<String, GatewayError> {
@@ -1332,38 +1523,6 @@ fn normalize_tool_arguments(arguments: &str) -> Result<String, GatewayError> {
             Err(stream_protocol_error())
         }
     }
-}
-
-fn output_text(item: &Map<String, Value>, expected_type: &str) -> Result<String, GatewayError> {
-    let content = required_array(item, "content", stream_protocol_error())?;
-    let mut text = String::new();
-    for part in content {
-        let part = part.as_object().ok_or_else(stream_protocol_error)?;
-        if required_string(part, "type", stream_protocol_error())? != expected_type {
-            return Err(stream_protocol_error());
-        }
-        text.push_str(required_string(part, "text", stream_protocol_error())?);
-    }
-    Ok(text)
-}
-
-fn optional_reasoning_text(item: &Map<String, Value>) -> Result<Option<String>, GatewayError> {
-    let Some(content) = item.get("content") else {
-        return Ok(None);
-    };
-    let content = content.as_array().ok_or_else(stream_protocol_error)?;
-    let mut text = String::new();
-    for part in content {
-        let part = part.as_object().ok_or_else(stream_protocol_error)?;
-        if !matches!(
-            required_string(part, "type", stream_protocol_error())?,
-            "reasoning_text" | "summary_text"
-        ) {
-            return Err(stream_protocol_error());
-        }
-        text.push_str(required_string(part, "text", stream_protocol_error())?);
-    }
-    Ok(Some(text))
 }
 
 fn parse_usage(

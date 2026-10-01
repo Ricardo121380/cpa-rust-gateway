@@ -49,7 +49,7 @@ fn official_and_console_reject_unrepresented_metadata_and_changed_final_snapshot
         json!([{"type":"url_citation","url":"https://example.test","start_index":0,"end_index":6}]);
     for item in [
         citation,
-        json!({"id":"reason-c","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":"summary"}]}),
+        json!({"id":"reason-c","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":"summary","signature":"synthetic-signature"}]}),
         json!({"id":"reason-c","type":"reasoning","status":"completed","content":[{"type":"reasoning_text","text":"thought"}],"encrypted_content":"synthetic-unowned"}),
     ] {
         let response = json!({"id":"resp-c","status":"completed","output":[item]});

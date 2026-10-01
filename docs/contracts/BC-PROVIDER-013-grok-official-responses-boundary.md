@@ -9,6 +9,11 @@
 | Status | `LOCAL_PASS_PENDING_PHASE_GATE` under `CR-P7-DEFER-002`; no Official E2E has run |
 | Domain | Isolated API-key Responses request, bounded text-only JSON/SSE semantics, and safe adapter vertical slice |
 
+This records the P8-02 text-only phase. The current Tool/Reasoning subset is defined by
+[BC-PROVIDER-015](BC-PROVIDER-015-grok-official-tool-reasoning-capability.md), with native item/part
+metadata and history fidelity supplemented by [ADR-0101](../adr/ADR-0101-grok-native-item-metadata-fidelity.md).
+The historical P8-02 subset below is not the complete current runtime capability declaration.
+
 ## Preconditions and bounds
 
 1. The caller supplies the already selected Official API key, upstream model, execution mode, and

@@ -17,6 +17,7 @@ mod inference;
 mod oauth;
 mod owned_reasoning;
 pub use owned_reasoning::{GrokBuildReasoningCodec, GrokBuildReasoningOwner};
+mod native_response_semantics;
 mod official;
 mod official_capabilities;
 mod official_metadata;

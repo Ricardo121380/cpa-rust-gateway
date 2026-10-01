@@ -16,8 +16,8 @@ mod native_output;
 mod upstream_response;
 pub use annotations::validate as validate_annotations;
 pub use native_output::{
-    has_native_output_metadata, native_item_metadata, native_item_metadata_rejection,
-    native_part_extensions,
+    has_native_output_metadata, native_annotation_extensions, native_item_metadata,
+    native_item_metadata_rejection, native_part_extensions,
 };
 
 use gateway_core::{

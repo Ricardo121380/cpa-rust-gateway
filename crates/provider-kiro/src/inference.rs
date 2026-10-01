@@ -510,6 +510,8 @@ impl KiroStreamingEventSource {
         &mut self,
         error: GatewayError,
     ) -> Result<Option<CanonicalEvent>, GatewayError> {
+        self.pending.clear();
+        self.lifecycle = KiroStreamLifecycle::Finished;
         if !self.response_started {
             return Err(error);
         }
@@ -517,7 +519,6 @@ impl KiroStreamingEventSource {
             return Ok(None);
         }
         self.terminal_failure_emitted = true;
-        self.lifecycle = KiroStreamLifecycle::Finished;
         Ok(Some(CanonicalEvent::StreamError(StreamError { error })))
     }
 }

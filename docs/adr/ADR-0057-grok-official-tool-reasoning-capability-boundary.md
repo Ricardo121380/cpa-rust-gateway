@@ -37,6 +37,9 @@ Search-result payloads. Reporting it as ordinary Function Tool capability would 
 
 ## Consequences
 
+- The reviewed native item/part metadata and history subset is supplemented by
+  [ADR-0101](ADR-0101-grok-native-item-metadata-fidelity.md); this record's provider isolation and
+  Search non-capability decisions remain in force.
 - Tool and Reasoning routes can be admitted only after an Endpoint/Candidate explicitly records the
   returned capability set; future router wiring cannot infer it from an Official model name.
 - SSE byte segmentation may vary argument-delta frame count, but its final Canonical Tool/Reasoning

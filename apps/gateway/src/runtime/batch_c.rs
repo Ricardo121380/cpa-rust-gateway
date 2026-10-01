@@ -424,11 +424,19 @@ async fn kiro_real_factory_bridges_text_tools_and_effort_without_dropping_limits
             for (path, body) in [
                 (
                     "/v1/messages",
-                    json!({"model":"p12-test-model","max_tokens":19,"messages":[{"role":"user","content":"question"}]}),
+                    json!({"model":"p12-test-model","max_tokens":19,"messages":[{"role":"user","content":"question"}],"stream":streaming}),
                 ),
                 (
                     "/v1/responses",
-                    json!({"model":"p12-test-model","max_output_tokens":19,"input":"question"}),
+                    json!({"model":"p12-test-model","max_output_tokens":19,"input":"question","stream":streaming}),
+                ),
+                (
+                    "/v1/chat/completions",
+                    json!({"model":"p12-test-model","max_tokens":19,"messages":[{"role":"user","content":"question"}],"stream":streaming}),
+                ),
+                (
+                    "/v1/chat/completions",
+                    json!({"model":"p12-test-model","max_completion_tokens":19,"messages":[{"role":"user","content":"question"}],"stream":streaming}),
                 ),
             ] {
                 let before = peer.bodies.lock().map_err(|_| "bodies")?.len();
