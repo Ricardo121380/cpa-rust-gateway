@@ -216,7 +216,7 @@
 
 | Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
 |---|---|---|---|---|---|
-| CPAR-C / CPAR-30, 35, 38, 39 | [规格 #9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)；#39、#44、#47、#48；收口 #57 | [ADR-0100](adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md)、[ADR-0101](adr/ADR-0101-grok-native-item-metadata-fidelity.md)、[BC-PROVIDER-015](contracts/BC-PROVIDER-015-grok-official-tool-reasoning-capability.md) | Kiro 错误后丢弃待发事件并封闭事件源；Grok 原生身份、reasoning 分层、phase、citations、严格 SSE 关联及显式 Responses 历史回放；实际 runtime factory 回归 | `p7_09_native_inference_adapter::corrupt_frame_discards_queued_events_and_seals_the_source`；`cpar_c_native_metadata`；`runtime::batch_c`；不可变提交 Gate、评审和真实验收条件按 #57 单独归集 | LOCAL_IMPLEMENTED_PENDING_GATE_AND_REAL_ACCEPTANCE；Kiro 输出硬上限、Web 多轮以及其余真实/声明扩展组合保持未完成 |
+| CPAR-C / CPAR-30, 35, 38, 39 | [规格 #9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)；#39、#44、#47、#48；收口 #57 | [ADR-0100](adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md)、[ADR-0101](adr/ADR-0101-grok-native-item-metadata-fidelity.md)、[BC-PROVIDER-015](contracts/BC-PROVIDER-015-grok-official-tool-reasoning-capability.md) | Kiro 错误后丢弃待发事件并封闭事件源；Grok 原生身份、reasoning 分层、phase、citations、严格 SSE 关联及显式 Responses 历史回放；六类实际反例修复；公开 runtime factory 回归 | [2026-10-01 C 收敛报告](reports/cpar-batch-c-convergence-20261001.md)；源码 `2e43ea4b`：专项 12/12、公开工厂 7/7、Full 44/44；[两轴评审](reports/assets/cpar-batch-c-convergence-20261001/review.md)；[新构建条件](reports/assets/cpar-batch-c-convergence-20261001/real-channel-preconditions.md)与[逐组合台账](reports/assets/cpar-batch-c-convergence-20261001/combination-ledger.json)归集 #57 | LOCAL_PASS_FOR_SLICE；C_BLOCKED；Kiro 输出硬上限、Web 多轮以及其余真实/声明扩展组合保持未完成；本轮真实 Provider 调用 0 |
 
 ## 后续 Phase 映射
 

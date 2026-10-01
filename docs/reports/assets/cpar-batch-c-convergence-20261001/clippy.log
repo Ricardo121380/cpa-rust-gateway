@@ -1,0 +1,4 @@
+    Checking provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+    Checking gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)
+    Checking gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.13s

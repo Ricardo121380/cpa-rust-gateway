@@ -1,0 +1,870 @@
+   Compiling provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.83s
+     Running unittests src/lib.rs (target/debug/deps/gateway_router-85b19e77a0ce73af)
+
+running 184 tests
+test attempt_orchestrator::tests::a_mid_body_failure_under_an_extended_start_timeout_returns_the_safe_truncation_error ... ok
+test attempt_orchestrator::tests::a_due_quota_reset_self_recovers_through_one_controlled_probe_attempt ... ok
+test attempt_orchestrator::tests::an_extended_start_timeout_preserves_pre_first_byte_transparent_retry ... ok
+test attempt_orchestrator::tests::a_forbidden_account_is_never_admitted_as_a_quota_probe ... ok
+test attempt_orchestrator::tests::a_failed_quota_probe_returns_to_cooldown_instead_of_flapping ... ok
+test attempt_orchestrator::tests::cancellation_stops_selection_and_success_holds_its_lease_until_drop ... ok
+test attempt_orchestrator::tests::compaction_continuation_holds_and_releases_only_the_exact_lease ... ok
+test attempt_orchestrator::tests::cancellation_drops_an_inflight_driver_future_without_a_retry ... ok
+test attempt_orchestrator::tests::budget_limits_attempt_count_and_cumulative_bootstrap_time ... ok
+test attempt_orchestrator::tests::connection_failure_cools_the_endpoint_and_falls_back_to_another_candidate ... ok
+test attempt_orchestrator::tests::continuation_once_keeps_exact_revision_and_never_falls_back ... ok
+test attempt_orchestrator::tests::exclusion_set_is_binding_scoped_and_redacts_its_debug_form ... ok
+test attempt_orchestrator::tests::concurrent_selection_admits_at_most_one_quota_recovery_probe ... ok
+test attempt_orchestrator::tests::pinned_once_invokes_exact_binding_once_and_closes_retry ... ok
+test attempt_orchestrator::tests::credential_unauthorized_blocks_only_its_binding_until_reauthorization ... ok
+test attempt_orchestrator::tests::pre_semantic_truncation_falls_back_but_post_fse_failure_never_retries ... ok
+test attempt_orchestrator::tests::pinned_once_keeps_success_lease_until_started_output_is_dropped ... ok
+test attempt_orchestrator::tests::observed_attempts_emit_one_terminal_record_per_driver_invocation ... ok
+test attempt_orchestrator::tests::protocol_filtered_start_rejects_noncanonical_candidates_before_a_lease ... ok
+test attempt_orchestrator::tests::failed_attempt_recording_stops_retry_and_releases_lease ... ok
+test attempt_orchestrator::tests::credential_forbidden_blocks_only_its_binding_until_controlled_recovery ... ok
+test attempt_orchestrator::tests::provider_scoped_entrypoint_fails_closed_for_ambiguous_routes ... ok
+test attempt_orchestrator::tests::provider_scoped_quota_recovery_never_leases_a_foreign_hard_ineligible_candidate ... ok
+test attempt_orchestrator::tests::provider_scoped_quota_recovery_keeps_the_due_probe_inside_its_provider ... ok
+test attempt_orchestrator::tests::exact_model_sources_fail_over_without_crossing_model_or_binding_scope ... ok
+test attempt_orchestrator::tests::rate_limit_records_exact_quota_and_preserves_a_healthy_sibling ... ok
+test attempt_orchestrator::tests::request_local_candidate_rejection_takes_no_lease_and_starts_no_attempt ... ok
+test attempt_orchestrator::tests::server_error_cools_the_endpoint_and_falls_back_to_another_candidate ... ok
+test attempt_orchestrator::tests::same_upstream_protocol_failure_is_isolated_to_its_declared_endpoint ... ok
+test attempt_orchestrator::tests::provider_scoped_retry_stays_within_one_provider ... ok
+test compatible_egress_runtime::tests::proxy_registry_rejects_direct_or_remote_proxy_profiles_and_invalid_shapes ... ok
+test compatible_egress_runtime::tests::direct_fixed_and_pool_targets_are_resolved_without_network ... ok
+test compatible_egress_runtime::tests::state_errors_are_closed_and_debug_has_no_proxy_value ... ok
+test compatible_egress_runtime::tests::node_cooldown_and_disabled_state_do_not_change_direct_or_other_pool_nodes ... ok
+test compatible_egress_runtime::tests::pool_weight_and_capacity_are_bounded_and_drop_releases_node ... ok
+test compatible_endpoint_runtime::tests::mixed_owner_and_kind_drift_rejects_before_runtime_visibility ... ok
+test compatible_endpoint_runtime::tests::health_quota_expiry_and_egress_are_independent_fail_closed_states ... ok
+test compatible_endpoint_runtime::tests::runtime_debug_is_value_free ... ok
+test compatible_endpoint_runtime::tests::exact_binding_quota_blocks_without_mutating_egress_state ... ok
+test compatible_endpoint_runtime::tests::runtime_selects_same_upstream_credential_and_releases_both_leases ... ok
+test compatible_endpoint_runtime::tests::stale_revision_and_schedule_reject_before_runtime_visibility ... ok
+test compatible_endpoint_runtime::tests::credential_and_egress_stickiness_fails_closed_instead_of_rotating ... ok
+test compatible_endpoint_runtime::tests::serving_credential_handoff_keeps_egress_exact_and_feedback_scoped ... ok
+test credential_scheduler::tests::caller_predicate_can_exclude_a_candidate_before_its_pool_is_touched ... ok
+test credential_scheduler::tests::continuation_selection_requires_exact_lineage_revision_and_capability ... ok
+test credential_scheduler::tests::pinned_selection_does_not_advance_route_or_credential_cursors ... ok
+test credential_scheduler::tests::binding_predicate_skips_an_attempted_credential_before_a_new_lease ... ok
+test credential_scheduler::tests::pinned_selection_fails_closed_for_health_quota_and_capacity ... ok
+test credential_scheduler::tests::ingress_pinned_catalog_never_selects_from_a_later_publication ... ok
+test credential_scheduler::tests::pinned_selection_rejects_expired_credential_without_lease ... ok
+test credential_scheduler::tests::model_quota_filters_before_lease_and_reset_needs_controlled_recovery ... ok
+test credential_scheduler::tests::model_scoped_circuit_skips_only_the_failed_endpoint_credential_binding ... ok
+test credential_scheduler::tests::pinned_selection_requires_exact_provider_channel_and_credential ... ok
+test credential_scheduler::tests::catalog_candidate_leases_only_a_credential_that_listed_the_model ... ok
+test credential_scheduler::tests::quota_recovery_selection_admits_only_a_due_binding ... ok
+test credential_scheduler::tests::runtime_health_filters_endpoints_and_credentials_without_distorting_fallback ... ok
+test credential_scheduler::tests::saturated_preferred_candidate_falls_back_without_leaking_a_lease ... ok
+test credential_scheduler::tests::unavailable_runtime_health_clock_fails_closed_before_pool_lease ... ok
+test execution_lineage::tests::recorder_is_single_assignment_and_debug_is_value_free ... ok
+test protocol_transform::tests::all_three_native_pairs_keep_exact_payload_ownership ... ok
+test protocol_transform::tests::canonical_and_bridge_reject_extensions_and_opaque_content ... ok
+test protocol_transform::tests::a_clean_cross_protocol_bridge_is_admitted ... ok
+test protocol_transform::tests::bridge_rejects_unrepresentable_tool_cache_thinking_and_roles ... ok
+test protocol_transform::tests::canonical_and_lossless_bridge_enforce_their_topology ... ok
+test protocol_transform::tests::canonical_bridge_supports_native_and_cross_protocol_projection ... ok
+test protocol_transform::tests::endpoint_api_formats_are_exact_and_do_not_infer_unknown_protocols ... ok
+test protocol_transform::tests::chat_response_reasoning_is_admitted_without_lowering_capabilities ... ok
+test protocol_transform::tests::automatic_tool_choice_is_exact_across_protocols ... ok
+test protocol_transform::tests::passthrough_requires_same_protocol_and_an_exact_native_payload ... ok
+test protocol_transform::tests::diagnostics_redact_client_values ... ok
+test credential_scheduler::tests::two_layer_atomic_cursors_preserve_route_and_endpoint_weights_under_concurrency ... ok
+test protocol_transform::tests::protocol_formats_agree_with_the_shared_api_format_table ... ok
+test protocol_transform::tests::ordered_tool_history_is_preserved_when_every_target_can_represent_it ... ok
+test protocol_transform::tests::all_nine_protocol_pairs_prepare_typed_requests ... ok
+test protocol_transform::tests::requires_declared_target_capabilities_before_admission ... ok
+test protocol_transform::tests::reasoning_only_chat_history_is_native_and_not_silently_bridged ... ok
+test protocol_transform::tests::every_target_builder_accepts_the_router_approved_tool_projection ... ok
+test protocol_transform::tests::forced_tool_choice_uses_the_reviewed_cross_protocol_mapping ... ok
+test protocol_transform::tests::reviewed_registry_publishes_only_the_nine_pairs_with_their_exact_modes ... ok
+test protocol_transform::tests::same_protocol_responses_preserves_typed_cache_controls ... ok
+test protocol_transform::tests::same_protocol_canonical_admits_only_valid_target_tool_choice ... ok
+test protocol_transform::tests::target_tool_choice_validation_fails_closed ... ok
+test protocol_transform::tests::pi_responses_continuation_survives_projection_and_encoding ... ok
+test protocol_transform::tests::responses_tool_replay_preserves_item_id_without_admitting_unknown_extensions ... ok
+test protocol_transform::tests::typed_projection_rejects_missing_invalid_and_colliding_output_limits ... ok
+test protocol_transform::tests::pi_responses_reasoning_controls_survive_projection_and_encoding ... ok
+test protocol_transform::tests::thinking_effort_is_exact_between_openai_protocols_and_not_a_numeric_budget ... ok
+test provider_egress_state::tests::deterministic_deadlines_and_sticky_loss_fail_closed ... ok
+test provider_egress_state::tests::capability_registry_rejects_duplicates_and_unbounded_identities ... ok
+test provider_egress_state::tests::capability_matrix_is_explicit_and_conservative ... ok
+test provider_egress_state::tests::atomic_snapshot_preserves_three_domains_stable_order_and_exact_ownership ... ok
+test provider_egress_state::tests::exact_clearance_begin_is_atomic_singleflight_under_concurrency ... ok
+test provider_egress_state::tests::exact_clearance_challenge_never_overwrites_a_live_refresh_owner ... ok
+test provider_egress_state::tests::exact_clearance_setter_cannot_overwrite_a_live_ticket ... ok
+test provider_egress_state::tests::exact_clearance_setter_reclaims_expired_owner_but_rejects_inconsistency ... ok
+test provider_egress_state::tests::exact_clearance_completion_failure_and_siblings_are_isolated ... ok
+test provider_egress_state::tests::exact_clearance_tickets_fail_closed_across_expiry_and_replacement ... ok
+test provider_egress_state::tests::expired_refresh_is_read_only_effective_then_normalized_by_owned_mutation ... ok
+test provider_egress_state::tests::failure_ownership_preserves_ambiguous_and_confirmed_403_boundaries ... ok
+test provider_egress_state::tests::hidden_auxiliary_and_recovery_calls_are_bounded_before_semantic_output ... ok
+test provider_egress_state::tests::exact_namespaces_and_state_domains_cannot_cross_mutate ... ok
+test provider_egress_state::tests::runtime_revision_advances_only_for_mutation_and_overflow_is_atomic ... ok
+test provider_egress_state::tests::snapshot_rejects_unowned_or_orphaned_clearance_refresh_state ... ok
+test provider_egress_state::tests::snapshot_deadline_projection_is_effective_only_and_never_writes_back ... ok
+test protocol_transform::tests::responses_reasoning_controls_keep_unknown_values_and_bridges_rejected ... ok
+test provider_egress_state::tests::synthetic_fixture_performs_zero_provider_dns_store_or_proxy_calls ... ok
+test provider_scoped_selector::tests::all_dimension_minimum_is_dominant_without_predicting_request_cost ... ok
+test provider_scoped_selector::tests::candidate_bounds_fail_closed ... ok
+test provider_scoped_selector::tests::explicit_all_zero_vector_is_known_zero ... ok
+test provider_scoped_selector::tests::identical_known_vectors_are_equal_evidence ... ok
+test provider_scoped_selector::tests::duplicate_candidate_identity_fails_before_ranking ... ok
+test provider_scoped_selector::tests::known_price_and_quota_beat_unknown_without_becoming_zero ... ok
+test provider_scoped_selector::tests::crossing_vectors_are_incomparable_and_input_order_independent ... ok
+test provider_scoped_selector::tests::load_ratio_uses_wide_arithmetic_without_overflow ... ok
+test provider_scoped_selector::tests::known_vector_ranks_before_unpriced_but_unknown_is_not_zero ... ok
+test provider_scoped_selector::tests::provider_scope_never_falls_back_to_another_provider ... ok
+test provider_scoped_selector::tests::one_known_vector_is_equal_not_unproven_dominant ... ok
+test provider_scoped_selector::tests::ranking_is_independent_of_input_order_and_uses_channel_tiebreaker ... ok
+test provider_scoped_selector::tests::unknown_cost_uses_least_loaded_ratio_then_stable_tiebreakers ... ok
+test provider_scoped_selector::tests::rejection_matrix_is_closed_and_deterministic ... ok
+test provider_scoped_selector::tests::whitespace_only_and_overlong_identities_fail_closed ... ok
+test protocol_transform::tests::responses_assistant_text_replay_preserves_known_metadata ... ok
+test response_transform::tests::reasoning_never_degrades_into_chat_text ... ok
+test response_transform::tests::stateful_projection_matches_finite_projection ... ok
+test response_transform::tests::rejected_stream_event_does_not_mutate_projector_state ... ok
+test response_transform::tests::stream_error_passes_through_as_terminal ... ok
+test response_transform::tests::target_usage_projection_preserves_aggregate_counts ... ok
+test route_explain::tests::fixed_explain_reports_exact_health_and_quota_reasons_without_a_lease ... ok
+test route_explain::tests::expired_requested_provider_never_falls_back_to_a_foreign_provider ... ok
+test route_explain::tests::fixed_schedule_starts_never_advance_live_candidate_or_credential_cursors ... ok
+test route_explain::tests::provider_explain_and_exact_lease_share_scheduler_price_rates ... ok
+test route_explain::tests::provider_selection_revalidates_capacity_before_the_exact_lease ... ok
+test route_explain::tests::provider_selection_revalidates_expiry_before_leasing ... ok
+test route_explain::tests::provider_composition_prefers_known_quota_then_least_loaded_without_side_effects ... ok
+test route_explain::tests::provider_selection_revalidates_quota_before_leasing ... ok
+test route_explain::tests::request_local_exclusion_is_exact_and_unknown_route_stays_safe ... ok
+test route_explain::tests::saturated_binding_is_explained_and_a_sibling_is_projected_without_a_new_lease ... ok
+test route_scheduler::tests::lower_priority_tier_is_used_only_when_higher_tier_is_ineligible ... ok
+test route_explain::tests::provider_selection_revalidates_health_before_leasing ... ok
+test route_scheduler::tests::round_robin_is_equal_weight_within_one_priority_tier ... ok
+test route_scheduler::tests::atomic_cursors_keep_weighted_distribution_fair_under_concurrency ... ok
+test route_scheduler::tests::smooth_weighted_schedule_has_a_stable_distribution ... ok
+test route_snapshot::tests::exact_upstream_resolution_fails_closed_for_duplicate_visible_routes ... ok
+test route_snapshot::tests::public_model_view_filters_access_groups_and_requires_hard_eligible_candidates ... ok
+test route_snapshot::tests::materialized_catalog_preserves_manual_opening_and_exact_credential_eligibility ... ok
+test route_snapshot::tests::authenticated_model_lists_pin_admission_time_without_leaking_expired_catalogs ... ok
+test route_snapshot::tests::publication_and_rollback_toggle_current_and_predecessor_snapshots ... ok
+test route_snapshot::tests::rejects_a_public_model_without_its_referenced_route ... ok
+test route_snapshot::tests::reconstructed_predecessor_supports_the_same_one_step_rollback ... ok
+test route_snapshot::tests::rejects_duplicate_or_inconsistent_client_key_views ... ok
+test route_snapshot::tests::rejects_invalid_or_unbounded_candidate_schedules ... ok
+test route_snapshot::tests::resolves_models_aliases_routes_and_access_groups_from_one_complete_snapshot ... ok
+test route_snapshot::tests::rollback_without_a_predecessor_is_safe_and_keeps_the_current_snapshot ... ok
+test route_snapshot::tests::snapshot_authenticator_fails_closed_at_expiry_and_for_revoked_unknown_and_malformed_keys ... ok
+test response_transform::tests::all_nine_decoded_response_pairs_reach_their_real_target_encoder ... ok
+test route_explain::tests::provider_composition_input_is_bounded_and_fails_closed ... ok
+test route_snapshot::tests::snapshot_authenticator_pins_public_model_view_and_observes_key_disablement_after_publish ... ok
+test runtime_health::tests::circuit_is_endpoint_credential_scoped_and_requires_explicit_recovery ... ok
+test runtime_health::tests::cooldown_is_isolated_and_automatically_expires ... ok
+test runtime_health::tests::expired_half_open_ticket_cannot_overwrite_a_reopened_circuit ... ok
+test runtime_health::tests::forbidden_account_is_binding_scoped_and_needs_its_own_recovery_ticket ... ok
+test runtime_health::tests::longer_transient_state_never_shortens_and_circuit_outranks_cooldown ... ok
+test runtime_health::tests::system_clock_contract_is_safe_for_normal_runtime ... ok
+test runtime_health::tests::model_circuit_isolated_and_half_open_recovery_is_single_ticket ... ok
+test runtime_health::tests::rejected_or_stale_account_recovery_ticket_cannot_reopen_a_forbidden_binding ... ok
+test route_snapshot::tests::one_hundred_readers_retain_the_snapshot_loaded_before_publication ... ok
+test runtime_health::tests::unsafe_shard_counts_and_deadlines_fail_closed ... ok
+test runtime_management_status::tests::exact_read_only_projection_shows_403_quota_circuit_and_controlled_recovery ... ok
+test runtime_probe::tests::probe_policy_rejects_non_convex_ewma_weights ... ok
+test runtime_probe::tests::model_scoped_probe_ewma_is_exact_target_isolated ... ok
+test runtime_management_status::tests::target_scope_is_validated_and_explicit_query_never_reads_the_shared_clock ... ok
+test runtime_probe::tests::controlled_circuit_probe_updates_exact_ewma_and_recovery_state ... ok
+test runtime_quota::tests::quota_inputs_reject_ambiguous_or_unsupported_precision ... ok
+test runtime_probe::tests::probes_reject_ambiguous_targets_and_time_regression_without_mutation ... ok
+test runtime_quota::tests::reset_requires_one_controlled_recovery_probe_before_ordinary_scheduling ... ok
+test runtime_quota::tests::rate_limit_records_header_or_explicit_estimate_without_conflation ... ok
+test runtime_quota::tests::source_confidence_reset_and_model_scope_are_exact_target_isolated ... ok
+test runtime_quota::tests::stale_probe_cannot_overwrite_newer_quota_observation ... ok
+test runtime_health::tests::a_full_shard_evicts_expired_cooldowns_but_never_evicts_live_state ... ok
+test provider_egress_state::tests::snapshot_revision_and_three_domains_remain_atomic_during_writes ... ok
+test runtime_quota::tests::a_full_shard_reclaims_available_snapshots_but_never_blocking_quota ... ok
+test protocol_transform::tests::every_positive_output_limit_maps_exactly_across_all_pairs ... ok
+test attempt_orchestrator::tests::the_default_start_timeout_still_cuts_an_attempt_at_the_remaining_bootstrap_budget ... ok
+test attempt_orchestrator::tests::a_driver_declared_start_timeout_lets_one_attempt_outlive_the_bootstrap_deadline ... ok
+
+test result: ok. 184 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running unittests src/lib.rs (target/debug/deps/protocol_openai_responses-461895450664faca)
+
+running 36 tests
+test tests::encodes_a_gateway_owned_public_models_list ... ok
+test tests::compact_endpoint_request_is_closed_and_non_streaming ... ok
+test tests::accepts_gateway_store_control_and_normalizes_native_forwarding ... ok
+test tests::decodes_gateway_owned_continuity_without_retaining_upstream_controls ... ok
+test tests::decodes_the_supported_openai_responses_request_fixture ... ok
+test tests::compaction_item_is_first_gateway_owned_and_never_canonical_raw_data ... ok
+test native_output::diagnostic_tests::fixed_metadata_categories_do_not_accept_or_expose_upstream_extensions ... ok
+test tests::compaction_response_replaces_output_with_only_the_opaque_locator ... ok
+test tests::encodes_non_streaming_response_from_the_same_canonical_sequence ... ok
+test tests::rejects_an_empty_public_model_name_in_a_models_list ... ok
+test tests::rejects_controls_that_cannot_be_honored_by_the_canonical_execution_path ... ok
+test tests::rejects_duplicate_json_names_at_every_nesting_level ... ok
+test tests::rejects_mismatched_tool_argument_deltas ... ok
+test tests::rejects_non_assistant_output_and_events_after_terminality ... ok
+test tests::safe_error_envelopes_and_frame_debug_output_do_not_leak_diagnostics ... ok
+test tests::stream_error_is_a_terminal_failed_response_not_a_completed_response ... ok
+test tests::encodes_a_stable_typed_sse_lifecycle ... ok
+test tests::rejects_unrepresentable_or_overflowing_usage_without_silent_loss ... ok
+test tests::rejects_unrepresentable_raw_event_extensions_without_exposing_them ... ok
+test tests::websocket_response_create_is_strict_and_normalizes_the_upstream_body ... ok
+test tests::required_tool_choice_is_retained_only_with_function_tools ... ok
+test tests::retains_unmapped_request_options_without_claiming_p1_execution_support ... ok
+test tests::max_token_and_refusal_stops_emit_incomplete_responses ... ok
+test upstream_response::tests::buffered_tool_accepts_only_equal_bounded_turn_metadata ... ok
+test upstream_response::tests::empty_reasoning_alongside_text_is_valid_but_empty_response_is_not ... ok
+test upstream_response::tests::late_encrypted_or_conflicting_reasoning_is_never_silently_lost ... ok
+test upstream_response::tests::legacy_suppression_cannot_discard_unowned_encrypted_reasoning ... ok
+test upstream_response::tests::streamed_legacy_suppression_cannot_discard_unowned_encrypted_reasoning ... ok
+test upstream_response::tests::validated_initial_usage_survives_a_later_invalid_frame ... ok
+test upstream_response::tests::reasoning_done_supplies_missing_suffix_without_duplicate_deltas ... ok
+test upstream_response::tests::terminal_decoder_rejects_late_semantic_bytes_and_redacts_debug ... ok
+test upstream_response::tests::buffered_and_streamed_responses_have_the_same_final_semantic_projection ... ok
+test upstream_response::tests::buffered_response_accepts_only_proven_zero_and_redundant_metadata ... ok
+test tests::reasoning_history_is_bounded_typed_and_not_visible_text ... ok
+test upstream_response::tests::missing_terminal_unknown_events_and_oversized_residue_fail_closed ... ok
+test upstream_response::tests::arbitrary_transport_chunk_sizes_keep_the_final_projection ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/p1_09_tool_chunk_properties.rs (target/debug/deps/p1_09_tool_chunk_properties-b40da45d522b8bea)
+
+running 4 tests
+test random_seed_tool_chunk_interleavings_are_replayable ... ignored, run scripts/run-p1-09-property.sh to generate or replay P1_09_SEED
+test mismatched_completed_tool_arguments_are_rejected_after_interleaved_deltas ... ok
+test one_byte_ascii_chunks_interleave_tools_and_preserve_explicit_empty_arguments ... ok
+test fixed_seed_tool_chunk_interleavings_preserve_final_tool_outputs ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/reasoning_summary.rs (target/debug/deps/reasoning_summary-fe41857fcee3902c)
+
+running 1 test
+test legacy_history_gains_only_a_missing_summary_without_mutating_the_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/provider_grok-1cc9831f22805af9)
+
+running 29 tests
+test account_entitlement::tests::token_fallback_requires_three_nonempty_segments ... ok
+test account_entitlement::tests::absent_subscription_label_does_not_become_free ... ok
+test account_entitlement::tests::conflicting_subscription_fields_fail_closed ... ok
+test account_entitlement::tests::subscription_response_maps_only_build_vocabulary ... ok
+test account_entitlement::tests::signed_token_numeric_mapping_is_derived_and_bounded ... ok
+test console_quota::tests::rejects_incomplete_or_invalid_usage ... ok
+test console_quota::tests::projects_complete_usage_and_predicts_chat_recovery ... ok
+test oauth::identity_tests::a_display_name_does_not_prevent_email_lookup ... ok
+test oauth::identity_tests::id_token_identity_survives_compact_storage_and_metadata_free_refresh ... ok
+test oauth::identity_tests::legacy_compact_credentials_remain_readable_and_can_acquire_issuer_profile ... ok
+test oauth::identity_tests::legacy_refresh_automatically_recovers_provider_identity ... ok
+test build_responses::completion_diagnostics_tests::completion_diagnostics_identify_the_rejecting_boundary_without_admitting_bad_items ... ok
+test oauth::identity_tests::wrong_subject_and_unavailable_profiles_never_replace_identity ... ok
+test build_catalog::runtime_material_tests::compact_account_authorization_reads_all_models_but_expiry_still_rejects ... ok
+test session_identity::tests::authenticated_session_and_residual_identity ... ok
+test web_flaresolverr::tests::parses_only_grok_clearance_material ... ok
+test web_flaresolverr::tests::rejects_solver_without_clearance ... ok
+test web_flaresolverr::tests::request_serializes_scoped_cookie_without_debug_value ... ok
+test web_flaresolverr::tests::retains_cloudflare_challenge_cookie_family ... ok
+test web_statsig::tests::production_meta_and_signature_shapes_match_the_frozen_reference ... ok
+test owned_reasoning::tests::owned_reasoning_authenticates_identity_scope_expiry_tamper_and_restart ... ok
+test owned_reasoning::tests::owned_reasoning_mixed_grants_and_rotation_require_exact_lease_proof ... ok
+test console_dpop::tests::cache_invalidation_does_not_remove_a_successor ... ok
+test console_dpop::tests::proof_contains_dpop_claims_and_fixed_width_signature ... ok
+test owned_reasoning::tests::owned_reasoning_json_and_chunked_sse_roundtrip_native_history_and_tools ... ok
+test account_pool::identity::tests::observation_is_encrypted_cas_bound_and_invalidated_by_credential_changes ... ok
+test account_pool::maintenance::tests::enrollment_identity_does_not_depend_on_import_marker ... ok
+test account_pool::identity::tests::managed_import_observation_is_atomic_and_unchanged_import_preserves_newer_identity ... ok
+test account_pool::maintenance::tests::account_maintenance_cas_keeps_encrypted_identity_and_removed_history ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/cpar_c_console_controls.rs (target/debug/deps/cpar_c_console_controls-cd17dfebbbe334d5)
+
+running 4 tests
+test official_and_console_reject_logprobs_on_text_events ... ok
+test official_and_console_reject_unrepresented_metadata_and_changed_final_snapshots ... ok
+test console_preserves_selection_without_adding_undeclared_search_tools ... ok
+test official_and_console_tool_deltas_match_normalized_final_arguments ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/cpar_c_native_metadata.rs (target/debug/deps/cpar_c_native_metadata-1824e988569c71e8)
+
+running 11 tests
+test official_console_plain_reasoning_keeps_its_existing_bridges ... ok
+test completed_parts_cannot_reopen_and_replace_citations ... ok
+test native_event_only_metadata_and_correlation_cannot_disappear ... ok
+test text_and_reasoning_done_seal_the_part_before_item_completion ... ok
+test lifecycle_fields_and_events_after_terminal_cannot_disappear ... ok
+test optional_function_event_ids_confirm_the_started_call ... ok
+test initial_item_citations_are_preserved_and_must_be_confirmed ... ok
+test official_console_preserve_native_items_parts_phase_and_citations ... ok
+test intermediate_snapshots_annotations_and_terminal_order_must_agree ... ok
+test incremental_annotations_and_indexed_parts_survive_all_native_channels ... ok
+test annotations_only_in_completed_snapshots_share_the_retained_budget ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/native_output_fidelity.rs (target/debug/deps/native_output_fidelity-ab98601c0c571cdc)
+
+running 6 tests
+test interleaved_items_complete_in_reverse_order_without_reordering_output ... ok
+test contradictory_and_ciphertext_final_snapshots_fail_closed ... ok
+test empty_parts_and_empty_items_keep_identity_and_order ... ok
+test native_identity_summary_parts_and_body_survive_all_public_modes ... ok
+test empty_logprobs_preserve_native_json_sse_and_request_replay ... ok
+test blank_tool_arguments_keep_the_existing_empty_object_contract ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/p12_10b_native_account_pool.rs (target/debug/deps/p12_10b_native_account_pool-b1bf08caf7c28e3c)
+
+running 8 tests
+test runtime_compilation_carries_one_complete_redacted_metadata_snapshot ... ok
+test batch_rollback_cascades_links_and_is_repeatable ... ok
+test entitlement_is_channel_scoped_monotonic_projected_and_cascaded ... ok
+test duplicate_identity_invalid_bounds_and_wrong_key_fail_closed ... ok
+test rerun_is_idempotent_but_changed_credential_rolls_back_the_whole_batch ... ok
+test runtime_credential_revision_is_nonzero_and_monotonic_from_durable_revision ... ok
+test invalid_disabled_metadata_does_not_stop_the_existing_runtime_pool ... ok
+test imports_three_isolated_providers_without_plaintext_or_identity_persistence ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+
+     Running tests/p12_10c_native_account_scheduling.rs (target/debug/deps/p12_10c_native_account_scheduling-db7074c1a8ccfecb)
+
+running 8 tests
+test duplicate_bindings_and_oversized_existing_schedules_fail_before_publication ... ok
+test exact_model_health_block_preserves_a_sibling_account ... ok
+test native_weight_uses_the_existing_endpoint_pool ... ok
+test exact_model_quota_preserves_a_sibling_and_requires_controlled_recovery ... ok
+test live_expiry_skips_preferred_build_before_lease_after_time_advances ... ok
+test native_priority_and_concurrency_use_the_existing_endpoint_pool ... ok
+test expired_preferred_build_does_not_obscure_fresh_sibling_after_restart ... ok
+test persisted_auth_and_cooldown_bootstrap_shared_health_after_restart ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+
+     Running tests/p12_10d_native_account_workers.rs (target/debug/deps/p12_10d_native_account_workers-bfa2f0a2b2ecf8c9)
+
+running 10 tests
+test refresh_jitter_is_stable_and_between_five_and_eight_minutes ... ok
+test refresh_success_commits_next_revision_and_redacted_replacement ... ok
+test provider_scoped_refresh_never_claims_a_sibling_channel ... ok
+test quota_sync_is_atomic_and_restores_exact_runtime_targets_after_restart ... ok
+test stale_refresh_worker_cannot_overwrite_a_newer_revision ... ok
+test transient_backoff_and_reauth_are_durable_and_restart_safe ... ok
+test durable_claim_is_cross_kind_singleflight_and_reclaimed_only_after_expiry ... ok
+test coordinator_never_exceeds_configured_parallelism ... ok
+test proven_build_rotation_survives_reload_and_rejects_unknown_or_changed_owner ... ok
+test completion_cannot_commit_after_claim_deadline ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.67s
+
+     Running tests/p12_10e_console_web_runtime.rs (target/debug/deps/p12_10e_console_web_runtime-e1e0cc6e1d2fdc21)
+
+running 13 tests
+test console_errors_and_retry_after_are_exact_and_bounded ... ok
+test source_observed_catalog_model_keeps_its_verified_console_profile ... ok
+test web_production_binding_rejects_tools_reasoning_and_unknown_models ... ok
+test console_request_pins_target_headers_and_stateless_normalization ... ok
+test source_observed_probe_model_is_text_only_bounded_and_not_a_catalog_widening ... ok
+test one_console_execution_projects_to_all_three_public_protocols ... ok
+test console_accepts_the_native_probe_without_an_unowned_output_extension ... ok
+test console_consumes_the_public_responses_output_limit_extension ... ok
+test console_accepts_the_grok2api_canonical_credential_envelope ... ok
+test web_production_preserves_exact_text_and_refuses_inexpressible_constraints ... ok
+test web_production_binding_uses_exact_browser_profile_and_live_decoder ... ok
+test console_inference_adapter_executes_json_sse_and_safe_http_failures ... ok
+test console_json_and_every_sse_chunk_size_preserve_tool_reasoning_and_usage ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/p12_10f_grok2api_memory_migration.rs (target/debug/deps/p12_10f_grok2api_memory_migration-b16dc8140f491389)
+
+running 7 tests
+test overlong_web_expiry_is_reduced_to_the_local_window_before_persistence ... ok
+test imports_v311_bare_json_array_with_the_same_atomic_contract ... ok
+test exact_rerun_is_idempotent_with_value_free_counts ... ok
+test existing_conflict_rolls_back_new_accounts_links_and_batch_row ... ok
+test any_rejected_record_prevents_the_whole_transaction ... ok
+test oversized_record_stops_before_import ... ok
+test imports_build_web_console_and_links_without_plaintext_persistence ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+     Running tests/p12_10i_grok_reauth.rs (target/debug/deps/p12_10i_grok_reauth-0de5165860930fb3)
+
+running 3 tests
+test auto_fallback_is_serial_and_replaces_each_account_atomically ... ok
+test reauth_claim_survives_restart_until_lease_expiry ... ok
+test transient_failure_is_backed_off_and_interactive_failure_stays_blocked ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/p12_10i_web_inference_runtime.rs (target/debug/deps/p12_10i_web_inference_runtime-7f65c7f4ad2addee)
+
+running 4 tests
+test flaresolverr_clearance_rebuild_preserves_account_binding ... ok
+test one_shot_mode_does_not_refresh_or_retry_a_web_403 ... ok
+test statsig_egress_rejection_falls_back_to_unsigned_clearance_retry ... ok
+test pre_start_403_refreshes_statsig_once_then_projects_the_live_stream ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p12_10i_web_statsig_runtime.rs (target/debug/deps/p12_10i_web_statsig_runtime-78790a024923255c)
+
+running 1 test
+test cache_is_singleflight_and_a_403_refreshes_only_the_current_signature ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p13_11e_native_egress.rs (target/debug/deps/p13_11e_native_egress-5f3b26004d9cf24a)
+
+running 4 tests
+test build_and_console_namespaces_cannot_cross_use_each_other ... ok
+test console_bootstrap_budget_and_failure_ownership_stay_exact ... ok
+test console_adapter_uses_active_session_and_one_inference ... ok
+test build_adapter_uses_exact_lease_once_and_closes_after_semantic_event ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p13_11e_web_egress.rs (target/debug/deps/p13_11e_web_egress-871d636ae785fe13)
+
+running 11 tests
+test completed_clearance_admits_exactly_one_inference_and_semantic_closure ... ok
+test statsig_auxiliary_budget_is_zero_then_two_then_four_and_fifth_is_closed ... ok
+test clearance_refresh_has_one_atomic_ticket_and_one_attempt_budget ... ok
+test first_successful_failure_latches_terminal_and_failed_mutation_does_not ... ok
+test receipts_and_debug_are_value_free_and_transport_free_api_starts_zero ... ok
+test semantic_event_closes_inflight_clearance_completion_and_failure ... ok
+test explicit_challenge_marks_only_exact_clearance_for_next_attempt ... ok
+test blocked_egress_inactive_session_and_invalid_clearance_stop_before_accounting ... ok
+test direct_wrong_namespace_kind_revision_and_foreign_keys_fail_closed ... ok
+test unknown_and_confirmed_forbidden_evidence_do_not_mutate_runtime_state ... ok
+test semantic_observation_cannot_cross_challenge_mutation_critical_section ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/p13_15b_build_catalog.rs (target/debug/deps/p13_15b_build_catalog-b76ba96f7dcdf5f2)
+
+running 3 tests
+test build_source_preserves_visible_upstream_ids_and_exact_credential_scope ... ok
+test build_catalog_request_uses_only_the_fixed_cli_profile ... ok
+test build_source_rejects_unbounded_malformed_and_non_success_results ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p6_01_build_oauth.rs (target/debug/deps/p6_01_build_oauth-e1deac3d1f170ae8)
+
+running 10 tests
+test strict_import_retains_only_validated_fields_and_redacts_tokens ... ok
+test absolute_expiry_sources_reject_conflicts_and_out_of_range_expiries ... ok
+test importer_rejects_duplicate_unsafe_and_ambiguous_oauth_shapes ... ok
+test known_absolute_expiry_sources_import_in_memory_and_redact_tokens ... ok
+test refresh_requires_a_matching_client_and_never_exposes_form_secrets ... ok
+test refresh_import_accepts_recently_expired_access_without_serving_it ... ok
+test known_absolute_expiry_sources_reject_wrong_identity_and_unsafe_expiry ... ok
+test runtime_import_accepts_only_durable_absolute_expiry_sources ... ok
+test refresh_accepts_expanded_reordered_scopes_and_preserves_them ... ok
+test device_code_state_machine_honors_interval_slow_down_and_redaction ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p6_02_refresh_runtime.rs (target/debug/deps/p6_02_refresh_runtime-8c70bb289ab40cff)
+
+running 8 tests
+test runtime_identity_rejects_blank_or_oversized_components_before_aad_or_sqlite ... ok
+test expired_external_cas_winner_is_a_safe_retry_state_not_a_transport_failure ... ok
+test concurrent_expiry_starts_one_refresh_and_all_callers_observe_the_new_revision ... ok
+test stale_refresh_result_cannot_overwrite_an_external_newer_revision ... ok
+test distinct_credentials_refresh_independently_under_concurrent_expiry ... ok
+test indexed_cli_source_round_trips_through_aead_without_plaintext ... ok
+test sqlite_runtime_state_is_aead_sealed_revisioned_and_recovers_after_reopen ... ok
+test waiter_times_out_without_starting_a_second_refresh ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running tests/p6_03_authorized_build_probe.rs (target/debug/deps/p6_03_authorized_build_probe-674827f9e2dc5a3e)
+
+running 14 tests
+test authorized_build_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P6_03_* authorization, one target, one mode, and one-request configuration
+test official_cli_cache_preflight_builds_without_network ... ignored, requires explicit P6_03_LOCAL_CACHE_PREFLIGHT and one official-CLI cache path; no network
+test missing_authorization_stops_before_any_other_value_is_read ... ok
+test direct_profile_rejects_a_leftover_proxy_value ... ok
+test safe_responses_decoder_gate_projects_only_fixed_requirement_labels ... ok
+test fixed_request_cap_and_mode_are_fail_closed ... ok
+test safe_status_class_includes_success_without_rendering_status_values ... ok
+test safe_sse_observer_tracks_complete_record_at_byte_boundaries ... ok
+test safe_error_category_uses_only_a_fixed_whitelist ... ok
+test safe_body_shape_retains_no_upstream_values ... ok
+test safe_success_body_shape_retains_no_upstream_values ... ok
+test complete_synthetic_configuration_prepares_without_dns_or_transport ... ok
+test fixed_probe_payload_is_mode_specific_and_secret_safe ... ok
+test official_cli_cache_source_is_file_only_bounded_and_exclusive ... ok
+
+test result: ok. 12 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p6_03_build_responses.rs (target/debug/deps/p6_03_build_responses-5b72a805a52cfa90)
+
+running 19 tests
+test error_envelope_is_bounded_and_does_not_retain_upstream_text ... ok
+test error_diagnostics_admit_only_fixed_labels_and_body_shape ... ok
+test completed_reasoning_without_content_is_a_zero_delta_canonical_item ... ok
+test completed_response_requires_completed_and_exactly_accounted_output_items ... ok
+test incomplete_build_does_not_accept_unknown_reason_wrong_identity_or_partial_tools ... ok
+test build_request_preserves_pi_reasoning_summary_and_include ... ok
+test one_plain_user_text_uses_scalar_easy_input_without_losing_semantics ... ok
+test build_request_preserves_pi_multiturn_reasoning_and_tool_history ... ok
+test reasoning_summary_sse_events_map_to_reasoning_delta_and_validate_part_identity ... ok
+test reasoning_summary_text_done_must_confirm_the_accumulated_delta ... ok
+test stream_normalizes_empty_tool_arguments_and_rejects_inconsistent_tool_metadata ... ok
+test stream_rejects_duplicate_json_names_and_reports_truncation_without_advancing ... ok
+test build_request_uses_the_current_cli_profile_and_exact_admitted_target ... ok
+test output_text_content_part_events_are_strict_and_chunk_safe ... ok
+test interleaved_tool_arguments_remain_bound_to_their_declared_items ... ok
+test incomplete_build_json_and_chunked_sse_preserve_reason_usage_and_partial_text ... ok
+test non_streaming_gzip_is_bounded_and_semantically_equivalent ... ok
+test arbitrary_sse_chunks_and_non_streaming_fixture_have_the_same_semantic_projection ... ok
+test current_tool_events_use_item_identity_across_arbitrary_chunks ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/p6_04_07_runtime_continuity.rs (target/debug/deps/p6_04_07_runtime_continuity-aca0c191fd7c56ab)
+
+running 5 tests
+test failure_matrix_never_turns_egress_or_transient_faults_into_permanent_credential_state ... ok
+test account_catalog_state_is_credential_scoped_and_monotonic ... ok
+test quota_state_is_credential_scoped_source_labelled_and_monotonic ... ok
+test response_ownership_and_reasoning_replay_are_exact_encrypted_and_clearable ... ok
+test cache_affinity_is_tenant_scoped_and_rebinding_has_durable_break_evidence ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/p6_09_inference_adapter.rs (target/debug/deps/p6_09_inference_adapter-9f232a552069c2dd)
+
+running 7 tests
+test error_envelope_uses_the_existing_p6_failure_classifier ... ok
+test explicitly_requested_reasoning_remains_in_the_canonical_response ... ok
+test prompt_cache_key_is_tenant_derived_before_build_transport ... ok
+test non_streaming_fixture_executes_through_the_real_provider_adapter ... ok
+test router_selects_the_explicit_provider_mode_without_concrete_provider_coupling ... ok
+test streaming_fixture_survives_arbitrary_chunk_boundaries ... ok
+test native_reasoning_continuation_survives_public_json_sse_and_legacy_history ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/p8_01_official_catalog.rs (target/debug/deps/p8_01_official_catalog-5a0e1db1eb4be86f)
+
+running 3 tests
+test catalog_source_is_exact_credential_scoped_and_parses_strict_fixture ... ok
+test official_models_request_is_fixed_authenticated_get_and_exact_target_only ... ok
+test catalog_source_rejects_non_success_and_ambiguous_or_invalid_payloads ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p8_02_official_responses.rs (target/debug/deps/p8_02_official_responses-0d85cceeaa63d556)
+
+running 7 tests
+test response_failed_is_terminal_and_opaque_search_output_fails_closed ... ok
+test cache_opaque_and_unsupported_roles_are_rejected_before_transport ... ok
+test pre_start_error_is_generic_and_post_start_failure_is_one_stream_error ... ok
+test request_is_fixed_authenticated_post_text_only_and_redacted ... ok
+test non_streaming_text_fixture_runs_through_official_adapter ... ok
+test runtime_state_receives_only_the_explicit_official_transport_observation ... ok
+test sse_text_fixture_is_chunk_invariant_and_runs_through_adapter ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/p8_03_official_metadata.rs (target/debug/deps/p8_03_official_metadata-fec4cabdfc2aa345)
+
+running 3 tests
+test token_usage_is_billing_metadata_without_inventing_a_plan_or_price ... ok
+test fixed_complete_rate_limit_windows_are_case_insensitive_and_redacted ... ok
+test ambiguous_partial_unsafe_or_impossible_headers_fail_closed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p8_04_official_capabilities.rs (target/debug/deps/p8_04_official_capabilities-5a6e383d27674b9d)
+
+running 5 tests
+test capability_declaration_admits_only_lossless_semantics ... ok
+test mismatched_or_non_object_tool_arguments_remain_protocol_errors ... ok
+test unsupported_search_and_unsafe_tool_or_reasoning_forms_fail_closed ... ok
+test tools_reasoning_and_history_encode_without_loss ... ok
+test non_streaming_and_every_sse_chunk_size_preserve_tool_reasoning_semantics ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/p8_05_official_build_isolation.rs (target/debug/deps/p8_05_official_build_isolation-e04b5bcab3e25b4a)
+
+running 2 tests
+test official_failures_only_classify_or_cool_their_own_exact_quota_target ... ok
+test official_header_quota_is_exact_and_cannot_mutate_build_state_or_affinity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/p8_06_official_differential.rs (target/debug/deps/p8_06_official_differential-71150784a01e43f6)
+
+running 3 tests
+test official_failure_matrix_is_exact_target_only_and_preserves_other_bindings ... ok
+test completed_and_sse_adapters_have_one_tool_reasoning_semantic_projection ... ok
+test ninety_six_concurrent_sse_decoders_remain_chunk_and_state_isolated ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/p8_07_authorized_official_probe.rs (target/debug/deps/p8_07_authorized_official_probe-a1766fa0c467c85b)
+
+running 4 tests
+test authorized_official_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P8_07_* authorization, one Official API key, one target, one mode, and one-request configuration
+test missing_authorization_stops_before_external_configuration_is_read ... ok
+test invalid_request_cap_stops_before_preparation ... ok
+test complete_synthetic_configuration_prepares_without_network ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_01_web_credentials.rs (target/debug/deps/p9_01_web_credentials-f17146b953f260f9)
+
+running 4 tests
+test strict_sso_import_retains_only_validated_scopes_and_redacts_cookie_values ... ok
+test malformed_expired_or_ambiguous_sso_exports_fail_closed ... ok
+test revision_cas_keeps_web_account_and_lineage_isolated ... ok
+test sealed_sso_envelope_is_aead_protected_and_expiry_checked ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_02_web_egress_session.rs (target/debug/deps/p9_02_web_egress_session-66fe4cf336c32384)
+
+running 3 tests
+test browser_egress_session_binds_exact_credential_fingerprint_and_cookie_scopes ... ok
+test browser_egress_session_rejects_expiry_scope_and_unsafe_fingerprint_inputs ... ok
+test browser_egress_session_cannot_follow_account_lineage_or_revision_replacement ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_03_web_chat.rs (target/debug/deps/p9_03_web_chat-6cd2b3a3f58fe499)
+
+running 4 tests
+test malformed_unknown_premature_or_post_terminal_sse_fails_closed ... ok
+test fixture_request_binds_the_immutable_browser_fingerprint_and_redacts_values ... ok
+test later_web_semantics_or_an_unusable_session_are_rejected_before_any_transport ... ok
+test synthetic_sse_is_chunk_invariant_and_has_one_complete_canonical_lifecycle ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_04_web_conversation.rs (target/debug/deps/p9_04_web_conversation-a01b776fc3236bc9)
+
+running 3 tests
+test conversation_identifiers_and_debug_forms_are_bounded_and_redacted ... ok
+test parent_update_expiry_and_account_unavailability_fail_closed_without_cross_session_mutation ... ok
+test conversation_turns_keep_one_exact_account_lineage_revision_and_egress_binding ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_05_web_statsig.rs (target/debug/deps/p9_05_web_statsig-9eb1eef3ef311d91)
+
+running 3 tests
+test signature_cache_is_exact_key_isolated_and_a_403_invalidates_only_one_entry ... ok
+test cache_reclaims_only_expired_entries_and_rejects_unsafe_keys_values_and_capacity ... ok
+test signer_requires_https_exact_allowlist_and_full_redirect_readmission_without_sending ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_06_web_quota.rs (target/debug/deps/p9_06_web_quota-c8bc959716e01cce)
+
+running 3 tests
+test malformed_cross_shape_or_unsafe_quota_fixtures_fail_closed_and_diagnostics_redact_values ... ok
+test rest_and_grpc_web_quota_windows_remain_source_and_window_isolated ... ok
+test stale_or_conflicting_observations_and_wrong_or_expired_sessions_do_not_mutate_state ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_07_web_failure_attribution.rs (target/debug/deps/p9_07_web_failure_attribution-60bbf33cff1711df)
+
+running 3 tests
+test invalid_or_wrong_owner_evidence_fails_closed_without_state_mutation ... ok
+test confirmed_403_account_evidence_marks_only_the_exact_account_lifecycle_not_egress ... ok
+test unknown_403_rejects_only_the_exact_egress_session_and_preserves_account_state ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_08_web_tool_emulation.rs (target/debug/deps/p9_08_web_tool_emulation-62f37a6968f18dd8)
+
+running 3 tests
+test enabled_unsafe_tool_fails_closed_while_disabled_path_still_injects_nothing ... ok
+test default_flag_is_disabled_has_no_native_tools_and_never_injects_prompt_bytes ... ok
+test enabled_flag_injects_only_a_bounded_visible_emulated_convention ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_09_authorized_web_canary.rs (target/debug/deps/p9_09_authorized_web_canary-402d7c1a4f807958)
+
+running 8 tests
+test authorized_web_canary_uses_one_fixed_target_and_one_send ... ignored, requires P9_09_* authorization, one temporary grok2api Web SSO token, one target label, and one-request configuration
+test missing_authorization_stops_before_any_sso_value_is_read ... ok
+test body_shape_projection_never_retains_response_values ... ok
+test invalid_cap_or_nonopaque_label_stops_before_preparation ... ok
+test live_canonical_projection_is_value_free_and_requires_a_complete_lifecycle ... ok
+test external_egress_and_unvalidated_signature_are_rejected_before_preparation ... ok
+test complete_synthetic_configuration_has_a_fixed_default_off_and_bounded_request ... ok
+test fixed_target_admission_rejects_query_or_origin_substitution_without_network ... ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p9_09_live_web_decoder.rs (target/debug/deps/p9_09_live_web_decoder-1e47877e42b106f6)
+
+running 5 tests
+test diagnostic_forms_never_render_live_identifiers_or_text ... ok
+test reasoning_and_final_cumulative_text_are_projected_without_duplication ... ok
+test identity_change_and_duplicate_final_envelope_fail_closed ... ok
+test malformed_rewound_or_unfinished_live_objects_fail_closed ... ok
+test concatenated_live_objects_are_chunk_invariant_and_complete_one_canonical_lifecycle ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/provider_kiro-a3b0324f8347853e)
+
+running 5 tests
+test event_stream::tests::crc32_uses_the_aws_eventstream_iso_hdlc_variant ... ok
+test catalog::tests::metadata_preserves_ids_and_rejects_partial_or_malformed_pages ... ok
+test catalog::tests::metadata_request_stays_in_exact_region_and_credential_family ... ok
+test account_usage::tests::usage_preserves_region_origin_and_expiry ... ok
+test catalog::tests::cli_catalog_requires_observed_unambiguous_profile ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cpar_c_conversation.rs (target/debug/deps/cpar_c_conversation-fd4f2b8d690518e9)
+
+running 2 tests
+test final_canonical_tool_result_keeps_its_call_identity_output_and_error_status ... ok
+test native_effort_retains_qualitative_levels_and_refuses_budget_surrogates ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_01_credentials.rs (target/debug/deps/p7_01_credentials-71f8b796d30df229)
+
+running 8 tests
+test runtime_lease_import_accepts_raw_api_key_or_strict_unexpired_oauth ... ok
+test three_credential_families_are_strictly_distinct_and_redacted ... ok
+test import_rejects_duplicate_mixed_expired_and_malformed_credential_shapes ... ok
+test refresh_is_kind_specific_redacted_and_never_refreshes_an_api_key ... ok
+test old_refresh_winner_cannot_overwrite_a_newer_cas_credential ... ok
+test different_credentials_refresh_without_waiting_for_each_other ... ok
+test same_credential_expiry_singleflights_and_followers_observe_the_new_revision ... ok
+test sealed_credential_is_aead_bound_to_its_exact_credential_id ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_02_endpoint_policy.rs (target/debug/deps/p7_02_endpoint_policy-239ab606a6b109a4)
+
+running 3 tests
+test api_region_is_bounded_and_cannot_change_the_derived_host_shape ... ok
+test api_key_header_is_explicit_and_oauth_never_inherits_it ... ok
+test ide_and_cli_snapshots_have_exact_urls_headers_origins_and_thinking_placement ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_03_profile_arn.rs (target/debug/deps/p7_03_profile_arn-5490e644ddc9f486)
+
+running 2 tests
+test profile_resolution_is_kind_specific_and_fallback_is_region_aware ... ok
+test enterprise_lookup_is_validated_injected_and_auditable ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_04_conversation_request.rs (target/debug/deps/p7_04_conversation_request-53b6e3c824b0672e)
+
+running 5 tests
+test cli_fixture_uses_cli_origin_for_current_and_history_users ... ok
+test every_conversation_declares_the_required_manual_chat_trigger ... ok
+test ide_fixture_preserves_ordered_text_history_and_declared_tools ... ok
+test unsupported_canonical_semantics_fail_closed_until_their_own_kiro_task ... ok
+test invalid_tool_or_ambient_values_are_never_silently_coerced_or_logged ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_05_event_stream.rs (target/debug/deps/p7_05_event_stream-4a44041459d24e5a)
+
+running 5 tests
+test invalid_length_and_eof_are_not_silently_ignored ... ok
+test repeated_corruption_reaches_a_terminal_recovery_limit ... ok
+test full_aws_header_types_and_payload_are_retained_without_debug_leaks ... ok
+test crc_and_header_failures_are_reported_then_a_following_valid_frame_recovers ... ok
+test every_binary_split_and_one_byte_chunks_produce_the_same_frames ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_06_dynamic_catalog.rs (target/debug/deps/p7_06_dynamic_catalog-933b1fe3acbf4646)
+
+running 8 tests
+test all_failed_credentials_return_an_empty_safe_projection_not_a_leaked_probe_error ... ok
+test paired_json_keeps_only_safe_dynamic_model_and_subscription_projections ... ok
+test duplicate_credential_input_and_non_monotonic_success_are_rejected_without_replacement ... ok
+test malformed_or_conflicting_source_rows_do_not_become_a_success ... ok
+test snapshot_has_p4_fresh_stale_refresh_and_expiry_boundaries ... ok
+test union_with_conflicting_token_limits_fails_closed_to_unknown_limit ... ok
+test expired_failure_snapshot_is_not_admitted_and_other_credentials_continue ... ok
+test failed_credential_reuses_only_its_eligible_last_success_and_does_not_block_union ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_07_claude_code_compatibility.rs (target/debug/deps/p7_07_claude_code_compatibility-463ec27076f60940)
+
+running 4 tests
+test incomplete_or_unsafe_tool_inputs_fail_closed_without_plan_mode_coercion ... ok
+test malformed_history_and_debug_forms_do_not_leak_tool_or_thinking_values ... ok
+test historical_tools_and_endpoint_specific_thinking_preserve_kiro_semantics ... ok
+test every_wire_split_has_the_same_text_reasoning_and_tool_semantics ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/p7_08_failure_classification.rs (target/debug/deps/p7_08_failure_classification-6a3e2d9005f46e9d)
+
+running 3 tests
+test http_signal_matrix_keeps_account_model_quota_and_ordinary_429_distinct ... ok
+test network_failures_are_egress_local_until_semantic_stream_delivery ... ok
+test independently_known_signal_has_precedence_without_retaining_a_body ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/p7_09_native_inference_adapter.rs (target/debug/deps/p7_09_native_inference_adapter-90eb7b333a6ebaae)
+
+running 6 tests
+test adapter_rejects_a_profile_resolution_from_the_wrong_credential_family ... ok
+test adapter_preserves_a_preclassified_quota_signal_without_retaining_an_error_body ... ok
+test cli_adapter_keeps_cli_thinking_and_api_key_marker_before_safe_403 ... ok
+test post_start_transport_truncation_is_one_terminal_stream_error ... ok
+test corrupt_frame_discards_queued_events_and_seals_the_source ... ok
+test ide_adapter_executes_native_eventstream_through_the_provider_trait ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests gateway_router
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests protocol_openai_responses
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests provider_grok
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests provider_kiro
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

@@ -1,0 +1,24 @@
+   Compiling provider-kiro v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-kiro)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.86s
+     Running tests/p7_09_native_inference_adapter.rs (target/debug/deps/p7_09_native_inference_adapter-66021dbb308e4259)
+
+running 1 test
+test corrupt_frame_discards_queued_events_and_seals_the_source ... FAILED
+
+failures:
+
+---- corrupt_frame_discards_queued_events_and_seals_the_source stdout ----
+
+thread 'corrupt_frame_discards_queued_events_and_seals_the_source' (25375159) panicked at crates/provider-kiro/tests/p7_09_native_inference_adapter.rs:233:9:
+assertion `left == right` failed: event emitted after failure, started=false
+  left: Some(CanonicalEvent::ResponseStart(<redacted>))
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    corrupt_frame_discards_queued_events_and_seals_the_source
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p provider-kiro --test p7_09_native_inference_adapter`

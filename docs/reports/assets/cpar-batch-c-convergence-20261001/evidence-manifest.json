@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "parent_issue": 57,
+  "batch": "C",
+  "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+  "baseline_sha": "f027e0bfe880fa175f764fa58694fae79af8771c",
+  "generated_at_utc": "2026-10-01T13:00:14.476188+00:00",
+  "local_software_slice_status": "PASS",
+  "overall_c_status": "BLOCKED",
+  "real_provider_calls": 0,
+  "remote_issue_mutations": 0,
+  "source_gate": {
+    "status": "PASS",
+    "mode": "full",
+    "steps_passed": 44,
+    "steps_total": 44,
+    "exit_code": 0,
+    "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb"
+  },
+  "review": {
+    "standards": "PASS_FOR_SCOPED_SLICE",
+    "spec": "PASS_FOR_CORRECTION",
+    "coverage": "c90656ab full22file review plus2e43ea4b fourfile increment",
+    "whole_c_spec": "PARTIAL/BLOCKED"
+  },
+  "inputs": {
+    "issue_snapshots": 14,
+    "all_snapshot_states": "OPEN",
+    "frozen_spec_lines": 379,
+    "normalized_spec_sha256": "766f60e96bc0420ffb713c0ec6169445901be14a5d51504349c0a78077755afd"
+  },
+  "files": [
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-9.json",
+      "bytes": 51057,
+      "sha256": "852c33f09577ea3f304525738d95c7e51a991862a1459c7edf2ffefb05df2f2c"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-39.json",
+      "bytes": 2526,
+      "sha256": "6aa0a46a831d2a438996e802ae026fdedb3cdcb145cf612d55d71e131f9e7130"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-40.json",
+      "bytes": 5235,
+      "sha256": "f0f553e30a65e884d4fc36c90c66aa9ecdc53cb5868aed79e98dab616e6edc22"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-41.json",
+      "bytes": 5183,
+      "sha256": "c41591d2078fc4bfaf6b3e9782d160a74308392949ba2a62e8d92093eb15877a"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-42.json",
+      "bytes": 5173,
+      "sha256": "180626be379b0525816df618e7d9e39a4b6142fd34f569fa9990fbd885fa3340"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-43.json",
+      "bytes": 5190,
+      "sha256": "ba83a31bd6e580f5497a373b3f254fbf302f1bd0fca6d1b06b9e680bd0929761"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-44.json",
+      "bytes": 5177,
+      "sha256": "0365e2a6e3a75393e368b322675e5a75a3b3d9284c17ecfed182f0a056effd44"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-45.json",
+      "bytes": 5192,
+      "sha256": "cf75df2759d2f7b5cb0b676a51e0edfc62dd2a18cc1a7a064f5dc533662469bd"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-46.json",
+      "bytes": 5213,
+      "sha256": "b191958c7d65a1fcc24e0d24ca6271f8a1a6ef5b4b3a3344f8ac0ccd2294800e"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-47.json",
+      "bytes": 5193,
+      "sha256": "13bb1c563a39fd38fb599f94a5784b30c8a16ed07d7c1531374db813cd0cf423"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-48.json",
+      "bytes": 5171,
+      "sha256": "520a65acd859568bbd3b7e29883ec4c17fa7e347dd62e67866106b4174797498"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-49.json",
+      "bytes": 4772,
+      "sha256": "d66528e36a3a31a41cdbeb827589a4b0582ef3b9c446428e27df1657568b051e"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-50.json",
+      "bytes": 4741,
+      "sha256": "09fce9cfd70aa708f6bf8de041e8124e172dda15d8243001fcc2e21dce2f6fbd"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-57.json",
+      "bytes": 7723,
+      "sha256": "54ff03e68c8a6d04ed1f136d58c1598df4c827cda154dea299b6954b667395f7"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/real-channel-preconditions.md",
+      "bytes": 11537,
+      "sha256": "a933163afa23ca5192b2777a26c77164607c9364d90aae04f66e02ab582e5c8b"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/combination-ledger.json",
+      "bytes": 272800,
+      "sha256": "aabe8cf0d186fb38ee928b6865c626c20dc59e25181f1099384488eafd376263"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/review.md",
+      "bytes": 8724,
+      "sha256": "3e1063f7eb24dd8db7b3ef62e1cf503a03c682ef26e082f7707f18b52b2bd632"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/issue-57-evidence.md",
+      "bytes": 5324,
+      "sha256": "bb5bd891a966ef82dfc6257e79f7f5cda2122c10293a15b821487f3f6db1e167"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/full-check.md",
+      "bytes": 1800,
+      "sha256": "022f2473e9a3420c52ee1d21523a1ea54b9ea9ff7c2ff46727df5f1bdcf94ec6"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/full-run-receipt.json",
+      "bytes": 3580,
+      "sha256": "ec2a113a7044856b7be5196dd8d6694fd1e45dffad392efabef48ddf81aabb59"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/full.log",
+      "bytes": 273996,
+      "sha256": "9034cea4f66609e857cf22b7b960698eadf4c4744dab913f7576f48908cdf4cf"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/review-red.log",
+      "bytes": 3228,
+      "sha256": "fc281266d9a0d8664ae591ada102801971a9f0b2fc75775f6c70a4fd542cefe8"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/review-late-red.log",
+      "bytes": 1285,
+      "sha256": "f4ac8b62d7ade1ca77c18e531637953e8d382c42c48225c5b8e7992a0bd1357d"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/review-green.log",
+      "bytes": 1285,
+      "sha256": "0b572d7ba0dad6daa7edbafd4f2f66cd3902870ef93e97a156ef90fb686a14d2"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/public-factory.log",
+      "bytes": 1548,
+      "sha256": "dd5cdef8792dc86b0aa87364b0d2403097b25f9cbb1fb81d6d6e71443d019dba"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/focused-regression.log",
+      "bytes": 59109,
+      "sha256": "2b920a966d94531035d73ed5afc07aee30cb267d359f4b286e3e209521d86146"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/clippy.log",
+      "bytes": 422,
+      "sha256": "99034d5f8020198dcbdd30347d04206e13b89f53757d076165e94ad1691b0c76"
+    },
+    {
+      "path": "docs/reports/cpar-batch-c-convergence-20261001.md",
+      "bytes": 11318,
+      "sha256": "8fba477de68c203c1e817ea7778fc361035abf91ba2d02c352012289f1dc391b"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/kiro-red.log",
+      "bytes": 1137,
+      "sha256": "63e5a18ba79a21ec588883c835e41de5a7ffc7e7c7f0aced58edd80bf43f683d",
+      "stage": "Initial diagnosis with test overlay, not immutable candidate gate"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/grok-red.log",
+      "bytes": 1365,
+      "sha256": "663c0f8e6560ca4fbecfce6a998400514a750b53299cb6664e50cc03b9067e29",
+      "stage": "Initial diagnosis with test overlay, not immutable candidate gate"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/docs-check.md",
+      "bytes": 396,
+      "sha256": "f9f425734ece6060f9d98993256c66c0edeae309cf37c06e36ce04d9faf775cd"
+    },
+    {
+      "path": "docs/reports/assets/cpar-batch-c-convergence-20261001/docs.log",
+      "bytes": 540,
+      "sha256": "7ae26b6ed5e43df40cbe6a2086668bc32ba4cfd52867639b6ef1d9d44a836d3c"
+    }
+  ],
+  "self_hash_omitted_to_avoid_recursion": true,
+  "source_files_changed_after_full": false,
+  "evidence_docs_added_after_full": true,
+  "final_evidence_static_check": {
+    "status": "PASS",
+    "mode": "docs",
+    "steps_total": 7,
+    "steps_passed": 7,
+    "exit_code": 0,
+    "staged_whitespace": "PASS after tool-log whitespace-only normalization; checked separately before commit",
+    "ledger_validation": "PASS: IDs/counts/statuses/accepted-restrictions/null identities/zero real PASS",
+    "evidence": "docs-check.md",
+    "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+    "note": "Evidence-only docs/static check; immutable source Full remains44/44. Logs normalized only for Git whitespace policy, original output digests retained in full-run-receipt.json."
+  }
+}

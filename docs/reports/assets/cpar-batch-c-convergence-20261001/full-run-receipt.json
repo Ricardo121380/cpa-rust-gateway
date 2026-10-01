@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "layer": "DETERMINISTIC_LOCAL",
+  "source_sha": "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb",
+  "baseline_sha": "f027e0bfe880fa175f764fa58694fae79af8771c",
+  "branch": "codex/prism-v4-delivery",
+  "command": "CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-c-convergence-20261001/full-check.md bash scripts/check.sh full",
+  "started_at_utc": "2026-10-01T12:43:57Z",
+  "completed_at_utc": "2026-10-01T12:48:11Z",
+  "receipt_generated_at_utc": "2026-10-01T12:58:16.492314+00:00",
+  "host": "Darwin 27.0.0 arm64",
+  "toolchain": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.8.2",
+    "npm": "11.19.1"
+  },
+  "status": "PASS",
+  "exit_code": 0,
+  "steps_total": 44,
+  "steps_passed": 44,
+  "fast_common_steps_included": true,
+  "rust_summary": {
+    "summaries": 124,
+    "passed": 1446,
+    "failed": 0,
+    "ignored": 12,
+    "includes_existing_tests_and_doc_tests": true
+  },
+  "source_paths_match_candidate_at_completion": true,
+  "preexisting_dirty_tracked_files": [
+    "AGENTS.md"
+  ],
+  "preexisting_agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "unrelated_untracked_files_preserved": true,
+  "frozen_spec_lines": 379,
+  "frozen_spec_normalized_sha256": "766f60e96bc0420ffb713c0ec6169445901be14a5d51504349c0a78077755afd",
+  "current_read_issue9_body_equals_frozen_spec": true,
+  "evidence_files": {
+    "full-check.md": "022f2473e9a3420c52ee1d21523a1ea54b9ea9ff7c2ff46727df5f1bdcf94ec6",
+    "full.log": "9034cea4f66609e857cf22b7b960698eadf4c4744dab913f7576f48908cdf4cf",
+    "review-green.log": "0b572d7ba0dad6daa7edbafd4f2f66cd3902870ef93e97a156ef90fb686a14d2",
+    "public-factory.log": "dd5cdef8792dc86b0aa87364b0d2403097b25f9cbb1fb81d6d6e71443d019dba",
+    "clippy.log": "99034d5f8020198dcbdd30347d04206e13b89f53757d076165e94ad1691b0c76"
+  },
+  "real_provider_calls": 0,
+  "remote_ci_status": "NOT_RUN",
+  "release_artifact_status": "NOT_RUN",
+  "new_runtime_attestation_status": "NOT_RUN",
+  "deployment_status": "NOT_RUN",
+  "production_status": "NOT_RUN",
+  "product_browser_status": "NOT_RUN",
+  "product_browser_applicability": "No UI business change in this protocol slice; SPA gate is not browser acceptance.",
+  "log_archiving": {
+    "normalization": "Remove trailing spaces/tabs/CR at line ends and excess empty lines at EOF only. Test results, semantic content and timestamps unchanged.",
+    "original_tool_output_sha256": {
+      "kiro-red.log": "63e5a18ba79a21ec588883c835e41de5a7ffc7e7c7f0aced58edd80bf43f683d",
+      "grok-red.log": "663c0f8e6560ca4fbecfce6a998400514a750b53299cb6664e50cc03b9067e29",
+      "review-red.log": "fc281266d9a0d8664ae591ada102801971a9f0b2fc75775f6c70a4fd542cefe8",
+      "review-late-red.log": "f4ac8b62d7ade1ca77c18e531637953e8d382c42c48225c5b8e7992a0bd1357d",
+      "review-green.log": "9196fb7b0934b039f014f14645b084730b741419dd17e6a0d155c49eb011b6fc",
+      "public-factory.log": "e8d0d3bbf1464696436aeabbe981ca6e39a3580074bddf099bb4c65d105022da",
+      "focused-regression.log": "4a7187d79e8606c304f5820b3888cb6ee78c0cd9c09ef76ce7bed55537173722",
+      "clippy.log": "99034d5f8020198dcbdd30347d04206e13b89f53757d076165e94ad1691b0c76",
+      "full.log": "22d3c2eb27fa8514f154d396b08771a77a3e21ddcce88d8876953c950341e254",
+      "docs.log": "7ae26b6ed5e43df40cbe6a2086668bc32ba4cfd52867639b6ef1d9d44a836d3c"
+    },
+    "normalized_files": [
+      "review-green.log",
+      "public-factory.log",
+      "focused-regression.log",
+      "full.log"
+    ]
+  }
+}

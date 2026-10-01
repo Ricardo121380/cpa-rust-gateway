@@ -1,0 +1,57 @@
+   Compiling gateway-router v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-router)
+   Compiling provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.37s
+     Running tests/cpar_c_native_metadata.rs (target/debug/deps/cpar_c_native_metadata-b7026798c03d051b)
+
+running 11 tests
+test lifecycle_fields_and_events_after_terminal_cannot_disappear ... FAILED
+test official_console_plain_reasoning_keeps_its_existing_bridges ... ok
+test completed_parts_cannot_reopen_and_replace_citations ... FAILED
+test text_and_reasoning_done_seal_the_part_before_item_completion ... FAILED
+test native_event_only_metadata_and_correlation_cannot_disappear ... ok
+test initial_item_citations_are_preserved_and_must_be_confirmed ... FAILED
+test optional_function_event_ids_confirm_the_started_call ... ok
+test official_console_preserve_native_items_parts_phase_and_citations ... ok
+test intermediate_snapshots_annotations_and_terminal_order_must_agree ... ok
+test annotations_only_in_completed_snapshots_share_the_retained_budget ... FAILED
+test incremental_annotations_and_indexed_parts_survive_all_native_channels ... ok
+
+failures:
+
+---- lifecycle_fields_and_events_after_terminal_cannot_disappear stdout ----
+
+thread 'lifecycle_fields_and_events_after_terminal_cannot_disappear' (25507957) panicked at crates/provider-grok/tests/cpar_c_native_metadata.rs:509:17:
+official dropped response.created.signature
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- completed_parts_cannot_reopen_and_replace_citations stdout ----
+
+thread 'completed_parts_cannot_reopen_and_replace_citations' (25507953) panicked at crates/provider-grok/tests/cpar_c_native_metadata.rs:463:9:
+official replaced a completed part
+
+---- text_and_reasoning_done_seal_the_part_before_item_completion stdout ----
+
+thread 'text_and_reasoning_done_seal_the_part_before_item_completion' (25507962) panicked at crates/provider-grok/tests/cpar_c_native_metadata.rs:490:13:
+official appended after response.output_text.done
+
+---- initial_item_citations_are_preserved_and_must_be_confirmed stdout ----
+
+thread 'initial_item_citations_are_preserved_and_must_be_confirmed' (25507955) panicked at crates/provider-grok/tests/cpar_c_native_metadata.rs:532:9:
+official dropped an initial citation
+
+---- annotations_only_in_completed_snapshots_share_the_retained_budget stdout ----
+
+thread 'annotations_only_in_completed_snapshots_share_the_retained_budget' (25507952) panicked at crates/provider-grok/tests/cpar_c_native_metadata.rs:547:13:
+official bypassed annotation budget, parts=false
+
+
+failures:
+    annotations_only_in_completed_snapshots_share_the_retained_budget
+    completed_parts_cannot_reopen_and_replace_citations
+    initial_item_citations_are_preserved_and_must_be_confirmed
+    lifecycle_fields_and_events_after_terminal_cannot_disappear
+    text_and_reasoning_done_seal_the_part_before_item_completion
+
+test result: FAILED. 6 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+error: test failed, to rerun pass `-p provider-grok --test cpar_c_native_metadata`

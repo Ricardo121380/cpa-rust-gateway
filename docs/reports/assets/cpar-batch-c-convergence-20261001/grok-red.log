@@ -1,0 +1,28 @@
+   Compiling provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.65s
+     Running tests/cpar_c_native_metadata.rs (target/debug/deps/cpar_c_native_metadata-b7026798c03d051b)
+
+running 3 tests
+test official_console_preserve_native_items_parts_phase_and_citations ... FAILED
+test official_console_plain_reasoning_keeps_its_existing_bridges ... ok
+test native_event_only_metadata_and_correlation_cannot_disappear ... FAILED
+
+failures:
+
+---- official_console_preserve_native_items_parts_phase_and_citations stdout ----
+Error: GatewayError { code: UpstreamProtocolError, scope: Stream }
+
+---- native_event_only_metadata_and_correlation_cannot_disappear stdout ----
+
+thread 'native_event_only_metadata_and_correlation_cannot_disappear' (25380990) panicked at crates/provider-grok/tests/cpar_c_native_metadata.rs:108:13:
+official lost citations
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    native_event_only_metadata_and_correlation_cannot_disappear
+    official_console_preserve_native_items_parts_phase_and_citations
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p provider-grok --test cpar_c_native_metadata`

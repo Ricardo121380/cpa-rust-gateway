@@ -1,0 +1,22 @@
+   Compiling provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+   Compiling gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)
+   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.52s
+     Running unittests src/main.rs (target/debug/deps/gateway-68579d476e4abe84)
+
+running 7 tests
+test runtime::batch_c::grok::web_unrepresentable_histories_tools_and_limits_reject_before_lease_or_dns ... ok
+test runtime::batch_c::official_real_factory_retains_tools_controls_usage_and_quota_ownership ... ok
+test runtime::batch_c::http::codex_rejection_never_replays_without_the_clients_output_limit ... ok
+test runtime::batch_c::kiro_real_factory_bridges_text_tools_and_effort_without_dropping_limits ... ok
+test runtime::batch_c::grok::grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges ... ok
+test runtime::batch_c::grok::grok_factories_bridge_three_protocols_and_preserve_tool_rounds ... ok
+test runtime::batch_c::http::ordinary_native_families_use_the_public_factory_and_preserve_identity ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 164 filtered out; finished in 3.87s
+
+     Running tests/component_smoke.rs (target/debug/deps/component_smoke-60340a82b677c87d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
