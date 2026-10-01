@@ -3594,3 +3594,19 @@ commit carries `Cross-Boundary: web/prism - generated CPAR B Usage contract`.
 **Why:** Independent Standards review identified untranslated Usage evidence; Spec review identified uncertain runtime application and recovery receipts hidden when target eligibility changed. Preserve receipts and target identity, require service readback before a deliberate new runtime application, and use the existing reactive message packs. Controlled management-HTTP scenarios reproduced both state defects before correction and passed afterwards.
 
 **Other side:** FYI under the same explicit D frontend/backend authorization. No contract/schema change or real Provider call. Final immutable-commit gates and coverage inventory follow in the batch report.
+
+## 2026-10-01 - Codex - CPAR D final review fixes and missing acceptance
+
+**Touched:**
+- `web/prism/src/app/app.css`
+- `web/prism/src/components/Sheet.tsx`
+- `web/prism/src/features/egress/compatible.css`
+- `web/prism/src/features/models/ModelConnectionsDialog.tsx`
+- `web/prism/src/features/monitoring/MonitoringPage.tsx`
+- `web/prism/src/features/runtime/runtime.css`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+
+**Why:** Correct the final D review's unknown-versus-empty model topology state and consolidate identical table scrolling rules. Fill missing EgoLite acceptance for failure attribution and model/source/route editing and return. Those checks also reproduced filtered failures incorrectly described as an empty configuration and focus leaving a dialog when its editing step replaced the focused button; correct both with localized state copy and focus retention in the existing Sheet. Regression failures precede corrections at the existing management HTTP and actual UI seams. The extended acceptance includes a fixture mutation whose response is lost after application, followed by public draft readback without replay.
+
+**Other side:** FYI under the explicit D frontend/backend authorization and the user's request **“修复一下当前codereview指出的问题”**. No authoritative contract, generated client, backend, schema, Provider or deployment change. Immutable-commit tests and remaining C / #57 boundaries will be recorded in the D review-fix report. Preserve unrelated `AGENTS.md` and untracked workspace files.

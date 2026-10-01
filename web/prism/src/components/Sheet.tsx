@@ -239,6 +239,13 @@ function SheetBody({
     };
   }, []);
 
+  // A step can replace the button that opened it without replacing the Sheet.
+  // Keep keyboard focus in the dialog when that focused button disappears.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (panel !== null && !panel.contains(document.activeElement)) panel.focus();
+  }, [title]);
+
   useEffect(() => {
     if (onEscape === undefined) {
       return;

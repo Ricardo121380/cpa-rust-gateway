@@ -23,7 +23,7 @@ const hook=()=>page.evaluate(async()=>{
   const url=performance.getEntriesByType("resource").map(row=>row.name).find(url=>/\/src\/generated\/management-client\.ts\?t=/u.test(url))??"/src/generated/management-client.ts";
   const {ManagementApi}=await import(url);
   const original=ManagementApi.prototype.request;
-  window.CPAR_D_HTTP={modes:{},calls:[],cache:{},release:{}};
+  window.CPAR_D_HTTP={modes:{},calls:[],cache:{},release:{},applied:[]};
   const reply=(status,body)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
   ManagementApi.prototype.request=async function(operation,request){
     const state=window.CPAR_D_HTTP,mode=state.modes[operation];
@@ -32,6 +32,7 @@ const hook=()=>page.evaluate(async()=>{
     if(mode==="denied")return reply(403,{error:{code:"synthetic_permission_denied",message:"D controlled permission denied"}});
     if(mode==="locked")return reply(404,{error:{code:"management_access_denied",message:"D controlled expired session"}});
     if(mode==="lost")throw new TypeError("D controlled response lost");
+    if(mode==="invalid")return reply(400,{error:{code:"invalid_request",message:"D controlled write rejected"}});
     if(mode==="next-error"&&request.query?.cursor)return reply(500,{error:{code:"synthetic_cursor_failed",message:"D controlled next page unavailable"}});
     if(mode==="pool-record")return reply(200,[{id:"d-pool",name:"D controlled pool",upstream_id:"relay-a",enabled:true}]);
     if(mode==="no-availability")return reply(200,[]);
@@ -42,8 +43,11 @@ const hook=()=>page.evaluate(async()=>{
     if(mode==="resource-next-error")return reply(200,{items:[],next_before_id:"2"});
     if(mode==="hold")await new Promise(resolve=>{state.release[operation]=resolve;});
     const response=await original.call(this,operation,request);
+    if(mode==="lost-after-write"&&response.ok){state.applied.push({operation,status:response.status});throw new TypeError("D controlled response lost after fixture mutation");}
     if(!response.ok||!mode)return response;
     const body=await response.clone().json();
+    if(mode==="empty-items") {body.items=[];body.next_cursor=null;}
+    if(mode==="failure-pages") {state.cache[operation]??=body;const first=state.cache[operation];return reply(200,{...first,items:request.query?.cursor?first.items.slice(1,2):first.items.slice(0,1),next_cursor:request.query?.cursor?null:"D-failure-page2"});}
     if(mode==="mandatory") {body.password_change_required=true;delete state.modes[operation];}
     if(mode==="paused")body.accepting_requests=false;
     if(mode==="recovered")for(const row of body)row.availability="available";
@@ -73,15 +77,27 @@ const prepareTarget=()=>page.evaluate(async()=>{
 });
 const desktop=()=>page.cdp("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
 const screenshot=name=>page.screenshot({path:`${outputDir}/${name}.png`});
+const readyButton=name=>page.waitForFunction(name=>[...document.querySelectorAll("button")].some(button=>button.textContent===name&&!button.disabled&&!button.closest('[inert]')&&button.getClientRects().length>0),name);
+const appearance=async(width,theme)=>{
+  await page.cdp("Emulation.setDeviceMetricsOverride",{width,height:width===375?812:1000,deviceScaleFactor:1,mobile:false});
+  if(await page.evaluate(()=>document.documentElement.dataset.theme)!==theme)await page.click('loc=css:button[aria-label="切换深浅外观"]');
+  // System appearance has no data-theme; the first toggle may select the other
+  // explicit theme. Observe that result before selecting the requested one.
+  if(await page.evaluate(()=>document.documentElement.dataset.theme)!==theme)await page.click('loc=css:button[aria-label="切换深浅外观"]');
+  await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);
+};
+const assertDialogFits=async()=>{
+  await page.waitForFunction(()=>document.querySelector('[role="dialog"]')?.contains(document.activeElement));
+  assert.ok(await page.evaluate(()=>{const dialog=document.querySelector('[role="dialog"]'),box=dialog.getBoundingClientRect();return box.left>=-1&&box.right<=innerWidth+1&&document.documentElement.scrollWidth<=innerWidth+1;}));
+};
 try {
   await desktop();
   if(scenario==="inventory") {
     await reset();
-    const paths=["/","/overview","/accounts","/oauth","/catalog","/usage","/monitoring","/billing","/versions","/upstreams","/models","/access","/egress","/runtime","/audit","/settings"];
+    const paths=["/","/overview","/accounts","/oauth","/catalog","/usage","/monitoring","/monitoring?tab=failures","/billing","/versions","/upstreams","/models","/access","/egress","/runtime","/audit","/settings"];
     await page.evaluate(()=>{window.CPAR_D_ERRORS=[];window.addEventListener("error",event=>window.CPAR_D_ERRORS.push(event.message));});
     for(const width of [1440,375])for(const theme of ["light","dark"]) {
-      await page.cdp("Emulation.setDeviceMetricsOverride",{width,height:width===375?812:1000,deviceScaleFactor:1,mobile:false});
-      if(await page.evaluate(()=>document.documentElement.dataset.theme)!==theme)await page.click('loc=css:button[aria-label="切换深浅外观"]');
+      await appearance(width,theme);
       for(const path of paths) {
         await route(path);
         await page.waitForFunction(()=>!document.querySelector("vite-error-overlay")&&document.querySelector("main")?.textContent.length>60);
@@ -257,18 +273,115 @@ try {
     await page.cdp("Emulation.setDeviceMetricsOverride",{width:375,height:812,deviceScaleFactor:1,mobile:false});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));record("English usage evidence remains contained on narrow layout");
     await page.evaluate(()=>location.hash="#/monitoring?tab=requests");await page.waitForSelector(".request-table tbody button");await page.click('loc=css:.request-table tbody tr:first-child button');await page.waitForSelector('[role="dialog"]');await page.click('loc=css:[role="dialog"] summary:has-text("Token 用量")');await waitText("Input includes cached tokens");
     assert.match(await page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??""),/Estimated usage/u);record("request source and input accounting update to English");await page.keyboard.press("Escape");
+    await mode("listProviderAccountFailures","empty-items");await page.evaluate(()=>location.hash="#/monitoring?tab=failures&account_id=missing-d-account");await waitText("No failure attempts match the applied filters.");assert.doesNotMatch(await text(),/该配置版本下没有归因|没有符合筛选条件/u);record("filtered failure no-match follows English selection");
+    await page.evaluate(()=>location.hash="#/monitoring?tab=failures");await waitText("This configuration version has no failure attempts attributed to accounts.");record("unfiltered empty failure state remains distinct in English");
     await page.evaluate(()=>location.hash="#/settings");await page.waitForSelector('loc=role:radio[name="中文"]');await page.click('loc=role:radio[name="中文"]');
   } else if(scenario==="details") {
     await reset();await mode("summarizeRequests","request-evidence");
     for(const width of [1440,375])for(const theme of ["light","dark"]) {
-      await page.cdp("Emulation.setDeviceMetricsOverride",{width,height:width===375?812:1000,deviceScaleFactor:1,mobile:false});
-      if(await page.evaluate(()=>document.documentElement.dataset.theme)!==theme)await page.click('loc=css:button[aria-label="切换深浅外观"]');
+      await appearance(width,theme);
       await route("/monitoring?tab=requests");await page.waitForSelector(".request-table tbody button");await page.click('loc=css:.request-table tbody tr:first-child button');await page.waitForSelector('[role="dialog"]');
       await page.click('loc=css:[role="dialog"] summary:has-text("Token 用量")');await waitText("输入已包含缓存 token");
       const box=await page.evaluate(()=>{const dialog=document.querySelector('[role="dialog"]'),box=dialog.getBoundingClientRect();return {left:box.left,right:box.right,documentWidth:document.documentElement.scrollWidth,focusWithin:dialog.contains(document.activeElement)};});
       assert.ok(box.left>=-1&&box.right<=width+1&&box.documentWidth<=width+1);assert.equal(box.focusWithin,true);await screenshot(`request-detail-${width}-${theme}`);await page.keyboard.press("Escape");await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));record("request detail fits viewport with keyboard dismissal",{width,theme});
       await route("/versions");await page.click('loc=role:button[name="查看历史差异"]');await page.waitForFunction(()=>document.activeElement?.textContent==="历史配置差异");
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await screenshot(`historical-diff-${width}-${theme}`);await page.keyboard.press("Escape");await page.waitForFunction(()=>document.activeElement?.textContent==="查看历史差异");record("history workspace retains focus return in both layouts",{width,theme});
+    }
+  } else if(scenario==="models-routes") {
+    await reset();await prepareTarget();await route("/versions");await readyButton("编辑当前配置");await page.click('loc=role:button[name="编辑当前配置"]');await page.click('loc=role:button[name="创建草稿"]');
+    await page.waitForSelector('loc=role:button[name="接续草稿"]');await page.click('loc=role:button[name="接续草稿"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));await route("/models");await page.waitForSelector('loc=role:button[name="管理连接"]');
+    assert.match(await text(),/正在编辑草稿/u);record("model maintenance starts from a publicly created draft");
+    await page.fill('input[aria-label="搜索已接入模型"]',"D-no-model");await waitText("没有匹配的模型");await page.click('loc=role:button[name="清除筛选"]');await page.waitForSelector('loc=role:button[name="管理连接"]');record("model no-match search recovers through visible controls");
+    await page.fill('input[aria-label="搜索已接入模型"]',"minimax");await page.selectOption('select[aria-label="模型提供商"]',"relay-a");await route("/billing");await route("/models");
+    assert.equal(await page.evaluate(()=>document.querySelector('input[aria-label="搜索已接入模型"]')?.value),"minimax");assert.equal(await page.evaluate(()=>document.querySelector('select[aria-label="模型提供商"]')?.value),"relay-a");record("model source and search filters survive navigation return");
+    await page.click('loc=role:button[name="管理连接"]');await page.waitForSelector(".model-source-card");await page.click('loc=role:button[name="编辑路径"]');await page.fill('loc=role:spinbutton[name="权重"]',"2");
+    await page.click('loc=role:button[name="返回来源"]');await page.waitForSelector('[role="alertdialog"]');await page.click('loc=role:button[name="继续编辑"]');
+    assert.equal(await page.evaluate(()=>document.querySelector('[role="dialog"] input[max="10000"]')?.value),"2");await page.click('loc=role:button[name="返回来源"]');await page.click('loc=role:button[name="放弃修改"]');await page.waitForSelector(".model-source-card");
+    assert.equal((await calls("updateRouteCandidate")).length,0);record("source cancel keeps edits until explicit discard without writes");
+    await page.click('loc=role:button[name="编辑路径"]');await page.fill('loc=role:spinbutton[name="权重"]',"2");await page.click('loc=role:button[name="保存并应用"]');await page.waitForSelector('.operation-receipt');
+    assert.match(await page.evaluate(()=>document.querySelector('.operation-receipt')?.textContent??""),/已保存到当前草稿，尚未应用/u);assert.equal((await calls("updateRouteCandidate")).length,1);
+    await page.click('loc=role:button[name="核对配置"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"], [role="alertdialog"]'));
+    await page.click('loc=role:button[name="管理连接"]');await page.waitForSelector(".model-source-card");assert.ok(await page.evaluate(()=>[...document.querySelectorAll('.source-scheduling > div')].some(node=>node.querySelector('dt')?.textContent==='权重'&&node.querySelector('dd')?.textContent==='2')));
+    await page.click('loc=role:button[name="关闭"]');record("source save returns to the draft model with confirmed weight");
+    await page.click('loc=css:.row-menu > summary');await page.click('loc=role:button[name="编辑模型"]');await page.fill('loc=role:textbox[name="管理端显示名"]',"D reviewed model");await page.click('loc=role:button[name="取消"]');await page.waitForSelector('[role="alertdialog"]');await page.click('loc=role:button[name="放弃修改"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));
+    assert.equal((await calls("updatePublicModel")).length,0);assert.doesNotMatch(await text(),/D reviewed model/u);record("public model cancel preserves the original display name");
+    await page.click('loc=role:button[name="编辑模型"]');await page.fill('loc=role:textbox[name="管理端显示名"]',"D reviewed model");await page.click('loc=role:button[name="保存"]');await waitText("模型配置结果");await page.click('loc=role:button[name="完成"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));await waitText("D reviewed model");assert.equal((await calls("updatePublicModel")).length,1);record("public model save confirms draft state before returning");
+    await page.click('loc=css:.models-advanced > summary');await page.waitForSelector('loc=role:button[name="打开路由"]');await page.click('loc=role:button[name="打开路由"]');await page.waitForSelector('loc=role:button[name="编辑路由"]');await page.click('loc=role:button[name="编辑路由"]');
+    await page.fill('loc=role:spinbutton[name="最大尝试次数"]',"2");await page.keyboard.press("Escape");await page.waitForSelector('[role="alertdialog"]');await page.click('loc=role:button[name="继续编辑"]');
+    assert.equal(await page.evaluate(()=>document.querySelector('#route-action-form input')?.value),"2");await page.click('loc=role:button[name="取消"]');await page.click('loc=role:button[name="放弃修改"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));assert.equal((await calls("updateRoute")).length,0);record("route Escape and cancel share the discard gate without writes");
+    await page.click('loc=role:button[name="编辑路由"]');await page.fill('loc=role:spinbutton[name="最大尝试次数"]',"2");await mode("updateRoute","invalid");await page.click('loc=role:button[name="保存路由"]');await waitText("D controlled write rejected");
+    assert.equal(await page.evaluate(()=>document.querySelector('#route-action-form input')?.value),"2");assert.equal((await calls("updateRoute")).length,1);record("known route rejection keeps the editable form and target");
+    await mode("updateRoute",null);await page.click('loc=role:button[name="保存路由"]');await waitText("路由配置结果");assert.match(await page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??""),/已保存到当前草稿，尚未发布/u);await page.click('loc=role:button[name="完成"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));await waitText("路由参数已保存到草稿");record("explicit route retry confirms draft write and returns to workbench");
+    for(const width of [1440,375])for(const theme of ["light","dark"]) {
+      await appearance(width,theme);
+      await page.click('loc=role:button[name="编辑路由"]');await page.waitForSelector('#route-action-form');assert.equal(await page.evaluate(()=>document.querySelector('#route-action-form input')?.value),"2");
+      await assertDialogFits();
+      await screenshot(`route-edit-${width}-${theme}`);await page.keyboard.press("Escape");await page.waitForFunction(()=>!document.querySelector('[role="dialog"]')&&document.activeElement?.textContent==='编辑路由');record("route editor fits both layouts and themes with focus return",{width,theme});
+      await page.click('loc=role:button[name="管理连接"]');await page.waitForSelector(".model-source-card");await page.click('loc=role:button[name="编辑路径"]');
+      await assertDialogFits();
+      await screenshot(`model-source-edit-${width}-${theme}`);await page.keyboard.press("Escape");await page.waitForSelector('.model-source-card');await page.click('loc=role:button[name="关闭"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]')&&document.activeElement?.textContent==='管理连接');record("model source editor fits and returns without changes",{width,theme});
+    }
+    await desktop();await page.click('loc=role:button[name="编辑路由"]');await page.fill('loc=role:spinbutton[name="最大尝试次数"]',"3");await mode("updateRoute","lost-after-write");await page.click('loc=role:button[name="保存路由"]');await waitText("修改结果未确认");
+    assert.equal((await calls("updateRoute")).length,3);assert.equal(await page.evaluate(()=>window.CPAR_D_HTTP.applied.filter(row=>row.operation==='updateRoute').length),1);assert.equal(await page.evaluate(()=>!!document.querySelector('#route-action-form')),false);record("applied-then-lost fixture write is uncertain and cannot be replayed");
+    await page.click('loc=role:button[name="核对草稿"]');await route("/versions");await page.waitForFunction(()=>!document.querySelector('[role="dialog"]')&&!document.querySelector('#app[inert]'));await readyButton("接续待应用修改");await page.click('loc=role:button[name="接续待应用修改"]');await page.waitForSelector('loc=role:button[name="接续草稿"]');await page.click('loc=role:button[name="接续草稿"]');await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));await route("/models");
+    await page.click('loc=css:.models-advanced > summary');await page.click('loc=role:button[name="打开路由"]');await page.click('loc=role:button[name="编辑路由"]');await page.waitForSelector('#route-action-form');assert.equal(await page.evaluate(()=>document.querySelector('#route-action-form input')?.value),"3");assert.equal((await calls("updateRoute")).length,3);await page.keyboard.press("Escape");record("public draft readback observes the applied value without resubmitting");
+  } else if(scenario==="model-connections") {
+    await reset();await prepareTarget();await mode("listRoutes","error");await route("/models");
+    await page.waitForSelector('loc=role:button[name="管理连接"]');await page.click('loc=role:button[name="管理连接"]');await waitText("synthetic_read_failed");
+    const dialogText=()=>page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??"");
+    assert.doesNotMatch(await dialogText(),/尚未连接提供商/u);record("initial topology failure stays unknown rather than empty");
+    await mode("listRoutes",null);await page.click('loc=css:[role="dialog"] .read-status button');await page.waitForSelector(".model-source-card");
+    assert.match(await dialogText(),/Fixture API/u);assert.doesNotMatch(await dialogText(),/synthetic_read_failed|尚未连接提供商/u);record("successful retry restores observed model sources");
+    await page.click('loc=role:button[name="关闭"]');await mode("listRoutes","error");await route("/billing");await route("/models");await waitText("synthetic_read_failed");await page.click('loc=role:button[name="管理连接"]');
+    assert.match(await dialogText(),/Fixture API/u);assert.match(await dialogText(),/上次成功读取/u);assert.doesNotMatch(await dialogText(),/尚未连接提供商/u);record("failed topology refresh retains the dated source snapshot");
+    await reset();await prepareTarget();await mode("listRouteCandidates","empty-items");await route("/models");await page.click('loc=role:button[name="管理连接"]');await waitText("尚未连接提供商");
+    assert.doesNotMatch(await dialogText(),/synthetic_read_failed/u);record("successfully observed empty topology has a genuine empty state");
+  } else if(scenario==="failures") {
+    await reset();await mode("listProviderAccountFailures","hold");await route("/monitoring?tab=failures");
+    await page.waitForFunction(()=>!!window.CPAR_D_HTTP.release.listProviderAccountFailures);
+    assert.equal(await page.evaluate(()=>[...document.querySelectorAll("button")].find(button=>button.textContent==="重新读取失败记录")?.disabled),true);
+    assert.equal(await page.evaluate(()=>!!document.querySelector(".mon-table")),false);record("failure workspace distinguishes loading and prevents duplicate reads");
+    await page.evaluate(()=>{delete window.CPAR_D_HTTP.modes.listProviderAccountFailures;window.CPAR_D_HTTP.release.listProviderAccountFailures();});await page.waitForSelector(".mon-table tbody tr");
+    assert.match(await text(),/已加载失败尝试/u);record("failure records are attributed attempts rather than request totals");
+    await page.selectOption('select[name="account_id"]',{label:"指定历史资源…"});await page.fill('input[aria-label="历史资源引用"]',"acct-0");await page.click('loc=role:button[name="使用此引用"]');await page.click('loc=role:button[name="应用筛选"]');
+    await page.waitForFunction(()=>location.hash.includes("account_id=acct-0")&&document.querySelector(".mon-table tbody tr"));
+    await page.click('loc=css:.mon-table tbody tr:first-child .linklike');await page.waitForSelector('[role="dialog"] .request-attempts');
+    assert.match(await page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??""),/尝试 1/u);await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(()=>document.querySelector('select[name="account_id"]')?.value),"acct-0");record("failure filters and attempt detail survive keyboard return");
+    await page.click('loc=css:.mon-table tbody tr:first-child a');await page.waitForFunction(()=>location.hash.startsWith("#/runtime?")&&location.hash.includes("credential_id=acct-0"));await page.evaluate(()=>history.back());
+    await page.waitForFunction(()=>location.hash.includes("tab=failures")&&location.hash.includes("account_id=acct-0"));await page.waitForSelector(".mon-table tbody tr");record("exact binding diagnosis returns to the filtered failure task");
+    await page.click('loc=role:button[name="清除"]');await page.waitForFunction(()=>location.hash==="#/monitoring?tab=failures"&&document.querySelector('select[name="account_id"]')?.value==="");
+    await page.selectOption('select[name="account_id"]',{label:"指定历史资源…"});await page.fill('input[aria-label="历史资源引用"]',"missing-d-account");await page.click('loc=role:button[name="使用此引用"]');await page.click('loc=role:button[name="应用筛选"]');
+    await page.waitForFunction(()=>location.hash.includes("account_id=missing-d-account")&&!!document.querySelector('.monitoring-page [data-kind="empty"]'));
+    assert.match(await text(),/没有符合筛选条件的失败尝试/u);
+    assert.doesNotMatch(await text(),/该配置版本下没有归因到账号的失败尝试/u);record("failure no-match state does not claim an empty configuration");
+    await page.click('loc=role:button[name="清除"]');await page.waitForSelector(".mon-table tbody tr");
+    const prior=await page.evaluate(()=>document.querySelector(".mon-table tbody")?.textContent);
+    await mode("listProviderAccountFailures","error");await page.click('loc=role:button[name="重新读取失败记录"]');await waitText("刷新失败");
+    assert.equal(await page.evaluate(()=>document.querySelector(".mon-table tbody")?.textContent),prior);assert.match(await text(),/上次成功读取/u);record("failure refresh error preserves dated attribution rows");
+    await mode("listProviderAccountFailures","hold");await page.evaluate(()=>{delete window.CPAR_D_HTTP.release.listProviderAccountFailures;});await page.click('loc=css:.monitoring-page .read-status button');
+    await page.waitForFunction(()=>!!window.CPAR_D_HTTP.release.listProviderAccountFailures);
+    assert.equal(await page.evaluate(()=>document.querySelector('.monitoring-page .read-status button')?.disabled),true);
+    assert.equal(await page.evaluate(()=>document.querySelector(".mon-table tbody")?.textContent),prior);
+    await page.evaluate(()=>{delete window.CPAR_D_HTTP.modes.listProviderAccountFailures;window.CPAR_D_HTTP.release.listProviderAccountFailures();});await page.waitForFunction(()=>!document.querySelector('.monitoring-page .read-status'));record("failure retry remains busy with retained rows and recovers");
+    await reset();await mode("listProviderAccountFailures","denied");await route("/monitoring?tab=failures");await waitText("synthetic_permission_denied");
+    assert.equal(await page.evaluate(()=>!!document.querySelector('.monitoring-page [data-kind="empty"], .mon-table')),false);record("failure permission denial does not become empty data");
+    await mode("listProviderAccountFailures","error");await page.click('loc=css:.monitoring-page .read-status button');await waitText("synthetic_read_failed");
+    assert.equal(await page.evaluate(()=>!!document.querySelector('.monitoring-page [data-kind="empty"], .mon-table')),false);record("initial failure read error stays unknown");
+    await mode("listProviderAccountFailures","empty-items");await page.click('loc=css:.monitoring-page .read-status button');await waitText("该配置版本下没有归因到账号的失败尝试");
+    assert.doesNotMatch(await text(),/没有符合筛选条件/u);record("successful unfiltered empty failure data is explicit");
+    await reset();await mode("listProviderAccountFailures","failure-pages");await route("/monitoring?tab=failures");await page.waitForSelector(".mon-table tbody tr");
+    assert.equal(await page.evaluate(()=>document.querySelectorAll('.mon-table tbody tr').length),1);await page.waitForSelector('loc=role:button[name="再读一页"]');
+    await mode("listProviderAccountFailures","next-error");await page.click('loc=role:button[name="再读一页"]');await waitText("下一页读取失败");
+    assert.equal(await page.evaluate(()=>document.querySelectorAll('.mon-table tbody tr').length),1);record("failure cursor error retains a partial loaded projection");
+    await mode("listProviderAccountFailures","failure-pages");await page.click('loc=role:button[name="重试下一页"]');await page.waitForFunction(()=>document.querySelectorAll('.mon-table tbody tr').length===2&&!document.querySelector('.monitoring-page .read-status'));
+    assert.ok((await calls("listProviderAccountFailures")).filter(call=>call.cursor==="D-failure-page2").length>=2);record("failure retry resumes the same opaque cursor");
+    for(const width of [1440,375])for(const theme of ["light","dark"]) {
+      await appearance(width,theme);
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await screenshot(`failures-${width}-${theme}`);
+      await page.click('loc=css:.mon-table tbody tr:first-child .linklike');await page.waitForSelector('[role="dialog"] .request-attempts');
+      await assertDialogFits();
+      await screenshot(`failure-attempts-${width}-${theme}`);await page.keyboard.press("Escape");await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));record("failure projection and attempts fit with keyboard return",{width,theme});
     }
   } else if(scenario==="permissions-egress") {
     await reset();await mode("listAccessGroupRoutes","denied");await route("/access");

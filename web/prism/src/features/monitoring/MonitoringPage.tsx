@@ -341,6 +341,7 @@ function FailurePanel({
   onApply: (next: Readonly<Record<string, string>>) => void;
   onClear: () => void;
 }>) {
+  const t = useMessages().failureStates;
   const context = useVersionStore((s) => s.context);
   const scope = context?.configVersionId;
 
@@ -406,7 +407,7 @@ function FailurePanel({
 
       {failures.data === undefined ? null : rows.length === 0 ? (
         <div className="card empty-state" data-kind="empty">
-          <p>该配置版本下没有归因到账号的失败尝试。</p>
+          <p>{Object.keys(filters).length > 0 ? t.noMatch : t.empty}</p>
         </div>
       ) : (
         <>

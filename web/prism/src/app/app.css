@@ -514,6 +514,16 @@ button:not(:disabled):not([aria-pressed]):not([role="radio"]):not(.chrome-action
   padding: 12px 0 4px;
 }
 
+/* These tables let their wrapper own horizontal scrolling. */
+.rt-domain .tablewrap > table,
+.compatible-proxy .tablewrap > table {
+  display: table;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  overflow: visible;
+}
+
 /* Every table, narrow viewports.
    The canvas is `overflow-x: hidden`, so a table wider than the viewport is not
    scrolled off-screen — it is CUT OFF, with no scrollbar and no way to reach the

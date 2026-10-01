@@ -16,6 +16,10 @@ export const zh = {
     measured: "上游实测", estimated: "估算用量", mixed: "混合来源", unknown: "来源未知",
     inclusive: "输入已包含缓存 token", exclusive: "输入不包含缓存 token", accountingUnknown: "输入与缓存关系未知",
   },
+  failureStates: {
+    empty: "该配置版本下没有归因到账号的失败尝试。",
+    noMatch: "没有符合筛选条件的失败尝试。",
+  },
   unlock: {
     title: "管理员登录",
     username: "账号",

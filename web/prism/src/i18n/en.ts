@@ -21,6 +21,10 @@ export const en: Pack = {
     measured: "Upstream measured", estimated: "Estimated usage", mixed: "Mixed sources", unknown: "Unknown source",
     inclusive: "Input includes cached tokens", exclusive: "Input excludes cached tokens", accountingUnknown: "Input/cache accounting unknown",
   },
+  failureStates: {
+    empty: "This configuration version has no failure attempts attributed to accounts.",
+    noMatch: "No failure attempts match the applied filters.",
+  },
   unlock: {
     title: "Administrator sign in",
     username: "Username",

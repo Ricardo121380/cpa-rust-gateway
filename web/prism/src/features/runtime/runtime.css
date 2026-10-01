@@ -602,16 +602,6 @@
   margin-top: 0;
 }
 
-/* Domain tables also appear on Egress. Let the wrapper own horizontal scroll
-   so the table's anonymous row boxes cannot enlarge the workspace on phones. */
-.rt-domain .tablewrap > table {
-  display: table;
-  width: max-content;
-  min-width: 100%;
-  max-width: none;
-  overflow: visible;
-}
-
 /* The three domains carry three state vocabularies (14 values). They join the
    tone group they belong to; none is aliased onto an existing state, because
    two states that render identically are two states an operator cannot tell
