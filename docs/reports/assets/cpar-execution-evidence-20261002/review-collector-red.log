@@ -1,0 +1,14 @@
+test_collector_reads_only_bound_execution_sidecar_and_legacy_stays_unknown (__main__.FormalOracle) ... FAIL
+
+======================================================================
+FAIL: test_collector_reads_only_bound_execution_sidecar_and_legacy_stays_unknown (__main__.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 518, in test_collector_reads_only_bound_execution_sidecar_and_legacy_stays_unknown
+    self.assertIs(collect()["attempts"][0]["execution_evidence_valid"], False)
+AssertionError: True is not False
+
+----------------------------------------------------------------------
+Ran 1 test in 0.013s
+
+FAILED (failures=1)

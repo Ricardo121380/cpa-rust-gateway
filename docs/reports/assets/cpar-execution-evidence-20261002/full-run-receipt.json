@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "layer": "LOCAL_FULL",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "result": "PASS",
+  "steps_passed": 45,
+  "steps_total": 45,
+  "real_provider_calls": 0,
+  "review_scope": "review.md",
+  "full_report_sha256": "64b554b700ba49b3a92d4de7a4d068210a67668b9903f79da66551dc333a263c",
+  "full_log_sha256": "39b98330d1c2c2999b20ffb006c2f1bdd9f0d89e2002823cc1a134d8e1559cee",
+  "files": {
+    "scripts/check.sh": "d11d38f6c9fa5a1741632a728c17760c19fc4de3c37fbadde729dfdffcaa4cab",
+    "scripts/acceptance/cpar_new_build_acceptance.py": "7f4fd5de8865d1e72b84ca8237570f0c7faefa3ba6b173ae95c8f5856136a504",
+    "scripts/test-cpar-new-build-acceptance.py": "f5f796db0611591d11be880655e54bd316e6394b49692d61ba95107bb380e4ef",
+    "scripts/acceptance/cpar_execution_evidence_http.py": "8e1521427e9acf3a046d96bb960eb8f6b739d4c4e4b4d0bad0d22c30e7e6e311",
+    "scripts/acceptance/cpar-batch-b-http.py": "45b6968433d3d40e71b70e310d0cc0f5577b728f062d41654ab853083e3f2589",
+    "docs/openapi/management-v1.json": "c9a21a642309a73ebe25a01753943d4c877d29e002d0ad1498b2beca9d219e67",
+    "web/prism/contracts/management-v1.json": "c9a21a642309a73ebe25a01753943d4c877d29e002d0ad1498b2beca9d219e67"
+  },
+  "tracked_worktree_difference": [
+    "AGENTS.md user preexisting modification excluded from commits and candidate"
+  ],
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "full_raw_log_sha256": "f9bbf96b6cc8ef861e9d96f5746e63c41f8a2ccfd08bab9ae94bdf677454b8c4",
+  "log_export_normalization": "CR/LF, trailing horizontal whitespace, terminal blank EOF only; original raw hash retained",
+  "raw_log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-execution-evidence-20261002/logs-raw/full-gate.log"
+}

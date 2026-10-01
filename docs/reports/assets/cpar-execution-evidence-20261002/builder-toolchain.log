@@ -1,0 +1,19 @@
+Linux 6.8.0-100-generic aarch64
+Debian clang version 14.0.6
+Target: aarch64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin
+GNU ld (GNU Binutils for Debian) 2.40
+Copyright (C) 2023 Free Software Foundation, Inc.
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License version 3 or (at your option) a later version.
+This program has absolutely no warranty.
+OpenSSL 3.0.20 7 Apr 2026 (Library: OpenSSL 3.0.20 7 Apr 2026)
+clang	1:14.0-55.7~deb12u1
+cmake	3.25.1-1
+g++	4:12.2.0-3
+gcc	4:12.2.0-3
+libc6:arm64	2.36-9+deb12u14
+libclang-dev	1:14.0-55.7~deb12u1
+libssl-dev:arm64	3.0.20-1~deb12u2
+libssl3:arm64	3.0.20-1~deb12u2

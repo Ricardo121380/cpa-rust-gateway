@@ -1,0 +1,313 @@
+{
+  "schema_version": 1,
+  "layer": "LOCAL_SYNTHETIC_HISTORICAL_FIXTURE_EXPORT",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "binary_sha256": "bd2e46ed6ab7174e2cfcdebe88ca7cba8cc1fb0b0ff46e9714469bc900cdadc0",
+  "real_provider_calls": 0,
+  "origin": "closed checkpointed SQLite from passing native 410-check harness; not a live process attestation",
+  "observations": [
+    {
+      "request_evidence_id": "1482718260248aad606b7b0c89c36fb11c4d463540bebc5deaae7dfa14b7568e",
+      "attempt_evidence_id": "4c506932bd6ff310f369582fa64f19a5f2fe108b0f104dc53f3ca41f2886ba9d",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "openai_chat_completions",
+      "mode": "json",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-chat",
+      "route_id": "route-chat",
+      "route_candidate_id": "candidate-chat",
+      "upstream_model": "model-chat",
+      "credential_evidence_id": "15b14119a2a8bb7e84b5a4f1c859df736d8d30759102ca04e7a6bbee9aaccad5",
+      "actual_execution": {
+        "channel": "openai-compatible",
+        "credential_revision": 0,
+        "config_version_id": "local-b",
+        "config_revision": 52,
+        "egress": {
+          "kind": "direct"
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": false,
+          "continuation": true,
+          "compact": false,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "d1b52dc1aaae0edfcd8d1c9898a601ecaec0aaac5d4c4f37fb7a07db8a5221fc",
+      "execution_record_sha256": "f1a4b210b9765ea8337177f4271e181be691f804c0c77199b1fe8567061ae717",
+      "usage_source_event_evidence_id": "3f1cebbc9b259eeefcb115c6dbd7a1df0402faee883007c9dacd57573875488b",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    },
+    {
+      "request_evidence_id": "3cd5a87017d52f486ea5203330dc7d3c5c0b255421973ae38d0fecf9e6316c71",
+      "attempt_evidence_id": "112d175ddffb45e9418233cbea3ce446bd5e9224ad54cd8385429fcc08058f93",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "openai_chat_completions",
+      "mode": "sse",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-chat",
+      "route_id": "route-chat",
+      "route_candidate_id": "candidate-chat",
+      "upstream_model": "model-chat",
+      "credential_evidence_id": "15b14119a2a8bb7e84b5a4f1c859df736d8d30759102ca04e7a6bbee9aaccad5",
+      "actual_execution": {
+        "channel": "openai-compatible",
+        "credential_revision": 0,
+        "config_version_id": "local-b",
+        "config_revision": 52,
+        "egress": {
+          "kind": "direct"
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": false,
+          "continuation": true,
+          "compact": false,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "3d84754822f9c139a4f719c08a7b3fcb9688abef8bd6876350593b7046aaea5d",
+      "execution_record_sha256": "f1a4b210b9765ea8337177f4271e181be691f804c0c77199b1fe8567061ae717",
+      "usage_source_event_evidence_id": "bcfede2dbf80b920303612722d31a8f69275de36c3ecaae28a51f22dd43ddd3e",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    },
+    {
+      "request_evidence_id": "ee2f3c0e341a9d9a818870ec1f481ebbc22229000d5e5aff895633219bd34f24",
+      "attempt_evidence_id": "0edce5e1d6a35bfde0fa47758bac48076d10f293ec8b5d2abf6cac02ea51d0db",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "openai_responses",
+      "mode": "json",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-responses",
+      "route_id": "route-responses",
+      "route_candidate_id": "candidate-responses",
+      "upstream_model": "model-responses",
+      "credential_evidence_id": "1bdc8e197654cbd3d4ff3ef946c3402c7b2f1737f8564672956007504f26c8f9",
+      "actual_execution": {
+        "channel": "openai-compatible",
+        "credential_revision": 0,
+        "config_version_id": "local-b",
+        "config_revision": 52,
+        "egress": {
+          "kind": "direct"
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": true,
+          "continuation": true,
+          "compact": true,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "3c45bcec96f3fd132581523dd29b5d113e2f44e43d95cf4db852c9cf68261f8e",
+      "execution_record_sha256": "980b5f20cd4faa56229363f022f656c40be4f77a6c4774eb9d65809de0e5765a",
+      "usage_source_event_evidence_id": "42175452fc42ac5ff406025f8eb1cb2519bad110eaea3f505efdc671054753ae",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    },
+    {
+      "request_evidence_id": "1853f009f4428439bb3aa1f161f2a4b2a3144fabf7743b7937172dfb6d8e2706",
+      "attempt_evidence_id": "b830e7117d8fb8c6703c150d96cdf362c2a5d81dce3a7723d98ed8e989d00b8b",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "openai_responses",
+      "mode": "sse",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-responses",
+      "route_id": "route-responses",
+      "route_candidate_id": "candidate-responses",
+      "upstream_model": "model-responses",
+      "credential_evidence_id": "1bdc8e197654cbd3d4ff3ef946c3402c7b2f1737f8564672956007504f26c8f9",
+      "actual_execution": {
+        "channel": "openai-compatible",
+        "credential_revision": 0,
+        "config_version_id": "local-b",
+        "config_revision": 52,
+        "egress": {
+          "kind": "direct"
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": true,
+          "continuation": true,
+          "compact": true,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "6274f7ffb9ef4ce960879268bdddf9e6ed6312469ff98f19513e69b8b8f2573b",
+      "execution_record_sha256": "980b5f20cd4faa56229363f022f656c40be4f77a6c4774eb9d65809de0e5765a",
+      "usage_source_event_evidence_id": "bd2c865ff469c9efa42ebdd51114f58e6a411c7dab5514fd729fef280ce619dd",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    },
+    {
+      "request_evidence_id": "02196ab3d3d9bd89284b22f8b0e95569d251d17930e52f7a67f984e5f8db9a87",
+      "attempt_evidence_id": "45992471a66b27fa9e54ee77e6a630ecfc4fc15b6e37ce2b4702fc266b6b4ba1",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "anthropic_messages",
+      "mode": "json",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-messages",
+      "route_id": "route-messages",
+      "route_candidate_id": "candidate-messages",
+      "upstream_model": "model-messages",
+      "credential_evidence_id": "325e4b4df3777180c7b22a0ef074497ab5e30acd5e7dc63288d8d6d43bb71995",
+      "actual_execution": {
+        "channel": "anthropic-compatible",
+        "credential_revision": 0,
+        "config_version_id": "local-b",
+        "config_revision": 52,
+        "egress": {
+          "kind": "direct"
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": false,
+          "continuation": true,
+          "compact": false,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "d37fd5514131421d90d3949f8a0ae165d64a527d6989ff505a94ca1e488f984f",
+      "execution_record_sha256": "6b4c11462fca6ea03d0c2e5d550243f085d392be3083fab700d62e96f0fd73c7",
+      "usage_source_event_evidence_id": "143d078f4c5d631d503f837cfa01bd387d5843fb3929e1b021420997baf27da7",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    },
+    {
+      "request_evidence_id": "f8aebb83d542dbb182683b358ea4b84c341bcfac8785624f3d88be000cb6aa8a",
+      "attempt_evidence_id": "f37ac3520eea4d14285356cbf6986f4c63154170105874f091a0863b7cafd597",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "anthropic_messages",
+      "mode": "sse",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-messages",
+      "route_id": "route-messages",
+      "route_candidate_id": "candidate-messages",
+      "upstream_model": "model-messages",
+      "credential_evidence_id": "325e4b4df3777180c7b22a0ef074497ab5e30acd5e7dc63288d8d6d43bb71995",
+      "actual_execution": {
+        "channel": "anthropic-compatible",
+        "credential_revision": 0,
+        "config_version_id": "local-b",
+        "config_revision": 52,
+        "egress": {
+          "kind": "direct"
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": false,
+          "continuation": true,
+          "compact": false,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "9009da787a121a7fd6d9efccc998691612502113658219b119afff48814adb4d",
+      "execution_record_sha256": "6b4c11462fca6ea03d0c2e5d550243f085d392be3083fab700d62e96f0fd73c7",
+      "usage_source_event_evidence_id": "2d833f161328493e1d22c5f775abe9d593e7977b6faf75b8fb4615eba0899e7a",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    },
+    {
+      "request_evidence_id": "01d3e876b6a728c3631b8307e6c01b179dedf783474598effd5f560c54fff156",
+      "attempt_evidence_id": "67b2fc6272a62609d8612bbe21616bc1b71176456a4b630b4d47f8790251984f",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "openai_chat_completions",
+      "mode": "json",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-chat",
+      "route_id": "route-chat",
+      "route_candidate_id": "candidate-chat",
+      "upstream_model": "model-chat",
+      "credential_evidence_id": "15b14119a2a8bb7e84b5a4f1c859df736d8d30759102ca04e7a6bbee9aaccad5",
+      "actual_execution": {
+        "channel": "openai-compatible",
+        "credential_revision": 1,
+        "config_version_id": "execution-after",
+        "config_revision": 4,
+        "egress": {
+          "kind": "configured_proxy",
+          "target_id": "execution-pool",
+          "node_id": "execution-node-after",
+          "config_version_id": "execution-after",
+          "config_revision": 4
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": false,
+          "continuation": true,
+          "compact": false,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "54cd6b8a15902e4cee4a08be4998a6d27f517da1b7d9d413172690e39b84038d",
+      "execution_record_sha256": "62eae9990ff2de5e50a04e455d4720925af4f860e414cda57e7e5561de16491e",
+      "usage_source_event_evidence_id": "402ff2ae8c88c88b8a5d053fd81b43a0f23e96f73d7706dc35072061720b7c71",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    },
+    {
+      "request_evidence_id": "b0141ba46bc2cbfe4c7899eb53c7a997ade08b5ca7cba0a46d9b7786309c2550",
+      "attempt_evidence_id": "434e57bf6d020c527808a54caa44532900c84e49cbf0b74661037bcdf559e586",
+      "client_key_evidence_id": "22bf9268d23177571ff2ca902c2e1539377a315de9d107d72ca34bffe1b982d9",
+      "protocol": "openai_chat_completions",
+      "mode": "json",
+      "request_outcome": "succeeded",
+      "attempt_outcome": "succeeded",
+      "endpoint_id": "endpoint-chat",
+      "route_id": "route-chat",
+      "route_candidate_id": "candidate-chat",
+      "upstream_model": "model-chat",
+      "credential_evidence_id": "15b14119a2a8bb7e84b5a4f1c859df736d8d30759102ca04e7a6bbee9aaccad5",
+      "actual_execution": {
+        "channel": "openai-compatible",
+        "credential_revision": 0,
+        "config_version_id": "execution-before",
+        "config_revision": 5,
+        "egress": {
+          "kind": "configured_proxy",
+          "target_id": "execution-pool",
+          "node_id": "execution-node-before",
+          "config_version_id": "execution-before",
+          "config_revision": 5
+        },
+        "capabilities": {
+          "reasoning": true,
+          "parallel": true,
+          "stored": false,
+          "continuation": true,
+          "compact": false,
+          "websocket": true
+        }
+      },
+      "original_attempt_sha256": "c7d9ad9f6fa4ef7d8359e51b46405c81a3332b84d1fbf0b17054492193ff5242",
+      "execution_record_sha256": "55da615141685615362e2f50e230fffd6f8f4da84829c35e97c09ef2f0537347",
+      "usage_source_event_evidence_id": "e7dfc5c00d0adca8f1aeb97867ac4bfa569a7e52666c2cab3745a6ef0893f172",
+      "usage_attempt_matches": true,
+      "ledger_exact_usage_source_matches": true
+    }
+  ],
+  "unknown_in_production": [
+    "new_runtime_not_deployed",
+    "actual_lease_revision",
+    "loaded_configuration_revision",
+    "actual_egress_identity_and_revision",
+    "scoped_serving_capability_evidence"
+  ]
+}

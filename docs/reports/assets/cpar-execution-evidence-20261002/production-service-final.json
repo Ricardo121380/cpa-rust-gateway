@@ -1,0 +1,86 @@
+{
+  "observed_at_utc": "2026-10-01T19:28:32.287283+00:00",
+  "scope": "read_only_no_provider_no_service_change",
+  "service": "cpa-rust-gateway.service",
+  "unit": {
+    "MainPID": "499070",
+    "ExecMainStartTimestamp": "Mon 2026-09-28 09:23:42 UTC",
+    "WorkingDirectory": "/var/lib/cpa-rust-gateway",
+    "User": "cpa-gateway",
+    "Group": "cpa-gateway",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service"
+  },
+  "exec_start_path": "/opt/cpa-rust-gateway/current/gateway",
+  "executable": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0/gateway",
+  "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+  "embedded": {
+    "revision": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "rust-version": "1.97.1",
+    "target": "aarch64-unknown-linux-gnu"
+  },
+  "architecture": "aarch64",
+  "libc": "glibc 2.39",
+  "current_symlink": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+  "control_database": {
+    "schema_version": 31,
+    "quick_check": "ok",
+    "execution_sidecar_exists": false
+  },
+  "state_files": [
+    {
+      "name": ".p12-old-codex-export.json",
+      "bytes": 3821
+    },
+    {
+      "name": ".p12-prod-channel-add.py",
+      "bytes": 12540
+    },
+    {
+      "name": ".p12-prod-channel-verify.py",
+      "bytes": 2488
+    },
+    {
+      "name": ".p12-prod-public-diagnose.py",
+      "bytes": 2029
+    },
+    {
+      "name": ".p12-prod-public-harness.py",
+      "bytes": 6273
+    },
+    {
+      "name": "admin-auth.sqlite3",
+      "bytes": 8192
+    },
+    {
+      "name": "control-plane.sqlite3",
+      "bytes": 0
+    },
+    {
+      "name": "control.sqlite3",
+      "bytes": 4206592
+    },
+    {
+      "name": "control.sqlite3-shm",
+      "bytes": 32768
+    },
+    {
+      "name": "control.sqlite3-wal",
+      "bytes": 4165352
+    },
+    {
+      "name": "gateway.db",
+      "bytes": 0
+    },
+    {
+      "name": "gateway.sqlite",
+      "bytes": 0
+    }
+  ],
+  "free_bytes": {
+    "/var/lib/cpa-rust-gateway": 31326531584,
+    "/opt/cpa-rust-gateway": 31326531584
+  },
+  "stable_process": true
+}

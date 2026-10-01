@@ -1,0 +1,91 @@
+{
+  "status": "FAIL",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_messages_True",
+      "status": "PASS"
+    }
+  ],
+  "provider_calls": [
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    }
+  ],
+  "private_state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-yaecj9m8",
+  "scope": "local_synthetic_only"
+}

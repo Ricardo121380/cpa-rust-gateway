@@ -1,0 +1,45 @@
+#1 [internal] booting buildkit
+#1 pulling image moby/buildkit:buildx-stable-1
+#1 pulling image moby/buildkit:buildx-stable-1 13.6s done
+#1 creating container buildx_buildkit_cpar-execution-artifact-202610020
+#1 creating container buildx_buildkit_cpar-execution-artifact-202610020 0.5s done
+#1 DONE 17.5s
+Name:          cpar-execution-artifact-20261002
+Driver:        docker-container
+Last Activity: 2026-10-01 18:50:35 +0000 UTC
+
+Nodes:
+Name:                  cpar-execution-artifact-202610020
+Endpoint:              colima
+Status:                running
+BuildKit daemon flags: --allow-insecure-entitlement=network.host
+BuildKit version:      v0.33.1
+Platforms:             linux/arm64*, linux/amd64, linux/amd64/v2, linux/386
+Labels:
+ org.mobyproject.buildkit.worker.executor:         oci
+ org.mobyproject.buildkit.worker.hostname:         d9e862e6d919
+ org.mobyproject.buildkit.worker.network:          host
+ org.mobyproject.buildkit.worker.oci.process-mode: sandbox
+ org.mobyproject.buildkit.worker.selinux.enabled:  false
+ org.mobyproject.buildkit.worker.snapshotter:      overlayfs
+GC Policy rule#0:
+ All:            false
+ Filters:        type==source.local type==exec.cachemount type==source.git.checkout
+ Keep Duration:  48h0m0s
+ Max Used Space: 488.3MiB
+GC Policy rule#1:
+ All:            false
+ Keep Duration:  1440h0m0s
+ Reserved Space: 3.725GiB
+ Max Used Space: 29.8GiB
+ Min Free Space: 7.451GiB
+GC Policy rule#2:
+ All:            false
+ Reserved Space: 3.725GiB
+ Max Used Space: 29.8GiB
+ Min Free Space: 7.451GiB
+GC Policy rule#3:
+ All:            true
+ Reserved Space: 3.725GiB
+ Max Used Space: 29.8GiB
+ Min Free Space: 7.451GiB

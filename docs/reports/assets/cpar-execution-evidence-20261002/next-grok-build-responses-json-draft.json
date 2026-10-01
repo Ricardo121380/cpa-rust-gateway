@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "target": {
+    "channel": "grok.build",
+    "endpoint_id": "p12-12-production-grok-build-endpoint",
+    "route_id": "p12-12-production-grok-build-route",
+    "route_candidate_id": "p12-12-production-grok-build-candidate",
+    "upstream_model": "grok-4.5",
+    "public_model": "grok-4.5",
+    "response_model": "grok-4.5",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "credential_revision": null,
+    "config_version_id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+    "config_revision": null,
+    "egress_evidence_id": null,
+    "egress_revision": null,
+    "protocol": "responses",
+    "mode": "json",
+    "parameters": {
+      "max_output_tokens": 128
+    },
+    "capabilities": {
+      "reasoning": null,
+      "parallel": null,
+      "stored": null,
+      "continuation": null,
+      "compact": null,
+      "websocket": null
+    },
+    "declaration_observed_at_utc": null,
+    "declaration_evidence": null
+  },
+  "collector": {
+    "host": "new-vps",
+    "service": "cpa-rust-gateway.service",
+    "sudo": true
+  },
+  "boundaries": {},
+  "extensions": {}
+}

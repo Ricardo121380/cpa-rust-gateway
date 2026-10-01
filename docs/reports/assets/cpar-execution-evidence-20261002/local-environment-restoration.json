@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "scope": "local_owned_build_resources_only",
+  "initial_colima": "STOPPED",
+  "final_colima": "STOPPED",
+  "owned_buildx_builder_removed": "cpar-execution-artifact-20261002",
+  "unrelated_container_or_volume_deletion": false,
+  "global_git_configuration_changed": false,
+  "default_buildx_selection_changed": false,
+  "candidate_preserved": true,
+  "observed_at_utc": "2026-10-01T19:26:04.887636+00:00"
+}

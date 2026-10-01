@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "issues": {
+    "9": "OPEN_UNFINISHED",
+    "39-50": "OPEN_C_BATCH_UNFINISHED",
+    "57": "OPEN_BLOCKED_REAL_ACCEPTANCE"
+  },
+  "software_observation_slice": "PASS",
+  "local_full": "45/45 PASS",
+  "formal_tool_regression": "30/30 PASS",
+  "native_gateway_regression": "410/410 PASS",
+  "native_candidate": "PASS_UNSIGNED_LOCAL",
+  "native_31_to_34_synthetic": "PASS",
+  "synthetic_restore_31": "PASS",
+  "production_native_data_copy_rehearsal": "NOT_RUN",
+  "old_binary_on_restored_backup": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "signed_release": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "real_provider_calls": 0,
+  "remote_issue_writes": 0,
+  "pending": [
+    "signed_release_at_fixed_source",
+    "target_library_and_native_state_rehearsal",
+    "complete_backup_restore_rehearsal",
+    "targeted_deployment_authorization_and_version_verification",
+    "actual_pin_and_scoped_capability_freeze",
+    "real_protocol_mode_basics",
+    "declared_extensions_and_controlled_boundaries",
+    "Kiro_output_cap_independent_blocker",
+    "Grok_Web_native_multiturn_and_cap_independent_blockers"
+  ]
+}

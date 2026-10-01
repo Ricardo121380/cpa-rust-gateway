@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "layer": "LOCAL_LINUX_ARM64_CANDIDATE",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "artifact_directory": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-execution-evidence-20261002/linux-arm64/80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "artifact_manifest_sha256": "4cb4eac4e787eba6fe944b31f258f12af380a7179888a3216d75251aa00c90f7",
+  "binary_sha256": "bd2e46ed6ab7174e2cfcdebe88ca7cba8cc1fb0b0ff46e9714469bc900cdadc0",
+  "target": "aarch64-unknown-linux-gnu",
+  "build_platform": "Colima native aarch64 Linux, Debian bookworm glibc 2.36",
+  "rust_toolchain": "1.97.1",
+  "node": "24.19.0",
+  "builder_image_manifest": "sha256:52fd96f64b9538c9d81be854107b46d872f16853dcf4a4a068357f14298ef082",
+  "base_image": "debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0",
+  "artifact_format_verifier": "PASS unsigned structural mode",
+  "elf_and_embedded_revision": "PASS",
+  "actual_binary_system_information": {
+    "build_revision": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "build_target": "aarch64-unknown-linux-gnu",
+    "rust_version": "1.97.1",
+    "schema_version": 34,
+    "version": "0.1.0"
+  },
+  "oci_nonroot_readonly_network_none_help": "PASS",
+  "oci_user": "65532:65532",
+  "oci_entrypoint": [
+    "/usr/local/bin/gateway"
+  ],
+  "gateway_regression": {
+    "passed": 410,
+    "total": 410
+  },
+  "state_compatibility": "PASS synthetic 31->34; exact 14 table preservation and restoration to 31",
+  "grok_account_fixture_count": 0,
+  "signed_release": "NOT_RUN missing GitHub OIDC signature/bundle/receipt",
+  "remote_ci": "NOT_RUN",
+  "production_state_copy_rehearsal": "NOT_RUN",
+  "old_binary_restored_backup_start": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "real_provider_calls": 0,
+  "source_checkout": "independent clone, tracked clean; user AGENTS.md and unrelated local files excluded",
+  "created_at_utc": "2026-10-01T19:04:58.882522+00:00",
+  "elf_glibc_requirement_max": "2.34",
+  "production_glibc_observed": "2.39",
+  "artifact_manifest_canonical_digest": "9ae09be6643d1a5427c795f57d2f291d403c1544faf8feb84094501a4d8f4be7"
+}

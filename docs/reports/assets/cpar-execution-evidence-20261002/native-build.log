@@ -1,0 +1,54 @@
+info: syncing channel updates for 1.97.1-aarch64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading component clippy
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+binary: rustc
+commit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452
+commit-date: 2026-07-14
+host: aarch64-unknown-linux-gnu
+release: 1.97.1
+LLVM version: 22.1.6
+cargo 1.97.1 (c980f4866 2026-06-30)
+v24.19.0
+11.17.0
+ldd (Debian GLIBC 2.36-9+deb12u14) 2.36
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Written by Roland McGrath and Ulrich Drepper.
+
+added 112 packages in 16s
+npm notice
+npm notice New major version of npm available! 11.17.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+   Compiling gateway-store v0.1.0 (/workspace/crates/gateway-store)
+   Compiling gateway v0.1.0 (/workspace/apps/gateway)
+   Compiling gateway-catalog v0.1.0 (/workspace/crates/gateway-catalog)
+   Compiling gateway-router v0.1.0 (/workspace/crates/gateway-router)
+   Compiling provider-grok v0.1.0 (/workspace/crates/provider-grok)
+   Compiling provider-kiro v0.1.0 (/workspace/crates/provider-kiro)
+   Compiling gateway-control v0.1.0 (/workspace/crates/gateway-control)
+   Compiling provider-openai-compatible v0.1.0 (/workspace/crates/provider-openai-compatible)
+   Compiling differential-gate v0.1.0 (/workspace/tests/differential)
+   Compiling gateway-http-actix v0.1.0 (/workspace/crates/gateway-http-actix)
+    Finished `release` profile [optimized] target(s) in 2m 09s
+macho-uuid: skipped non-Mach-O artifact /workspace/target/release/gateway
+release-build: ready /workspace/target/release/gateway
+p12-artifact: wrote /candidate/gateway-build-metadata.json
+p12-artifact: wrote /candidate/signing-identity.json
+Metadata acceptance: gateway <catalog-check|kimi-metadata-check> --state-dir <marked-isolated-copy> --credential-dir <absolute-dir> --endpoint-id <id> --credential-id <id> (no listeners, inference or background renewal)
+Administrator bootstrap: gateway admin-login init --state-dir <absolute-dir> --password-file <new-private-file> [--username admin]
+Usage:
+  gateway serve --data-listen <loopback-host:port> --management-listen <loopback-host:port> --state-dir <absolute-dir> --credential-dir <absolute-dir> [--management-origin <https-origin>]
+  gateway admin create --db <path> --version <id> --description <text> [--parent <id>] [--actor <label>]
+  gateway admin validate --db <path> --version <id> [--actor <label>]
+  gateway admin publish --db <path> --version <id> [--actor <label>]
+  gateway admin rollback --db <path> [--actor <label>]
+  gateway admin audit --db <path> [--actor <label>]
+  gateway admin grok-import --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>
+  gateway admin grok-rollback --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>
+  gateway admin grok-probe --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --provider <grok_build|grok_console> --observed-at-ms <unix-ms>
+  gateway admin grok-build-entitlement-sync --db <absolute-path> --credential-dir <absolute-dir> --batch <id> --observed-at-ms <unix-ms>
+Optional serve flags: [--codex-oauth-proxy socks5://<host>:<port>] [--grok-web-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-port <port>]

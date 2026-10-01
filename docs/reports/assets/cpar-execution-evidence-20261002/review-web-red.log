@@ -1,0 +1,24 @@
+   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.72s
+     Running unittests src/main.rs (target/debug/deps/gateway-eafc5f5031908db2)
+
+running 1 test
+test runtime::execution_identity::tests::web_relay_execution_never_claims_the_unused_proxy ... FAILED
+
+failures:
+
+---- runtime::execution_identity::tests::web_relay_execution_never_claims_the_unused_proxy stdout ----
+
+thread 'runtime::execution_identity::tests::web_relay_execution_never_claims_the_unused_proxy' (26449003) panicked at apps/gateway/src/runtime/execution_identity.rs:483:9:
+assertion `left == right` failed
+  left: ProcessProxy { transport_fingerprint: "8fce4ba30b36bac9771eb12682005e7d31ddfbdbf488be580b2b456ebb37628d" }
+ right: Unknown
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    runtime::execution_identity::tests::web_relay_execution_never_claims_the_unused_proxy
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 173 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p gateway --bin gateway`
