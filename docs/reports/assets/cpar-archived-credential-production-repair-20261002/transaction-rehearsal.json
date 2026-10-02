@@ -1,0 +1,87 @@
+{
+  "status": "PASS",
+  "forward": {
+    "status": "PASS",
+    "changed_rows": 1,
+    "changed_columns": [
+      "ciphertext"
+    ],
+    "other_tables_unchanged_in_writer_transaction": 52,
+    "all_other_rows_and_columns_unchanged": true,
+    "source_plaintext_exactly_preserved": true,
+    "lock_wait_seconds": 0.000171,
+    "transaction_seconds": 0.107544,
+    "lock_timeout_seconds": 5,
+    "transaction_deadline_seconds": 10,
+    "commit_completed": true
+  },
+  "rollback": {
+    "status": "PASS",
+    "changed_rows": 1,
+    "changed_columns": [
+      "ciphertext"
+    ],
+    "other_tables_unchanged_in_writer_transaction": 52,
+    "all_other_rows_and_columns_unchanged": true,
+    "source_plaintext_exactly_preserved": true,
+    "lock_wait_seconds": 0.000174,
+    "transaction_seconds": 0.104916,
+    "lock_timeout_seconds": 5,
+    "transaction_deadline_seconds": 10,
+    "commit_completed": true
+  },
+  "rollback_original_54_tables": "PASS",
+  "stale_expected_envelope_rejected_without_delta": true,
+  "changed_parent_revision_rejected_without_delta": true,
+  "held_writer_lock_rejected_without_delta": true,
+  "observed_lock_timeout_seconds": 5.00499,
+  "transaction_deadline_rollback_without_delta": true,
+  "observed_transaction_deadline_seconds": 10.000872,
+  "crypto_after_reapply": {
+    "status": "PASS",
+    "method": "actual XChaCha20-Poly1305 AEAD authentication with exact source AAD and retained key",
+    "hchacha_published_vector": "PASS",
+    "authenticated_envelopes": {
+      "upstream_credentials": 41,
+      "native_grok_accounts": 5
+    },
+    "failed_envelopes": {
+      "upstream_credentials": 0,
+      "native_grok_accounts": 0
+    },
+    "classifications": {
+      "upstream:archived:active": {
+        "authenticated": 32,
+        "failed": 0
+      },
+      "upstream:draft:active": {
+        "authenticated": 6,
+        "failed": 0
+      },
+      "upstream:active:active": {
+        "authenticated": 3,
+        "failed": 0
+      },
+      "native:build:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:console:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:build:True:reauth_required": {
+        "authenticated": 1,
+        "failed": 0
+      }
+    },
+    "key_versions": [
+      1
+    ],
+    "plaintext_exported": false,
+    "network_used": false
+  },
+  "production_writes": 0,
+  "real_provider_calls": 0,
+  "completed_at_utc": "2026-10-02T10:03:16.916963+00:00"
+}

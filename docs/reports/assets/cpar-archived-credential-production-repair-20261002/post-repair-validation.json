@@ -1,0 +1,63 @@
+{
+  "status": "PASS",
+  "record_alias": "AC-01",
+  "production_data_repair": "PASS",
+  "operator_writer_transaction_changed_rows": 1,
+  "operator_writer_transaction_changed_columns": [
+    "ciphertext"
+  ],
+  "other_control_tables_preserved_in_writer_transaction": 52,
+  "admin_auth_unchanged_by_operator": true,
+  "pre_post_snapshot_difference": {
+    "operator_ac01_ciphertext_field": 1,
+    "independent_active_oauth_rotation_before_operator": 1,
+    "other_original_snapshot_tables_preserved": 51
+  },
+  "later_independent_active_rotations_reconciled": 2,
+  "target_plaintext_status_kind_revisions_lifecycle_relationships_and_permissions_preserved": true,
+  "six_keys_old_binary_current_unit_pid_and_listeners_unchanged": true,
+  "crypto_post_capture": {
+    "ordinary_authenticated": 41,
+    "ordinary_total": 41,
+    "archived_authenticated": 32,
+    "archived_total": 32,
+    "active_authenticated": 3,
+    "active_total": 3,
+    "draft_authenticated": 6,
+    "draft_total": 6,
+    "native_grok_authenticated": 5,
+    "native_grok_total": 5
+  },
+  "native_cases": 2,
+  "native_management_operations": 18,
+  "native_metadata_export_archived_validate": "old and candidate 200",
+  "target_exports_equal_to_parent": true,
+  "archive_fork_and_publish_still_rejected": true,
+  "migration": {
+    "status": "PASS",
+    "schema_before": 31,
+    "schema_after": 34,
+    "original_tables_preserved": 54,
+    "store_migration_executed_in_retained_v2_attempt": true,
+    "native_migration_cli_exit": 1,
+    "cli_followup_limitation": "missing_endpoint_capability_profile; complete CLI audit is not PASS",
+    "native_candidate_serve_with_persisted_views": "PASS",
+    "ordinary_41_and_native_5_authenticated": true
+  },
+  "original_failure_baselines_and_full_fresh_pre_post_restore_packages_retained": true,
+  "single_field_rollback_rehearsed": "PASS",
+  "rollback_executed_in_production": false,
+  "product_source_modified": false,
+  "signed_candidate_source": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "signed_candidate_binary_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "historical_credential_readability_gate": "PASS",
+  "deployment": "NOT_RUN",
+  "production_service_stop_start": 0,
+  "production_switches": 0,
+  "task_initiated_real_provider_calls": 0,
+  "github_issue_writes": 0,
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false,
+  "completed_at_utc": "2026-10-02T10:23:12.845671+00:00"
+}

@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "original_v1_comparison_result": "FAIL_UNRELATED_PRE_POST_SNAPSHOT_DELTA",
+  "diagnostic_defect": "v1 incorrectly required static full snapshots despite the approved running-service drift distinction",
+  "original_v1_script_and_private_failure_log_retained": true,
+  "independently_observed_active_oauth_rotation_count": 1,
+  "rotation_at_utc": "2026-10-02T10:03:42.914000+00:00",
+  "rotation_before_operator_writer_transaction": true,
+  "changed_active_credential_fields": [
+    "ciphertext",
+    "revision"
+  ],
+  "revision_increment": 1,
+  "audit_and_refresh_identity_revision_timestamp_match": true,
+  "rotation_does_not_reference_target_or_parent": true,
+  "fresh_post_rotation_material_authentication": "plan-post 41/41 ordinary and 5/5 native PASS",
+  "other_snapshot_tables_preserved": 51,
+  "raw_snapshot_difference_retained_as_private_evidence": true,
+  "production_repair_only_one_target_ciphertext_field_in_its_writer_transaction": true,
+  "database_writes_in_reconciliation": 0
+}

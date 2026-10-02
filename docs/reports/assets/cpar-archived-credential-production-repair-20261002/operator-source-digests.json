@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "executed_public_operator_files_sha256": {
+    "repair-common.py": "ba8e848c405507e54760d940aca252773a33a9c58c0b37b20423fb7bd018e409",
+    "capture-and-plan.py": "73bc402e3950317799fb58c8bb4313bcf8c8310cf8e869fd02bea89c2c9dd403",
+    "final-live-check.v1.py": "f3b2ad55458fbd171a1d57da19a9ffc1fd6e48aa3235f5671f9f85fee6200968",
+    "validate-post-repair.v1.py": "21976adb80b35027e8a36f326c110190448419b120221f2b5ad145f092413a06",
+    "rehearse-transaction.py": "5033e4aa1eeefa994ba2a05c72f1457fbaccb677163f6d23efab3da43b1d3cef",
+    "native-read-probe.py": "185d77f6d7909bd1bcbd34ca25feef73e8a6628707cbf12bfea54509a2a0f4fa",
+    "production-transaction.py": "840cf83bebe630b92fc15c76c3e9a49788a4753dda232c8ff6102c8dc6d50b5d",
+    "validate-post-repair.py": "9a6acc49147285b8edd8c6e56d7c8b91f2993f8ac9d728d0a06d5076e80a4a95",
+    "final-live-check.py": "458c3957221fe8a549b7586a88f4cb24074d147bb424482a64eb91172ac5be8d",
+    "validate-post-repair.v2.py": "b870bb5baf5442477112ff7ea79c1d7b927fe01baa0747adda1221da6f0b0c38",
+    "check-public-boundary.py": "491c35b27a2a2ae3570594245ef47bcdccbcd67596ef68297ddd8b2e5ebf7435"
+  },
+  "all_private_evidence_remains_on_host": true
+}

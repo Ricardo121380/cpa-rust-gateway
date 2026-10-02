@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "python_ast_files": 10,
+  "json_files_checked": 19,
+  "evidence_semantics": "PASS",
+  "markdown_links": "PASS",
+  "exact_executed_operator_source_digests": "PASS",
+  "retained_expected_failed_operator_recipes": 3,
+  "retained_expected_failed_final_recipe": 1,
+  "docs_gate": "7/7 PASS",
+  "docs_gate_log": "docs-check.log",
+  "public_boundary": "38 files / 0 secret or raw locator matches",
+  "scoped_staged_diff_and_whitespace": "PASS",
+  "only_owned_report_paths_staged": true,
+  "unrelated_AGENTS_and_untracked_content_preserved": true,
+  "product_source_modified": false,
+  "full_build_signature_410_regression": "REUSED_BOUND_SOURCE80_AND_HASH542_EVIDENCE",
+  "production_repair": "PASS",
+  "deployment": "NOT_RUN",
+  "C_issue57_parent9_closed": false,
+  "completed_at_utc": "2026-10-02T10:36:29.835648+00:00"
+}

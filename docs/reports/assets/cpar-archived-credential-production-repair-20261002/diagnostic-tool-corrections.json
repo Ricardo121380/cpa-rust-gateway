@@ -1,0 +1,38 @@
+{
+  "status": "CORRECTED_WITH_RETAINED_FAILURES",
+  "product_source_modified": false,
+  "production_repair_transaction_repeated": false,
+  "regressions": [
+    {
+      "case": "v1_pre_post_static_snapshot_invariant",
+      "before": "FAIL at validate-post-repair.py line12; active OAuth rotation from separate transaction",
+      "corrected": "exact identity/cipher/revision/audit/refresh/time reconciliation PASS",
+      "original_source": "validate-post-repair.v1.py"
+    },
+    {
+      "case": "service_uid_cannot_read_public_probe",
+      "before": "root600 probe Python Permission denied; no native operations ran",
+      "corrected": "public identical code chmod0644 inside protected parent; old and candidate UID995 native18/18 PASS",
+      "original_source": "validate-post-repair.v2.py"
+    },
+    {
+      "case": "v3_final_live_static_upstream_table_invariant",
+      "before": "FAIL final_critical_live_data_drift from subsequent same active OAuth rotations",
+      "corrected": "bounded exact live reconciliation PASS; native evidence reused"
+    },
+    {
+      "case": "final_single_refresh_row_assumption",
+      "before": "FAIL final-live-check.py line48; separate existing failed-refresh retry bookkeeping also advanced",
+      "corrected": "exact 2-row classification, unchanged error/material/status/revision, bounded retry increment PASS",
+      "original_source": "final-live-check.v1.py"
+    }
+  ],
+  "private_failures_retained": [
+    "post-validation-error.private.log",
+    "post-validation-v2-error.private.log",
+    "post-validation-v3-error.private.log",
+    "final-live-error.private.log",
+    "post-old-native/namespace.private.log"
+  ],
+  "all_public_source_bytes_match_host_executed_files": true
+}

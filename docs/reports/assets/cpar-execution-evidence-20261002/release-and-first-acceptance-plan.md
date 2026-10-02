@@ -1,10 +1,10 @@
 # new-vps 发布、回退与首批真实验收方案
 
-最新补充：[AC-01 诊断与隔离修复](../../cpar-archived-credential-aead-diagnosis-20261002.md)及[生产单字段处置申请](../cpar-archived-credential-diagnosis-20261002/production-repair-proposal.md)。已确认父／子AAD错配，旧／签名候选原生交叉验证和新副本单字段修复通过；**生产未修复，下面的发布停止条件继续生效**。生产处置许可和部署许可分别申请，不调整既有门槛。
+最新补充：[已授权 AC-01 生产修复与 fresh-copy 复验](../../cpar-archived-credential-production-repair-20261002.md) PASS，[当前发布判定](../cpar-archived-credential-production-repair-20261002/release-readiness.json)把历史材料阻断标为RESOLVED，普通41/41与native5/5、旧／签名候选18项原生操作和54表迁移保持均通过。总体仍等待发布时新inventory、完整pre-upgrade备份与**独立部署授权**。以下原AC-01阻断描述为6bd5ea4a时的历史基线，不再是当前未修复状态；其他切换／回退与真实验收门槛保持，不调整标准。
 
-状态：**BLOCKED / PRODUCTION_SWITCH_NOT_EXECUTED**。2026-10-02 本轮已经完成固定 ref 的远端签名构建、密码学验签、最终 ARM64 制品的目标兼容与 410 项隔离回归，以及生产私有副本迁移和旧版本完整恢复启动。本轮新增的部署前阻断为：升级前生产状态中有 1 条归档配置凭据发生 AEAD 认证失败。未修复、删除或豁免它；其当前生产密文字节仍与演练副本相同。
+状态：**BLOCKED / PENDING_RELEASE_TIME_RECHECK_BACKUP_AND_DEPLOYMENT_AUTHORIZATION**。固定ref签名、目标兼容、410隔离回归及原迁移／完整恢复证据保持。此前1条归档凭据AEAD阻断已在授权后通过最小生产修复和fresh-copy复验解除，没有豁免或删除历史记录；当前仍未执行生产切换。
 
-[本轮报告](../../cpar-signed-artifact-and-production-state-rehearsal-20261002.md)和[发布就绪回执](../cpar-signed-state-rehearsal-20261002/release-readiness.json)是本方案的最新前置证据。部署、生产服务 stop/start/current 切换、线上配置/权限变更、账号恢复和真实推理均未执行。本轮授权动作已执行，无需再次申请分支推送、CI 或隔离演练授权。
+[原签名演练](../../cpar-signed-artifact-and-production-state-rehearsal-20261002.md)保留原始失败判定；[授权生产处置报告](../../cpar-archived-credential-production-repair-20261002.md)和[当前发布回执](../cpar-archived-credential-production-repair-20261002/release-readiness.json)是最新补充前置。单行ciphertext已修复；部署、服务stop/start/current切换、配置/权限变更、账号重新授权和任务发起的真实推理均未执行。原分支推送／CI／隔离演练授权及已完成证据继续有效，不重复申请。
 
 ## 固定对象与当前事实
 
@@ -31,10 +31,10 @@
 4. [迁移](../cpar-signed-state-rehearsal-20261002/migration-receipt.json)在 `migration-entry-probe/`，31→34 实际通过。53 个旧控制表及1个认证表全部旧列 count/HMAC 保持；schema_migrations 只对原31条校验，新增32–34单独核对。新 execution sidecar=0、新 native import receipt=0，旧 Usage/accounting 仍 Unknown。CLI audit 在完成真实 store migration 后因空 CLI capability view 报 `missing_endpoint_capability_profile`；原日志保留，不能称 audit 整体成功。随后实际 serve 使用持久视图启动并完成受保护 GET。
 5. [完整旧状态恢复](../cpar-signed-state-rehearsal-20261002/restore-receipt.json)在另一目录 `restored-pristine/`：两库启动前逐字节匹配 capture-2、全部原表旧列一致、六把持久 key 匹配、旧 binary hash 核实，schema31/integrity/FK通过，旧 serve 和受保护读取通过。[备份档案/属主/模式/软链及恢复依赖](../cpar-signed-state-rehearsal-20261002/complete-private-restore-audit.json)实际核验通过。没有执行 migration down。
 6. 启动分别使用上述 pristine 状态的派生副本。mount/net/PID/IPC/UTS 独立，chroot 只见 task 状态、受保护 key 和公共运行库；真实 UID995/GID986，effective/bounding capability=0、NoNewPrivs；独立 `127.0.0.1:28180/28181`，无外部路由、保留地址连通测试被内核拒绝。后台续期/发现线程存在，但其外部网络全部被阻断；只在派生副本产生 credential_refresh_state 更新，原迁移和恢复状态保留。真实 Provider 调用0。
-7. **密文可读性 FAIL / 发布 BLOCKED**：[升级前审计](../cpar-signed-state-rehearsal-20261002/crypto-before.json)为普通凭据40/41、原生 Grok5/5可认证解密；当前活跃配置3/3、草稿6/6均通过，归档32份中1份 AEAD_INVALID_TAG。迁移和完整恢复后同一失败保持；[末次审计](../cpar-signed-state-rehearsal-20261002/final-private-audit.json)及[当前生产比较](../cpar-signed-state-rehearsal-20261002/production-state-drift-assessment.json)确认该失败密文现在仍相同。私有定位在 task 根 `credential-audit-failures.private.json`。本轮不修复/删除它、不回退账号、不为历史材料增加能力或发布例外。
+7. **历史密文可读性 PASS（授权生产修复后）**：[原升级前审计](../cpar-signed-state-rehearsal-20261002/crypto-before.json)保留40/41及AEAD_INVALID_TAG；原迁移／恢复保持同一异常的证据不改写。后续仅修复AC-01的ciphertext，[新生产处置回执](../cpar-archived-credential-production-repair-20261002/post-repair-validation.json)为普通41/41、归档32/32、active3/3、draft6/6、native5/5，旧／签名候选18项原生操作及54表迁移保持通过。原失败locator、密文、状态与新完整pre/post集合留在受保护task根；没有删除、换账号、修改逻辑revision或增加发布例外。
 8. 活跃生产在运行期间的 refresh state、1份 upstream credential 的 ciphertext/revision 和管理审计发生[可观察漂移](../cpar-signed-state-rehearsal-20261002/production-logical-comparison.json)。配置、权限、路由、原生账号、历史Request/Attempt/Usage/ledger的旧列比较均保持；不要宣称活跃生产整库字节冻结。副本证明仅绑定捕获时点；任何未来切换须重取当前 inventory 与完整 pre-upgrade 备份。
 
-归档密文问题必须先在另行明确授权的诊断/恢复范围内解决并重验；当前门槛不作例外，当前候选继续 BLOCKED。旧构建缺失新的 execution/capability 字段属于**部署后** pin/GET 核验事项，不是要求切换前已有新构建真实请求。
+归档密文问题已在获批单字段范围内解决并重验，原材料门槛保持且已满足。总体仍因发布时新inventory、完整pre-upgrade备份和独立部署授权待完成而BLOCKED。旧构建缺失新的execution/capability字段属于**部署后** pin/GET核验事项，不是要求切换前已有新构建真实请求。
 
 ## 阻断解除后申请的一次有界生产切换
 
@@ -45,7 +45,7 @@
 操作顺序：
 
 1. 重新核对远端精确 ref、已验证9文件集合及密码学签名，重新核对目标 old PID/source/hash/schema、unit/drop-ins/current、key匹配、空间和当前活跃配置/权限/账号/出口；若对象或状态漂移，先重新冻结并审查。安装只创建上述新 release：root属主、目录0755、gateway0755，artifact文件保持原字节；同名目录内容不同即停止，不原地覆盖。不运行失败/不完整 `artifact/` 目录。
-2. 先关闭本报告密文阻断，并完成当前状态的一致副本新旧启动复验。进入批准的维护窗口，停止进入新的验收/业务流量、等待在途请求自然结束。只停止 gateway 服务，不停止 Caddy 或其他服务，不靠修改 Client Key、账号、能力或权限关闭窗口。维护影响为两 loopback 服务在 stop→startup/迁移核验期间暂时不可用；本轮没有测量生产维护耗时，不给虚构停机时长。
+2. 历史密文阻断已经关闭，fresh-copy新旧原生读取／启动复验已通过；切换前仍重核新inventory和当时状态。只有获得本节独立部署授权后才进入批准的维护窗口，停止进入新的验收/业务流量、等待在途请求自然结束。只停止gateway服务，不停止Caddy或其他服务，不靠修改Client Key、账号、能力或权限关闭窗口。维护影响为两loopback服务在stop→startup/迁移核验期间暂时不可用；本轮没有测量生产维护耗时，不给虚构停机时长。
 3. 确认生产 PID 消失后，在 `/var/backups/cpa-rust-gateway/80f5838902eb56be6dccc3ce047eb227d6c18e6c-542a3c30aae7/<UTC>/` root0700 创建新的完整**离线 pre-upgrade**集合：control.sqlite3、admin-auth.sqlite3、存在的WAL/SHM/journal及必要状态/backups，六把持久源key，unit/drop-ins、current目标、old ELF和ownership/mode/symlink元数据。清楚记录捕获UTC与内部校验；不得把本轮较早的 capture-2 当切换时最新备份。
 4. 系统 `LoadCredential` 六个持久源为 `/etc/cpa-rust-gateway/credentials/{management-key,management-csrf,master-key,backup-key,client-key-pepper,grok-build-cache-key}`。备份与恢复依赖持久源，不依赖 stop 后消失的 `/run/credentials/`。钥匙、认证库和控制库属于同一恢复集合。校验schema31、两库完整性/FK、原列HMAC、关键表计数和密文可读性；先在私有恢复派生目录用旧 hash ELF启动，确认备份可恢复，全部通过后才改 current。
 5. 确认新 release payload 与 manifest/hash一致后，通过临时 symlink +同目录 `mv -T` 原子替换 current，然后启动 gateway。unit、原监听、Caddy、账号及活跃配置不改，无 daemon-reload。若实际 unit 已不同，停止重审。
@@ -65,7 +65,7 @@ sudo systemctl start cpa-rust-gateway.service
 
 ## 停止与完整回退条件
 
-现有归档密文阻断未关闭；source/ref/hash/target/toolchain/version不符；密码学验签或receipt不符；备份/key一致性、迁移、integrity/FK、原列数据、配置/权限/停用意图/账号或native材料失败；监听暴露扩大；异常重启；actual lease/config/egress/scoped capability未知或矛盾；Usage/账本source不匹配；正文或秘密泄漏。任一触发停止后续推理和放量，不重试凑通过、不改能力/权限规避。
+发布时历史凭据重新不可读或尚未完成fresh核对／完整备份／独立部署授权；source/ref/hash/target/toolchain/version不符；密码学验签或receipt不符；备份/key一致性、迁移、integrity/FK、原列数据、配置/权限/停用意图/账号或native材料失败；监听暴露扩大；异常重启；actual lease/config/egress/scoped capability未知或矛盾；Usage/账本source不匹配；正文或秘密泄漏。任一触发停止后续推理和放量，不重试凑通过、不改能力/权限规避。
 
 回退在明确授权覆盖的范围执行：停止候选；先在root0700目录保存**完整迁移后/失败状态及新增Request/Attempt/Usage/ledger**，包括当时对应key和元数据；恢复刚刚验证过的整套pre-upgrade state、auth、六把keys、ownership/mode/symlink及必要部署元数据；原子恢复current到b0cf36e3旧release；用旧 hash ELF启动并复核schema31、完整性、原列数据/权限及加密材料。迁移后现场保留。本轮 restore receipt 验证了这一完整恢复模型；只切旧binary、migration down或仅改symlink都不能替代它。
 

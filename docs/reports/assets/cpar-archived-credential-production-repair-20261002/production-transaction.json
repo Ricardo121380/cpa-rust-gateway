@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "changed_rows": 1,
+  "changed_columns": [
+    "ciphertext"
+  ],
+  "other_tables_unchanged_in_writer_transaction": 52,
+  "all_other_rows_and_columns_unchanged": true,
+  "source_plaintext_exactly_preserved": true,
+  "lock_wait_seconds": 8e-05,
+  "transaction_seconds": 0.109459,
+  "lock_timeout_seconds": 5,
+  "transaction_deadline_seconds": 10,
+  "commit_completed": true,
+  "action": "apply-authorized",
+  "record_alias": "AC-01",
+  "production_committed_transactions": 1,
+  "production_changed_rows": 1,
+  "runtime_unchanged": true,
+  "six_keys_unchanged": true,
+  "schema_version": 31,
+  "config_and_credential_lifecycle_status_kind_revisions_unchanged": true,
+  "no_production_management_export_or_validate": true,
+  "production_service_stop_start": 0,
+  "production_switches": 0,
+  "real_provider_calls": 0,
+  "completed_at_utc": "2026-10-02T10:03:51.373746+00:00"
+}

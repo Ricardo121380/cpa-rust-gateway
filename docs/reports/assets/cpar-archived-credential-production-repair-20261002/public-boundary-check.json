@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "public_files_checked": 38,
+  "raw_key_nonce_tag_ciphertext_plaintext_or_token_matches": 0,
+  "exact_target_parent_credential_upstream_id_matches": 0,
+  "comparison_ran_only_in_protected_host": true,
+  "secret_material_exported": false,
+  "task_initiated_provider_calls": 0
+}

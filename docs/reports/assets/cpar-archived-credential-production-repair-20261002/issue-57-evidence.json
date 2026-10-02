@@ -1,0 +1,27 @@
+{
+  "issue": 57,
+  "remote_state": "OPEN",
+  "local_aggregation_only": true,
+  "historical_credential_gate": "PASS",
+  "production_AC01_repair": "PASS",
+  "overall_release": "BLOCKED",
+  "overall_release_reason": "PENDING_RELEASE_TIME_INVENTORY_COHERENT_PRE_UPGRADE_BACKUP_AND_SEPARATE_DEPLOYMENT_AUTHORIZATION",
+  "signed_candidate_source": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "signed_arm64_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "report_commit_is_not_candidate_identity": true,
+  "material_evidence": {
+    "native_cases": 2,
+    "native_management_operations": 18,
+    "ordinary_envelopes": "41/41",
+    "native_grok": "5/5",
+    "migration_original_tables": "54/54",
+    "production_commit": "1 row / ciphertext only",
+    "final_live": "PASS"
+  },
+  "deployment": "NOT_RUN",
+  "real_provider_acceptance": "NOT_RUN",
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false,
+  "github_writes": 0
+}

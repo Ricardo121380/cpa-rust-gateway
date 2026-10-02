@@ -1,0 +1,64 @@
+{
+  "status": "PASS",
+  "phase": "post",
+  "record_alias": "AC-01",
+  "target_configuration_lifecycle": "archived",
+  "credential_status": "active",
+  "credential_revision": 2,
+  "configuration_revision": 0,
+  "direct_parent_authenticated": true,
+  "target_original_failure_reconfirmed": false,
+  "fresh_child_envelope_authentication": "PASS",
+  "source_plaintext_equal": true,
+  "six_keys_and_old_binary_unit_current_archive_metadata_retained": true,
+  "target_not_active_or_current_rollback_predecessor": true,
+  "both_database_integrity_and_foreign_keys": "PASS",
+  "original_table_count": 54,
+  "crypto": {
+    "status": "PASS",
+    "method": "actual XChaCha20-Poly1305 AEAD authentication with exact source AAD and retained key",
+    "hchacha_published_vector": "PASS",
+    "authenticated_envelopes": {
+      "upstream_credentials": 41,
+      "native_grok_accounts": 5
+    },
+    "failed_envelopes": {
+      "upstream_credentials": 0,
+      "native_grok_accounts": 0
+    },
+    "classifications": {
+      "upstream:archived:active": {
+        "authenticated": 32,
+        "failed": 0
+      },
+      "upstream:draft:active": {
+        "authenticated": 6,
+        "failed": 0
+      },
+      "upstream:active:active": {
+        "authenticated": 3,
+        "failed": 0
+      },
+      "native:build:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:console:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:build:True:reauth_required": {
+        "authenticated": 1,
+        "failed": 0
+      }
+    },
+    "key_versions": [
+      1
+    ],
+    "plaintext_exported": false,
+    "network_used": false
+  },
+  "completed_at_utc": "2026-10-02T10:04:06.736717+00:00",
+  "production_writes_in_this_script": 0,
+  "real_provider_calls": 0
+}

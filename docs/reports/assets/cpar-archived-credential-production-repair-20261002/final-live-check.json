@@ -1,0 +1,41 @@
+{
+  "status": "PASS",
+  "record_alias": "AC-01",
+  "final_target_parent_all_columns_and_config_relationships_match_post_capture": true,
+  "final_target_ciphertext_repaired": true,
+  "only_identified_other_active_credential_rotated": true,
+  "rotation_after_post_capture_count": 2,
+  "latest_independent_rotation_at_utc": "2026-10-02T10:17:42.827000+00:00",
+  "rotation_audit_actor_identity_revision_timestamp_and_refresh_match": true,
+  "rotated_material_exact_aad_authenticated": true,
+  "separate_preexisting_refresh_failure_bookkeeping": {
+    "changed_records": 1,
+    "material_status_and_revision_unchanged": true,
+    "same_preexisting_error": true,
+    "failure_count_increment": 1,
+    "retry_after_advanced": true,
+    "target_or_parent_credential": false,
+    "error_text_exported": false
+  },
+  "unexplained_live_deltas": 0,
+  "other_control_tables_preserved": 50,
+  "admin_auth_tables_preserved": 1,
+  "all_active_configuration_graph_account_identity_binding_route_and_permission_fields_preserved": true,
+  "production_runtime": {
+    "unit": {
+      "MainPID": "499070",
+      "ExecMainStartTimestamp": "Mon 2026-09-28 09:23:42 UTC",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "ports": [
+      18180,
+      18181
+    ],
+    "old_binary_unit_current_and_six_keys_match": true
+  },
+  "both_databases_integrity_and_foreign_keys": "PASS",
+  "production_writes_in_this_script": 0,
+  "task_initiated_provider_calls": 0,
+  "completed_at_utc": "2026-10-02T10:23:12.843335+00:00"
+}

@@ -1,6 +1,6 @@
 # 固定候选远端签名验证与生产状态副本迁移／恢复演练
 
-后续诊断：[单条归档凭据 AAD 上下文定界与隔离修复](cpar-archived-credential-aead-diagnosis-20261002.md)。该后续确认可信恢复来源并验证副本最小修复，生产仍未修复、发布仍 BLOCKED；下面保留本轮原始判定及失败回执。
+后续诊断：[AAD 上下文定界与隔离修复](cpar-archived-credential-aead-diagnosis-20261002.md)确认可信恢复来源；随后[已授权 AC-01 生产单字段修复与 fresh-copy 复验](cpar-archived-credential-production-repair-20261002.md) PASS，历史材料阻断解除。总体仍等待发布时核对、完整备份与独立部署授权；下面保留 `6bd5ea4a` 的原始判定及失败回执。
 
 日期：2026-10-02。结论：**BLOCKED，尚不满足 READY_FOR_DEPLOYMENT**。已实际完成远端两平台签名构建、密码学验签、最终 ARM64 目标兼容与410隔离回归、一致生产状态私有副本、31→34迁移以及旧版本完整状态恢复启动。阻断是升级前就存在、现在生产仍保留的1条归档凭据 AEAD_INVALID_TAG；未豁免、修复或删除它。生产未切换，真实 Provider 调用0。
 

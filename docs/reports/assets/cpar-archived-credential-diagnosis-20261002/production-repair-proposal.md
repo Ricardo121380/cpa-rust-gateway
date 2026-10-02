@@ -1,5 +1,7 @@
 # AC-01 生产单字段重新封装申请（未执行）
 
+授权后进展：[生产实施及 fresh-copy 复验](../../cpar-archived-credential-production-repair-20261002.md) PASS。用户随后明确回复“授权”，本申请所限定的单字段方案已执行；下文是授权前提交的原方案，保留当时状态与审批问题，不代表当前仍待此项授权。部署授权仍独立。
+
 状态：COPY_VALIDATED / PRODUCTION_NOT_EXECUTED，发布仍 BLOCKED。依据[主报告](../../cpar-archived-credential-aead-diagnosis-20261002.md)、[修复](repair-receipt.json)、[四组原生读取](native-cross-validation.json)与[迁移／CAS回退](migration-and-rollback-receipt.json)。本申请只涉及生产 AC-01 的 AAD 绑定修复，不包含部署、服务 stop/start/current 切换、账号重新授权、真实推理或关闭工单。
 
 ## 精确对象

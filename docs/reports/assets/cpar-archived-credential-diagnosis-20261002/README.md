@@ -1,5 +1,7 @@
 # AC-01 有界诊断证据与本机配方
 
+后续：[授权生产修复](../../cpar-archived-credential-production-repair-20261002.md)已经 PASS；此索引保留生产处置前的诊断证据，最新判定见[后续 release-readiness](../cpar-archived-credential-production-repair-20261002/release-readiness.json)。
+
 [主报告](../../cpar-archived-credential-aead-diagnosis-20261002.md)、[发布判定](release-readiness.json)、[生产单字段申请](production-repair-proposal.md)、[#57归集](issue-57-evidence.md)。当前生产 BLOCKED；副本修复 PASS。产品候选仍是 source80 / signed ARM64 hash542。
 
 ## 脱敏证据

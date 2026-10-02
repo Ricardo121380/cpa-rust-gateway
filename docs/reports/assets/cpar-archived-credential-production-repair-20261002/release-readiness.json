@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "reason": "PENDING_RELEASE_TIME_INVENTORY_COHERENT_PRE_UPGRADE_BACKUP_AND_SEPARATE_DEPLOYMENT_AUTHORIZATION",
+  "archived_credential_blocker": "RESOLVED_IN_PRODUCTION_AND_FRESH_COPY_VERIFIED",
+  "historical_credential_readability_gate": "PASS",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "artifact_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "baseline_report_commit": "6bd5ea4a",
+  "diagnosis_and_copy_repair_commit": "a4034b129ecbadddd17eb4e835d355c875bfb3a6",
+  "record_alias": "AC-01",
+  "authorization": {
+    "user_reply": "授权",
+    "scope": "exact approved AC-01 one-field production reseal, fresh-copy verification and bounded one-field rollback",
+    "production_deployment_authorized": false,
+    "real_inference_authorized": false
+  },
+  "gates_reused": {
+    "fixed_source_checkout": "PASS",
+    "remote_release_matrix": "PASS",
+    "cosign_cryptographic_signature": "PASS",
+    "require_signature_and_receipt": "PASS",
+    "all_manifest_payload_digests": "PASS",
+    "target_elf_dynamic_libraries_and_help": "PASS",
+    "signed_arm64_410_regression": "PASS",
+    "consistent_cross_database_and_key_private_copy": "PASS",
+    "production_copy_31_to_34_original_columns_and_unknowns": "PASS",
+    "candidate_service_uid_startup_and_protected_read": "PASS",
+    "complete_old_state_keys_binary_restore_and_startup": "PASS",
+    "production_service_current_unit_keys_and_listeners_unchanged": "PASS"
+  },
+  "affected_gate": {
+    "name": "all_historical_credential_envelopes_readable",
+    "production_status": "PASS",
+    "fresh_post_repair_copy_authenticated": 41,
+    "fresh_post_repair_copy_total": 41,
+    "archived_authenticated": 32,
+    "archived_total": 32,
+    "active_authenticated": 3,
+    "active_total": 3,
+    "draft_authenticated": 6,
+    "draft_total": 6,
+    "native_grok_authenticated": 5,
+    "native_grok_total": 5,
+    "original_failure_receipts_retained": true
+  },
+  "this_round": {
+    "fresh_pre_and_post_consistent_full_copy": "PASS",
+    "same_production_transaction_rehearsal_and_rollback": "PASS",
+    "actual_stale_parent_lock_and_deadline_rejections": "PASS",
+    "production_one_row_ciphertext_commit": "PASS",
+    "production_transaction_seconds": 0.109459,
+    "native_old_and_signed_candidate_cases": "2/2 PASS",
+    "diagnostic_management_operations": "18/18 expected outcomes",
+    "migration_old_columns_preserved": "54/54 PASS",
+    "final_live_read_only_check": "PASS",
+    "operator_diagnostic_false_positive_corrected_with_prior_failures_retained": true,
+    "product_source_modified": false
+  },
+  "concurrent_production_activity": {
+    "independent_active_oauth_rotations_before_operator_transaction": 1,
+    "after_post_capture": 2,
+    "separate_preexisting_refresh_failure_retry_increment": 1,
+    "exact_private_identity_audit_revision_timestamp_reconciliation": "PASS",
+    "no_concurrent_writes_clobbered": true,
+    "task_provider_calls": 0
+  },
+  "deployment_preconditions": [
+    "fresh release-time exact inventory and runtime/key recheck",
+    "coherent full pre-upgrade snapshot with approved switch-time write boundary",
+    "separate exact deployment authorization"
+  ],
+  "postdeployment_acceptance": {
+    "status": "NOT_RUN",
+    "old_runtime_missing_execution_capability_fields": "EXPECTED_POSTDEPLOYMENT_VERIFICATION",
+    "order": [
+      "Krill gpt-6-sol Responses JSON",
+      "Grok Build grok-4.5 Responses JSON"
+    ],
+    "proposed_budget_each": {
+      "protected_pin": 1,
+      "formal_basics": 7,
+      "max_inference": 8
+    },
+    "budget_authorized": false,
+    "frozen_C_standard_changed": false,
+    "independent_channel_blockers": [
+      "Kiro output cap",
+      "Grok Web native multiturn and output cap",
+      "unknown relay onward egress"
+    ]
+  },
+  "production_repaired": true,
+  "production_committed_transactions": 1,
+  "production_changed_rows": 1,
+  "production_changed_columns": [
+    "ciphertext"
+  ],
+  "production_rollback_executed": false,
+  "production_switches": 0,
+  "production_service_stop_start": 0,
+  "task_initiated_real_provider_calls": 0,
+  "github_issue_writes": 0,
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false,
+  "completed_at_utc": "2026-10-02T10:23:12.845671+00:00"
+}

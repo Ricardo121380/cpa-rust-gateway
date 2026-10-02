@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "phase": "pre",
+  "started_at_utc": "2026-10-02T10:02:40.426105+00:00",
+  "completed_at_utc": "2026-10-02T10:02:40.581996+00:00",
+  "duration_seconds": 0.155894,
+  "database_data_versions_before": {
+    "control.sqlite3": 2,
+    "admin-auth.sqlite3": 1
+  },
+  "database_data_versions_after": {
+    "control.sqlite3": 2,
+    "admin-auth.sqlite3": 1
+  },
+  "cross_database_keys_archive_runtime_stable_window": true,
+  "six_persistent_loaded_and_original_keys_match": true,
+  "key_and_archive_inotify_quiet": true,
+  "runtime": {
+    "unit": {
+      "MainPID": "499070",
+      "ExecMainStartTimestamp": "Mon 2026-09-28 09:23:42 UTC",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "ports": [
+      18180,
+      18181
+    ],
+    "old_binary_unit_current_and_six_keys_match": true
+  },
+  "method": "SQLite Online Backup of both databases with same-connection data_version and key/archive/runtime guards; committed WAL included",
+  "retry_count": 0,
+  "service_stop_start": 0,
+  "snapshot_exported": false
+}

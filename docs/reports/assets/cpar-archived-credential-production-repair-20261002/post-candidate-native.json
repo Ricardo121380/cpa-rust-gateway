@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "record_alias": "AC-01",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "binary_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "real_provider_calls": 0,
+  "uid": 995,
+  "gid": 986,
+  "network_isolated": true,
+  "production_paths_hidden": true,
+  "capabilities_zero": true,
+  "actual_build": {
+    "build_revision": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "build_target": "aarch64-unknown-linux-gnu",
+    "rust_version": "1.97.1",
+    "schema_version": 34,
+    "version": "0.1.0"
+  },
+  "target_and_parent_export_equal": true,
+  "operations": {
+    "version_detail": {
+      "http_status": 200
+    },
+    "credential_summary": {
+      "http_status": 200
+    },
+    "credential_metadata": {
+      "http_status": 200
+    },
+    "parent_metadata": {
+      "http_status": 200
+    },
+    "target_export": {
+      "http_status": 200
+    },
+    "parent_export": {
+      "http_status": 200
+    },
+    "archived_validate": {
+      "http_status": 200
+    },
+    "archived_fork": {
+      "http_status": 409,
+      "error_code": "management_revision_conflict"
+    },
+    "archived_publish": {
+      "http_status": 409,
+      "error_code": "management_lifecycle_conflict"
+    }
+  },
+  "isolated_process_stopped": true,
+  "observed_at_utc": "2026-10-02T10:15:36.890954+00:00",
+  "plaintext_or_export_body_retained": false,
+  "label": "post-candidate-native",
+  "fresh_post_repair_derivative": true,
+  "all_nine_operations_match_expectation": true
+}
