@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "expected_source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "binary_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "namespace": {
+    "network": "net:[4026533473]",
+    "mount": "mnt:[4026533469]",
+    "pid": "pid:[4026533472]"
+  },
+  "uid": 995,
+  "gid": 986,
+  "production_state_visible": false,
+  "host_credentials_visible": false,
+  "external_routes": [],
+  "real_provider_calls": 0,
+  "effective_and_bounding_capabilities_zero": true,
+  "no_new_privileges": true,
+  "reserved_external_connect_blocked": true,
+  "healthz": "PASS",
+  "actual_build": {
+    "build_revision": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "build_target": "aarch64-unknown-linux-gnu",
+    "rust_version": "1.97.1",
+    "schema_version": 34,
+    "version": "0.1.0"
+  },
+  "active_configuration_identity_and_management_revision_match_database": true,
+  "execution_revision_inferred_from_management_etag": false,
+  "protected_read_only_endpoints": {
+    "/admin/system": {
+      "status": 200,
+      "json_valid": true
+    },
+    "/admin/config-versions": {
+      "status": 200,
+      "json_valid": true,
+      "count": 38
+    },
+    "/admin/client-keys": {
+      "status": 200,
+      "json_valid": true
+    },
+    "/admin/access-groups": {
+      "status": 200,
+      "json_valid": true
+    },
+    "/admin/routes": {
+      "status": 200,
+      "json_valid": true,
+      "count": 5,
+      "no_more_pages": true
+    },
+    "/admin/native-accounts?limit=100": {
+      "status": 200,
+      "json_valid": true,
+      "count": 5,
+      "no_more_pages": true
+    },
+    "/admin/operations/account-pools?limit=100": {
+      "status": 200,
+      "json_valid": true,
+      "count": 4,
+      "no_more_pages": true
+    },
+    "/admin/operations/provider-account-pools?limit=100": {
+      "status": 200,
+      "json_valid": true,
+      "count": 9,
+      "no_more_pages": true
+    }
+  },
+  "isolated_listeners": [
+    "127.0.0.1:28180",
+    "127.0.0.1:28181"
+  ],
+  "observed_at_utc": "2026-10-02T03:45:58.368567+00:00",
+  "isolated_process_stopped": true,
+  "snapshot_derived_keys_identical": true,
+  "startup_copy_changed_original_tables": {
+    "control.sqlite3": [
+      "credential_refresh_state"
+    ]
+  },
+  "pristine_migration_or_restore_copy_retained": true,
+  "background_external_access_blocked_by_network_namespace": true
+}

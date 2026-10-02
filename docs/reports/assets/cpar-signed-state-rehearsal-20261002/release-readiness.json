@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "initial_report_head": "a2c9e0743ab10097499bbef76a8f51db60043c69",
+  "artifact_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "arm64_manifest_sha256": "7e6c9b59b3d2715692cd8178662ca8532836c784db5b833c6c4ee1ae0aa81653",
+  "target": {
+    "host": "new-vps",
+    "service": "cpa-rust-gateway.service",
+    "old_source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "old_binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "production_schema": 31,
+    "candidate_schema": 34,
+    "proposed_release_path": "/opt/cpa-rust-gateway/releases/80f5838902eb56be6dccc3ce047eb227d6c18e6c-542a3c30aae7"
+  },
+  "ci": {
+    "run_id": 36956561884,
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36956561884",
+    "attempt": 1,
+    "ref": "refs/heads/codex/cpar-execution-arm64-20261002",
+    "matrix": [
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu"
+    ],
+    "status": "SUCCESS"
+  },
+  "gates": {
+    "fixed_source_checkout": "PASS",
+    "remote_release_matrix": "PASS",
+    "cosign_cryptographic_signature": "PASS",
+    "require_signature_and_receipt": "PASS",
+    "all_manifest_payload_digests": "PASS",
+    "target_elf_dynamic_libraries_and_help": "PASS",
+    "signed_arm64_410_regression": "PASS",
+    "consistent_cross_database_and_key_private_copy": "PASS",
+    "production_copy_31_to_34_original_columns_and_unknowns": "PASS",
+    "candidate_service_uid_startup_and_protected_read": "PASS",
+    "complete_old_state_keys_binary_restore_and_startup": "PASS",
+    "all_historical_credential_envelopes_readable": "FAIL",
+    "production_service_current_unit_keys_and_listeners_unchanged": "PASS"
+  },
+  "blocking_findings": [
+    {
+      "code": "PREEXISTING_ARCHIVED_CREDENTIAL_AEAD_INVALID_TAG",
+      "count": 1,
+      "configuration_lifecycle": "archived",
+      "ordinary_credentials_authenticated": 40,
+      "ordinary_credentials_total": 41,
+      "active_configuration_authenticated": 3,
+      "active_configuration_total": 3,
+      "native_grok_authenticated": 5,
+      "native_grok_total": 5,
+      "present_before_migration": true,
+      "preserved_after_migration_and_restore": true,
+      "current_production_failed_ciphertext_still_same": true,
+      "private_locator_exported": false,
+      "resolution": "separately authorize bounded private diagnosis or material/state recovery; do not waive the gate, delete history or modify accounts in this round"
+    }
+  ],
+  "copy_proof": {
+    "captured_at_utc": "2026-10-02T02:47:53.274953+00:00",
+    "capture_completed_at_utc": "2026-10-02T02:47:53.398746+00:00",
+    "quiet_window_seconds": 0.123784,
+    "old_control_tables_verified": 53,
+    "old_admin_auth_tables_verified": 1,
+    "no_pause_or_stop": true,
+    "persistent_key_count": 6
+  },
+  "deployment_preconditions": [
+    "resolve and reverify archived credential readability",
+    "refresh actual production inventory and state/key coherence",
+    "capture a new full pre-upgrade backup at the authorized cutover and prove old-binary restore",
+    "authorize exact service stop/start/current switch and full rollback"
+  ],
+  "postdeployment_acceptance": {
+    "status": "NOT_RUN",
+    "old_runtime_missing_execution_capability_fields": "EXPECTED_POSTDEPLOYMENT_VERIFICATION",
+    "order": [
+      "Krill gpt-6-sol Responses JSON",
+      "Grok Build grok-4.5 Responses JSON"
+    ],
+    "proposed_budget_each": {
+      "protected_pin": 1,
+      "formal_basics": 7,
+      "max_inference": 8
+    },
+    "budget_authorized": false,
+    "frozen_C_standard_changed": false,
+    "independent_channel_blockers": [
+      "Kiro output cap",
+      "Grok Web native multiturn and output cap",
+      "unknown relay onward egress"
+    ]
+  },
+  "real_provider_calls": 0,
+  "production_switches": 0,
+  "production_service_stop_start": 0,
+  "production_configuration_or_account_changes": 0,
+  "github_issue_writes": 0,
+  "signed_ref_pushes": 1,
+  "release_workflow_dispatches": 1,
+  "completed_at_utc": "2026-10-02T04:03:57.121214+00:00"
+}

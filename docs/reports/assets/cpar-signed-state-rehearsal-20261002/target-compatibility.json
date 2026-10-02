@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "binary_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "elf_machine": 183,
+  "elf_class": "ELF64 little endian",
+  "embedded": {
+    "revision": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "rust-version": "1.97.1",
+    "target": "aarch64-unknown-linux-gnu"
+  },
+  "libc": "glibc 2.39",
+  "max_required_glibc": "2.34",
+  "ldd": [
+    "\tlinux-vdso.so.1 (0x0000fc134d37a000)",
+    "\tlibstdc++.so.6 => /lib/aarch64-linux-gnu/libstdc++.so.6 (0x0000fc134bdf0000)",
+    "\tlibgcc_s.so.1 => /lib/aarch64-linux-gnu/libgcc_s.so.1 (0x0000fc134bdb0000)",
+    "\tlibm.so.6 => /lib/aarch64-linux-gnu/libm.so.6 (0x0000fc134bd00000)",
+    "\tlibc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x0000fc134bb40000)",
+    "\t/lib/ld-linux-aarch64.so.1 (0x0000fc134d330000)"
+  ],
+  "missing_dynamic_libraries": false,
+  "isolated_help_exit_code": 0,
+  "target_artifact_and_receipt_digests_match": true
+}

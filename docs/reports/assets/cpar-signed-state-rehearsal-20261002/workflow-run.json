@@ -1,0 +1,384 @@
+{
+  "conclusion": "success",
+  "databaseId": 36956561884,
+  "headBranch": "codex/cpar-execution-arm64-20261002",
+  "headSha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "jobs": [
+    {
+      "completedAt": "2026-10-02T02:48:46Z",
+      "conclusion": "success",
+      "databaseId": 110680696253,
+      "name": "Build and sign x86_64-unknown-linux-gnu",
+      "startedAt": "2026-10-02T02:38:34Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-02T02:38:36Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-02T02:38:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:38:42Z",
+          "conclusion": "success",
+          "name": "Checkout selected revision",
+          "number": 2,
+          "startedAt": "2026-10-02T02:38:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:39:29Z",
+          "conclusion": "success",
+          "name": "Install build prerequisites",
+          "number": 3,
+          "startedAt": "2026-10-02T02:38:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:39:37Z",
+          "conclusion": "success",
+          "name": "Install locked Rust toolchain",
+          "number": 4,
+          "startedAt": "2026-10-02T02:39:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:39:37Z",
+          "conclusion": "success",
+          "name": "Restore pinned quality-tool cache",
+          "number": 5,
+          "startedAt": "2026-10-02T02:39:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:42:53Z",
+          "conclusion": "success",
+          "name": "Install pinned SBOM tool",
+          "number": 6,
+          "startedAt": "2026-10-02T02:39:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:42:56Z",
+          "conclusion": "success",
+          "name": "Install management SPA build inputs",
+          "number": 7,
+          "startedAt": "2026-10-02T02:42:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:42:56Z",
+          "conclusion": "success",
+          "name": "Verify the runner architecture matches the release target",
+          "number": 8,
+          "startedAt": "2026-10-02T02:42:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:10Z",
+          "conclusion": "success",
+          "name": "Build revision-bound Linux binary",
+          "number": 9,
+          "startedAt": "2026-10-02T02:42:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:11Z",
+          "conclusion": "success",
+          "name": "Generate redacted CycloneDX SBOM",
+          "number": 10,
+          "startedAt": "2026-10-02T02:48:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:24Z",
+          "conclusion": "success",
+          "name": "Build non-root OCI archive and Docker smoke image",
+          "number": 11,
+          "startedAt": "2026-10-02T02:48:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:25Z",
+          "conclusion": "success",
+          "name": "Verify unsigned artifact structure before signing",
+          "number": 12,
+          "startedAt": "2026-10-02T02:48:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:27Z",
+          "conclusion": "success",
+          "name": "Load and smoke the temporary Docker archive without a network",
+          "number": 13,
+          "startedAt": "2026-10-02T02:48:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:32Z",
+          "conclusion": "success",
+          "name": "Install pinned Cosign",
+          "number": 14,
+          "startedAt": "2026-10-02T02:48:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:33Z",
+          "conclusion": "success",
+          "name": "Keylessly sign the immutable manifest",
+          "number": 15,
+          "startedAt": "2026-10-02T02:48:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:34Z",
+          "conclusion": "success",
+          "name": "Independently verify the Sigstore bundle identity",
+          "number": 16,
+          "startedAt": "2026-10-02T02:48:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:36Z",
+          "conclusion": "success",
+          "name": "Record and structurally verify signed receipt",
+          "number": 17,
+          "startedAt": "2026-10-02T02:48:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:36Z",
+          "conclusion": "success",
+          "name": "Publish value-free receipt summary",
+          "number": 18,
+          "startedAt": "2026-10-02T02:48:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:39Z",
+          "conclusion": "success",
+          "name": "Upload private release artifact",
+          "number": 19,
+          "startedAt": "2026-10-02T02:48:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:44Z",
+          "conclusion": "success",
+          "name": "Post Restore pinned quality-tool cache",
+          "number": 37,
+          "startedAt": "2026-10-02T02:48:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:44Z",
+          "conclusion": "success",
+          "name": "Post Checkout selected revision",
+          "number": 38,
+          "startedAt": "2026-10-02T02:48:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:44Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 39,
+          "startedAt": "2026-10-02T02:48:44Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36956561884/job/110680696253"
+    },
+    {
+      "completedAt": "2026-10-02T02:48:35Z",
+      "conclusion": "success",
+      "databaseId": 110680696461,
+      "name": "Build and sign aarch64-unknown-linux-gnu",
+      "startedAt": "2026-10-02T02:38:35Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-02T02:38:37Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-02T02:38:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:38:42Z",
+          "conclusion": "success",
+          "name": "Checkout selected revision",
+          "number": 2,
+          "startedAt": "2026-10-02T02:38:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:39:39Z",
+          "conclusion": "success",
+          "name": "Install build prerequisites",
+          "number": 3,
+          "startedAt": "2026-10-02T02:38:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:39:44Z",
+          "conclusion": "success",
+          "name": "Install locked Rust toolchain",
+          "number": 4,
+          "startedAt": "2026-10-02T02:39:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:39:44Z",
+          "conclusion": "success",
+          "name": "Restore pinned quality-tool cache",
+          "number": 5,
+          "startedAt": "2026-10-02T02:39:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:44:25Z",
+          "conclusion": "success",
+          "name": "Install pinned SBOM tool",
+          "number": 6,
+          "startedAt": "2026-10-02T02:39:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:44:28Z",
+          "conclusion": "success",
+          "name": "Install management SPA build inputs",
+          "number": 7,
+          "startedAt": "2026-10-02T02:44:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:44:28Z",
+          "conclusion": "success",
+          "name": "Verify the runner architecture matches the release target",
+          "number": 8,
+          "startedAt": "2026-10-02T02:44:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:08Z",
+          "conclusion": "success",
+          "name": "Build revision-bound Linux binary",
+          "number": 9,
+          "startedAt": "2026-10-02T02:44:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:09Z",
+          "conclusion": "success",
+          "name": "Generate redacted CycloneDX SBOM",
+          "number": 10,
+          "startedAt": "2026-10-02T02:48:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:20Z",
+          "conclusion": "success",
+          "name": "Build non-root OCI archive and Docker smoke image",
+          "number": 11,
+          "startedAt": "2026-10-02T02:48:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:21Z",
+          "conclusion": "success",
+          "name": "Verify unsigned artifact structure before signing",
+          "number": 12,
+          "startedAt": "2026-10-02T02:48:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:23Z",
+          "conclusion": "success",
+          "name": "Load and smoke the temporary Docker archive without a network",
+          "number": 13,
+          "startedAt": "2026-10-02T02:48:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:26Z",
+          "conclusion": "success",
+          "name": "Install pinned Cosign",
+          "number": 14,
+          "startedAt": "2026-10-02T02:48:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:27Z",
+          "conclusion": "success",
+          "name": "Keylessly sign the immutable manifest",
+          "number": 15,
+          "startedAt": "2026-10-02T02:48:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:27Z",
+          "conclusion": "success",
+          "name": "Independently verify the Sigstore bundle identity",
+          "number": 16,
+          "startedAt": "2026-10-02T02:48:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:29Z",
+          "conclusion": "success",
+          "name": "Record and structurally verify signed receipt",
+          "number": 17,
+          "startedAt": "2026-10-02T02:48:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:29Z",
+          "conclusion": "success",
+          "name": "Publish value-free receipt summary",
+          "number": 18,
+          "startedAt": "2026-10-02T02:48:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:31Z",
+          "conclusion": "success",
+          "name": "Upload private release artifact",
+          "number": 19,
+          "startedAt": "2026-10-02T02:48:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:34Z",
+          "conclusion": "success",
+          "name": "Post Restore pinned quality-tool cache",
+          "number": 37,
+          "startedAt": "2026-10-02T02:48:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:34Z",
+          "conclusion": "success",
+          "name": "Post Checkout selected revision",
+          "number": 38,
+          "startedAt": "2026-10-02T02:48:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-02T02:48:34Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 39,
+          "startedAt": "2026-10-02T02:48:34Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36956561884/job/110680696461"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36956561884"
+}

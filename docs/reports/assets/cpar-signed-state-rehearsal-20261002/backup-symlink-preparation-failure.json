@@ -1,0 +1,9 @@
+{
+  "status": "FAIL",
+  "phase": "archive backup directory inventory",
+  "reason": "historical previous-release symlinks were treated as ordinary directories",
+  "production_modified": false,
+  "complete_private_copy_created": false,
+  "retained_failed_directory": "capture-1",
+  "corrective_action": "preserve archive symlinks without following them; watch direct directories only; isolate host paths in runtime sandbox"
+}

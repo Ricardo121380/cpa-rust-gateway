@@ -1,0 +1,8 @@
+{
+  "status": "FAIL",
+  "phase": "create task staging root",
+  "reason": "staging parent absent",
+  "production_modified": false,
+  "private_copy_created": false,
+  "corrective_action": "create authorized root-owned staging parent and task directory"
+}

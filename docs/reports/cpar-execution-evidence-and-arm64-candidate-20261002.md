@@ -1,5 +1,7 @@
 # CPAR 执行身份、有效能力证据与 Linux ARM64 候选
 
+后续状态（2026-10-02）：[固定签名制品与生产副本演练](cpar-signed-artifact-and-production-state-rehearsal-20261002.md)已实际完成远端签名、目标兼容、迁移及完整旧状态恢复启动；最终artifact为hash542a3c30，当前发布判定BLOCKED于升级前既有归档密文异常。以下正文保留上轮交付时点事实；[现有发布方案](assets/cpar-execution-evidence-20261002/release-and-first-acceptance-plan.md)已更新。
+
 日期：2026-10-02，Asia/Shanghai。**本轮软件切片、隔离回归与本地 ARM64 候选准备 PASS；生产部署、真实验收、远程 CI/签名发布及生产状态副本演练 NOT_RUN。C 全批、#57、父规格 #9 保持未完成。**
 
 ## 基线、提交与范围

@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "operation": "only remove trailing whitespace in exported public GitHub log text; raw bytes retained locally and available from run36956561884",
+  "raw_local_directory": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-signed-state-rehearsal-20261002/raw-public-logs",
+  "records": [
+    {
+      "file": "workflow.log",
+      "raw_sha256": "e96694c50a6907f2f4c2950c780c9c2b39a8216ec2e7630ed1f56bae5b00c0ad",
+      "normalized_sha256": "30664aaaff906d6e67b6d15a5ccdb281a5a5afe02316bd2f8a50f19b7f5858a7",
+      "raw_line_count": 8295,
+      "normalized_line_count": 8295
+    },
+    {
+      "file": "workflow-selected-evidence.log",
+      "raw_sha256": "aff868f58d38d3da8abf1f56ea4edefebe2f2f8f397e5354277d552b67b91f95",
+      "normalized_sha256": "aff868f58d38d3da8abf1f56ea4edefebe2f2f8f397e5354277d552b67b91f95",
+      "raw_line_count": 3158,
+      "normalized_line_count": 3158
+    },
+    {
+      "file": "checkout-and-toolchain-excerpts.log",
+      "raw_sha256": "659c458c8f445126d5654b9ea9541c11bca27e407d77ba8b6fa9a67e2876985b",
+      "normalized_sha256": "58662b8d7f07e3e796d4cc1192e96095b1b76b1a72e6cc01c187d76225e82b0a",
+      "raw_line_count": 65,
+      "normalized_line_count": 65
+    }
+  ],
+  "signed_artifact_payloads_changed": false
+}

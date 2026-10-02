@@ -1,0 +1,445 @@
+{
+  "status": "PASS",
+  "old_source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+  "old_binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+  "schema_restored": 31,
+  "integrity": "ok",
+  "full_state_databases_byte_identical_before_startup": true,
+  "all_original_table_columns_exact": true,
+  "matching_six_persistent_keys_restored": true,
+  "crypto": {
+    "status": "FAIL",
+    "method": "actual XChaCha20-Poly1305 AEAD authentication with exact source AAD and retained key",
+    "hchacha_published_vector": "PASS",
+    "authenticated_envelopes": {
+      "upstream_credentials": 40,
+      "native_grok_accounts": 5
+    },
+    "failed_envelopes": {
+      "upstream_credentials": 1,
+      "native_grok_accounts": 0
+    },
+    "classifications": {
+      "upstream:archived:active": {
+        "authenticated": 31,
+        "failed": 1
+      },
+      "upstream:draft:active": {
+        "authenticated": 6,
+        "failed": 0
+      },
+      "upstream:active:active": {
+        "authenticated": 3,
+        "failed": 0
+      },
+      "native:build:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:console:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:build:True:reauth_required": {
+        "authenticated": 1,
+        "failed": 0
+      }
+    },
+    "key_versions": [
+      1
+    ],
+    "plaintext_exported": false,
+    "network_used": false
+  },
+  "tables": {
+    "control.sqlite3": {
+      "access_group_routes": {
+        "count": 97,
+        "original_columns_hmac_sha256": "70981d3ee2e9f813454a4b77bdcaa42bf1eff5bcdbb0f9c98a333991ed4c3b92",
+        "preserved": true
+      },
+      "access_groups": {
+        "count": 38,
+        "original_columns_hmac_sha256": "30f658ab6d83baeb4c3da05614dfe268d6518faad2552622b0617f966e13c43a",
+        "preserved": true
+      },
+      "billing_ledger_entries": {
+        "count": 728,
+        "original_columns_hmac_sha256": "2566495bbee3826e43954badf849c0af2b2d7cd44ef0acb2c561f5229a933eb8",
+        "preserved": true
+      },
+      "billing_materializer_checkpoints": {
+        "count": 1,
+        "original_columns_hmac_sha256": "5a7769d911c95ef6391797cbca3620e40a7a6085522c2cc587443f36277963c6",
+        "preserved": true
+      },
+      "billing_materializer_failures": {
+        "count": 87,
+        "original_columns_hmac_sha256": "5355c74814a6ec511babdb56f734dae186e5efd01321d1575ff5b62ff690e474",
+        "preserved": true
+      },
+      "billing_price_catalog_entries": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "billing_price_catalog_versions": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "client_keys": {
+        "count": 38,
+        "original_columns_hmac_sha256": "25c33d28df44db8310730d8f0c0392eaae4ce86ec4a0d8adc9d6d98c4e0f8a4b",
+        "preserved": true
+      },
+      "compatible_egress_binding_profiles": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "compatible_egress_proxy_nodes": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "compatible_egress_proxy_pools": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "config_versions": {
+        "count": 38,
+        "original_columns_hmac_sha256": "b17cb2380c7b083fbecdb6e63306e8e79659d447b6f2853031a28fabe99e56d3",
+        "preserved": true
+      },
+      "configuration_edit_origins": {
+        "count": 9,
+        "original_columns_hmac_sha256": "8a4f60f10a8ccb4c1018b2c9b6307b6d3a7e7e500b18bacedcf596de13e86f7b",
+        "preserved": true
+      },
+      "credential_refresh_state": {
+        "count": 5,
+        "original_columns_hmac_sha256": "077635da02e12d123081b9c101a37fada13712cae71908c96f752dbaae247b59",
+        "preserved": true
+      },
+      "egress_policies": {
+        "count": 59,
+        "original_columns_hmac_sha256": "bd56f1cc9bf9cc0b72a3005879a19de7dc6321feb4b04f938423b04e2182f84e",
+        "preserved": true
+      },
+      "endpoint_credential_bindings": {
+        "count": 56,
+        "original_columns_hmac_sha256": "6441d65795589fc45f130d2ddc3fea09c5092519aa5a83378ada9bc48e8cc228",
+        "preserved": true
+      },
+      "gateway_event_log": {
+        "count": 2553,
+        "original_columns_hmac_sha256": "6a2ac39f875903e1bba54e4bc035ea4f9277fb28abc1ed11722c5186f91a6848",
+        "preserved": true
+      },
+      "gateway_event_quarantine": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "gateway_request_recording": {
+        "count": 66,
+        "original_columns_hmac_sha256": "cf9f29374ed7da24dba5ebfd6de2ecf89c0c0e61ef3e309126768272982a1c1a",
+        "preserved": true
+      },
+      "grok_account_entitlements": {
+        "count": 1,
+        "original_columns_hmac_sha256": "cb3b8caa5e620cacd3ee242c7723f3cc7c4a20346e3c89947a43a67888919dc3",
+        "preserved": true
+      },
+      "grok_account_import_batches": {
+        "count": 9,
+        "original_columns_hmac_sha256": "fbfb9441b8bc2f547cc1cb53ae80b23f7a31ef5e2afe3cf21230bc8159c50a65",
+        "preserved": true
+      },
+      "grok_account_links": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_account_quota_windows": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_account_reauth_state": {
+        "count": 1,
+        "original_columns_hmac_sha256": "3495e5014e6226adccca6c90b10339fb1df15a13ede1e73fd55037b4ee0a28b3",
+        "preserved": true
+      },
+      "grok_accounts": {
+        "count": 5,
+        "original_columns_hmac_sha256": "ad0abeed1c6ded7e80a992ebc82e38832b4d820cc4b6bdd507e918ea36e5cf2d",
+        "preserved": true
+      },
+      "grok_build_affinity_breaks": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_build_billing_profiles": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_build_cache_affinities": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_build_credential_runtime": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_build_model_catalog": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_build_quota_windows": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_build_reasoning_replay": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "grok_build_response_ownership": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "management_audit_events": {
+        "count": 111,
+        "original_columns_hmac_sha256": "e9f4b2e19174ff3019364be071f51172e548369a5f8ff31eeed564d0b909db39",
+        "preserved": true
+      },
+      "management_resource_audit_events": {
+        "count": 1363,
+        "original_columns_hmac_sha256": "a8eed765db50144248b5b3e0f26dfef592414481a4487452bf8a653d60f4249b",
+        "preserved": true
+      },
+      "model_aliases": {
+        "count": 8,
+        "original_columns_hmac_sha256": "ca5635cad9c5e5d70d007e6065c40d31c81162d0d4f70f4ef5e0bb0a9b4a17e6",
+        "preserved": true
+      },
+      "model_catalog_failures": {
+        "count": 14,
+        "original_columns_hmac_sha256": "679905eb67dc8eafce9789482cd9afa97c0d8d19cf4ba72462c8f98fa062b682",
+        "preserved": true
+      },
+      "model_catalog_models": {
+        "count": 343,
+        "original_columns_hmac_sha256": "6e05ba3184aa6ab02b432fe9f53c04458c8f74c488322e042bb36d404b1287af",
+        "preserved": true
+      },
+      "model_catalog_targets": {
+        "count": 29,
+        "original_columns_hmac_sha256": "f96b160ee42dc701c44047064711e621443382314e01951b6a63b55e32cf494c",
+        "preserved": true
+      },
+      "model_routes": {
+        "count": 88,
+        "original_columns_hmac_sha256": "01cde7d31459f49b0ba64481ef1dbfd0419f82638c7d053d34c3502347e105be",
+        "preserved": true
+      },
+      "native_account_authorization_events": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "native_account_identity_observations": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "native_account_inventory_generation": {
+        "count": 1,
+        "original_columns_hmac_sha256": "58653c272d74bb9b17ad2563991339c636234b55cad252346e1ea86368b0633f",
+        "preserved": true
+      },
+      "native_account_management_events": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "public_models": {
+        "count": 88,
+        "original_columns_hmac_sha256": "b535fd34a6278e7e8e56828a8a04d2857a8e31a1fb4c9c92c16c78edea1db2fe",
+        "preserved": true
+      },
+      "route_candidates": {
+        "count": 88,
+        "original_columns_hmac_sha256": "da47f1474c42eb4b29e960963c9cd1a91d46b9e50fb65c18d59494fdedeef533",
+        "preserved": true
+      },
+      "routing_price_policies": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "schema_migrations": {
+        "count": 31,
+        "original_columns_hmac_sha256": "6a86ee8a7593e77b91770c0a0adf09d0316cdcf81a8b7baa48555072c8fcb05f",
+        "preserved": true
+      },
+      "stored_response_compactions": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "stored_responses": {
+        "count": 0,
+        "original_columns_hmac_sha256": "e9088f7fb107ac90ed95176b4d8bedf2fafb23ae6541a847e0ae7475b4307f9a",
+        "preserved": true
+      },
+      "upstream_credentials": {
+        "count": 41,
+        "original_columns_hmac_sha256": "0b31c8feea1a6283d5c9fa82b56910ca3ccaa5fd856f7edd8f4b4f3763db03f9",
+        "preserved": true
+      },
+      "upstream_endpoints": {
+        "count": 75,
+        "original_columns_hmac_sha256": "59b9af7cde1674e051b0c64eadd20782500329de3c5a883f27b20907fae15304",
+        "preserved": true
+      },
+      "upstreams": {
+        "count": 59,
+        "original_columns_hmac_sha256": "15b652c267435ab91fef85bac69df8348a64211c74793e149bd916ecbf477512",
+        "preserved": true
+      }
+    },
+    "admin-auth.sqlite3": {
+      "admin_account": {
+        "count": 1,
+        "original_columns_hmac_sha256": "5275f42e19854dc9011981ed9044648ff8fedb47bbbe66757a1c1d600e5e6ec8",
+        "preserved": true
+      }
+    }
+  },
+  "startup": {
+    "status": "PASS",
+    "expected_source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "namespace": {
+      "network": "net:[4026533473]",
+      "mount": "mnt:[4026533469]",
+      "pid": "pid:[4026533472]"
+    },
+    "uid": 995,
+    "gid": 986,
+    "production_state_visible": false,
+    "host_credentials_visible": false,
+    "external_routes": [],
+    "real_provider_calls": 0,
+    "effective_and_bounding_capabilities_zero": true,
+    "no_new_privileges": true,
+    "reserved_external_connect_blocked": true,
+    "healthz": "PASS",
+    "actual_build": {
+      "build_revision": "b0cf36e387b774439acc23830221389eb3ac74d0",
+      "build_target": "aarch64-unknown-linux-gnu",
+      "rust_version": "1.97.1",
+      "schema_version": 31,
+      "version": "0.1.0"
+    },
+    "active_configuration_identity_and_management_revision_match_database": true,
+    "execution_revision_inferred_from_management_etag": false,
+    "protected_read_only_endpoints": {
+      "/admin/system": {
+        "status": 200,
+        "json_valid": true
+      },
+      "/admin/config-versions": {
+        "status": 200,
+        "json_valid": true,
+        "count": 38
+      },
+      "/admin/client-keys": {
+        "status": 200,
+        "json_valid": true
+      },
+      "/admin/access-groups": {
+        "status": 200,
+        "json_valid": true
+      },
+      "/admin/routes": {
+        "status": 200,
+        "json_valid": true,
+        "count": 5,
+        "no_more_pages": true
+      },
+      "/admin/native-accounts?limit=100": {
+        "status": 200,
+        "json_valid": true,
+        "count": 5,
+        "no_more_pages": true
+      },
+      "/admin/operations/account-pools?limit=100": {
+        "status": 200,
+        "json_valid": true,
+        "count": 4,
+        "no_more_pages": true
+      },
+      "/admin/operations/provider-account-pools?limit=100": {
+        "status": 200,
+        "json_valid": true,
+        "count": 9,
+        "no_more_pages": true
+      }
+    },
+    "isolated_listeners": [
+      "127.0.0.1:28180",
+      "127.0.0.1:28181"
+    ],
+    "observed_at_utc": "2026-10-02T03:45:59.112483+00:00",
+    "isolated_process_stopped": true,
+    "snapshot_derived_keys_identical": true,
+    "startup_copy_changed_original_tables": {
+      "control.sqlite3": [
+        "credential_refresh_state"
+      ]
+    },
+    "pristine_migration_or_restore_copy_retained": true,
+    "background_external_access_blocked_by_network_namespace": true
+  },
+  "private_restored_state_retained": "/opt/cpa-rust-gateway/staging/cpar-execution-arm64-20261002-run36956561884/restored-pristine",
+  "method": "restore independent full pre-upgrade runtime state (both databases, backup directory, six keys, old binary); no migration down",
+  "full_package_metadata_and_archive_audit": {
+    "status": "PASS",
+    "scope": "retained production backup archives and full old-state restore package metadata",
+    "original_archive_bytes_and_symlink_targets_equal_private_capture": true,
+    "production_archive_stable_during_read_only_audit": true,
+    "copy_ownership_matches_original_after_operator_metadata_correction": true,
+    "original_archive_entry_count": 31,
+    "entry_kind_counts": {
+      "file": 21,
+      "directory": 8,
+      "symlink": 2
+    },
+    "archive_bytes_and_metadata_hmac_sha256": "294a46a4ebb6d0546b4ed405071eea4e265dfc25eefef07285bdbd1e2e3fbfea",
+    "restore_dependencies_retained": [
+      "both databases",
+      "backup artifacts and symlinks",
+      "six persistent keys",
+      "old binary",
+      "unit and drop-in text",
+      "old current target",
+      "ownership and modes",
+      "private integrity HMAC key and row baseline"
+    ],
+    "private_metadata_correction_only": true,
+    "production_permission_changes": false,
+    "private_content_exported": false
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "status": "FAIL",
+  "phase": "bubblewrap same-host-service-UID setup",
+  "reason": "loopback RTM_NEWADDR returned Operation not permitted after dropping host identity before namespace setup",
+  "corrective_action": "private-namespace-runner prepares private namespaces as root, then drops the chrooted command to actual service UID995/GID986 with no capabilities",
+  "production_changes": false,
+  "candidate_source_changes": false
+}

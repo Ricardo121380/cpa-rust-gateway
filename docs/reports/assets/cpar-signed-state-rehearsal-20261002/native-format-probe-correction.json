@@ -1,0 +1,9 @@
+{
+  "status": "FAIL",
+  "phase": "operator plaintext format assumption",
+  "reason": "native Build credentials have binary persisted encoding; generic UTF-8/JSON assumption was incorrect",
+  "source_evidence": "crates/provider-grok/src/oauth.rs:367 persisted_bytes and from_persisted_bytes",
+  "corrective_action": "validate actual binary header, expiry, length-prefixed segments and optional identity JSON",
+  "candidate_source_modified": false,
+  "AEAD_authentication_required": true
+}

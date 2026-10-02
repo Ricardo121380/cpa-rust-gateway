@@ -1,0 +1,36 @@
+[
+  {
+    "platform": "linux-arm64",
+    "target": "aarch64-unknown-linux-gnu",
+    "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "manifest_sha256": "7e6c9b59b3d2715692cd8178662ca8532836c784db5b833c6c4ee1ae0aa81653",
+    "binary_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+    "cosign_cryptographic_verification": "PASS",
+    "cosign_version": "3.1.2",
+    "require_signature_and_receipt": "PASS",
+    "certificate_identity": "https://github.com/Ricardo121380/cpa-rust-gateway/.github/workflows/release-artifact.yml@refs/heads/codex/cpar-execution-arm64-20261002",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "certificate_workflow_source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "certificate_run_attempt": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36956561884/attempts/1",
+    "payload_count": 5,
+    "total_artifact_files": 9,
+    "all_manifest_payloads_match": true
+  },
+  {
+    "platform": "linux-amd64",
+    "target": "x86_64-unknown-linux-gnu",
+    "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "manifest_sha256": "ba43074a1ac94e5ee8b36b61e401872c4dd7a55adaf15e64cd68cbe5211a3c7c",
+    "binary_sha256": "d2ffc57b95690c841167cd5a7150b8570cbaf51266d24a88f29e7fb165091790",
+    "cosign_cryptographic_verification": "PASS",
+    "cosign_version": "3.1.2",
+    "require_signature_and_receipt": "PASS",
+    "certificate_identity": "https://github.com/Ricardo121380/cpa-rust-gateway/.github/workflows/release-artifact.yml@refs/heads/codex/cpar-execution-arm64-20261002",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "certificate_workflow_source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "certificate_run_attempt": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36956561884/attempts/1",
+    "payload_count": 5,
+    "total_artifact_files": 9,
+    "all_manifest_payloads_match": true
+  }
+]

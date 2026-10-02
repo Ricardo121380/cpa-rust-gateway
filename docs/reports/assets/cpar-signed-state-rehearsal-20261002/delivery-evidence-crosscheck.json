@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "json_parse_count": 63,
+  "operator_python_syntax_count": 9,
+  "old_table_sets_counts_hmac_crosscheck": 54,
+  "two_platform_actual_files_checked": 18,
+  "fixed_source_and_artifact_binding": true,
+  "product_source_and_workflows_unchanged": true,
+  "staged_files": 95,
+  "all_staged_scope": "docs/reports/",
+  "staged_whitespace": "PASS"
+}

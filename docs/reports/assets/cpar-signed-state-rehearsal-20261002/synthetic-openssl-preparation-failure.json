@@ -1,0 +1,10 @@
+{
+  "status": "FAIL",
+  "phase": "generate synthetic loopback TLS fixture",
+  "reason": "OpenSSL req failed; default /usr/lib/ssl/openssl.cnf target absent in sandbox",
+  "gateway_regression_started": false,
+  "private_failure_directory": "synthetic",
+  "corrective_action": "read-only bind the public /etc/ssl/openssl.cnf into isolated namespace",
+  "production_config_modified": false,
+  "candidate_source_modified": false
+}

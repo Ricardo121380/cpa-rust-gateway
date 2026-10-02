@@ -1,0 +1,8 @@
+{
+  "status": "FAIL",
+  "phase": "transport artifact and shallow source",
+  "reason": "60 second upload timeout",
+  "complete_transfer_proven": false,
+  "production_modified": false,
+  "partial_transport_retained": true
+}

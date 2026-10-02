@@ -1,0 +1,12 @@
+{
+  "status": "OBSERVED_LIVE_STATE_DRIFT",
+  "upstream_credential_rows_changed_since_capture": 1,
+  "upstream_credential_changed_column_counts": {
+    "ciphertext": 1,
+    "revision": 1
+  },
+  "failed_archived_credential_still_byte_identical_in_current_production": true,
+  "snapshot_failure_still_relevant": true,
+  "no_original_values_exported": true,
+  "future_deployment_requires_fresh_current_inventory_and_full_backup": true
+}

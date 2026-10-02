@@ -1,0 +1,10 @@
+[
+  {
+    "path": "crates/gateway-store/src/secret_store.rs",
+    "whole_file_unchanged_between_old_and_candidate": true
+  },
+  {
+    "path": "crates/gateway-control/src/control_plane_service.rs",
+    "whole_file_unchanged_between_old_and_candidate": true
+  }
+]

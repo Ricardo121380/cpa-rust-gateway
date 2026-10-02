@@ -1,0 +1,11 @@
+{
+  "status": "FAIL",
+  "phase": "isolated protected management read",
+  "reason": "operator probe omitted required X-Config-Version header after GET /admin/config-versions",
+  "candidate_and_old_healthz": "PASS",
+  "candidate_and_old_build_identity": "PASS",
+  "corrective_action": "derive the single active configuration identity and revision from the GET response; verify against private restored DB; repeat only failed startup/read probes on new derived copies",
+  "migration_repeated": false,
+  "signed_regression_repeated": false,
+  "production_changes": false
+}

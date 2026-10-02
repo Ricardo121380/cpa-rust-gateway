@@ -1,0 +1,17 @@
+{
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "report_head": "a2c9e0743ab10097499bbef76a8f51db60043c69",
+  "source_workflow_sha256": "03ed6991517e65ac210bbddd244997ad2c4937dcc64042963be4037d1eacbf8a",
+  "existing_release_runs_for_source": [],
+  "remote_branch_before": null,
+  "checked_at_utc": "2026-10-02T02:37:56.223419+00:00",
+  "workflow_side_effects": [
+    "push exact branch",
+    "native x86_64 and arm64 builds",
+    "cache",
+    "GitHub OIDC Sigstore manifest signing and transparency log",
+    "private artifact upload 14 days"
+  ],
+  "deployment": false,
+  "real_provider_calls": 0
+}

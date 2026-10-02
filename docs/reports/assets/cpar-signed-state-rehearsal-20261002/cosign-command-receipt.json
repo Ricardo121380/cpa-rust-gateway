@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "reason": "retain exact command and installed version alongside actual final cryptographic log",
+  "version": {
+    "gitVersion": "v3.1.2",
+    "gitCommit": "193d2153431f8bb0d945a4c1ee721872f73add67",
+    "gitTreeState": "\"clean\"",
+    "buildDate": "2026-07-17T14:32:20Z",
+    "goVersion": "go1.26.5",
+    "compiler": "gc",
+    "platform": "darwin/arm64"
+  },
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "records": [
+    {
+      "platform": "linux-arm64",
+      "argv": [
+        "cosign",
+        "verify-blob",
+        "--bundle",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-signed-state-rehearsal-20261002/linux-arm64/artifact-manifest.sigstore.json",
+        "--certificate-identity",
+        "https://github.com/Ricardo121380/cpa-rust-gateway/.github/workflows/release-artifact.yml@refs/heads/codex/cpar-execution-arm64-20261002",
+        "--certificate-oidc-issuer",
+        "https://token.actions.githubusercontent.com",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-signed-state-rehearsal-20261002/linux-arm64/artifact-manifest.json"
+      ],
+      "return_code": 0,
+      "status": "PASS",
+      "log": "linux-arm64-cosign-final-verify.log",
+      "observed_at_utc": "2026-10-02T04:25:16.555138+00:00"
+    },
+    {
+      "platform": "linux-amd64",
+      "argv": [
+        "cosign",
+        "verify-blob",
+        "--bundle",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-signed-state-rehearsal-20261002/linux-amd64/artifact-manifest.sigstore.json",
+        "--certificate-identity",
+        "https://github.com/Ricardo121380/cpa-rust-gateway/.github/workflows/release-artifact.yml@refs/heads/codex/cpar-execution-arm64-20261002",
+        "--certificate-oidc-issuer",
+        "https://token.actions.githubusercontent.com",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-signed-state-rehearsal-20261002/linux-amd64/artifact-manifest.json"
+      ],
+      "return_code": 0,
+      "status": "PASS",
+      "log": "linux-amd64-cosign-final-verify.log",
+      "observed_at_utc": "2026-10-02T04:25:17.928297+00:00"
+    }
+  ]
+}

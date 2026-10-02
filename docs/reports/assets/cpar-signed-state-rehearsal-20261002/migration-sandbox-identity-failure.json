@@ -1,0 +1,11 @@
+{
+  "status": "FAIL",
+  "phase": "candidate migration open",
+  "reason": "user namespace UID mapping prevented service UID from opening its owned copied database",
+  "migration_schema_after_failure": 31,
+  "private_failure_directory": "migrated-pristine",
+  "corrective_action": "prepare mount/network/PID/IPC/UTS namespaces as root; make mount propagation private; mount only task copies and public runtimes; chroot and drop to actual host UID995/GID986 with zero effective/bounding capabilities and NoNewPrivs",
+  "production_permission_changes": false,
+  "candidate_source_changes": false,
+  "signed_410_regression_already_passed": true
+}

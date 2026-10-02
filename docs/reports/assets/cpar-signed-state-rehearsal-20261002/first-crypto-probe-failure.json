@@ -1,0 +1,8 @@
+{
+  "status": "FAIL",
+  "phase": "pre-migration crypto audit",
+  "failure_class": "InvalidTag",
+  "candidate_migration_started": false,
+  "diagnostic_expansion": "count every existing envelope without plaintext output; retain FAIL if any required envelope is unreadable",
+  "gate_lowered": false
+}

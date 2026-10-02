@@ -1,0 +1,6 @@
+{
+  "status": "FAIL_THEN_FIXED",
+  "phase": "staged diff whitespace",
+  "reason": "generated openssl text and public GitHub logs contain trailing whitespace",
+  "correction": "normalize derived text logs only; retain raw log hashes and local originals; manifest, signature, bundle and payload bytes untouched"
+}

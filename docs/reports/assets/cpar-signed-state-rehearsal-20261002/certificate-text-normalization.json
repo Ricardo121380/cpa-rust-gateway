@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "scope": "derived openssl x509 human-readable certificate dumps only",
+  "correction": "strip trailing whitespace introduced by openssl text output for repository diff check",
+  "signed_bundle_manifest_signature_and_payload_bytes_changed": false
+}

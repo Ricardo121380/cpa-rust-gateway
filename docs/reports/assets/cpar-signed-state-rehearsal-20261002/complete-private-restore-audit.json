@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "scope": "retained production backup archives and full old-state restore package metadata",
+  "original_archive_bytes_and_symlink_targets_equal_private_capture": true,
+  "production_archive_stable_during_read_only_audit": true,
+  "copy_ownership_matches_original_after_operator_metadata_correction": true,
+  "original_archive_entry_count": 31,
+  "entry_kind_counts": {
+    "file": 21,
+    "directory": 8,
+    "symlink": 2
+  },
+  "archive_bytes_and_metadata_hmac_sha256": "294a46a4ebb6d0546b4ed405071eea4e265dfc25eefef07285bdbd1e2e3fbfea",
+  "restore_dependencies_retained": [
+    "both databases",
+    "backup artifacts and symlinks",
+    "six persistent keys",
+    "old binary",
+    "unit and drop-in text",
+    "old current target",
+    "ownership and modes",
+    "private integrity HMAC key and row baseline"
+  ],
+  "private_metadata_correction_only": true,
+  "production_permission_changes": false,
+  "private_content_exported": false
+}

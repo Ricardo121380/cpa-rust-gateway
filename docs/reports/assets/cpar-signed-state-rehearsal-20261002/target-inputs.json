@@ -1,0 +1,33 @@
+{
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "source_export": "selected scripts from fixed clean local shallow checkout; authentic commit and root-tree objects retained; not a full remote checkout",
+  "regression_script_sha256": {
+    "cpar-batch-b-http.py": "45b6968433d3d40e71b70e310d0cc0f5577b728f062d41654ab853083e3f2589",
+    "cpar_execution_evidence_http.py": "8e1521427e9acf3a046d96bb960eb8f6b739d4c4e4b4d0bad0d22c30e7e6e311",
+    "cpar_new_build_acceptance.py": "7f4fd5de8865d1e72b84ca8237570f0c7faefa3ba6b173ae95c8f5856136a504",
+    "cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+  },
+  "transport_bytes": 58807,
+  "production_data_included": false,
+  "signed_arm64_transport": {
+    "bytes": 49634343,
+    "target_directory": "artifact-542a3c30aae7",
+    "completed": true
+  },
+  "operator_tools_initial": {
+    "private-crypto-audit.py": "f963207e5490c35408a2dec8624b539f49abba230ca52d7725676107eb7d9d89",
+    "isolated-startup-probe.py": "3c0299c2070da95b4c2cca08ac2dec5998f450dae6a6668bcc5cec97420f9bb8",
+    "target-rehearsal.py": "6c856673f546dc88468d2d87aa7be13ffc6dd3bd940240361b4628d167927db2"
+  },
+  "operator_tools_final": {
+    "final-private-audit.py": "785f7800efb01283db8f6b23e15838736ce4cc49e2437be29017d2ace9adc0ca",
+    "private-namespace-runner.py": "9ff146cdf0656750d8fb6fabc7655ae441d5c15f6e541f09feb4de6d88c4c0e9",
+    "remote-readonly.py": "7ba3e10485a8ece92c0b1c172639431ffbe0a9c2eb875abba11caf5acce5b5e6",
+    "isolated-startup-probe.py": "b0388e9322c195390bc1eaebe56cb3c43a01db9f546a5c25377bbe4c5ca6c47b",
+    "complete-private-restore-audit.py": "e07ec9a8a44a0971fc342ce0923c00dd01bb36140eb96aca190877670208223e",
+    "online-private-copy.py": "227a785cbd3de30f6fe2e717da902358e64b86c8a048fdc24a4f9f90c54e86d3",
+    "recheck-isolated-startup.py": "7a30a203451fe7f4cafff2af2d9e125df120639841209a71525fc1e137d1fcc3",
+    "target-rehearsal.py": "3ec93931447776cbb9964bc8ceb5cd8b9851e455b58c68744aa2e9797e98b840",
+    "private-crypto-audit.py": "f963207e5490c35408a2dec8624b539f49abba230ca52d7725676107eb7d9d89"
+  }
+}

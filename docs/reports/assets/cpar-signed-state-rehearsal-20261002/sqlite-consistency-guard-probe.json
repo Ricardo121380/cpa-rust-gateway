@@ -1,0 +1,8 @@
+{
+  "scope": "synthetic_sqlite_guard_probe",
+  "online_read_transaction_backup": "PASS",
+  "unchanged_window_accepted": true,
+  "intervening_other_connection_commit_rejected": true,
+  "sqlite_version": "3.54.0",
+  "production_state_accessed": false
+}

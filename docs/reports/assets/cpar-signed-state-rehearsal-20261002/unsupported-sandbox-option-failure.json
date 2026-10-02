@@ -1,0 +1,8 @@
+{
+  "status": "FAIL",
+  "phase": "operator sandbox invocation",
+  "reason": "bubblewrap 0.9.0 does not support --share-user",
+  "correction": "actual host UID through setpriv plus pre-opened bind descriptors",
+  "candidate_source_changed": false,
+  "production_modified": false
+}

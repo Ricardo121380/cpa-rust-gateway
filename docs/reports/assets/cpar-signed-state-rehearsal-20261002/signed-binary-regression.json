@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "binary_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "checks_passed": 410,
+  "all_checks_pass": true,
+  "synthetic_provider_request_count": 223,
+  "real_provider_calls": 0,
+  "scope": "exact signed ARM64 binary; real gateway+SQLite+loopback TLS/SOCKS; private network/mount/pid namespace"
+}

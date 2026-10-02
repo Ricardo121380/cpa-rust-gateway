@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "issue": 57,
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57",
+  "live_state": "OPEN",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "artifact_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "candidate_deployment_readiness": "BLOCKED",
+  "completed_layers": [
+    "exact source remote ref and release matrix",
+    "two-platform OIDC cryptographic signature and strict receipt",
+    "ARM64 target compatibility and 410 isolated checks",
+    "consistent private production state/key capture",
+    "31 to 34 original-column preservation and Unknown semantics",
+    "full old-state/key restore and old-binary isolated startup"
+  ],
+  "remaining": [
+    "preexisting archived credential AEAD readability failure",
+    "fresh production inventory and cutover-time backup",
+    "authorized production switch and version verification",
+    "actual pin and scoped capability freeze",
+    "real three-protocol JSON/SSE basics",
+    "declared extensions and controlled boundary samples",
+    "Kiro and Grok Web independent software gaps"
+  ],
+  "deployment": "NOT_RUN",
+  "real_provider_calls": 0,
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false,
+  "remote_issue_writes": 0
+}

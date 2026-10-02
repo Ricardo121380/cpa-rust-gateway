@@ -1,0 +1,7 @@
+{
+  "status": "FAIL",
+  "phase": "active configuration projection assertion",
+  "reason": "operator compared management rev-N string with stored integer directly",
+  "corrective_action": "validate the documented ConfigVersionResponse rev-N projection against the database only; do not infer actual execution revision; recheck only startup probes",
+  "production_changes": false
+}

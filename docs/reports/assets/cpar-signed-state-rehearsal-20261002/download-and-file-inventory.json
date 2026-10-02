@@ -1,0 +1,110 @@
+[
+  {
+    "platform": "linux-arm64",
+    "github_artifact_id": 11206417516,
+    "zip_sha256": "cec88d27aa0168a2c56c3c93b927d5cd5e59f80db84c30f0cb0ddb4d39949c76",
+    "github_digest_match": true,
+    "artifact_directory": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-signed-state-rehearsal-20261002/linux-arm64",
+    "files": [
+      {
+        "name": "artifact-manifest.json",
+        "bytes": 1016,
+        "sha256": "7e6c9b59b3d2715692cd8178662ca8532836c784db5b833c6c4ee1ae0aa81653"
+      },
+      {
+        "name": "artifact-manifest.json.sig",
+        "bytes": 96,
+        "sha256": "d8a59220b5d6940df177c6fb69dcea4c3c4ab377018250494afb584f5c1f7039"
+      },
+      {
+        "name": "artifact-manifest.sigstore.json",
+        "bytes": 10029,
+        "sha256": "e39ac6e5d0098117f89e1c09d7a9aacaf1c8a6043efdf249fac8ded0f46841ce"
+      },
+      {
+        "name": "artifact-receipt.json",
+        "bytes": 1546,
+        "sha256": "6fce27b33ca0e21e1d48c17e393f5a585739de4f7f3f76ffd366cf88d3917ae0"
+      },
+      {
+        "name": "gateway-aarch64-unknown-linux-gnu",
+        "bytes": 19500320,
+        "sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87"
+      },
+      {
+        "name": "gateway-build-metadata.json",
+        "bytes": 261,
+        "sha256": "ee8a7c474ba03646444c53dabd24691e050169704668a9521f3db0b824fbd403"
+      },
+      {
+        "name": "gateway-image.oci.tar",
+        "bytes": 41024512,
+        "sha256": "a52cf98495ec60b824c590c2ac0a38fea0136196327d4147fc285a43fad4cefb"
+      },
+      {
+        "name": "gateway-sbom.cdx.json",
+        "bytes": 209278,
+        "sha256": "7dc683785a261ba33f5f66dd34093cf2c87a89211ed4ac711b53b9266b734947"
+      },
+      {
+        "name": "signing-identity.json",
+        "bytes": 304,
+        "sha256": "02b3b040d755b6ca69192aabcc3193c62c9019de16e3cf1c18026eb7f8ac6605"
+      }
+    ]
+  },
+  {
+    "platform": "linux-amd64",
+    "github_artifact_id": 11206397516,
+    "zip_sha256": "09344d74ee61a92fd05002d58e10cc1ff15d0b392b1b7aefd8f561e41ca202c3",
+    "github_digest_match": true,
+    "artifact_directory": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-signed-state-rehearsal-20261002/linux-amd64",
+    "files": [
+      {
+        "name": "artifact-manifest.json",
+        "bytes": 1014,
+        "sha256": "ba43074a1ac94e5ee8b36b61e401872c4dd7a55adaf15e64cd68cbe5211a3c7c"
+      },
+      {
+        "name": "artifact-manifest.json.sig",
+        "bytes": 96,
+        "sha256": "e5f902c32c7c2c3622b599d1b1761a1027346146b04dbc1c6d1b94f3d95e02a3"
+      },
+      {
+        "name": "artifact-manifest.sigstore.json",
+        "bytes": 10029,
+        "sha256": "f7c785dc2bbe895329fb3116cf96c4262512053fea227358988ef730f1913689"
+      },
+      {
+        "name": "artifact-receipt.json",
+        "bytes": 1545,
+        "sha256": "69a67b4744e6c6af27b35f656ad1c2c083ea7b4209c775bb29b7abd7cdde8f2c"
+      },
+      {
+        "name": "gateway-build-metadata.json",
+        "bytes": 259,
+        "sha256": "0773bb509eef2ebea6ed7d0230ef998cb93978b733ead7a26d24858ee2b540d3"
+      },
+      {
+        "name": "gateway-image.oci.tar",
+        "bytes": 41806848,
+        "sha256": "66af1a98a53140706966501e1ced2f24c4dd2b07c42fe69c8783fea99bc9daa3"
+      },
+      {
+        "name": "gateway-sbom.cdx.json",
+        "bytes": 209276,
+        "sha256": "5dfdb7d777708fd3e127b2f4925ff1d1aea53d20cabab318d8e43b31c3536cc3"
+      },
+      {
+        "name": "gateway-x86_64-unknown-linux-gnu",
+        "bytes": 22762776,
+        "sha256": "d2ffc57b95690c841167cd5a7150b8570cbaf51266d24a88f29e7fb165091790"
+      },
+      {
+        "name": "signing-identity.json",
+        "bytes": 304,
+        "sha256": "02b3b040d755b6ca69192aabcc3193c62c9019de16e3cf1c18026eb7f8ac6605"
+      }
+    ]
+  }
+]

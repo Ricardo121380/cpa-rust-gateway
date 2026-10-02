@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-02T03:48:49.272703+00:00",
+  "production_pid": 499070,
+  "production_old_binary_hash_unchanged": true,
+  "production_current_unchanged": true,
+  "production_unit_and_dropin_bytes_unchanged": true,
+  "six_persistent_keys_and_loaded_credentials_equal_preupgrade_capture": true,
+  "production_loopback_listeners": [
+    18180,
+    18181
+  ],
+  "task_candidate_processes_remaining": 0,
+  "host_task_listeners_remaining": 0,
+  "task_root_owner": 0,
+  "task_root_mode": "0700",
+  "baseline_crypto_failure": {
+    "count": 1,
+    "categories": {
+      "AEAD_INVALID_TAG": 1
+    },
+    "configuration_lifecycle": "archived",
+    "private_locator_retained": true
+  },
+  "private_state_or_key_bytes_exported": false,
+  "real_provider_calls": 0
+}

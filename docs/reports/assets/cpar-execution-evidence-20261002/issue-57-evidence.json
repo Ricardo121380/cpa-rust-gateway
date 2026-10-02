@@ -30,5 +30,7 @@
     "declared_extensions_and_controlled_boundaries",
     "Kiro_output_cap_independent_blocker",
     "Grok_Web_native_multiturn_and_cap_independent_blockers"
-  ]
+  ],
+  "evidence_period": "before_remote_signed_artifact_and_production_copy_rehearsal",
+  "successor_evidence": "../cpar-signed-state-rehearsal-20261002/issue-57-evidence.json"
 }
