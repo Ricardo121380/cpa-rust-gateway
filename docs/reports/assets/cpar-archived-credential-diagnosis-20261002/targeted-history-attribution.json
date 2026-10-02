@@ -1,0 +1,58 @@
+{
+  "status": "PASS",
+  "record_alias": "AC-01",
+  "parent_targeted_resource_audit_count": 8,
+  "parent_targeted_resource_audit": [
+    {
+      "action": "credential_created",
+      "resource_kind": "credential",
+      "at_utc": "2026-08-03T08:10:22.451000+00:00"
+    },
+    {
+      "action": "endpoint_credential_binding_created",
+      "resource_kind": "endpoint_credential_binding",
+      "at_utc": "2026-08-03T08:10:22.454000+00:00"
+    },
+    {
+      "action": "endpoint_credential_binding_created",
+      "resource_kind": "endpoint_credential_binding",
+      "at_utc": "2026-08-03T08:10:22.457000+00:00"
+    },
+    {
+      "action": "credential_oauth_rotated",
+      "resource_kind": "credential",
+      "at_utc": "2026-08-09T14:17:18.889000+00:00"
+    },
+    {
+      "action": "credential_oauth_rotated",
+      "resource_kind": "credential",
+      "at_utc": "2026-08-09T14:20:25.749000+00:00"
+    },
+    {
+      "action": "credential_exported",
+      "resource_kind": "credential",
+      "at_utc": "2026-08-09T14:26:15.404000+00:00"
+    },
+    {
+      "action": "credential_exported",
+      "resource_kind": "credential",
+      "at_utc": "2026-08-09T14:26:40.862000+00:00"
+    },
+    {
+      "action": "credential_exported",
+      "resource_kind": "credential",
+      "at_utc": "2026-08-09T14:27:11.527000+00:00"
+    }
+  ],
+  "earlier_backup_parent_metadata": {
+    "kind": "bearer",
+    "status": "active",
+    "revision": 0,
+    "key_version": 1
+  },
+  "child_archival_transition_audit_count": 0,
+  "same_credential_id_historical_attempts": 146,
+  "historical_config_attribution": "UNKNOWN unless explicit execution identity; same credential ID is version-scoped",
+  "native_grok_links_count": 0,
+  "no_provider_request_sent": true
+}

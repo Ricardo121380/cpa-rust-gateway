@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "old_source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+  "candidate_source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "checks": [
+    {
+      "path": "crates/gateway-store/src/secret_store.rs",
+      "whole_file_identical": true
+    },
+    {
+      "path": "crates/gateway-control/src/control_plane_service.rs",
+      "whole_file_identical": true
+    },
+    {
+      "path": "crates/gateway-control/src/credential_pool_compiler.rs",
+      "whole_file_identical": true
+    },
+    {
+      "path": "crates/gateway-control/src/management_mutation_service.rs",
+      "symbol": "open_credential_for_export",
+      "function_identical": true
+    }
+  ]
+}

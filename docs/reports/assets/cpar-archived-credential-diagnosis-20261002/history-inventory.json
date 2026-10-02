@@ -1,0 +1,130 @@
+{
+  "status": "BOUNDED_HISTORY_INVENTORY",
+  "scope": "retained capture-2 backup subtree, no symlink traversal; exact credential/upstream identity only",
+  "archives": [
+    {
+      "alias": "backup-1",
+      "mtime_utc": "2026-09-02T07:46:54.035556+00:00",
+      "bytes": 1261568,
+      "matching_identity_rows": 9,
+      "target_rows": 1,
+      "parent_rows": 1,
+      "target_same_ciphertext": true
+    },
+    {
+      "alias": "backup-2",
+      "mtime_utc": "2026-09-02T07:26:43.097507+00:00",
+      "bytes": 1245184,
+      "matching_identity_rows": 9,
+      "target_rows": 1,
+      "parent_rows": 1,
+      "target_same_ciphertext": true
+    },
+    {
+      "alias": "backup-3",
+      "mtime_utc": "2026-09-01T14:22:26.276803+00:00",
+      "bytes": 0,
+      "category": "NOT_SQLITE_DATABASE"
+    },
+    {
+      "alias": "backup-4",
+      "mtime_utc": "2026-08-31T13:31:07.732228+00:00",
+      "bytes": 1085440,
+      "matching_identity_rows": 9,
+      "target_rows": 1,
+      "parent_rows": 1,
+      "target_same_ciphertext": true
+    },
+    {
+      "alias": "backup-5",
+      "mtime_utc": "2026-08-01T02:40:05.772758+00:00",
+      "bytes": 327680,
+      "matching_identity_rows": 0,
+      "target_rows": 0,
+      "parent_rows": 0,
+      "target_same_ciphertext": null
+    },
+    {
+      "alias": "backup-6",
+      "mtime_utc": "2026-08-02T01:25:29.612954+00:00",
+      "bytes": 327680,
+      "matching_identity_rows": 0,
+      "target_rows": 0,
+      "parent_rows": 0,
+      "target_same_ciphertext": null
+    },
+    {
+      "alias": "backup-7",
+      "mtime_utc": "2026-08-02T01:27:05.912822+00:00",
+      "bytes": 327680,
+      "matching_identity_rows": 0,
+      "target_rows": 0,
+      "parent_rows": 0,
+      "target_same_ciphertext": null
+    },
+    {
+      "alias": "backup-8",
+      "mtime_utc": "2026-08-02T02:01:50.174690+00:00",
+      "bytes": 335872,
+      "matching_identity_rows": 0,
+      "target_rows": 0,
+      "parent_rows": 0,
+      "target_same_ciphertext": null
+    },
+    {
+      "alias": "backup-9",
+      "mtime_utc": "2026-09-01T16:36:14.805562+00:00",
+      "bytes": 1089536,
+      "matching_identity_rows": 9,
+      "target_rows": 1,
+      "parent_rows": 1,
+      "target_same_ciphertext": true
+    },
+    {
+      "alias": "backup-10",
+      "mtime_utc": "2026-08-05T12:56:53.154661+00:00",
+      "bytes": 704512,
+      "matching_identity_rows": 4,
+      "target_rows": 0,
+      "parent_rows": 1,
+      "target_same_ciphertext": null
+    },
+    {
+      "alias": "backup-11",
+      "mtime_utc": "2026-09-01T17:13:16.482525+00:00",
+      "bytes": 1241088,
+      "matching_identity_rows": 9,
+      "target_rows": 1,
+      "parent_rows": 1,
+      "target_same_ciphertext": true
+    },
+    {
+      "alias": "backup-12",
+      "mtime_utc": "2026-09-01T14:24:39.662037+00:00",
+      "bytes": 401408,
+      "matching_identity_rows": 0,
+      "target_rows": 0,
+      "parent_rows": 0,
+      "target_same_ciphertext": null
+    },
+    {
+      "alias": "backup-13",
+      "mtime_utc": "2026-09-01T16:33:53.330544+00:00",
+      "bytes": 1089536,
+      "matching_identity_rows": 9,
+      "target_rows": 1,
+      "parent_rows": 1,
+      "target_same_ciphertext": true
+    },
+    {
+      "alias": "backup-14",
+      "mtime_utc": "2026-09-01T15:54:25.404429+00:00",
+      "bytes": 1089536,
+      "matching_identity_rows": 9,
+      "target_rows": 1,
+      "parent_rows": 1,
+      "target_same_ciphertext": true
+    }
+  ],
+  "raw_paths_exported": false
+}

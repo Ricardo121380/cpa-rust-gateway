@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "reason": "PRODUCTION_ARCHIVED_CREDENTIAL_AAD_CONTEXT_MISMATCH_UNREPAIRED",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "artifact_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "baseline_report_commit": "6bd5ea4a",
+  "record_alias": "AC-01",
+  "root_cause": {
+    "confirmed": "exact child record contains envelope authenticated for direct parent configuration AAD",
+    "confidence": "HIGH",
+    "formation_hypothesis": "parent ciphertext copied without resealing for child config ID",
+    "operator_command_and_exact_first_bad_write": "NOT_ESTABLISHED"
+  },
+  "gates_reused": {
+    "fixed_source_checkout": "PASS",
+    "remote_release_matrix": "PASS",
+    "cosign_cryptographic_signature": "PASS",
+    "require_signature_and_receipt": "PASS",
+    "all_manifest_payload_digests": "PASS",
+    "target_elf_dynamic_libraries_and_help": "PASS",
+    "signed_arm64_410_regression": "PASS",
+    "consistent_cross_database_and_key_private_copy": "PASS",
+    "production_copy_31_to_34_original_columns_and_unknowns": "PASS",
+    "candidate_service_uid_startup_and_protected_read": "PASS",
+    "complete_old_state_keys_binary_restore_and_startup": "PASS",
+    "production_service_current_unit_keys_and_listeners_unchanged": "PASS"
+  },
+  "affected_gate": {
+    "name": "all_historical_credential_envelopes_readable",
+    "production_status": "FAIL",
+    "derived_repaired_copy_status": "PASS",
+    "original_capture_authenticated": 40,
+    "original_capture_total": 41,
+    "repaired_copy_authenticated": 41,
+    "repaired_copy_total": 41,
+    "native_grok_authenticated": 5,
+    "native_grok_total": 5
+  },
+  "this_round": {
+    "native_old_candidate_baseline_and_repaired_cases": "4/4 PASS",
+    "diagnostic_management_operations": "36/36 expected outcomes",
+    "exact_parent_export_equality_after_repair": "old and candidate PASS",
+    "one_row_one_column_copy_repair": "PASS",
+    "other_original_tables_preserved": 53,
+    "repaired_migration_original_tables_preserved": 54,
+    "cas_rollback_reapply_and_stale_expected_envelope": "PASS",
+    "product_source_modified": false,
+    "production_repaired": false
+  },
+  "current_observation": {
+    "observed_at_utc": "2026-10-02T09:15:51.222606+00:00",
+    "production_pid": 499070,
+    "old_binary_current_unit_unchanged": true,
+    "six_persistent_loaded_and_capture_keys_match": true,
+    "master_key_version": 1,
+    "target_all_columns_identical_to_capture": true,
+    "parent_all_columns_identical_to_capture": true,
+    "target_configuration_lifecycle": "archived",
+    "target_configuration_revision": 0,
+    "direct_parent_unchanged": true,
+    "target_exact_context": "AEAD_INVALID_TAG",
+    "target_envelope_with_parent_context": "PASS",
+    "target_in_active_configuration": false,
+    "same_credential_id_in_active_configuration": 0,
+    "target_is_current_rollback_predecessor": false,
+    "associated_route_candidates_in_archived_configuration": 3,
+    "target_refresh_state_count": 0
+  },
+  "deployment_preconditions": [
+    "explicit AC-01 production ciphertext repair authorization",
+    "fresh exact target/parent/key/inventory and consistent pre-repair backup",
+    "production single-field repair and fresh-copy native/authentication verification",
+    "fresh release-time inventory and coherent full pre-upgrade backup",
+    "separate exact deployment authorization"
+  ],
+  "postdeployment_acceptance": {
+    "status": "NOT_RUN",
+    "old_runtime_missing_execution_capability_fields": "EXPECTED_POSTDEPLOYMENT_VERIFICATION",
+    "order": [
+      "Krill gpt-6-sol Responses JSON",
+      "Grok Build grok-4.5 Responses JSON"
+    ],
+    "proposed_budget_each": {
+      "protected_pin": 1,
+      "formal_basics": 7,
+      "max_inference": 8
+    },
+    "budget_authorized": false,
+    "frozen_C_standard_changed": false,
+    "independent_channel_blockers": [
+      "Kiro output cap",
+      "Grok Web native multiturn and output cap",
+      "unknown relay onward egress"
+    ]
+  },
+  "real_provider_calls": 0,
+  "production_data_writes": 0,
+  "production_switches": 0,
+  "production_service_stop_start": 0,
+  "github_issue_writes": 0,
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false,
+  "completed_at_utc": "2026-10-02T09:34:35.590269+00:00"
+}

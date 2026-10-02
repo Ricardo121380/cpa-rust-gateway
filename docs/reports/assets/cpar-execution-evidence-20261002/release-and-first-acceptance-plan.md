@@ -1,5 +1,7 @@
 # new-vps 发布、回退与首批真实验收方案
 
+最新补充：[AC-01 诊断与隔离修复](../../cpar-archived-credential-aead-diagnosis-20261002.md)及[生产单字段处置申请](../cpar-archived-credential-diagnosis-20261002/production-repair-proposal.md)。已确认父／子AAD错配，旧／签名候选原生交叉验证和新副本单字段修复通过；**生产未修复，下面的发布停止条件继续生效**。生产处置许可和部署许可分别申请，不调整既有门槛。
+
 状态：**BLOCKED / PRODUCTION_SWITCH_NOT_EXECUTED**。2026-10-02 本轮已经完成固定 ref 的远端签名构建、密码学验签、最终 ARM64 制品的目标兼容与 410 项隔离回归，以及生产私有副本迁移和旧版本完整恢复启动。本轮新增的部署前阻断为：升级前生产状态中有 1 条归档配置凭据发生 AEAD 认证失败。未修复、删除或豁免它；其当前生产密文字节仍与演练副本相同。
 
 [本轮报告](../../cpar-signed-artifact-and-production-state-rehearsal-20261002.md)和[发布就绪回执](../cpar-signed-state-rehearsal-20261002/release-readiness.json)是本方案的最新前置证据。部署、生产服务 stop/start/current 切换、线上配置/权限变更、账号恢复和真实推理均未执行。本轮授权动作已执行，无需再次申请分支推送、CI 或隔离演练授权。

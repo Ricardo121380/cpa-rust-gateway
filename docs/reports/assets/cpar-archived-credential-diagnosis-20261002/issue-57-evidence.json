@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "issue": 57,
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57",
+  "live_state": "OPEN",
+  "source_sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "artifact_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "candidate_deployment_readiness": "BLOCKED",
+  "new_completed_layers": [
+    "single archived credential exact AAD cause bounded",
+    "old/candidate actual native baseline versus one-field repaired-copy read/export/validate",
+    "trusted exact direct-parent recovery source confirmed",
+    "one-row ciphertext-only isolated repair plus 41/41 and 5/5 authentication",
+    "repaired 31-to-34 original-data preservation and one-field CAS rollback/stale rejection"
+  ],
+  "reused_layers": [
+    "source80 signed artifact and 410 isolated regression",
+    "source80 Full45/45 and Standards/Spec reviews",
+    "original complete pre-upgrade private capture and old-state restore/startup"
+  ],
+  "remaining": [
+    "AC-01 production repair approval and execution",
+    "fresh inventory/coherent cutover backup",
+    "separate production deployment approval and execution",
+    "actual protected pin/effective scoped capability freeze",
+    "real JSON/SSE protocol and declared-extension/boundary acceptance",
+    "Kiro and Grok Web independent unresolved capabilities"
+  ],
+  "deployment": "NOT_RUN",
+  "production_repair": "NOT_RUN",
+  "real_provider_calls": 0,
+  "remote_issue_writes": 0,
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false
+}
