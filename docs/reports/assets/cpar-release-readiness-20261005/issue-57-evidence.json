@@ -1,0 +1,40 @@
+{
+  "issue": 57,
+  "remote_state": "OPEN",
+  "parent_9_remote_state": "OPEN",
+  "local_aggregation_only": true,
+  "updated_date": "2026-10-05",
+  "previous_aggregation": "../cpar-archived-credential-production-repair-20261002/issue-57-evidence.json",
+  "review_coverage_A_B": "COMPLETE",
+  "review_verdict": {
+    "A_Spec": "FAIL",
+    "B_Standards": "FAIL",
+    "B_Spec": "FAIL",
+    "source_P2": 13,
+    "documented_P3": 1,
+    "fixture_oracle_contract_matrix_gaps": "PARTIAL"
+  },
+  "historical_credential_gate": "PASS_RECONFIRMED_READONLY",
+  "signed_candidate_source": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "signed_arm64_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "report_input_HEAD": "98230abc9ccf0b7478a1e4e7d042828c506d4bdf",
+  "overall_release": "BLOCKED",
+  "overall_release_reason": "UNRESOLVED_STATIC_SOURCE_SPEC_FINDINGS_AND_ACCEPTANCE_CONTRACT_GAPS",
+  "first_Krill_request_precondition": "BLOCKED_EXPIRED_CLIENT_KEY_NO_LONG_LIVED_GRANT_TO_TARGET",
+  "cutover_and_complete_rollback_preparation": "COMPLETE_STATIC_ONLY; fresh-window execution NOT_RUN",
+  "deployment": "NOT_RUN",
+  "real_provider_acceptance": "NOT_RUN",
+  "new_scope_exceptions": 0,
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false,
+  "github_writes": 0,
+  "evidence_files": [
+    "review-results.json",
+    "release-readiness.json",
+    "artifact-verification.json",
+    "host-readonly-audit-reconciled.json",
+    "controlled-deployment-runbook.md",
+    "first-acceptance-preconditions.json"
+  ]
+}

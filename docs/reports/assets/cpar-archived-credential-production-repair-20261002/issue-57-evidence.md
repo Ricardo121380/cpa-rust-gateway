@@ -1,5 +1,9 @@
 # #57 本地归集：AC-01 生产处置完成
 
+## 2026-10-05 发布就绪复核补充
+
+[最新发布复核](../../cpar-release-readiness-and-controlled-deployment-preparation-20261005.md)和[最新#57本地归集](../cpar-release-readiness-20261005/issue-57-evidence.md)补齐A/B静态覆盖，但发现13项P2源代码规格问题；总体BLOCKED不再仅由授权／备份引起。AC01保持PASS，仍未部署或真实推理，Krill首批Key已过期。以下内容保留10月2日授权单字段处置的历史范围，不改写原成功／失败证据。
+
 [#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57)只读刷新确认仍OPEN；本文件为本地补充稿，GitHub写入0，C／#57／#9未关闭。[结构化归集](issue-57-evidence.json)、[主报告](../../cpar-archived-credential-production-repair-20261002.md)、[发布判定](release-readiness.json)。
 
 用户批准原单字段生产方案后，AC-01已在new-vps完成唯一1行ciphertext重新封装。新pre/post一致完整集合、同脚本修复／回退／冲突／5秒锁和10秒截止点回归通过；普通41/41、归档32/32、active3/3、draft6/6及native5/5认证通过。fresh-copy旧／签名候选2组18项实际管理操作全为预期结果，目标export与可信父完全相同，归档fork/publish仍409；候选31→34保留54张原表全部旧列。最终生产只读核对PASS，运行期独立轮换／既有失败重试已精确归因，没有覆盖并发写入。

@@ -1,0 +1,11 @@
+[
+  "web/prism/contracts/management-v1.json",
+  "web/prism/src/App.tsx",
+  "web/prism/src/app/navigation.test.ts",
+  "web/prism/src/app/navigation.ts",
+  "web/prism/src/design/workspace.css",
+  "web/prism/src/features/upstreams/UpstreamsPage.tsx",
+  "web/prism/src/generated/management-client.ts",
+  "web/prism/src/i18n/en.ts",
+  "web/prism/src/i18n/zh.ts"
+]

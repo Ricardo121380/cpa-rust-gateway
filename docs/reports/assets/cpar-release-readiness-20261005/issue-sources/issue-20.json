@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n账号和提供商列表显示最需要处理的状态、依据与下一步，详情保留各类独立证据及其时间和范围。\n\n实施编号 CPAR-11；实施批次：A。覆盖用户故事 16, 32, 33, 34, 35, 36, 37, 40, 48, 52, 53；验收场景 T03, T06, T13。\n\n## Acceptance criteria\n\n- [ ] 汇总授权、连接、应用、目录、权限、调度、额度及调用证据，不把一个布尔值或健康分数当作全部事实。\n- [ ] 停用显示管理意图；未停用优先调用阻断，其次暂时不可用及关键未知。多个问题有主要原因并可查看其余问题。\n- [ ] 未提供额度、读取失败、陈旧观察和可信耗尽分开，未知不填零；局部问题不夸大为整个账号或全部协议失效。\n- [ ] 仅配置／续期／目录成功显示调用未验证；最近调用通过必须带具体范围和时间，旧路径证据不能证明新状态。\n- [ ] 原生应用失败的全局阻断与单个账号问题分开；历史归属不足标为不完整，诊断不泄露秘密。\n- [ ] 读状态不触发续期、调度或推理；HTTP 投影与 EgoLite 状态矩阵一致。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#16](https://github.com/Ricardo121380/cpa-rust-gateway/issues/16)：Grok 原生账号接入与运行应用反馈。原因：需要原生保存与运行应用的明确事实，尤其全局阻断。\n- [#18](https://github.com/Ricardo121380/cpa-rust-gateway/issues/18)：模型发现、陈旧目录与手动补齐。原因：目录陈旧、失败与不支持需有可区分的观察结果。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 20,
+  "state": "OPEN",
+  "title": "CPAR-11：主要状态、原因与独立证据详情",
+  "updatedAt": "2026-09-29T13:28:44Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/20"
+}

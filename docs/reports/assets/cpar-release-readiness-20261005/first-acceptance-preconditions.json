@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-05",
+  "order": [
+    "Krill/gpt-6-sol/Responses JSON",
+    "Grok Build/grok-4.5/Responses JSON"
+  ],
+  "budget_per_group": {
+    "protected_pin": 1,
+    "formal_basics": 7,
+    "maximum_inference_requests": 8
+  },
+  "maximum_combined_inference_requests": 16,
+  "inference_executed": 0,
+  "runtime_rule": "candidate source80 / signedhash542; report commit is not runtime; new source requires rebinding",
+  "client_key_evidence_is_not_secret": true,
+  "targets": [
+    {
+      "order": 1,
+      "provider": "p12-12-production-krill-upstream",
+      "channel": "p12-12-production-krill-responses-endpoint",
+      "model": "gpt-6-sol",
+      "route": "route-0b9a2bb7-3f85-487a-bba2-0871bacc46ca",
+      "candidate": "candidate-95857499-eff9-4b29-8bb5-34e55dbabcb0",
+      "account_evidence_id": "cef2ecd2670e4737aad5c371a9720adcf36f9095d01e14e9c056e319aa480b9e",
+      "client_key_evidence_id": "4154a728ad5abcb01d21935755d1a35fe218a906449da23cc220848e9ee0705f",
+      "account_binding_route": "PASS_READONLY",
+      "client_key": "BLOCKED_EXPIRED",
+      "expiry_utc": "2026-10-04T04:02:20.553Z",
+      "long_lived_key_has_new_route": false,
+      "egress_policy_host": "api.krill-ai.com",
+      "actual_attempt_egress": "UNKNOWN_UNTIL_POST_DEPLOY_PIN",
+      "next_action": "approved Key validity repair or dedicated new Key limited to exact new route; no permission/account change this task"
+    },
+    {
+      "order": 2,
+      "provider": "p12-12-production-grok-build-upstream",
+      "channel": "p12-12-production-grok-build-endpoint",
+      "model": "grok-4.5",
+      "route": "p12-12-production-grok-build-route",
+      "candidate": "p12-12-production-grok-build-candidate",
+      "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+      "client_key_evidence_id": "7b7960db5735b8850100838480b35002ca5e8953467bb04c740ce1a7f5d90127",
+      "account_status": "active_available_at_snapshot",
+      "native_revision_observed": 112,
+      "native_revision_is_not_actual_lease_revision": true,
+      "other_two_build_accounts": "expired_preserved",
+      "egress_policy_host": "cli-chat-proxy.grok.com",
+      "provider_egress_readonly": "direct_available",
+      "actual_attempt_identity": "NOT_RUN_POST_DEPLOY_PIN_REQUIRED"
+    }
+  ],
+  "shared_preconditions": [
+    "source/artifact/actualPID verified after deployment",
+    "fresh full inventory and all pages complete",
+    "same exact account, config, route/candidate/model, ClientKey scope and expiry",
+    "protected serving_snapshot capability evidence complete",
+    "actual pin execution lease/config/egress lineage and single attempt; do not infer revisions from native row/ETag",
+    "freeze with existing new-build oracle; preflight first, explicit execute only after real budget approval",
+    "no credentials, keys, raw DB or wire body exported",
+    "unknown, drift, unauthorized, unsupported or inconsistent Usage/ledger stops remaining requests; no retry/account switch"
+  ],
+  "legacy_build_missing_fields": "expected post-deploy prerequisite, no circular requirement to infer before deploying",
+  "remaining_combinations": {
+    "Kiro_output_cap": "BLOCKED",
+    "Grok_Web_native_multi_turn_and_output_cap": "BLOCKED",
+    "unknown_Web_relay_onward": "BLOCKED",
+    "other_JSON_SSE_protocols_and_declared_extensions": "NOT_RUN_or_existing_exact_status; basic success does not close declared capabilities"
+  }
+}

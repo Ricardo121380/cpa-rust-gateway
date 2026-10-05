@@ -1,0 +1,20 @@
+[
+  "apps/gateway/src/deployment.rs",
+  "apps/gateway/src/runtime.rs",
+  "crates/gateway-control/src/billing_materializer.rs",
+  "crates/gateway-control/src/billing_service.rs",
+  "crates/gateway-control/src/management_operations_service.rs",
+  "crates/gateway-http-actix/src/lib.rs",
+  "crates/gateway-http-actix/src/management_resources.rs",
+  "crates/gateway-http-actix/src/stored_response_continuity.rs",
+  "crates/gateway-http-actix/tests/p13_04_management_inventory.rs",
+  "crates/gateway-store/migrations/0033_usage_provenance.down.sql",
+  "crates/gateway-store/migrations/0033_usage_provenance.up.sql",
+  "crates/gateway-store/src/billing_ledger.rs",
+  "crates/gateway-store/src/event_store.rs",
+  "crates/gateway-store/src/lib.rs",
+  "docs/openapi/management-v1.json",
+  "scripts/acceptance/cpar-batch-b-http.py",
+  "scripts/acceptance/prism-local-gateway.py",
+  "web/prism/contracts/management-v1.json"
+]

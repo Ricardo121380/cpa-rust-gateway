@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n接入后从账号或 API 配置的模型入口单独设置开放范围，明确授权才允许相应客户端 Key 调用。\n\n实施编号 CPAR-10；实施批次：A。覆盖用户故事 24, 25, 26, 29, 69, 80, 88；验收场景 T05, T12。\n\n## Acceptance criteria\n\n- [ ] 从既有账号／API 配置行可独立管理模型开放范围；未选权限不阻止接入完成。\n- [ ] 新发现及尚未明确授权模型保持默认关闭，已有模型权限不变；接入、目录刷新、续期或重授权不得扩权。\n- [ ] 显式变更只作用于确认的模型和 Key／权限范围，保留同组或 sibling Key 的既有访问边界。\n- [ ] 通过公共模型视图和调用入口验证未开放不可达、明确授权后可达，不能仅用前端勾选证明生效。\n- [ ] 并发修改、保存／应用失败和未知结果如实反馈；既有模型即可验收，不把新目录实现或页面重组设为人为启动依赖。\n- [ ] 管理 HTTP 与 EgoLite 流程通过，保留原有访问控制及高级入口。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\nNone (can start immediately). 执行优先级仍按 A → B → C；没有代码／契约依赖的 D 可独立准备。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 19,
+  "state": "OPEN",
+  "title": "CPAR-10：独立模型权限入口与默认关闭",
+  "updatedAt": "2026-09-29T13:28:37Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/19"
+}

@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n删除前预览影响，一次确认后解除本账号关联、删除并按规则应用；共享资源、其他账号和历史保留。\n\n实施编号 CPAR-14；实施批次：A。覆盖用户故事 18, 43, 44, 45, 47, 48, 52, 88；验收场景 T03, T04, T07, T12。\n\n## Acceptance criteria\n\n- [ ] 列明受影响账号关联、服务／模型及其他账号承接情况；不承诺一定自动替补。\n- [ ] 一次确认后在同一任务完成解除关联、删除、应用；旧待应用修改沿用合并核对，revision 冲突先重读。\n- [ ] 保留共享连接、其他账号、模型定义、请求、Usage、账本与审计历史，不把删除等同上游注销／撤销或全历史凭据清除。\n- [ ] 普通和 native 都在删除生效后停止新分配，在途按停用规则自然结束；保存成功应用失败仍显示两段事实。\n- [ ] 丢响应先确认是否完成，批量动作保留已确认结果；受控共享连接及在途场景的 HTTP／EgoLite 验收通过。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#22](https://github.com/Ricardo121380/cpa-rust-gateway/issues/22)：账号启停：停止新分配、在途继续。原因：删除复用已验证的停止新分配及在途保留语义，同时继承两类应用回执。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 23,
+  "state": "OPEN",
+  "title": "CPAR-14：删除影响预览与共享资源历史保留",
+  "updatedAt": "2026-09-29T13:29:16Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/23"
+}

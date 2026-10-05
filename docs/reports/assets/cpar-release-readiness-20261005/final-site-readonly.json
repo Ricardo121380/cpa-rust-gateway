@@ -1,0 +1,26 @@
+{
+  "observed_at_utc": "2026-10-05T12:34:15.506512+00:00",
+  "service": {
+    "MainPID": "499070",
+    "NRestarts": "0",
+    "User": "cpa-gateway",
+    "ActiveState": "active"
+  },
+  "current": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+  "actual_binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+  "schema": 31,
+  "caddy_pid": 2048292,
+  "caddy_actual_uid_fields": [
+    "999",
+    "999",
+    "999",
+    "999"
+  ],
+  "caddy_nonroot": true,
+  "planned_maintenance_table_absent": true,
+  "all_nine_artifact_paths_direct_regular": true,
+  "artifact_directory_mode": "0o755",
+  "artifact_task_parent_mode": "0o700",
+  "production_service_changes": 0,
+  "provider_calls": 0
+}

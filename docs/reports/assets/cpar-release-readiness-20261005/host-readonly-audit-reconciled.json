@@ -1,0 +1,468 @@
+{
+  "observed_at_utc": "2026-10-05T12:01:29.960181+00:00",
+  "scope": "read_only_host_resident_no_provider",
+  "production_writes": 0,
+  "service_changes": 0,
+  "task_initiated_provider_calls": 0,
+  "secret_output": false,
+  "runtime": {
+    "unit": {
+      "MainPID": "499070",
+      "ExecMainStartTimestamp": "Mon 2026-09-28 09:23:42 UTC",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "ports": [
+      18180,
+      18181
+    ],
+    "old_binary_unit_current_and_six_keys_match": true
+  },
+  "crypto": {
+    "status": "PASS",
+    "method": "actual XChaCha20-Poly1305 AEAD authentication with exact source AAD and retained key",
+    "hchacha_published_vector": "PASS",
+    "authenticated_envelopes": {
+      "upstream_credentials": 41,
+      "native_grok_accounts": 5
+    },
+    "failed_envelopes": {
+      "upstream_credentials": 0,
+      "native_grok_accounts": 0
+    },
+    "classifications": {
+      "upstream:archived:active": {
+        "authenticated": 32,
+        "failed": 0
+      },
+      "upstream:draft:active": {
+        "authenticated": 6,
+        "failed": 0
+      },
+      "upstream:active:active": {
+        "authenticated": 3,
+        "failed": 0
+      },
+      "native:build:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:console:True:active": {
+        "authenticated": 2,
+        "failed": 0
+      },
+      "native:build:True:reauth_required": {
+        "authenticated": 1,
+        "failed": 0
+      }
+    },
+    "key_versions": [
+      1
+    ],
+    "plaintext_exported": false,
+    "network_used": false
+  },
+  "ac01": {
+    "record_alias": "AC-01",
+    "context_all_columns_matches_post_repair": true,
+    "ciphertext_equals_retained_repaired_envelope": true
+  },
+  "logical_comparison_to_20261002_post_repair": {
+    "unchanged_tables": [
+      "access_group_routes",
+      "access_groups",
+      "billing_ledger_entries",
+      "billing_materializer_checkpoints",
+      "billing_materializer_failures",
+      "billing_price_catalog_entries",
+      "billing_price_catalog_versions",
+      "client_keys",
+      "compatible_egress_binding_profiles",
+      "compatible_egress_proxy_nodes",
+      "compatible_egress_proxy_pools",
+      "config_versions",
+      "configuration_edit_origins",
+      "egress_policies",
+      "endpoint_credential_bindings",
+      "gateway_event_log",
+      "gateway_event_quarantine",
+      "gateway_request_recording",
+      "grok_account_entitlements",
+      "grok_account_import_batches",
+      "grok_account_links",
+      "grok_account_quota_windows",
+      "grok_account_reauth_state",
+      "grok_build_affinity_breaks",
+      "grok_build_billing_profiles",
+      "grok_build_cache_affinities",
+      "grok_build_credential_runtime",
+      "grok_build_model_catalog",
+      "grok_build_quota_windows",
+      "grok_build_reasoning_replay",
+      "grok_build_response_ownership",
+      "management_audit_events",
+      "model_aliases",
+      "model_catalog_failures",
+      "model_catalog_models",
+      "model_routes",
+      "native_account_authorization_events",
+      "native_account_identity_observations",
+      "native_account_management_events",
+      "public_models",
+      "route_candidates",
+      "routing_price_policies",
+      "schema_migrations",
+      "stored_response_compactions",
+      "stored_responses",
+      "upstream_endpoints",
+      "upstreams"
+    ],
+    "changed_tables": {
+      "credential_refresh_state": {
+        "before": 5,
+        "now": 5,
+        "removed_primary_keys": 0,
+        "added_primary_keys": 0,
+        "changed_records": 2,
+        "changed_field_groups": [
+          {
+            "fields": [
+              "credential_revision",
+              "observed_at_ms"
+            ],
+            "records": 1
+          },
+          {
+            "fields": [
+              "retry_after_ms",
+              "failure_count",
+              "observed_at_ms"
+            ],
+            "records": 1
+          }
+        ]
+      },
+      "grok_accounts": {
+        "before": 5,
+        "now": 5,
+        "removed_primary_keys": 0,
+        "added_primary_keys": 0,
+        "changed_records": 1,
+        "changed_field_groups": [
+          {
+            "fields": [
+              "credential_ciphertext",
+              "refresh_due_at_ms",
+              "last_refresh_at_ms",
+              "revision",
+              "updated_at_ms",
+              "continuation_current_revision"
+            ],
+            "records": 1
+          }
+        ],
+        "revision_changes": [
+          {
+            "identity_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+            "before": 100,
+            "now": 112
+          }
+        ]
+      },
+      "management_resource_audit_events": {
+        "before": 1424,
+        "now": 2047,
+        "removed_primary_keys": 0,
+        "added_primary_keys": 623,
+        "changed_records": 0,
+        "changed_field_groups": [],
+        "added_time_bounds_utc": [
+          "2026-10-02T10:10:42.974000+00:00",
+          "2026-10-05T11:59:42.854000+00:00"
+        ],
+        "added_action_counts": {
+          "credential_oauth_rotated": 623
+        }
+      },
+      "model_catalog_targets": {
+        "before": 29,
+        "now": 29,
+        "removed_primary_keys": 0,
+        "added_primary_keys": 0,
+        "changed_records": 4,
+        "changed_field_groups": [
+          {
+            "fields": [
+              "snapshot_version",
+              "observed_at_ms",
+              "stale_at_ms",
+              "refresh_due_at_ms",
+              "expires_at_ms"
+            ],
+            "records": 4
+          }
+        ]
+      },
+      "native_account_inventory_generation": {
+        "before": 1,
+        "now": 1,
+        "removed_primary_keys": 0,
+        "added_primary_keys": 0,
+        "changed_records": 1,
+        "changed_field_groups": [
+          {
+            "fields": [
+              "generation"
+            ],
+            "records": 1
+          }
+        ]
+      },
+      "upstream_credentials": {
+        "before": 41,
+        "now": 41,
+        "removed_primary_keys": 0,
+        "added_primary_keys": 0,
+        "changed_records": 1,
+        "changed_field_groups": [
+          {
+            "fields": [
+              "ciphertext",
+              "revision"
+            ],
+            "records": 1
+          }
+        ],
+        "revision_changes": [
+          {
+            "identity_evidence_id": "cb0c0357bb6f9d673cd81c23a7c8fd3d21d5dc0c2830c307231c19c9182c3c22",
+            "before": 1004,
+            "now": 1627
+          }
+        ]
+      }
+    },
+    "new_tables": []
+  },
+  "native_refresh_reconciliation": {
+    "accounts": [
+      {
+        "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+        "provider": "build",
+        "revision_before": 100,
+        "revision_now": 112,
+        "status_preserved": true,
+        "enabled_preserved": true,
+        "identity_and_key_version_preserved": true,
+        "latest_refresh_at_utc": "2026-10-05T06:23:42.658000+00:00",
+        "continuation_range_current_equals_revision": false,
+        "timestamps_monotonic": true
+      }
+    ],
+    "generation_before": 148,
+    "generation_now": 160,
+    "generation_delta_equals_native_revision_delta": true
+  },
+  "refresh_bookkeeping": [
+    {
+      "account_evidence_id": "279f8dd33afde739596b81dc10a5af872f078a0f28aca487494891a8e2f3ea57",
+      "credential_revision_before": 1,
+      "credential_revision_now": 1,
+      "failure_count_before": 123,
+      "failure_count_now": 196,
+      "error_category_unchanged": true,
+      "no_claim": true,
+      "retry_after_monotonic": true,
+      "observed_at_utc": "2026-10-05T11:14:42.727000+00:00"
+    },
+    {
+      "account_evidence_id": "aedc86f78ed254b1242a97f2f5e6c2c75b3a9b9e7885f8aacdb0df08781fce5b",
+      "credential_revision_before": 1004,
+      "credential_revision_now": 1627,
+      "failure_count_before": 0,
+      "failure_count_now": 0,
+      "error_category_unchanged": true,
+      "no_claim": true,
+      "retry_after_monotonic": true,
+      "observed_at_utc": "2026-10-05T11:59:42.854000+00:00"
+    }
+  ],
+  "catalog_refresh_reconciliation": [
+    {
+      "target_evidence_id": "3c9a0406f950d2eec3e2081831735989900a4aca84649bd7ad80a31b7822817a",
+      "snapshot_before": 20,
+      "snapshot_now": 23,
+      "latest_observed_at_utc": "2026-10-05T04:25:09.065000+00:00",
+      "timestamps_monotonic": true,
+      "model_rows_and_failure_rows_unchanged": true
+    },
+    {
+      "target_evidence_id": "cd9a7e45fc64a7a5c190eda6502d52408bd13f83e1a30b0772fbcaedd2eaa449",
+      "snapshot_before": 5,
+      "snapshot_now": 9,
+      "latest_observed_at_utc": "2026-10-05T10:25:12.054000+00:00",
+      "timestamps_monotonic": true,
+      "model_rows_and_failure_rows_unchanged": true
+    },
+    {
+      "target_evidence_id": "190df66fe99db0f3913cde6038d3a44bfdde9896a8bbc9470e90cc80561231ef",
+      "snapshot_before": 19,
+      "snapshot_now": 22,
+      "latest_observed_at_utc": "2026-10-04T21:25:05.770000+00:00",
+      "timestamps_monotonic": true,
+      "model_rows_and_failure_rows_unchanged": true
+    },
+    {
+      "target_evidence_id": "7c5f58fe54c2ff382f4cfc6599470a6ddfddb62386eaff79e548aaf5000eb81e",
+      "snapshot_before": 20,
+      "snapshot_now": 23,
+      "latest_observed_at_utc": "2026-10-05T04:25:09.115000+00:00",
+      "timestamps_monotonic": true,
+      "model_rows_and_failure_rows_unchanged": true
+    }
+  ],
+  "ordinary_rotation_reconciliation": [
+    {
+      "identity_evidence_id": "013f254c1c505b6eb2e43c6d3240337bed90bd2f01f5a94e6188438e2503f5a4",
+      "changed_fields": [
+        "ciphertext",
+        "revision"
+      ],
+      "revision_before": 1004,
+      "revision_now": 1627,
+      "matching_rotation_audits": 623,
+      "revision_delta_equals_audit_count": true,
+      "latest_rotation_at_utc": "2026-10-05T11:59:42.854000+00:00",
+      "target_or_parent": false
+    }
+  ],
+  "admin_auth_logical_unchanged": true,
+  "unit_properties": {
+    "Restart": "on-failure",
+    "TimeoutStopUSec": "45s",
+    "NRestarts": "0",
+    "ExecStart": "{ path=/opt/cpa-rust-gateway/current/gateway ; argv[]=/opt/cpa-rust-gateway/current/gateway serve --data-listen 127.0.0.1:18180 --management-listen 127.0.0.1:18181 --state-dir /var/lib/cpa-rust-gateway --credential-dir /run/credentials/cpa-rust-gateway.service --management-origin https://cpar.142857142.xyz ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }",
+    "KillMode": "control-group",
+    "KillSignal": "15"
+  },
+  "listener_addresses": [
+    "127.0.0.1:18180",
+    "127.0.0.1:18181"
+  ],
+  "established_service_connections": 0,
+  "artifact_files": [
+    {
+      "name": "artifact-manifest.json",
+      "bytes": 1016,
+      "sha256": "7e6c9b59b3d2715692cd8178662ca8532836c784db5b833c6c4ee1ae0aa81653"
+    },
+    {
+      "name": "artifact-manifest.json.sig",
+      "bytes": 96,
+      "sha256": "d8a59220b5d6940df177c6fb69dcea4c3c4ab377018250494afb584f5c1f7039"
+    },
+    {
+      "name": "artifact-manifest.sigstore.json",
+      "bytes": 10029,
+      "sha256": "e39ac6e5d0098117f89e1c09d7a9aacaf1c8a6043efdf249fac8ded0f46841ce"
+    },
+    {
+      "name": "artifact-receipt.json",
+      "bytes": 1546,
+      "sha256": "6fce27b33ca0e21e1d48c17e393f5a585739de4f7f3f76ffd366cf88d3917ae0"
+    },
+    {
+      "name": "gateway-aarch64-unknown-linux-gnu",
+      "bytes": 19500320,
+      "sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87"
+    },
+    {
+      "name": "gateway-build-metadata.json",
+      "bytes": 261,
+      "sha256": "ee8a7c474ba03646444c53dabd24691e050169704668a9521f3db0b824fbd403"
+    },
+    {
+      "name": "gateway-image.oci.tar",
+      "bytes": 41024512,
+      "sha256": "a52cf98495ec60b824c590c2ac0a38fea0136196327d4147fc285a43fad4cefb"
+    },
+    {
+      "name": "gateway-sbom.cdx.json",
+      "bytes": 209278,
+      "sha256": "7dc683785a261ba33f5f66dd34093cf2c87a89211ed4ac711b53b9266b734947"
+    },
+    {
+      "name": "signing-identity.json",
+      "bytes": 304,
+      "sha256": "02b3b040d755b6ca69192aabcc3193c62c9019de16e3cf1c18026eb7f8ac6605"
+    }
+  ],
+  "retained_recovery_paths": {
+    "capture-2": {
+      "exists": true,
+      "mode": "0o700",
+      "uid": 0,
+      "gid": 0
+    },
+    "restored-pristine": {
+      "exists": true,
+      "mode": "0o700",
+      "uid": 0,
+      "gid": 0
+    },
+    "migration-entry-probe": {
+      "exists": true,
+      "mode": "0o700",
+      "uid": 0,
+      "gid": 0
+    },
+    "archived-credential-production-repair-20261002/capture-pre": {
+      "exists": true,
+      "mode": "0o700",
+      "uid": 0,
+      "gid": 0
+    },
+    "archived-credential-production-repair-20261002/capture-post": {
+      "exists": true,
+      "mode": "0o700",
+      "uid": 0,
+      "gid": 0
+    },
+    "archived-credential-production-repair-20261002/post-migration-pristine": {
+      "exists": true,
+      "mode": "0o700",
+      "uid": 0,
+      "gid": 0
+    },
+    "operator-tools/target-rehearsal.py": {
+      "exists": true,
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 50
+    },
+    "operator-tools/private-crypto-audit.py": {
+      "exists": true,
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 50
+    }
+  },
+  "backup_root": {
+    "/var/backups": {
+      "exists": true,
+      "mode": "0o755",
+      "free_bytes": 30411010048
+    },
+    "/var/backups/cpa-rust-gateway": {
+      "exists": true,
+      "mode": "0o755",
+      "free_bytes": 30411010048
+    },
+    "/opt/cpa-rust-gateway/staging/cpar-execution-arm64-20261002-run36956561884": {
+      "exists": true,
+      "mode": "0o700",
+      "free_bytes": 30411010048
+    }
+  },
+  "completed_at_utc": "2026-10-05T12:01:30.345977+00:00"
+}

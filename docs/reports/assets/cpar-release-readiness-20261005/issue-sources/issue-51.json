@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n管理登录、导航外壳和全局反馈沿用接受的视觉，桌面／窄屏及深浅主题的基础操作稳定一致。\n\n实施编号 CPAR-42；实施批次：D。覆盖用户故事 76, 77, 78, 79, 80, 81；验收场景 T13。\n\n## Acceptance criteria\n\n- [ ] 冻结实际可达页面、登录、公共外壳和详情／表单清单，保留旧入口和高级功能；不重做全站信息架构。\n- [ ] 在登录与导航的实际任务中统一标题、间距、文字、按钮层级和全局反馈，不只交付未接入页面的组件库。\n- [ ] 加载、鉴权失败、权限不足及全局请求错误准确，进行中防重复操作，成功事实不因后续读取失败消失。\n- [ ] 桌面主视图、窄屏、深浅主题、遮挡／溢出、焦点和基本键盘操作均有 EgoLite 证据。\n- [ ] 共享规范可在 A 开始时应用；本票不依赖真实账号或协议完成，不新增业务页面、指标或登录权限模式。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\nNone (can start immediately). 执行优先级仍按 A → B → C；没有代码／契约依赖的 D 可独立准备。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 51,
+  "state": "OPEN",
+  "title": "CPAR-42：公共外壳、登录与全局反馈基础统一",
+  "updatedAt": "2026-09-29T13:39:39Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/51"
+}

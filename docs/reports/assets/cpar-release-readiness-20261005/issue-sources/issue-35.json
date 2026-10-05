@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n已声明保存路径在成功持久化后才宣告完成，读取／删除／过期与网关重启保持精确所有权。\n\n实施编号 CPAR-26；实施批次：B。覆盖用户故事 71, 72, 83, 84；验收场景 T11。\n\n## Acceptance criteria\n\n- [ ] 公共 JSON／SSE 的完成响应先合法化并加密持久化；写入失败、截断或取消不能生成可检索的完成记录。\n- [ ] 已持久化完成结果不因后续下游交付失败被抹去，保存是 CPAR 自有语义而非上游保存承诺。\n- [ ] 读取、删除、TTL、损坏及密钥轮换遵守精确 Client Key 所有权；同 Access Group 不共享，异主／缺失／过期不可区分。\n- [ ] 用隔离数据库及受控网关进程重启后再从公共端点读取，不用仅存储对象重开替代进程验收。\n- [ ] 敏感会话保持加密且不进入值无关事件／审计；既有未声明扩展的渠道不因该票自动获得能力。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\nNone (can start immediately). 执行优先级仍按 A → B → C；没有代码／契约依赖的 D 可独立准备。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 35,
+  "state": "OPEN",
+  "title": "CPAR-26：已保存 Responses 的所有权与重启读取",
+  "updatedAt": "2026-09-29T13:31:25Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/35"
+}

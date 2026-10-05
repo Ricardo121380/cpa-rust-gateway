@@ -1,0 +1,29 @@
+{
+  "recovery_tool_hashes": {
+    "target-rehearsal.py": "3ec93931447776cbb9964bc8ceb5cd8b9851e455b58c68744aa2e9797e98b840",
+    "private-namespace-runner.py": "9ff146cdf0656750d8fb6fabc7655ae441d5c15f6e541f09feb4de6d88c4c0e9",
+    "isolated-startup-probe.py": "b0388e9322c195390bc1eaebe56cb3c43a01db9f546a5c25377bbe4c5ca6c47b",
+    "private-crypto-audit.py": "f963207e5490c35408a2dec8624b539f49abba230ca52d7725676107eb7d9d89"
+  },
+  "maintenance_admission_tools": {
+    "nft": "/usr/sbin/nft",
+    "iptables": "/usr/sbin/iptables",
+    "ss": "/usr/bin/ss"
+  },
+  "caddy_identity": {
+    "MainPID": "2048292",
+    "User": "caddy",
+    "ActiveState": "active"
+  },
+  "state_and_credential_tree_disk_kib": {
+    "/var/lib/cpa-rust-gateway": "1436528",
+    "/etc/cpa-rust-gateway/credentials": "28",
+    "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0": "18664"
+  },
+  "state_key_backup_filesystem_device_ids": {
+    "/var/lib/cpa-rust-gateway": 2049,
+    "/etc/cpa-rust-gateway/credentials": 2049,
+    "/var/backups/cpa-rust-gateway": 2049
+  },
+  "quarantine_rename_same_filesystem": true
+}

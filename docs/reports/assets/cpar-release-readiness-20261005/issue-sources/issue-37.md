@@ -1,0 +1,28 @@
+# #37 CPAR-28：Responses 压缩保持所有权与精确账号
+
+State: OPEN; Updated: 2026-09-29T13:31:51Z
+
+## Parent
+
+[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)
+
+## What to build
+
+已声明压缩路径生成并恢复 CPAR 自有有界摘要，独立加密且不能绕过原账号和所有者。
+
+实施编号 CPAR-28；实施批次：B。覆盖用户故事 72, 73；验收场景 T11。
+
+## Acceptance criteria
+
+- [ ] 仅在实际声明的配置启用，压缩与保存／续接能力分别校验，不按 adapter 名称推定通用支持。
+- [ ] compact 使用精确 lineage 和有界摘要请求，保持单次执行，不支持的流式等参数明确拒绝。
+- [ ] 压缩状态使用独立加密域、所有者、TTL 和边界；输入中的 malformed／异主／过期／损坏 token 本地拒绝，不发送给上游。
+- [ ] 恢复的是 CPAR 摘要上下文，不能称为上游私有推理状态，不合成加密 reasoning 或签名。
+- [ ] 公开压缩与后续调用、重启、所有权及失败路径用受控上游验证；真实支持组合由渠道证据分别收口。
+- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。
+- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。
+- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。
+
+## Blocked by
+
+- [#36](https://github.com/Ricardo121380/cpa-rust-gateway/issues/36)：精确 Responses 续接保留完整历史。原因：压缩以已验证的精确续接和完整历史为基础。

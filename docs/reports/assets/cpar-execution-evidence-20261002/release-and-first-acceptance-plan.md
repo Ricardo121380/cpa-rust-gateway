@@ -1,10 +1,12 @@
 # new-vps 发布、回退与首批真实验收方案
 
-最新补充：[已授权 AC-01 生产修复与 fresh-copy 复验](../../cpar-archived-credential-production-repair-20261002.md) PASS，[当前发布判定](../cpar-archived-credential-production-repair-20261002/release-readiness.json)把历史材料阻断标为RESOLVED，普通41/41与native5/5、旧／签名候选18项原生操作和54表迁移保持均通过。总体仍等待发布时新inventory、完整pre-upgrade备份与**独立部署授权**。以下原AC-01阻断描述为6bd5ea4a时的历史基线，不再是当前未修复状态；其他切换／回退与真实验收门槛保持，不调整标准。
+最新复核（2026-10-05）：[发布就绪复核报告](../../cpar-release-readiness-and-controlled-deployment-preparation-20261005.md)、[逐项门槛](../cpar-release-readiness-20261005/release-readiness.json)与[完整可执行配方](../cpar-release-readiness-20261005/controlled-deployment-runbook.md)。
 
-状态：**BLOCKED / PENDING_RELEASE_TIME_RECHECK_BACKUP_AND_DEPLOYMENT_AUTHORIZATION**。固定ref签名、目标兼容、410隔离回归及原迁移／完整恢复证据保持。此前1条归档凭据AEAD阻断已在授权后通过最小生产修复和fresh-copy复验解除，没有豁免或删除历史记录；当前仍未执行生产切换。
+状态：**BLOCKED / UNRESOLVED_SOURCE_SPEC_FINDINGS_AND_ACCEPTANCE_CONTRACT_GAPS**。A／B原PARTIAL静态覆盖已补齐，但候选有13项P2规格问题；B ADR结构与本地验收矩阵／revision合同冲突尚待处理。Krill新gpt6-sol路线唯一Key已于10月4日到期，首批真实验收另有权限前置。当前不能称“只等部署授权”。
 
-[原签名演练](../../cpar-signed-artifact-and-production-state-rehearsal-20261002.md)保留原始失败判定；[授权生产处置报告](../../cpar-archived-credential-production-repair-20261002.md)和[当前发布回执](../cpar-archived-credential-production-repair-20261002/release-readiness.json)是最新补充前置。单行ciphertext已修复；部署、服务stop/start/current切换、配置/权限变更、账号重新授权和任务发起的真实推理均未执行。原分支推送／CI／隔离演练授权及已完成证据继续有效，不重复申请。
+AC-01修复及历史材料可读性仍PASS，10月5日只读重验普通41/41、归档32/32与native5/5；两平台各9文件与原验签集合一致，签名、45/45 Full、ARM64410回归及历史迁移／完整恢复证据保留。现场仍旧sourceb0cf36e3/schema31/PID499070。本轮无产品代码修改、生产写入、服务停启、部署、迁移、配置／账号／权限变化、推理或GitHub写入。
+
+以下保留原固定对象、历史演练和freeze/execute入口；新的现场／权限／停止条件和完整操作以10月5日配方为准。新配方包括获准停服后才取的最新完整offline备份、恢复验证、候选启动时的有界数据准入门控、完整state/auth/六key/old制品回退和新写入保全决策。临时nft门控是未来具体部署授权需覆盖的新增主机状态，本轮未设置，不修改unit/Caddy。产品修复产生新候选时重新绑定source/hash、安装路径、检查和配方，不能复用当前签名证明新源码。
 
 ## 固定对象与当前事实
 
@@ -34,11 +36,11 @@
 7. **历史密文可读性 PASS（授权生产修复后）**：[原升级前审计](../cpar-signed-state-rehearsal-20261002/crypto-before.json)保留40/41及AEAD_INVALID_TAG；原迁移／恢复保持同一异常的证据不改写。后续仅修复AC-01的ciphertext，[新生产处置回执](../cpar-archived-credential-production-repair-20261002/post-repair-validation.json)为普通41/41、归档32/32、active3/3、draft6/6、native5/5，旧／签名候选18项原生操作及54表迁移保持通过。原失败locator、密文、状态与新完整pre/post集合留在受保护task根；没有删除、换账号、修改逻辑revision或增加发布例外。
 8. 活跃生产在运行期间的 refresh state、1份 upstream credential 的 ciphertext/revision 和管理审计发生[可观察漂移](../cpar-signed-state-rehearsal-20261002/production-logical-comparison.json)。配置、权限、路由、原生账号、历史Request/Attempt/Usage/ledger的旧列比较均保持；不要宣称活跃生产整库字节冻结。副本证明仅绑定捕获时点；任何未来切换须重取当前 inventory 与完整 pre-upgrade 备份。
 
-归档密文问题已在获批单字段范围内解决并重验，原材料门槛保持且已满足。总体仍因发布时新inventory、完整pre-upgrade备份和独立部署授权待完成而BLOCKED。旧构建缺失新的execution/capability字段属于**部署后** pin/GET核验事项，不是要求切换前已有新构建真实请求。
+归档密文问题已在获批单字段范围内解决并重验，原材料门槛保持且已满足。10月5日新复核确认总体同时受源代码规格问题、本地验收／契约缺口和首批Key前置影响；不能仅归因于inventory、offline备份或授权。旧构建缺失新的execution/capability字段属于**部署后** pin/GET核验事项，不是要求切换前已有新构建真实请求。
 
-## 阻断解除后申请的一次有界生产切换
+## 原切换模型（最新精确操作与授权范围见10月5日配方）
 
-申请对象为：`new-vps` 的唯一 `cpa-rust-gateway.service` 从上述 b0cf36e3/schema31 切换到已签名 source80f58389/hash542a3c30 的 release，允许该服务一次 stop/start、31→34 自动迁移、只读迁移核验，以及失败时停止候选并完整恢复 pre-upgrade 状态/key、切回旧 release 后启动。配置发布、unit/Caddy 修改、权限/账号状态修改和真实推理不包含在此申请；真实验收预算另行批准。**当前 BLOCKED，不执行此申请。**
+申请对象为：`new-vps` 的唯一 `cpa-rust-gateway.service` 从上述 b0cf36e3/schema31 切换到已签名 source80f58389/hash542a3c30 的 release，允许该服务一次 stop/start、31→34 自动迁移、只读迁移核验，以及失败时停止候选并完整恢复 pre-upgrade 状态/key、切回旧 release 后启动。配置发布、unit/Caddy 修改、权限/账号状态修改和真实推理不包含在此申请；真实验收预算另行批准。**当前 BLOCKED，不执行此申请。新的临时nft准入门控及数据恢复决定以10月5日配方末段的具体范围为准；没有把它当作已授权动作。**
 
 拟安装不可变 release 为 `/opt/cpa-rust-gateway/releases/80f5838902eb56be6dccc3ce047eb227d6c18e6c-542a3c30aae7/`，其 `gateway` 是最终 ARM64 payload 的同 hash 副本，`artifact/` 保存完整9文件及签名/receipt。以 source+artifact hash 标识安装对象，避免与同 source 的 unsigned 构建混用。
 
@@ -77,7 +79,7 @@ sudo systemctl start cpa-rust-gateway.service
 
 优先级 2：[Grok Build Responses JSON 草案](next-grok-build-responses-json-draft.json)：`grok-4.5`，route/candidate/endpoint 分别 `p12-12-production-grok-build-route` / `p12-12-production-grok-build-candidate` / `p12-12-production-grok-build-endpoint`，Provider `p12-12-production-grok-build-upstream`。拟用 Client Key 证据 `7b7960db5735b8850100838480b35002ca5e8953467bb04c740ce1a7f5d90127`；可用账号证据 `5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54`。其他两个过期 Build 账号保留，不恢复。实际 lease revision 不从 native row revision 推算。
 
-上一轮 03:28:32 CST 的历史[inventory](current-environment-final.json)显示这两个目标池为 available、权限包含目标 route；active inventory 仍为 `kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75` / ETag `rev-1`。有效能力观察七项均没有新来源字段，属于旧构建未知。旧构建与候选不符的[预检](current-runtime-preflight.json)为预期 FAIL / wrong_runtime_version，未使用 `--execute`，发送 0。
+10月5日[首批前置复核](../cpar-release-readiness-20261005/first-acceptance-preconditions.json)确认Krill唯一新route Key已过期，长期Key只有旧disabled route；Build目标账号／Key在只读快照可用，但actual lease revision仍待部署后Pin。以下10月2日权限结论只作历史：上一轮 03:28:32 CST 的历史[inventory](current-environment-final.json)显示这两个目标池为 available、权限包含目标 route；active inventory 仍为 `kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75` / ETag `rev-1`。有效能力观察七项均没有新来源字段，属于旧构建未知。旧构建与候选不符的[预检](current-runtime-preflight.json)为预期 FAIL / wrong_runtime_version，未使用 `--execute`，发送 0。
 
 拟申请的首批预算：每个上述 JSON 组合 **1 次 protected pin + 7 次正式 basics，共最多 8 次推理**；不自动进入 SSE、其他协议、故障注入或扩展。JSON 成功后，SSE 与其余格按同样冻结/停止规则和批准预算推进。能力 true 所需扩展缺少样本仍 NOT_RUN，不更改声明；basic PASS 不关闭 #57。
 

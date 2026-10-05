@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-05T12:03:01.973410+00:00",
+  "method": "all bytes tied to prior exact-identity cosign verification; no new signing or cryptographic run",
+  "platforms": [
+    {
+      "platform": "linux-arm64",
+      "total_files": 9,
+      "all_nine_file_hashes_sizes_equal_verified_20261002_set": true,
+      "all_five_manifest_payloads_equal": true,
+      "all_receipt_hashes_equal": true,
+      "source": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+      "target": "aarch64-unknown-linux-gnu",
+      "github_archive_digest_equal": true,
+      "github_artifact_expired": false,
+      "github_artifact_expires_at": "2026-10-16T02:48:29Z",
+      "host_complete_set_equal_local": true,
+      "cryptographic_signature": "PASS_REUSED_EXACT_BYTES_FROM_20261002",
+      "new_signature_or_build": false
+    },
+    {
+      "platform": "linux-amd64",
+      "total_files": 9,
+      "all_nine_file_hashes_sizes_equal_verified_20261002_set": true,
+      "all_five_manifest_payloads_equal": true,
+      "all_receipt_hashes_equal": true,
+      "source": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+      "target": "x86_64-unknown-linux-gnu",
+      "github_archive_digest_equal": true,
+      "github_artifact_expired": false,
+      "github_artifact_expires_at": "2026-10-16T02:48:36Z",
+      "host_complete_set_equal_local": null,
+      "cryptographic_signature": "PASS_REUSED_EXACT_BYTES_FROM_20261002",
+      "new_signature_or_build": false
+    }
+  ]
+}

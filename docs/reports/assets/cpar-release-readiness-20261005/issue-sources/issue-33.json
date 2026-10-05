@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n客户端看到唯一可信终态，取消／超时会终止工作，透明重试只在允许的早期阶段发生。\n\n实施编号 CPAR-24；实施批次：B。覆盖用户故事 63, 66, 67, 68, 70；验收场景 T10。\n\n## Acceptance criteria\n\n- [ ] 公共三协议流顺序合法且最终结果唯一，截断、上游错误、取消和超时不得伪装完成。\n- [ ] 覆盖发出前、启动中、首次语义输出后和客户端断连；停止输出并释放连接／容量占用。\n- [ ] 有限次数和累计启动预算有效，取消后或已向客户端交付语义输出后不透明重试。\n- [ ] 受控上游请求计数证明安全早期切换、失败绑定不重复获取、取消后零重试以及健康 sibling 不被误阻断。\n- [ ] 保留真实已发生用量的可能性；测试真实 loopback 连接关闭，不仅断言内部取消标志。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\nNone (can start immediately). 执行优先级仍按 A → B → C；没有代码／契约依赖的 D 可独立准备。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 33,
+  "state": "OPEN",
+  "title": "CPAR-24：流终态、取消与透明重试正确",
+  "updatedAt": "2026-09-29T13:31:10Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/33"
+}

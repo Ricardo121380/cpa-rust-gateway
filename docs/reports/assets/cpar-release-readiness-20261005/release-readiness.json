@@ -1,0 +1,199 @@
+{
+  "date": "2026-10-05",
+  "result": "BLOCKED",
+  "review_and_independent_preparation_completed": true,
+  "ready_for_deployment_authorization": false,
+  "reason": "UNRESOLVED_STATIC_SOURCE_SPEC_FINDINGS_AND_ACCEPTANCE_CONTRACT_GAPS",
+  "candidate_source": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "signed_arm64_sha256": "542a3c30aae7f09cac80b7cce33f3a153a87a93fe1e842cd6d8c8e355a930a87",
+  "input_report_HEAD": "98230abc9ccf0b7478a1e4e7d042828c506d4bdf",
+  "report_commit_is_not_candidate": true,
+  "gates": [
+    {
+      "id": "SOURCE_BINDING",
+      "status": "PASS",
+      "layer": "deployment_source",
+      "evidence_scope": "HEAD982为报告输入，candidate80；两者产品文件无差异，报告提交另计",
+      "evidence": "local-baseline.json"
+    },
+    {
+      "id": "A_SPEC_REVIEW_COVERAGE",
+      "status": "COMPLETE",
+      "layer": "review",
+      "evidence_scope": "96/96原实现、相关修复与候选链；原partial已补齐",
+      "evidence": "review-results.json"
+    },
+    {
+      "id": "B_STANDARDS_SPEC_REVIEW_COVERAGE",
+      "status": "COMPLETE",
+      "layer": "review",
+      "evidence_scope": "73/73；原证据组错误及runtime相邻遗漏由主代理／新单轮组补齐",
+      "evidence": "review-results.json"
+    },
+    {
+      "id": "A_SPEC_BEHAVIOR",
+      "status": "FAIL",
+      "layer": "deployment_source",
+      "evidence_scope": "8项P2静态源代码发现",
+      "evidence": "review-results.json"
+    },
+    {
+      "id": "B_SPEC_BEHAVIOR",
+      "status": "FAIL",
+      "layer": "deployment_source",
+      "evidence_scope": "5项P2；包括首chunk Usage与生产key-ring能力缺失",
+      "evidence": "review-results.json"
+    },
+    {
+      "id": "B_STANDARDS",
+      "status": "FAIL",
+      "layer": "review_documentation",
+      "evidence_scope": "1项P3必填ADR结构；2项维护建议不充当阻断",
+      "evidence": "review-results.json"
+    },
+    {
+      "id": "DETERMINISTIC_ACCEPTANCE_COVERAGE",
+      "status": "PARTIAL",
+      "layer": "software_acceptance",
+      "evidence_scope": "A四API预设／保存后设备丢响应；B公开隔离矩阵缺执行证据",
+      "evidence": "review-results.json"
+    },
+    {
+      "id": "CONTINUATION_REVISION_CONTRACT",
+      "status": "PARTIAL",
+      "layer": "spec_ownership",
+      "evidence_scope": "issue36字面revision拒绝与继承的same-grant合同冲突，未删除任何要求",
+      "evidence": "review-results.json"
+    },
+    {
+      "id": "D_BOUNDED_REVIEW",
+      "status": "PASS_REUSED",
+      "layer": "review",
+      "evidence_scope": "限定D完整diff＋文案增量；不扩大为A/B/C",
+      "evidence": "../cpar-batch-d-review-fixes-20261001/review-summary.json"
+    },
+    {
+      "id": "C_EXECUTION_SLICE_REVIEW",
+      "status": "PASS_REUSED",
+      "layer": "review",
+      "evidence_scope": "仅已记录C／execution切片；C全批仍未完成",
+      "evidence": "../../cpar-execution-evidence-and-arm64-candidate-20261002.md"
+    },
+    {
+      "id": "CANDIDATE_FULL",
+      "status": "PASS_REUSED",
+      "layer": "local_execution",
+      "evidence_scope": "source80 Full45/45；没有本轮重跑",
+      "evidence": "../../cpar-execution-evidence-and-arm64-candidate-20261002.md"
+    },
+    {
+      "id": "SIGNED_ARM64_REGRESSION",
+      "status": "PASS_REUSED",
+      "layer": "isolated_execution",
+      "evidence_scope": "同签名hash的410项合成TLS/SOCKS/SQLite；真实Provider0",
+      "evidence": "../../cpar-signed-artifact-and-production-state-rehearsal-20261002.md"
+    },
+    {
+      "id": "SIGNED_ARTIFACT_AND_CI",
+      "status": "PASS",
+      "layer": "artifact",
+      "evidence_scope": "run36956561884两平台success；9文件×2、payload、manifest/receipt、ZIP hash及hostARM64一致",
+      "evidence": "artifact-verification.json"
+    },
+    {
+      "id": "LIVE_OLD_RUNTIME",
+      "status": "PASS",
+      "layer": "site",
+      "evidence_scope": "PID499070／旧hash/source/schema31；unit、六key与loopback身份一致",
+      "evidence": "host-readonly-audit-reconciled.json"
+    },
+    {
+      "id": "AC01_HISTORICAL_CRYPTO",
+      "status": "PASS",
+      "layer": "site",
+      "evidence_scope": "AC01完全匹配post修复；普通41/41、归档32/32、native5/5；无材料外发",
+      "evidence": "host-readonly-audit-reconciled.json"
+    },
+    {
+      "id": "LIVE_DRIFT_RECONCILIATION",
+      "status": "PASS",
+      "layer": "site",
+      "evidence_scope": "47控制表＋认证库保持；6表仅精确续期／目录刷新变化，历史Request/Usage/ledger无变化",
+      "evidence": "host-readonly-audit-reconciled.json"
+    },
+    {
+      "id": "RECOVERY_TOOLS_AND_SPACE",
+      "status": "PASS",
+      "layer": "preparation",
+      "evidence_scope": "4个恢复helper同hash；约28.3GiB空间，8份state＋2GiB余量约需13GiB",
+      "evidence": "recovery-and-admission-dependencies.json"
+    },
+    {
+      "id": "HISTORICAL_COMPLETE_RESTORE_MIGRATION",
+      "status": "PASS_REUSED",
+      "layer": "rehearsal",
+      "evidence_scope": "10月2日完整旧状态恢复、新旧serve、31→34原54表保持；CLI auditexit1限制保留",
+      "evidence": "../../cpar-archived-credential-production-repair-20261002.md"
+    },
+    {
+      "id": "WINDOW_FRESH_OFFLINE_BACKUP_RESTORE",
+      "status": "NOT_RUN",
+      "layer": "approved_window",
+      "evidence_scope": "只能获准停服后捕获最新完整pre-upgrade并验证；旧快照不可替代",
+      "evidence": "controlled-deployment-runbook.md"
+    },
+    {
+      "id": "CUTOVER_ROLLBACK_RECIPE",
+      "status": "COMPLETE_STATIC_ONLY",
+      "layer": "preparation",
+      "evidence_scope": "完整操作附件与配方已交付；新窗口capture/verify/preserve/restore未执行",
+      "evidence": "controlled-deployment-runbook.md"
+    },
+    {
+      "id": "KRILL_FIRST_REAL_KEY",
+      "status": "BLOCKED",
+      "layer": "first_real_acceptance",
+      "evidence_scope": "唯一授予gpt6-sol新route的Key于2026-10-04T04:02:20.553Z到期；长期Key不拥有该route",
+      "evidence": "current-environment.json"
+    },
+    {
+      "id": "GROK_BUILD_FIRST_REAL_ACCOUNT_PERMISSION",
+      "status": "PASS_READONLY_SNAPSHOT",
+      "layer": "first_real_acceptance",
+      "evidence_scope": "目标账户active+available，Key7b7960有效且授予Build；lease revision未知，部署后Pin再绑定",
+      "evidence": "current-environment.json"
+    },
+    {
+      "id": "NEW_EXECUTION_CAPABILITY_FIELDS",
+      "status": "NOT_RUN_EXPECTED_OLD_BUILD",
+      "layer": "post_deploy",
+      "evidence_scope": "旧build缺字段是部署后核对，不是新构建真实请求必须先存在的前置",
+      "evidence": "current-environment.json"
+    },
+    {
+      "id": "DEPLOYMENT_AND_REAL_PROVIDER",
+      "status": "NOT_RUN",
+      "layer": "execution",
+      "evidence_scope": "本轮禁止切换与推理；每组1Pin+7basics预算草案保留",
+      "evidence": "first-acceptance-preconditions.json"
+    },
+    {
+      "id": "C_57_9_CONVERGENCE",
+      "status": "BLOCKED",
+      "layer": "whole_spec",
+      "evidence_scope": "既有Kiro cap、Web原生多轮/cap/出口、所有声明扩展与跨批全范围证据继续未完成",
+      "evidence": "issue-57-evidence.json"
+    }
+  ],
+  "product_code_changes": 0,
+  "production_writes": 0,
+  "service_stop_start": 0,
+  "production_migrations": 0,
+  "config_or_account_changes": 0,
+  "task_initiated_inference": 0,
+  "github_writes": 0,
+  "deployment": "NOT_RUN",
+  "C_closed": false,
+  "issue_57_closed": false,
+  "parent_9_closed": false
+}

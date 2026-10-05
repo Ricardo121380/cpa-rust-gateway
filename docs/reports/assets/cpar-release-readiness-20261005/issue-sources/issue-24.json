@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n应用或回退旧配置时明确提示会恢复的已移除账号及影响，防止无提示重新引入账号。\n\n实施编号 CPAR-15；实施批次：A。覆盖用户故事 14, 15, 22, 45, 46, 47, 88；验收场景 T07, T12。\n\n## Acceptance criteria\n\n- [ ] 以含已删除账号的历史配置演示应用与回退预览，准确列明将恢复的账号和原保存状态。\n- [ ] 操作者明确核对后才继续；核对期间目标版本／revision 变化需重读，不能用过时预览应用。\n- [ ] 如实说明历史配置仍可能包含凭据，不为隐藏事实删除历史或宣称已撤销上游 token。\n- [ ] 保留共享连接、既有权限和停用意图；无法确认历史关联时提示不完整，不猜测身份。\n- [ ] 持久化模型如需变更，按 ADR 及兼容／回退规则落实；合成旧配置上的 HTTP／EgoLite 验证通过。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#23](https://github.com/Ricardo121380/cpa-rust-gateway/issues/23)：删除影响预览与共享资源历史保留。原因：需要明确当前删除范围及保留的历史事实，才能准确预览旧配置会恢复的账号。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 24,
+  "state": "OPEN",
+  "title": "CPAR-15：旧配置恢复账号前明确核对",
+  "updatedAt": "2026-09-29T13:29:27Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/24"
+}

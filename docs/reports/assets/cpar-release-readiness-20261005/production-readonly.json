@@ -1,0 +1,219 @@
+{
+  "observed_at_utc": "2026-10-05T11:41:47.368963+00:00",
+  "scope": "read_only_no_provider_no_service_change",
+  "unit": {
+    "MainPID": "499070",
+    "ExecMainStartTimestamp": "Mon 2026-09-28 09:23:42 UTC",
+    "User": "cpa-gateway",
+    "Group": "cpa-gateway",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+    "DropInPaths": "/etc/systemd/system/cpa-rust-gateway.service.d/60-prism-https-origin.conf"
+  },
+  "safe_unit_directives": [
+    "User=cpa-gateway",
+    "Group=cpa-gateway",
+    "WorkingDirectory=/var/lib/cpa-rust-gateway",
+    "StateDirectory=cpa-rust-gateway",
+    "StateDirectoryMode=0700",
+    "LoadCredential=management-key:/etc/cpa-rust-gateway/credentials/management-key",
+    "LoadCredential=management-csrf:/etc/cpa-rust-gateway/credentials/management-csrf",
+    "LoadCredential=master-key:/etc/cpa-rust-gateway/credentials/master-key",
+    "LoadCredential=backup-key:/etc/cpa-rust-gateway/credentials/backup-key",
+    "LoadCredential=client-key-pepper:/etc/cpa-rust-gateway/credentials/client-key-pepper",
+    "LoadCredential=grok-build-cache-key:/etc/cpa-rust-gateway/credentials/grok-build-cache-key"
+  ],
+  "current": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+  "process_exe": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0/gateway",
+  "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+  "embedded": {
+    "revision": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "rust-version": "1.97.1",
+    "target": "aarch64-unknown-linux-gnu"
+  },
+  "architecture": "aarch64",
+  "libc": "glibc 2.39",
+  "databases": {
+    "control.sqlite3": {
+      "journal_mode": "wal",
+      "quick_check_ok": true,
+      "foreign_key_violation_count": 0,
+      "tables": {
+        "access_group_routes": 97,
+        "access_groups": 38,
+        "billing_ledger_entries": 728,
+        "billing_materializer_checkpoints": 1,
+        "billing_materializer_failures": 87,
+        "billing_price_catalog_entries": 0,
+        "billing_price_catalog_versions": 0,
+        "client_keys": 38,
+        "compatible_egress_binding_profiles": 0,
+        "compatible_egress_proxy_nodes": 0,
+        "compatible_egress_proxy_pools": 0,
+        "config_versions": 38,
+        "configuration_edit_origins": 9,
+        "credential_refresh_state": 5,
+        "egress_policies": 59,
+        "endpoint_credential_bindings": 56,
+        "gateway_event_log": 2553,
+        "gateway_event_quarantine": 0,
+        "gateway_request_recording": 66,
+        "grok_account_entitlements": 1,
+        "grok_account_import_batches": 9,
+        "grok_account_links": 0,
+        "grok_account_quota_windows": 0,
+        "grok_account_reauth_state": 1,
+        "grok_accounts": 5,
+        "grok_build_affinity_breaks": 0,
+        "grok_build_billing_profiles": 0,
+        "grok_build_cache_affinities": 0,
+        "grok_build_credential_runtime": 0,
+        "grok_build_model_catalog": 0,
+        "grok_build_quota_windows": 0,
+        "grok_build_reasoning_replay": 0,
+        "grok_build_response_ownership": 0,
+        "management_audit_events": 111,
+        "management_resource_audit_events": 2044,
+        "model_aliases": 8,
+        "model_catalog_failures": 14,
+        "model_catalog_models": 343,
+        "model_catalog_targets": 29,
+        "model_routes": 88,
+        "native_account_authorization_events": 0,
+        "native_account_identity_observations": 0,
+        "native_account_inventory_generation": 1,
+        "native_account_management_events": 0,
+        "public_models": 88,
+        "route_candidates": 88,
+        "routing_price_policies": 0,
+        "schema_migrations": 31,
+        "stored_response_compactions": 0,
+        "stored_responses": 0,
+        "upstream_credentials": 41,
+        "upstream_endpoints": 75,
+        "upstreams": 59
+      },
+      "schema_version": 31,
+      "user_version": 0
+    },
+    "admin-auth.sqlite3": {
+      "journal_mode": "delete",
+      "quick_check_ok": true,
+      "foreign_key_violation_count": 0,
+      "tables": {
+        "admin_account": 1
+      },
+      "user_version": 1
+    }
+  },
+  "state_files": [
+    {
+      "name": "admin-auth.sqlite3",
+      "kind": "file",
+      "bytes": 8192,
+      "mode": "0o600",
+      "uid": 995,
+      "gid": 986
+    },
+    {
+      "name": "backups",
+      "kind": "directory",
+      "bytes": 4096,
+      "mode": "0o700",
+      "uid": 995,
+      "gid": 986
+    },
+    {
+      "name": "control.sqlite3",
+      "kind": "file",
+      "bytes": 4243456,
+      "mode": "0o600",
+      "uid": 995,
+      "gid": 986
+    },
+    {
+      "name": "control.sqlite3-shm",
+      "kind": "file",
+      "bytes": 32768,
+      "mode": "0o600",
+      "uid": 995,
+      "gid": 986
+    },
+    {
+      "name": "control.sqlite3-wal",
+      "kind": "file",
+      "bytes": 4165352,
+      "mode": "0o600",
+      "uid": 995,
+      "gid": 986
+    }
+  ],
+  "persistent_credential_files": [
+    {
+      "name": "backup-key",
+      "kind": "file",
+      "bytes": 32,
+      "mode": "0o600",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "name": "client-key-pepper",
+      "kind": "file",
+      "bytes": 32,
+      "mode": "0o600",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "name": "grok-build-cache-key",
+      "kind": "file",
+      "bytes": 32,
+      "mode": "0o600",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "name": "management-csrf",
+      "kind": "file",
+      "bytes": 69,
+      "mode": "0o600",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "name": "management-key",
+      "kind": "file",
+      "bytes": 69,
+      "mode": "0o600",
+      "uid": 0,
+      "gid": 0
+    },
+    {
+      "name": "master-key",
+      "kind": "file",
+      "bytes": 32,
+      "mode": "0o600",
+      "uid": 0,
+      "gid": 0
+    }
+  ],
+  "free_bytes": {
+    "/var/lib/cpa-rust-gateway": 30413623296,
+    "/opt/cpa-rust-gateway": 30413623296
+  },
+  "tools": {
+    "python3": "/usr/bin/python3",
+    "unshare": "/usr/bin/unshare",
+    "ip": "/usr/sbin/ip",
+    "ldd": "/usr/bin/ldd",
+    "readelf": "/usr/bin/readelf",
+    "setpriv": "/usr/bin/setpriv",
+    "bwrap": "/usr/bin/bwrap",
+    "strace": null,
+    "sqlite3": "/usr/bin/sqlite3",
+    "openssl": "/usr/bin/openssl"
+  },
+  "stable_process": true
+}

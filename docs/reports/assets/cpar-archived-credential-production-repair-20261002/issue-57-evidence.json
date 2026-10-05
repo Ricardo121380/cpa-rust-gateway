@@ -23,5 +23,21 @@
   "C_closed": false,
   "issue_57_closed": false,
   "parent_9_closed": false,
-  "github_writes": 0
+  "github_writes": 0,
+  "latest_followup": {
+    "date": "2026-10-05",
+    "evidence": "../cpar-release-readiness-20261005/issue-57-evidence.json",
+    "current_overall_release": "BLOCKED",
+    "current_reason": "UNRESOLVED_STATIC_SOURCE_SPEC_FINDINGS_AND_ACCEPTANCE_CONTRACT_GAPS",
+    "A_B_static_review_coverage": "COMPLETE",
+    "A_Spec": "FAIL",
+    "B_Standards": "FAIL",
+    "B_Spec": "FAIL",
+    "P2_source_findings": 13,
+    "AC01_historical_credential_gate": "PASS_READONLY_RECONFIRMED",
+    "original_20261002_body_is_historical": true,
+    "deployment": "NOT_RUN",
+    "real_provider": "NOT_RUN",
+    "github_writes": 0
+  }
 }

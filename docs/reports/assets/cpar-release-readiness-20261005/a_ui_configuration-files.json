@@ -1,0 +1,12 @@
+[
+  "web/prism/src/features/config-versions/ConfigurationLifecycleHost.tsx",
+  "web/prism/src/features/config-versions/ConfigurationTaskReview.tsx",
+  "web/prism/src/features/config-versions/accountRestoration.ts",
+  "web/prism/src/features/config-versions/configurationLifecycle.test.ts",
+  "web/prism/src/features/config-versions/configurationLifecycle.ts",
+  "web/prism/src/features/config-versions/configurationTask.test.ts",
+  "web/prism/src/features/config-versions/configurationTask.ts",
+  "web/prism/src/features/upstreams/ProviderDialog.tsx",
+  "web/prism/src/features/upstreams/apiProviderModel.test.ts",
+  "web/prism/src/features/upstreams/apiProviderModel.ts"
+]

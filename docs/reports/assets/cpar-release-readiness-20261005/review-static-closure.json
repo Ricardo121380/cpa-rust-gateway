@@ -1,0 +1,51 @@
+{
+  "observed_at_utc": "2026-10-05T12:00:09.300555+00:00",
+  "method": "static_exact_revisions_no_build_or_product_test",
+  "schema_checks": [
+    {
+      "ref": "24142a9",
+      "backend_vendor_byte_equal": true,
+      "generated_sha256": "c0ebf98c143790396eb47354f43c1bf79bd61052de36a1cb25dc03c7b16a74b6"
+    },
+    {
+      "ref": "b8cba0f4",
+      "backend_vendor_byte_equal": true,
+      "generated_sha256": "c0ebf98c143790396eb47354f43c1bf79bd61052de36a1cb25dc03c7b16a74b6"
+    },
+    {
+      "ref": "f6c37ef0",
+      "backend_vendor_byte_equal": true,
+      "generated_sha256": "c0ebf98c143790396eb47354f43c1bf79bd61052de36a1cb25dc03c7b16a74b6"
+    },
+    {
+      "ref": "45a315a6",
+      "backend_vendor_byte_equal": true,
+      "generated_sha256": "c0ebf98c143790396eb47354f43c1bf79bd61052de36a1cb25dc03c7b16a74b6"
+    },
+    {
+      "ref": "80f5838",
+      "backend_vendor_byte_equal": true,
+      "generated_sha256": "c0ebf98c143790396eb47354f43c1bf79bd61052de36a1cb25dc03c7b16a74b6"
+    }
+  ],
+  "B_usage_schema_equal_delivery_to_candidate": true,
+  "B_commit_cross_boundary_trailers": [
+    "Cross-Boundary: web/prism - generated CPAR B Usage contract"
+  ],
+  "B_commit_cross_boundary_log_in_same_commit": true,
+  "prior_evidence_agent_error": "KeyError GatewayUsageEvent; actual schema RequestHistoryRow; closed here",
+  "A_root_closure": {
+    "source_manifest_total": 96,
+    "backend_paths": 36,
+    "UI_and_fixture_paths": 50,
+    "main_docs_paths": 10,
+    "remaining_UI_contract_paths": 9,
+    "remaining_UI_contract_original_hunks": 30,
+    "remaining_UI_contract_survival_hunks": 14,
+    "backend_vendor_and_generated_contract": "A additions and candidate additions read as full normalized JSON semantic delta; generated11hunks full diff read",
+    "four_A_receipts": "all JSON parsed; all30 browser scenario names and all boolean HTTP oracles read; Pin source development fixture retained; Vitest459/459",
+    "foundation_reports": "main personally read report, ADR0099, ADRindex/cross-boundary/traceability original A additions",
+    "review_coverage": "COMPLETE",
+    "execution": "NOT_RUN"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "checked_at_utc": "2026-10-05T11:40:12.428884+00:00",
+  "host": "new-vps",
+  "service": "cpa-rust-gateway.service",
+  "exit_code": 1,
+  "scope": "GET_ONLY_NARROW_NATIVE_PROJECTION",
+  "service_changes": 0,
+  "provider_calls": 0,
+  "status": "BLOCKED",
+  "error_class": "OPERATOR_NATIVE_PROJECTION_TYPE_ERROR_SSH_CONNECTED",
+  "stderr_safe": "Traceback (most recent call last):\n  File \"<stdin>\", line 72, in <module>\nAttributeError: 'bool' object has no attribute 'get'\n"
+}

@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n操作者核对精确目标后可解除符合条件的本地隔离，结果明确尚未验证上游。\n\n实施编号 CPAR-16；实施批次：A。覆盖用户故事 35, 36, 49, 50, 51, 52, 70；验收场景 T04, T06, T07。\n\n## Acceptance criteria\n\n- [ ] 高级入口显示账号／连接／模型、阻断原因、将改变的本地状态和确认动作，没有适用目标时说明原因。\n- [ ] 不能绕过停用、明确授权失效、权限或未到期额度，也不提前重置上游余额。\n- [ ] 回执和审计区分请求接收与实际本地完成；结果为允许再次尝试、尚未验证，不因内部 probe 名称声称已发探测。\n- [ ] 估算窗口标注估算，失败及未知结果先回读；不会隐式发推理或启用账号。\n- [ ] 受控 HTTP 操作及上游调用次数、EgoLite 确认与状态反馈证明正反例。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#20](https://github.com/Ricardo121380/cpa-rust-gateway/issues/20)：主要状态、原因与独立证据详情。原因：复用精确阻断原因、范围和观察状态，避免从含糊的汇总状态执行恢复。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 25,
+  "state": "OPEN",
+  "title": "CPAR-16：高级解除隔离只表示允许再次尝试",
+  "updatedAt": "2026-09-29T13:29:36Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/25"
+}

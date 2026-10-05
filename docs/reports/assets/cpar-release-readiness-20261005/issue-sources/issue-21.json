@@ -1,0 +1,18 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n后台正常续期和短暂故障有限退避准确反映到管理观察，明确失效交给操作者，晚到结果不覆盖新状态。\n\n实施编号 CPAR-12；实施批次：A。覆盖用户故事 22, 37, 38, 39, 40, 42, 70, 88；验收场景 T04, T06, T12。\n\n## Acceptance criteria\n\n- [ ] 覆盖现有支持正常续期的普通与原生渠道；API Key 和不支持续期的路径不伪造刷新行为。\n- [ ] 明确 grant 撤销／失效停止无效重试，网络、WAF／403、429、5xx 与真实授权失效分开归因。\n- [ ] 短暂故障有有限退避与可理解的观察结果；不自动启用停用账号，不改变连接或权限，不发推理测试。\n- [ ] 以 revision／当前身份约束晚到结果，不能覆盖更新授权、并发修改或停用意图；失败保留可信旧观察及时间。\n- [ ] 通过受控续期上游、运行资格和管理 HTTP 观察证明外部行为，已有界面反馈变化时补 EgoLite；真实续期在对应渠道票记录。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\nNone (can start immediately). 执行优先级仍按 A → B → C；没有代码／契约依赖的 D 可独立准备。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 21,
+  "state": "OPEN",
+  "title": "CPAR-12：正常续期与失效分类保留停用意图",
+  "updatedAt": "2026-09-29T13:28:58Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/21"
+}

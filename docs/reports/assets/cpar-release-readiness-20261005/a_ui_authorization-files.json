@@ -1,0 +1,10 @@
+[
+  "web/prism/src/features/accounts/AccountBatchDialog.tsx",
+  "web/prism/src/features/accounts/AddAccountDialog.tsx",
+  "web/prism/src/features/accounts/AuthorizationCodeDialog.tsx",
+  "web/prism/src/features/accounts/AuthorizationRecovery.test.ts",
+  "web/prism/src/features/accounts/AuthorizationRecovery.tsx",
+  "web/prism/src/features/accounts/KimiDeviceDialog.tsx",
+  "web/prism/src/features/accounts/KiroDeviceDialog.tsx",
+  "web/prism/src/features/accounts/OAuthPage.tsx"
+]

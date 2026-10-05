@@ -1,0 +1,109 @@
+{
+  "observed_at_utc": "2026-10-05T11:58:13.139322+00:00",
+  "architecture": "linux-amd64",
+  "file_count": 9,
+  "files": [
+    {
+      "name": "artifact-manifest.json",
+      "bytes": 1014,
+      "sha256": "ba43074a1ac94e5ee8b36b61e401872c4dd7a55adaf15e64cd68cbe5211a3c7c"
+    },
+    {
+      "name": "artifact-manifest.json.sig",
+      "bytes": 96,
+      "sha256": "e5f902c32c7c2c3622b599d1b1761a1027346146b04dbc1c6d1b94f3d95e02a3"
+    },
+    {
+      "name": "artifact-manifest.sigstore.json",
+      "bytes": 10029,
+      "sha256": "f7c785dc2bbe895329fb3116cf96c4262512053fea227358988ef730f1913689"
+    },
+    {
+      "name": "artifact-receipt.json",
+      "bytes": 1545,
+      "sha256": "69a67b4744e6c6af27b35f656ad1c2c083ea7b4209c775bb29b7abd7cdde8f2c"
+    },
+    {
+      "name": "gateway-build-metadata.json",
+      "bytes": 259,
+      "sha256": "0773bb509eef2ebea6ed7d0230ef998cb93978b733ead7a26d24858ee2b540d3"
+    },
+    {
+      "name": "gateway-image.oci.tar",
+      "bytes": 41806848,
+      "sha256": "66af1a98a53140706966501e1ced2f24c4dd2b07c42fe69c8783fea99bc9daa3"
+    },
+    {
+      "name": "gateway-sbom.cdx.json",
+      "bytes": 209276,
+      "sha256": "5dfdb7d777708fd3e127b2f4925ff1d1aea53d20cabab318d8e43b31c3536cc3"
+    },
+    {
+      "name": "gateway-x86_64-unknown-linux-gnu",
+      "bytes": 22762776,
+      "sha256": "d2ffc57b95690c841167cd5a7150b8570cbaf51266d24a88f29e7fb165091790"
+    },
+    {
+      "name": "signing-identity.json",
+      "bytes": 304,
+      "sha256": "02b3b040d755b6ca69192aabcc3193c62c9019de16e3cf1c18026eb7f8ac6605"
+    }
+  ],
+  "manifest": {
+    "schema_version": "cpa-rust-gateway-artifact-manifest-v1",
+    "revision": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "rust_toolchain": "1.97.1",
+    "target": "x86_64-unknown-linux-gnu",
+    "files": [
+      {
+        "name": "gateway-build-metadata.json",
+        "bytes": 259,
+        "sha256": "0773bb509eef2ebea6ed7d0230ef998cb93978b733ead7a26d24858ee2b540d3"
+      },
+      {
+        "name": "gateway-image.oci.tar",
+        "bytes": 41806848,
+        "sha256": "66af1a98a53140706966501e1ced2f24c4dd2b07c42fe69c8783fea99bc9daa3"
+      },
+      {
+        "name": "gateway-sbom.cdx.json",
+        "bytes": 209276,
+        "sha256": "5dfdb7d777708fd3e127b2f4925ff1d1aea53d20cabab318d8e43b31c3536cc3"
+      },
+      {
+        "name": "gateway-x86_64-unknown-linux-gnu",
+        "bytes": 22762776,
+        "sha256": "d2ffc57b95690c841167cd5a7150b8570cbaf51266d24a88f29e7fb165091790"
+      },
+      {
+        "name": "signing-identity.json",
+        "bytes": 304,
+        "sha256": "02b3b040d755b6ca69192aabcc3193c62c9019de16e3cf1c18026eb7f8ac6605"
+      }
+    ]
+  },
+  "receipt": {
+    "schema_version": "cpa-rust-gateway-artifact-receipt-v1",
+    "revision": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "workflow_run": "https://github.com/Ricardo121380/cpa-rust-gateway/actions/runs/36956561884",
+    "manifest_sha256": "ba43074a1ac94e5ee8b36b61e401872c4dd7a55adaf15e64cd68cbe5211a3c7c",
+    "sbom_sha256": "5dfdb7d777708fd3e127b2f4925ff1d1aea53d20cabab318d8e43b31c3536cc3",
+    "signing": {
+      "type": "sigstore-keyless",
+      "verification": "verified",
+      "certificate_identity": "https://github.com/Ricardo121380/cpa-rust-gateway/.github/workflows/release-artifact.yml@refs/heads/codex/cpar-execution-arm64-20261002",
+      "certificate_oidc_issuer": "https://token.actions.githubusercontent.com"
+    },
+    "files": {
+      "artifact-manifest.json": "ba43074a1ac94e5ee8b36b61e401872c4dd7a55adaf15e64cd68cbe5211a3c7c",
+      "artifact-manifest.json.sig": "e5f902c32c7c2c3622b599d1b1761a1027346146b04dbc1c6d1b94f3d95e02a3",
+      "artifact-manifest.sigstore.json": "f7c785dc2bbe895329fb3116cf96c4262512053fea227358988ef730f1913689",
+      "gateway-build-metadata.json": "0773bb509eef2ebea6ed7d0230ef998cb93978b733ead7a26d24858ee2b540d3",
+      "gateway-image.oci.tar": "66af1a98a53140706966501e1ced2f24c4dd2b07c42fe69c8783fea99bc9daa3",
+      "gateway-sbom.cdx.json": "5dfdb7d777708fd3e127b2f4925ff1d1aea53d20cabab318d8e43b31c3536cc3",
+      "gateway-x86_64-unknown-linux-gnu": "d2ffc57b95690c841167cd5a7150b8570cbaf51266d24a88f29e7fb165091790",
+      "signing-identity.json": "02b3b040d755b6ca69192aabcc3193c62c9019de16e3cf1c18026eb7f8ac6605"
+    }
+  },
+  "zip_sha256": "09344d74ee61a92fd05002d58e10cc1ff15d0b392b1b7aefd8f561e41ca202c3"
+}

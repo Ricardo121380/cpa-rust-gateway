@@ -1,0 +1,10 @@
+{
+  "ref": "refs/heads/codex/cpar-execution-arm64-20261002",
+  "node_id": "REF_kwDOUGxUj9oALnJlZnMvaGVhZHMvY29kZXgvY3Bhci1leGVjdXRpb24tYXJtNjQtMjAyNjEwMDI",
+  "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/git/refs/heads/codex/cpar-execution-arm64-20261002",
+  "object": {
+    "sha": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+    "type": "commit",
+    "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/git/commits/80f5838902eb56be6dccc3ce047eb227d6c18e6c"
+  }
+}
