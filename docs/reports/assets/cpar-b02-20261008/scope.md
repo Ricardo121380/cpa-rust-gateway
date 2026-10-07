@@ -11,3 +11,5 @@
 不修改 B-03 最终 item 顺序、B-04 bootstrap Usage、B-05 密钥集合、E-05 revision/same-grant 规格冲突或 O-01 phase-only JSON 准入。A-01/B-01 保留既有 RESOLVED_LOCAL。不修改前端、生产、真实账号或 Provider；不推送、发布、部署、生成候选签名、写入或关闭 GitHub 工单。原 source80 制品与演练维持原绑定；项目发布 BLOCKED。
 
 工作区起始 4277 个用户修改／未跟踪文件的完整哈希清单仅保留本机，交付前复核；AGENTS.md 不纳入提交。
+
+最终收口：B-02 **RESOLVED_LOCAL**；最终修复源码 `15babae64154f8ff5fa1055f856d11640385633a`，本地Full45/45、两轴组合COMPLETE28/28且PASS。初审失败与复核PARTIAL均保留并补齐。正式远端Phase、发布候选签名／制品和生产验收不继承原source80；发布仍BLOCKED。

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "bash",
+    "scripts/check.sh",
+    "docs"
+  ],
+  "environment": {
+    "CHECK_REPORT_PATH": "output/cpar-b02-20261008/docs-check.md"
+  },
+  "source_commit": "15babae64154f8ff5fa1055f856d11640385633a",
+  "exit_code": 0,
+  "steps": {
+    "passed": 7,
+    "failed": 0
+  },
+  "report_sha256": "14eb16b941d26ae8b37f24dfa7c3eb536df9b469fb1b5fc216ea85a7185f5485",
+  "report": "# Check run log\n\n- Mode: `docs`\n- Started: `2026-10-07T17:55:46Z`\n- Host: `Darwin 27.0.0 arm64`\n\n| Step | Duration seconds | Result |\n|---|---:|---|\n| Document links | 0 | PASS |\n| Contract tests | 1 | PASS |\n| Plan state | 0 | PASS |\n| Canary thresholds | 0 | PASS |\n| Caddy split | 0 | PASS |\n| Tracked secret scan | 35 | PASS |\n| Git whitespace | 0 | PASS |\n\nCompleted: `2026-10-07T17:56:22Z`\n",
+  "boundary": "Final documentation closure; product-source hashes equal reviewed and Full-tested commit; no new runtime execution."
+}

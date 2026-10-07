@@ -1,0 +1,32 @@
+{
+  "command": [
+    "bash",
+    "scripts/check.sh",
+    "full"
+  ],
+  "source_commit": "15babae64154f8ff5fa1055f856d11640385633a",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-b02-20261008/validation-reviewed",
+  "status_before": "",
+  "status_after": "",
+  "source_hashes_unchanged": true,
+  "started_utc": "2026-10-07T17:43:08.565461+00:00",
+  "finished_utc": "2026-10-07T17:47:22.019763+00:00",
+  "elapsed_seconds": 253.452,
+  "exit_code": 0,
+  "log_sha256": "e34ec72ad8d63a811dbdfc22a54465751f9cee7445c71e5618f362d5f3446f8f",
+  "report_sha256": "a443b128aa449ad3c17e37eda0af8c3e101211854752a22656f7cec85cf2ea4b",
+  "environment": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-b02-20261008/full-reviewed-retry-check.md"
+  },
+  "boundary": "same exact source/default gates; prior unchanged transport-fault failure preserved; no real Provider/deployment",
+  "steps": {
+    "passed": 45,
+    "failed": 0
+  },
+  "rust_tests": {
+    "passed": 1469,
+    "failed": 0,
+    "ignored": 12
+  }
+}

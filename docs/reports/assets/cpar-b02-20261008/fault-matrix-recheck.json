@@ -1,0 +1,24 @@
+{
+  "receipt": {
+    "source_commit": "15babae64154f8ff5fa1055f856d11640385633a",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "gateway-http-actix",
+      "--test",
+      "p11_02_fault_matrix",
+      "--",
+      "--nocapture"
+    ],
+    "started_utc": "2026-10-07T17:42:04.550432+00:00",
+    "finished_utc": "2026-10-07T17:42:13.421469+00:00",
+    "elapsed_seconds": 8.871,
+    "exit_code": 0,
+    "log_sha256": "9c7e2a0a05b3658800ad188f4d1b90c1c6bf6354eaca8e9c48c051b748b4d335",
+    "test_source_unchanged": true
+  },
+  "log": "   Compiling gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-b02-20261008/validation-reviewed/crates/gateway-http-actix)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.13s\n     Running tests/p11_02_fault_matrix.rs (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/deps/p11_02_fault_matrix-8d033fcf3e18e536)\n\nrunning 4 tests\ntest dns_failure_stops_before_dial_with_the_egress_unavailable_classification ... ok\ntest truncated_stream_slow_client_and_cancellation_preserve_their_own_boundaries ... ok\ntest refused_network_and_plaintext_tls_handshake_are_one_egress_failure_each ... ok\ntest rate_and_server_status_faults_are_returned_once_without_transport_retry ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s\n\n",
+  "boundary": "No changes to fault-matrix source, timeout, concurrency, or assertions; cause of the one Full failure remains unconfirmed."
+}

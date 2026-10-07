@@ -1,0 +1,10 @@
+{
+  "checked_utc": "2026-10-07T18:03:09.931221+00:00",
+  "baseline_file_count": 4277,
+  "all_original_files_unchanged": true,
+  "changed_original_files": [],
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_included_in_commits": false,
+  "private_manifest": "output/cpar-b02-20261008/workspace-before.json",
+  "boundary": "Only necessary B02 files staged; original contents not copied into evidence."
+}
