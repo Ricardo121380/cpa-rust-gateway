@@ -2078,6 +2078,494 @@ impl gateway_http_actix::management_resources::ManagementCodexOAuthExchange
     }
 }
 
+// A-01 / CPAR-05 (#14): spec #9 T02/T04/T12 and ADR-0099 at the registered callback.
+#[derive(Clone)]
+struct ConcurrentReauthorization {
+    target: std::sync::Arc<std::sync::Mutex<Option<PathBuf>>>,
+    winner: std::sync::Arc<std::sync::Mutex<Option<ControlPlaneConfiguration>>>,
+    only_configuration: bool,
+}
+
+impl ConcurrentReauthorization {
+    fn new(only_configuration: bool) -> Self {
+        Self {
+            target: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            winner: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            only_configuration,
+        }
+    }
+
+    fn apply(&self) -> TestResult {
+        use gateway_control::{
+            management_mutation_service::CredentialUpsert, management_service::ManagementActor,
+        };
+        let path = self
+            .target
+            .lock()
+            .map_err(|_| "target lock")?
+            .clone()
+            .ok_or("target")?;
+        let mut repository = SqliteControlPlaneRepository::open(path)?;
+        let version = ConfigVersionId::try_new(VERSION)?;
+        let configuration = repository
+            .load_configuration(&version)?
+            .ok_or("configuration")?;
+        let mut endpoint = configuration.endpoints[0].clone();
+        let mut service = ManagementMutationService::new(repository, reauthorization_store()?);
+        let actor = ManagementActor::try_new("controlled-concurrent-writer")?;
+        let id = CredentialId::try_new("account-000")?;
+        let current = service.get_credential(&version, &id)?;
+        let mut revision = current.revision();
+        if !self.only_configuration {
+            revision = if configuration.version.status == ConfigVersionStatus::Active {
+                service
+                    .persist_oauth_credential_if_revision(
+                        &actor,
+                        &version,
+                        revision,
+                        id,
+                        current.value().revision,
+                        CALLBACK_WINNER,
+                    )?
+                    .revision()
+            } else {
+                service
+                    .update_credential_if_revision(
+                        &actor,
+                        &version,
+                        revision,
+                        current.value().revision,
+                        CredentialUpsert {
+                            id,
+                            kind: "oauth_json".to_owned(),
+                            plaintext_secret: CALLBACK_WINNER,
+                            status: CredentialStatus::Disabled,
+                        },
+                    )?
+                    .revision()
+            };
+        }
+        if configuration.version.status == ConfigVersionStatus::Draft {
+            "https://concurrent.example.test".clone_into(&mut endpoint.base_url);
+            service.update_endpoint(&actor, &version, revision, endpoint)?;
+        }
+        *self.winner.lock().map_err(|_| "winner lock")? =
+            service.repository_mut().load_configuration(&version)?;
+        Ok(())
+    }
+}
+
+struct ReauthorizationExchange {
+    envelope: zeroize::Zeroizing<Vec<u8>>,
+    concurrent: Option<ConcurrentReauthorization>,
+}
+impl gateway_http_actix::management_resources::ManagementCodexOAuthExchange
+    for ReauthorizationExchange
+{
+    fn exchange(
+        &mut self,
+        _: &CredentialId,
+        _: zeroize::Zeroizing<String>,
+        _: zeroize::Zeroizing<Vec<u8>>,
+    ) -> Option<zeroize::Zeroizing<Vec<u8>>> {
+        if let Some(concurrent) = &self.concurrent {
+            concurrent.apply().ok()?;
+        }
+        Some(self.envelope.clone())
+    }
+}
+
+fn reauthorization_store() -> Result<SecretStore, Box<dyn Error>> {
+    let version = KeyVersion::try_new(1)?;
+    Ok(SecretStore::new(MasterKeyRing::try_new(
+        version,
+        [(version, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?))
+}
+
+fn seed_reauthorization_relationships(file: &Database) -> TestResult {
+    let db = gateway_store::open(&file.0)?;
+    db.execute("INSERT INTO endpoint_credential_bindings VALUES (?1,'endpoint-owner-a','account-000','owner-a',0,7,3,5)", [VERSION])?;
+    db.execute("INSERT INTO public_models VALUES (?1,'callback-model','callback-model','active','Callback model','{}')", [VERSION])?;
+    db.execute("INSERT INTO model_routes (config_version_id,id,public_model_id,policy,max_attempts,bootstrap_timeout_ms) VALUES (?1,'callback-route','callback-model','round_robin',1,1000)", [VERSION])?;
+    db.execute(
+        "INSERT INTO access_groups VALUES (?1,'callback-group','Callback group','active','{}')",
+        [VERSION],
+    )?;
+    db.execute(
+        "INSERT INTO access_group_routes VALUES (?1,'callback-group','callback-route',1)",
+        [VERSION],
+    )?;
+    db.execute("INSERT INTO client_keys VALUES (?1,'callback-key','callback-prefix',?2,'callback-group','active',NULL)", (VERSION, [0x61_u8;32].as_slice()))?;
+    Ok(())
+}
+
+struct ReauthorizationOutcome {
+    status: StatusCode,
+    body: Value,
+    credential: Value,
+    oauth_status: Value,
+    before: ControlPlaneConfiguration,
+    after: ControlPlaneConfiguration,
+}
+
+async fn legacy_callback_reauthorization(
+    active: bool,
+    disabled: bool,
+    old: &[u8],
+    new: &[u8],
+    concurrent: Option<ConcurrentReauthorization>,
+) -> Result<ReauthorizationOutcome, Box<dyn Error>> {
+    let (file, state) = fixture_with_workflow_inner(
+        active,
+        Box::new(
+            gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::with_exchange(
+                Box::new(ReauthorizationExchange {
+                    envelope: zeroize::Zeroizing::new(new.to_vec()),
+                    concurrent: concurrent.clone(),
+                }),
+            ),
+        ),
+        true,
+    )?;
+    if let Some(concurrent) = concurrent {
+        *concurrent.target.lock().map_err(|_| "target lock")? = Some(file.0.clone());
+    }
+    seed_reauthorization_relationships(&file)?;
+    let version = ConfigVersionId::try_new(VERSION)?;
+    let id = CredentialId::try_new("account-000")?;
+    let owner = UpstreamId::try_new("owner-a")?;
+    let sealed =
+        reauthorization_store()?.seal(old, &credential_associated_data(&version, &id, &owner)?)?;
+    let db = gateway_store::open(&file.0)?;
+    db.execute("UPDATE upstream_credentials SET ciphertext=?1,status=?2 WHERE config_version_id=?3 AND id='account-000'", (sealed.ciphertext(), if disabled { "disabled" } else { "active" }, VERSION))?;
+    let mut repository = SqliteControlPlaneRepository::open(&file.0)?;
+    let before = repository
+        .load_configuration(&version)?
+        .ok_or("configuration")?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(state))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let start = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/credentials/account-000/oauth/start"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(start.status(), StatusCode::ACCEPTED);
+    let started: Value = test::read_body_json(start).await;
+    let url = url::Url::parse(
+        started["authorization_url"]
+            .as_str()
+            .ok_or("authorization URL")?,
+    )?;
+    let state = url
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .ok_or("state")?
+        .1
+        .into_owned();
+    let callback = test::call_service(
+        &app,
+        authorized(test::TestRequest::post().uri("/admin/credentials/account-000/oauth/callback"))
+            .set_json(serde_json::json!({"state":state,"code":"controlled-callback-code"}))
+            .to_request(),
+    )
+    .await;
+    let status = callback.status();
+    let body = test::read_body_json(callback).await;
+    let credential = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials/account-000")).to_request(),
+    )
+    .await;
+    assert_eq!(credential.status(), StatusCode::OK);
+    let credential = test::read_body_json(credential).await;
+    let oauth_status = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/credentials/account-000/oauth/status"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(oauth_status.status(), StatusCode::OK);
+    let oauth_status = test::read_body_json(oauth_status).await;
+    let after = repository
+        .load_configuration(&version)?
+        .ok_or("configuration")?;
+    Ok(ReauthorizationOutcome {
+        status,
+        body,
+        credential,
+        oauth_status,
+        before,
+        after,
+    })
+}
+
+fn assert_reauthorization_relationships_preserved(
+    before: &ControlPlaneConfiguration,
+    after: &ControlPlaneConfiguration,
+) {
+    assert_eq!(before.upstreams, after.upstreams);
+    assert_eq!(before.endpoints, after.endpoints);
+    assert_eq!(
+        before.endpoint_credential_bindings,
+        after.endpoint_credential_bindings
+    );
+    assert_eq!(before.public_models, after.public_models);
+    assert_eq!(before.model_routes, after.model_routes);
+    assert_eq!(before.access_groups, after.access_groups);
+    assert_eq!(before.access_group_routes, after.access_group_routes);
+    assert!(
+        before.client_keys == after.client_keys,
+        "Client Key permissions must be preserved"
+    );
+}
+
+fn assert_credentials_preserved(
+    before: &[CredentialConfiguration],
+    after: &[CredentialConfiguration],
+) {
+    assert_eq!(before.len(), after.len());
+    for (before, after) in before.iter().zip(after) {
+        assert_eq!(before.id, after.id);
+        assert_eq!(before.upstream_id, after.upstream_id);
+        assert_eq!(before.kind, after.kind);
+        assert_eq!(before.status, after.status);
+        assert_eq!(before.revision, after.revision);
+        assert_eq!(
+            before.encrypted_secret.key_version(),
+            after.encrypted_secret.key_version()
+        );
+        assert!(
+            before.encrypted_secret.ciphertext() == after.encrypted_secret.ciphertext(),
+            "credential ciphertext changed"
+        );
+    }
+}
+
+const CALLBACK_OLD: &[u8] = br#"{"kind":"codex_oauth","access_token":"controlled-old-access","refresh_token":"controlled-old-refresh","expires_at_ms":4102444800000,"account_id":"inventory-account","email":"owner@example.test"}"#;
+const CALLBACK_SAME: &[u8] = br#"{"kind":"codex_oauth","access_token":"controlled-new-access","refresh_token":"controlled-new-refresh","expires_at_ms":4102444800000,"account_id":"inventory-account","email":"owner@example.test"}"#;
+const CALLBACK_WINNER: &[u8] = br#"{"kind":"codex_oauth","access_token":"controlled-winner-access","refresh_token":"controlled-winner-refresh","expires_at_ms":4102444800000,"account_id":"inventory-account","email":"owner@example.test"}"#;
+
+#[actix_web::test]
+async fn legacy_codex_callback_rejects_different_identity_without_changing_account() -> TestResult {
+    let foreign = br#"{"kind":"codex_oauth","access_token":"controlled-foreign-access","refresh_token":"controlled-foreign-refresh","expires_at_ms":4102444800000,"account_id":"different-account","email":"owner@example.test"}"#;
+    for active in [false, true] {
+        for disabled in [false, true] {
+            let outcome =
+                legacy_callback_reauthorization(active, disabled, CALLBACK_OLD, foreign, None)
+                    .await?;
+            assert_eq!(outcome.status, StatusCode::CONFLICT);
+            assert_eq!(
+                outcome.body["error"]["code"],
+                "management_credential_identity_unverified"
+            );
+            assert_eq!(outcome.credential["revision"], 0);
+            assert_eq!(
+                outcome.credential["status"],
+                if disabled { "disabled" } else { "active" }
+            );
+            assert_eq!(outcome.oauth_status["state"], "failed");
+            assert_eq!(
+                outcome.before.version.revision,
+                outcome.after.version.revision
+            );
+            // Boolean equality keeps even a failing assertion from printing sealed material.
+            assert_credentials_preserved(&outcome.before.credentials, &outcome.after.credentials);
+            assert_reauthorization_relationships_preserved(&outcome.before, &outcome.after);
+        }
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn legacy_codex_callback_rejects_unverifiable_identity_without_changing_account() -> TestResult
+{
+    let unknown = br#"{"kind":"codex_oauth","access_token":"controlled-unknown-access","refresh_token":"controlled-unknown-refresh","expires_at_ms":4102444800000}"#;
+    let missing_id = br#"{"kind":"codex_oauth","access_token":"controlled-missing-id","refresh_token":"controlled-refresh","expires_at_ms":4102444800000,"email":"owner@example.test"}"#;
+    let missing_email = br#"{"kind":"codex_oauth","access_token":"controlled-missing-email","refresh_token":"controlled-refresh","expires_at_ms":4102444800000,"account_id":"inventory-account"}"#;
+    let conflicting_email = br#"{"kind":"codex_oauth","access_token":"controlled-email-conflict","refresh_token":"controlled-refresh","expires_at_ms":4102444800000,"account_id":"inventory-account","email":"other@example.test"}"#;
+    for (old, new) in [
+        (CALLBACK_OLD, unknown.as_slice()),
+        (unknown.as_slice(), CALLBACK_OLD),
+        (unknown.as_slice(), unknown.as_slice()),
+        (CALLBACK_OLD, missing_id.as_slice()),
+        (CALLBACK_OLD, missing_email.as_slice()),
+        (CALLBACK_OLD, conflicting_email.as_slice()),
+    ] {
+        for active in [false, true] {
+            for disabled in [false, true] {
+                let outcome =
+                    legacy_callback_reauthorization(active, disabled, old, new, None).await?;
+                assert_eq!(outcome.status, StatusCode::CONFLICT);
+                assert_eq!(
+                    outcome.body["error"]["code"],
+                    "management_credential_identity_unverified"
+                );
+                assert_eq!(outcome.credential["revision"], 0);
+                assert_eq!(
+                    outcome.credential["status"],
+                    if disabled { "disabled" } else { "active" }
+                );
+                assert_eq!(outcome.oauth_status["state"], "failed");
+                assert_eq!(
+                    outcome.before.version.revision,
+                    outcome.after.version.revision
+                );
+                assert_credentials_preserved(
+                    &outcome.before.credentials,
+                    &outcome.after.credentials,
+                );
+                assert_reauthorization_relationships_preserved(&outcome.before, &outcome.after);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn legacy_codex_callback_updates_same_identity_and_preserves_disabled_intent() -> TestResult {
+    for active in [false, true] {
+        for disabled in [false, true] {
+            let outcome = legacy_callback_reauthorization(
+                active,
+                disabled,
+                CALLBACK_OLD,
+                CALLBACK_SAME,
+                None,
+            )
+            .await?;
+            assert_eq!(outcome.status, StatusCode::ACCEPTED);
+            assert_eq!(outcome.body["state"], "complete");
+            assert_eq!(outcome.credential["revision"], 1);
+            assert_eq!(
+                outcome.credential["status"],
+                if disabled { "disabled" } else { "active" }
+            );
+            assert_eq!(outcome.after.version.revision, i64::from(!active));
+            assert_reauthorization_relationships_preserved(&outcome.before, &outcome.after);
+            assert_eq!(
+                outcome.before.credentials.len(),
+                outcome.after.credentials.len()
+            );
+            assert_credentials_preserved(
+                &outcome.before.credentials[1..],
+                &outcome.after.credentials[1..],
+            );
+            let before = &outcome.before.credentials[0];
+            let after = &outcome.after.credentials[0];
+            assert_eq!(after.id.as_str(), "account-000");
+            assert_eq!(before.upstream_id, after.upstream_id);
+            assert_eq!(before.kind, after.kind);
+            assert_eq!(before.status, after.status);
+            assert_eq!(after.revision, 1);
+            assert!(
+                before.encrypted_secret.ciphertext() != after.encrypted_secret.ciphertext(),
+                "same-identity callback must save new authorization"
+            );
+            let version = ConfigVersionId::try_new(VERSION)?;
+            let plaintext = reauthorization_store()?.open(
+                &after.encrypted_secret,
+                &credential_associated_data(&version, &after.id, &after.upstream_id)?,
+            )?;
+            assert!(
+                plaintext.as_bytes() == CALLBACK_SAME,
+                "persisted authorization must equal the controlled exchange result"
+            );
+        }
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn legacy_codex_callback_preserves_concurrent_winner_after_token_exchange() -> TestResult {
+    for active in [false, true] {
+        for disabled in [false, true] {
+            let concurrent = ConcurrentReauthorization::new(false);
+            let outcome = legacy_callback_reauthorization(
+                active,
+                disabled,
+                CALLBACK_OLD,
+                CALLBACK_SAME,
+                Some(concurrent.clone()),
+            )
+            .await?;
+            let guard = concurrent.winner.lock().map_err(|_| "winner lock")?;
+            let winner = guard.as_ref().ok_or("concurrent update did not commit")?;
+            assert_eq!(outcome.status, StatusCode::CONFLICT);
+            assert_eq!(
+                outcome.body["error"]["code"],
+                "management_credential_revision_conflict"
+            );
+            assert_eq!(outcome.credential["revision"], 1);
+            assert_eq!(
+                outcome.credential["status"],
+                if active && !disabled {
+                    "active"
+                } else {
+                    "disabled"
+                }
+            );
+            assert_eq!(winner.version.revision, if active { 0 } else { 2 });
+            assert_eq!(outcome.after.version.revision, winner.version.revision);
+            assert_credentials_preserved(&winner.credentials, &outcome.after.credentials);
+            assert_reauthorization_relationships_preserved(winner, &outcome.after);
+            let after = &outcome.after.credentials[0];
+            let version = ConfigVersionId::try_new(VERSION)?;
+            let plaintext = reauthorization_store()?.open(
+                &after.encrypted_secret,
+                &credential_associated_data(&version, &after.id, &after.upstream_id)?,
+            )?;
+            assert!(
+                plaintext.as_bytes() == CALLBACK_WINNER,
+                "late callback overwrote the concurrent winner"
+            );
+        }
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn legacy_codex_callback_rejects_changed_draft_without_partial_credential_write() -> TestResult
+{
+    for disabled in [false, true] {
+        let concurrent = ConcurrentReauthorization::new(true);
+        let outcome = legacy_callback_reauthorization(
+            false,
+            disabled,
+            CALLBACK_OLD,
+            CALLBACK_SAME,
+            Some(concurrent.clone()),
+        )
+        .await?;
+        let guard = concurrent.winner.lock().map_err(|_| "winner lock")?;
+        let winner = guard
+            .as_ref()
+            .ok_or("concurrent configuration update did not commit")?;
+        assert_eq!(outcome.status, StatusCode::CONFLICT);
+        assert_eq!(
+            outcome.body["error"]["code"],
+            "management_revision_conflict"
+        );
+        assert_eq!(outcome.credential["revision"], 0);
+        assert_eq!(
+            outcome.credential["status"],
+            if disabled { "disabled" } else { "active" }
+        );
+        assert_eq!(outcome.oauth_status["state"], "failed");
+        assert_eq!(winner.version.revision, 1);
+        assert_eq!(outcome.after.version.revision, winner.version.revision);
+        assert_credentials_preserved(&winner.credentials, &outcome.after.credentials);
+        assert_reauthorization_relationships_preserved(winner, &outcome.after);
+    }
+    Ok(())
+}
+
 #[actix_web::test]
 async fn first_codex_authorization_creates_only_after_callback_and_rejects_replay() -> TestResult {
     let exchanges = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));

@@ -6920,7 +6920,7 @@ async fn complete_credential_oauth(
     };
     // Compare against the credential observed before the potentially slow token exchange.
     // A concurrent update must win over this older browser callback.
-    let persisted = service.persist_oauth_credential_if_revision(
+    let persisted = service.reauthorize_oauth_credential_if_revision(
         &actor,
         &context.version,
         current.revision(),

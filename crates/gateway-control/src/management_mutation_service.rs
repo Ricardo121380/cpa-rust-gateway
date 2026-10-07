@@ -1254,10 +1254,59 @@ impl ManagementMutationService {
         self.update_credential(actor, config_version_id, expected_config_revision, input)
     }
 
+    /// Reauthorizes the same observed OAuth account through the encrypted Credential CAS path.
+    ///
+    /// Unlike normal renewal, interactive authorization must establish the old account identity.
+    /// The opened record is bound to the same Version, Credential and revision required by the
+    /// final persistence CAS; a later update is rejected rather than overwriting its material.
+    ///
+    /// # Errors
+    ///
+    /// Returns an identity conflict for missing or conflicting identity, a revision conflict for
+    /// stale material, or a value-free management error when opening or persistence fails.
+    pub fn reauthorize_oauth_credential_if_revision(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_config_revision: ConfigRevision,
+        credential_id: CredentialId,
+        expected_credential_revision: i64,
+        oauth_envelope: &[u8],
+    ) -> Result<Revisioned<CredentialView>, ManagementResourceError> {
+        let current = self
+            .configuration(config_version_id)?
+            .credentials
+            .into_iter()
+            .find(|candidate| candidate.id == credential_id)
+            .ok_or(ManagementResourceError::ResourceNotFound)?;
+        if current.revision != expected_credential_revision {
+            return Err(ManagementResourceError::CredentialRevisionConflict);
+        }
+        let associated_data =
+            credential_associated_data(config_version_id, &current.id, &current.upstream_id)?;
+        let old = self
+            .secret_store
+            .open(&current.encrypted_secret, &associated_data)?;
+        if !gateway_store::account_identity::AccountIdentity::same_observed_oauth_account(
+            old.as_bytes(),
+            oauth_envelope,
+        ) {
+            return Err(ManagementResourceError::CredentialIdentityUnverified);
+        }
+        self.persist_oauth_credential_if_revision(
+            actor,
+            config_version_id,
+            expected_config_revision,
+            credential_id,
+            expected_credential_revision,
+            oauth_envelope,
+        )
+    }
+
     /// Persists a validated OAuth envelope through the normal encrypted Credential CAS path.
     ///
     /// The caller validates the token response and normalizes metadata. This method owns only the
-    /// durable boundary: fixed `oauth_json` kind, AEAD sealing, audit, and both revisions.
+    /// durable boundary: fixed `oauth_json` kind, AEAD sealing, audit, and the Version's CAS contract.
     ///
     /// # Errors
     ///

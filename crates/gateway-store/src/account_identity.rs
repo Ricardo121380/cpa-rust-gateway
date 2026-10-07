@@ -139,6 +139,31 @@ impl AccountIdentity {
         first.is_some() && first == oauth_match_key(right)
     }
 
+    /// Requires earlier observed OAuth account binding and email to agree for reauthorization.
+    ///
+    /// An old stable account ID cannot be replaced by a matching display name or email alone.
+    /// Missing old identity or missing/conflicting previously observed fields are not a match.
+    #[must_use]
+    pub fn same_observed_oauth_account(old: &[u8], new: &[u8]) -> bool {
+        #[derive(serde::Deserialize)]
+        struct Binding {
+            account_id: Option<String>,
+        }
+        let binding = |bytes: &[u8]| {
+            serde_json::from_slice::<Binding>(bytes)
+                .ok()
+                .and_then(|b| b.account_id)
+                .filter(|id| !id.is_empty())
+        };
+        let old_binding = binding(old);
+        if old_binding.is_some() && old_binding != binding(new) {
+            return false;
+        }
+        let identity = Self::from_credential(old);
+        (old_binding.is_some() || identity.email.is_some())
+            && (identity.email.is_none() || identity.email == Self::from_credential(new).email)
+    }
+
     /// Extracts display fields from a JWT payload without using its claims for authorization.
     #[must_use]
     pub fn from_token(token: &str) -> Self {

@@ -81,28 +81,6 @@ fn validated_legacy_owner(
     }
 }
 
-fn same_observed_account(old: &[u8], new: &[u8]) -> bool {
-    #[derive(Deserialize)]
-    struct Binding {
-        account_id: Option<String>,
-    }
-    let binding = |bytes: &[u8]| {
-        serde_json::from_slice::<Binding>(bytes)
-            .ok()
-            .and_then(|b| b.account_id)
-            .filter(|id| !id.is_empty())
-    };
-    let old_binding = binding(old);
-    if old_binding.is_some() && old_binding != binding(new) {
-        return false;
-    }
-    let identity = gateway_store::account_identity::AccountIdentity::from_credential(old);
-    (old_binding.is_some() || identity.email.is_some())
-        && (identity.email.is_none()
-            || identity.email
-                == gateway_store::account_identity::AccountIdentity::from_credential(new).email)
-}
-
 pub(super) fn persist(
     service: &mut ManagementMutationService,
     actor: &ManagementActor,
@@ -113,7 +91,10 @@ pub(super) fn persist(
 ) -> Result<(Revisioned<CredentialView>, bool), ManagementResourceError> {
     if let Some(previous) = previous {
         let old = service.open_credential_for_export(&context.version, &input.id)?;
-        if !same_observed_account(old.as_bytes(), input.plaintext_secret) {
+        if !gateway_store::account_identity::AccountIdentity::same_observed_oauth_account(
+            old.as_bytes(),
+            input.plaintext_secret,
+        ) {
             return Err(ManagementResourceError::CredentialIdentityUnverified);
         }
         service
@@ -575,17 +556,18 @@ pub(super) async fn complete_claude(
 
 #[cfg(test)]
 mod tests {
+    use gateway_store::account_identity::AccountIdentity;
     #[test]
     fn replacement_must_preserve_an_observed_account_binding() {
-        assert!(super::same_observed_account(
+        assert!(AccountIdentity::same_observed_oauth_account(
             br#"{"account_id":"a"}"#,
             br#"{"account_id":"a"}"#
         ));
-        assert!(!super::same_observed_account(
+        assert!(!AccountIdentity::same_observed_oauth_account(
             br#"{"account_id":"a"}"#,
             br#"{"account_id":"b"}"#
         ));
-        assert!(!super::same_observed_account(
+        assert!(!AccountIdentity::same_observed_oauth_account(
             br#"{"account_id":"a"}"#,
             b"{}"
         ));
@@ -593,12 +575,12 @@ mod tests {
 
     #[test]
     fn replacement_requires_a_shared_observed_identity() {
-        assert!(!super::same_observed_account(b"{}", b"{}"));
-        assert!(!super::same_observed_account(
+        assert!(!AccountIdentity::same_observed_oauth_account(b"{}", b"{}"));
+        assert!(!AccountIdentity::same_observed_oauth_account(
             br#"{"access_token":"old-synthetic"}"#,
             br#"{"access_token":"new-synthetic"}"#
         ));
-        assert!(!super::same_observed_account(
+        assert!(!AccountIdentity::same_observed_oauth_account(
             b"{}",
             br#"{"account_id":"new-account"}"#
         ));
