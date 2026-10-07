@@ -1,0 +1,20 @@
+{
+  "receipt": {
+    "command": [
+      "python3",
+      "scripts/test-agent-roundtrip.py"
+    ],
+    "source_head": "3aa5b475c6d2b3d8037c47a3cc59ed1b2df49e2d",
+    "started_utc": "2026-10-07T16:57:34.065851+00:00",
+    "finished_utc": "2026-10-07T16:57:41.759734+00:00",
+    "elapsed_seconds": 7.694,
+    "exit_code": 0,
+    "log_sha256": "e60b4101efd9b83a81932e2b76c1a0af4b25147c217dbefd581d8947ad21e2f4",
+    "source_sha256": {},
+    "fixture_sha256": "8633760839504fb420d8fb0ae57b2b2d1032c86621aeb6d75e580efbfc607b63",
+    "gateway_binary_sha256": "b944f3415034d314ae964f0e90294cecaff2dd5a4ed08a37bc1b9cef9d1d1293",
+    "gateway_source_commit": "3aa5b475c6d2b3d8037c47a3cc59ed1b2df49e2d",
+    "fixture_dirty_note": "Only the local SSE fixture emitter changed after the first Full; Rust source matches 3aa5b475."
+  },
+  "log": "{\"fixture_catalog_ready\": {\"message\": \"model Catalog pass completed\", \"attempted\": 5, \"succeeded\": 5}}\n{\"passed\": true, \"real_gateway\": true, \"provider\": \"owned loopback TLS mock\", \"real_provider_calls\": 0, \"checks\": [{\"stream\": false, \"stored\": false, \"turn\": 1, \"completed\": true}, {\"stream\": false, \"stored\": false, \"turn\": 2, \"completed\": true}, {\"stream\": false, \"stored\": false, \"turn\": 3, \"completed\": true}, {\"stream\": true, \"stored\": false, \"turn\": 1, \"completed\": true}, {\"stream\": true, \"stored\": false, \"turn\": 2, \"completed\": true}, {\"stream\": true, \"stored\": false, \"turn\": 3, \"completed\": true}, {\"stream\": false, \"stored\": true, \"turn\": 1, \"completed\": true}, {\"stream\": false, \"stored\": true, \"turn\": 2, \"completed\": true}, {\"stream\": false, \"stored\": true, \"turn\": 3, \"completed\": true}, {\"stream\": true, \"stored\": true, \"turn\": 1, \"completed\": true}, {\"stream\": true, \"stored\": true, \"turn\": 2, \"completed\": true}, {\"stream\": true, \"stored\": true, \"turn\": 3, \"completed\": true}], \"summary\": {\"attempts\": 12, \"average_duration_ms\": 2.8, \"average_first_content_ms\": 2.8333333333333335, \"cancelled\": 0, \"failed\": 3, \"p50_duration_ms\": 3, \"p95_duration_ms\": 5, \"requests\": 15, \"succeeded\": 12, \"success_rate\": 0.8, \"unknown\": 0}, \"replayed_gateway_output\": true, \"decode_failures_observed\": 3, \"successful_requests_materialized\": 12}\n{\"observed_summary\": {\"attempts\": 5, \"average_duration_ms\": 66.4, \"average_first_content_ms\": 82.0, \"cancelled\": 1, \"failed\": 2, \"p50_duration_ms\": 90, \"p95_duration_ms\": 102, \"requests\": 5, \"succeeded\": 2, \"success_rate\": 0.4, \"unknown\": 0}, \"rows\": [{\"result\": \"cancelled\", \"duration_ms\": 95, \"first_content_ms\": 95, \"ledger_records\": 0}, {\"result\": \"failed\", \"duration_ms\": 102, \"first_content_ms\": 101, \"ledger_records\": 0}, {\"result\": \"failed\", \"duration_ms\": 2, \"first_content_ms\": null, \"ledger_records\": 0}, {\"result\": \"succeeded\", \"duration_ms\": 90, \"first_content_ms\": 89, \"ledger_records\": 1}, {\"result\": \"succeeded\", \"duration_ms\": 43, \"first_content_ms\": 43, \"ledger_records\": 1}]}\n{\"passed\": true, \"checks\": [\"full two-page catalog refresh does not widen served models or key grants\", \"local-json-acceptance\", \"local-stream-acceptance\", \"fail-acceptance\", \"truncate-acceptance\", \"client stream cancellation\"], \"summary\": {\"attempts\": 5, \"average_duration_ms\": 66.4, \"average_first_content_ms\": 82.0, \"cancelled\": 1, \"failed\": 2, \"p50_duration_ms\": 90, \"p95_duration_ms\": 102, \"requests\": 5, \"succeeded\": 2, \"success_rate\": 0.4, \"unknown\": 0}, \"real_gateway\": true, \"provider\": \"owned loopback TLS mock\", \"real_provider_inference_calls\": 0, \"catalog_models\": 3, \"opened_models\": 1, \"successes_materialized\": true}\n"
+}

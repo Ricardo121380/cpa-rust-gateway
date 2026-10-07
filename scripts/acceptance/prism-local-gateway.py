@@ -51,8 +51,11 @@ class Provider(BaseHTTPRequestHandler):
     with (root/'agent-roundtrip-calls.jsonl').open('a') as f:f.write(json.dumps({'turn':turns,'history_types':[item.get('type','message') for item in history],'reasoning':body.get('reasoning')})+'\n')
     if not body.get('stream'):return self.reply(200,response)
     self.send_response(200);self.send_header('Content-Type','text/event-stream');self.send_header('Connection','close');self.end_headers();self.close_connection=True
+    agent_sequence=0
     def agent_frame(kind,**payload):
-     self.wfile.write(('event: '+kind+'\ndata: '+json.dumps({'type':kind,**payload})+'\n\n').encode());self.wfile.flush()
+     nonlocal agent_sequence
+     self.wfile.write(('event: '+kind+'\ndata: '+json.dumps({'type':kind,**payload,'sequence_number':agent_sequence})+'\n\n').encode());self.wfile.flush()
+     agent_sequence+=1
     agent_frame('response.created',response={**response,'status':'in_progress','output':[]})
     for index,item in enumerate(items):
      agent_frame('response.output_item.added',output_index=index,item={**item,'status':'in_progress','summary':[]} if item['type']=='reasoning' else {**item,'status':'in_progress'})
@@ -65,8 +68,11 @@ class Provider(BaseHTTPRequestHandler):
    time.sleep(.03)
    if not body.get('stream'):return self.reply(200,response)
    self.send_response(200);self.send_header('Content-Type','text/event-stream');self.send_header('Connection','close');self.end_headers();self.close_connection=True
+   sequence=0
    def frame(kind,payload):
-    self.wfile.write(('event: '+kind+'\ndata: '+json.dumps({'type':kind,**payload})+'\n\n').encode());self.wfile.flush()
+    nonlocal sequence
+    self.wfile.write(('event: '+kind+'\ndata: '+json.dumps({'type':kind,**payload,'sequence_number':sequence})+'\n\n').encode());self.wfile.flush()
+    sequence+=1
    frame('response.created',{'response':{**response,'status':'in_progress','output':[]}})
    frame('response.output_item.added',{'output_index':0,'item':{**item,'status':'in_progress','content':[]}})
    frame('response.content_part.added',{'item_id':item['id'],'output_index':0,'content_index':0,'part':{'type':'output_text','text':'','annotations':[]}})

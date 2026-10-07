@@ -8,7 +8,8 @@
     "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "1fa854dd762f7575f47988bc3469c38c611bbfed5f5bd3f4eae208891f3fb89d",
     "crates/protocol-openai-responses/src/upstream_response.rs": "69d15e381cb97252c66c7f4757ee8dbb9eac50ce8f9e4a6da72159706dae0bf7",
     "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md": "ee0e4c4c11e5b56f1f08505ca449575ac43205702cc57eae93da449a05314d3b",
-    "scripts/check-crate-boundaries.rb": "4511b03eeb5dddfddf486566241bfb45e789d403d99ea111415f2a430c36a530"
+    "scripts/check-crate-boundaries.rb": "4511b03eeb5dddfddf486566241bfb45e789d403d99ea111415f2a430c36a530",
+    "scripts/acceptance/prism-local-gateway.py": "8633760839504fb420d8fb0ae57b2b2d1032c86621aeb6d75e580efbfc607b63"
   },
   "binding": "Full and independent review will bind these files to the immutable source checkpoint. Precommit targeted receipts bind Rust source hashes."
 }
