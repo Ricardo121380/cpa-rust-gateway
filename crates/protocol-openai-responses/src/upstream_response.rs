@@ -895,7 +895,7 @@ impl OpenAiResponsesSseDecoder {
         let text = string_value(value, "text")?;
         if value
             .get("logprobs")
-            .is_some_and(|probs| !probs.is_null() && !probs.as_array().is_some_and(Vec::is_empty))
+            .is_some_and(|probs| !probs.as_array().is_some_and(Vec::is_empty))
         {
             return Err(protocol_error());
         }

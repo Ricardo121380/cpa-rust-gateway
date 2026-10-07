@@ -376,6 +376,7 @@ async fn native_done_lifecycle_and_metadata_conflicts_fail_publicly() -> TestRes
         "unknown-part-type",
         "extra-part-field",
         "nonempty-logprobs",
+        "null-done-logprobs",
         "changed-annotations",
         "item-changed-confirmed-part",
         "item-added-suffix",
@@ -400,6 +401,7 @@ async fn native_done_lifecycle_and_metadata_conflicts_fail_publicly() -> TestRes
             "unknown-part-type" => frames[part_done]["part"]["type"]=json!("refusal"),
             "extra-part-field" => frames[part_done]["part"]["unknown"]=json!(true),
             "nonempty-logprobs" => frames[index]["logprobs"]=json!([{"token":"fake"}]),
+            "null-done-logprobs" => frames[index]["logprobs"]=Value::Null,
             "changed-annotations" => {frames[part_done]["part"]["annotations"]=json!([{"type":"url_citation","start_index":0,"end_index":1,"url":"https://synthetic.example.test","title":"Synthetic"}]);},
             "item-changed-confirmed-part" | "item-added-suffix" => {
                 let item_done=frames.iter_mut().find(|value|value["type"]=="response.output_item.done").ok_or("item")?;
@@ -422,6 +424,7 @@ async fn valid_native_done_preserves_parts_and_allows_owned_stored_continuation(
     for variant in [
         "complete",
         "identical-repeat",
+        "without-done-logprobs",
         "without-confirmations",
         "without-part-added",
         "initial-text",
@@ -435,6 +438,15 @@ async fn valid_native_done_preserves_parts_and_allows_owned_stored_continuation(
                 .ok_or("done")?;
             let done = frames[index].clone();
             frames.insert(index + 1, done);
+        } else if variant == "without-done-logprobs" {
+            for value in &mut frames {
+                if value["type"] == "response.output_text.done" {
+                    value
+                        .as_object_mut()
+                        .ok_or("done object")?
+                        .remove("logprobs");
+                }
+            }
         } else if variant == "without-confirmations" {
             frames.retain(|value| {
                 !matches!(
@@ -755,40 +767,7 @@ async fn contradictory_native_done_confirmations_fail_public_storage_and_continu
         } else {
             done["text"] = json!("conflict");
         }
-        let peer = Peer::start_scripted(false, None, Some(chunks(&frames)))?;
-        let fixture = done_fixture(&peer)?;
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(fixture.state.clone()))
-                .configure(gateway_http_actix::configure),
-        )
-        .await;
-        let response = test::call_service(
-            &app,
-            test::TestRequest::post()
-                .uri("/v1/responses")
-                .insert_header(("authorization", format!("Bearer {}", fixture.key)))
-                .set_json(
-                    json!({"model":"p12-test-model","input":"question","stream":true,"store":true}),
-                )
-                .to_request(),
-        )
-        .await;
-        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
-        assert!(!body.contains("response.completed"), "{kind}: {body}");
-        assert!(body.contains("response.failed"), "{kind}: {body}");
-        assert!(body.contains("UpstreamProtocolError"), "{kind}: {body}");
-        assert_persisted_outcome(&fixture, true)?;
-        let get = test::call_service(
-            &app,
-            test::TestRequest::get()
-                .uri("/v1/responses/resp-b02")
-                .insert_header(("authorization", format!("Bearer {}", fixture.key)))
-                .to_request(),
-        )
-        .await;
-        assert_eq!(get.status(), StatusCode::NOT_FOUND);
-        assert_eq!(peer.received.lock().map_err(|_| "received")?.len(), 1);
+        assert_public_failure(frames, kind).await?;
     }
     Ok(())
 }

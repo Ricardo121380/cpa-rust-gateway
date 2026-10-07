@@ -1,0 +1,60 @@
+[
+  {
+    "name": "review-fixes-green",
+    "receipt": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--bin",
+        "gateway",
+        "batch_c::",
+        "--",
+        "--nocapture"
+      ],
+      "source_head": "ee65e01279be71695140591d446f8d1c0db5689a",
+      "started_utc": "2026-10-07T17:18:26.212410+00:00",
+      "finished_utc": "2026-10-07T17:19:06.710607+00:00",
+      "elapsed_seconds": 40.498,
+      "exit_code": 0,
+      "log_sha256": "786fd00a03183228d32d8c6172e030017a98fad8c2593aea5aa0f61a1095c2e4",
+      "source_sha256": {
+        "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "4944f57a544ddeffad8d9ed3db3402ab84721587c0e728abb66aa7a99969ad8b",
+        "crates/protocol-openai-responses/src/upstream_response.rs": "6d0d6c6313ee106804c9329f78cfb3e3d9c628722d69b9ac9dd9faeefde84926"
+      }
+    },
+    "log": "   Compiling protocol-openai-responses v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/protocol-openai-responses)\n   Compiling provider-openai-compatible v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-openai-compatible)\n   Compiling provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)\n   Compiling gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)\n   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.32s\n     Running unittests src/main.rs (target/debug/deps/gateway-14662d417b6e7eb8)\n\nrunning 18 tests\ntest runtime::batch_c::grok::web_unrepresentable_histories_tools_and_limits_reject_before_lease_or_dns ... ok\ntest runtime::batch_c::http::responses_done::done_frames_are_read_boundary_invariant_and_rejection_is_permanent ... ok\nB-02 public status=200 OK; received=1; events=[GatewayEvent::Request(RequestEvent { request_id: RequestId(\"p1-request-b3196bc5298a34082f2682213404e02e-0\"), client_key_id: ClientKeyId(\"p12-runtime-client-key\"), access_group_id: Some(AccessGroupId(\"p12-runtime-group\")), protocol: OpenAiResponses, requested_model: \"<redacted>\", public_model: \"<redacted>\", route_alias_present: false, streaming: true, started_at_ms: Some(1791393524324) }), GatewayEvent::Attempt(AttemptEvent { request_id: RequestId(\"p1-request-b3196bc5298a34082f2682213404e02e-0\"), attempt_id: AttemptId(\"attempt:45:p1-request-b3196bc5298a34082f2682213404e02e-0:1\"), attempt_number: 1, route_id: RouteId(\"p12-runtime-route\"), route_candidate_id: RouteCandidateId(\"p12-runtime-candidate\"), credential_id: CredentialId(\"p12-runtime-credential\"), endpoint_id: EndpointId(\"p12-krill-endpoint\"), upstream_id: UpstreamId(\"p12-runtime-upstream\"), upstream_model: \"<redacted>\", started_at_ms: 1791393524324, ended_at_ms: 1791393524600, outcome: Succeeded, retry_decision: Completed, execution_identity: Some(AttemptExecutionIdentity(<protected identifiers>)) }), GatewayEvent::RequestFinished(RequestFinishedEvent { request_id: RequestId(\"p1-request-b3196bc5298a34082f2682213404e02e-0\"), started_at_ms: 1791393524324, finished_at_ms: 1791393524622, duration_ms: 297, first_content_ms: Some(276), outcome: Failed, error_code: Some(UpstreamProtocolError) })]; body=event: response.created\ndata: {\"response\":{\"created_at\":1791393524,\"error\":null,\"id\":\"resp-b02\",\"incomplete_details\":null,\"model\":\"p12-test-model\",\"object\":\"response\",\"output\":[],\"status\":\"in_progress\",\"usage\":null},\"sequence_number\":1,\"type\":\"response.created\"}\n\nevent: response.in_progress\ndata: {\"response\":{\"created_at\":1791393524,\"error\":null,\"id\":\"resp-b02\",\"incomplete_details\":null,\"model\":\"p12-test-model\",\"object\":\"response\",\"output\":[],\"status\":\"in_progress\",\"usage\":null},\"sequence_number\":2,\"type\":\"response.in_progress\"}\n\nevent: response.output_item.added\ndata: {\"item\":{\"content\":[],\"id\":\"msg-b02\",\"role\":\"assistant\",\"status\":\"in_progress\",\"type\":\"message\"},\"output_index\":0,\"sequence_number\":3,\"type\":\"response.output_item.added\"}\n\nevent: response.content_part.added\ndata: {\"content_index\":0,\"item_id\":\"msg-b02\",\"output_index\":0,\"part\":{\"text\":\"\",\"type\":\"output_text\"},\"sequence_number\":4,\"type\":\"response.content_part.added\"}\n\nevent: response.output_text.delta\ndata: {\"content_index\":0,\"delta\":\"answer\",\"item_id\":\"msg-b02\",\"output_index\":0,\"sequence_number\":5,\"type\":\"response.output_text.delta\"}\n\nevent: response.failed\ndata: {\"response\":{\"created_at\":1791393524,\"error\":{\"code\":\"UpstreamProtocolError\",\"message\":\"the upstream protocol was invalid\"},\"id\":\"resp-b02\",\"incomplete_details\":null,\"model\":\"p12-test-model\",\"object\":\"response\",\"output\":[{\"content\":[{\"text\":\"answer\",\"type\":\"output_text\"}],\"id\":\"msg-b02\",\"role\":\"assistant\",\"status\":\"in_progress\",\"type\":\"message\"}],\"status\":\"failed\",\"usage\":null},\"sequence_number\":6,\"type\":\"response.failed\"}\n\n\ntest runtime::batch_c::http::responses_done::bootstrap_done_conflict_records_failed_attempt_and_no_owned_result ... ok\ntest runtime::batch_c::http::codex_rejection_never_replays_without_the_clients_output_limit ... ok\ntest runtime::batch_c::http::responses_done::contradictory_text_done_fails_through_public_gateway_without_replay ... ok\ntest runtime::batch_c::http::responses_history::responses_json_multipart_output_replays_exactly_through_public_http ... ok\ntest runtime::batch_c::http::responses_history::responses_multipart_history_rejects_invalid_semantics_before_upstream_http ... ok\ntest runtime::batch_c::http::responses_history::responses_sse_multipart_output_replays_exactly_through_public_http ... ok\ntest runtime::batch_c::http::responses_done::done_conflict_never_registers_a_websocket_root_or_stored_response ... ok\ntest runtime::batch_c::official_real_factory_retains_tools_controls_usage_and_quota_ownership ... ok\ntest runtime::batch_c::grok::grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges ... ok\ntest runtime::batch_c::kiro_real_factory_bridges_text_tools_and_effort_without_dropping_limits ... ok\ntest runtime::batch_c::grok::grok_factories_bridge_three_protocols_and_preserve_tool_rounds ... ok\ntest runtime::batch_c::http::responses_done::contradictory_native_done_confirmations_fail_public_storage_and_continuation ... ok\ntest runtime::batch_c::http::responses_done::valid_native_done_preserves_parts_and_allows_owned_stored_continuation ... ok\ntest runtime::batch_c::http::ordinary_native_families_use_the_public_factory_and_preserve_identity ... ok\ntest runtime::batch_c::http::responses_done::native_done_lifecycle_and_metadata_conflicts_fail_publicly ... ok\ntest runtime::batch_c::http::responses_done::done_field_and_correlation_errors_fail_through_public_gateway ... ok\n\ntest result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 167 filtered out; finished in 23.41s\n\n"
+  },
+  {
+    "name": "review-fixes-clippy",
+    "receipt": {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "protocol-openai-responses",
+        "-p",
+        "gateway",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "source_head": "ee65e01279be71695140591d446f8d1c0db5689a",
+      "started_utc": "2026-10-07T17:21:25.167589+00:00",
+      "finished_utc": "2026-10-07T17:21:33.703773+00:00",
+      "elapsed_seconds": 8.536,
+      "exit_code": 0,
+      "log_sha256": "536b84dc69feb7713e040ceeaafd90d1d38f9f4f207b1a71aaa12246160754aa",
+      "source_sha256": {
+        "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "4944f57a544ddeffad8d9ed3db3402ab84721587c0e728abb66aa7a99969ad8b",
+        "crates/protocol-openai-responses/src/upstream_response.rs": "6d0d6c6313ee106804c9329f78cfb3e3d9c628722d69b9ac9dd9faeefde84926"
+      }
+    },
+    "log": "    Checking protocol-openai-responses v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/protocol-openai-responses)\n    Checking provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)\n    Checking provider-openai-compatible v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-openai-compatible)\n    Checking gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)\n    Checking gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.25s\n"
+  }
+]

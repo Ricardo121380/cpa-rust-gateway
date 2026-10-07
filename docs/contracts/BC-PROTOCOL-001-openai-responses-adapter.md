@@ -144,7 +144,9 @@ reasoning parts admit only `type` and string `text`. Nonempty token metadata, un
 kinds, unknown fields, and malformed annotations are rejected. The local compatibility omission
 of done-event logprobs follows the existing native encoder, which emits that confirmation without
 logprobs while preserving the part's final null/empty representation; it is not an assertion that
-the current official schema marks it optional. Final part snapshots must match item-done metadata
+the current official schema marks it optional. If present on `output_text.done`, logprobs must be
+an empty array: event-level null is rejected, independently of the final part's nullable metadata.
+Final part snapshots must match item-done metadata
 exactly, including annotations and null/empty representation.
 
 The two supported part-added events validate the same identity/index fields and a closed initial
