@@ -63,6 +63,17 @@ extension; it does not alter the rejection rules of the original three modes.
 
 ## Corresponding tests
 
+The CPAR B-01 repair restores the native Responses history fidelity already required by
+[ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md) and
+[ADR-0101](../adr/ADR-0101-grok-native-item-metadata-fidelity.md), which supersede the early
+text/Tool restrictions above. A Responses assistant message may contain ordered text parts;
+closed role/field validation, per-part metadata checks and Tool correlation still apply.
+The public HTTP regressions are:
+
+- `responses_json_multipart_output_replays_exactly_through_public_http`
+- `responses_sse_multipart_output_replays_exactly_through_public_http`
+- `responses_multipart_history_rejects_invalid_semantics_before_upstream_http`
+
 - Exact native pass-through accepts a retained extension only when source/target formats match;
   a missing body and cross-protocol pass-through fail closed.
 - Canonical/Bridge topology, unknown extension classes, opaque content, historical Tool calls and

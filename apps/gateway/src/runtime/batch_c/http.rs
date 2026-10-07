@@ -3,6 +3,7 @@ use super::*;
 use actix_web::{HttpRequest, HttpResponse, HttpServer, dev::ServerHandle};
 use gateway_upstream::EgressDnsError;
 use std::net::{IpAddr, Ipv4Addr, TcpListener};
+mod responses_history;
 
 struct PublicResolver;
 impl EgressDnsResolver for PublicResolver {
@@ -19,15 +20,23 @@ pub(in crate::runtime) struct Peer {
     origin: String,
     policy: EgressPolicy,
     requests: Mutex<Vec<Recorded>>,
+    received: web::Data<Mutex<Vec<Value>>>,
     server: ServerHandle,
 }
 impl Peer {
-    fn start(reject_limit: bool) -> Result<Arc<Self>, Box<dyn Error>> {
+    fn start(
+        reject_limit: bool,
+        responses_output: Option<Value>,
+    ) -> Result<Arc<Self>, Box<dyn Error>> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
         let port = listener.local_addr()?.port();
+        let received = web::Data::new(Mutex::new(Vec::new()));
+        let server_received = received.clone();
         let server = HttpServer::new(move || {
             App::new()
+                .app_data(server_received.clone())
                 .app_data(web::Data::new(reject_limit))
+                .app_data(web::Data::new(responses_output.clone()))
                 .default_service(web::post().to(reply))
         })
         .disable_signals()
@@ -52,6 +61,7 @@ impl Peer {
             origin: format!("http://127.0.0.1:{port}"),
             policy,
             requests: Mutex::new(Vec::new()),
+            received,
             server: handle,
         }))
     }
@@ -115,9 +125,18 @@ async fn reply(
     request: HttpRequest,
     body: web::Json<Value>,
     reject: web::Data<bool>,
+    output: web::Data<Option<Value>>,
+    received: web::Data<Mutex<Vec<Value>>>,
 ) -> Result<HttpResponse, actix_web::Error> {
+    received
+        .lock()
+        .map_err(|_| actix_web::error::ErrorInternalServerError("received requests"))?
+        .push(body.0.clone());
     if **reject {
         return Ok(HttpResponse::BadRequest().json(json!({"error":{"message":"Unsupported parameter: max_output_tokens","type":"invalid_request_error","param":"max_output_tokens"}})));
+    }
+    if let Some(output) = output.get_ref() {
+        return responses_history::reply(&body, output);
     }
     let streaming = body["stream"] == true;
     let history = body.to_string();
@@ -314,7 +333,7 @@ async fn ordinary_native_families_use_the_public_factory_and_preserve_identity()
         ),
     ] {
         for streaming in [false, true] {
-            let peer = Peer::start(false)?;
+            let peer = Peer::start(false, None)?;
             let fixture = fixture(
                 Channel {
                     adapter,
@@ -433,7 +452,7 @@ async fn ordinary_native_families_use_the_public_factory_and_preserve_identity()
 
 #[actix_web::test]
 async fn codex_rejection_never_replays_without_the_clients_output_limit() -> TestResult {
-    let peer = Peer::start(true)?;
+    let peer = Peer::start(true, None)?;
     let secret = oauth("codex_oauth")?;
     let fixture = fixture(
         Channel {

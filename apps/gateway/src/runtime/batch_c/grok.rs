@@ -306,7 +306,10 @@ fn public_frames(bytes: &[u8]) -> Result<Vec<Value>, Box<dyn Error>> {
 async fn grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges() -> TestResult {
     let output = json!([
         {"id":"reason-public","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":"summary"}],"content":[{"type":"reasoning_text","text":"body"}]},
-        {"id":"message-public","type":"message","role":"assistant","status":"completed","phase":"final_answer","content":[{"type":"output_text","text":"answer","annotations":[{"type":"url_citation","url":"https://example.test/source","title":"Source","start_index":0,"end_index":6}],"logprobs":null}]}
+        {"id":"message-public","type":"message","role":"assistant","status":"completed","phase":"final_answer","content":[
+            {"type":"output_text","text":"answer","annotations":[{"type":"url_citation","url":"https://example.test/source","title":"Source","start_index":0,"end_index":6}],"logprobs":null},
+            {"type":"output_text","text":"follow-up","annotations":[{"type":"url_citation","url":"https://example.test/second","title":"Second source","start_index":0,"end_index":9}],"logprobs":[]}
+        ]}
     ]);
     for (channel, secret) in native_channels() {
         for streaming in [false, true] {

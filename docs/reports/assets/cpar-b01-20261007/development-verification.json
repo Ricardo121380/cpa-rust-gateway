@@ -1,0 +1,153 @@
+{
+  "baseline": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+  "source_sha256": {
+    "crates/gateway-router/src/protocol_transform.rs": "3dd0c5f3c0838f449dc899a7942fe7b06db487f51bd407109fb313a7702e99f8",
+    "apps/gateway/src/runtime/batch_c/http.rs": "1f929d8505b9aadc16124070915a7fdee252ac209dffe9a886209598af577b4c",
+    "apps/gateway/src/runtime/batch_c/http/responses_history.rs": "0d47ad664710a5a231b2ebc7c8c0776206526b0b907fdf20e3bae20e8c94a9c8",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "1f1328a61c1d693a61aaf2805ad2ede3f97234e772c10153d84b056b11e78888"
+  },
+  "runs": [
+    {
+      "label": "narrow-public",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--bin",
+        "gateway",
+        "batch_c::",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:25:14.456166+00:00",
+      "finished": "2026-10-07T13:25:38.090098+00:00",
+      "duration_seconds": 23.634,
+      "exit_code": 0,
+      "log_sha256": "98651b5b36daa1eeba26079427812b2a7a3214ecd7111dc950ff33831bdb4ef6"
+    },
+    {
+      "label": "final-router",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway-router",
+        "--lib",
+        "protocol_transform::tests::"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:26:15.443440+00:00",
+      "finished": "2026-10-07T13:26:21.035783+00:00",
+      "duration_seconds": 5.592,
+      "exit_code": 0,
+      "log_sha256": "d1477ef1a82106893d9413231c59c8a8e7c7ac17b97ac58418dfde528d66bc0f"
+    },
+    {
+      "label": "pending-tool",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway-core",
+        "--lib",
+        "canonical_request::tests::"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:26:21.072747+00:00",
+      "finished": "2026-10-07T13:26:22.565589+00:00",
+      "duration_seconds": 1.493,
+      "exit_code": 0,
+      "log_sha256": "d99b43fb4d145133e131a649e3f1eb8d75c7bd5e3f75d10d7962aae98d86f96f"
+    },
+    {
+      "label": "reasoning-chat",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "protocol-openai-chat",
+        "--lib",
+        "reasoning_only_output_can_be_replayed_as_assistant_history"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:26:22.610540+00:00",
+      "finished": "2026-10-07T13:26:24.206028+00:00",
+      "duration_seconds": 1.595,
+      "exit_code": 0,
+      "log_sha256": "1555fd24f53cc90797edb632b4e9004eaa97698453ed8c01d71fb637aa41eecf"
+    },
+    {
+      "label": "http-tool-history",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway-http-actix",
+        "--lib",
+        "three_protocols_reject_orphan_tool_results_before_execution"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:26:24.252219+00:00",
+      "finished": "2026-10-07T13:26:34.884915+00:00",
+      "duration_seconds": 10.633,
+      "exit_code": 0,
+      "log_sha256": "3ef1877a2d45246bfe3c9ebe2fab40feecd4cd6ebbb37711a0d39762491be47c"
+    },
+    {
+      "label": "http-item-shape",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway-http-actix",
+        "--lib",
+        "responses_rejects_non_string_item_type_before_execution"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:26:34.931513+00:00",
+      "finished": "2026-10-07T13:26:35.119871+00:00",
+      "duration_seconds": 0.188,
+      "exit_code": 0,
+      "log_sha256": "12dce614ff056248dd8b48ad1acd3b8dda1ec8ed69bd915449297465cbd5bdc8"
+    },
+    {
+      "label": "targeted-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "gateway-router",
+        "-p",
+        "gateway",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:26:35.151617+00:00",
+      "finished": "2026-10-07T13:26:46.480101+00:00",
+      "duration_seconds": 11.328,
+      "exit_code": 0,
+      "log_sha256": "cda90ce7d01947e27ced6254f5b0d26577a13817473d4535d15d04ecad5b9644"
+    }
+  ],
+  "binding": "development worktree; compare these file hashes with the fix commit; immutable Full follows"
+}

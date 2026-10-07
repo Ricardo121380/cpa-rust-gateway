@@ -985,7 +985,10 @@ fn valid_responses_content(role: &str, content: &[MessageContent]) -> bool {
             .iter()
             .all(|part| matches!(part, MessageContent::Text(_))),
         "assistant" => {
-            matches!(content, [MessageContent::Reasoning(_)])
+            content
+                .iter()
+                .all(|part| matches!(part, MessageContent::Text(_)))
+                || matches!(content, [MessageContent::Reasoning(_)])
                 || valid_assistant_tool_history(content, ProtocolFormat::OpenAiResponses)
         }
         "tool" => valid_tool_result_message(content, ProtocolFormat::OpenAiResponses),

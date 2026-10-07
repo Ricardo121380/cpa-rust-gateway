@@ -1,0 +1,53 @@
+{
+  "runs": [
+    {
+      "label": "red-json-valid",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--bin",
+        "gateway",
+        "responses_json_multipart_output_replays_exactly_through_public_http",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:19:38.124772+00:00",
+      "finished": "2026-10-07T13:19:49.360278+00:00",
+      "duration_seconds": 11.235,
+      "exit_code": 101,
+      "log_sha256": "34714d7c1bd1f16828e69cb611469ad5974ae0870c1a1eeede462b1b1df1b17d"
+    },
+    {
+      "label": "red-sse-valid",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--bin",
+        "gateway",
+        "responses_sse_multipart_output_replays_exactly_through_public_http",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+      "started": "2026-10-07T13:20:11.988526+00:00",
+      "finished": "2026-10-07T13:20:12.573787+00:00",
+      "duration_seconds": 0.585,
+      "exit_code": 101,
+      "log_sha256": "97d2c7d0f284a50769d93c10b27798433fa1806cb3f2b28a2a95780b08bd4135"
+    }
+  ],
+  "source_sha256": {
+    "apps/gateway/src/runtime/batch_c/http.rs": "cad3f1f8f580a3941dc37833aca4c3e7ab408f6e7e661a9adb2807201c15392c",
+    "apps/gateway/src/runtime/batch_c/http/responses_history.rs": "bda8b1c550b7dfa514b8a2b10404cccadec7e2d7ccf356942df39af98c9114da",
+    "crates/gateway-router/src/protocol_transform.rs": "efc3dd1cf3679a73e5d4040d87771747e73ff7e12dbedc10ee8990619047d5df"
+  }
+}
