@@ -30,6 +30,14 @@ const MAX_TOOL_CALLS: usize = 32;
 const MAX_IDENTIFIER_BYTES: usize = 256;
 const MAX_PROGRESS_FREE_FRAMES: usize = 4_096;
 const JSON_WHITESPACE: [char; 4] = [' ', '\t', '\n', '\r'];
+type PartKey = (String, String, usize);
+
+#[derive(Default)]
+struct SsePart {
+    initial: Option<Value>,
+    text_done: bool,
+    done: Option<Value>,
+}
 
 /// Decodes one complete successful Responses JSON envelope.
 ///
@@ -426,6 +434,7 @@ enum SseLifecycle {
     AwaitingStart,
     Streaming(Box<SseState>),
     Finished,
+    Rejected,
 }
 
 struct SseState {
@@ -433,9 +442,12 @@ struct SseState {
     message_open: bool,
     emitted_content: bool,
     output_items: BTreeSet<String>,
+    output_indices: BTreeMap<String, usize>,
     ended_items: BTreeSet<String>,
     text_items: BTreeSet<String>,
     text_parts: BTreeMap<(String, usize), String>,
+    parts: BTreeMap<PartKey, SsePart>,
+    retained_confirmation_bytes: usize,
     annotations: BTreeMap<(String, usize), Vec<Value>>,
     completed_items: BTreeMap<String, gateway_core::OutputItemMetadata>,
     retained_text_bytes: usize,
@@ -458,6 +470,58 @@ struct OpenTool {
     assembled: String,
     released: usize,
     ended: bool,
+}
+
+impl SseState {
+    fn retain_part(&mut self, key: PartKey, part: &Value, done: bool) -> Result<(), GatewayError> {
+        let state = self.parts.entry(key).or_default();
+        let target = if done {
+            &mut state.done
+        } else {
+            &mut state.initial
+        };
+        if target.is_none() {
+            self.retained_confirmation_bytes = self
+                .retained_confirmation_bytes
+                .checked_add(part.to_string().len())
+                .filter(|size| *size <= MAX_RESPONSE_BYTES)
+                .ok_or_else(protocol_error)?;
+            *target = Some(part.clone());
+        }
+        Ok(())
+    }
+
+    fn part_text(&self, key: &PartKey) -> Option<&str> {
+        if self.text_items.contains(&key.0) {
+            self.text_parts
+                .get(&(key.0.clone(), key.2))
+                .map(String::as_str)
+        } else {
+            self.reasoning_items
+                .get(&key.0)?
+                .parts
+                .get(&(key.1.clone(), key.2))
+                .map(String::as_str)
+        }
+    }
+
+    fn confirm_item_parts(&self, item: &Map<String, Value>) -> Result<(), GatewayError> {
+        let id = identifier(item, "id")?;
+        for (key, confirmation) in self.parts.iter().filter(|(key, _)| key.0 == id) {
+            let part = item
+                .get(&key.1)
+                .and_then(Value::as_array)
+                .and_then(|parts| parts.get(key.2))
+                .ok_or_else(protocol_error)?;
+            if confirmation.done.as_ref().is_some_and(|done| done != part)
+                || confirmation.text_done
+                    && self.part_text(key) != part.get("text").and_then(Value::as_str)
+            {
+                return Err(protocol_error());
+            }
+        }
+        Ok(())
+    }
 }
 
 impl OpenAiResponsesSseDecoder {
@@ -502,15 +566,33 @@ impl OpenAiResponsesSseDecoder {
     ///
     /// Returns a stream-scoped protocol error without growing past the fixed residue bound.
     pub fn push(&mut self, chunk: &[u8]) -> Result<Vec<CanonicalEvent>, GatewayError> {
-        if self.is_finished() && chunk.iter().any(|byte| !byte.is_ascii_whitespace()) {
+        if matches!(self.lifecycle, SseLifecycle::Rejected) {
             return Err(protocol_error());
         }
-        self.append(chunk)?;
+        if self.is_finished() && chunk.iter().any(|byte| !byte.is_ascii_whitespace()) {
+            self.lifecycle = SseLifecycle::Rejected;
+            return Err(protocol_error());
+        }
+        if let Err(error) = self.append(chunk) {
+            self.lifecycle = SseLifecycle::Rejected;
+            return Err(error);
+        }
         while !self.is_finished() {
             let Some(frame) = self.take_frame() else {
                 break;
             };
-            self.consume_frame(&frame)?;
+            if let Err(error) = self.consume_frame(&frame) {
+                self.lifecycle = SseLifecycle::Rejected;
+                return Err(error);
+            }
+        }
+        if self.is_finished()
+            && self.buffer[self.consumed..]
+                .iter()
+                .any(|byte| !byte.is_ascii_whitespace())
+        {
+            self.lifecycle = SseLifecycle::Rejected;
+            return Err(protocol_error());
         }
         Ok(std::mem::take(&mut self.pending))
     }
@@ -614,19 +696,22 @@ impl OpenAiResponsesSseDecoder {
             "response.function_call_arguments.delta" => self.tool_delta(&value),
             "response.function_call_arguments.done" => self.tool_done(&value, false),
             "response.output_item.done" => self.output_item_done(&value),
+            "response.output_text.done" => self.text_done(&value),
+            "response.reasoning_summary_text.done" | "response.reasoning_text.done" => {
+                self.text_done(&value)
+            }
+            "response.content_part.added" | "response.reasoning_summary_part.added" => {
+                self.part_confirmation(&value, false)
+            }
+            "response.content_part.done" | "response.reasoning_summary_part.done" => {
+                self.part_confirmation(&value, true)
+            }
             "response.completed" => self.end(&value, None),
             "response.incomplete" => {
                 let reason = incomplete_reason(value.get("response"))?;
                 self.end(&value, Some(reason))
             }
             "response.failed" => self.failed(),
-            "response.content_part.added"
-            | "response.content_part.done"
-            | "response.output_text.done"
-            | "response.reasoning_summary_part.added"
-            | "response.reasoning_summary_part.done"
-            | "response.reasoning_summary_text.done"
-            | "response.reasoning_text.done" => Ok(()),
             _ => Err(protocol_error()),
         }
     }
@@ -653,9 +738,12 @@ impl OpenAiResponsesSseDecoder {
             message_open: false,
             emitted_content: false,
             output_items: BTreeSet::new(),
+            output_indices: BTreeMap::new(),
             ended_items: BTreeSet::new(),
             text_items: BTreeSet::new(),
             text_parts: BTreeMap::new(),
+            parts: BTreeMap::new(),
+            retained_confirmation_bytes: 0,
             annotations: BTreeMap::new(),
             completed_items: BTreeMap::new(),
             retained_text_bytes: 0,
@@ -686,11 +774,20 @@ impl OpenAiResponsesSseDecoder {
         let kind = required_string(item, "type")?;
         let item_id = identifier(item, "id")?.to_owned();
         let state = self.streaming_mut()?;
+        let index = if value.get("output_index").is_some() {
+            part_index(value, "output_index")?
+        } else {
+            state.output_items.len()
+        };
+        if state.output_indices.values().any(|known| *known == index) {
+            return Err(protocol_error());
+        }
         if state.output_items.len() >= MAX_OUTPUT_ITEMS
             || !state.output_items.insert(item_id.clone())
         {
             return Err(protocol_error());
         }
+        state.output_indices.insert(item_id.clone(), index);
         self.ensure_message()?;
         self.emit(CanonicalEvent::OutputItemStart(wire_item_metadata(
             item, false,
@@ -725,6 +822,13 @@ impl OpenAiResponsesSseDecoder {
             return Err(protocol_error());
         }
         let index = part_index(value, "content_index")?;
+        if state
+            .parts
+            .get(&(item_id.clone(), "content".into(), index))
+            .is_some_and(|part| part.text_done || part.done.is_some())
+        {
+            return Err(protocol_error());
+        }
         state.retained_text_bytes = state
             .retained_text_bytes
             .checked_add(delta.len())
@@ -745,6 +849,216 @@ impl OpenAiResponsesSseDecoder {
         Ok(())
     }
 
+    fn text_done(&mut self, value: &Value) -> Result<(), GatewayError> {
+        let kind = value
+            .get("type")
+            .and_then(Value::as_str)
+            .ok_or_else(protocol_error)?;
+        let field = if kind == "response.reasoning_summary_text.done" {
+            "summary"
+        } else {
+            "content"
+        };
+        require_only_keys(
+            object(value)?,
+            if field == "summary" {
+                &[
+                    "type",
+                    "item_id",
+                    "output_index",
+                    "summary_index",
+                    "sequence_number",
+                    "text",
+                ]
+            } else if kind == "response.output_text.done" {
+                &[
+                    "type",
+                    "item_id",
+                    "output_index",
+                    "content_index",
+                    "sequence_number",
+                    "text",
+                    "logprobs",
+                ]
+            } else {
+                &[
+                    "type",
+                    "item_id",
+                    "output_index",
+                    "content_index",
+                    "sequence_number",
+                    "text",
+                ]
+            },
+        )?;
+        let key = self.part_key(value, field)?;
+        let text = string_value(value, "text")?;
+        if value
+            .get("logprobs")
+            .is_some_and(|probs| !probs.is_null() && !probs.as_array().is_some_and(Vec::is_empty))
+        {
+            return Err(protocol_error());
+        }
+        let state = self.streaming_mut()?;
+        if (kind == "response.output_text.done") != state.text_items.contains(&key.0)
+            || state.part_text(&key) != Some(text.as_str())
+        {
+            return Err(protocol_error());
+        }
+        // Identical repeated confirmations carry no new semantics. A later delta is invalid.
+        state.parts.entry(key).or_default().text_done = true;
+        Ok(())
+    }
+
+    fn part_key(&mut self, value: &Value, field: &str) -> Result<PartKey, GatewayError> {
+        let id = identifier(object(value)?, "item_id")?.to_owned();
+        let index_field = if field == "summary" {
+            "summary_index"
+        } else {
+            "content_index"
+        };
+        let _ = required(object(value)?, index_field)?;
+        let index = part_index(value, index_field)?;
+        let _ = required(object(value)?, "output_index")?;
+        let output_index = part_index(value, "output_index")?;
+        let _ = value
+            .get("sequence_number")
+            .and_then(Value::as_u64)
+            .ok_or_else(protocol_error)?;
+        let state = self.streaming_mut()?;
+        if state.ended_items.contains(&id)
+            || state.output_indices.get(&id) != Some(&output_index)
+            || !(field == "content" && state.text_items.contains(&id)
+                || state.reasoning_items.contains_key(&id))
+        {
+            return Err(protocol_error());
+        }
+        Ok((id, field.into(), index))
+    }
+
+    fn part_confirmation(&mut self, value: &Value, done: bool) -> Result<(), GatewayError> {
+        let summary = value
+            .get("type")
+            .and_then(Value::as_str)
+            .is_some_and(|kind| kind.starts_with("response.reasoning_summary_part."));
+        let field = if summary { "summary" } else { "content" };
+        require_only_keys(
+            object(value)?,
+            if summary && done {
+                &[
+                    "type",
+                    "item_id",
+                    "output_index",
+                    "summary_index",
+                    "sequence_number",
+                    "part",
+                    "status",
+                ]
+            } else if summary {
+                &[
+                    "type",
+                    "item_id",
+                    "output_index",
+                    "summary_index",
+                    "sequence_number",
+                    "part",
+                ]
+            } else {
+                &[
+                    "type",
+                    "item_id",
+                    "output_index",
+                    "content_index",
+                    "sequence_number",
+                    "part",
+                ]
+            },
+        )?;
+        // Interrupted summary status has no successful Canonical completion representation.
+        if value.get("status").is_some() {
+            return Err(protocol_error());
+        }
+        let key = self.part_key(value, field)?;
+        let part = value.get("part").ok_or_else(protocol_error)?;
+        let state = self.streaming_mut()?;
+        let text_item = state.text_items.contains(&key.0);
+        let kind = if text_item {
+            "output_text"
+        } else if summary {
+            "summary_text"
+        } else {
+            "reasoning_text"
+        };
+        let text = confirmation_part_text(part, kind)?;
+        if done {
+            if state.part_text(&key) != Some(text)
+                || state
+                    .parts
+                    .get(&key)
+                    .and_then(|part| part.done.as_ref())
+                    .is_some_and(|previous| previous != part)
+                || state
+                    .annotations
+                    .get(&(key.0.clone(), key.2))
+                    .is_some_and(|observed| {
+                        part.get("annotations")
+                            .and_then(Value::as_array)
+                            .is_none_or(|annotations| !annotations.starts_with(observed))
+                    })
+            {
+                return Err(protocol_error());
+            }
+            state.retain_part(key, part, true)?;
+            return Ok(());
+        }
+        if let Some(previous) = state.parts.get(&key).and_then(|part| part.initial.as_ref()) {
+            return if previous == part {
+                Ok(())
+            } else {
+                Err(protocol_error())
+            };
+        }
+        if state.part_text(&key).is_some() || state.parts.contains_key(&key) {
+            return Err(protocol_error());
+        }
+        state.retain_part(key, part, false)?;
+        self.initial_part(value, part, text_item, summary, text)
+    }
+
+    fn initial_part(
+        &mut self,
+        value: &Value,
+        part: &Value,
+        text_item: bool,
+        summary: bool,
+        text: &str,
+    ) -> Result<(), GatewayError> {
+        // Feed initial text through the existing bounded accumulation and semantic projection.
+        let mut delta = value.clone();
+        delta["delta"] = Value::String(text.to_owned());
+        if text_item {
+            self.text_delta(&delta)?;
+            if let Some(annotations) = part.get("annotations").and_then(Value::as_array) {
+                for (index, annotation) in annotations.iter().enumerate() {
+                    delta["annotation_index"] = serde_json::json!(index);
+                    delta["annotation"] = annotation.clone();
+                    self.annotation(&delta)?;
+                }
+            }
+        } else {
+            delta["type"] = Value::String(
+                if summary {
+                    "response.reasoning_summary_text.delta"
+                } else {
+                    "response.reasoning_text.delta"
+                }
+                .into(),
+            );
+            self.reasoning_delta(&delta)?;
+        }
+        Ok(())
+    }
+
     fn annotation(&mut self, value: &Value) -> Result<(), GatewayError> {
         let id = required_string_value(value, "item_id")?;
         let state = self.streaming_mut()?;
@@ -753,6 +1067,13 @@ impl OpenAiResponsesSseDecoder {
         }
         let annotation = value.get("annotation").ok_or_else(protocol_error)?;
         let index = part_index(value, "content_index")?;
+        if state
+            .parts
+            .get(&(id.clone(), "content".into(), index))
+            .is_some_and(|part| part.done.is_some())
+        {
+            return Err(protocol_error());
+        }
         let annotation_index = part_index(value, "annotation_index")?;
         let extensions = native_annotation_extensions(&id, index, annotation_index, annotation)?;
         let annotations = state.annotations.entry((id, index)).or_default();
@@ -773,6 +1094,7 @@ impl OpenAiResponsesSseDecoder {
             .and_then(Value::as_array)
             .ok_or_else(protocol_error)?;
         let state = self.streaming_mut()?;
+        state.confirm_item_parts(item)?;
         if state
             .text_parts
             .keys()
@@ -861,6 +1183,13 @@ impl OpenAiResponsesSseDecoder {
                 "content_index"
             },
         )?;
+        if state
+            .parts
+            .get(&(item_id.clone(), field.into(), index))
+            .is_some_and(|part| part.text_done || part.done.is_some())
+        {
+            return Err(protocol_error());
+        }
         reasoning
             .parts
             .entry((field.to_owned(), index))
@@ -899,6 +1228,7 @@ impl OpenAiResponsesSseDecoder {
             return Err(protocol_error());
         }
         let state = self.streaming_mut()?;
+        state.confirm_item_parts(item)?;
         let reasoning = state
             .reasoning_items
             .get_mut(id)
@@ -1031,6 +1361,12 @@ impl OpenAiResponsesSseDecoder {
         let item_id = identifier(item, "id")?;
         if !self.streaming_mut()?.output_items.contains(item_id) {
             return Err(protocol_error());
+        }
+        if value.get("output_index").is_some() {
+            let index = part_index(value, "output_index")?;
+            if self.streaming_mut()?.output_indices.get(item_id) != Some(&index) {
+                return Err(protocol_error());
+            }
         }
         match required_string(item, "type")? {
             "function_call" => {
@@ -1209,7 +1545,9 @@ impl OpenAiResponsesSseDecoder {
     fn streaming_mut(&mut self) -> Result<&mut SseState, GatewayError> {
         match &mut self.lifecycle {
             SseLifecycle::Streaming(state) => Ok(state),
-            SseLifecycle::AwaitingStart | SseLifecycle::Finished => Err(protocol_error()),
+            SseLifecycle::AwaitingStart | SseLifecycle::Finished | SseLifecycle::Rejected => {
+                Err(protocol_error())
+            }
         }
     }
 
@@ -1536,6 +1874,33 @@ fn require_only_keys(value: &Map<String, Value>, allowed: &[&str]) -> Result<(),
     } else {
         Err(protocol_error())
     }
+}
+
+fn confirmation_part_text<'a>(part: &'a Value, kind: &str) -> Result<&'a str, GatewayError> {
+    require_only_keys(
+        object(part)?,
+        if kind == "output_text" {
+            &["type", "text", "annotations", "logprobs"]
+        } else {
+            &["type", "text"]
+        },
+    )?;
+    if part.get("type").and_then(Value::as_str) != Some(kind)
+        || part
+            .get("logprobs")
+            .is_some_and(|probs| !probs.is_null() && !probs.as_array().is_some_and(Vec::is_empty))
+    {
+        return Err(protocol_error());
+    }
+    let text = part
+        .get("text")
+        .and_then(Value::as_str)
+        .filter(|text| !text.contains('\0'))
+        .ok_or_else(protocol_error)?;
+    if let Some(annotations) = part.get("annotations") {
+        super::annotations::validate(annotations)?;
+    }
+    Ok(text)
 }
 
 const fn protocol_error() -> GatewayError {

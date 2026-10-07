@@ -22,7 +22,9 @@ allowed = {
   # M4 native filesystem sampling stays in the composition root through safe rustix fs APIs.
   # ADR-0102 fingerprints the actual process-proxy transport here with the existing sha2
   # workspace primitive; the domain identity contains only the bounded digest.
-  "gateway" => %w[actix-web arc-swap futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream getrandom libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible reqwest rustix serde serde_json sha2 tokio tracing zeroize],
+  # B-02 uses the existing tokio-tungstenite workspace client only in dev-dependencies to
+  # exercise the production composition over a real loopback Responses WebSocket.
+  "gateway" => %w[actix-web arc-swap futures-util gateway-auth gateway-catalog gateway-control gateway-core gateway-http-actix gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream getrandom libc protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-grok provider-kiro provider-openai-compatible reqwest rustix serde serde_json sha2 tokio tokio-tungstenite tracing zeroize],
   # Administrator passwords use the reviewed Argon2id primitive here; HTTP and persistence
   # remain in their existing adapter/store layers. No other dependency edge is widened.
   "gateway-auth" => %w[argon2 gateway-core getrandom hmac libc sha2 subtle zeroize],

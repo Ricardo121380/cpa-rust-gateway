@@ -108,3 +108,84 @@ client. P1-07 owns the Actix endpoint and the successful-write delivery boundary
   unsupported execution controls, reject output after terminality, reject mismatched Tool argument
   fragments and unrepresentable Usage, and prove that no adapter path exposes client content or
   unsafe diagnostics through `Debug` or error envelopes.
+
+## 2026-10-08 upstream SSE confirmation supplement (B-02)
+
+This fixes the existing strict native decoding boundary; it does not add a protocol, capability,
+Canonical event, retry policy, or persistence entity. [ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md),
+[BC-CORE-003](BC-CORE-003-canonical-event-state-machine.md),
+[BC-RESP-002](BC-RESP-002-stored-response-public-lifecycle.md) and
+[BC-RESP-004](BC-RESP-004-public-responses-websocket.md) retain authority for fidelity, terminality,
+durability, and successful replay roots.
+
+The field definitions were checked against the official
+[Responses streaming events reference](https://developers.openai.com/api/reference/resources/responses/streaming-events)
+on 2026-10-08 (Asia/Shanghai). It is an unversioned live reference; the retrieval timestamp and
+content hash are recorded in [the source receipt](../reports/assets/cpar-b02-20261008/official-source.json).
+The supported subset is narrower than the full API and remains explicit.
+
+Every received confirmation has a closed root field set. `type`, nonempty bounded `item_id`,
+nonnegative integer `output_index`, `sequence_number`, and the applicable part index are required.
+Part indices and output indices are below 64. The output index must identify the started item;
+the item must be open in the current response. These events have no `response_id` field: response
+association comes from the active decoder lifecycle. A foreign response field is an extension
+error, rather than an ignored alternate identity.
+
+| Event suffix | Additional fields | Confirmation rule |
+| --- | --- | --- |
+| `output_text.done` | `content_index`, string `text`; optional reviewed `logprobs` | Open message part; text equals accumulated text exactly |
+| `content_part.done` | `content_index`, object `part` | Open message output_text or reasoning content reasoning_text; closed part matches accumulated text and observed annotations |
+| `reasoning_summary_part.done` | `summary_index`, object `part`; upstream optional `status` | Open reasoning summary_text; exact accumulated text; interrupted per-part status has no native Canonical representation and fails explicitly |
+| `reasoning_summary_text.done` | `summary_index`, string `text` | Open reasoning summary part; exact accumulated text |
+| `reasoning_text.done` | `content_index`, string `text` | Open reasoning content part; exact accumulated text |
+
+Text parts admit only `type`, string `text`, reviewed `annotations`, and null/empty `logprobs`;
+reasoning parts admit only `type` and string `text`. Nonempty token metadata, unsupported part
+kinds, unknown fields, and malformed annotations are rejected. The local compatibility omission
+of done-event logprobs follows the existing native encoder, which emits that confirmation without
+logprobs while preserving the part's final null/empty representation; it is not an assertion that
+the current official schema marks it optional. Final part snapshots must match item-done metadata
+exactly, including annotations and null/empty representation.
+
+The two supported part-added events validate the same identity/index fields and a closed initial
+part. Initial text/annotations enter existing bounded accumulation; they are not discarded or
+replayed. Observed added parts must appear in item-done. Deltas cannot grow a part after text-done
+or part-done; annotations cannot change after part-done. An item-done snapshot cannot append text
+after confirmation or replace a confirmed part. Before item completion, an identical repeated
+confirmation remains a no-op; differing repetition and confirmation after item completion fail.
+No new requirement forces fine-grained confirmation events to exist: legacy delta/item-done and
+snapshot completion paths still pass, including missing part-added events. Existing legacy delta
+index defaults remain unchanged; received confirmation events use the required fields above.
+
+Decoder rejection is permanent. A conflicting frame stops processing the current read, including
+any following completed frame. Semantic residue already present after a terminal frame also fails
+before buffered success is returned. No successful ResponseEnd, durable completed response, or
+WebSocket root can be formed from the failed sequence. Validated buffered Usage remains accessible;
+this does not repair the independent B-04 bootstrap ownership gap. Retained initial/final
+confirmation snapshots share a fixed 8-MiB budget; identical repeats do not accumulate copies.
+
+The existing Attempt observation reports the driver/bootstrap result; RequestFinished reports
+the complete request outcome. An established source may therefore retain a Succeeded Attempt
+beside a Failed Request. Bootstrap rejection instead has a Failed Attempt. These existing meanings
+must not be combined into a successful-response assertion.
+
+## Corresponding tests
+
+- `contradictory_text_done_fails_through_public_gateway_without_replay`
+- `contradictory_native_done_confirmations_fail_public_storage_and_continuation`
+- `done_field_and_correlation_errors_fail_through_public_gateway`
+- `native_done_lifecycle_and_metadata_conflicts_fail_publicly`
+- `valid_native_done_preserves_parts_and_allows_owned_stored_continuation`
+- `done_conflict_never_registers_a_websocket_root_or_stored_response`
+- `done_frames_are_read_boundary_invariant_and_rejection_is_permanent`
+- `bootstrap_done_conflict_records_failed_attempt_and_no_owned_result`
+
+Tests use the actual public handler, compiled route, selected lease, decoder and real loopback HTTP
+upstream. Actual content-free Request/Attempt observations are persisted and reopened in temporary
+SQLite for outcome/identity readback; this test does not claim production asynchronous-writer
+deployment. HTTP GET/continuation and real WebSocket session reuse supply successful and failed
+ownership controls. No Provider URL/file citations are fetched.
+
+Rollback reverts this implementation, tests and supplement together. There is no data migration;
+the previous source again fails the contradictory-confirmation regression. Local validation,
+independent review and exact source identity are recorded in the B-02 delivery report.

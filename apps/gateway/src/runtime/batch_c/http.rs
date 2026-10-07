@@ -3,6 +3,7 @@ use super::*;
 use actix_web::{HttpRequest, HttpResponse, HttpServer, dev::ServerHandle};
 use gateway_upstream::EgressDnsError;
 use std::net::{IpAddr, Ipv4Addr, TcpListener};
+mod responses_done;
 mod responses_history;
 
 struct PublicResolver;
@@ -28,6 +29,13 @@ impl Peer {
         reject_limit: bool,
         responses_output: Option<Value>,
     ) -> Result<Arc<Self>, Box<dyn Error>> {
+        Self::start_scripted(reject_limit, responses_output, None)
+    }
+    fn start_scripted(
+        reject_limit: bool,
+        responses_output: Option<Value>,
+        chunks: Option<Vec<Vec<u8>>>,
+    ) -> Result<Arc<Self>, Box<dyn Error>> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
         let port = listener.local_addr()?.port();
         let received = web::Data::new(Mutex::new(Vec::new()));
@@ -37,6 +45,7 @@ impl Peer {
                 .app_data(server_received.clone())
                 .app_data(web::Data::new(reject_limit))
                 .app_data(web::Data::new(responses_output.clone()))
+                .app_data(web::Data::new(chunks.clone()))
                 .default_service(web::post().to(reply))
         })
         .disable_signals()
@@ -126,12 +135,39 @@ async fn reply(
     body: web::Json<Value>,
     reject: web::Data<bool>,
     output: web::Data<Option<Value>>,
+    chunks: web::Data<Option<Vec<Vec<u8>>>>,
     received: web::Data<Mutex<Vec<Value>>>,
 ) -> Result<HttpResponse, actix_web::Error> {
     received
         .lock()
         .map_err(|_| actix_web::error::ErrorInternalServerError("received requests"))?
         .push(body.0.clone());
+    if let Some(chunks) = chunks.get_ref() {
+        let count = received
+            .lock()
+            .map_err(|_| actix_web::error::ErrorInternalServerError("received requests"))?
+            .len();
+        let chunks = chunks
+            .iter()
+            .map(|chunk| {
+                if count == 1 {
+                    chunk.clone()
+                } else {
+                    String::from_utf8_lossy(chunk)
+                        .replace("resp-b02", &format!("resp-b02-{count}"))
+                        .into_bytes()
+                }
+            })
+            .collect::<Vec<_>>();
+        let source = futures_util::stream::unfold(chunks.into_iter(), |mut chunks| async {
+            let chunk = chunks.next()?;
+            tokio::time::sleep(Duration::from_millis(20)).await;
+            Some((Ok::<_, actix_web::Error>(web::Bytes::from(chunk)), chunks))
+        });
+        return Ok(HttpResponse::Ok()
+            .content_type("text/event-stream")
+            .streaming(source));
+    }
     if **reject {
         return Ok(HttpResponse::BadRequest().json(json!({"error":{"message":"Unsupported parameter: max_output_tokens","type":"invalid_request_error","param":"max_output_tokens"}})));
     }

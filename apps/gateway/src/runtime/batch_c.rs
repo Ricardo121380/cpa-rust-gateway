@@ -39,7 +39,7 @@ struct Fixture {
     executor: Arc<P12RoutedResponsesExecutor>,
     events: Arc<Events>,
     key: String,
-    _directory: TemporaryDirectory,
+    directory: TemporaryDirectory,
 }
 #[derive(Default)]
 struct Events(Mutex<Vec<GatewayEvent>>);
@@ -63,13 +63,22 @@ impl Events {
     }
 }
 
+fn fixture(
+    channel: Channel,
+    secret: &[u8],
+    configure: impl FnOnce(&mut EndpointRuntime) -> Result<(), Box<dyn Error>>,
+) -> Result<Fixture, Box<dyn Error>> {
+    fixture_with_storage(channel, secret, false, configure)
+}
+
 #[allow(
     clippy::too_many_lines,
     reason = "production bootstrap and native enrollment share one isolated fixture transaction"
 )]
-fn fixture(
+fn fixture_with_storage(
     channel: Channel,
     secret: &[u8],
+    stored: bool,
     configure: impl FnOnce(&mut EndpointRuntime) -> Result<(), Box<dyn Error>>,
 ) -> Result<Fixture, Box<dyn Error>> {
     let directory = TemporaryDirectory::new()?;
@@ -88,6 +97,10 @@ fn fixture(
     configuration.egress_policies[0].allowed_hosts_json = json!([host]).to_string();
     configuration.route_candidates[0].upstream_model = channel.model.into();
     configuration.route_candidates[0].transform_mode = TransformMode::CanonicalBridge;
+    if stored {
+        configuration.route_candidates[0].capability_override_json =
+            json!({"allow_unlisted_model":true,"stored_responses":true}).to_string();
+    }
     let credential = &mut configuration.credentials[0];
     credential.kind = if secret.first() == Some(&b'{') {
         "oauth_json"
@@ -216,7 +229,7 @@ fn fixture(
         .ok_or("runtime endpoint")?;
     configure(endpoint)?;
     let executor = Arc::new(executor);
-    let state = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
+    let mut state = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
         executor.clone(),
         Arc::new(SystemResponsesMetadataFactory::new()),
         Arc::new(SnapshotClientKeyAuthenticator::with_shared_verifier(
@@ -227,12 +240,17 @@ fn fixture(
         events.clone(),
         default_stream_capacity()?,
     );
+    if stored {
+        state = state.with_stored_response_store(Arc::new(
+            gateway_store::stored_response::SqliteStoredResponseStore::open(&database, secrets)?,
+        ));
+    }
     Ok(Fixture {
         state,
         executor,
         events,
         key: presented.as_str().to_owned(),
-        _directory: directory,
+        directory,
     })
 }
 
