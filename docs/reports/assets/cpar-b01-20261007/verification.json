@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-07",
+  "finding": "B-01",
+  "status": "RESOLVED_LOCAL",
+  "release_readiness": "BLOCKED",
+  "base_commit": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+  "source_commit": "939028d63519126f16252c3e72d3e1d5ace7ca75",
+  "source_sha256": {
+    "apps/gateway/src/runtime/batch_c/http.rs": "1f929d8505b9aadc16124070915a7fdee252ac209dffe9a886209598af577b4c",
+    "apps/gateway/src/runtime/batch_c/http/responses_history.rs": "0d47ad664710a5a231b2ebc7c8c0776206526b0b907fdf20e3bae20e8c94a9c8",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "1f1328a61c1d693a61aaf2805ad2ede3f97234e772c10153d84b056b11e78888",
+    "crates/gateway-router/src/protocol_transform.rs": "3dd0c5f3c0838f449dc899a7942fe7b06db487f51bd407109fb313a7702e99f8"
+  },
+  "identity": {
+    "issues": [
+      27,
+      31
+    ],
+    "internal_ids": [
+      "CPAR-18",
+      "CPAR-22"
+    ],
+    "parent_issue": 9,
+    "read_only_local_parent_evidence": "issue-57-evidence.md"
+  },
+  "red": {
+    "product_source_commit": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+    "modes": [
+      "JSON",
+      "SSE"
+    ],
+    "first_http_status": 200,
+    "second_http_status": 400,
+    "second_error": "ClientRequestError",
+    "internal_rejection": "ToolHistoryUnsupported",
+    "upstream_receipts_after_failed_replay": 1,
+    "exit_codes": [
+      101,
+      101
+    ],
+    "evidence": "red-receipts.json",
+    "exact_test_patch": "red-tests.json"
+  },
+  "green": {
+    "public_factory_tests": 10,
+    "strict_negative_combinations": 20,
+    "strict_negative_upstream_receipts": 0,
+    "strict_negative_handoffs": 0,
+    "strict_negative_attempts": 0,
+    "router_tests": 30,
+    "core_tests": 7,
+    "chat_reasoning_tests": 1,
+    "orphan_tool_results_tests": 1,
+    "non_string_item_type_tests": 1,
+    "evidence": "development-verification.json",
+    "source_binding": "development worktree hashes match source_commit; immutable Full re-executes exact committed tests"
+  },
+  "full": {
+    "source_commit": "939028d63519126f16252c3e72d3e1d5ace7ca75",
+    "steps_passed": 45,
+    "rust_tests": {
+      "passed": 1461,
+      "failed": 0,
+      "ignored": 12,
+      "binaries_or_doc_groups": 124
+    },
+    "exit_code": 0,
+    "duration_seconds": 298.103,
+    "clean_before": true,
+    "clean_after": true,
+    "evidence": "full-receipt.json",
+    "raw_output": "full-output.json"
+  },
+  "review": {
+    "base_commit": "ee521c82dad311f8e82e15f0f63f1e4f5189b35f",
+    "source_commit": "939028d63519126f16252c3e72d3e1d5ace7ca75",
+    "standards": {
+      "verdict": "PASS",
+      "coverage": "COMPLETE",
+      "reviewed_files": 19,
+      "total_files": 19,
+      "findings": 0
+    },
+    "spec": {
+      "verdict": "PASS",
+      "coverage": "COMPLETE",
+      "reviewed_files": 19,
+      "total_files": 19,
+      "findings": 0
+    },
+    "evidence": "review.json",
+    "final_documentation_scope": "primary-agent static closure only; no expansion of 19-file independent review"
+  },
+  "task_gates": "LOCAL_PASS_PENDING_PHASE_GATE",
+  "formal_phase_gate": "NOT_RUN; deferred to later batch freeze by authorized scope",
+  "remaining_original_p2": [
+    "A-02",
+    "A-03",
+    "A-04",
+    "A-05",
+    "A-06",
+    "A-07",
+    "A-08",
+    "B-02",
+    "B-03",
+    "B-04",
+    "B-05"
+  ],
+  "original_signed_candidate": "80f5838902eb56be6dccc3ce047eb227d6c18e6c",
+  "additional_observations": [
+    {
+      "id": "O-01",
+      "status": "OPEN_OUT_OF_SCOPE",
+      "evidence": "additional-observation.md"
+    }
+  ],
+  "external_provider_inference_calls": 0,
+  "production_operations": 0,
+  "github_writes": 0,
+  "pushes": 0,
+  "frontend_changes": 0,
+  "workspace_preservation": "workspace-preservation.json",
+  "final_documentation_checks": {
+    "status": "PASS",
+    "steps_passed": 7,
+    "exit_code": 0,
+    "evidence": "docs-receipt.json",
+    "staged_secret_and_whitespace": "checked immediately before final local documentation commit"
+  }
+}

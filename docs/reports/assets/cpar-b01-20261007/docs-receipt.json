@@ -1,0 +1,21 @@
+{
+  "label": "docs",
+  "command": [
+    "./scripts/check.sh",
+    "docs"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "head": "939028d63519126f16252c3e72d3e1d5ace7ca75",
+  "started": "2026-10-07T13:54:04.173256+00:00",
+  "finished": "2026-10-07T13:54:41.523665+00:00",
+  "duration_seconds": 37.35,
+  "exit_code": 0,
+  "log_sha256": "84cd5bcf0043d6e6b18fc059e38ff5907377aaa2ae22d74f67c74e3903eea890",
+  "steps_passed": 7,
+  "check_report": "docs-check.md",
+  "check_report_sha256": "b6c1dbc2c20098f1264b76d314c0028f772f5a73a8a07fb79761a62fff16ddbb",
+  "raw_output_text": "\n==> Document links\ndoc-links: ok (921 Markdown files)\n\n==> Contract tests\ncontract-tests: ok (130 referenced tests resolved)\n\n==> Plan state\nplan-state: ok (131 tasks, 1 IN_PROGRESS)\n\n==> Canary thresholds\np12-08-canary: ok (direct cutover; 72h/1250-success observation; no production split; severity taxonomy present)\n\n==> Caddy split\np12-caddy-split: ok (direct CPAR cutover; no production split; management plane unexposed; rollback restores CPA)\n\n==> Tracked secret scan\nsecret-scan: ok (--all)\n\n==> Git whitespace\n\ncheck: docs passed\n",
+  "document_link_count": 921,
+  "contract_test_references": 130,
+  "context": "final documentation worktree; fixed product/test source at 939028d6; original AGENTS.md and unrelated untracked files intentionally retained"
+}

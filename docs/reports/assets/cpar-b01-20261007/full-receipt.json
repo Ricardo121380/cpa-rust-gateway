@@ -1,0 +1,38 @@
+{
+  "label": "full",
+  "command": [
+    "./scripts/check.sh",
+    "full"
+  ],
+  "cwd": "/private/tmp/cpar-b01-20261007.IWgky0/full-checkout",
+  "head": "939028d63519126f16252c3e72d3e1d5ace7ca75",
+  "started": "2026-10-07T13:44:00.126021+00:00",
+  "finished": "2026-10-07T13:48:58.226271+00:00",
+  "duration_seconds": 298.103,
+  "exit_code": 0,
+  "log_sha256": "46dcc99498b917259c70203e10ad24970f07eebb2317fb42a20bcdef68785c6a",
+  "source_sha256": {
+    "apps/gateway/src/runtime/batch_c/http.rs": "1f929d8505b9aadc16124070915a7fdee252ac209dffe9a886209598af577b4c",
+    "apps/gateway/src/runtime/batch_c/http/responses_history.rs": "0d47ad664710a5a231b2ebc7c8c0776206526b0b907fdf20e3bae20e8c94a9c8",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "1f1328a61c1d693a61aaf2805ad2ede3f97234e772c10153d84b056b11e78888",
+    "crates/gateway-router/src/protocol_transform.rs": "3dd0c5f3c0838f449dc899a7942fe7b06db487f51bd407109fb313a7702e99f8"
+  },
+  "status_before": "",
+  "status_after": "",
+  "steps_passed": 45,
+  "rust_tests": {
+    "passed": 1461,
+    "failed": 0,
+    "ignored": 12,
+    "binaries_or_doc_groups": 124
+  },
+  "compiled_target_dir": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+  "external_provider_inference_calls": 0,
+  "raw_log_bytes": 289374,
+  "check_report_sha256": "3d38cb59482a10c608e72bf81a5ced7aa1252150034d2fef3f288f75c94f6cee",
+  "raw_output": "full-output.json",
+  "raw_output_format": "JSON UTF-8 text field decodes to exact original log including trailing whitespace",
+  "archive_sha256": "40bf67bd024056b0bc5bd88672eb50323a351c7b92dc33aedcdaeef19ac73b75",
+  "check_report": "full-check.md",
+  "duplicate_version_policy_warnings": 14
+}

@@ -1,12 +1,14 @@
 # B-01 Responses 多文本片段同协议历史回传修复
 
-日期：2026-10-07，Asia/Shanghai。本提交是 **B-01/P2 源码检查点**：公开 JSON/SSE 已 RED → GREEN，定向／静态检查 PASS；独立 Standards／Spec 及不可变源码 Full 待执行，暂不标 RESOLVED_LOCAL。项目发布保持 **BLOCKED**。
+日期：2026-10-07，Asia/Shanghai。**B-01/P2 已 RESOLVED_LOCAL**：公开 JSON/SSE 多轮均 RED → GREEN，定向／静态检查、新源码 Full 和独立 Standards／Spec 全部 PASS。本轮要求的本地验证及评审已完成；项目发布保持 **BLOCKED**。
 
 ## 身份、基线与契约
 
 固定起点为 `ee521c82dad311f8e82e15f0f63f1e4f5189b35f`，分支 `codex/prism-v4-delivery`。此前产品修复 `42bc473f2eba8c34484b54aaf09fff455aa13c9c` 仅处理 A-01；核对 HEAD 和后续日志后没有 B-01 修复。范围是 [2026-10-05 B-01/P2](assets/cpar-release-readiness-20261005/review-results.md)、[#27/CPAR-18](assets/cpar-b01-20261007/issue-27.md)、[#31/CPAR-22](assets/cpar-b01-20261007/issue-31.md)与[父规格 #9](assets/cpar-b01-20261007/issue-9.md)。[scope](assets/cpar-b01-20261007/scope.md)冻结测试边界和授权；四份 GitHub 快照均只读，工单保持 OPEN。
 
 主代理亲读 AGENTS.md、issue-tracker、相关最新跨界日志、原复核与 A-01 报告、CONTEXT、适用执行门槛、协议准入及原生表示／保真 ADR 和契约；修改前完整阅读确切函数和受影响测试。原用户修改及无关文件保留。
+
+最终修复源码与 Full 对象为 **`939028d63519126f16252c3e72d3e1d5ace7ca75`**，包含必要代码、测试、契约及开发 RED/GREEN 检查点资料。其后只提交评审、Full 和状态收口文档，产品／测试源码不变。开发运行当时的 HEAD 为起点加工作区改动；四份文件的 SHA256 与已提交源码逐一匹配，随后不可变源码 Full 重跑受影响测试，没有把旧候选的结果移到新提交。
 
 ## 缺陷触发与最小修复
 
@@ -38,15 +40,21 @@ SSE 上游发送 created/in-progress、item/part added、每片两次 delta、an
 | 公共三协议孤立工具结果、Responses 非字符串 item type | 1/1、1/1 PASS | 请求阶段拒绝，既有零执行断言 |
 | targeted locked Clippy、workspace fmt check | PASS | 受影响 gateway/router 全 target／feature 与格式 |
 | source policy／crate boundaries／contract references／secret scanner／staged whitespace | PASS | 334 Rust 文件、21 packages、130 测试引用；没有忽略或放宽检查 |
-| 不可变源码本地 Full | NOT_RUN，待源码提交及独立评审 | 要求 `./scripts/check.sh full` |
-| 独立 Standards／Spec | NOT_RUN，待源码提交 | 固定起点到修复检查点的完整 diff |
+| 不可变源码本地 Full | 45/45 PASS | `./scripts/check.sh full`；1461 Rust tests passed、0 failed、12 原有 ignored |
+| 独立 Standards／Spec | PASS／PASS，各 COMPLETE 19/19 | 固定起点到最终修复提交；两轴均无可行动发现，未扩增为整个 B 批 |
 
 严格反例涵盖非法 message role、未知 message 字段、不完整 item status、unsupported phase、第二片未知字段／非空 logprobs／倒置 citation 范围／不可表示 refusal、孤立工具结果，以及双片 assistant 越过 pending-tool。工具关联和逐字段验证未放宽；synthetic citation 不触发 URL/file 读取，没有伪造签名或真实证据。
 
-依照现有 Task 规则先完成定向测试、静态检查和证据，接着在固定修复提交运行独立两轴评审及 Full。远端正式 Phase Gate 属于后续批次冻结，本轮没有新 Phase tag、推送或 GitHub Gate，不能把本地结果称为整个 B 批／Phase DONE。
+新源码 Full 在干净 detached checkout 执行，2026-10-07 13:44:00–13:48:58 UTC，耗时 298.103 秒、exit 0；运行前后工作区均干净，四份 Rust 文件哈希匹配。只复用编译缓存，不使用主工作区未跟踪源码。[45 步记录](assets/cpar-b01-20261007/full-check.md)、[精确回执](assets/cpar-b01-20261007/full-receipt.json)和[原始输出](assets/cpar-b01-20261007/full-output.json)可复查。原始输出用 JSON text 字段保留所有字节及尾随空白，解码后的 SHA256 对应回执；1461／0／12 是 Rust tests 步骤全部 test-result 汇总，不把脚本检查数混入。依赖策略有 14 条 duplicate-version warning，policy 和 RustSec audit 均 exit 0，未调整忽略项。Full 中带 production/live 名称的脚本是本地 oracle／mock 检查，不是生产执行；真实网关多轮 harness 使用 owned loopback TLS mock，真实 Provider inference calls 为 0。
+
+[两轴原文](assets/cpar-b01-20261007/review.md)和[结构化覆盖](assets/cpar-b01-20261007/review.json)分别记录 Standards 静态合规、Spec 静态行为符合性：各 COMPLETE 19/19、PASS、零可行动发现。两名探子只读、单轮、fork_turns=none，主代理等待全部终态后核定结论；审查者不执行测试，运行证据由主代理负责。后续仅文档收口由主代理静态复核，不扩大上述覆盖范围。
+
+Task 指定的定向／review／fmt／secret 和公开边界 Full 门槛均完成；按项目规则，本地修复证据相当于 `LOCAL_PASS_PENDING_PHASE_GATE`，不改写历史 Phase 计划。远端正式 Phase Gate 属于后续批次冻结，本轮没有新 Phase tag、推送或 GitHub Gate，不能把本地结果称为整个 B 批／Phase DONE。最终文档 docs 七步、staged secret 与 whitespace 检查均 PASS，结果归档于本轮 verification。
 
 ## 本地交付与剩余边界
 
-当前仅交付实现检查点。完整验证与独立评审完成后，本地 #57 补充记录才将 B-01 标为 RESOLVED_LOCAL；保留原发现、失败回执和其他问题实际状态。A-01 既有 RESOLVED_LOCAL 保留。A-02–08、B-02–05、S-01、E-01–05及 C／#57／#9 均不由本轮关闭。新增 O-01 phase-only 普通 JSON 准入观察保持 OPEN_OUT_OF_SCOPE。
+本地原子源码提交已完成，后续文档提交收口评审、Full 和状态；[本地 #57 补充](assets/cpar-b01-20261007/issue-57-evidence.md)仅将 B-01 改为 RESOLVED_LOCAL，保留原发现、失败回执和其他问题实际状态。A-01 既有 RESOLVED_LOCAL 保留。原 13 项 P2 中尚有 **11 项**：A-02–08、B-02–05；S-01 与 E-01–05 保留实际状态。C／#57／#9 未完成，#27／#31 全范围验收不由本轮关闭。新增 O-01 phase-only 普通 JSON 准入观察保持 OPEN_OUT_OF_SCOPE，单独记录，不替代或混入原 P2 统计。
 
-原 source80 的签名、制品、Full 与迁移演练保留原绑定；本次不会生成或重签发布候选。浏览器不适用于此纯协议切片；真实 Provider、生产、部署、推送和 GitHub 写入均 NOT_RUN／0。完整收口将补精确修复源码、Full、两轴结论和工作区保留核验，之后建议独立处理 **B-02：Responses SSE done 确认事件的闭集与一致性校验**。
+[工作区保留核验](assets/cpar-b01-20261007/workspace-preservation.json)确认任务开始时已存在的 4277 个用户修改／未跟踪文件全部哈希不变、无丢失；包括 AGENTS.md。完整原清单仅保留本机，不提交用户无关文件。所有新增测试、账号、引用及网络上游均为合成材料。
+
+原 source80 的签名、制品、Full 与迁移演练保留原绑定；本次没有生成或重签发布候选。浏览器不适用于此纯协议切片；真实 Provider、生产、部署、推送和 GitHub 写入均 NOT_RUN／0。本轮本地完成标准没有遗留项。下一项建议独立处理 **B-02：Responses SSE done 确认事件的闭集与一致性校验**；B-03 输出终态顺序、B-04 用量、B-05 密钥集合、E-05 规格冲突和 O-01 均不在本轮修改范围。

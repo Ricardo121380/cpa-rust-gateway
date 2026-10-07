@@ -1,0 +1,10 @@
+{
+  "checked_utc": "2026-10-07T13:50:06.108615+00:00",
+  "original_files": 4277,
+  "changed": 0,
+  "missing": 0,
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "original_manifest_sha256": "acabf961ea0d6a8e9ffbbd805374686b8ed9a7422c8b0cb75a9983ca9538c434",
+  "status": "PASS",
+  "manifest": "host-only original-workspace.json"
+}
