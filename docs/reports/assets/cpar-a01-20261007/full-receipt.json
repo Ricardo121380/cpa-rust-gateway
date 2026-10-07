@@ -1,0 +1,11 @@
+{
+  "source_commit": "42bc473f2eba8c34484b54aaf09fff455aa13c9c",
+  "command": "./scripts/check.sh full",
+  "checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-a01-20261007/validation-source",
+  "initial_git_status": "clean",
+  "exit_code": 0,
+  "started_at": "2026-10-07T09:44:16.299445+00:00",
+  "finished_at": "2026-10-07T09:49:09.697279+00:00",
+  "duration_seconds": 293.398,
+  "post_git_status": ""
+}

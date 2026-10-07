@@ -1,0 +1,225 @@
+{
+  "date": "2026-10-07",
+  "finding": "A-01",
+  "status": "RESOLVED_LOCAL",
+  "release_readiness": "BLOCKED",
+  "base_commit": "602874b9ed9943c146c8d12f77ab1cc1adbfa167",
+  "source_commit": "42bc473f2eba8c34484b54aaf09fff455aa13c9c",
+  "source_file_sha256": {
+    "crates/gateway-control/src/management_mutation_service.rs": "d0d739b14123aab4a584792a11fad01795b3b4055b8d4e5721eff0cb078ac1e4",
+    "crates/gateway-http-actix/src/management_resources.rs": "df46d9e1e943f74e5c38eb59319b8659d9afa8e995bd4ce3a843b3555deb257f",
+    "crates/gateway-http-actix/src/management_resources/codex_enrollment.rs": "550367c092ce8573c1507cb118fd190766f9f1675e82600956edc914025a190a",
+    "crates/gateway-http-actix/tests/managed_resource_inventory.rs": "b8439c888661119c1c8358b45fb245c45662559deac2aa33e8c7006679264186",
+    "crates/gateway-store/src/account_identity.rs": "0b9b7f541a23e0f3ea80f554619087ec92b650eb7beacb0558b26beec87aa00a"
+  },
+  "red": {
+    "product_source_commit": "602874b9ed9943c146c8d12f77ab1cc1adbfa167",
+    "test": "legacy_codex_callback_rejects_different_identity_without_changing_account",
+    "added_regression_in_worktree": true,
+    "exit_code": 101,
+    "actual_http_status": 202,
+    "expected_http_status": 409,
+    "evidence": "red-foreign.md",
+    "original_log_sha256": "61cf69e1aaf3e24944a84e0b0a333bfa2a5cab3c38676aaa86c8744efd6d4616"
+  },
+  "green": {
+    "callback_tests": 5,
+    "parameter_combinations": 38,
+    "management_http_tests": 49,
+    "targeted_source_context": "development worktree; final Rust file hashes equal source_commit; immutable Full repeats these tests",
+    "targeted_callback_log_sha256": "fe44ffaa397bfb322a246ca0d68577fee2915db85baa4ab8ab13f07024ce6e9b",
+    "targeted_http_log_sha256": "17472689cfc3f42b0962e1b3ec639a3451086a31d74ef7766ab5977d00b0f1ac",
+    "adjacent_runs": [
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "provider-openai-compatible",
+          "runtime_credential::tests::"
+        ],
+        "exit_code": 0,
+        "seconds": 5.226,
+        "log": "adjacent-1.log",
+        "passed": 19,
+        "failed": 0,
+        "log_sha256": "4ea4c4f3d6bbc44b767b4aa3ae58afb84cf9e426e44effdedae2ef7833432f24"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "gateway-store",
+          "credential_refresh::tests::"
+        ],
+        "exit_code": 0,
+        "seconds": 5.307,
+        "log": "adjacent-2.log",
+        "passed": 6,
+        "failed": 0,
+        "log_sha256": "8c03b33dfffbe2cae4ced1827a9e2126ee9cbe3df2a1f5795ed000dfd2ec35a4"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "gateway",
+          "credential_refresh::ordinary::tests::"
+        ],
+        "exit_code": 0,
+        "seconds": 19.612,
+        "log": "adjacent-3.log",
+        "passed": 7,
+        "failed": 0,
+        "log_sha256": "e74a82c925437942709611cf16d88b8bd81ef8345bc9d19500711e8e14e32799"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "gateway-control",
+          "oauth_persistence"
+        ],
+        "exit_code": 0,
+        "seconds": 4.879,
+        "log": "adjacent-4.log",
+        "passed": 2,
+        "failed": 0,
+        "log_sha256": "6da077c11b728f9ac18b7812174965a5cfb45c582d2d3f138e1352dfd6fc87e6"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "gateway-http-actix",
+          "--lib",
+          "management_resources::codex_enrollment::tests::"
+        ],
+        "exit_code": 0,
+        "seconds": 6.781,
+        "log": "adjacent-5.log",
+        "passed": 2,
+        "failed": 0,
+        "log_sha256": "fe556d829da17ff2c9ae9c0e0ecb47cf7263835450fa9106100bd0fade8b976e"
+      }
+    ]
+  },
+  "full": {
+    "source_commit": "42bc473f2eba8c34484b54aaf09fff455aa13c9c",
+    "command": "./scripts/check.sh full",
+    "checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-a01-20261007/validation-source",
+    "initial_git_status": "clean",
+    "exit_code": 0,
+    "started_at": "2026-10-07T09:44:16.299445+00:00",
+    "finished_at": "2026-10-07T09:49:09.697279+00:00",
+    "duration_seconds": 293.398,
+    "post_git_status": "",
+    "steps_passed": 45,
+    "steps_failed": 0,
+    "rust_harness_results": 124,
+    "rust_tests_passed": 1458,
+    "rust_tests_failed": 0,
+    "rust_tests_ignored": 12,
+    "ignored_cases": [
+      "test runtime::tests::m1_mock_request_confirmation_timing ... ignored, isolated M1 timing run, five samples per mode; no provider network",
+      "test authorized_loopback_soak_writes_a_value_free_receipt ... ignored, P11-04 runs only through scripts/run-p11-04-soak.sh",
+      "test authorized_real_endpoints_validate_non_streaming_and_sse_paths ... ignored, requires explicit P3_10_* real-test configuration and user authorization",
+      "test authorized_single_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P4_00_DIAGNOSTIC_* authorization and one-request configuration",
+      "test local_claude_code_bare_covers_normal_tool_parallel_tool_and_plan_mode ... ignored, requires P5_07_CLAUDE_CODE_BIN and launches a loopback-only local Claude Code --bare client",
+      "test event_store::durability_tests::crash_child ... ignored, subprocess crash fixture",
+      "test event_store::durability_tests::historical_production_projection_survives_migration_and_partial_read ... ignored, requires CPAR_M1_HISTORY_PROJECTION owner-readable input",
+      "test random_seed_tool_chunk_interleavings_are_replayable ... ignored, run scripts/run-p1-09-property.sh to generate or replay P1_09_SEED",
+      "test authorized_build_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P6_03_* authorization, one target, one mode, and one-request configuration",
+      "test official_cli_cache_preflight_builds_without_network ... ignored, requires explicit P6_03_LOCAL_CACHE_PREFLIGHT and one official-CLI cache path; no network",
+      "test authorized_official_probe_uses_one_target_one_mode_and_one_send ... ignored, requires dedicated P8_07_* authorization, one Official API key, one target, one mode, and one-request configuration",
+      "test authorized_web_canary_uses_one_fixed_target_and_one_send ... ignored, requires P9_09_* authorization, one temporary grok2api Web SSO token, one target label, and one-request configuration"
+    ],
+    "duplicate_dependency_warnings": [
+      "warning[duplicate]: found 2 duplicate entries for crate 'block-buffer'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'chacha20'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'const-oid'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'cpufeatures'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'crypto-common'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'digest'",
+      "warning[duplicate]: found 3 duplicate entries for crate 'getrandom'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'http'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'rand_core'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'shlex'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'socket2'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'syn'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'thiserror'",
+      "warning[duplicate]: found 2 duplicate entries for crate 'thiserror-impl'"
+    ],
+    "raw_log_relative_path": "output/cpar-a01-20261007/full-output.log",
+    "raw_log_sha256": "ae31bf8a7f237716db9581367778b59ae7bc8937f7012561a0d9bc12a25cb60c",
+    "step_report": "full-check.md",
+    "receipt": "full-receipt.json"
+  },
+  "review": {
+    "base_commit": "602874b9ed9943c146c8d12f77ab1cc1adbfa167",
+    "final_fix_commit": "42bc473f2eba8c34484b54aaf09fff455aa13c9c",
+    "standards": "PASS",
+    "standards_coverage": "COMPLETE 11/11",
+    "spec": "PASS",
+    "spec_coverage": "COMPLETE 11/11",
+    "evidence": "review.json"
+  },
+  "preservation": {
+    "initial_recorded_files_checked": 56,
+    "changed_initial_recorded_files": [],
+    "user_agents_md_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+    "check_scope": "original individually recorded files; directories retained; no broad cleanup"
+  },
+  "not_run": [
+    "remote Required Gate",
+    "Phase tag",
+    "new release candidate build/signing",
+    "real OAuth/Provider",
+    "production migration/deployment",
+    "GitHub write/push/publish/close"
+  ],
+  "other_findings_unchanged": [
+    "A-02",
+    "A-03",
+    "A-04",
+    "A-05",
+    "A-06",
+    "A-07",
+    "A-08",
+    "B-01",
+    "B-02",
+    "B-03",
+    "B-04",
+    "B-05",
+    "S-01",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05"
+  ],
+  "docs_closeout": {
+    "command": "./scripts/check.sh docs",
+    "source_commit": "42bc473f2eba8c34484b54aaf09fff455aa13c9c",
+    "context": "staged docs-only closeout with original unrelated worktree preserved",
+    "exit_code": 0,
+    "started_at": "2026-10-07T10:02:32.041024+00:00",
+    "finished_at": "2026-10-07T10:03:08.468765+00:00",
+    "seconds": 36.427,
+    "steps_passed": 7,
+    "steps_failed": 0,
+    "raw_log_relative_path": "output/cpar-a01-20261007/docs-output.log",
+    "raw_log_sha256": "1d17f3a11683dfcd50f60055a606597052f0545af94cb3a1d2bcc8b5613f6055",
+    "receipt_relative_path": "output/cpar-a01-20261007/docs-run-receipt.json",
+    "later_changes": "result metadata only; final JSON/link/whitespace validation before commit"
+  }
+}

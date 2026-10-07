@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-07",
+  "finding": "A-01",
+  "task": "CPAR-05",
+  "issue": 14,
+  "parent_issue": 9,
+  "base_commit": "602874b9ed9943c146c8d12f77ab1cc1adbfa167",
+  "final_fix_commit": "42bc473f2eba8c34484b54aaf09fff455aa13c9c",
+  "scope_files": [
+    "crates/gateway-control/src/management_mutation_service.rs",
+    "crates/gateway-http-actix/src/management_resources.rs",
+    "crates/gateway-http-actix/src/management_resources/codex_enrollment.rs",
+    "crates/gateway-http-actix/tests/managed_resource_inventory.rs",
+    "crates/gateway-store/src/account_identity.rs",
+    "docs/reports/assets/cpar-a01-20261007/issue-14.md",
+    "docs/reports/assets/cpar-a01-20261007/issue-57.md",
+    "docs/reports/assets/cpar-a01-20261007/issue-9.md",
+    "docs/reports/assets/cpar-a01-20261007/red-foreign.md",
+    "docs/reports/assets/cpar-a01-20261007/scope.md",
+    "docs/reports/cpar-a01-codex-callback-identity-protection-20261007.md"
+  ],
+  "axes": {
+    "standards": {
+      "agent": "/root/a01_standards_review",
+      "terminal_status": "complete",
+      "coverage": "COMPLETE",
+      "files_read": 11,
+      "files_in_scope": 11,
+      "verdict": "PASS",
+      "hard_violations": [],
+      "actionable_heuristics": []
+    },
+    "spec": {
+      "agent": "/root/a01_spec_review",
+      "terminal_status": "complete",
+      "coverage": "COMPLETE",
+      "files_read": 11,
+      "files_in_scope": 11,
+      "verdict": "PASS",
+      "missing_or_partial": [],
+      "scope_creep": [],
+      "wrong_implementation": []
+    }
+  },
+  "agent_mode": "single-turn read-only fork_turns=none",
+  "test_execution_by_agents": false,
+  "later_docs_closeout_in_agent_coverage": false,
+  "aggregate_report": "review.md",
+  "release_readiness": "BLOCKED"
+}
