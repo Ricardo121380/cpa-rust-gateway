@@ -1,3 +1,4 @@
+import {DeviceRecoveryHost} from "../features/accounts/DeviceRecoveryHost";
 import { WorkspaceTabs } from "./WorkspaceTabs";
 // Shell: exactly three chrome glass panes — rail, topbar, (draft-only) dock.
 // Liquid V2 places opaque data panels beneath the three refractive chrome panes.
@@ -184,6 +185,7 @@ export function AppShell() {
         <div className="workspace">
           <ConfigurationBootstrap />
           <PendingConfigurationNotice />
+          <DeviceRecoveryHost key={sessionGeneration} />
           {context?.status === "active" || context === undefined ? null : (
             <div className="workspace-context" data-status={context.status} role="status">
               {context.status === "archived"

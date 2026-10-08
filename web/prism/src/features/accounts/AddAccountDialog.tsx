@@ -218,15 +218,17 @@ export function AddAccountDialog({onClose,onCreated,mode}:Readonly<{onClose:()=>
       }
       return {version:undefined,reconciled};
     }
-    const version=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}});
+    let version:ConfigVersionSummary|undefined;
+    try{version=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}});}catch(cause){if(isCancelledError(cause))throw cause;}
     const reconciled:Result[]=[];
     for(const row of rows){
       if(row.saved||row.status!=="结果未确认"||!configurationTask||!importTarget){reconciled.push(row);continue;}
+      let confirmed=row;
       try {
         let savedId=row.id;
         if(row.beforeRevision){
-          try {const receipt=await configurationTask.read<{state:string;credential_id:string;upstream_id:string;started_revision:string}>("getAccountImportReceipt",{path:{upstream_id:importTarget.upstream_id,import_id:row.id},query:{started_revision:row.beforeRevision}});
-            if(receipt.state==="completed"&&receipt.upstream_id===importTarget.upstream_id&&receipt.started_revision===row.beforeRevision)savedId=receipt.credential_id;
+          try {const receipt=await configurationTask.read<{state:string;config_version:string;credential_id:string;upstream_id:string;started_revision:string}>("getAccountImportReceipt",{path:{upstream_id:importTarget.upstream_id,import_id:row.id},query:{started_revision:row.beforeRevision}});
+            if(receipt.state==="completed"&&receipt.config_version===configurationTask.version.id&&receipt.upstream_id===importTarget.upstream_id&&receipt.started_revision===row.beforeRevision&&receipt.credential_id){savedId=receipt.credential_id;confirmed={...row,saved:true,credentialId:savedId,status:"已保存，连接与应用待核对",error:undefined};}
           }catch(cause){if(isCancelledError(cause))throw cause;}
         }
         const account=await configurationTask.read<{id:string;upstream_id:string}>("getCredential",{path:{credential_id:savedId}});
@@ -237,7 +239,7 @@ export function AddAccountDialog({onClose,onCreated,mode}:Readonly<{onClose:()=>
         // A missing requested ID is not proof against server-side deduplication.
         // Only an unchanged configuration revision also proves no import committed.
         const failure=asAppError(cause);
-        reconciled.push(failure.status===404&&version.revision===row.beforeRevision?{...row,status:"未添加",error:"已核对资源和版本，未保存"}:row);
+        reconciled.push(confirmed.saved?{...confirmed,error:`账号后续读取失败：${failure.message}`} : failure.status===404&&version?.revision===row.beforeRevision?{...row,status:"未添加",error:"已核对资源和版本，未保存"}:row);
       }
     }
     return {version,reconciled};

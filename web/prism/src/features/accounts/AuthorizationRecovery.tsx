@@ -1,4 +1,5 @@
 import {useMutation} from "@tanstack/react-query";
+import {isCancelledError} from "@tanstack/react-query";
 import {asAppError} from "../../api/errors";
 import type {ConfigurationTask,ConfigurationTaskReview} from "../config-versions/configurationTask";
 import type {ConfigVersionSummary} from "../config-versions/versionStore";
@@ -17,17 +18,21 @@ export async function continueAuthorizationAfterReview(task:ConfigurationTask,re
 }
 
 /** Recovery reads an exact operation receipt; it never polls or exchanges Provider material. */
-export function AuthorizationRecovery({task,sessionId,onReceipt}:Readonly<{task:ConfigurationTask;sessionId:string;onReceipt:(receipt:AuthorizationReceipt,continuable:boolean)=>void}>) {
+export function AuthorizationRecovery({task,sessionId,onReceipt}:Readonly<{task:ConfigurationTask;sessionId:string;onReceipt:(receipt:AuthorizationReceipt,continuable:boolean,followUpError?:unknown)=>void}>) {
  const read=useMutation({mutationFn:async()=>{
   const receipt=await task.read<AuthorizationReceipt>("getAccountAuthorizationReceipt",{path:{session_id:sessionId}});
   if(receipt.session_id!==sessionId||receipt.config_version!==task.version.id)throw new Error("授权回执不属于当前会话。");
-  let continuable=receipt.state==="completed"?await task.acceptAuthorizationReceipt(receipt):false;
+  let continuable=false;
+  if(receipt.state==="completed"){
+    try{continuable=await task.acceptAuthorizationReceipt(receipt);}
+    catch(cause){if(isCancelledError(cause))throw cause;return {receipt,continuable:false,followUpError:cause};}
+  }
   if(receipt.state==="pending"&&receipt.revision===task.revision()){
     const version=await task.read<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:task.version.id}});
     continuable=version.status==="draft"&&version.revision===receipt.revision;
   }
   return {receipt,continuable};
- },onSuccess:({receipt,continuable})=>onReceipt(receipt,continuable)});
+ },onSuccess:({receipt,continuable,followUpError})=>onReceipt(receipt,continuable,followUpError)});
  const labels:Record<string,string>={pending:"会话仍待授权，可明确继续检查",in_progress:"原授权正在处理，请稍后再核对",completed:"授权已确认保存；连接与应用需继续核对",unknown:"授权结果待确认，不会重复交换令牌",failed:"授权未保存",denied:"授权被拒绝",expired:"授权已过期",cancelled:"授权已取消"};
- return <section aria-label="授权结果恢复"><p role="status">先读取本次会话回执。不会重复回调或交换令牌。</p><button className="secondary" disabled={read.isPending} onClick={()=>read.mutate()}>核对授权结果</button>{read.data?<p role="status">{labels[read.data.receipt.state]??"结果待确认"}</p>:null}{read.isError?<p role="alert">{asAppError(read.error).message}。结果保持待确认。</p>:null}</section>;
+ return <section aria-label="授权结果恢复"><p role="status">先读取本次会话回执。不会重复回调或交换令牌。</p><button className="secondary" disabled={read.isPending} onClick={()=>read.mutate()}>核对授权结果</button>{read.data?<p role="status">{labels[read.data.receipt.state]??"结果待确认"}</p>:null}{read.data?.followUpError?<p role="alert">授权已保存；后续配置读取失败：{asAppError(read.data.followUpError).message}。</p>:null}{read.isError?<p role="alert">{asAppError(read.error).message}。结果保持待确认。</p>:null}</section>;
 }

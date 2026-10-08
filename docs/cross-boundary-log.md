@@ -3644,3 +3644,25 @@ Ran `npm --prefix web/prism run sync-contract`; the generated generic client has
 Existing response fields and frontend business code remain compatible. Schema 34 stores original
 Attempt and bounded evidence atomically without changing old event bytes. Old/missing evidence
 stays unknown. Release, deployment, real Provider and C/#57 completion remain distinct.
+
+## 2026-10-08 · Codex · A-02–A-05 saved receipts, publication settlement and retained device tasks
+
+**Touched:**
+- `web/prism/src/app/AppShell.tsx`
+- `web/prism/src/features/config-versions/configurationTask.ts`
+- `web/prism/src/features/config-versions/configurationTask.test.ts`
+- `web/prism/src/features/config-versions/versionStore.ts`
+- `web/prism/src/features/config-versions/versionStore.test.ts`
+- `web/prism/src/features/accounts/AuthorizationRecovery.tsx`
+- `web/prism/src/features/accounts/AuthorizationCodeDialog.tsx`
+- `web/prism/src/features/accounts/AddAccountDialog.tsx`
+- `web/prism/src/features/upstreams/ProviderDialog.tsx`
+- `web/prism/src/features/accounts/KiroDeviceDialog.tsx`
+- `web/prism/src/features/accounts/KimiDeviceDialog.tsx`
+- `web/prism/src/features/accounts/deviceRecoveryStore.ts`
+- `web/prism/src/features/accounts/deviceRecoveryStore.test.ts`
+- `web/prism/src/features/accounts/DeviceRecoveryHost.tsx`
+
+**Why:** Explicit eight-P2 local batch authorization. Keep completed save facts across failed reads, settle exact applied pending versions, compare existing draft changes, and retain non-secret original device recovery handles across dialog/route unmounts. No channel exchange replay or design change.
+
+**Other side:** FYI — local directed and EgoLite synthetic acceptance; batch Full and independent reviews remain pending.

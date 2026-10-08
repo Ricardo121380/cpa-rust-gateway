@@ -1,3 +1,4 @@
+import {useDeviceRecoveryStore,type DeviceRecovery} from "./deviceRecoveryStore";
 import {AuthorizationRecovery,continueAuthorizationAfterReview} from "./AuthorizationRecovery";
 import {ConfigurationTaskReview} from "../config-versions/ConfigurationTaskReview";
 import { useMutation } from "@tanstack/react-query";
@@ -55,21 +56,23 @@ export function mergeKimiDeviceSession(current: Session | undefined, next: Sessi
 export function KimiDeviceDialog({
   credentialId,
   providerId,
+  recovery,
   onClose,
   onComplete,
 }: Readonly<{
   credentialId?: string;
+  recovery?:DeviceRecovery;
   providerId?: string;
   onClose: () => void;
   onComplete: (notice?: string) => void;
 }>) {
-  const current = useRef<Enrollment | undefined>(undefined);
+  const current = useRef<Enrollment | undefined>(recovery);
   const pollingGeneration = useRef(0);
-  const [session, setSession] = useState<Session>();
-  const [workingId, setWorkingId] = useState<string>();
+  const [session, setSession] = useState<Session|undefined>(recovery?{state:"pending",session_id:recovery.sessionId}:undefined);
+  const [workingId, setWorkingId] = useState<string|undefined>(recovery?.task.version.id);
   const [completed, setCompleted] = useState<ConfigVersionSummary>();
   const [completionError, setCompletionError] = useState<unknown>();
-  const [unresolvedResult, setUnresolvedResult] = useState(false);
+  const [unresolvedResult, setUnresolvedResult] = useState(!!recovery);
   const [pendingRecovery,setPendingRecovery]=useState(false);
   const [recoveredId,setRecoveredId]=useState<string>();const [reviewBusy,setReviewBusy]=useState(false);
   const [connected,setConnected]=useState(false);
@@ -160,6 +163,7 @@ export function KimiDeviceDialog({
   };
   const close = () => {
     pollingGeneration.current += 1;
+    if(unresolvedResult&&session?.session_id&&current.current)useDeviceRecoveryStore.getState().retain({channel:"kimi-coding",sessionId:session.session_id,...current.current,credentialId});
     if (completed) {
       useVersionStore.getState().select(completed);
       onComplete("Kimi 账号授权已保存。");
@@ -194,10 +198,10 @@ export function KimiDeviceDialog({
         {session.expires_at_ms ? <p className="muted">有效期至 {new Date(session.expires_at_ms).toLocaleTimeString()}。完成后会自动检查结果。</p> : null}
       </> : null}
     </>}
-    {unresolvedResult&&session?.session_id&&current.current?<AuthorizationRecovery task={current.current.task} sessionId={session.session_id} onReceipt={(receipt,canContinue)=>{
+    {unresolvedResult&&session?.session_id&&current.current?<AuthorizationRecovery task={current.current.task} sessionId={session.session_id} onReceipt={(receipt,canContinue,followUpError)=>{
       setPendingRecovery(receipt.state==="pending"&&canContinue);
-      if(receipt.state==="completed"){mergeSession({state:"completed",credential_id:receipt.credential_id});setUnresolvedResult(false);setCompletionError(new Error("授权已保存，连接与应用尚待核对。"));if(canContinue)setRecoveredId(receipt.credential_id);}
-      else if(["failed","denied","expired","cancelled"].includes(receipt.state)){mergeSession({state:receipt.state as Session["state"]});setUnresolvedResult(false);}
+      if(receipt.state==="completed"){useDeviceRecoveryStore.getState().resolve(receipt.session_id,current.current!.task);mergeSession({state:"completed",credential_id:receipt.credential_id});setUnresolvedResult(false);setCompletionError(followUpError??new Error("授权已保存，连接与应用尚待核对。"));if(canContinue)setRecoveredId(receipt.credential_id);}
+      else if(["failed","denied","expired","cancelled"].includes(receipt.state)){useDeviceRecoveryStore.getState().resolve(receipt.session_id,current.current!.task);mergeSession({state:receipt.state as Session["state"]});setUnresolvedResult(false);}
     }}/>:null}
     {unresolvedResult&&pendingRecovery?<button className="primary" disabled={busy} onClick={()=>{poll.reset();setPendingRecovery(false);setUnresolvedResult(false);}}>继续等待此授权会话</button>:null}
     {recoveredId?<button className="primary" disabled={busy} onClick={()=>resume.mutate()}>继续连接与应用</button>:null}

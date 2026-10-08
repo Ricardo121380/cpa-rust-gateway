@@ -92,7 +92,7 @@ export function AuthorizationCodeDialog({providerId,providerName,endpointId,onCl
   return <Sheet title={`${credentialId?"重新授权":"授权"} ${label} 账号`} description={credentialId?"为当前账号更新授权，不会新建连接或改变已配置的接口。":"在官方页面完成登录后，粘贴浏览器带回的完整回调地址。"} onEscape={close} onBeforeDismiss={dismissAuthorization} busy={busy} blockNavigation={session?.state==="pending"&&completed===undefined&&completionError===undefined&&!unresolved} footer={footer}>
     <div className="operation-summary"><span>{providerLabel}</span><strong>连接 {label} 账号</strong><small>官方登录 → 回调确认 → 保存结果</small></div>
     {providerName&&providerName!==label?<p className="muted">{providerName}</p>:null}
-    {completed||completionError!==undefined?<p role="status">{completionError===undefined?`账号授权已保存${connected&&current.current?.endpointId?"并连接接口":""}。`:"账号授权已保存；接口连接或配置尚未应用。"}</p>:!session?<>
+    {completed||completionError!==undefined?<p role="status">{completionError===undefined?`账号授权已保存${connected&&current.current?.endpointId?"并连接接口":""}。`:`账号授权已保存${confirmedId?`（${confirmedId}）`:""}；接口连接或配置尚未应用。`}</p>:!session?<>
       <p>登录 {providerLabel} 账号后，将浏览器跳转的完整回调地址粘贴回来。</p>
     </>:session.state==="pending"&&authorizeUrl?<>
       <p><a href={authorizeUrl} target="_blank" rel="noreferrer noopener">打开 {providerLabel} 授权页</a></p>
@@ -100,8 +100,8 @@ export function AuthorizationCodeDialog({providerId,providerName,endpointId,onCl
       <p className="muted">授权后，本机回调页可能打不开；复制地址栏中的完整地址即可。</p>
       {inputError?<p id={callbackErrorId} role="alert">{inputError}</p>:null}
     </>:<p role="alert">未能启动授权，请关闭后重新开始。</p>}
-    {unresolved&&session?.session_id&&current.current?<AuthorizationRecovery task={current.current.task} sessionId={session.session_id} onReceipt={(receipt,canContinue)=>{
-      if(receipt.state==="completed"){setConfirmedId(receipt.credential_id);setContinuable(canContinue);setUnresolved(false);setCompletionError(new Error("授权已保存，连接与应用尚待核对。"));}
+    {unresolved&&session?.session_id&&current.current?<AuthorizationRecovery task={current.current.task} sessionId={session.session_id} onReceipt={(receipt,canContinue,followUpError)=>{
+      if(receipt.state==="completed"){setConfirmedId(receipt.credential_id);setContinuable(canContinue);setUnresolved(false);setCompletionError(followUpError??new Error("授权已保存，连接与应用尚待核对。"));}
       else if(["failed","denied","expired","cancelled"].includes(receipt.state)){setSession({...session,state:receipt.state});setUnresolved(false);}
     }}/>:null}
     {continuable&&confirmedId?<button className="primary" disabled={busy} onClick={()=>resume.mutate()}>继续连接与应用</button>:null}

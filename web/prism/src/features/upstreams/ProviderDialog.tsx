@@ -37,7 +37,7 @@ export function ProviderDialog({onClose,onSaved,channel,onConnectionCreated,exis
   const [workingId,setWorkingId]=useState<string>();
   const [task,setTask]=useState<ConfigurationTask>();
   const [accountId,setAccountId]=useState<string>();
-  const requestedAccount=useRef<{id:string;revision:string}|undefined>(undefined);
+  const requestedAccount=useRef<{id:string;revision:string;savedId?:string}|undefined>(undefined);
   const [connected,setConnected]=useState(false);
   const [selectedConnection,setSelectedConnection]=useState("");
   const [reviewBusy,setReviewBusy]=useState(false);
@@ -87,21 +87,23 @@ export function ProviderDialog({onClose,onSaved,channel,onConnectionCreated,exis
   const readSaved=useMutation({mutationFn:async()=>{
     if(!owned())throw new Error("配置上下文已失效，请重新打开。");
     if(!task||!requestedAccount.current||!createdTarget.current)throw new Error("缺少本次账号目标，结果仍待确认。");
-    const version=await task.read<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:task.version.id}});
+    let version:ConfigVersionSummary|undefined;
     try{
       let savedId=requestedAccount.current.id;
       try{
         const receipt=await task.read<{state:string;config_version:string;credential_id:string;upstream_id:string;started_revision:string}>("getAccountImportReceipt",{path:{upstream_id:createdTarget.current.upstream_id,import_id:requestedAccount.current.id},query:{started_revision:requestedAccount.current.revision}});
         if(receipt.state!=="completed"||receipt.config_version!==task.version.id||receipt.upstream_id!==createdTarget.current.upstream_id||receipt.started_revision!==requestedAccount.current.revision)throw new Error("导入回执与当前操作不一致，结果保持待确认。");
-        savedId=receipt.credential_id;
+        if(!receipt.credential_id)throw new Error("导入回执缺少账号标识。");
+        savedId=receipt.credential_id;requestedAccount.current.savedId=savedId;setAccountId(savedId);
       }catch(cause){if(asAppError(cause).status!==404)throw cause;}
+      version=await task.read<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:task.version.id}});
       const account=await task.read<{id:string;upstream_id:string}>("getCredential",{path:{credential_id:savedId}});
       if(!owned())throw new Error("配置上下文已失效，请重新打开。");
       if(account.id!==savedId||account.upstream_id!==createdTarget.current.upstream_id)throw new Error("账号所有权与本次目标不同。");
       setAccountId(account.id);setValidation("已确认工作草稿中存在账号，请核对完整清单后继续连接。");
     }
-    catch(cause){if(!owned())throw cause;if(asAppError(cause).status===404&&version.revision===requestedAccount.current.revision)setValidation("已核对目标和版本：API 授权未保存。基础资源保留，可关闭后重新接入。");else throw cause;}
-  },onError:cause=>{if(owned())setValidation(`仍待确认：${asAppError(cause).message}；不会重放 API Key 导入。`);}});
+    catch(cause){if(!owned())throw cause;if(!requestedAccount.current.savedId&&asAppError(cause).status===404&&version?.revision===requestedAccount.current.revision)setValidation("已核对目标和版本：API 授权未保存。基础资源保留，可关闭后重新接入。");else throw cause;}
+  },onError:cause=>{if(owned())setValidation(`${requestedAccount.current?.savedId?"API 授权已保存；后续配置或账号读取失败":"仍待确认"}：${asAppError(cause).message}；不会重放 API Key 导入。`);}});
   const submit=(event:FormEvent)=>{
     event.preventDefault();if(submitted.current)return;
     try {

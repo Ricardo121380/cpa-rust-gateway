@@ -60,3 +60,5 @@ RESOLVED_LOCAL requires implementation, all necessary acceptance and both review
 Each command receipt binds actual HEAD/dirty status or source hashes; final Full
 runs in a clean isolated committed checkout. Pure documentation closeout uses
 the docs gate. No local PASS implies remote CI, real Provider or production PASS.
+
+A-02–A-05 implementation checkpoint: nine actual EgoLite scenarios GREEN (ordinary close/reimport, both empty-draft modes, nonempty review, completed OAuth/import/API receipts plus follow-up failure, Kiro/Kimi close/reopen/read). Initial script input/wait failures are not RED. Directed task/store/device/import regression 51 PASS and type check PASS; final gates pending.

@@ -74,3 +74,18 @@ it("rejects an older observation when explicitly resuming the same pending draft
  expect(useVersionStore.getState().context?.configVersionId).toBe(active.id);
  expect(store.adoptPending({...draft,revision:"rev-10"},guard)).toBe(true);
 });
+
+it("settles only the published task while retaining its result-window generation",()=>{
+ const store=useVersionStore.getState();store.select(active);store.rememberPending(draft);
+ const generation=useVersionStore.getState().selectionGeneration;
+ expect(store.acknowledgeApplied({...draft,status:"active"},generation)).toBe(true);
+ expect(useVersionStore.getState().pending).toBeUndefined();expect(useVersionStore.getState().context?.configVersionId).toBe(draft.id);
+ expect(useVersionStore.getState().selectionGeneration).toBe(generation);
+});
+it("does not clear a different or newer pending task, or accept a superseded owner",()=>{
+ const store=useVersionStore.getState();store.select(active);store.rememberPending({...draft,revision:"rev-8"});
+ const generation=useVersionStore.getState().selectionGeneration;
+ store.acknowledgeApplied({...draft,status:"active"},generation);expect(useVersionStore.getState().pending?.revision).toBe("rev-8");
+ store.acknowledgeApplied({...active,id:"other"},generation);expect(useVersionStore.getState().pending?.id).toBe(draft.id);
+ store.select(active);expect(store.acknowledgeApplied({...draft,status:"active"},generation)).toBe(false);
+});

@@ -30,12 +30,13 @@ it("keeps the active page while editing a private revision, then validates and a
   expect(useVersionStore.getState().context?.configVersionId).toBe("online");
   expect((await task.finish()).status).toBe("active");
   expect(call).toHaveBeenCalledWith("publishConfigVersion",expect.objectContaining({headers:{"If-Match":"rev-1","X-Expected-Active-Version":'"online"',"X-Expected-Lifecycle-Event":"12"}}));
-  expect(useVersionStore.getState().context?.configVersionId).toBe("online");
+  expect(useVersionStore.getState().context?.configVersionId).toBe("working");
+  expect(useVersionStore.getState().pending).toBeUndefined();
 });
 
 it("does not silently publish other changes in an explicitly selected draft",async()=>{
   useVersionStore.getState().select(draft);
-  vi.mocked(call).mockImplementation(async operation=>operation==="compareConfigVersions"?{base:{id:"online",revision:"rev-7"},target:{id:"working",revision:"rev-0"},items:[],next_cursor:null}:[active,draft]);
+  vi.mocked(call).mockImplementation(async operation=>operation==="compareConfigVersions"?{base:{id:"online",revision:"rev-7"},target:{id:"working",revision:"rev-0"},items:[{resource:"upstreams",id:"existing",change:"added"}],next_cursor:null}:[active,draft]);
   const task=await beginConfigurationTask("Add account");
   expect(task.autoApply).toBe(false);
   expect((await task.finish()).status).toBe("draft");
@@ -150,4 +151,14 @@ it("only adopts the exact freshly reviewed revision before continuing a saved ac
   expect(task.revision()).toBe("rev-2");
   expect(callRevisioned).not.toHaveBeenCalled();
   expect(call).not.toHaveBeenCalledWith("publishConfigVersion",expect.anything());
+});
+
+for(const mode of ["selected","tracked"] as const)it(`automatically applies an actually empty ${mode} draft`,async()=>{
+ if(mode==="selected")useVersionStore.getState().select(draft);else useVersionStore.getState().rememberPending(draft);
+ vi.mocked(call).mockImplementation(async operation=>{
+  if(operation==="getConfigVersion")return draft;
+  if(operation==="compareConfigVersions")return {base:{id:active.id,revision:active.revision},target:{id:draft.id,revision:draft.revision},items:[],next_cursor:null};
+  return [active,draft];
+ });
+ const task=await beginConfigurationTask("Empty draft");expect(task.autoApply).toBe(true);expect(task.priorChanges).toEqual([]);
 });

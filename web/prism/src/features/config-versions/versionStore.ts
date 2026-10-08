@@ -20,6 +20,7 @@ type VersionState = {
   rememberPending: (summary: ConfigVersionSummary) => void;
   adoptPending: (summary: ConfigVersionSummary, expected: PendingSelectionGuard) => boolean;
   resolvePending: (summary: ConfigVersionSummary, expected: PendingSelectionGuard) => boolean;
+  acknowledgeApplied: (summary: ConfigVersionSummary, selection: number) => boolean;
   conflict: boolean;
   selectionGeneration: number;
   select: (summary: ConfigVersionSummary) => void;
@@ -33,6 +34,15 @@ type VersionState = {
 export const useVersionStore = create<VersionState>((set, get) => ({
   context: undefined,
   pending: undefined,
+  acknowledgeApplied: (summary, selection) => {
+    const state=get();
+    if(summary.status!=="active"||state.selectionGeneration!==selection)return false;
+    // This task's publication receipt settles its scope without invalidating its result
+    // window. A different batch or a newer pending revision remains independently owned.
+    set({context:{configVersionId:summary.id,revision:summary.revision,status:"active"},
+      pending:state.pending?.id===summary.id&&state.pending.revision===summary.revision?undefined:state.pending,conflict:false});
+    return true;
+  },
   rememberPending: summary => set(state => ({pending: summary.status === "draft" && (!state.pending || state.pending.id === summary.id) ? {...summary,revision:state.pending?advanceRevision({configVersionId:summary.id,status:"draft",revision:state.pending.revision},summary.revision).revision:summary.revision} : state.pending})),
   adoptPending: (summary,expected) => {
     const state=get();

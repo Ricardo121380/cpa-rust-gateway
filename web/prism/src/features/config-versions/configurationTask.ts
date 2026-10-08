@@ -51,7 +51,9 @@ export async function beginConfigurationTask(description:string, expectedSource?
   assertOwner();
   if(prior&&(version.parent_id??null)!==(active?.id??null))throw new Error("草稿基线与活动配置不同，请在配置版本中重新核对。");
   const priorChanges=prior?await readChanges(version,active,assertOwner):[];
-  const autoApply=completion==="automatic"&&!prior;
+  // An existing draft alone is not a modification. Without an active comparison
+  // baseline we cannot prove it empty, so keep that initial-configuration review.
+  const autoApply=completion==="automatic"&&(!prior||(!!active&&priorChanges.length===0));
   let revision=version.revision;
   useVersionStore.getState().rememberPending(version);
   const read=async<T>(operation:ManagementOperationName,request:ManagementRequest={})=>{
@@ -114,7 +116,9 @@ export async function beginConfigurationTask(description:string, expectedSource?
     // The acknowledged publication is the durable commit receipt. Page queries re-read the
     // applied resources after selection; an unrelated read failure must not turn it into a retry.
     revision=review.target.revision;
-    return {...review.target,status:"active"};
+    const applied={...review.target,status:"active" as const};
+    if(!useVersionStore.getState().acknowledgeApplied(applied,owner.selectionGeneration))throw new CancelledError({silent:true});
+    return applied;
   };
   const finish=async():Promise<ConfigVersionSummary>=>{
     assertOwner();
