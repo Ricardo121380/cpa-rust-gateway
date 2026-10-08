@@ -491,6 +491,9 @@ fn print_usage() {
     println!(
         "Optional serve flags: [--codex-oauth-proxy socks5://<host>:<port>] [--grok-web-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-proxy socks5://<host>:<port>] [--grok-web-flaresolverr-port <port>]"
     );
+    println!(
+        "Versioned master keys: [--master-key-dir <absolute-directory> --active-master-key-version <positive-version>] (otherwise credential-dir/master-key is version 1)"
+    );
 }
 
 #[derive(Debug)]

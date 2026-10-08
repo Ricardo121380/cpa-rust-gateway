@@ -25,6 +25,7 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import cpar_execution_evidence_http
+import cpar_master_key_http
 
 os.umask(0o077)
 repo = pathlib.Path.cwd()
@@ -296,6 +297,7 @@ client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 headers = {"X-Management-Key": (credentials / "management-key").read_text(), "Content-Type": "application/json"}
 scope, revision = None, None
 log = (root / "gateway.log").open("ab")
+serve_options = []
 binary = pathlib.Path(os.environ.get("CPAR_GATEWAY_BINARY", str(pathlib.Path(os.environ.get("CARGO_TARGET_DIR", str(repo / "target"))) / "debug/gateway"))).resolve()
 subprocess.run([str(binary), "admin-login", "init", "--state-dir", str(state), "--password-file", str(root / "initial-password")], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}"], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
@@ -585,7 +587,7 @@ def restart():
     global gateway
     gateway.terminate()
     gateway.wait(timeout=30)
-    gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}"], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
+    gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
     wait_ready()
 
 
@@ -626,6 +628,11 @@ try:
     api("POST", "/admin/billing/catalogs", {"catalog_version_id": "local-prices", "effective_at_ms": 0, "source": "operator", "entries": entries}, expected=201)
     publish()
     check("publication_has_no_inference_side_effect", not calls)
+    if os.environ.get("CPAR_B05_ONLY") == "1":
+        cpar_master_key_http.verify(globals())
+        passed = True
+        print(json.dumps({"status": "PASS", "checks": len(checks), "scope": "B-05 real process restart, synthetic only"}))
+        sys.exit(0)
     execution_initial_ids = cpar_execution_evidence_http.initial(globals())
     for stream in [False, True]:
         request = body_for("responses", "chat", "text-round", stream)

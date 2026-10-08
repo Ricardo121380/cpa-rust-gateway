@@ -64,6 +64,19 @@ rotate(old key_version, envelope, aad)
 
 ## Error semantics
 
+### Serve configuration (release-readiness B-05)
+
+`gateway serve` accepts the paired non-secret options `--master-key-dir` and
+`--active-master-key-version`. The separate directory follows the strict file
+contract above; the active version is a canonical positive u32. Invalid explicit
+configuration never falls back to the legacy key. Management HTTP writes and all
+serving storage receive clones of the same loaded ring. Without either option,
+the existing `--credential-dir/master-key` remains exactly version 1. Backup keys,
+Client Key peppers and cache-identity keys remain separate. No rows are implicitly
+rotated or rewritten. Missing keys needed for active runtime credentials reject
+startup; retained encrypted response state without its key fails closed on read.
+The standalone `admin grok-*` CLI retains its existing legacy key configuration.
+
 ```text
 unknown/malformed key material or key directory
   -> safe configuration/load error
@@ -79,6 +92,9 @@ Error text may name a Key Version or structural condition but must not contain p
 Key bytes, nonce bytes, full ciphertext, or an external secret-file's contents.
 
 ## Corresponding tests
+
+- `serve_master_key_configuration_is_explicit_and_legacy_compatible`
+- `CPAR_B05_ONLY=1 python3 scripts/acceptance/cpar-batch-b-http.py <private-receipt-directory>`
 
 - A Secret sealed twice with the same input decrypts correctly but produces two different opaque
   envelopes; each returned Key Version is the active one.

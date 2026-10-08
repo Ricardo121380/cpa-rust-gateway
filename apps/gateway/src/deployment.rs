@@ -96,6 +96,7 @@ pub(crate) struct ServeCommand {
     management_browser_origin: ManagementOrigin,
     state_directory: PathBuf,
     credentials_directory: PathBuf,
+    master_keys: Option<(PathBuf, KeyVersion)>,
     codex_oauth_proxy: UpstreamProxy,
     grok_web_proxy: Option<UpstreamProxy>,
     grok_web_flaresolverr_proxy: Option<UpstreamProxy>,
@@ -135,6 +136,7 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
         &required_option(&mut options, "--credential-dir")?,
         "--credential-dir",
     )?;
+    let master_keys = parse_master_keys(&mut options)?;
     let codex_oauth_proxy = options
         .remove("--codex-oauth-proxy")
         .map(|value| {
@@ -178,11 +180,38 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
         management_browser_origin,
         state_directory,
         credentials_directory,
+        master_keys,
         codex_oauth_proxy,
         grok_web_proxy,
         grok_web_flaresolverr_proxy,
         grok_web_flaresolverr_port,
     })
+}
+
+fn parse_master_keys(
+    options: &mut BTreeMap<String, String>,
+) -> Result<Option<(PathBuf, KeyVersion)>, DeploymentError> {
+    let directory = options.remove("--master-key-dir");
+    let active = options.remove("--active-master-key-version");
+    match (directory, active) {
+        (None, None) => Ok(None),
+        (Some(_), None) => Err(DeploymentError::MissingOption(
+            "--active-master-key-version",
+        )),
+        (None, Some(_)) => Err(DeploymentError::MissingOption("--master-key-dir")),
+        (Some(directory), Some(active)) => {
+            let version = active
+                .parse::<u32>()
+                .ok()
+                .filter(|value| value.to_string() == active)
+                .and_then(|value| KeyVersion::try_new(value).ok())
+                .ok_or(DeploymentError::InvalidMasterKeyVersion)?;
+            Ok(Some((
+                parse_absolute_directory(&directory, "--master-key-dir")?,
+                version,
+            )))
+        }
+    }
 }
 
 /// Starts the P12 loopback deployment envelope until systemd requests a clean stop.
@@ -462,18 +491,12 @@ fn build_application_state_with_refresh(
     // invocation for an inline management-key assignment.
     let management_key = (load_management_key(&command.credentials_directory))?;
     let management_csrf = load_management_csrf(&command.credentials_directory)?;
-    let master_key = load_master_key(&command.credentials_directory)?;
+    let master_key_ring = load_master_key_ring(command)?;
     let backup_key = load_backup_key(&command.credentials_directory)?;
     let grok_build_cache_identity_deriver = Arc::new(load_grok_build_cache_identity_deriver(
         &command.credentials_directory,
     )?);
 
-    let key_version = KeyVersion::try_new(1).map_err(|_| DeploymentError::RuntimeUnavailable)?;
-    let management_key_ring =
-        MasterKeyRing::try_new(key_version, [(key_version, master_key.clone())])
-            .map_err(|_| DeploymentError::InvalidCredential(MASTER_KEY_CREDENTIAL))?;
-    let runtime_key_ring = MasterKeyRing::try_new(key_version, [(key_version, master_key)])
-        .map_err(|_| DeploymentError::InvalidCredential(MASTER_KEY_CREDENTIAL))?;
     let database = command.state_directory.join(CONTROL_DATABASE_FILE);
     let management_client_key_service = load_client_key_service(&command.credentials_directory)?;
     let runtime_client_key_service = load_client_key_service(&command.credentials_directory)?;
@@ -481,7 +504,7 @@ fn build_application_state_with_refresh(
         .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
     let mutation_service = ManagementMutationService::with_client_key_service(
         mutation_repository,
-        SecretStore::new(management_key_ring),
+        SecretStore::new(master_key_ring.clone()),
         management_client_key_service,
     );
 
@@ -496,7 +519,7 @@ fn build_application_state_with_refresh(
     )
     .map_err(|_| DeploymentError::ControlPlaneUnavailable)?;
     let registry = Arc::clone(lifecycle_service.registry());
-    let runtime_secret_store = SecretStore::new(runtime_key_ring);
+    let runtime_secret_store = SecretStore::new(master_key_ring);
     if startup_refresh_enabled {
         let startup_refresh = credential_refresh::refresh_due_credentials_before_compile(
             &database,
@@ -787,6 +810,19 @@ pub(crate) fn load_master_key(directory: &Path) -> Result<MasterKey, DeploymentE
     key
 }
 
+fn load_master_key_ring(command: &ServeCommand) -> Result<MasterKeyRing, DeploymentError> {
+    if let Some((directory, active)) = &command.master_keys {
+        return MasterKeyRing::load_from_directory(directory, *active)
+            .map_err(|_| DeploymentError::InvalidCredential("master-key-ring"));
+    }
+    let version = KeyVersion::try_new(1).map_err(|_| DeploymentError::RuntimeUnavailable)?;
+    MasterKeyRing::try_new(
+        version,
+        [(version, load_master_key(&command.credentials_directory)?)],
+    )
+    .map_err(|_| DeploymentError::InvalidCredential(MASTER_KEY_CREDENTIAL))
+}
+
 fn load_backup_key(directory: &Path) -> Result<BackupKey, DeploymentError> {
     let mut bytes = read_credential_file(directory, BACKUP_KEY_CREDENTIAL, KEY_BYTES)?;
     let key = BackupKey::try_from_bytes(&bytes)
@@ -860,6 +896,8 @@ pub(crate) enum DeploymentError {
     InvalidProxy(&'static str),
     /// The optional local `FlareSolverr` port was not a non-zero TCP port.
     InvalidPort(&'static str),
+    /// The active Master Key version was not a canonical positive u32.
+    InvalidMasterKeyVersion,
     /// The systemd-owned state directory could not be admitted.
     StateDirectoryUnavailable,
     /// The systemd credential directory could not be admitted.
@@ -908,6 +946,9 @@ impl fmt::Display for DeploymentError {
                 write!(formatter, "invalid SOCKS5 proxy for {option}")
             }
             Self::InvalidPort(option) => write!(formatter, "invalid TCP port for {option}"),
+            Self::InvalidMasterKeyVersion => {
+                formatter.write_str("invalid active master key version")
+            }
             Self::StateDirectoryUnavailable => {
                 formatter.write_str("state directory is unavailable")
             }
@@ -1023,6 +1064,65 @@ mod tests {
         fs::write(directory.join("backup-key"), [0xB2; 32])?;
         fs::write(directory.join("client-key-pepper"), [0xC3; 32])?;
         fs::write(directory.join("grok-build-cache-key"), [0xD4; 32])?;
+        Ok(())
+    }
+
+    #[test]
+    fn serve_master_key_configuration_is_explicit_and_legacy_compatible()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        let directory = TemporaryDirectory::new()?;
+        write_required_credentials(&credentials)?;
+        let legacy = command(state.path(), credentials.path())?;
+        assert_eq!(
+            super::load_master_key_ring(&legacy)?
+                .active_key_version()
+                .get(),
+            1
+        );
+        fs::write(directory.join("1.key"), [0xA1; 32])?;
+        fs::write(directory.join("2.key"), [0xE5; 32])?;
+        fs::remove_file(credentials.join("master-key"))?;
+        let mut options = std::collections::BTreeMap::from([
+            (
+                "--master-key-dir".to_owned(),
+                directory.path().display().to_string(),
+            ),
+            ("--active-master-key-version".to_owned(), "2".to_owned()),
+        ]);
+        let mut versioned = legacy;
+        versioned.master_keys = super::parse_master_keys(&mut options)?;
+        assert!(options.is_empty());
+        assert_eq!(
+            super::load_master_key_ring(&versioned)?
+                .active_key_version()
+                .get(),
+            2
+        );
+        fs::remove_file(directory.join("2.key"))?;
+        assert!(super::load_master_key_ring(&versioned).is_err());
+        for active in ["0", "-1", "01", "+1", "4294967296", "invalid"] {
+            let mut options = std::collections::BTreeMap::from([
+                (
+                    "--master-key-dir".to_owned(),
+                    directory.path().display().to_string(),
+                ),
+                ("--active-master-key-version".to_owned(), active.to_owned()),
+            ]);
+            assert_eq!(
+                super::parse_master_keys(&mut options),
+                Err(DeploymentError::InvalidMasterKeyVersion)
+            );
+        }
+        for option in ["--master-key-dir", "--active-master-key-version"] {
+            let mut options =
+                std::collections::BTreeMap::from([(option.to_owned(), "2".to_owned())]);
+            assert!(matches!(
+                super::parse_master_keys(&mut options),
+                Err(DeploymentError::MissingOption(_))
+            ));
+        }
         Ok(())
     }
 

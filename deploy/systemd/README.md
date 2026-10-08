@@ -42,6 +42,17 @@ paths must never be committed. The unit also sets `UMask=0077`, uses an unprivil
 account, leaves the credential directory read-only, and has no `Environment=` or `EnvironmentFile=`
 credential fallback.
 
+The template retains the single-key compatibility mode: `master-key` is version 1.
+An explicitly configured `gateway serve` can instead use the paired options
+`--master-key-dir <absolute-directory> --active-master-key-version <positive-version>`.
+That separate read-only directory must contain only direct 32-byte files such as
+`1.key` and `2.key`; the active version must exist. Retain every version referenced
+by retained encrypted rows. Both HTTP management and serving use that same ring;
+new writes use the active version, without rewriting existing ciphertext. Explicit
+mode does not read `credential-dir/master-key`. Other credential files remain required
+and separate. Service-unit adaptation and any live rotation require their own authorized
+operational change; this documentation does not change the installed unit.
+
 ## Resource and hardening posture
 
 The template declares `Restart=on-failure`, 30/45-second start/stop bounds, `LimitNOFILE=65536`,
