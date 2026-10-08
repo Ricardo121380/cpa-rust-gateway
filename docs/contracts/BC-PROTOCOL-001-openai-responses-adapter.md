@@ -219,12 +219,20 @@ retains the already completed items, and fine-grained done/part-added/delta even
 are not newly required. The B-02 metadata and terminality rules remain unchanged.
 No global `sequence_number` ordering rule is added.
 
+If a protocol contradiction is decoded during bootstrap, the runtime retains its
+`UpstreamProtocolError` as a nonretryable attempt failure. It must not be collapsed
+into retryable `BootstrapTruncated` and rescued by another candidate. A transport-only
+bootstrap EOF keeps its existing retry classification. This preserves the distinction
+between an attempt that failed before handing off a source and `AttemptSucceeded`
+for a handed-off source whose request may later fail.
+
 ## Corresponding tests
 
 - `reversed_terminal_output_fails_publicly_without_storage_or_replay`
 - `terminal_order_rejection_cannot_be_repaired_by_later_completion`
 - `terminal_item_identity_and_index_conflicts_fail_publicly`
 - `same_read_terminal_order_conflict_fails_during_bootstrap_without_owned_result`
+- `bootstrap_order_conflict_cannot_replay_to_a_usable_fallback`
 - `interleaved_native_output_preserves_order_metadata_storage_and_continuation`
 - `terminal_order_conflict_has_no_websocket_root_and_valid_interleaving_can_continue`
 - `output_order_checks_are_read_boundary_invariant_and_permanent`

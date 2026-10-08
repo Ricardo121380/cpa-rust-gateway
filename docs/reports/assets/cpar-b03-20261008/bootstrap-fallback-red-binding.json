@@ -1,0 +1,31 @@
+{
+  "product_source_commit": "4dd28268e277fa5b223c090ebca73a4707b32505",
+  "product_files_unchanged_sha256": {
+    "apps/gateway/src/runtime.rs": "be959e0d26a3fb3c9592e3c0c636d2596651a086c5e320c176df623159284414",
+    "crates/protocol-openai-responses/src/upstream_response.rs": "7b03cafe154419f1642174c5b253a069753e9d073c2cb47a29fa3249c579e25c"
+  },
+  "test_files_sha256": {
+    "apps/gateway/src/runtime/batch_c.rs": "040edd262c23858634286f676c5c8fdeaf4f70408c4a288c7784b886e458af1b",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": "445ef9d5b9a3c5a213af4b4a386fc901bd3f7fc9cbd9d16cd47f94d93e3dc922"
+  },
+  "harness_patch_sha256": "60b164c7a990120165b435182ea8734b8c6da898daef69c8f45a7e4da036aa50",
+  "apply_harness": "git apply --unidiff-zero bootstrap-fallback-red-harness.patch",
+  "receipt_sha256": "f7f38e7c4bbd93b84e99584c086e33a098ebe5e530283fc655144fab7dd76ba2",
+  "exit_code": 101,
+  "observed": {
+    "eof_positive_control": {
+      "status": 200,
+      "primary_received": 1,
+      "fallback_received": 1,
+      "attempts": 2
+    },
+    "terminal_order_conflict": {
+      "status": 200,
+      "primary_received": 1,
+      "fallback_received": 1,
+      "attempts": 2,
+      "incorrect_successful_completed": true
+    }
+  },
+  "scope": "Two synthetic loopback upstreams through existing public exact-model routing; no real Provider/account."
+}

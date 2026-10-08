@@ -1,6 +1,170 @@
 //! B-03 checks whole-output order through the same public path as B-02 confirmations.
 use super::*;
 
+fn fallback_fixture(first: &Arc<Peer>, fallback: &Arc<Peer>) -> Result<Fixture, Box<dyn Error>> {
+    let fallback_id = EndpointId::try_new("b03-fallback-endpoint")?;
+    fixture_with_configuration(
+        Channel {
+            adapter: "openai-compatible.responses",
+            format: "openai/responses",
+            base: "https://gateway.example.test/v1",
+            path: "/responses",
+            model: "upstream-c",
+        },
+        b"synthetic-key",
+        true,
+        |configuration| {
+            configuration.model_routes[0].max_attempts = 2;
+            let mut upstream = configuration.upstreams[0].clone();
+            upstream.id = gateway_core::UpstreamId::try_new("b03-fallback-upstream")?;
+            upstream.name = "B-03 synthetic fallback upstream".into();
+            let mut endpoint = configuration.endpoints[0].clone();
+            endpoint.id = fallback_id.clone();
+            endpoint.upstream_id = upstream.id.clone();
+            configuration.endpoints.push(endpoint);
+            let credential_id = gateway_core::CredentialId::try_new("b03-fallback-credential")?;
+            let credential = gateway_store::control_plane::CredentialConfiguration {
+                id: credential_id.clone(),
+                upstream_id: upstream.id.clone(),
+                kind: "bearer".into(),
+                encrypted_secret: test_secret_store()?.seal(
+                    b"synthetic-key",
+                    &credential_associated_data(
+                        &configuration.version.id,
+                        &credential_id,
+                        &upstream.id,
+                    )?,
+                )?,
+                status: gateway_store::control_plane::CredentialStatus::Active,
+                revision: 1,
+            };
+            let mut binding = configuration.endpoint_credential_bindings[0].clone();
+            binding.endpoint_id = fallback_id.clone();
+            binding.upstream_id = upstream.id.clone();
+            binding.credential_id = credential.id.clone();
+            configuration.endpoint_credential_bindings.push(binding);
+            configuration.upstreams.push(upstream);
+            configuration.credentials.push(credential);
+            let mut candidate = configuration.route_candidates[0].clone();
+            candidate.id = gateway_core::RouteCandidateId::try_new("b03-fallback-candidate")?;
+            candidate.endpoint_id = fallback_id.clone();
+            candidate.priority = 1;
+            configuration.route_candidates.push(candidate);
+            Ok(())
+        },
+        |endpoints| {
+            for (id, endpoint) in endpoints {
+                let mut profiles = P12TransportProfiles::try_new()?;
+                profiles.http = Some(if *id == fallback_id {
+                    fallback.clone()
+                } else {
+                    first.clone()
+                });
+                endpoint.transports = Arc::new(profiles);
+                endpoint.resolver = Arc::new(PublicResolver);
+            }
+            Ok(())
+        },
+    )
+}
+
+#[actix_web::test]
+async fn bootstrap_order_conflict_cannot_replay_to_a_usable_fallback() -> TestResult {
+    // A transport-only bootstrap EOF proves this second candidate and retry budget are usable.
+    for conflict in [false, true] {
+        let mut frames = native_frames();
+        reverse_terminal(&mut frames)?;
+        let first = Peer::start_scripted(
+            false,
+            None,
+            Some(if conflict {
+                vec![wire(&frames).into_bytes()]
+            } else {
+                vec![]
+            }),
+        )?;
+        let fallback = Peer::start_scripted(false, None, Some(chunks(&native_frames())))?;
+        let fixture = fallback_fixture(&first, &fallback)?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(fixture.state.clone()))
+                .configure(gateway_http_actix::configure),
+        )
+        .await;
+        let response = test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                .set_json(
+                    json!({"model":"upstream-c","input":"question","stream":true,"store":true}),
+                )
+                .to_request(),
+        )
+        .await;
+        let status = response.status();
+        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+        let first_count = first.received.lock().map_err(|_| "received")?.len();
+        let fallback_count = fallback.received.lock().map_err(|_| "received")?.len();
+        eprintln!(
+            "B-03 bootstrap conflict={conflict}; status={status}; first={first_count}; fallback={fallback_count}; attempts={}; body={body}",
+            fixture.events.attempts()?
+        );
+        assert_eq!(first_count, 1);
+        assert_eq!(fallback_count, usize::from(!conflict));
+        assert_eq!(fixture.events.attempts()?, if conflict { 1 } else { 2 });
+        assert_eq!(first.requests.lock().map_err(|_| "requests")?.len(), 1);
+        assert_eq!(
+            fallback.requests.lock().map_err(|_| "requests")?.len(),
+            usize::from(!conflict)
+        );
+        if conflict {
+            assert_eq!(status, StatusCode::BAD_GATEWAY);
+            assert!(body.contains("UpstreamProtocolError"), "{body}");
+            assert!(!body.contains("response.completed"));
+            let events = fixture.events.0.lock().map_err(|_| "events")?.clone();
+            let database = fixture
+                .directory
+                .path()
+                .join("b03-bootstrap-events.sqlite3");
+            gateway_store::event_store::SqliteEventStore::open(&database)?.append_batch(&events)?;
+            let rows =
+                gateway_store::event_store::SqliteEventStore::open(&database)?.list_events()?;
+            assert!(rows.iter().any(|row| matches!(row.event(), GatewayEvent::RequestFinished(request) if request.outcome == gateway_core::RequestOutcome::Failed && request.error_code == Some(GatewayErrorCode::UpstreamProtocolError))));
+            assert!(rows.iter().any(|row| matches!(row.event(), GatewayEvent::Attempt(attempt) if matches!(attempt.outcome(), gateway_core::AttemptOutcome::Failed(error) if error.code() == GatewayErrorCode::UpstreamProtocolError))));
+        } else {
+            assert_eq!(status, StatusCode::OK);
+            assert!(body.contains("response.completed"), "{body}");
+            assert!(!body.contains("response.failed"));
+        }
+        let get = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/v1/responses/resp-b02")
+                .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(
+            get.status(),
+            if conflict {
+                StatusCode::NOT_FOUND
+            } else {
+                StatusCode::OK
+            }
+        );
+        if conflict {
+            let continuation = test::call_service(&app, test::TestRequest::post().uri("/v1/responses")
+                .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                .set_json(json!({"model":"upstream-c","input":"next","previous_response_id":"resp-b02"})).to_request()).await;
+            assert!(!continuation.status().is_success());
+            assert_eq!(first.received.lock().map_err(|_| "received")?.len(), 1);
+            assert_eq!(fallback.received.lock().map_err(|_| "received")?.len(), 0);
+        }
+    }
+    Ok(())
+}
+
 fn reverse_terminal(frames: &mut [Value]) -> TestResult {
     frames.last_mut().ok_or("completed")?["response"]["output"]
         .as_array_mut()

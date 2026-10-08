@@ -7309,7 +7309,11 @@ impl OpenAiSseEventSource {
         source
             .read_until_event()
             .await
-            .map_err(|_| AttemptFailure::BootstrapTruncated)?;
+            .map_err(|error| match error.code() {
+                // A decoded protocol contradiction must not become a retryable bootstrap EOF.
+                GatewayErrorCode::UpstreamProtocolError => AttemptFailure::NonRetryable(error),
+                _ => AttemptFailure::BootstrapTruncated,
+            })?;
         if !matches!(
             source.pending.front(),
             Some(CanonicalEvent::ResponseStart(_))

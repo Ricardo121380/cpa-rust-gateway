@@ -4,11 +4,14 @@ Status: IN_PROGRESS. Fixed base: `9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2`.
 This finding is not CPAR-03 or the whole Batch B. B-02 accepted source remains
 `15babae64154f8ff5fa1055f856d11640385633a`.
 
-Scope M: one protocol crate, gateway test composition and its existing contract.
-Expected source files: `upstream_response.rs`, `batch_c/http/responses_done.rs`,
+Scope M: one protocol crate, the existing Responses bootstrap boundary, gateway
+test composition and its existing contract. Expected source files:
+`upstream_response.rs`, `runtime.rs`, `batch_c.rs`, `batch_c/http/responses_done.rs`,
 new child `responses_done/responses_order.rs`, and BC-PROTOCOL-001 supplement.
 Evidence and local #57 draft remain under this asset directory and the B-03 report.
-No schema, Canonical vocabulary, retry, dependency, frontend or production change.
+No schema, Canonical vocabulary, general retry policy, dependency, frontend or
+production change. Responses bootstrap retains explicit protocol errors as
+nonretryable failures; transport-only bootstrap EOF retains its existing behavior.
 
 Dependencies: B-02 valid five-class confirmations/permanent rejection; B-01 multipart
 history; #9 parent, #27 ordered public semantics, #31 exact native metadata.

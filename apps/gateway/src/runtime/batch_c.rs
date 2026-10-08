@@ -71,15 +71,31 @@ fn fixture(
     fixture_with_storage(channel, secret, false, configure)
 }
 
-#[allow(
-    clippy::too_many_lines,
-    reason = "production bootstrap and native enrollment share one isolated fixture transaction"
-)]
 fn fixture_with_storage(
     channel: Channel,
     secret: &[u8],
     stored: bool,
     configure: impl FnOnce(&mut EndpointRuntime) -> Result<(), Box<dyn Error>>,
+) -> Result<Fixture, Box<dyn Error>> {
+    fixture_with_configuration(
+        channel,
+        secret,
+        stored,
+        |_| Ok(()),
+        |endpoints| configure(endpoints.values_mut().next().ok_or("runtime endpoint")?),
+    )
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "production bootstrap and native enrollment share one isolated fixture transaction"
+)]
+fn fixture_with_configuration(
+    channel: Channel,
+    secret: &[u8],
+    stored: bool,
+    prepare: impl FnOnce(&mut ControlPlaneConfiguration) -> TestResult,
+    configure: impl FnOnce(&mut BTreeMap<EndpointId, EndpointRuntime>) -> TestResult,
 ) -> Result<Fixture, Box<dyn Error>> {
     let directory = TemporaryDirectory::new()?;
     let database = directory.path().join("batch-c.sqlite3");
@@ -185,6 +201,7 @@ fn fixture_with_storage(
         StoredClientKeyStatus::Active,
         None,
     )?];
+    prepare(&mut configuration)?;
     let mut repository = SqliteControlPlaneRepository::open(&database)?;
     repository.write_configuration(&configuration)?;
     repository.activate_version(&configuration.version.id)?;
@@ -222,12 +239,7 @@ fn fixture_with_storage(
             .join()
             .map_err(|_| "runtime factory thread")
     })??;
-    let endpoint = Arc::get_mut(&mut executor.endpoints)
-        .ok_or("shared endpoints")?
-        .values_mut()
-        .next()
-        .ok_or("runtime endpoint")?;
-    configure(endpoint)?;
+    configure(Arc::get_mut(&mut executor.endpoints).ok_or("shared endpoints")?)?;
     let executor = Arc::new(executor);
     let mut state = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
         executor.clone(),

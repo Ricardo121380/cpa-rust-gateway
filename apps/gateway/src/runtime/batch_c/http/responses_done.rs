@@ -767,7 +767,7 @@ async fn assert_bootstrap_failure(stream: Vec<Vec<u8>>) -> TestResult {
     .await;
     assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
     let body = String::from_utf8(test::read_body(response).await.to_vec())?;
-    assert!(body.contains("StreamTruncated"), "{body}");
+    assert!(body.contains("UpstreamProtocolError"), "{body}");
     let events = fixture.events.0.lock().map_err(|_| "events")?.clone();
     let database = fixture.directory.path().join("bootstrap-events.sqlite3");
     gateway_store::event_store::SqliteEventStore::open(&database)?.append_batch(&events)?;
@@ -780,7 +780,7 @@ async fn assert_bootstrap_failure(stream: Vec<Vec<u8>>) -> TestResult {
         })
         .ok_or("Attempt")?;
     assert!(
-        matches!(attempt.outcome(),AttemptOutcome::Failed(error) if error.code()==GatewayErrorCode::StreamTruncated)
+        matches!(attempt.outcome(),AttemptOutcome::Failed(error) if error.code()==GatewayErrorCode::UpstreamProtocolError)
     );
     let request = rows
         .iter()
@@ -790,6 +790,10 @@ async fn assert_bootstrap_failure(stream: Vec<Vec<u8>>) -> TestResult {
         })
         .ok_or("Request")?;
     assert_eq!(request.outcome, RequestOutcome::Failed);
+    assert_eq!(
+        request.error_code,
+        Some(GatewayErrorCode::UpstreamProtocolError)
+    );
     assert_eq!(&request.request_id, attempt.request_id());
     assert_eq!(peer.received.lock().map_err(|_| "received")?.len(), 1);
     assert_eq!(peer.requests.lock().map_err(|_| "requests")?.len(), 1);
