@@ -161,7 +161,7 @@ impl Fixture {
                 account_id: id,
                 account_kind: "bearer".into(),
                 credential_revision: Some(1),
-                config_version_id: Some("fixture-config".into()),
+                config_version_id: Some(version.as_str().to_owned()),
                 auth_status: if enabled {
                     ProviderAccountAuthStatus::Active
                 } else {
@@ -219,7 +219,14 @@ impl Fixture {
     reason = "checks each refresh outcome across store, pool, management and restart boundaries"
 )]
 fn loopback_oauth_rotation_and_failures_reach_live_eligibility_and_management_http() -> TestResult {
-    for status in [200, 400, 403, 429, 503] {
+    for (status, runtime_unauthorized) in [
+        (200, false),
+        (200, true),
+        (400, false),
+        (403, false),
+        (429, false),
+        (503, false),
+    ] {
         let fixture = Fixture::new()?;
         let listener = TcpListener::bind("127.0.0.1:0")?;
         let address = listener.local_addr()?;
@@ -343,6 +350,14 @@ fn loopback_oauth_rotation_and_failures_reach_live_eligibility_and_management_ht
                 status == 200
             );
         }
+        if runtime_unauthorized {
+            for name in ["codex", "kimi", "claude", "kiro"] {
+                fixture.health.mark_credential_unauthorized(
+                    EndpointId::try_new(format!("endpoint-{name}"))?,
+                    CredentialId::try_new(name)?,
+                )?;
+            }
+        }
         let adapter = ProviderAccountPoolAdapter::try_new(
             fixture.descriptors.clone(),
             fixture.pools.clone(),
@@ -403,9 +418,9 @@ fn loopback_oauth_rotation_and_failures_reach_live_eligibility_and_management_ht
                     .ok_or("account observation")?;
                 assert_eq!(
                     row["auth_status"],
-                    if status == 200 {
+                    if status == 200 && !runtime_unauthorized {
                         "active"
-                    } else if status == 400 {
+                    } else if status == 400 || runtime_unauthorized {
                         "reauth_required"
                     } else {
                         "expired"
@@ -413,14 +428,20 @@ fn loopback_oauth_rotation_and_failures_reach_live_eligibility_and_management_ht
                 );
                 assert_eq!(
                     row["runtime_status"],
-                    if status == 200 {
+                    if status == 200 && !runtime_unauthorized {
                         "available"
-                    } else if status == 400 {
+                    } else if status == 400 || runtime_unauthorized {
                         "unauthorized"
                     } else {
                         "expired"
                     }
                 );
+                assert_eq!(
+                    row["credential_revision"],
+                    if status == 200 { 2 } else { 1 },
+                    "runtime observation must identify the material actually loaded after refresh"
+                );
+                assert_eq!(row["config_version_id"], fixture.version.as_str());
                 assert_eq!(row["active_leases"], 0);
             }
             assert_eq!(

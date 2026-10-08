@@ -692,6 +692,9 @@ impl ProviderAccountPoolAdapter {
                     0,
                 )
             };
+            let credential_revision = diagnostic
+                .map(CredentialPoolEntrySnapshot::credential_revision)
+                .or(descriptor.credential_revision);
             let expires_at_ms = diagnostic
                 .and_then(CredentialPoolEntrySnapshot::expires_at_ms)
                 .or(descriptor.expires_at_ms);
@@ -719,7 +722,7 @@ impl ProviderAccountPoolAdapter {
                 channel_id: descriptor.channel_id.clone(),
                 account_id: descriptor.account_id.clone(),
                 account_kind: descriptor.account_kind.clone(),
-                credential_revision: descriptor.credential_revision,
+                credential_revision,
                 config_version_id: descriptor.config_version_id.clone(),
                 auth_status,
                 runtime_status,
