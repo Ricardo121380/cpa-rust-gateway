@@ -218,8 +218,8 @@ export function AddAccountDialog({onClose,onCreated,mode}:Readonly<{onClose:()=>
       }
       return {version:undefined,reconciled};
     }
-    let version:ConfigVersionSummary|undefined;
-    try{version=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}});}catch(cause){if(isCancelledError(cause))throw cause;}
+    let version:ConfigVersionSummary|undefined;let versionError:unknown;
+    try{version=await call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}});}catch(cause){if(isCancelledError(cause))throw cause;versionError=cause;}
     const reconciled:Result[]=[];
     for(const row of rows){
       if(row.saved||row.status!=="结果未确认"||!configurationTask||!importTarget){reconciled.push(row);continue;}
@@ -242,11 +242,11 @@ export function AddAccountDialog({onClose,onCreated,mode}:Readonly<{onClose:()=>
         reconciled.push(confirmed.saved?{...confirmed,error:`账号后续读取失败：${failure.message}`} : failure.status===404&&version?.revision===row.beforeRevision?{...row,status:"未添加",error:"已核对资源和版本，未保存"}:row);
       }
     }
-    return {version,reconciled};
-  },onSuccess:({version,reconciled})=>{
+    return {version,reconciled,versionError};
+  },onSuccess:({version,reconciled,versionError})=>{
     setRows(reconciled);if(version)useVersionStore.getState().rememberPending(version);
     if(version?.status==="active"&&version.revision===configurationTask?.revision())setFinishedVersion(version);
-    setError(reconciled.some(row=>row.status==="结果未确认")?"仍有结果待确认；不会重放导入，请保留资源和版本信息继续核对。":undefined);
+    setError(versionError?`配置读取失败：${asAppError(versionError).message}；已确认的保存回执保留。`:reconciled.some(row=>row.status==="结果未确认")?"仍有结果待确认；不会重放导入，请保留资源和版本信息继续核对。":undefined);
   }});
   const continueConnection=useMutation({mutationFn:async(row:Result)=>{
     if(!row.saved||!row.credentialId||!configurationTask||!importTarget)throw new Error("缺少已确认的账号保存回执。");
@@ -342,7 +342,7 @@ export function AddAccountDialog({onClose,onCreated,mode}:Readonly<{onClose:()=>
       </form>:<p>此渠道暂不可从面板接入。</p>}
       </>}
     </>}
-    {rows.length?<div className="tablewrap"><table><thead><tr><th>来源</th><th>结果</th></tr></thead><tbody>{rows.map((row)=><tr key={row.id}><td>{row.label}</td><td>{row.status}{row.error?<span className="entity-meta">{row.error}</span>:null}{completed&&row.saved&&row.credentialId&&row.status==="已保存，连接未完成"?<button type="button" className="secondary" disabled={busy} onClick={()=>{setError(undefined);continueConnection.mutate(row);}}>继续连接此账号</button>:null}{completed&&!row.saved&&["未添加","未执行"].includes(row.status)?<label className="small">仅重试此项：重新选择材料<input type="file" aria-label={`重试 ${row.label}`} disabled={busy||needsApply} onChange={event=>{const file=event.currentTarget.files?.[0];event.currentTarget.value="";if(file)void retryFile(row,file);}}/></label>:null}</td></tr>)}</tbody></table></div>:null}
+    {rows.length?<div className="tablewrap"><table><thead><tr><th>来源</th><th>结果</th></tr></thead><tbody>{rows.map((row)=><tr key={row.id}><td>{row.label}</td><td>{row.status}{row.saved&&row.credentialId?<span className="entity-meta">账号 {row.credentialId}</span>:null}{row.error?<span className="entity-meta">{row.error}</span>:null}{completed&&row.saved&&row.credentialId&&row.status==="已保存，连接未完成"?<button type="button" className="secondary" disabled={busy} onClick={()=>{setError(undefined);continueConnection.mutate(row);}}>继续连接此账号</button>:null}{completed&&!row.saved&&["未添加","未执行"].includes(row.status)?<label className="small">仅重试此项：重新选择材料<input type="file" aria-label={`重试 ${row.label}`} disabled={busy||needsApply} onChange={event=>{const file=event.currentTarget.files?.[0];event.currentTarget.value="";if(file)void retryFile(row,file);}}/></label>:null}</td></tr>)}</tbody></table></div>:null}
     {completed&&rows.some(row=>row.saved)?<p role="status">已确认保存 {rows.filter(row=>row.saved).length} 项授权。配置{finishedVersion?.status==="active"?"已生效":finishedVersion?.status==="draft"?"待应用":error?"校验／应用未完成，保存回执保留":"待核对"}；这不代表真实调用已验证。</p>:null}
     {completed&&configurationTask&&finishedVersion?.status!=="active"&&rows.some(row=>row.saved)&&!rows.some(row=>row.status==="结果未确认")?<ConfigurationTaskReview task={configurationTask} onBusyChange={setReviewApplying} onApplied={version=>{setFinishedVersion(version);setError(undefined);}} onReviewed={rows.some(row=>row.saved&&row.credentialId&&(row.status.includes("未完成")||row.status.includes("待核对")))?async review=>{
       await configurationTask.acceptReviewedDraft(review);

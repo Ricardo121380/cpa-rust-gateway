@@ -3666,3 +3666,12 @@ stays unknown. Release, deployment, real Provider and C/#57 completion remain di
 **Why:** Explicit eight-P2 local batch authorization. Keep completed save facts across failed reads, settle exact applied pending versions, compare existing draft changes, and retain non-secret original device recovery handles across dialog/route unmounts. No channel exchange replay or design change.
 
 **Other side:** FYI — local directed and EgoLite synthetic acceptance; batch Full and independent reviews remain pending.
+
+## 2026-10-08 · Codex · A-02 retain import receipt facts when configuration reads fail
+
+**Touched:**
+- `web/prism/src/features/accounts/AddAccountDialog.tsx`
+
+**Why:** The authorized A-02 boundary also includes a failed configuration read before the exact receipt is recovered. Preserve the read diagnostic independently, continue receipt-only reconciliation, and keep the exact saved ID visible in results.
+
+**Other side:** FYI — no replay, credential material or channel behavior change.
