@@ -191,3 +191,51 @@ ownership controls. No Provider URL/file citations are fetched.
 Rollback reverts this implementation, tests and supplement together. There is no data migration;
 the previous source again fails the contradictory-confirmation regression. Local validation,
 independent review and exact source identity are recorded in the B-02 delivery report.
+
+## 2026-10-08 upstream output-order supplement (B-03)
+
+The native Canonical representation and Responses encoder retain output items in
+`OutputItemStart` order. An admitted item start establishes a unique ID and its next
+array position. A received `output_index` must agree with that representable position;
+an incompatible index fails explicitly instead of being renumbered. This is the local
+exact-representation boundary, not a claim that the upstream API globally orders all
+events by output index. The official [streaming events reference](https://developers.openai.com/api/reference/resources/responses/streaming-events)
+defines the added/done index as the output item's position; the current retrieval
+is bound by [the B-03 source receipt](../reports/assets/cpar-b03-20261008/official-source.json).
+
+When a terminal `response.output` is supplied, each array position must identify the
+same completed item at its established index and retain its exact item-done metadata.
+The existing duplicate/missing-item and all-items-ended checks still apply. A reversed
+array, conflicting index or metadata is an `UpstreamProtocolError/Stream`, permanently
+rejecting the sequence before `ResponseEnd`. A later valid terminal in the same read
+or a subsequent read cannot repair it. No downstream sort, array reconstruction or
+state replacement is used to hide a conflict.
+
+Cross-item deltas may interleave, and items may complete in either order. Neither
+delta arrival nor item-done arrival changes the output array order. Existing local
+compatibility omissions remain: absent start indices use the next item position,
+absent item-done indices retain their established association, absent final output
+retains the already completed items, and fine-grained done/part-added/delta events
+are not newly required. The B-02 metadata and terminality rules remain unchanged.
+No global `sequence_number` ordering rule is added.
+
+## Corresponding tests
+
+- `reversed_terminal_output_fails_publicly_without_storage_or_replay`
+- `terminal_order_rejection_cannot_be_repaired_by_later_completion`
+- `terminal_item_identity_and_index_conflicts_fail_publicly`
+- `same_read_terminal_order_conflict_fails_during_bootstrap_without_owned_result`
+- `interleaved_native_output_preserves_order_metadata_storage_and_continuation`
+- `terminal_order_conflict_has_no_websocket_root_and_valid_interleaving_can_continue`
+- `output_order_checks_are_read_boundary_invariant_and_permanent`
+
+These tests reuse the B-02 public loopback/storage/WS oracles. Successful controls
+compare complete native output in SSE, GET and continuation, including original null
+and empty metadata; continuation history is read at the actual mock upstream. Failed
+controls read back Request/Attempt observations through temporary SQLite and require
+no owned stored result, no usable WS root and one actual upstream/handoff. They do not
+claim production asynchronous-writer or process-restart acceptance.
+
+Rollback reverts this correction and its tests/supplement together. No migration is
+needed; the prior decoder again accepts the contradictory final order. Source,
+review and local gates are bound by the [B-03 report](../reports/cpar-b03-responses-output-order-20261008.md).

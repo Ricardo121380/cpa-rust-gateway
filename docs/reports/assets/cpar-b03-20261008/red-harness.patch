@@ -1,0 +1,21 @@
+--- a/apps/gateway/src/runtime/batch_c/http/responses_done.rs
++++ b/apps/gateway/src/runtime/batch_c/http/responses_done.rs
+@@ -2,0 +3,2 @@
++
++mod responses_order;
+--- /dev/null
++++ b/apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs
+@@ -0,0 +1,13 @@
++//! B-03 checks whole-output order through the same public path as B-02 confirmations.
++use super::*;
++
++#[actix_web::test]
++async fn reversed_terminal_output_fails_publicly_without_storage_or_replay() -> TestResult {
++    let mut frames = native_frames();
++    frames.last_mut().ok_or("completed")?["response"]["output"]
++        .as_array_mut()
++        .ok_or("output")?
++        .swap(0, 1);
++    eprintln!("B-03 upstream terminal={}", frames.last().ok_or("completed")?);
++    assert_public_failure(frames, "B-03 reversed final output").await
++}

@@ -1,6 +1,8 @@
 //! B-02 traverses the public handler, leased factory and real loopback SSE transport.
 use super::*;
 
+mod responses_order;
+
 fn text_stream(contradictory: bool) -> Vec<Vec<u8>> {
     let item = json!({"id":"msg-b02","type":"message","role":"assistant","status":"completed",
         "content":[{"type":"output_text","text":"answer","annotations":[],"logprobs":[]}]});
@@ -253,7 +255,11 @@ fn chunks(frames: &[Value]) -> Vec<Vec<u8>> {
 }
 
 async fn assert_public_failure(frames: Vec<Value>, label: &str) -> TestResult {
-    let peer = Peer::start_scripted(false, None, Some(chunks(&frames)))?;
+    assert_public_failure_chunks(chunks(&frames), label).await
+}
+
+async fn assert_public_failure_chunks(stream: Vec<Vec<u8>>, label: &str) -> TestResult {
+    let peer = Peer::start_scripted(false, None, Some(stream))?;
     let fixture = done_fixture(&peer)?;
     let app = test::init_service(
         App::new()
@@ -312,6 +318,7 @@ async fn assert_public_failure(frames: Vec<Value>, label: &str) -> TestResult {
         1,
         "{label}"
     );
+    assert_eq!(fixture.events.attempts()?, 1, "{label}");
     Ok(())
 }
 
@@ -479,158 +486,203 @@ async fn valid_native_done_preserves_parts_and_allows_owned_stored_continuation(
                 .ok_or("delta")?;
             frames.remove(delta);
         }
-        let peer = Peer::start_scripted(false, None, Some(chunks(&frames)))?;
-        let fixture = done_fixture(&peer)?;
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(fixture.state.clone()))
-                .configure(gateway_http_actix::configure),
-        )
-        .await;
-        let response = test::call_service(
-            &app,
-            test::TestRequest::post()
-                .uri("/v1/responses")
-                .insert_header(("authorization", format!("Bearer {}", fixture.key)))
-                .set_json(
-                    json!({"model":"p12-test-model","input":"question","stream":true,"store":true}),
-                )
-                .to_request(),
-        )
-        .await;
-        let body = String::from_utf8(test::read_body(response).await.to_vec())?;
-        let terminal = body
-            .lines()
-            .filter_map(|line| line.strip_prefix("data: "))
-            .map(serde_json::from_str::<Value>)
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .find(|value| value["type"] == "response.completed")
-            .ok_or_else(|| format!("{variant}: {body}"))?;
-        assert_eq!(terminal["response"]["output"], expected, "{variant}");
-        assert_eq!(body.matches("event: response.completed").count(), 1);
-        assert!(!body.contains("response.failed"));
-        assert_persisted_outcome(&fixture, false)?;
-        let get = test::call_service(
-            &app,
-            test::TestRequest::get()
-                .uri("/v1/responses/resp-b02")
-                .insert_header(("authorization", format!("Bearer {}", fixture.key)))
-                .to_request(),
-        )
-        .await;
-        assert_eq!(get.status(), StatusCode::OK);
-        let saved: Value = serde_json::from_slice(&test::read_body(get).await)?;
-        assert_eq!(saved["output"], expected);
-        let continuation=test::call_service(&app,test::TestRequest::post().uri("/v1/responses")
-            .insert_header(("authorization",format!("Bearer {}",fixture.key)))
-            .set_json(json!({"model":"p12-test-model","input":"next","previous_response_id":"resp-b02","stream":true,"store":true})).to_request()).await;
-        let continued = String::from_utf8(test::read_body(continuation).await.to_vec())?;
-        assert!(
-            continued.contains("response.completed"),
-            "{variant}: {continued}"
-        );
-        assert_eq!(peer.received.lock().map_err(|_| "received")?.len(), 2);
-        assert_eq!(peer.requests.lock().map_err(|_| "requests")?.len(), 2);
+        assert_public_success(frames, &expected, variant).await?;
     }
+    Ok(())
+}
+
+async fn assert_public_success(frames: Vec<Value>, expected: &Value, label: &str) -> TestResult {
+    let peer = Peer::start_scripted(false, None, Some(chunks(&frames)))?;
+    let fixture = done_fixture(&peer)?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(fixture.state.clone()))
+            .configure(gateway_http_actix::configure),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+            .set_json(
+                json!({"model":"p12-test-model","input":"question","stream":true,"store":true}),
+            )
+            .to_request(),
+    )
+    .await;
+    let body = String::from_utf8(test::read_body(response).await.to_vec())?;
+    let terminal = body
+        .lines()
+        .filter_map(|line| line.strip_prefix("data: "))
+        .map(serde_json::from_str::<Value>)
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .find(|value| value["type"] == "response.completed")
+        .ok_or_else(|| format!("{label}: {body}"))?;
+    assert_eq!(&terminal["response"]["output"], expected, "{label}");
+    assert_eq!(body.matches("event: response.completed").count(), 1);
+    assert!(!body.contains("response.failed"));
+    assert_persisted_outcome(&fixture, false)?;
+    let get = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/v1/responses/resp-b02")
+            .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(get.status(), StatusCode::OK);
+    let saved: Value = serde_json::from_slice(&test::read_body(get).await)?;
+    assert_eq!(&saved["output"], expected);
+    let continuation=test::call_service(&app,test::TestRequest::post().uri("/v1/responses")
+        .insert_header(("authorization",format!("Bearer {}",fixture.key)))
+        .set_json(json!({"model":"p12-test-model","input":"next","previous_response_id":"resp-b02","stream":true,"store":true})).to_request()).await;
+    let continued = String::from_utf8(test::read_body(continuation).await.to_vec())?;
+    assert!(
+        continued.contains("response.completed"),
+        "{label}: {continued}"
+    );
+    let continued_terminal = continued
+        .lines()
+        .filter_map(|line| line.strip_prefix("data: "))
+        .map(serde_json::from_str::<Value>)
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .find(|value| value["type"] == "response.completed")
+        .ok_or("continuation terminal")?;
+    assert_eq!(
+        &continued_terminal["response"]["output"], expected,
+        "{label}"
+    );
+    let received = peer.received.lock().map_err(|_| "received")?;
+    assert_eq!(received.len(), 2);
+    let history = received[1]["input"].as_array().ok_or("history")?;
+    let native = history
+        .iter()
+        .filter(|item| item.get("id").is_some())
+        .cloned()
+        .collect::<Vec<_>>();
+    assert_eq!(Value::Array(native), *expected, "{label}: stored history");
+    assert_eq!(peer.requests.lock().map_err(|_| "requests")?.len(), 2);
     Ok(())
 }
 
 #[actix_web::test]
 async fn done_conflict_never_registers_a_websocket_root_or_stored_response() -> TestResult {
-    use futures_util::{SinkExt, StreamExt};
-    use tokio_tungstenite::tungstenite::{Message, client::IntoClientRequest};
     for invalid in [false, true] {
-        let peer = Peer::start_scripted(false, None, Some(text_stream(invalid)))?;
-        let fixture = done_fixture(&peer)?;
-        let state = fixture.state.clone();
-        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
-        let address = listener.local_addr()?;
-        let server = HttpServer::new(move || {
-            App::new()
-                .app_data(web::Data::new(state.clone()))
-                .configure(gateway_http_actix::configure)
-        })
-        .workers(1)
-        .disable_signals()
-        .listen(listener)?
-        .run();
-        let handle = server.handle();
-        actix_web::rt::spawn(server);
-        let mut request = format!("ws://{address}/v1/responses").into_client_request()?;
-        request
-            .headers_mut()
-            .insert("authorization", format!("Bearer {}", fixture.key).parse()?);
-        let (mut socket, upgrade) = tokio_tungstenite::connect_async(request).await?;
-        assert_eq!(upgrade.status(), 101);
-        socket.send(Message::Text(json!({"type":"response.create","model":"p12-test-model","input":"question","store":true}).to_string().into())).await?;
-        let mut first = Vec::new();
-        loop {
-            let message = tokio::time::timeout(Duration::from_secs(5), socket.next())
-                .await?
-                .ok_or("socket closed")??;
-            if let Message::Text(text) = message {
-                let value: Value = serde_json::from_str(&text)?;
-                let ended = matches!(
-                    value["type"].as_str(),
-                    Some("response.completed" | "response.failed" | "error")
-                );
-                first.push(value);
-                if ended {
-                    break;
-                }
-            }
-        }
-        assert_eq!(
-            first.last().ok_or("terminal")?["type"],
-            if invalid {
-                "response.failed"
-            } else {
-                "response.completed"
-            }
-        );
-        assert_persisted_outcome(&fixture, invalid)?;
-        let get = reqwest::Client::new()
-            .get(format!("http://{address}/v1/responses/resp-b02"))
-            .bearer_auth(&fixture.key)
-            .send()
-            .await?;
-        assert_eq!(get.status().as_u16(), if invalid { 404 } else { 200 });
-        socket.send(Message::Text(json!({"type":"response.create","model":"p12-test-model","previous_response_id":"resp-b02","input":"next","store":true}).to_string().into())).await?;
-        let terminal = loop {
-            let message = tokio::time::timeout(Duration::from_secs(5), socket.next())
-                .await?
-                .ok_or("socket closed")??;
-            if let Message::Text(text) = message {
-                let value: Value = serde_json::from_str(&text)?;
-                if matches!(
-                    value["type"].as_str(),
-                    Some("response.completed" | "response.failed" | "error")
-                ) {
-                    break value;
-                }
-            }
-        };
-        assert_eq!(
-            terminal["type"],
-            if invalid {
-                "error"
-            } else {
-                "response.completed"
-            }
-        );
-        assert_eq!(
-            peer.received.lock().map_err(|_| "received")?.len(),
-            if invalid { 1 } else { 2 }
-        );
-        assert_eq!(
-            peer.requests.lock().map_err(|_| "requests")?.len(),
-            if invalid { 1 } else { 2 }
-        );
-        socket.close(None).await?;
-        handle.stop(false).await;
+        assert_websocket_result(text_stream(invalid), invalid, None).await?;
     }
     Ok(())
+}
+
+async fn assert_websocket_result(
+    stream: Vec<Vec<u8>>,
+    invalid: bool,
+    expected: Option<&Value>,
+) -> TestResult {
+    use futures_util::SinkExt;
+    use tokio_tungstenite::tungstenite::{Message, client::IntoClientRequest};
+    let peer = Peer::start_scripted(false, None, Some(stream))?;
+    let fixture = done_fixture(&peer)?;
+    let state = fixture.state.clone();
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
+    let address = listener.local_addr()?;
+    let server = HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(state.clone()))
+            .configure(gateway_http_actix::configure)
+    })
+    .workers(1)
+    .disable_signals()
+    .listen(listener)?
+    .run();
+    let handle = server.handle();
+    actix_web::rt::spawn(server);
+    let mut request = format!("ws://{address}/v1/responses").into_client_request()?;
+    request
+        .headers_mut()
+        .insert("authorization", format!("Bearer {}", fixture.key).parse()?);
+    let (mut socket, upgrade) = tokio_tungstenite::connect_async(request).await?;
+    assert_eq!(upgrade.status(), 101);
+    socket.send(Message::Text(json!({"type":"response.create","model":"p12-test-model","input":"question","store":true}).to_string().into())).await?;
+    let first = websocket_turn(&mut socket).await?;
+    assert_eq!(
+        first.last().ok_or("terminal")?["type"],
+        if invalid {
+            "response.failed"
+        } else {
+            "response.completed"
+        }
+    );
+    if let Some(expected) = expected.filter(|_| !invalid) {
+        assert_eq!(
+            &first.last().ok_or("terminal")?["response"]["output"],
+            expected
+        );
+    }
+    assert_persisted_outcome(&fixture, invalid)?;
+    let get = reqwest::Client::new()
+        .get(format!("http://{address}/v1/responses/resp-b02"))
+        .bearer_auth(&fixture.key)
+        .send()
+        .await?;
+    assert_eq!(get.status().as_u16(), if invalid { 404 } else { 200 });
+    if let Some(expected) = expected.filter(|_| !invalid) {
+        let saved: Value = serde_json::from_slice(&get.bytes().await?)?;
+        assert_eq!(&saved["output"], expected);
+    }
+    socket.send(Message::Text(json!({"type":"response.create","model":"p12-test-model","previous_response_id":"resp-b02","input":"next","store":true}).to_string().into())).await?;
+    let terminal = websocket_turn(&mut socket).await?.pop().ok_or("terminal")?;
+    assert_eq!(
+        terminal["type"],
+        if invalid {
+            "error"
+        } else {
+            "response.completed"
+        }
+    );
+    if let Some(expected) = expected.filter(|_| !invalid) {
+        assert_eq!(&terminal["response"]["output"], expected);
+    }
+    assert_eq!(
+        peer.received.lock().map_err(|_| "received")?.len(),
+        if invalid { 1 } else { 2 }
+    );
+    assert_eq!(
+        peer.requests.lock().map_err(|_| "requests")?.len(),
+        if invalid { 1 } else { 2 }
+    );
+    socket.close(None).await?;
+    handle.stop(false).await;
+    Ok(())
+}
+
+async fn websocket_turn(
+    socket: &mut tokio_tungstenite::WebSocketStream<
+        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+    >,
+) -> Result<Vec<Value>, Box<dyn Error>> {
+    use futures_util::StreamExt;
+    use tokio_tungstenite::tungstenite::Message;
+    let mut events = Vec::new();
+    loop {
+        let message = tokio::time::timeout(Duration::from_secs(5), socket.next())
+            .await?
+            .ok_or("socket closed")??;
+        if let Message::Text(text) = message {
+            let value: Value = serde_json::from_str(&text)?;
+            let ended = matches!(
+                value["type"].as_str(),
+                Some("response.completed" | "response.failed" | "error")
+            );
+            events.push(value);
+            if ended {
+                break;
+            }
+        }
+    }
+    Ok(events)
 }
 
 #[actix_web::test]
@@ -689,8 +741,12 @@ async fn done_frames_are_read_boundary_invariant_and_rejection_is_permanent() ->
 
 #[actix_web::test]
 async fn bootstrap_done_conflict_records_failed_attempt_and_no_owned_result() -> TestResult {
+    assert_bootstrap_failure(vec![text_stream(true).concat()]).await
+}
+
+async fn assert_bootstrap_failure(stream: Vec<Vec<u8>>) -> TestResult {
     use gateway_core::{AttemptOutcome, RequestOutcome};
-    let peer = Peer::start_scripted(false, None, Some(vec![text_stream(true).concat()]))?;
+    let peer = Peer::start_scripted(false, None, Some(stream))?;
     let fixture = done_fixture(&peer)?;
     let app = test::init_service(
         App::new()
@@ -736,6 +792,7 @@ async fn bootstrap_done_conflict_records_failed_attempt_and_no_owned_result() ->
     assert_eq!(request.outcome, RequestOutcome::Failed);
     assert_eq!(&request.request_id, attempt.request_id());
     assert_eq!(peer.received.lock().map_err(|_| "received")?.len(), 1);
+    assert_eq!(peer.requests.lock().map_err(|_| "requests")?.len(), 1);
     let get = test::call_service(
         &app,
         test::TestRequest::get()
@@ -745,6 +802,20 @@ async fn bootstrap_done_conflict_records_failed_attempt_and_no_owned_result() ->
     )
     .await;
     assert_eq!(get.status(), StatusCode::NOT_FOUND);
+    let continuation = test::call_service(
+        &app,
+        test::TestRequest::post()
+            .uri("/v1/responses")
+            .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+            .set_json(
+                json!({"model":"p12-test-model","input":"next","previous_response_id":"resp-b02"}),
+            )
+            .to_request(),
+    )
+    .await;
+    assert!(!continuation.status().is_success());
+    assert_eq!(peer.received.lock().map_err(|_| "received")?.len(), 1);
+    assert_eq!(peer.requests.lock().map_err(|_| "requests")?.len(), 1);
     Ok(())
 }
 

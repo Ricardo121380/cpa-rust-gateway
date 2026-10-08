@@ -1,0 +1,8 @@
+{
+  "base": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+  "product_source_sha256": "6d0d6c6313ee106804c9329f78cfb3e3d9c628722d69b9ac9dd9faeefde84926",
+  "equals_base_blob": true,
+  "cargo_exit": 101,
+  "observed": "upstream terminal rs-b02,msg-b02; successful downstream completed msg-b02,rs-b02",
+  "receipt_sha256": "b38665d11ff16d74a469ba4094b94320f0779e8eb6eb9d170310661d57882ca9"
+}

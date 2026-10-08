@@ -1,0 +1,10 @@
+{
+  "url": "https://developers.openai.com/api/reference/resources/responses/streaming-events",
+  "retrieved_utc": "2026-10-08T01:58:01.561800+00:00",
+  "version": "live API reference; not a pinned protocol version",
+  "bytes": 1431397,
+  "sha256": "31d2255d0f8764c14e00747feb3b5e2bf3bca38ba66611ec352f2b1d7a767ddf",
+  "snapshot": "output/cpar-b03-20261008/official-streaming-events.html",
+  "used_for": "output_index identifies the added/done output item position; no claim that all event arrival order must equal item order",
+  "local_representation": "Existing Canonical OutputItemStart and native encoder represent ordered item positions. A received explicit position incompatible with that representation is rejected rather than renumbered."
+}

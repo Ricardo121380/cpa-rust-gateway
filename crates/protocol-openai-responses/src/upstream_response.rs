@@ -779,7 +779,9 @@ impl OpenAiResponsesSseDecoder {
         } else {
             state.output_items.len()
         };
-        if state.output_indices.values().any(|known| *known == index) {
+        // Canonical item starts establish the positions the native encoder can preserve.
+        // Reject an incompatible explicit position instead of silently renumbering it.
+        if index != state.output_items.len() {
             return Err(protocol_error());
         }
         if state.output_items.len() >= MAX_OUTPUT_ITEMS
@@ -1466,10 +1468,16 @@ impl OpenAiResponsesSseDecoder {
         // snapshot. Validate it as well as output_item.done; never silently discard it.
         if let Some(output) = response.get("output") {
             let mut ids = BTreeSet::new();
-            for item in output.as_array().ok_or_else(protocol_error)? {
+            for (index, item) in output
+                .as_array()
+                .ok_or_else(protocol_error)?
+                .iter()
+                .enumerate()
+            {
                 let item = object(item)?;
                 let id = identifier(item, "id")?;
                 if !ids.insert(id.to_owned())
+                    || self.streaming_mut()?.output_indices.get(id) != Some(&index)
                     || self.streaming_mut()?.completed_items.get(id)
                         != Some(&wire_item_metadata(item, true)?)
                 {
