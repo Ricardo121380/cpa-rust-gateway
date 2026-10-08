@@ -1,0 +1,55 @@
+{
+  "base_commit": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+  "source_commit": "5e51f5f170a01b813631824b004eb2fcbf190201",
+  "diff_command": [
+    "git",
+    "diff",
+    "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2...5e51f5f170a01b813631824b004eb2fcbf190201"
+  ],
+  "source_files": [
+    "apps/gateway/src/runtime.rs",
+    "apps/gateway/src/runtime/batch_c.rs",
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs",
+    "crates/protocol-openai-responses/src/upstream_response.rs",
+    "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md",
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red-binding.json",
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red-harness.patch",
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red.json",
+    "docs/reports/assets/cpar-b03-20261008/official-source.json",
+    "docs/reports/assets/cpar-b03-20261008/red-binding.json",
+    "docs/reports/assets/cpar-b03-20261008/red-harness.patch",
+    "docs/reports/assets/cpar-b03-20261008/red.json",
+    "docs/reports/assets/cpar-b03-20261008/task-card.md",
+    "docs/reports/cpar-b03-responses-output-order-20261008.md"
+  ],
+  "total": 15,
+  "standards": {
+    "verdict": "PASS",
+    "status": "COMPLETE",
+    "covered": 15,
+    "prior_complete_agent": "/root/b03_final_standards",
+    "prior_verdict": "FAIL: commit titles only; no source/doc hard finding",
+    "final_agent": "/root/b03_standards_title_gap",
+    "method": "Previous complete full-diff review plus independent per-path 15/15 git blob/tree identity, metadata/title correction, advisory/code spot-read and receipt hash verification.",
+    "open_hard_findings": 0,
+    "open_nonblocking_advisories": 1,
+    "advisory": "possible DuplicatedCode: local test SQLite observation helper repetition; main accepts without extra refactoring."
+  },
+  "spec": {
+    "verdict": "PASS",
+    "status": "COMPLETE",
+    "covered": 15,
+    "prior_complete_agent": "/root/b03_final_spec",
+    "prior_verdict": "PASS",
+    "final_agent": "/root/b03_title_closed_spec",
+    "method": "Previous complete full-diff review plus independent per-path 15/15 git blob/tree identity, key source/contract spot-read and actual final Full hash/clean checkout verification.",
+    "open_findings": 0
+  },
+  "partial_probe_not_counted": "/root/b03_title_closed_standards: final blob transfer 0/15, PARTIAL, wrong ref-prefix query; replaced by new bounded final probe",
+  "reviews_read_only": true,
+  "fork_turns": "none",
+  "one_shot": true,
+  "main_owned_modifications_decisions_and_validation": true,
+  "closure_docs_boundary": "Later completed report and receipt files are checked by docs gate; not retrospectively claimed in 15-file source review."
+}

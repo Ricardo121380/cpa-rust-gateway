@@ -1,0 +1,87 @@
+{
+  "reason": "docs/06-development-plan.md:1448 requires Task ID first in commit titles",
+  "operation": "Replace the messages of the two own unpushed local B-03 commits with Task-ID-first titles. First original body was also omitted by commit-tree; preserve its exact text below and original objects under explicit backup refs. Authors, dates, file trees and all workspace state stay unchanged. No rebase/reset/push.",
+  "base_commit": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+  "first": {
+    "old": "4dd28268e277fa5b223c090ebca73a4707b32505",
+    "new": "edb4a93f8689ea3986917ec8befbeec297260889",
+    "old_message": "fix(cpar): reject B-03 Responses terminal output order conflicts\n\nBind native item positions to existing index state and compare every supplied terminal array position. Preserve legal delta and completion interleaving; verify public storage, continuation and WebSocket failure boundaries with local loopback tests.",
+    "new_message": "B-03: reject Responses terminal output order conflicts"
+  },
+  "final": {
+    "old": "4b6959b3adb536f2219051799324679add16aebf",
+    "new": "5e51f5f170a01b813631824b004eb2fcbf190201",
+    "old_message": "fix(cpar): keep B-03 Responses bootstrap protocol failures nonretryable",
+    "new_message": "B-03: keep Responses bootstrap protocol failures nonretryable"
+  },
+  "file_tree": "33726d90fc517fae131819f601013dbd727fe776",
+  "tree_unchanged": true,
+  "worktree_status_unchanged": true,
+  "blob_pairs": {
+    "apps/gateway/src/runtime.rs": {
+      "before": "0d109a8cd99b74f7a2748b3ff734928762d5e7e6",
+      "after": "0d109a8cd99b74f7a2748b3ff734928762d5e7e6"
+    },
+    "apps/gateway/src/runtime/batch_c.rs": {
+      "before": "e928ae860a72919472041ea314de1f50ec6da162",
+      "after": "e928ae860a72919472041ea314de1f50ec6da162"
+    },
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs": {
+      "before": "6bd21aecf04b620976e1f7cbd53d543d8ee422f8",
+      "after": "6bd21aecf04b620976e1f7cbd53d543d8ee422f8"
+    },
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": {
+      "before": "2c6b8521cb5cfcb3052732b536ea8499cc9d6107",
+      "after": "2c6b8521cb5cfcb3052732b536ea8499cc9d6107"
+    },
+    "crates/protocol-openai-responses/src/upstream_response.rs": {
+      "before": "d326a7a572de917fe6d3cd39f487eabb9a2d05d1",
+      "after": "d326a7a572de917fe6d3cd39f487eabb9a2d05d1"
+    },
+    "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md": {
+      "before": "c9a45db1659073312b9acc7c6bf55971e366ea64",
+      "after": "c9a45db1659073312b9acc7c6bf55971e366ea64"
+    },
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red-binding.json": {
+      "before": "7517a5f9369a0a7939cf22898c00c7522c898df1",
+      "after": "7517a5f9369a0a7939cf22898c00c7522c898df1"
+    },
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red-harness.patch": {
+      "before": "ebb498fbc067392074a870d87a737ce601650798",
+      "after": "ebb498fbc067392074a870d87a737ce601650798"
+    },
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red.json": {
+      "before": "6e5df7e0a113ad1dc0828dbf1444e0f2ceb1b86d",
+      "after": "6e5df7e0a113ad1dc0828dbf1444e0f2ceb1b86d"
+    },
+    "docs/reports/assets/cpar-b03-20261008/official-source.json": {
+      "before": "b4e947fca68e665c34fae726d579a9c2c3d24e54",
+      "after": "b4e947fca68e665c34fae726d579a9c2c3d24e54"
+    },
+    "docs/reports/assets/cpar-b03-20261008/red-binding.json": {
+      "before": "13e5191a8e5334db4c1b2a96a8c3865e86b9bb4b",
+      "after": "13e5191a8e5334db4c1b2a96a8c3865e86b9bb4b"
+    },
+    "docs/reports/assets/cpar-b03-20261008/red-harness.patch": {
+      "before": "14ec3d065ad73d9a67f3eb5b78aa832ee9a859bd",
+      "after": "14ec3d065ad73d9a67f3eb5b78aa832ee9a859bd"
+    },
+    "docs/reports/assets/cpar-b03-20261008/red.json": {
+      "before": "9bf31e8894f3ef53e86a8896f812b86dd8b67bd6",
+      "after": "9bf31e8894f3ef53e86a8896f812b86dd8b67bd6"
+    },
+    "docs/reports/assets/cpar-b03-20261008/task-card.md": {
+      "before": "a41bc0362996626b5010928c3df56693179b09dd",
+      "after": "a41bc0362996626b5010928c3df56693179b09dd"
+    },
+    "docs/reports/cpar-b03-responses-output-order-20261008.md": {
+      "before": "5c1770993764b356d676f3d1cb316b8a1f1c49ed",
+      "after": "5c1770993764b356d676f3d1cb316b8a1f1c49ed"
+    }
+  },
+  "backup_refs": {
+    "first": "refs/codex/b03/pre-title-correction/first",
+    "final": "refs/codex/b03/pre-title-correction/final"
+  },
+  "body_change": "First commit explanatory body omitted in replacement message; fully preserved in old_message and original commit. No task requirement or product file removed. Final source tree is identical; independently verified by final Spec probe."
+}

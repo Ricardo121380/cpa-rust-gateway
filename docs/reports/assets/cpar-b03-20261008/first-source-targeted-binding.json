@@ -1,0 +1,105 @@
+{
+  "source_commit": "4dd28268e277fa5b223c090ebca73a4707b32505",
+  "fixed_base": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+  "source_files_sha256": {
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "543b0d891da7af26b01de59fe9f331b8cc14a693e5e9d166228693b21790cf9e",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": "d6b5d60b3a7a403fdf824a2ccf57127889429fab28e598ebce2441351a3fbfd5",
+    "crates/protocol-openai-responses/src/upstream_response.rs": "7b03cafe154419f1642174c5b253a069753e9d073c2cb47a29fa3249c579e25c",
+    "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md": "28db782d78ffc0d0bade777df26aa0c87a8b6c1bb29717c39a0cb022bb99ff5c",
+    "docs/reports/assets/cpar-b03-20261008/official-source.json": "4c5329cd943d715faf1b727ddaf8cdd2909ecbff7fec3a1acdaf77e7214337d4",
+    "docs/reports/assets/cpar-b03-20261008/red-binding.json": "569434d5f8b229dd64d503762fce7e6940b0f2cc4ca747f36b47aee0853d70d0",
+    "docs/reports/assets/cpar-b03-20261008/red-harness.patch": "463409350a1c396e682d9f6101a8ecb7e9cf088fc679dd0fbbf6c1dcda872fb5",
+    "docs/reports/assets/cpar-b03-20261008/red.json": "b38665d11ff16d74a469ba4094b94320f0779e8eb6eb9d170310661d57882ca9",
+    "docs/reports/assets/cpar-b03-20261008/task-card.md": "cca92ecb847c7c7925f942a79a548638b440c34d057ed9cce16f7a3f0fbd5a2b",
+    "docs/reports/cpar-b03-responses-output-order-20261008.md": "3900abddfc2a3473377c345da43e540dea02d2611fe36e926ce11eb95a0e4663"
+  },
+  "review_diff_command": "git diff 9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2...4dd28268e277fa5b223c090ebca73a4707b32505",
+  "changed_files": [
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs",
+    "crates/protocol-openai-responses/src/upstream_response.rs",
+    "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md",
+    "docs/reports/assets/cpar-b03-20261008/official-source.json",
+    "docs/reports/assets/cpar-b03-20261008/red-binding.json",
+    "docs/reports/assets/cpar-b03-20261008/red-harness.patch",
+    "docs/reports/assets/cpar-b03-20261008/red.json",
+    "docs/reports/assets/cpar-b03-20261008/task-card.md",
+    "docs/reports/cpar-b03-responses-output-order-20261008.md"
+  ],
+  "final-targeted": {
+    "receipt_sha256": "1e16ec8afa137b2ba35c206adddd6f8fc5cb8e0248374cfb7d8fbc622232d713",
+    "receipt_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+    "binding": "precommit applicable source hashes equal immutable commit; final clean Full independently covers the complete source",
+    "exit_code": 0,
+    "matched_applicable_files": [
+      "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+      "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs",
+      "crates/protocol-openai-responses/src/upstream_response.rs"
+    ],
+    "counts": [
+      {
+        "passed": 25,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    ]
+  },
+  "clippy-green": {
+    "receipt_sha256": "02a1a11dd7b357ae72e804f13aa4f5356e62f2749d0074e7b9b5ca6b5e2be8bf",
+    "receipt_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+    "binding": "precommit applicable source hashes equal immutable commit; final clean Full independently covers the complete source",
+    "exit_code": 0,
+    "matched_applicable_files": [
+      "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+      "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs",
+      "crates/protocol-openai-responses/src/upstream_response.rs"
+    ],
+    "counts": []
+  },
+  "adjacent": {
+    "receipt_sha256": "df32de8a1b6a1115277bed05a929377a5b9baebf3c2f9d24ddca2ced5e87777d",
+    "receipt_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+    "binding": "precommit applicable source hashes equal immutable commit; final clean Full independently covers the complete source",
+    "exit_code": 0,
+    "matched_applicable_files": [
+      "crates/protocol-openai-responses/src/upstream_response.rs"
+    ],
+    "counts": [
+      {
+        "passed": 184,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "passed": 36,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 1
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "source_commit": "5e51f5f170a01b813631824b004eb2fcbf190201",
+  "command": [
+    "bash",
+    "scripts/check.sh",
+    "full"
+  ],
+  "checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/b03-20261008-validation",
+  "status_before": "",
+  "status_after": "",
+  "source_files_sha256": {
+    "apps/gateway/src/runtime.rs": "8005121ce5c9bbf314ecefcad6c75212f9e892e37d935a174eaddc00cc44cdd0",
+    "apps/gateway/src/runtime/batch_c.rs": "040edd262c23858634286f676c5c8fdeaf4f70408c4a288c7784b886e458af1b",
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "960aa285c228953eb6fbbda57ea5ab20a606cf494819ec4c6dac55cee72147fa",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": "445ef9d5b9a3c5a213af4b4a386fc901bd3f7fc9cbd9d16cd47f94d93e3dc922",
+    "crates/protocol-openai-responses/src/upstream_response.rs": "7b03cafe154419f1642174c5b253a069753e9d073c2cb47a29fa3249c579e25c",
+    "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md": "792b10ff06c9554e93b3b85b30263eb3e7c8013cedcb0039b222d0c17f2b5f04",
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red-binding.json": "3c47f09f25ee721c90b44c769c672f5c1da1a4d981cec6a00d098edb2de3dabd",
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red-harness.patch": "60b164c7a990120165b435182ea8734b8c6da898daef69c8f45a7e4da036aa50",
+    "docs/reports/assets/cpar-b03-20261008/bootstrap-fallback-red.json": "f7f38e7c4bbd93b84e99584c086e33a098ebe5e530283fc655144fab7dd76ba2",
+    "docs/reports/assets/cpar-b03-20261008/official-source.json": "4c5329cd943d715faf1b727ddaf8cdd2909ecbff7fec3a1acdaf77e7214337d4",
+    "docs/reports/assets/cpar-b03-20261008/red-binding.json": "569434d5f8b229dd64d503762fce7e6940b0f2cc4ca747f36b47aee0853d70d0",
+    "docs/reports/assets/cpar-b03-20261008/red-harness.patch": "463409350a1c396e682d9f6101a8ecb7e9cf088fc679dd0fbbf6c1dcda872fb5",
+    "docs/reports/assets/cpar-b03-20261008/red.json": "b38665d11ff16d74a469ba4094b94320f0779e8eb6eb9d170310661d57882ca9",
+    "docs/reports/assets/cpar-b03-20261008/task-card.md": "faf615904d9a73f07b42cd6b1ce6af91c6a7a251191684286af5a2dff7675696",
+    "docs/reports/cpar-b03-responses-output-order-20261008.md": "3c8a373a9b613f9f4cd06403723b337d80567591c2a99d5d26c10d6c0159ec87"
+  },
+  "source_hashes_unchanged": true,
+  "environment": {
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-b03-20261008/full-check.md"
+  },
+  "started_utc": "2026-10-08T02:53:56.521810+00:00",
+  "finished_utc": "2026-10-08T02:57:55.596963+00:00",
+  "elapsed_seconds": 239.075153,
+  "exit_code": 0,
+  "steps": {
+    "passed": 45,
+    "failed": 0
+  },
+  "rust_tests": {
+    "passed": 1477,
+    "failed": 0,
+    "ignored": 12
+  },
+  "output_sha256": "994dcdc6266aaf4b82f70ee15c614fc4c58038177938c7cda3ea257ac330cc66",
+  "report_sha256": "13f252488c958c3a25b46d31f4d3765b7d95067db4379e0463323d381dee5497",
+  "boundary": "Local exact-source clean checkout. No real Provider, remote CI, artifact signing, deployment or production acceptance."
+}

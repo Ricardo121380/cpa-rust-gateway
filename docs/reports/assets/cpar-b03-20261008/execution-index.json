@@ -1,0 +1,534 @@
+{
+  "record": "All actual exits retained, including fixture/build failures and wrong-target corrections; no result relabeling. Final acceptance uses explicitly bound final receipts only.",
+  "receipts": [
+    {
+      "file": "adjacent.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "protocol-openai-responses",
+        "-p",
+        "gateway-router",
+        "--all-features"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": [
+        {
+          "passed": 184,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 36,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "batch-c-green.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "runtime::batch_c",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": [
+        {
+          "passed": 25,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "bootstrap-fallback-build-failure.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": []
+    },
+    {
+      "file": "bootstrap-fallback-configuration-failure.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": [
+        {
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "bootstrap-fallback-credential-build-failure.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": []
+    },
+    {
+      "file": "bootstrap-fallback-green.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "bootstrap-fallback-provider-scope-failure.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": [
+        {
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "bootstrap-fallback-red.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": [
+        {
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "bootstrap-fallback-second-wrong-target-failure.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": [
+        {
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "bootstrap-fallback-wrong-target-failure.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": [
+        {
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "clippy-green.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "protocol-openai-responses",
+        "-p",
+        "gateway",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": []
+    },
+    {
+      "file": "clippy.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "protocol-openai-responses",
+        "-p",
+        "gateway",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": []
+    },
+    {
+      "file": "closure-whitespace-first.json",
+      "exit_code": 2,
+      "command": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "execution_head": null,
+      "counts": null
+    },
+    {
+      "file": "closure-whitespace-green.json",
+      "exit_code": 0,
+      "command": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "execution_head": "5e51f5f170a01b813631824b004eb2fcbf190201",
+      "counts": []
+    },
+    {
+      "file": "docs-gate-first.json",
+      "exit_code": 0,
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "docs"
+      ],
+      "execution_head": "5e51f5f170a01b813631824b004eb2fcbf190201",
+      "counts": []
+    },
+    {
+      "file": "docs-gate.json",
+      "exit_code": 0,
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "docs"
+      ],
+      "execution_head": "5e51f5f170a01b813631824b004eb2fcbf190201",
+      "counts": []
+    },
+    {
+      "file": "final-batch-c.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "runtime::batch_c",
+        "--all-features"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": [
+        {
+          "passed": 26,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "final-clippy.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "protocol-openai-responses",
+        "-p",
+        "gateway",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": []
+    },
+    {
+      "file": "final-targeted.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "runtime::batch_c",
+        "--all-features"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": [
+        {
+          "passed": 25,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "full-before-title-correction-receipt.json",
+      "exit_code": 0,
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "full"
+      ],
+      "execution_head": "4b6959b3adb536f2219051799324679add16aebf",
+      "counts": {
+        "passed": 1477,
+        "failed": 0,
+        "ignored": 12
+      }
+    },
+    {
+      "file": "full-first-source-receipt.json",
+      "exit_code": 0,
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "full"
+      ],
+      "execution_head": "4dd28268e277fa5b223c090ebca73a4707b32505",
+      "counts": {
+        "passed": 1476,
+        "failed": 0,
+        "ignored": 12
+      }
+    },
+    {
+      "file": "full-receipt.json",
+      "exit_code": 0,
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "full"
+      ],
+      "execution_head": "5e51f5f170a01b813631824b004eb2fcbf190201",
+      "counts": {
+        "passed": 1477,
+        "failed": 0,
+        "ignored": 12
+      }
+    },
+    {
+      "file": "green-first.json",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "reversed_terminal_output_fails_publicly_without_storage_or_replay",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "order-green.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "responses_order::",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": [
+        {
+          "passed": 5,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "file": "red.json",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "reversed_terminal_output_fails_publicly_without_storage_or_replay",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "execution_head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+      "counts": [
+        {
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ]
+    }
+  ]
+}

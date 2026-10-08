@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "checked_utc": "2026-10-08T03:16:44.795472+00:00",
+  "baseline": "baseline.json",
+  "original_files": 4315,
+  "original_status_rows": 4336,
+  "missing_files": [],
+  "changed_files": [],
+  "missing_original_status_rows": [],
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "original_AGENTS_excluded_from_commits": true,
+  "scope": "Exact preservation of all original dirty/untracked files and status rows; task-owned new reports/tests are separate."
+}

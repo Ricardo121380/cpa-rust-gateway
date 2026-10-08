@@ -1,0 +1,94 @@
+{
+  "base_commit": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+  "source_commit": "4b6959b3adb536f2219051799324679add16aebf",
+  "receipts": {
+    "final-batch-c.json": {
+      "sha256": "cba205bd07303e9cc2cfba88899a368e5bc5c4fed1bfe3745e539ecfd161b169",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "runtime::batch_c",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "product_files_match": {
+        "apps/gateway/src/runtime.rs": true,
+        "apps/gateway/src/runtime/batch_c.rs": true,
+        "apps/gateway/src/runtime/batch_c/http/responses_done.rs": true,
+        "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": true,
+        "crates/protocol-openai-responses/src/upstream_response.rs": true
+      },
+      "scope": "Exact tested source file hashes; execution workspace retained unrelated user files."
+    },
+    "final-clippy.json": {
+      "sha256": "c2c0fca970860a6ea747d897a3606e5e5c7b16988b90d82963cf8ce6af973114",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "protocol-openai-responses",
+        "-p",
+        "gateway",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "product_files_match": {
+        "apps/gateway/src/runtime.rs": true,
+        "apps/gateway/src/runtime/batch_c.rs": true,
+        "apps/gateway/src/runtime/batch_c/http/responses_done.rs": true,
+        "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": true,
+        "crates/protocol-openai-responses/src/upstream_response.rs": true
+      },
+      "scope": "Exact tested source file hashes; execution workspace retained unrelated user files."
+    },
+    "bootstrap-fallback-green.json": {
+      "sha256": "eb6722c7fb9cff3e6bfa95e51d2a6c95dfd0857302657ed2e2f83965a6ab7ec4",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "bootstrap_order_conflict_cannot_replay_to_a_usable_fallback",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "product_files_match": {
+        "apps/gateway/src/runtime.rs": true,
+        "apps/gateway/src/runtime/batch_c.rs": true,
+        "apps/gateway/src/runtime/batch_c/http/responses_done.rs": true,
+        "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": true,
+        "crates/protocol-openai-responses/src/upstream_response.rs": true
+      },
+      "scope": "Exact tested source file hashes; execution workspace retained unrelated user files."
+    },
+    "adjacent.json": {
+      "sha256": "df32de8a1b6a1115277bed05a929377a5b9baebf3c2f9d24ddca2ced5e87777d",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "protocol-openai-responses",
+        "-p",
+        "gateway-router",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "product_files_match": {
+        "crates/protocol-openai-responses/src/upstream_response.rs": true
+      },
+      "scope": "Exact tested source file hashes; execution workspace retained unrelated user files."
+    }
+  }
+}

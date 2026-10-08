@@ -1,0 +1,47 @@
+{
+  "base_commit": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+  "source_commit": "4dd28268e277fa5b223c090ebca73a4707b32505",
+  "coverage": {
+    "read_files": [
+      "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+      "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs",
+      "crates/protocol-openai-responses/src/upstream_response.rs",
+      "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md",
+      "docs/reports/assets/cpar-b03-20261008/official-source.json",
+      "docs/reports/assets/cpar-b03-20261008/red-binding.json",
+      "docs/reports/assets/cpar-b03-20261008/red-harness.patch",
+      "docs/reports/assets/cpar-b03-20261008/red.json",
+      "docs/reports/assets/cpar-b03-20261008/task-card.md",
+      "docs/reports/cpar-b03-responses-output-order-20261008.md"
+    ],
+    "covered": 10,
+    "total": 10,
+    "method": "Independent one-shot read-only static fixed-base diff reviews. No reviewer tests; main owns execution."
+  },
+  "record_kind": "Main summary of terminal review results; superseded by the required final-source reviews.",
+  "standards": {
+    "agent": "/root/b03_standards_review",
+    "status": "COMPLETE",
+    "verdict": "PASS",
+    "blocking_findings": 0,
+    "advisories": [
+      {
+        "smell": "Duplicated Code",
+        "path": "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+        "lines": [
+          515,
+          546
+        ],
+        "finding": "Repeated parsing and selection of completed SSE output in success helper. Optional local factoring; no acceptance blocker."
+      }
+    ]
+  },
+  "spec": {
+    "agent": "/root/b03_spec_review",
+    "status": "COMPLETE",
+    "verdict": "PARTIAL",
+    "sequence_validation": "PASS",
+    "unresolved_condition": "Bootstrap public error is StreamTruncated while decoder reports UpstreamProtocolError; requirement interpretation needs main closure. Main subsequently found BootstrapTruncated is retryable and added a real fallback RED."
+  },
+  "accepted_for_final_source": false
+}

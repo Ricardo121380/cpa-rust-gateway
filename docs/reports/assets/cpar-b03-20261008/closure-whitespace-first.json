@@ -1,0 +1,12 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "exit_code": 2,
+  "captured_from": "Actual exec tool result during final staged review",
+  "output": "docs/reports/assets/cpar-b03-20261008/issue-27.json:17: new blank line at EOF.\ndocs/reports/assets/cpar-b03-20261008/issue-27.md:27: new blank line at EOF.\ndocs/reports/assets/cpar-b03-20261008/issue-31.json:17: new blank line at EOF.\ndocs/reports/assets/cpar-b03-20261008/issue-31.md:27: new blank line at EOF.\ndocs/reports/assets/cpar-b03-20261008/issue-57.json:17: new blank line at EOF.\ndocs/reports/assets/cpar-b03-20261008/issue-57.md:51: new blank line at EOF.\ndocs/reports/assets/cpar-b03-20261008/issue-9.json:17: new blank line at EOF.\ndocs/reports/assets/cpar-b03-20261008/issue-9.md:382: new blank line at EOF.\n",
+  "reason": "New task-owned issue snapshots had excess EOF blank lines; corrected without changing parsed JSON fields or body strings."
+}

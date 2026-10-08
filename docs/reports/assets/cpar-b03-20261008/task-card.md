@@ -1,6 +1,9 @@
 # Task card: release-readiness B-03 / P2
 
-Status: IN_PROGRESS. Fixed base: `9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2`.
+Status: RESOLVED_LOCAL. Fixed base: `9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2`.
+Final accepted source: `5e51f5f170a01b813631824b004eb2fcbf190201`.
+Exact-source clean Full and separate composed COMPLETE 15/15 Standards/Spec passed.
+One nonblocking testing-helper duplication advisory is retained explicitly.
 This finding is not CPAR-03 or the whole Batch B. B-02 accepted source remains
 `15babae64154f8ff5fa1055f856d11640385633a`.
 

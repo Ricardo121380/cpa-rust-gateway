@@ -1,0 +1,53 @@
+{
+  "scope": "Only task-owned local issue snapshots; no GitHub write or spec body edit. JSON data and body strings unchanged.",
+  "files": {
+    "issue-9.json": {
+      "before_sha256": "601db1fbd0e11388690ecb24133ade9eedc196f20a4c659d16bbf240872f3f84",
+      "after_sha256": "c7e72831f971a8a6c5cb9b2ad68a5a087bd636d2e79ea5ce3f444dbf076c4131",
+      "json_fields_unchanged": true,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    },
+    "issue-9.md": {
+      "before_sha256": "1f5f47f09b29bdaecf3749f8762693b9d805559ee3d7a1e2e45f417f86fc87a4",
+      "after_sha256": "c2370d90b6c372c92f958b003cfc73d4353efaa77029da0405c5f5738a83098c",
+      "json_fields_unchanged": null,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    },
+    "issue-27.json": {
+      "before_sha256": "7633165584e3f773195595d0dda59d8aa0553377c944ac5af1819f3f7974ab14",
+      "after_sha256": "acf0eb0b8180af9db76f0726efcfdf82f5b2a7f6fd4bea43c98fe9302f9a420c",
+      "json_fields_unchanged": true,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    },
+    "issue-27.md": {
+      "before_sha256": "ea70f041dfe8ff91465b0d4a038874f8e0c0d412308170b1efd1f982abc105ed",
+      "after_sha256": "cf7e8fc117c90d6e1ce242e4dfb77d6a51db7683ed826a204dcfefba1b0d60db",
+      "json_fields_unchanged": null,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    },
+    "issue-31.json": {
+      "before_sha256": "11c0e0d186eb66ffa495d78126db476bbcba31a688bcea122aeb60740b0824a9",
+      "after_sha256": "287bee62a5dc81a3cfe52c140a1771dc59d41c4986bec6c11490af1a31bd5159",
+      "json_fields_unchanged": true,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    },
+    "issue-31.md": {
+      "before_sha256": "c347496434fd532a714a22679a95a349622e27d85b693b5596ce14338859951b",
+      "after_sha256": "a24ac865b11664ff0c109018d0ebcdf0de836021775e6dd3110a386dfed435c5",
+      "json_fields_unchanged": null,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    },
+    "issue-57.json": {
+      "before_sha256": "53ab57605bdff9c1767d96837a48791bef024260d4b8b57b32a3d0a80d9af6d5",
+      "after_sha256": "dab07f9b237676bd90e5ce9a1a84434bbde3397753e9ea94ce281d8e9481dc34",
+      "json_fields_unchanged": true,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    },
+    "issue-57.md": {
+      "before_sha256": "c977ab603862de529149a36e3bf417ee4f8ce85155e3296b1f137ca44acbecc6",
+      "after_sha256": "9d2c87311161df99fb6bceeeed285146fc2a388d437ece03f5b987848a4345bb",
+      "json_fields_unchanged": null,
+      "change": "Remove redundant outer EOF blank lines only; JSON body field exact unchanged; markdown snapshot display loses only blank tail."
+    }
+  }
+}

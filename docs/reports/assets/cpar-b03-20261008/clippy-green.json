@@ -1,0 +1,35 @@
+{
+  "command": [
+    "cargo",
+    "clippy",
+    "--locked",
+    "-p",
+    "protocol-openai-responses",
+    "-p",
+    "gateway",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "started_utc": "2026-10-08T01:59:26.402079+00:00",
+  "finished_utc": "2026-10-08T01:59:30.456224+00:00",
+  "head": "9265e6cea83b6172742dc2e4e60b5e5d94c1a1c2",
+  "status": " M AGENTS.md\n M apps/gateway/src/runtime/batch_c/http/responses_done.rs\n M crates/protocol-openai-responses/src/upstream_response.rs\n M docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md\n?? .codegraph/\n?? .playwright-cli/page-2026-09-09T15-11-35-207Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-21-007Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-22-868Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-52-550Z.yml\n?? .playwright-cli/page-2026-09-09T15-15-12-102Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-14-153Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-20-179Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-11-667Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-18-576Z.yml\n?? .playwright-cli/page-2026-09-09T16-02-31-272Z.yml\n?? .playwright-cli/page-2026-09-09T16-03-38-495Z.yml\n?? .playwright-cli/page-2026-09-09T16-04-22-789Z.yml\n?? .playwright-cli/page-2026-09-09T16-06-19-180Z.yml\n?? .playwright-cli/page-2026-09-09T16-07-25-850Z.yml\n?? .playwright-cli/page-2026-09-09T16-08-28-006Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-39-777Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-41-755Z.yml\n?? .playwright-cli/page-2026-09-09T16-10-44-249Z.yml\n?? .playwright-cli/page-2026-09-10T02-36-28-972Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-28-129Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-30-529Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-45-615Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-58-130Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-07-623Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-19-639Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-34-386Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-49-778Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-45-554Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-46-813Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-07-207Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-22-419Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-33-776Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-02-795Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-21-769Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-44-731Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-09-459Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-26-485Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-42-948Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-06-054Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-23-273Z.yml\n?? CONTEXT.md\n?? apps/gateway/src/runtime/batch_c/http/responses_done/\n?? docs/agents/\n?? docs/design/prism-opendesign-v2.html\n?? docs/handoffs/prism-opendesign-v2.md\n?? docs/reports/assets/cpar-b03-20261008/\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-light-final.png\n?? docs/reports/assets/prism-v2-density-20260923/layout.json\n?? docs/reports/cpar-b03-responses-output-order-20261008.md\n?? output/\n?? scripts/.tmp-chatgpt-go-live-test.py\n?? scripts/p12-06-enter-codex-bridge-graph.py\n?? scripts/p12-06-rotate-kiro-credential.py\n?? scripts/test-p12-06-enter-codex-bridge-graph.py\n?? test-results/\n",
+  "environment": {
+    "CARGO_NET_OFFLINE": "true"
+  },
+  "source_files_sha256": {
+    "AGENTS.md": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "543b0d891da7af26b01de59fe9f331b8cc14a693e5e9d166228693b21790cf9e",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": "d6b5d60b3a7a403fdf824a2ccf57127889429fab28e598ebce2441351a3fbfd5",
+    "crates/protocol-openai-responses/src/upstream_response.rs": "7b03cafe154419f1642174c5b253a069753e9d073c2cb47a29fa3249c579e25c",
+    "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md": "28db782d78ffc0d0bade777df26aa0c87a8b6c1bb29717c39a0cb022bb99ff5c"
+  },
+  "exit_code": 0,
+  "counts": [],
+  "output_sha256": "3ad1275f9564335a1aa19cc2389ddeb632d89ddbebb68e85e103f448953af8db",
+  "output": "    Checking gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.98s\n"
+}
