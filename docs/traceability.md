@@ -218,6 +218,12 @@
 |---|---|---|---|---|---|
 | CPAR-C / CPAR-30, 35, 38, 39 | [规格 #9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)；#39、#44、#47、#48；收口 #57 | [ADR-0100](adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md)、[ADR-0101](adr/ADR-0101-grok-native-item-metadata-fidelity.md)、[BC-PROVIDER-015](contracts/BC-PROVIDER-015-grok-official-tool-reasoning-capability.md) | Kiro 错误后丢弃待发事件并封闭事件源；Grok 原生身份、reasoning 分层、phase、citations、严格 SSE 关联及显式 Responses 历史回放；六类实际反例修复；公开 runtime factory 回归 | [2026-10-01 C 收敛报告](reports/cpar-batch-c-convergence-20261001.md)；源码 `2e43ea4b`：专项 12/12、公开工厂 7/7、Full 44/44；[两轴评审](reports/assets/cpar-batch-c-convergence-20261001/review.md)；[新构建条件](reports/assets/cpar-batch-c-convergence-20261001/real-channel-preconditions.md)与[逐组合台账](reports/assets/cpar-batch-c-convergence-20261001/combination-ledger.json)归集 #57 | LOCAL_PASS_FOR_SLICE；C_BLOCKED；Kiro 输出硬上限、Web 多轮以及其余真实/声明扩展组合保持未完成；本轮真实 Provider 调用 0 |
 
+## Release-readiness 本地修复追踪
+
+| Task | 需求来源 | ADR/Contract | 实现或检查 | 验证证据 | 状态 |
+|---|---|---|---|---|---|
+| B-04 / P2（不是 CPAR-04） | [发布前审查 B-04](reports/assets/cpar-release-readiness-20261005/review-results.md)；[用量 #32](https://github.com/Ricardo121380/cpa-rust-gateway/issues/32)；父规格 #9、证据归集 #57 | [ADR-0100](adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md)、[ADR-0103](adr/ADR-0103-failed-bootstrap-usage-attribution.md)；BC-OBS-001/002、BC-MGMT-010/012 | Chat/Responses bootstrap 已校验 Usage → exact failed Attempt → async writer → 独立 Usage source/账本；Messages handoff 保护；`bootstrap_failure_preserves_chat_usage`、`bootstrap_failure_preserves_responses_usage`、`failed_attempt_usage_stays_separate_from_a_usable_fallback` | [本轮报告](reports/cpar-b04-bootstrap-usage-20261008.md)与[Task card](reports/assets/cpar-b04-20261008/task-card.md)；固定 base `08812db2`，实现 `42fae997`，独立评审登记修复与隔离 Full 待收口 | IN_PROGRESS；仅本地 B-04；不关闭 #32/Batch B/#57，不授予发布 |
+
 ## 后续 Phase 映射
 
 CPAR C 执行证据与 ARM64 候选：#9、#39–#50、#57 对应
