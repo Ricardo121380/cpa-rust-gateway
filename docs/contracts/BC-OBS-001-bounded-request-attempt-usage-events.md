@@ -11,8 +11,9 @@
 
 `gateway-core::GatewayEventSink` offers nonblocking `try_emit` and bounded asynchronous `emit_confirmed`. Production required paths use confirmation; queue-only test embeddings and explicit Noop embeddings are not durability evidence. `gateway-observability::BoundedEventQueue`
 implements it with finite Required and Diagnostic Tokio channels. `gateway-http-actix` emits
-Request and final Usage observations; `gateway-router::AttemptOrchestrator` can emit one terminal
-Attempt observation for every driver invocation through `start_with_event_sink`.
+Request and final stream Usage observations; `gateway-router::AttemptOrchestrator` can emit one terminal
+Attempt observation for every driver invocation through `start_with_event_sink`. Failed bootstrap
+Usage is confirmed there after its exact failed Attempt, before any legal fallback (B-04).
 
 The event contract carries structural metadata only. It is not a Store/SQLite API, exporter,
 tracing span, HTTP response, Provider decoder, or source of public model data. P4-07 owns durable
@@ -27,15 +28,15 @@ SQLite batch writing; P4-08/P4-09 own exporters, logging, and body-sampling poli
 | Request metadata | Retain Request ID, Client Key ID, optional Access Group, protocol, requested/public model, optional Alias, stream mode, and optional observed start time (absent in legacy rows). Exclude Body, messages, Tool data, headers, presented Key, and raw extensions. |
 | Attempt cardinality | Emit exactly one terminal record for each actual Attempt driver call. No selection-only, no-binding, or pre-driver budget failure creates a fabricated Attempt. |
 | Attempt metadata | Retain deterministic Attempt ID/sequence, safe Route/Candidate/Credential/Endpoint/Upstream identities, internal upstream model, injected-clock timestamps, safe outcome, and retry decision. No URL, Authorization, Credential bytes, raw status body, retry-after value, or free-form diagnostic is retained. |
-| Usage timing | Validate lifecycle, then confirm the final canonical Usage snapshot before sending it downstream; new routed events include the exact confirmed request-local Attempt ID and Response ID; retain standardized token totals and drop raw Usage extensions. JSON and SSE use the same observation point. |
+| Usage timing | Validate lifecycle, then confirm the final canonical Usage snapshot before sending it downstream; new routed events include the exact confirmed request-local Attempt ID and Response ID; retain standardized token totals and drop raw Usage extensions. JSON and SSE use the same observer point after handoff. Before handoff, the driver exposes only validated buffered Usage and the router confirms it after the failed Attempt. |
 | Queue isolation | Required Request/Attempt/Usage records use a distinct bounded queue from low-priority diagnostics. Diagnostics cannot consume Required capacity. |
 | Queue pressure | A full Diagnostic queue may return `DiagnosticDropped`. A full Required queue returns `RequiredQueueFull` and increments an inspectable counter; it must not block, silently wait, create an unbounded fallback, or invoke/retry an upstream when confirmation failed. Return safe `RecordingUnavailable` (HTTP503 before headers); after headers end as a failure, never manufacture a successful terminal. |
 | Privacy | `Debug` redacts model values that are not public transport output; events contain no raw client content or Secret. Serialization is for access-controlled future persistence, not a public endpoint. |
 
 ## Invariants
 
-- One Request can have zero or more Attempt events and at most one final Usage event from this P3
-  Responses path.
+- One Request can have zero or more actual Attempt events, each with at most one final known Usage
+  snapshot. A failed bootstrap and a later legal success have separate explicit Attempt ownership.
 - An Alias Request event records the original Alias and stable public model; it never changes the
   client-visible P3-07 response mapping.
 - `AttemptId` is deterministically scoped by its Request ID and one-based Attempt sequence.
@@ -52,7 +53,7 @@ SQLite batch writing; P4-08/P4-09 own exporters, logging, and body-sampling poli
 | Required queue full | `RequiredQueueFull`; counter increments; required confirmation fails closed. |
 | Diagnostic queue full | `DiagnosticDropped`; counter increments; execution continues. |
 | Receiver dropped | `SinkClosed`/`PersistenceUnavailable`; required confirmation fails closed. |
-| Attempt driver failure | Attempt record contains only the stable safe `GatewayError` and retry decision; a recording failure prevents output or another retry; the admitted Request remains queryable even if no reliable Attempt terminal survives. |
+| Attempt driver failure | Attempt record contains only the stable safe `GatewayError` and retry decision; validated buffered Usage, if any, is confirmed on that exact failed Attempt. Either recording failure prevents output or another retry; the admitted Request remains queryable even if no reliable Attempt terminal survives. |
 
 ## Corresponding tests
 
@@ -64,6 +65,16 @@ SQLite batch writing; P4-08/P4-09 own exporters, logging, and body-sampling poli
   driver invocation across a fallback, including correlation, safe outcome, and retry decision.
 - `gateway-http-actix::tests` verifies JSON Request/Usage correlation, Snapshot Access Group and
   Alias/public-model mapping, and that a saturated required queue rejects admission or prevents a successful streaming terminal.
+- `bootstrap_failure_preserves_chat_usage`
+- `bootstrap_failure_preserves_responses_usage`
+- `messages_hands_off_before_a_later_bad_frame_and_keeps_known_input_usage`
+- `missing_or_invalid_bootstrap_usage_never_becomes_a_record`
+- `valid_bootstrap_snapshots_merge_without_addition_before_failure`
+- `failed_attempt_usage_stays_separate_from_a_usable_fallback`
+- `failed_usage_recording_stops_a_usable_retry_after_attempt_confirmation`
+
+The B-04 tests cover the actual pre-handoff read, confirmed async writer, billing worker and
+protected read-back. See [ADR-0103](../adr/ADR-0103-failed-bootstrap-usage-attribution.md).
 
 ## M1 confirmation and crash boundary
 

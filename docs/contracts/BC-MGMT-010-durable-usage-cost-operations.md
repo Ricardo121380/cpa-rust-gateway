@@ -18,10 +18,12 @@ credentials, Provider state or control-plane secrets.
 
 1. A Request event supplies the public model, inbound protocol, Client Key and optional Access
    Group.
-2. The highest numbered Attempt for that Request supplies Provider, Channel, Account and its
-   non-negative end timestamp. It must be a successful Attempt.
-3. Exactly one final Usage event contributes to the group. Missing lineage, conflicting event
-   identities, a failed selected Attempt or counter overflow fails closed.
+2. An explicit Usage AttemptId selects that exact Attempt, including a failed bootstrap, for
+   Provider, Channel, Account and non-negative end timestamp. Legacy Usage without AttemptId
+   retains the highest-numbered successful-Attempt requirement.
+3. Exactly one final known Usage snapshot per actual Attempt contributes to its group. Missing
+   lineage, conflicting event identities or counter overflow fails closed. Unknown legacy and
+   conflicting explicit ownership cannot be reassigned; existing partial reads report exclusions.
 4. Groups are sorted by `(provider_id, channel_id, account_id, public_model, protocol,
    client_key_id, access_group_id)` and use default-50/max-100 keyset pagination.
 
@@ -29,7 +31,7 @@ credentials, Provider state or control-plane secrets.
 
 Supported filters are `from_ms`, `to_ms`, `provider_id`, `channel_id`, `account_id`, `model`,
 `client_key_id`, `access_group_id`, `protocol`, `limit` and opaque `cursor`. Time bounds are
-inclusive and apply to the selected successful Attempt end time. Unknown/repeated/malformed
+inclusive and apply to the selected Attempt end time. Unknown/repeated/malformed
 parameters, reversed/negative windows, zero/oversized limits and malformed cursors return a safe
 `400` response.
 
@@ -40,6 +42,12 @@ the group supplied the field, `partial` when some did, and `unknown` when none d
 checked addition. Cost is always `{cost_microunits: null, cost_confidence: "unpriced"}` until a
 versioned price catalog and billing ledger are added; token counts are never converted to money
 by inference.
+
+`request_count` counts distinct Requests in each group; `usage_observations` counts separate
+Attempt snapshots. Accumulating different Attempts does not add successive cumulative snapshots
+of one Attempt. The six counters retain the existing provenance/confidence rules.
+This B-04 amendment follows [ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md)
+and [ADR-0103](../adr/ADR-0103-failed-bootstrap-usage-attribution.md).
 
 ## Invariants and verification
 
@@ -54,3 +62,8 @@ by inference.
 
 Live Health/Quota/Circuit remains the existing P10 runtime availability contract. Provider-owned
 native account pools, refresh/reauth and price/billing ledgers remain P13-05/P13-06/P13-12 work.
+
+## Corresponding tests
+
+- `failed_attempt_usage_stays_separate_from_a_usable_fallback`
+- `explicit_attempt_usage_counts_one_request_and_two_observations`

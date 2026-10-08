@@ -393,6 +393,7 @@ mod tests {
                 ConfigRevision::try_new(7)?,
             )),
             execution_egress: Mutex::new(None),
+            failed_usage: Mutex::new(None),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             kiro_profiles: Arc::new(Mutex::new(BTreeMap::new())),
             generation_active: None,

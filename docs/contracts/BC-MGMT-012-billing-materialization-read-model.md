@@ -11,8 +11,10 @@
 
 1. A materializer consumes only gateway-owned Request/Attempt/Usage events and never sends a
    Provider request or reads a credential Secret.
-2. Each new Usage source event is resolved against its complete request lineage.  The highest
-   numbered Attempt must be successful; missing/conflicting lineage fails closed.
+2. Each new Usage source event is resolved against its complete request lineage. An explicit
+   AttemptId selects that exact Attempt, including a failed bootstrap; only legacy Usage without
+   AttemptId uses the highest-numbered successful Attempt. Distinct explicit Attempts retain
+   separate ledger sources. Missing/conflicting or ambiguously mixed lineage fails closed.
 3. A checkpoint is monotonic and advances only after the complete bounded batch is persisted.
    Ledger source-event idempotence makes crash/retry replay safe.
 4. Catalog selection is Provider/Channel/public-Model scoped and uses the latest catalog effective
@@ -47,3 +49,10 @@ remain the existing management 404/deny behavior.
 - `crates/gateway-http-actix/src/management_resources.rs`
 - `docs/openapi/management-v1.json` and generated management client
 - [`P13-05B report`](../reports/p13-05b-billing-materialization-read-model.md)
+- [B-04 ownership decision](../adr/ADR-0103-failed-bootstrap-usage-attribution.md)
+
+## Corresponding tests
+
+- `bootstrap_failure_preserves_chat_usage`
+- `bootstrap_failure_preserves_responses_usage`
+- `failed_attempt_usage_stays_separate_from_a_usable_fallback`

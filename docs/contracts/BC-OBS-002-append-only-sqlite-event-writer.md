@@ -33,13 +33,19 @@ wait whose expiry is an explicit deployment failure rather than a fabricated flu
 | Request | `request` / `RequestId` | Same `RequestId` | New observed start time; legacy None |
 | RequestFinished | `request_finished` / `RequestId` | Same `RequestId` | Observed finish time |
 | Attempt | `attempt` / deterministic `AttemptId` | Source `RequestId` | Terminal `ended_at_ms` |
-| Usage | `usage` / request-scoped SHA256 ID; legacy ResponseId preserved on replay | Source RequestId, optional explicit AttemptId, ResponseId | None |
+| Usage | `usage` / `usage-attempt:<SHA256(AttemptId)>` for explicit lineage; legacy request-scoped SHA256 or ResponseId preserved on exact replay | Source RequestId, optional explicit AttemptId, ResponseId | None |
 | Health | `health` / `HealthEventId` | None | `occurred_at_ms` |
 
 `gateway_event_log` is append-only. Its `(event_type, event_id)` unique key makes an identical
 replay a no-op. A matching key with different payload fails the full transaction; it never updates
 or replaces the prior durable event. On read, the payload is decoded into `GatewayEvent` and its
 derived type/id/correlation/time must match the indexed columns or the row fails closed.
+
+For B-04, separate explicit Attempts of one Request may each persist a final snapshot, even
+with the same upstream ResponseId. A changed payload for one Attempt conflicts. A missing legacy
+AttemptId remains missing; replay cannot enrich or arbitrarily assign ownership. Old readers
+reject new Attempt-scoped IDs, so binary-only rollback is unsafe after new events.
+See [ADR-0103](../adr/ADR-0103-failed-bootstrap-usage-attribution.md).
 
 ## Writer timeline and backpressure
 
@@ -111,6 +117,9 @@ Each such event increments `diagnostics_not_persisted`; it is not included in
 - `gateway-store::event_store::tests::writer_quarantines_conflicting_replay_and_commits_healthy_batch_events`
 - `gateway-store::event_store::tests::writer_quarantines_poisoned_singleton_batch_and_keeps_consuming`
 - `gateway-store::event_store::tests::transient_failure_during_quarantine_fallback_preserves_healthy_events`
+- `failed_attempt_usage_stays_separate_from_a_usable_fallback`
+- `explicit_attempt_usage_counts_one_request_and_two_observations`
+- `legacy_request_usage_identity_keeps_exact_ownership_without_enrichment`
 - `cargo test --locked -p gateway-core -p gateway-observability -p gateway-store`
 - `cargo clippy --locked -p gateway-core -p gateway-observability -p gateway-store --all-targets --all-features -- -D warnings`
 - `./scripts/check.sh full`

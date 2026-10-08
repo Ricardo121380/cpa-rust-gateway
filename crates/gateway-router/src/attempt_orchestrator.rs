@@ -234,6 +234,15 @@ pub trait AttemptDriver: Send + Sync {
         None
     }
 
+    /// Takes validated Usage retained when the latest invocation failed before output handoff.
+    ///
+    /// The router confirms this snapshot after its exact failed Attempt and before retrying.
+    /// The driver must clear it when taken and before starting another invocation. The response
+    /// identity must come from the validated source; no missing identity or counter is invented.
+    fn take_failed_usage(&self) -> Option<(gateway_core::ResponseId, gateway_core::Usage)> {
+        None
+    }
+
     /// Returns the wall-clock ceiling applied to one in-flight [`Self::start`] invocation.
     ///
     /// The default keeps the historical bound: one Attempt may run only as long as the remaining
@@ -1443,10 +1452,22 @@ impl AttemptOrchestrator {
             Some(identity) => event.with_execution_identity(identity),
             None => event,
         };
+        let failed = matches!(event.outcome(), AttemptOutcome::Failed(_));
+        let attempt_id = event.attempt_id().clone();
         event_sink
             .emit_confirmed(GatewayEvent::Attempt(event))
             .await
-            .into_result()
+            .into_result()?;
+        if failed && let Some((response_id, usage)) = driver.take_failed_usage() {
+            event_sink
+                .emit_confirmed(GatewayEvent::Usage(
+                    gateway_core::UsageEvent::from_usage(request_id.clone(), response_id, &usage)
+                        .with_attempt_id(attempt_id),
+                ))
+                .await
+                .into_result()?;
+        }
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -2481,6 +2502,88 @@ mod tests {
         let pool = pools
             .pool(&EndpointId::try_new("endpoint-a")?)
             .ok_or("missing pool")?;
+        assert_eq!(
+            pool.active_lease_count(&CredentialId::try_new("credential-a")?),
+            Some(0)
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn failed_usage_recording_stops_a_usable_retry_after_attempt_confirmation() -> TestResult
+    {
+        struct UsageDriver(ScriptedDriver);
+        impl AttemptDriver for UsageDriver {
+            type Output = String;
+            fn start<'a>(
+                &'a self,
+                candidate: &'a SnapshotRouteCandidate,
+                credential: &'a gateway_upstream::CredentialLease,
+                timeout: Duration,
+            ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>> {
+                self.0.start(candidate, credential, timeout)
+            }
+            fn take_failed_usage(&self) -> Option<(gateway_core::ResponseId, gateway_core::Usage)> {
+                gateway_core::ResponseId::try_new("validated-response")
+                    .ok()
+                    .map(|id| {
+                        (
+                            id,
+                            gateway_core::Usage {
+                                input_tokens: Some(20),
+                                ..Default::default()
+                            },
+                        )
+                    })
+            }
+        }
+        #[derive(Default)]
+        struct RejectUsageSink(RecordingEventSink);
+        impl GatewayEventSink for RejectUsageSink {
+            fn try_emit(&self, event: GatewayEvent) -> EventEmission {
+                if matches!(event, GatewayEvent::Usage(_)) {
+                    EventEmission::PersistenceUnavailable
+                } else {
+                    self.0.try_emit(event)
+                }
+            }
+        }
+        let (orchestrator, route_id, _, _, pools) = orchestrator(
+            vec![("candidate-a", "endpoint-a"), ("candidate-b", "endpoint-b")],
+            vec![
+                ("endpoint-a", vec!["credential-a"]),
+                ("endpoint-b", vec!["credential-b"]),
+            ],
+            2,
+            100,
+        )?;
+        let driver = UsageDriver(ScriptedDriver::new(vec![
+            DriverStep::Failure(AttemptFailure::BootstrapTruncated),
+            DriverStep::Success("usable-fallback".to_owned()),
+        ]));
+        let sink = RejectUsageSink::default();
+        let error = expected_error(
+            orchestrator
+                .start_with_event_sink(
+                    &RequestId::try_new("failed-usage-recording")?,
+                    &route_id,
+                    &driver,
+                    &TestRetryGate::default(),
+                    &sink,
+                )
+                .await,
+            "usage recording failure must stop retry",
+        )?;
+        assert_eq!(error.code(), GatewayErrorCode::RecordingUnavailable);
+        assert_eq!(driver.0.attempts()?.len(), 1);
+        let events = sink.0.events()?;
+        assert_eq!(events.len(), 1);
+        assert!(
+            matches!(&events[0], GatewayEvent::Attempt(attempt) if matches!(attempt.outcome(), AttemptOutcome::Failed(_)))
+        );
+        let pool = pools
+            .pool(&EndpointId::try_new("endpoint-a")?)
+            .ok_or("pool")?;
         assert_eq!(
             pool.active_lease_count(&CredentialId::try_new("credential-a")?),
             Some(0)

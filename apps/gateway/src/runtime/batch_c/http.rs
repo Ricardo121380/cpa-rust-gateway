@@ -3,6 +3,7 @@ use super::*;
 use actix_web::{HttpRequest, HttpResponse, HttpServer, dev::ServerHandle};
 use gateway_upstream::EgressDnsError;
 use std::net::{IpAddr, Ipv4Addr, TcpListener};
+pub(in crate::runtime) mod bootstrap_usage;
 mod responses_done;
 mod responses_history;
 
@@ -159,6 +160,12 @@ async fn reply(
                 }
             })
             .collect::<Vec<_>>();
+        // A small buffered body needs no timing delay. Tests verify the actual client reads.
+        if let [chunk] = chunks.as_slice() {
+            return Ok(HttpResponse::Ok()
+                .content_type("text/event-stream")
+                .body(chunk.clone()));
+        }
         let source = futures_util::stream::unfold(chunks.into_iter(), |mut chunks| async {
             let chunk = chunks.next()?;
             tokio::time::sleep(Duration::from_millis(20)).await;

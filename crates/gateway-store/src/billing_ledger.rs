@@ -88,7 +88,10 @@ const QUARANTINED_FAILURE: &str = "f.reason='invalid_lineage' AND EXISTS (
     SELECT 1 FROM gateway_event_log original JOIN gateway_event_log other
     ON other.request_id=original.request_id AND other.event_type='usage'
     WHERE original.event_ordinal=f.event_ordinal AND original.event_type='usage'
-    AND other.payload_json<>original.payload_json)";
+    AND other.payload_json<>original.payload_json
+    AND (json_extract(original.payload_json,'$.usage.attempt_id') IS NULL
+         OR json_extract(other.payload_json,'$.usage.attempt_id') IS NULL
+         OR json_extract(original.payload_json,'$.usage.attempt_id')=json_extract(other.payload_json,'$.usage.attempt_id')))";
 
 /// Durable high-water mark for one billing materializer.
 #[derive(Clone, Debug, Eq, PartialEq)]

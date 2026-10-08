@@ -42,13 +42,33 @@ struct Fixture {
     directory: TemporaryDirectory,
 }
 #[derive(Default)]
-struct Events(Mutex<Vec<GatewayEvent>>);
+struct Events(
+    Mutex<Vec<GatewayEvent>>,
+    Mutex<Option<Arc<dyn GatewayEventSink>>>,
+);
 impl GatewayEventSink for Events {
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
+        let sink = self.1.lock().ok().and_then(|sink| sink.clone());
+        let result = sink.map_or(EventEmission::Enqueued, |sink| sink.try_emit(event.clone()));
         if let Ok(mut events) = self.0.lock() {
             events.push(event);
         }
-        EventEmission::Enqueued
+        result
+    }
+    fn emit_confirmed(&self, event: GatewayEvent) -> gateway_core::EventEmissionFuture<'_> {
+        Box::pin(async move {
+            let sink = self.1.lock().ok().and_then(|sink| sink.clone());
+            let result = match sink {
+                Some(sink) => sink.emit_confirmed(event.clone()).await,
+                None => EventEmission::Enqueued,
+            };
+            if result.into_result().is_ok()
+                && let Ok(mut events) = self.0.lock()
+            {
+                events.push(event);
+            }
+            result
+        })
     }
 }
 impl Events {

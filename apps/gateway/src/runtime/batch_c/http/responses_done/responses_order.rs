@@ -1,18 +1,16 @@
 //! B-03 checks whole-output order through the same public path as B-02 confirmations.
 use super::*;
 
-fn fallback_fixture(first: &Arc<Peer>, fallback: &Arc<Peer>) -> Result<Fixture, Box<dyn Error>> {
+pub(in crate::runtime::batch_c::http) fn fallback_fixture(
+    first: &Arc<Peer>,
+    fallback: &Arc<Peer>,
+    channel: Channel,
+) -> Result<Fixture, Box<dyn Error>> {
     let fallback_id = EndpointId::try_new("b03-fallback-endpoint")?;
     fixture_with_configuration(
-        Channel {
-            adapter: "openai-compatible.responses",
-            format: "openai/responses",
-            base: "https://gateway.example.test/v1",
-            path: "/responses",
-            model: "upstream-c",
-        },
+        channel,
         b"synthetic-key",
-        true,
+        channel.format == "openai/responses",
         |configuration| {
             configuration.model_routes[0].max_attempts = 2;
             let mut upstream = configuration.upstreams[0].clone();
@@ -84,7 +82,17 @@ async fn bootstrap_order_conflict_cannot_replay_to_a_usable_fallback() -> TestRe
             }),
         )?;
         let fallback = Peer::start_scripted(false, None, Some(chunks(&native_frames())))?;
-        let fixture = fallback_fixture(&first, &fallback)?;
+        let fixture = fallback_fixture(
+            &first,
+            &fallback,
+            Channel {
+                adapter: "openai-compatible.responses",
+                format: "openai/responses",
+                base: "https://gateway.example.test/v1",
+                path: "/responses",
+                model: "upstream-c",
+            },
+        )?;
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(fixture.state.clone()))

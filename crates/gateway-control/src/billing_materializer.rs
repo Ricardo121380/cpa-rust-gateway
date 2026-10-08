@@ -239,14 +239,10 @@ fn materialize_row(
     Ok(())
 }
 
-fn compile_usage_entry(
-    stored: &StoredGatewayEvent,
+fn resolve_usage_lineage(
     usage: &UsageEvent,
     lineage: &[StoredGatewayEvent],
-    catalogs: &[BillingPriceCatalog],
-    retention_ms: Option<u64>,
-    now_ms: u64,
-) -> Result<BillingLedgerEntryInput, BillingMaterializationError> {
+) -> Result<(RequestEvent, AttemptEvent), BillingMaterializationError> {
     let mut request: Option<RequestEvent> = None;
     let mut attempts = BTreeMap::<u64, AttemptEvent>::new();
     let mut matching_usage = false;
@@ -274,10 +270,17 @@ fn compile_usage_entry(
                 }
             }
             GatewayEvent::Usage(value) if value == usage => matching_usage = true,
-            // Historical clients sometimes reused a request ID for different responses.
-            // A request-only join cannot assign their usage to one successful attempt.
-            GatewayEvent::Usage(_) => return Err(BillingMaterializationError::InvalidLineage),
-            GatewayEvent::RequestFinished(_)
+            // Different explicit Attempts are separate observations. Unknown or conflicting
+            // ownership cannot be resolved by choosing the latest successful Attempt.
+            GatewayEvent::Usage(other)
+                if usage.attempt_id().is_none()
+                    || other.attempt_id().is_none()
+                    || usage.attempt_id() == other.attempt_id() =>
+            {
+                return Err(BillingMaterializationError::InvalidLineage);
+            }
+            GatewayEvent::Usage(_)
+            | GatewayEvent::RequestFinished(_)
             | GatewayEvent::Health(_)
             | GatewayEvent::Diagnostic(_) => {}
         }
@@ -299,6 +302,18 @@ fn compile_usage_entry(
     {
         return Err(BillingMaterializationError::InvalidLineage);
     }
+    Ok((request, attempt))
+}
+
+fn compile_usage_entry(
+    stored: &StoredGatewayEvent,
+    usage: &UsageEvent,
+    lineage: &[StoredGatewayEvent],
+    catalogs: &[BillingPriceCatalog],
+    retention_ms: Option<u64>,
+    now_ms: u64,
+) -> Result<BillingLedgerEntryInput, BillingMaterializationError> {
+    let (request, attempt) = resolve_usage_lineage(usage, lineage)?;
     let occurred_at_ms = u64::try_from(attempt.ended_at_ms())
         .map_err(|_| BillingMaterializationError::InvalidTimestamp)?;
     let retention_expires_at_ms = match retention_ms {

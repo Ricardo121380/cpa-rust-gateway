@@ -2,6 +2,7 @@
 use super::*;
 
 mod responses_order;
+pub(super) use responses_order::fallback_fixture;
 
 fn text_stream(contradictory: bool) -> Vec<Vec<u8>> {
     let item = json!({"id":"msg-b02","type":"message","role":"assistant","status":"completed",

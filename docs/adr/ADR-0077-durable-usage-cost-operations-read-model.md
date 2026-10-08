@@ -9,6 +9,11 @@
 
 ## Context
 
+[ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md) and the B-04 amendment
+[ADR-0103](ADR-0103-failed-bootstrap-usage-attribution.md) supersede highest-successful-only
+selection for explicit Usage AttemptId. Legacy Usage without identity keeps that rule; new
+explicit failed and successful Attempts contribute separately without changing unknown facts.
+
 The gateway already emits bounded Request, Attempt and final Usage events into the append-only
 event log, and P10 already exposes runtime Health/Quota availability and audit resources. The
 CPAMP-like management surface needs a typed usage view without reading request bodies, replaying

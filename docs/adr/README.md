@@ -128,3 +128,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0099 Account workflow receipts, evidence scopes, and runtime retirement](ADR-0099-account-workflow-evidence-and-retirement.md) — `CPAR-01–17 / spec #9 A`（Accepted；本地合成 HTTP、EgoLite 与完整 Gate 证据见 A 批次报告；不代表真实 Provider 或生产验收）
 - [ADR-0101 Grok native Responses item and part metadata fidelity](ADR-0101-grok-native-item-metadata-fidelity.md) — `CPAR-C / #44、#47、#48、#57`（Accepted；原生身份、分层 reasoning、phase、citations 与显式历史回放；真实组合保持独立验收）
 - [ADR-0102 Actual Attempt identity and effective capability evidence](ADR-0102-attempt-execution-identity-and-capability-evidence.md) — `CPAR-C / #9、#39–#50、#57`（Accepted；schema 34 原子证据、实际租约/配置/出口及 scoped capability 声明；候选、部署、真实验收分别记录）
+- [ADR-0103 Validated bootstrap Usage on its exact failed Attempt](ADR-0103-failed-bootstrap-usage-attribution.md) — `release-readiness B-04 / #32、#57`（Accepted；失败启动用量、Attempt 级幂等身份与一致读模型；本地证据不授予发布验收）

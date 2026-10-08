@@ -61,12 +61,13 @@ use gateway_core::{
     CanonicalRequest, ClientKeyId, CredentialId, EgressPolicyId, EndpointId, ErrorScope,
     EventEmission, GatewayError, GatewayErrorCode, GatewayEvent, GatewayEventSink, MessageContent,
     MessageRole, NoopGatewayEventSink, ProviderId, RawExtensions, RawJson, RequestContext,
-    RequestId, RouteId, TextContent, TransparentRetryGate, TransparentRetryGateFuture, Usage,
+    RequestId, ResponseId, RouteId, TextContent, TransparentRetryGate, TransparentRetryGateFuture,
+    Usage,
 };
 #[cfg(test)]
 use gateway_core::{
-    CanonicalResponse, MessageEnd, MessageStart, ResponseEnd, ResponseId, ResponseStart,
-    StreamError, TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart, UsageDelta,
+    CanonicalResponse, MessageEnd, MessageStart, ResponseEnd, ResponseStart, StreamError,
+    TextDelta, ToolCallArgumentsDelta, ToolCallEnd, ToolCallStart, UsageDelta,
 };
 use gateway_http_actix::{
     ResponsesHttpState, SystemResponsesMetadataFactory, default_stream_capacity,
@@ -1521,6 +1522,7 @@ impl P12RoutedResponsesExecutor {
         let driver = EndpointAttemptDriver {
             execution_configuration: Some((self.snapshot_version.clone(), self.config_revision)),
             execution_egress: std::sync::Mutex::new(None),
+            failed_usage: std::sync::Mutex::new(None),
             runtime_quota: Arc::clone(&self.runtime_quota),
             kiro_profiles: Arc::clone(&self.kiro_profiles),
             generation_active: self.generation_active.clone(),
@@ -1971,6 +1973,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             let driver = EndpointAttemptDriver {
                 execution_configuration: Some((snapshot_version.clone(), self.config_revision)),
                 execution_egress: std::sync::Mutex::new(None),
+                failed_usage: std::sync::Mutex::new(None),
                 runtime_quota: Arc::clone(&self.runtime_quota),
                 kiro_profiles: Arc::clone(&self.kiro_profiles),
                 generation_active: self.generation_active.clone(),
@@ -4395,6 +4398,7 @@ struct CompatibleEgressSelection {
 struct EndpointAttemptDriver {
     execution_configuration: Option<(SnapshotVersion, ConfigRevision)>,
     execution_egress: Mutex<Option<execution_identity::CapturedEgress>>,
+    failed_usage: Mutex<Option<(ResponseId, Usage)>>,
     kiro_profiles: KiroProfileSnapshots,
     runtime_quota: Arc<RuntimeQuotaRegistry>,
     generation_active: Option<Arc<AtomicBool>>,
@@ -4654,6 +4658,10 @@ impl AttemptDriver for EndpointAttemptDriver {
         _bootstrap_timeout: Duration,
     ) -> AttemptFuture<'a, Result<Self::Output, AttemptFailure>> {
         Box::pin(async move {
+            *self
+                .failed_usage
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
             self.begin_execution_attempt(candidate, credential)?;
             self.attempt_stages.record_stage(
                 &self.request_id,
@@ -4750,6 +4758,13 @@ impl AttemptDriver for EndpointAttemptDriver {
         credential: &CredentialLease,
     ) -> Option<gateway_core::AttemptExecutionIdentity> {
         self.actual_execution_identity(candidate, credential)
+    }
+
+    fn take_failed_usage(&self) -> Option<(ResponseId, Usage)> {
+        self.failed_usage
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
     }
 
     fn start_timeout(&self, remaining_bootstrap: Duration) -> Duration {
@@ -4854,7 +4869,7 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source = ChatSseEventSource::begin(response).await?;
+                let source = ChatSseEventSource::begin(response, &self.failed_usage).await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
         }
@@ -4949,9 +4964,12 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source =
-                    OpenAiSseEventSource::begin_with_reasoning_policy(response, is_codex_oauth)
-                        .await?;
+                let source = OpenAiSseEventSource::begin_with_reasoning_policy(
+                    response,
+                    is_codex_oauth,
+                    &self.failed_usage,
+                )
+                .await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
             ResponsesResponseMode::NonStreaming => {
@@ -4969,9 +4987,12 @@ impl EndpointAttemptDriver {
                     &self.request_id,
                     ManagementRequestAttemptStage::SseBootstrap,
                 );
-                let source =
-                    OpenAiSseEventSource::begin_with_reasoning_policy(response, is_codex_oauth)
-                        .await?;
+                let source = OpenAiSseEventSource::begin_with_reasoning_policy(
+                    response,
+                    is_codex_oauth,
+                    &self.failed_usage,
+                )
+                .await?;
                 Ok(Box::new(source) as Box<dyn ResponsesEventSource>)
             }
         }
@@ -6023,7 +6044,10 @@ struct ChatSseEventSource {
 }
 
 impl ChatSseEventSource {
-    async fn begin(response: UpstreamHttpResponse) -> Result<Self, AttemptFailure> {
+    async fn begin(
+        response: UpstreamHttpResponse,
+        failed_usage: &Mutex<Option<(ResponseId, Usage)>>,
+    ) -> Result<Self, AttemptFailure> {
         let mut source = Self {
             response,
             decoder: OpenAiChatSseDecoder::new(),
@@ -6031,10 +6055,17 @@ impl ChatSseEventSource {
             progress_deadline: P12_STREAMING_PROGRESS_TIMEOUT,
             progress_wait_spent: Duration::ZERO,
         };
-        source
-            .read_until_event()
-            .await
-            .map_err(|_| AttemptFailure::BootstrapTruncated)?;
+        if source.read_until_event().await.is_err() {
+            if let (Some(response_id), Some(usage)) =
+                (source.decoder.decoded_response_id(), source.decoded_usage())
+            {
+                *failed_usage
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                    Some((response_id, usage));
+            }
+            return Err(AttemptFailure::BootstrapTruncated);
+        }
         if !matches!(
             source.pending.front(),
             Some(CanonicalEvent::ResponseStart(_))
@@ -6057,6 +6088,8 @@ impl ChatSseEventSource {
             self.progress_wait_spent = self
                 .progress_wait_spent
                 .saturating_add(wait_started.elapsed());
+            #[cfg(test)]
+            batch_c::http::bootstrap_usage::record_read("chat", &chunk);
             let events = self.decoder.push(&chunk)?;
             if !events.is_empty() {
                 self.progress_wait_spent = Duration::ZERO;
@@ -6180,6 +6213,8 @@ impl AnthropicSseEventSource {
             let Some(chunk) = next else {
                 return Err(stream_truncated_error());
             };
+            #[cfg(test)]
+            batch_c::http::bootstrap_usage::record_read("messages", &chunk);
             self.decoder.push_chunk(&chunk)?;
         }
     }
@@ -7266,11 +7301,13 @@ impl OpenAiSseEventSource {
     async fn begin_with_reasoning_policy(
         response: UpstreamHttpResponse,
         suppress_reasoning: bool,
+        failed_usage: &Mutex<Option<(ResponseId, Usage)>>,
     ) -> Result<Self, AttemptFailure> {
         Self::begin_with_progress_deadline_and_reasoning_policy(
             response,
             P12_STREAMING_PROGRESS_TIMEOUT,
             suppress_reasoning,
+            failed_usage,
         )
         .await
     }
@@ -7285,14 +7322,20 @@ impl OpenAiSseEventSource {
         response: UpstreamHttpResponse,
         progress_deadline: Duration,
     ) -> Result<Self, AttemptFailure> {
-        Self::begin_with_progress_deadline_and_reasoning_policy(response, progress_deadline, false)
-            .await
+        Self::begin_with_progress_deadline_and_reasoning_policy(
+            response,
+            progress_deadline,
+            false,
+            &Mutex::new(None),
+        )
+        .await
     }
 
     async fn begin_with_progress_deadline_and_reasoning_policy(
         response: UpstreamHttpResponse,
         progress_deadline: Duration,
         suppress_reasoning: bool,
+        failed_usage: &Mutex<Option<(ResponseId, Usage)>>,
     ) -> Result<Self, AttemptFailure> {
         let mut source = Self {
             response,
@@ -7306,14 +7349,21 @@ impl OpenAiSseEventSource {
             observed_progress_marks: 0,
             progress_wait_spent: Duration::ZERO,
         };
-        source
-            .read_until_event()
-            .await
-            .map_err(|error| match error.code() {
+        if let Err(error) = source.read_until_event().await {
+            if let (Some(response_id), Some(usage)) =
+                (source.decoder.decoded_response_id(), source.decoded_usage())
+            {
+                *failed_usage
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                    Some((response_id, usage));
+            }
+            return Err(match error.code() {
                 // A decoded protocol contradiction must not become a retryable bootstrap EOF.
                 GatewayErrorCode::UpstreamProtocolError => AttemptFailure::NonRetryable(error),
                 _ => AttemptFailure::BootstrapTruncated,
-            })?;
+            });
+        }
         if !matches!(
             source.pending.front(),
             Some(CanonicalEvent::ResponseStart(_))
@@ -7355,6 +7405,8 @@ impl OpenAiSseEventSource {
                 self.pending.extend(self.decoder.finish()?);
                 return Ok(());
             };
+            #[cfg(test)]
+            batch_c::http::bootstrap_usage::record_read("responses", &chunk);
             self.pending.extend(self.decoder.push(&chunk)?);
         }
     }
@@ -9634,6 +9686,7 @@ mod tests {
         let driver = EndpointAttemptDriver {
             execution_configuration: None,
             execution_egress: std::sync::Mutex::new(None),
+            failed_usage: std::sync::Mutex::new(None),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             kiro_profiles: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             generation_active: None,
@@ -9977,6 +10030,7 @@ mod tests {
         let driver = EndpointAttemptDriver {
             execution_configuration: None,
             execution_egress: std::sync::Mutex::new(None),
+            failed_usage: std::sync::Mutex::new(None),
             runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
             kiro_profiles: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             generation_active: None,
@@ -10213,7 +10267,7 @@ mod tests {
                 &live_progress_test_profile()?,
             )
             .await?;
-        let mut source = super::ChatSseEventSource::begin(response)
+        let mut source = super::ChatSseEventSource::begin(response, &std::sync::Mutex::new(None))
             .await
             .map_err(|_| std::io::Error::other("bootstrap"))?;
         while !source.pending.is_empty() {

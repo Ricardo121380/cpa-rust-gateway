@@ -275,6 +275,15 @@ impl OpenAiChatSseDecoder {
         })
     }
 
+    /// Returns the validated response identity still buffered before source handoff.
+    #[must_use]
+    pub fn decoded_response_id(&self) -> Option<ResponseId> {
+        self.pending.iter().find_map(|event| match event {
+            CanonicalEvent::ResponseStart(start) => Some(start.response_id.clone()),
+            _ => None,
+        })
+    }
+
     /// Appends arbitrary transport bytes and returns all newly decoded Canonical events.
     ///
     /// # Errors

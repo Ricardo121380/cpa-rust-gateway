@@ -9,6 +9,11 @@
 
 ## Context
 
+[ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md) and the B-04 amendment
+[ADR-0103](ADR-0103-failed-bootstrap-usage-attribution.md) supersede highest-successful-only
+selection for explicit Usage AttemptId. Each exact failed/successful Attempt keeps its own
+source event; the previous selection remains only for unambiguous legacy Usage without identity.
+
 P13-05A provides an immutable price catalog and an idempotent ledger, but no durable path turns
 gateway-owned final Usage observations into billing rows and no protected operator endpoint can
 inspect the result.  The event log is append-only and batches can cross process restarts, so a

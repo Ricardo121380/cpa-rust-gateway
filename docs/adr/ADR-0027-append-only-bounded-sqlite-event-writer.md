@@ -8,6 +8,10 @@
 
 ## Context
 
+The B-04 identity amendment in [ADR-0103](ADR-0103-failed-bootstrap-usage-attribution.md)
+uses Attempt-scoped Usage IDs for new explicit lineage and retains exact legacy replay. The
+append-only, bounded confirmation and writer recovery rules below remain applicable.
+
 P3-08 deliberately stops at a synchronous `GatewayEventSink` and two bounded Tokio queues. That
 keeps Request, Attempt, and Usage delivery out of HTTP and routing latency, but it cannot retain a
 timeline over a process restart. P4 additionally needs sanitized Health transitions to be

@@ -200,7 +200,7 @@ impl EventRecord {
             ),
             GatewayEvent::Usage(value) => (
                 GatewayEventLogKind::Usage,
-                usage_event_id(value.request_id()),
+                usage_event_id(value),
                 Some(value.request_id().as_str().to_owned()),
                 None,
                 is_persistable_identifier(value.response_id().as_str()),
@@ -255,14 +255,19 @@ impl EventRecord {
     }
 }
 
-/// Derives one fixed-size Usage identity from the gateway-owned request correlation.
-///
-/// Upstreams are not required to make response identifiers globally unique. Using the raw
-/// response identifier made two otherwise valid requests conflict in the append-only store when
-/// an OpenAI-compatible SSE provider reused an identifier. A request emits at most one final Usage
-/// event, so a domain-separated digest preserves replay idempotence without trusting upstream
-/// uniqueness or exceeding the durable identifier bound.
-fn usage_event_id(request_id: &RequestId) -> String {
+/// New explicit lineages retain one final snapshot per Attempt, independent of upstream IDs.
+fn usage_event_id(usage: &gateway_core::UsageEvent) -> String {
+    match usage.attempt_id() {
+        Some(attempt) => format!(
+            "usage-attempt:{:x}",
+            Sha256::digest(attempt.as_str().as_bytes())
+        ),
+        None => request_usage_event_id(usage.request_id()),
+    }
+}
+
+/// Legacy unknown lineages retain their historical request-scoped identity.
+fn request_usage_event_id(request_id: &RequestId) -> String {
     let digest = Sha256::digest(request_id.as_str().as_bytes());
     format!("usage-request:{digest:x}")
 }
@@ -351,20 +356,24 @@ impl SqliteEventStore {
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let mut inserted = 0;
         for (record, event) in records.iter().zip(events) {
-            // Before request-scoped Usage IDs, the same observation was stored under
-            // its upstream response ID. Preserve that row and billing source identity
-            // when replayed; inserting the new ID would bill the request twice.
+            // Preserve exact historical replays and their billing source IDs. Only distinct,
+            // explicit Attempt identities can create additional Usage in the same Request.
             if let GatewayEvent::Usage(usage) = event {
                 let existing: Option<(String, String, Option<i64>)> = transaction
                     .query_row(
                         "SELECT event_id, payload_json, occurred_at_ms FROM gateway_event_log \
-                         WHERE event_type = 'usage' AND request_id = ?1 ORDER BY event_ordinal LIMIT 1",
-                        [usage.request_id().as_str()],
+                         WHERE event_type = 'usage' AND request_id = ?1 \
+                         AND (?2 IS NULL OR json_extract(payload_json,'$.usage.attempt_id') IS NULL \
+                              OR json_extract(payload_json,'$.usage.attempt_id') = ?2) \
+                         ORDER BY event_ordinal LIMIT 1",
+                        params![usage.request_id().as_str(), usage.attempt_id().map(gateway_core::AttemptId::as_str)],
                         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
                     )
                     .optional()?;
                 if let Some((id, payload, timestamp)) = existing {
-                    if (id != record.event_id && id != usage.response_id().as_str())
+                    if (id != record.event_id
+                        && id != usage.response_id().as_str()
+                        && id != request_usage_event_id(usage.request_id()))
                         || timestamp.is_some()
                     {
                         return Err(StoreError::InvalidPersistedGatewayEvent);
@@ -567,7 +576,7 @@ impl SqliteEventStore {
         )
     }
 
-    /// Streams complete Request/latest Attempt/Usage lineages in stable aggregation-key order.
+    /// Streams Request/exact Attempt/Usage lineages in stable aggregation-key order.
     ///
     /// The visitor may stop after enough groups; global filtered observation metadata is computed
     /// separately in the same read transaction. No complete history vector is constructed.
@@ -608,7 +617,12 @@ impl SqliteEventStore {
             (SELECT r.payload_json FROM gateway_event_log r WHERE r.event_type='request' AND r.request_id=u.request_id AND r.event_ordinal<=?1 LIMIT 1) AS r,
             (SELECT a.payload_json FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=u.request_id AND a.event_ordinal<=?1 AND (json_extract(u.payload_json,'$.usage.attempt_id') IS NULL OR a.event_id=json_extract(u.payload_json,'$.usage.attempt_id')) ORDER BY json_extract(a.payload_json, '$.attempt.attempt_number') DESC LIMIT 1) AS a,
             MIN(u.payload_json) AS u, COUNT(DISTINCT u.payload_json) AS usage_count, COUNT(*) AS usage_events
-            FROM gateway_event_log u WHERE u.event_type='usage' AND u.event_ordinal<=?1 GROUP BY u.request_id
+            FROM gateway_event_log u WHERE u.event_type='usage' AND u.event_ordinal<=?1
+            GROUP BY u.request_id, CASE WHEN EXISTS (
+                SELECT 1 FROM gateway_event_log legacy WHERE legacy.event_type='usage'
+                AND legacy.request_id=u.request_id AND legacy.event_ordinal<=?1
+                AND json_extract(legacy.payload_json,'$.usage.attempt_id') IS NULL
+            ) THEN NULL ELSE json_extract(u.payload_json,'$.usage.attempt_id') END
         ), projected AS (
             SELECT request_id,r,a,u,usage_count,usage_events,
             json_extract(a,'$.attempt.ended_at_ms') AS observed,
@@ -638,7 +652,7 @@ impl SqliteEventStore {
             &format!("{cte} SELECT MAX(CASE WHEN NOT invalid THEN observed END),
                 MAX(CASE WHEN usage_count>1 AND r IS NOT NULL AND a IS NOT NULL THEN 0 ELSE invalid END),
                 COALESCE(SUM(CASE WHEN usage_count>1 THEN usage_events ELSE 0 END),0),
-                COALESCE(SUM(CASE WHEN usage_count>1 THEN 1 ELSE 0 END),0) FROM filtered"),
+                COUNT(DISTINCT CASE WHEN usage_count>1 THEN request_id END) FROM filtered"),
             rusqlite::params![
                 snapshot.unwrap_or(0),
                 from,
@@ -684,7 +698,7 @@ impl SqliteEventStore {
             let after = query.after.unwrap_or([""; 7]);
             let mut statement = transaction.prepare(&format!("{cte} SELECT r,a,u FROM filtered
                 WHERE NOT invalid AND (?11=0 OR (provider,channel,account,model,protocol,client,access_group)>(?12,?13,?14,?15,?16,?17,?18))
-                ORDER BY provider,channel,account,model,protocol,client,access_group"))?;
+                ORDER BY provider,channel,account,model,protocol,client,access_group,request_id"))?;
             let mut rows = statement.query(rusqlite::params![
                 snapshot.unwrap_or(0),
                 from,
@@ -897,8 +911,8 @@ fn decode_stored_event(
     let event: GatewayEvent =
         serde_json::from_str(payload_json).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?;
     let expected = EventRecord::from_event(&event)?;
-    let legacy_usage_id =
-        matches!(&event, GatewayEvent::Usage(usage) if event_id == usage.response_id().as_str());
+    let legacy_usage_id = matches!(&event, GatewayEvent::Usage(usage)
+        if event_id == usage.response_id().as_str() || event_id == request_usage_event_id(usage.request_id()));
     if expected.kind != kind
         || (expected.event_id != event_id && !legacy_usage_id)
         || expected.request_id != request_id
@@ -2127,6 +2141,50 @@ mod tests {
         read_only.quick_check()?;
         drop(read_only);
         fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn legacy_request_usage_identity_keeps_exact_ownership_without_enrichment() -> TestResult {
+        for explicit in [false, true] {
+            let mut store = SqliteEventStore::open_in_memory()?;
+            let GatewayEvent::Usage(unknown) = usage_event("legacy-owner", "reused-response", 3)?
+            else {
+                return Err("usage fixture".into());
+            };
+            let known =
+                unknown
+                    .clone()
+                    .with_attempt_id(gateway_core::AttemptId::from_request_sequence(
+                        unknown.request_id(),
+                        1,
+                    ));
+            let event = GatewayEvent::Usage(if explicit { known.clone() } else { unknown });
+            let id = super::request_usage_event_id(known.request_id());
+            store.connection.execute(
+                "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage',?1,?2,?3)",
+                rusqlite::params![id, known.request_id().as_str(), serde_json::to_string(&event)?],
+            )?;
+            let rows = store.list_events()?;
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].event_id(), id);
+            assert_eq!(rows[0].event(), &event);
+            assert_eq!(store.append_batch(&[event])?, 0);
+            let second = GatewayEvent::Usage(known.clone().with_attempt_id(
+                gateway_core::AttemptId::from_request_sequence(known.request_id(), 2),
+            ));
+            if explicit {
+                assert_eq!(store.append_batch(std::slice::from_ref(&second))?, 1);
+                assert_eq!(store.append_batch(&[second])?, 0);
+                assert_eq!(store.list_events()?.len(), 2);
+            } else {
+                assert!(matches!(
+                    store.append_batch(&[GatewayEvent::Usage(known), second]),
+                    Err(crate::StoreError::ConflictingGatewayEventReplay)
+                ));
+                assert_eq!(store.list_events()?.len(), 1);
+            }
+        }
         Ok(())
     }
 

@@ -12,8 +12,8 @@ use std::{
 
 use gateway_core::{
     AccessGroupId, AttemptEvent, AttemptOutcome, AttemptRetryDecision, ClientKeyId, CredentialId,
-    EgressPolicyId, EndpointId, GatewayEvent, GatewayProtocol, RequestEvent, RouteId, UpstreamId,
-    UsageEvent,
+    EgressPolicyId, EndpointId, GatewayEvent, GatewayProtocol, RequestEvent, RequestId, RouteId,
+    UpstreamId, UsageEvent,
 };
 use gateway_store::billing_ledger::{BillingCostConfidence, BillingLedgerEntry};
 use gateway_store::control_plane::{
@@ -1354,6 +1354,7 @@ struct UsageAccumulator {
     protocol: GatewayProtocol,
     client_key_id: ClientKeyId,
     access_group_id: Option<AccessGroupId>,
+    last_request_id: RequestId,
     request_count: u64,
     usage_observations: u64,
     input_tokens: UsageTokenAccumulator,
@@ -1381,6 +1382,7 @@ impl UsageAccumulator {
             protocol: request.protocol(),
             client_key_id: request.client_key_id().clone(),
             access_group_id: request.access_group_id().cloned(),
+            last_request_id: request.request_id().clone(),
             request_count: 0,
             usage_observations: 0,
             input_tokens: UsageTokenAccumulator::default(),
@@ -1419,10 +1421,15 @@ impl UsageAccumulator {
     }
 
     fn merge(&mut self, other: &Self) -> Result<(), ManagementOperationsError> {
-        self.request_count = self
-            .request_count
-            .checked_add(other.request_count)
-            .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
+        // Both callers visit a group's request IDs in order. Keep one ID rather than
+        // an unbounded set when several Attempts of the same Request share a group.
+        if self.last_request_id != other.last_request_id {
+            self.request_count = self
+                .request_count
+                .checked_add(other.request_count)
+                .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
+            self.last_request_id = other.last_request_id.clone();
+        }
         self.usage_observations = self
             .usage_observations
             .checked_add(other.usage_observations)
@@ -1692,7 +1699,7 @@ pub fn compile_operational_usage_page(
 
     let mut requests = BTreeMap::<String, RequestEvent>::new();
     let mut attempts = BTreeMap::<String, AttemptEvent>::new();
-    let mut usages = BTreeMap::<String, (UsageEvent, u64, bool)>::new();
+    let mut usages = BTreeMap::<(String, Option<String>), (UsageEvent, u64, bool)>::new();
     for stored in events {
         match stored.event() {
             GatewayEvent::Request(event) => {
@@ -1707,7 +1714,10 @@ pub fn compile_operational_usage_page(
             }
             GatewayEvent::Attempt(event) => insert_attempt_event(&mut attempts, event)?,
             GatewayEvent::Usage(event) => {
-                let key = event.request_id().as_str().to_owned();
+                let key = (
+                    event.request_id().as_str().to_owned(),
+                    event.attempt_id().map(|id| id.as_str().to_owned()),
+                );
                 if let Some((existing, count, conflicting)) = usages.get_mut(&key) {
                     *count += 1;
                     *conflicting |= existing != event;
@@ -1722,10 +1732,18 @@ pub fn compile_operational_usage_page(
     }
 
     let mut groups = BTreeMap::<OperationalUsageSortKey, UsageAccumulator>::new();
+    let ambiguous_requests = usages
+        .keys()
+        .filter_map(|(request, attempt)| {
+            (attempt.is_some() && usages.contains_key(&(request.clone(), None)))
+                .then_some(request.clone())
+        })
+        .collect::<BTreeSet<_>>();
     let mut observed_through_ms: Option<i64> = None;
     let mut excluded_usage_events = 0;
-    let mut excluded_request_groups = 0;
-    for (request_id, (usage, count, conflicting)) in usages {
+    let mut excluded_requests = BTreeSet::new();
+    for ((request_id, _), (usage, count, conflicting)) in usages {
+        let conflicting = conflicting || ambiguous_requests.contains(&request_id);
         let request = requests
             .get(&request_id)
             .ok_or(ManagementOperationsError::InconsistentConfiguration)?;
@@ -1758,7 +1776,7 @@ pub fn compile_operational_usage_page(
         }
         if conflicting && query.allow_partial {
             excluded_usage_events += count;
-            excluded_request_groups += 1;
+            excluded_requests.insert(request_id);
             continue;
         }
         if conflicting
@@ -1807,7 +1825,7 @@ pub fn compile_operational_usage_page(
 
     Ok(OperationalUsagePage {
         excluded_usage_events,
-        excluded_request_groups,
+        excluded_request_groups: excluded_requests.len() as u64,
         observed_through_ms,
         items,
         next_cursor,
@@ -2182,6 +2200,51 @@ mod tests {
             compile_operational_usage_page(&events, &unfiltered)?
         );
         assert_usage_snapshot_paging(&mut store)
+    }
+
+    #[test]
+    fn explicit_attempt_usage_counts_one_request_and_two_observations() -> TestResult {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let request = RequestEvent::new(
+            gateway_core::RequestId::try_new("same-request")?,
+            ClientKeyId::try_new("client-a")?,
+            None,
+            GatewayProtocol::OpenAiChatCompletions,
+            "public-model".to_owned(),
+            "public-model".to_owned(),
+            None,
+            true,
+        );
+        store.append_batch(&[GatewayEvent::Request(request.clone())])?;
+        for (number, tokens) in [(1, 20), (2, 3)] {
+            let attempt =
+                usage_attempt(request.request_id(), number, i64::try_from(number)? * 100)?;
+            let usage = UsageEvent::from_usage(
+                request.request_id().clone(),
+                gateway_core::ResponseId::try_new("same-upstream-response")?,
+                &Usage {
+                    provenance: gateway_core::UsageProvenance::Measured,
+                    input_accounting: gateway_core::InputTokenAccounting::Inclusive,
+                    input_tokens: Some(tokens),
+                    ..Usage::default()
+                },
+            )
+            .with_attempt_id(attempt.attempt_id().clone());
+            store.append_batch(&[GatewayEvent::Attempt(attempt), GatewayEvent::Usage(usage)])?;
+        }
+        let query = OperationalUsageQuery::default();
+        let read = super::read_operational_usage_page(&store, &query)?;
+        assert_eq!(read.items.len(), 1);
+        assert_eq!(read.items[0].request_count, 1);
+        assert_eq!(read.items[0].usage_observations, 2);
+        assert_eq!(read.items[0].input_tokens.total, Some(23));
+        assert_eq!(read.items[0].output_tokens.total, None);
+        assert_eq!(read.items[0].cost_microunits, None);
+        assert_eq!(
+            read,
+            compile_operational_usage_page(&store.list_events()?, &query)?
+        );
+        Ok(())
     }
 
     fn assert_usage_snapshot_paging(store: &mut SqliteEventStore) -> TestResult {
