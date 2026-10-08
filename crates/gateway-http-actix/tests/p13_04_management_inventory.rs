@@ -293,6 +293,8 @@ fn resource_state_with_conflict(
         vec![
             ProviderAccountPoolItem {
                 presentation: None,
+                credential_revision: Some(3),
+                config_version_id: None,
                 provider_id: ProviderId::try_new("grok")?,
                 channel_id: EndpointId::try_new("channel-build")?,
                 account_id: CredentialId::try_new("grok-account-a")?,
@@ -316,6 +318,8 @@ fn resource_state_with_conflict(
             },
             ProviderAccountPoolItem {
                 presentation: None,
+                credential_revision: Some(3),
+                config_version_id: None,
                 provider_id: ProviderId::try_new("grok")?,
                 channel_id: EndpointId::try_new("channel-build")?,
                 account_id: CredentialId::try_new("grok-account-b")?,
@@ -334,6 +338,8 @@ fn resource_state_with_conflict(
             },
             ProviderAccountPoolItem {
                 presentation: None,
+                credential_revision: Some(3),
+                config_version_id: None,
                 provider_id: ProviderId::try_new("codex")?,
                 channel_id: EndpointId::try_new("channel-chat")?,
                 account_id: CredentialId::try_new("codex-account-a")?,
@@ -513,6 +519,8 @@ async fn inventory_is_protected_paginated_and_value_free() -> TestResult {
         "grok-account-a"
     );
     assert_eq!(provider_first_body["items"][0]["auth_status"], "active");
+    assert_eq!(provider_first_body["items"][0]["credential_revision"], 3);
+    assert!(provider_first_body["items"][0]["config_version_id"].is_null());
     assert_eq!(
         provider_first_body["items"][0]["runtime_status"],
         "available"

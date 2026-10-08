@@ -3675,3 +3675,25 @@ stays unknown. Release, deployment, real Provider and C/#57 completion remain di
 **Why:** The authorized A-02 boundary also includes a failed configuration read before the exact receipt is recovered. Preserve the read diagnostic independently, continue receipt-only reconciliation, and keep the exact saved ID visible in results.
 
 **Other side:** FYI — no replay, credential material or channel behavior change.
+
+## 2026-10-08 · Codex · A-06–A-08 material-aware actions and scoped current evidence
+
+**Touched:**
+- `web/prism/contracts/management-v1.json`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/features/accounts/AccountModelsDialog.tsx`
+- `web/prism/src/features/accounts/AccountRuntimeSummary.test.ts`
+- `web/prism/src/features/accounts/AccountRuntimeSummary.tsx`
+- `web/prism/src/features/accounts/AccountsPage.tsx`
+- `web/prism/src/features/accounts/accountStatus.test.ts`
+- `web/prism/src/features/accounts/accountStatus.ts`
+- `web/prism/src/features/accounts/callEvidence.test.ts`
+- `web/prism/src/features/accounts/callEvidence.ts`
+- `web/prism/src/features/runtime/model.ts`
+- `web/prism/src/features/upstreams/SubresourcePanel.tsx`
+- `web/prism/src/features/upstreams/subresourceModel.test.ts`
+- `web/prism/src/features/upstreams/subresourceModel.ts`
+
+**Why:** Explicit eight-P2 batch authorization. Use actual material classification, unify current call-evidence guards, and separate current authorization from retained runtime observations with exact non-secret source lineage. The authoritative backend OpenAPI was synchronized with `npm --prefix web/prism run sync-contract`; generated client was regenerated and its blob remained unchanged because these response fields do not change generated operation descriptors.
+
+**Other side:** FYI — local synthetic browser and typed/component/authenticated HTTP checks passed; final clean Full and independent reviews still pending.

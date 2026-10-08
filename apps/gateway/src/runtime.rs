@@ -2344,6 +2344,10 @@ fn ordinary_provider_account_descriptors(
             channel_id: endpoint.id.clone(),
             account_id: credential.id.clone(),
             account_kind: credential.kind.clone(),
+            credential_revision: Some(u64::try_from(credential.revision).map_err(|_| {
+                RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
+            })?),
+            config_version_id: Some(configuration.version.id.as_str().to_owned()),
             auth_status,
             runtime_status_hint,
             enabled: upstream.enabled
@@ -2565,6 +2569,8 @@ fn native_provider_account_descriptors(
                 RuntimeCompositionError::Stage(RuntimeCompositionStage::ProviderAccountPool)
             })?,
             account_kind: grok_account_kind(account.provider).to_owned(),
+            credential_revision: Some(account.revision),
+            config_version_id: None,
             auth_status,
             runtime_status_hint,
             enabled: upstream.enabled
@@ -12836,6 +12842,8 @@ mod tests {
         assert_eq!(active.provider_id.as_str(), "p12-runtime-upstream");
         assert_eq!(active.channel_id.as_str(), P12_SINGLETON_TEST_ENDPOINT_ID);
         assert_eq!(active.account_kind, "grok_build_oauth");
+        assert_eq!(active.credential_revision, Some(7));
+        assert_eq!(active.config_version_id, None);
         assert_eq!(
             active
                 .entitlement
@@ -12888,6 +12896,14 @@ mod tests {
             &secret_store,
             42,
         )?;
+        assert_eq!(
+            codex_rows[0].credential_revision,
+            Some(u64::try_from(codex.credentials[0].revision)?)
+        );
+        assert_eq!(
+            codex_rows[0].config_version_id.as_deref(),
+            Some(codex.version.id.as_str())
+        );
         let codex_entitlement = codex_rows[0].entitlement.ok_or("Codex tier missing")?;
         assert_eq!(
             codex_entitlement.domain(),

@@ -2516,6 +2516,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
           channel_id: row.channel,
           account_id: row.id,
           account_kind: row.kind,
+          credential_revision: state.credentials.get(state.versions.find(version=>version.status==="active")?.id??"")?.find(account=>account.id===row.id)?.revision??null,
+          config_version_id: state.versions.find(version=>version.status==="active")?.id??null,
           auth_status: row.auth,
           runtime_status: fixturePoolRuntime.get(row.id)??row.runtime,
           enabled: row.enabled,

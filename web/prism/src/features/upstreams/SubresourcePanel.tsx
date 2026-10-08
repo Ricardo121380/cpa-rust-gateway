@@ -807,7 +807,7 @@ export function SubresourcePanel({ upstreamId, onAddAccount, onActionActiveChang
                 <div><dt>接入方式</dt><dd>{authenticationLabel(account)}</dd></div>
                 <div><dt>状态</dt><dd>
                 <StatusBadge status={account.account_status === "revoked" ? "disabled" : accountStatusTone(account.account_status)}>
-                  {accountStatusLabel(account.account_status)}
+                  {accountStatusLabel(account.account_status,account.authentication)}
                 </StatusBadge>
                 </dd></div>
               </dl>

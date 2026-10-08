@@ -27,7 +27,9 @@ describe("provider workspace presentation", () => {
 
   it("keeps non-active account states distinct", () => {
     expect(accountStatusLabel("cooling")).toBe("冷却中");
-    expect(accountStatusLabel("unauthorized")).toBe("需要重新授权");
+    expect(accountStatusLabel("unauthorized", "oauth")).toBe("需要重新授权");
+    expect(accountStatusLabel("unauthorized", "api_key")).toBe("更新或替换 API Key");
+    expect(accountStatusLabel("unauthorized")).toBe("更新授权材料");
   });
 
   it("presents a protocol and host as the interface identity", () => {

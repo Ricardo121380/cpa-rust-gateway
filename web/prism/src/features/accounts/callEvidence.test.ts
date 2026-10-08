@@ -17,3 +17,10 @@ it("invalidates old success on configuration, authorization, process or build ch
   expect(callReceiptIsCurrent(receipt,context,2,{...system,server_instance:"restarted"})).toBe(false);
   expect(callReceiptIsCurrent(receipt,context,2,{...system,build:{...system.build,build_revision:"new"}})).toBe(false);
 });
+
+it("retained true is not current while verification refetches or fails",async()=>{
+ const {callEvidenceIsCurrent}=await import("./callEvidence");
+ expect(callEvidenceIsCurrent({data:true,isFetching:false,isError:false})).toBe(true);
+ expect(callEvidenceIsCurrent({data:true,isFetching:true,isError:false})).toBe(false);
+ expect(callEvidenceIsCurrent({data:true,isFetching:false,isError:true})).toBe(false);
+});

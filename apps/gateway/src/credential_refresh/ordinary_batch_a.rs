@@ -160,6 +160,8 @@ impl Fixture {
                 channel_id: endpoint,
                 account_id: id,
                 account_kind: "bearer".into(),
+                credential_revision: Some(1),
+                config_version_id: Some("fixture-config".into()),
                 auth_status: if enabled {
                     ProviderAccountAuthStatus::Active
                 } else {

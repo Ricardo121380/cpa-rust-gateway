@@ -62,3 +62,5 @@ runs in a clean isolated committed checkout. Pure documentation closeout uses
 the docs gate. No local PASS implies remote CI, real Provider or production PASS.
 
 A-02–A-05 implementation checkpoint: nine actual EgoLite scenarios GREEN (ordinary close/reimport, both empty-draft modes, nonempty review, completed OAuth/import/API receipts plus follow-up failure, Kiro/Kimi close/reopen/read). Initial script input/wait failures are not RED. Directed task/store/device/import regression 51 PASS and type check PASS; final gates pending.
+
+A-06–A-08 implementation checkpoint: five actual EgoLite target REDs and GREENs; current-revision negative control retained. Runtime credential revision and ordinary configuration scope added as non-secret optional response lineage. Frontend 480 tests/type/build/contract checks PASS; HTTP inventory 4 PASS; runtime lineage 6 PASS; strict Clippy PASS. Final clean-checkout/source-bound acceptance and independent review remain pending. A-02 import configuration-read failure was additionally exercised with a verified failing-read counter and saved ID visible.

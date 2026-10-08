@@ -105,6 +105,8 @@ pub(crate) struct ProviderAccountDescriptor {
     pub(crate) channel_id: EndpointId,
     pub(crate) account_id: CredentialId,
     pub(crate) account_kind: String,
+    pub(crate) credential_revision: Option<u64>,
+    pub(crate) config_version_id: Option<String>,
     pub(crate) auth_status: ProviderAccountAuthStatus,
     /// Persisted non-secret runtime hint for entries that are deliberately absent from the
     /// compiled pool, such as a control-plane Credential retained in Cooling state.
@@ -137,6 +139,10 @@ impl ProviderAccountDescriptor {
             || !valid_opaque_id(self.account_id.as_str())
             || self.account_kind.trim().is_empty()
             || self.account_kind.chars().count() > 128
+            || self
+                .config_version_id
+                .as_ref()
+                .is_some_and(|id| !valid_opaque_id(id))
             || self.priority < 0
             || !(1..=10_000).contains(&self.weight)
             || !(1..=100_000).contains(&self.max_concurrency)
@@ -713,6 +719,8 @@ impl ProviderAccountPoolAdapter {
                 channel_id: descriptor.channel_id.clone(),
                 account_id: descriptor.account_id.clone(),
                 account_kind: descriptor.account_kind.clone(),
+                credential_revision: descriptor.credential_revision,
+                config_version_id: descriptor.config_version_id.clone(),
                 auth_status,
                 runtime_status,
                 enabled: descriptor.enabled,
@@ -1097,6 +1105,8 @@ mod tests {
             channel_id: must(EndpointId::try_new(channel)),
             account_id: must(CredentialId::try_new(account)),
             account_kind: "bearer".to_owned(),
+            credential_revision: Some(1),
+            config_version_id: Some("source-config".to_owned()),
             auth_status: ProviderAccountAuthStatus::Active,
             runtime_status_hint: ProviderAccountRuntimeStatus::Available,
             enabled: true,
@@ -1307,6 +1317,11 @@ mod tests {
             item.channel_id.as_str() == "channel-a" && item.account_id.as_str() == "account-a"
         }));
         assert_eq!(account_a.active_leases, 1);
+        assert_eq!(account_a.credential_revision, Some(1));
+        assert_eq!(
+            account_a.config_version_id.as_deref(),
+            Some("source-config")
+        );
         assert_eq!(account_a.max_concurrency, 3);
         drop(lease);
         let provider_query = ProviderAccountPoolQuery::try_new(

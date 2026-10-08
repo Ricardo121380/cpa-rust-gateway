@@ -642,6 +642,8 @@ export type PoolAccount = Readonly<{
   channel_id: string;
   account_id: string;
   account_kind: string;
+  credential_revision?: number | null;
+  config_version_id?: string | null;
   auth_status: string;
   runtime_status: string;
   enabled: boolean;

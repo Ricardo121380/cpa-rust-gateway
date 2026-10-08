@@ -227,6 +227,10 @@ pub struct ProviderAccountPoolItem {
     pub account_id: CredentialId,
     /// Provider-specific account kind such as `grok_build_oauth`.
     pub account_kind: String,
+    /// Exact credential revision loaded by this runtime source, when known.
+    pub credential_revision: Option<u64>,
+    /// Ordinary credential configuration scope; native account revisions are global.
+    pub config_version_id: Option<String>,
     /// Authentication lifecycle state.
     pub auth_status: ProviderAccountAuthStatus,
     /// Current runtime state projection.
@@ -258,6 +262,10 @@ impl ProviderAccountPoolItem {
             || !valid_opaque_id(self.account_id.as_str())
             || self.account_kind.trim().is_empty()
             || self.account_kind.chars().count() > MAX_TEXT_CHARS
+            || self
+                .config_version_id
+                .as_ref()
+                .is_some_and(|id| !valid_opaque_id(id))
             || self.priority < 0
             || !(1..=10_000).contains(&self.weight)
             || !(1..=100_000).contains(&self.max_concurrency)
@@ -735,6 +743,8 @@ mod tests {
             channel_id: must(EndpointId::try_new(channel)),
             account_id: must(CredentialId::try_new(account)),
             account_kind: "synthetic".to_owned(),
+            credential_revision: Some(1),
+            config_version_id: Some("source-config".to_owned()),
             auth_status: ProviderAccountAuthStatus::Active,
             runtime_status: ProviderAccountRuntimeStatus::Available,
             enabled: true,

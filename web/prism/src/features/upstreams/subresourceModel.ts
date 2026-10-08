@@ -62,6 +62,6 @@ export function runtimeConnectionLabel(
   return accountCount === 0 ? "运行调度中未观测到账号" : `运行调度中观测到 ${accountCount} 个账号`;
 }
 
-export function accountStatusLabel(status: ManagedCredential["credential"]["status"]): string {
-  return ({ active: "已启用", disabled: "已停用", revoked: "已撤销", cooling: "冷却中", unauthorized: "需要重新授权" })[status];
+export function accountStatusLabel(status: ManagedCredential["credential"]["status"], authentication?:string|null): string {
+  return ({ active: "已启用", disabled: "已停用", revoked: "已撤销", cooling: "冷却中", unauthorized: authentication==="api_key"?"更新或替换 API Key":authentication==="oauth"?"需要重新授权":"更新授权材料" })[status];
 }

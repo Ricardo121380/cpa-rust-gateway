@@ -61,3 +61,20 @@ versioned mutation parameters, security-scheme separation, secret and one-time-k
 deferred-operation metadata, absence of generic proxy paths, and resolution of every local
 reference. It performs no network, filesystem persistence, real credential, HTTP listener or
 Provider operation.
+
+## Runtime authorization lineage (A-08 local repair, 2026-10-08)
+
+`ProviderAccountPoolItem.credential_revision` is the exact non-secret credential revision
+loaded by the runtime source. `config_version_id` identifies the ordinary credential's
+configuration. Native accounts have a global revision namespace and a null configuration
+scope. Null/absent lineage is unobserved; a consumer must not infer a current authorization
+from an account name, observation time, or an old retained row. These additive response
+fields expose no credential material and do not alter authorization or scheduling.
+
+The account UI keeps configuration authorization, runtime read availability and retained
+observations separate. Only exact credential revision plus ordinary configuration scope
+(or exact native account kind/revision) may contribute a runtime authorization failure to
+the current status. A failed refetch retains old observation time, snapshot and connection
+scope; a genuine failure for the current revision remains visible. Validation includes
+runtime composition/adapter projection, the actual authenticated management response,
+component rendering, and EgoLite synthetic stale/current-revision refetch scenarios.

@@ -32,3 +32,8 @@ export function useAccountCallEvidence(id:string,nativeProvider?:string,credenti
   }});
   return {receipt,current};
 }
+
+/** Cached true is historical while its verification is pending or failed. */
+export function callEvidenceIsCurrent(evidence:Readonly<{data?:boolean;isFetching:boolean;isError:boolean}>):boolean {
+  return evidence.data===true&&!evidence.isFetching&&!evidence.isError;
+}

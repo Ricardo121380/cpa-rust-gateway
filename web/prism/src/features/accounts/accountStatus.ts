@@ -1,9 +1,9 @@
-type StatusInput=Readonly<{enabled:boolean;auth:string;connections?:number;runtime:readonly string[];readFailed?:boolean;acceptingRequests?:boolean|null;draft?:boolean;successfulCall?:Readonly<{model:string;protocol:string}>}>;
+type StatusInput=Readonly<{enabled:boolean;auth:string;authentication?:string|null;connections?:number;runtime:readonly string[];readFailed?:boolean;acceptingRequests?:boolean|null;draft?:boolean;successfulCall?:Readonly<{model:string;protocol:string}>}>;
 /** One actionable display reason, while the raw evidence remains independent and scoped. */
 export function primaryAccountStatus(input:StatusInput):Readonly<{label:string;status:string}>{
   if(!input.enabled)return {label:"已停用",status:"disabled"};
   if(input.acceptingRequests===false)return {label:"服务运行配置待恢复",status:"unavailable"};
-  if(["reauth_required","unauthorized","expired","revoked"].includes(input.auth))return {label:"需要重新授权",status:"unauthorized"};
+  if(["reauth_required","unauthorized","expired","revoked"].includes(input.auth))return {label:input.authentication==="api_key"?"更新或替换 API Key":input.authentication==="oauth"?"需要重新授权":"更新授权材料",status:"unauthorized"};
   if(input.draft)return {label:"已保存，待应用",status:"draft"};
   if(input.connections===0)return {label:"未连接接口",status:"missing"};
   if(input.readFailed)return {label:"运行观测读取失败",status:"unknown"};
