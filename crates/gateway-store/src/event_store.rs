@@ -616,7 +616,8 @@ impl SqliteEventStore {
             SELECT u.request_id,
             (SELECT r.payload_json FROM gateway_event_log r WHERE r.event_type='request' AND r.request_id=u.request_id AND r.event_ordinal<=?1 LIMIT 1) AS r,
             (SELECT a.payload_json FROM gateway_event_log a WHERE a.event_type='attempt' AND a.request_id=u.request_id AND a.event_ordinal<=?1 AND (json_extract(u.payload_json,'$.usage.attempt_id') IS NULL OR a.event_id=json_extract(u.payload_json,'$.usage.attempt_id')) ORDER BY json_extract(a.payload_json, '$.attempt.attempt_number') DESC LIMIT 1) AS a,
-            MIN(u.payload_json) AS u, COUNT(DISTINCT u.payload_json) AS usage_count, COUNT(*) AS usage_events
+            MIN(u.payload_json) AS u, COUNT(DISTINCT u.payload_json) AS usage_count, COUNT(*) AS usage_events,
+            MAX(json_extract(u.payload_json,'$.usage.attempt_id') IS NULL) AS unknown_attempt
             FROM gateway_event_log u WHERE u.event_type='usage' AND u.event_ordinal<=?1
             GROUP BY u.request_id, CASE WHEN EXISTS (
                 SELECT 1 FROM gateway_event_log legacy WHERE legacy.event_type='usage'
@@ -624,7 +625,7 @@ impl SqliteEventStore {
                 AND json_extract(legacy.payload_json,'$.usage.attempt_id') IS NULL
             ) THEN NULL ELSE json_extract(u.payload_json,'$.usage.attempt_id') END
         ), projected AS (
-            SELECT request_id,r,a,u,usage_count,usage_events,
+            SELECT request_id,r,a,u,usage_count,usage_events,unknown_attempt,
             json_extract(a,'$.attempt.ended_at_ms') AS observed,
             json_extract(a,'$.attempt.upstream_id') AS provider,
             json_extract(a,'$.attempt.endpoint_id') AS channel,
@@ -677,6 +678,7 @@ impl SqliteEventStore {
             // excluded payload so damaged history cannot be silently reclassified as partial.
             let mut statement = transaction.prepare(&format!("{cte} SELECT f.r,f.a,e.payload_json FROM filtered f
                 JOIN gateway_event_log e ON e.request_id=f.request_id AND e.event_type='usage' AND e.event_ordinal<=?1
+                AND (f.unknown_attempt OR json_extract(e.payload_json,'$.usage.attempt_id')=json_extract(f.u,'$.usage.attempt_id'))
                 WHERE f.usage_count>1"))?;
             let mut rows = statement.query(rusqlite::params![
                 snapshot.unwrap_or(0),
@@ -1842,6 +1844,78 @@ mod tests {
         assert!(
             store
                 .visit_usage_lineages(&partial_query, |_, _, _| Ok(true))
+                .is_err()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn partial_usage_conflict_cannot_invalidate_another_explicit_attempt() -> TestResult {
+        let (request_id, mut events) = sample_events()?;
+        let GatewayEvent::Attempt(first_attempt) = &events[1] else {
+            return Err("first attempt".into());
+        };
+        let first_id = first_attempt.attempt_id().clone();
+        let GatewayEvent::Usage(first_usage) = &events[2] else {
+            return Err("first usage".into());
+        };
+        events[2] = GatewayEvent::Usage(first_usage.clone().with_attempt_id(first_id.clone()));
+        let mut store = SqliteEventStore::open_in_memory()?;
+        store.append_batch(&events)?;
+        let GatewayEvent::Usage(conflict) =
+            usage_event(request_id.as_str(), "historical-conflict", 7)?
+        else {
+            return Err("conflict".into());
+        };
+        // This legitimate old ResponseId identity represents conflicting historical
+        // observations; current append rejects them instead of mutating original rows.
+        store.connection.execute(
+            "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage',?1,?2,?3)",
+            rusqlite::params!["historical-conflict", request_id.as_str(), serde_json::to_string(&GatewayEvent::Usage(conflict.with_attempt_id(first_id)))?],
+        )?;
+        let second = AttemptEvent::new(
+            request_id.clone(),
+            2,
+            RouteId::try_new("route-01")?,
+            RouteCandidateId::try_new("candidate-02")?,
+            CredentialId::try_new("credential-02")?,
+            EndpointId::try_new("endpoint-02")?,
+            UpstreamId::try_new("upstream-02")?,
+            "internal-model".to_owned(),
+            30,
+            40,
+            AttemptOutcome::Succeeded,
+            AttemptRetryDecision::Completed,
+        );
+        let GatewayEvent::Usage(healthy) = usage_event(request_id.as_str(), "healthy-second", 9)?
+        else {
+            return Err("second usage".into());
+        };
+        let second_id = second.attempt_id().clone();
+        store.append_batch(&[
+            GatewayEvent::Attempt(second),
+            GatewayEvent::Usage(healthy.with_attempt_id(second_id.clone())),
+        ])?;
+        let mut observed = 0;
+        let metadata = store.visit_usage_lineages(
+            &super::UsageEventQuery {
+                allow_partial: true,
+                ..Default::default()
+            },
+            |request, attempt, usage| {
+                assert_eq!(request.request_id(), &request_id);
+                assert_eq!(attempt.attempt_id(), &second_id);
+                assert_eq!(usage.usage().input_tokens, Some(9));
+                observed += 1;
+                Ok(true)
+            },
+        )?;
+        assert_eq!(observed, 1);
+        assert_eq!(metadata.excluded_usage_events, 2);
+        assert_eq!(metadata.excluded_request_groups, 1);
+        assert!(
+            store
+                .visit_usage_lineages(&super::UsageEventQuery::default(), |_, _, _| Ok(true))
                 .is_err()
         );
         Ok(())

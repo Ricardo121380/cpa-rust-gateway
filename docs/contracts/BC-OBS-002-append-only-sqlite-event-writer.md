@@ -120,6 +120,7 @@ Each such event increments `diagnostics_not_persisted`; it is not included in
 - `failed_attempt_usage_stays_separate_from_a_usable_fallback`
 - `explicit_attempt_usage_counts_one_request_and_two_observations`
 - `legacy_request_usage_identity_keeps_exact_ownership_without_enrichment`
+- `partial_usage_conflict_cannot_invalidate_another_explicit_attempt`
 - `cargo test --locked -p gateway-core -p gateway-observability -p gateway-store`
 - `cargo clippy --locked -p gateway-core -p gateway-observability -p gateway-store --all-targets --all-features -- -D warnings`
 - `./scripts/check.sh full`
