@@ -1,0 +1,3 @@
+{
+  "output": "   Compiling gateway-store v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-store)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.65s\n     Running unittests src/lib.rs (target/debug/deps/gateway_store-20bfda2fb3505020)\n\nrunning 1 test\nError: InvalidPersistedGatewayEvent\ntest event_store::tests::partial_usage_conflict_cannot_invalidate_another_explicit_attempt ... FAILED\n\nfailures:\n\nfailures:\n    event_store::tests::partial_usage_conflict_cannot_invalidate_another_explicit_attempt\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 107 filtered out; finished in 0.04s\n\nerror: test failed, to rerun pass `-p gateway-store --lib`\n"
+}

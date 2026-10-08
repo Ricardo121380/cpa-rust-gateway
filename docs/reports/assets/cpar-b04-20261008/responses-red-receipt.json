@@ -1,0 +1,42 @@
+{
+  "name": "responses-red",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "execution_head": "08812db2373583b8a725b80071efe75b69f9d7ae",
+  "head_after": "08812db2373583b8a725b80071efe75b69f9d7ae",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway",
+    "bootstrap_failure_preserves_responses_usage",
+    "--all-features",
+    "--",
+    "--nocapture"
+  ],
+  "started_utc": "2026-10-08T10:09:51.779624+00:00",
+  "ended_utc": "2026-10-08T10:10:03.454167+00:00",
+  "duration_seconds": 11.64,
+  "exit_code": 101,
+  "workspace_before": "M AGENTS.md\n M apps/gateway/src/runtime.rs\n M apps/gateway/src/runtime/batch_c.rs\n M apps/gateway/src/runtime/batch_c/http.rs\n?? .codegraph/\n?? .playwright-cli/page-2026-09-09T15-11-35-207Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-21-007Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-22-868Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-52-550Z.yml\n?? .playwright-cli/page-2026-09-09T15-15-12-102Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-14-153Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-20-179Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-11-667Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-18-576Z.yml\n?? .playwright-cli/page-2026-09-09T16-02-31-272Z.yml\n?? .playwright-cli/page-2026-09-09T16-03-38-495Z.yml\n?? .playwright-cli/page-2026-09-09T16-04-22-789Z.yml\n?? .playwright-cli/page-2026-09-09T16-06-19-180Z.yml\n?? .playwright-cli/page-2026-09-09T16-07-25-850Z.yml\n?? .playwright-cli/page-2026-09-09T16-08-28-006Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-39-777Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-41-755Z.yml\n?? .playwright-cli/page-2026-09-09T16-10-44-249Z.yml\n?? .playwright-cli/page-2026-09-10T02-36-28-972Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-28-129Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-30-529Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-45-615Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-58-130Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-07-623Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-19-639Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-34-386Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-49-778Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-45-554Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-46-813Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-07-207Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-22-419Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-33-776Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-02-795Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-21-769Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-44-731Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-09-459Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-26-485Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-42-948Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-06-054Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-23-273Z.yml\n?? CONTEXT.md\n?? apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs\n?? docs/agents/\n?? docs/design/prism-opendesign-v2.html\n?? docs/handoffs/prism-opendesign-v2.md\n?? docs/reports/assets/cpar-b04-20261008/\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-light-final.png\n?? docs/reports/assets/prism-v2-density-20260923/layout.json\n?? output/\n?? scripts/.tmp-chatgpt-go-live-test.py\n?? scripts/p12-06-enter-codex-bridge-graph.py\n?? scripts/p12-06-rotate-kiro-credential.py\n?? scripts/test-p12-06-enter-codex-bridge-graph.py\n?? test-results/",
+  "workspace_after": "M AGENTS.md\n M apps/gateway/src/runtime.rs\n M apps/gateway/src/runtime/batch_c.rs\n M apps/gateway/src/runtime/batch_c/http.rs\n?? .codegraph/\n?? .playwright-cli/page-2026-09-09T15-11-35-207Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-21-007Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-22-868Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-52-550Z.yml\n?? .playwright-cli/page-2026-09-09T15-15-12-102Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-14-153Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-20-179Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-11-667Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-18-576Z.yml\n?? .playwright-cli/page-2026-09-09T16-02-31-272Z.yml\n?? .playwright-cli/page-2026-09-09T16-03-38-495Z.yml\n?? .playwright-cli/page-2026-09-09T16-04-22-789Z.yml\n?? .playwright-cli/page-2026-09-09T16-06-19-180Z.yml\n?? .playwright-cli/page-2026-09-09T16-07-25-850Z.yml\n?? .playwright-cli/page-2026-09-09T16-08-28-006Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-39-777Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-41-755Z.yml\n?? .playwright-cli/page-2026-09-09T16-10-44-249Z.yml\n?? .playwright-cli/page-2026-09-10T02-36-28-972Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-28-129Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-30-529Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-45-615Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-58-130Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-07-623Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-19-639Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-34-386Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-49-778Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-45-554Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-46-813Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-07-207Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-22-419Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-33-776Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-02-795Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-21-769Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-44-731Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-09-459Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-26-485Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-42-948Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-06-054Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-23-273Z.yml\n?? CONTEXT.md\n?? apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs\n?? docs/agents/\n?? docs/design/prism-opendesign-v2.html\n?? docs/handoffs/prism-opendesign-v2.md\n?? docs/reports/assets/cpar-b04-20261008/\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-light-final.png\n?? docs/reports/assets/prism-v2-density-20260923/layout.json\n?? output/\n?? scripts/.tmp-chatgpt-go-live-test.py\n?? scripts/p12-06-enter-codex-bridge-graph.py\n?? scripts/p12-06-rotate-kiro-credential.py\n?? scripts/test-p12-06-enter-codex-bridge-graph.py\n?? test-results/",
+  "input_hashes": {
+    "apps/gateway/src/runtime.rs": "c917efea721de23bb9920cbd2a3bed014ae9cc16aa71feedf3dbe7e909478309",
+    "apps/gateway/src/runtime/batch_c.rs": "44e4ae1d871d772a3fb375c4553a738d8e87ec5957956765915a3283b4ef0858",
+    "apps/gateway/src/runtime/batch_c/http.rs": "f447d19482da4b44cb277334f4477a304064118aaabb0497441aa856c2a8121f",
+    "apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs": "093f1136bb021579ced00ba2f3af95590970b8b57adc13120e7c7bb9627823fc"
+  },
+  "output_sha256": "572bd01cc38aaaa1da71c429a5854716992a4ec42f63deeb7bd22a87f7f48102",
+  "test_totals": {
+    "passed": 0,
+    "failed": 1,
+    "ignored": 0
+  },
+  "test_summaries": [
+    [
+      0,
+      1,
+      0
+    ]
+  ]
+}

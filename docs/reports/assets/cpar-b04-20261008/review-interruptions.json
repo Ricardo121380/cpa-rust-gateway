@@ -1,0 +1,41 @@
+{
+  "entries": [
+    {
+      "agent": "/root/b04_standards_review",
+      "axis": "Standards",
+      "status": "INTERRUPTED",
+      "target": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+      "reason": "no terminal after one collection request; no PASS claimed"
+    },
+    {
+      "agent": "/root/b04_spec_review",
+      "axis": "Spec",
+      "status": "INTERRUPTED",
+      "target": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+      "reason": "no terminal after one collection request; no PASS claimed"
+    },
+    {
+      "agent": "/root/b04_spec_persistence",
+      "axis": "Spec persistence",
+      "status": "INTERRUPTED",
+      "target": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+      "reason": "no terminal after one collection request; replaced with narrower Store/control scopes"
+    },
+    {
+      "agent": "/root/b04_closeout_standards",
+      "axis": "Standards docs increment",
+      "status": "INTERRUPTED",
+      "target": "062f8281279b9bc6a0dc36b2859120e26e5f85dd + staged closeout",
+      "recorded_utc": "2026-10-08T11:44:33.560389+00:00",
+      "reason": "no terminal after one collection request; no PASS claimed; replacement restricted to authored report documents"
+    },
+    {
+      "agent": "/root/b04_closeout_spec",
+      "axis": "Spec docs increment",
+      "status": "INTERRUPTED",
+      "target": "062f8281279b9bc6a0dc36b2859120e26e5f85dd + staged closeout",
+      "recorded_utc": "2026-10-08T11:44:33.560389+00:00",
+      "reason": "no terminal after one collection request; no PASS claimed; replacement restricted to authored report documents"
+    }
+  ]
+}

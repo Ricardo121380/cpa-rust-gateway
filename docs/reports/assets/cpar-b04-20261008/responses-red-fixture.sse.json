@@ -1,0 +1,7 @@
+{
+  "original_path": "responses-red-fixture.sse",
+  "encoding": "UTF-8",
+  "byte_length": 259,
+  "original_sha256": "2e09472b05f8c9619c706a667ee3a1a8e82b2a52842c80abe7ce0412e5cc5863",
+  "content": "event: response.created\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"resp-b04\",\"object\":\"response\",\"status\":\"in_progress\",\"output\":[],\"usage\":{\"input_tokens\":20,\"input_tokens_details\":{\"cached_tokens\":5}}}}\n\nevent: response.in_progress\ndata: malformed\n\n"
+}

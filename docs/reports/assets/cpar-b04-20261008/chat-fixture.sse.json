@@ -1,0 +1,7 @@
+{
+  "original_path": "chat-fixture.sse",
+  "encoding": "UTF-8",
+  "byte_length": 516,
+  "original_sha256": "06fca9bb979a9a8f5bc0cab38c7381c9018057f2e85611a58cdafd59bf223d55",
+  "content": "data: {\"id\":\"chat-b04\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"ok\"},\"finish_reason\":null}]}\n\ndata: {\"id\":\"chat-b04\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: {\"id\":\"chat-b04\",\"object\":\"chat.completion.chunk\",\"choices\":[],\"usage\":{\"prompt_tokens\":20,\"completion_tokens\":10,\"total_tokens\":30,\"prompt_tokens_details\":{\"cached_tokens\":5},\"completion_tokens_details\":{\"reasoning_tokens\":3}}}\n\ndata: malformed\n\n"
+}

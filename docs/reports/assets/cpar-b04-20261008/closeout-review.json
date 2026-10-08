@@ -1,0 +1,29 @@
+{
+  "status": {
+    "Standards": "PASS",
+    "Spec": "PASS"
+  },
+  "source_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+  "authored_files_sha256": {
+    "docs/reports/cpar-b04-bootstrap-usage-20261008.md": "08379a88c604f75428f6924ef7eda5bca04acaed7c08243ee3feabf3337a39d0",
+    "docs/reports/assets/cpar-b04-20261008/task-card.md": "419798eccd716f8fff7bcffdc5a241c35634d18a432bc4eca329729e657de0a0",
+    "docs/traceability.md": "777f95cfbcc706123d419410420193477b08ba27f14ee8f5bb186ebbd9a8abe4",
+    "docs/reports/assets/cpar-b04-20261008/issue-57-evidence.md": "832d6cf972d7c84a2f6f3b955746b3dda2ad9809cf18fad75f837e09e490da81"
+  },
+  "Spec_selected_JSON_sha256": {
+    "verification.json": "334ba65e89b2a8adc803ba09f9741ef1d6acf8f0827fdba970d9eb7de4b6aae2",
+    "full-receipt.json": "343ab38cf0bf92b7f2372d5bbbd1ba5f519ab861c01578fe1b36fc0af94d509d",
+    "public-behavior.json": "f5f3df5e6f3fd20216f86f1c3ad7ac865ae87f3160a398c9dc8a4db5fe02ff7e",
+    "review-coverage.json": "c3f122b8cbf68bbd68d277b425e74df5dded1b378a54998afbab2bbf3db01c8b",
+    "source-binding.json": "b2ba23fd22825bffe9b52d8d9e2b6ba57621fa143405046872b71bae4682addb",
+    "final-source-binding.json": "441f0cf69eabaa140a47e27ff172f0378a3dea8fe751996a1f39f0301bef74d6"
+  },
+  "reviewers": {
+    "Standards": "/root/b04_docs_standards_final",
+    "Spec": "/root/b04_docs_spec_final"
+  },
+  "generated_raw_outputs": "not independently full-text reviewed; main static/hash checks",
+  "follow_up_metadata": "main static verification only",
+  "record": "closeout-review.md",
+  "findings": 0
+}

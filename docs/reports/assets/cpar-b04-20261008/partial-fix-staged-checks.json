@@ -1,0 +1,14 @@
+{
+  "whitespace": {
+    "exit_code": 0,
+    "output": ""
+  },
+  "secrets": {
+    "exit_code": 0,
+    "output": "secret-scan: ok (--staged)\n"
+  },
+  "staged_files": [
+    "crates/gateway-store/src/event_store.rs",
+    "docs/contracts/BC-OBS-002-append-only-sqlite-event-writer.md"
+  ]
+}

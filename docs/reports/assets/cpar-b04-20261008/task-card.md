@@ -1,6 +1,6 @@
 # Task card: release-readiness B-04 / P2
 
-Status: IN_PROGRESS. Fixed base: `08812db2373583b8a725b80071efe75b69f9d7ae`.
+Status: RESOLVED_LOCAL. Final source: `062f8281279b9bc6a0dc36b2859120e26e5f85dd`. Fixed base: `08812db2373583b8a725b80071efe75b69f9d7ae`.
 Branch: `codex/prism-v4-delivery`. This finding is neither CPAR-04 nor all of #32.
 B-03 accepted source remains `5e51f5f170a01b813631824b004eb2fcbf190201`.
 
@@ -54,3 +54,25 @@ where required for exact failed-attempt Usage. Persisted identity changes requir
 Forbidden: real Provider/account inference, production credentials or environment,
 deployment, publish, push, GitHub writes/closure; other A/B/S/E/O repairs. Preserve
 original AGENTS.md and unrelated untracked material. Overall release stays BLOCKED.
+
+
+## Recorded completion evidence
+
+- Actual implementation commit: `42fae997ef7c82f7e611e97f22da8b5a79634233`.
+- Standards traceability correction: `640f4a188336326b58c85266182d8faabad5d725`.
+- Spec historical partial-lineage correction/final source: `062f8281279b9bc6a0dc36b2859120e26e5f85dd`.
+- Directed 949/0/8 and Store correction 9/0/0 retain their original dirty HEAD/file hashes.
+- Full final source: 45/45, exit 0, 1487 passed / 0 failed / 12 ignored; clean checkout before/after.
+- Standards PASS and Spec PASS, all 26 source-diff files via complete scoped reviews and final blob proof.
+- The initial L/numeric-budget omission remains a process deviation. Five interrupted review rounds are not PASS.
+- Actual retained receipts, manual-Store versus real async-path boundary, and public protocol results are in verification.json.
+
+Recorded timestamps are UTC. Earliest timestamped receipt starts 2026-10-08T10:09:51.779624Z;
+Full ends 2026-10-08T11:27:20.214834Z, a recorded span of 77.474 minutes through Full.
+This is elapsed recorded span, not a measurement of hands-on work; initial exploration and final
+artifact closeout fall outside that interval. Source commit times: implementation 18:47:42+08:00,
+Standards correction 19:05:06+08:00, final source 19:13:11+08:00. Review corrections were necessary;
+no budget limit was used to skip required work. Final closeout elapsed span is recorded separately.
+
+Artifact closeout checkpoint UTC 2026-10-08T11:44:33.560389+00:00: recorded elapsed span from the earliest receipt
+is 94.696 min. This is a checkpoint, not final wall time or a retroactive initial budget record.

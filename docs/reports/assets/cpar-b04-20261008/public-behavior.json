@@ -1,0 +1,141 @@
+{
+  "scope": "B-04 / P2 release-readiness, local synthetic public gateway path",
+  "gateway_surface": "Actix public gateway service in-process; upstream is real TCP loopback, management test facade calls production read-only functions",
+  "actual_read_assertion": "cfg(test) captures actual bytes given to decoder; full first-read byte equality asserted, single TCP write is not treated as proof",
+  "protocols": {
+    "Chat": {
+      "affected": true,
+      "first_read_bytes": 516,
+      "original_status": 502,
+      "error": "StreamTruncated",
+      "request_outcome": "Failed",
+      "attempt_outcome": "Failed",
+      "retry_decision": "RetryEligible under existing policy; no extra send for Usage",
+      "known_source_counters": {
+        "input_tokens": 20,
+        "output_tokens": 10,
+        "cached_tokens": 5,
+        "reasoning_tokens": 3,
+        "cache_read_tokens": null,
+        "cache_creation_tokens": null
+      },
+      "provenance": "Measured",
+      "input_accounting": "Inclusive"
+    },
+    "Responses": {
+      "affected": true,
+      "first_read_bytes": 259,
+      "original_status": 502,
+      "error": "UpstreamProtocolError",
+      "request_outcome": "Failed",
+      "attempt_outcome": "Failed",
+      "retry_decision": "NonRetryable",
+      "known_source_counters": {
+        "input_tokens": 20,
+        "output_tokens": null,
+        "cached_tokens": 5,
+        "reasoning_tokens": null,
+        "cache_read_tokens": null,
+        "cache_creation_tokens": null
+      },
+      "provenance": "Measured",
+      "input_accounting": "Inclusive"
+    },
+    "Messages": {
+      "affected_by_same_bootstrap_window": false,
+      "first_read_bytes": 340,
+      "http_status": 200,
+      "post_handoff_error": "UpstreamProtocolError SSE error",
+      "request_outcome": "Failed",
+      "attempt_outcome": "Succeeded means existing successful source handoff, not successful Request completion",
+      "known_source_counters": {
+        "input_tokens": 11,
+        "output_tokens": null,
+        "cached_tokens": null,
+        "reasoning_tokens": null,
+        "cache_read_tokens": 5,
+        "cache_creation_tokens": 2
+      },
+      "provenance": "Measured",
+      "input_accounting": "Exclusive",
+      "initial_output_zero_is_placeholder": true
+    }
+  },
+  "snapshots": {
+    "first_input_tokens": 20,
+    "latest_input_tokens": 22,
+    "latest_output_tokens": 10,
+    "latest_cached_tokens": 7,
+    "latest_reasoning_tokens": 3,
+    "input_was_not_summed": 42,
+    "request_outcome": "Failed",
+    "success_completed_or_stored_or_continuation_root": false
+  },
+  "duplicate_confirmation": {
+    "required_events_committed": 5,
+    "rows_inserted": 4,
+    "required_events_quarantined": 0,
+    "usage_rows": 1,
+    "ledger_rows": 1
+  },
+  "legal_fallback": {
+    "Chat": {
+      "usable_candidates": 2,
+      "first_received": 1,
+      "first_handoff": 1,
+      "fallback_received": 1,
+      "fallback_handoff": 1,
+      "first_failed_usage": {
+        "input_tokens": 20,
+        "output_tokens": 10,
+        "cached_tokens": 5,
+        "reasoning_tokens": 3
+      },
+      "second_succeeded_usage": {
+        "input_tokens": 3,
+        "output_tokens": 4,
+        "cached_tokens": null,
+        "reasoning_tokens": null
+      },
+      "same_upstream_response_id": true,
+      "distinct_usage_source_ids": 2,
+      "ledger_rows": 2
+    },
+    "Responses_explicit_protocol_error": {
+      "usable_candidates": 2,
+      "first_received": 1,
+      "first_handoff": 1,
+      "fallback_received": 0,
+      "fallback_handoff": 0,
+      "usage_rows": 1,
+      "request_outcome": "Failed"
+    },
+    "Responses_transport_EOF": "Existing B-03 usable-fallback positive regression retained in batch-c/Full; not proof from retry budget=1"
+  },
+  "persistence_path": [
+    "public gateway HTTP service",
+    "runtime decoder/source bootstrap",
+    "EndpointAttemptDriver",
+    "Attempt orchestrator confirms exact failed Attempt then Usage",
+    "P12 EventSink fanout",
+    "BoundedEventQueue",
+    "AsyncSqliteEventWriter confirmed SQLite transaction",
+    "production BillingWorker",
+    "Store Usage lineage and billing ledger",
+    "protected HTTP facade calling production read-only readers"
+  ],
+  "excluded_claims": [
+    "whole production composition",
+    "real gateway process restart with new B-04 records",
+    "real Provider inference",
+    "remote CI",
+    "new release artifact",
+    "production acceptance"
+  ],
+  "cost": {
+    "cost_microunits": null,
+    "cost_confidence": "Unpriced",
+    "missing_counters_are_unknown": true
+  },
+  "evidence": "protected-protocols-green-receipt.json and output; final source Full executes the same tests"
+}

@@ -1,0 +1,58 @@
+{
+  "whitespace": {
+    "exit_code": 0,
+    "output": ""
+  },
+  "secrets": {
+    "exit_code": 0,
+    "output": "secret-scan: ok (--staged)\n"
+  },
+  "staged_files": [
+    "apps/gateway/src/runtime.rs",
+    "apps/gateway/src/runtime/batch_c.rs",
+    "apps/gateway/src/runtime/batch_c/http.rs",
+    "apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs",
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs",
+    "apps/gateway/src/runtime/execution_identity.rs",
+    "crates/gateway-control/src/billing_materializer.rs",
+    "crates/gateway-control/src/management_operations_service.rs",
+    "crates/gateway-router/src/attempt_orchestrator.rs",
+    "crates/gateway-store/src/billing_ledger.rs",
+    "crates/gateway-store/src/event_store.rs",
+    "crates/protocol-openai-chat/src/upstream_response.rs",
+    "crates/protocol-openai-responses/src/upstream_response.rs",
+    "docs/adr/ADR-0103-failed-bootstrap-usage-attribution.md",
+    "docs/adr/README.md",
+    "docs/contracts/BC-MGMT-010-durable-usage-cost-operations.md",
+    "docs/contracts/BC-MGMT-012-billing-materialization-read-model.md",
+    "docs/contracts/BC-OBS-001-bounded-request-attempt-usage-events.md",
+    "docs/contracts/BC-OBS-002-append-only-sqlite-event-writer.md",
+    "docs/reports/assets/cpar-b04-20261008/task-card.md",
+    "docs/reports/cpar-b04-bootstrap-usage-20261008.md"
+  ],
+  "staged_blob_sha256": {
+    "apps/gateway/src/runtime.rs": "881d79eaf74e1ff0121d92cf359e4a97267d66ab08728ab2ddc35bfabd767787",
+    "apps/gateway/src/runtime/batch_c.rs": "44e4ae1d871d772a3fb375c4553a738d8e87ec5957956765915a3283b4ef0858",
+    "apps/gateway/src/runtime/batch_c/http.rs": "f447d19482da4b44cb277334f4477a304064118aaabb0497441aa856c2a8121f",
+    "apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs": "5a98ab18b3ebc6d902830da17dae1ac458b9ee9066f70605c0ce7f5fe09d77ab",
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "f852c064310f10aa20c79fb64cc28d9f469d25012723e15846cff968ee51e175",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": "3d23d0d40d66dec634a03b986f5209bbd983f19ee2c03ae32ee0b27a518fe453",
+    "apps/gateway/src/runtime/execution_identity.rs": "2a291c531615996f837c40d42ff11b9ea5878095843b6b85ff3e09c2b9c93eed",
+    "crates/gateway-control/src/billing_materializer.rs": "cdca43388147c713025c39a033ac963d5658c085671d89589b009efd042c6131",
+    "crates/gateway-control/src/management_operations_service.rs": "e7330d5bafa110a739ed00b56f60f4f0db4d3fa0543509a855efc6d30f75631a",
+    "crates/gateway-router/src/attempt_orchestrator.rs": "40f52010dbee3546cd7694955010725d3995e00c5cd9f782619b26edbae11a04",
+    "crates/gateway-store/src/billing_ledger.rs": "05e80033ba2ffed80962ca8ff2c16e335ae927465c8132b2f29e27dd19c6e773",
+    "crates/gateway-store/src/event_store.rs": "c5a74a1e095c9cc9a404e14d2eabb6b5c462e4d8fb158710cd753688e7249ebd",
+    "crates/protocol-openai-chat/src/upstream_response.rs": "937674de12676b32c1ba645a87ef9fa69ca632b18b8ff163bbd443ca038ec536",
+    "crates/protocol-openai-responses/src/upstream_response.rs": "9fe9c586a789ee8464336bb1971913ddc0589690d11da55c61ff5f4ef4388f63",
+    "docs/adr/ADR-0103-failed-bootstrap-usage-attribution.md": "dd6df6bb978b14a2c27f06037061ee580834c8b6e3a791b3331372abc1ecdc6b",
+    "docs/adr/README.md": "4b53b68b149cc770dbbb86efdb4f09649f6e7af1adc7e8e403913037e6916660",
+    "docs/contracts/BC-MGMT-010-durable-usage-cost-operations.md": "805234e6676a2b02b5da01e8098db1048ff51535b6741e3797bb79ee8a27bae4",
+    "docs/contracts/BC-MGMT-012-billing-materialization-read-model.md": "95f3208191a22df3fae98d3324433a8adea625a53dfbb2bf42577e31e5dc99e7",
+    "docs/contracts/BC-OBS-001-bounded-request-attempt-usage-events.md": "4cf7c79a0f2582cbdc7cd905bc049bb6ec5a5a85e06a687feb5982e9b36b6171",
+    "docs/contracts/BC-OBS-002-append-only-sqlite-event-writer.md": "186031ecbb8444130c8ded2bc2499536f55e490b6213d0b9236c8a7ac8951bf7",
+    "docs/reports/assets/cpar-b04-20261008/task-card.md": "a3ec30993db5a633261fe17398dbe33d13cf7bb44e738968d2d53a3772594b5a",
+    "docs/reports/cpar-b04-bootstrap-usage-20261008.md": "de67c31e142bbf2bf73cc674aba135ca8289070b0239130c1fb262c85dfb8b47"
+  }
+}

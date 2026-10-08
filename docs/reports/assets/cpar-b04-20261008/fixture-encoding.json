@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "purpose": "Git whitespace rejects valid SSE separators/patch context as added raw text; JSON preserves exact bytes without modifying protocol fixture or weakening checks",
+  "historical_bindings": "Existing fixture SHA and raw filenames refer to captured original bytes; saved_path mapping supplies reversible current representation",
+  "entries": [
+    {
+      "original_path": "chat-fixture.sse",
+      "saved_path": "chat-fixture.sse.json",
+      "original_sha256": "06fca9bb979a9a8f5bc0cab38c7381c9018057f2e85611a58cdafd59bf223d55",
+      "decoded_length": 516,
+      "decoded_equals_original": true
+    },
+    {
+      "original_path": "responses-fixture.sse",
+      "saved_path": "responses-fixture.sse.json",
+      "original_sha256": "2e09472b05f8c9619c706a667ee3a1a8e82b2a52842c80abe7ce0412e5cc5863",
+      "decoded_length": 259,
+      "decoded_equals_original": true
+    },
+    {
+      "original_path": "responses-red-fixture.sse",
+      "saved_path": "responses-red-fixture.sse.json",
+      "original_sha256": "2e09472b05f8c9619c706a667ee3a1a8e82b2a52842c80abe7ce0412e5cc5863",
+      "decoded_length": 259,
+      "decoded_equals_original": true
+    },
+    {
+      "original_path": "responses-red-harness.patch",
+      "saved_path": "responses-red-harness.patch.json",
+      "original_sha256": "82f380195aed6b78d3e05ddc61b257f1ce93ff99b9f37ee75a1fd08d4c433462",
+      "decoded_length": 13610,
+      "decoded_equals_original": true
+    }
+  ]
+}

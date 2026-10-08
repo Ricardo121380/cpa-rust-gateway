@@ -1,0 +1,8 @@
+{
+  "execution_head": "08812db2373583b8a725b80071efe75b69f9d7ae",
+  "phase": "Chat behavioral RED; Responses fix was already dirty, Chat begin unchanged except cfg(test) read instrumentation",
+  "receipt": "chat-red-receipt.json",
+  "fixture": "chat-fixture.sse",
+  "fixture_sha256": "06fca9bb979a9a8f5bc0cab38c7381c9018057f2e85611a58cdafd59bf223d55",
+  "input_hashes_are_authoritative": true
+}

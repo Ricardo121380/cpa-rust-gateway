@@ -1,0 +1,10 @@
+{
+  "command": "cargo fmt --all && CARGO_NET_OFFLINE=true cargo test --locked -p gateway bootstrap_failure_preserves_responses_usage --all-features -- --nocapture",
+  "execution_head": "08812db2373583b8a725b80071efe75b69f9d7ae",
+  "phase": "harness compile, not behavioral RED",
+  "chunk_id": "8cfccf",
+  "wall_time_seconds": 0.000008041,
+  "exit_code": 101,
+  "original_token_count": 166,
+  "output": "   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)\nerror[E0432]: unresolved import `gateway_core::UsageInputAccounting`\n --> apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs:3:52\n  |\n3 | use gateway_core::{AttemptOutcome, RequestOutcome, UsageInputAccounting, UsageProvenance};\n  |                                                    ^^^^^^^^^^^^^^^^^^^^ no `UsageInputAccounting` in the root\n\nFor more information about this error, try `rustc --explain E0432`.\nerror: could not compile `gateway` (bin \"gateway\" test) due to 1 previous error\nwarning: build failed, waiting for other jobs to finish...\n"
+}

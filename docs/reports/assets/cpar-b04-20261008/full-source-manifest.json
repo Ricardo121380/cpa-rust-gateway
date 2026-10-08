@@ -1,0 +1,33 @@
+{
+  "checked_utc": "2026-10-08T11:28:33.033460+00:00",
+  "source_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+  "git_tree": "73a8a0d9306d1531019fd71873cca404a1417de6",
+  "checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/b04-20261008-validation",
+  "receipt": "full-receipt.json",
+  "checkout_clean_before": true,
+  "checkout_clean_after": true,
+  "checkout_clean_rechecked": true,
+  "source_sha256": {
+    "apps/gateway/src/runtime.rs": "881d79eaf74e1ff0121d92cf359e4a97267d66ab08728ab2ddc35bfabd767787",
+    "apps/gateway/src/runtime/batch_c.rs": "44e4ae1d871d772a3fb375c4553a738d8e87ec5957956765915a3283b4ef0858",
+    "apps/gateway/src/runtime/batch_c/http.rs": "f447d19482da4b44cb277334f4477a304064118aaabb0497441aa856c2a8121f",
+    "apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs": "5a98ab18b3ebc6d902830da17dae1ac458b9ee9066f70605c0ce7f5fe09d77ab",
+    "apps/gateway/src/runtime/batch_c/http/responses_done.rs": "f852c064310f10aa20c79fb64cc28d9f469d25012723e15846cff968ee51e175",
+    "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs": "3d23d0d40d66dec634a03b986f5209bbd983f19ee2c03ae32ee0b27a518fe453",
+    "apps/gateway/src/runtime/execution_identity.rs": "2a291c531615996f837c40d42ff11b9ea5878095843b6b85ff3e09c2b9c93eed",
+    "crates/gateway-control/src/billing_materializer.rs": "cdca43388147c713025c39a033ac963d5658c085671d89589b009efd042c6131",
+    "crates/gateway-control/src/management_operations_service.rs": "e7330d5bafa110a739ed00b56f60f4f0db4d3fa0543509a855efc6d30f75631a",
+    "crates/gateway-router/src/attempt_orchestrator.rs": "40f52010dbee3546cd7694955010725d3995e00c5cd9f782619b26edbae11a04",
+    "crates/gateway-store/src/billing_ledger.rs": "05e80033ba2ffed80962ca8ff2c16e335ae927465c8132b2f29e27dd19c6e773",
+    "crates/gateway-store/src/event_store.rs": "a4d96b7a3eb9dac83e53710e47e7ae18a45066f961f0a7eb17f29600bc80c0d1",
+    "crates/protocol-openai-chat/src/upstream_response.rs": "937674de12676b32c1ba645a87ef9fa69ca632b18b8ff163bbd443ca038ec536",
+    "crates/protocol-openai-responses/src/upstream_response.rs": "9fe9c586a789ee8464336bb1971913ddc0589690d11da55c61ff5f4ef4388f63"
+  },
+  "gate_steps": 45,
+  "gate_passed": 45,
+  "gate_failed": 0,
+  "receipt_sha256": "343ab38cf0bf92b7f2372d5bbbd1ba5f519ab861c01578fe1b36fc0af94d509d",
+  "gate_report_sha256": "f8dcf6e0518ee5e8ba00343b70f50b5c7cb3594ef3bb3a837f58c63a3b5d049f",
+  "output_sha256": "0abdc8fa13ef67b07f444958187751c834bf2bb646a2452d5a5423413af4a547",
+  "status": "PASS"
+}

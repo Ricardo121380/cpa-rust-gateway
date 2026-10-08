@@ -1,0 +1,13 @@
+{
+  "initial_head": "08812db2373583b8a725b80071efe75b69f9d7ae",
+  "initial_branch": "codex/prism-v4-delivery",
+  "original_files_checked": 4320,
+  "original_files_changed": [],
+  "excluded_initial_capture_paths": [
+    "output/cpar-b04-20261008/initial-status.txt"
+  ],
+  "AGENTS_original_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "AGENTS_current_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "status": "PASS",
+  "scope": "Preservation only; does not infer clean primary worktree"
+}

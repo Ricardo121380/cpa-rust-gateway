@@ -1,0 +1,14 @@
+{
+  "stage": "final-staged-whitespace",
+  "actual_head": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+  "command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "started_utc": "2026-10-08T11:50:01.773772+00:00",
+  "exit_code": 2,
+  "output": "docs/reports/assets/cpar-b04-20261008/chat-fixture.sse:8: new blank line at EOF.\ndocs/reports/assets/cpar-b04-20261008/responses-fixture.sse:6: new blank line at EOF.\ndocs/reports/assets/cpar-b04-20261008/responses-red-fixture.sse:6: new blank line at EOF.\ndocs/reports/assets/cpar-b04-20261008/responses-red-harness.patch:83: trailing whitespace.\n+ \n",
+  "resolution": "Preserve exact original bytes in JSON encoding, no payload trim or assertion weakening; verify decoded byte length and SHA-256 before replacing task-owned uncommitted raw files."
+}

@@ -1,0 +1,465 @@
+{
+  "fixed_base": "08812db2373583b8a725b80071efe75b69f9d7ae",
+  "final_source_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+  "status": {
+    "Standards": "PASS",
+    "Spec": "PASS"
+  },
+  "coverage_kind": "Union of complete independent scoped reviews with final-delta review and exact Git blob equality; no claim one reviewer read every file in one round",
+  "file_count": 26,
+  "rust_file_count": 14,
+  "docs_file_count": 12,
+  "new_findings": 0,
+  "resolved_findings": [
+    "ADR-0103 missing requirements traceability registration",
+    "partial Usage conflict joined unrelated explicit Attempt on same Request"
+  ],
+  "retained_process_deviation": "Task card classification and numeric budget were not recorded before initial exploration; not retrospectively compliant",
+  "interrupted_rounds": "review-interruptions.json",
+  "review_record": "review-rounds.md",
+  "reviewer_execution": "Read-only static review; tests, clippy, Full and Provider not run by reviewers",
+  "files": [
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "final_git_blob": "8962204225f4a47cbc4b6b163811c9da6a8a1c40",
+      "sha256": "881d79eaf74e1ff0121d92cf359e4a97267d66ab08728ab2ddc35bfabd767787",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c.rs",
+      "final_git_blob": "6826b88f3e01241b6a0beb82f9cb49c007241fe2",
+      "sha256": "44e4ae1d871d772a3fb375c4553a738d8e87ec5957956765915a3283b4ef0858",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/http.rs",
+      "final_git_blob": "6f0cf30b51615c784cdc7fbca61c5fe223d1475d",
+      "sha256": "f447d19482da4b44cb277334f4477a304064118aaabb0497441aa856c2a8121f",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/http/bootstrap_usage.rs",
+      "final_git_blob": "d555409db86d6c9937fb3249cd1756ca72ee8df4",
+      "sha256": "5a98ab18b3ebc6d902830da17dae1ac458b9ee9066f70605c0ce7f5fe09d77ab",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/http/responses_done.rs",
+      "final_git_blob": "7a67543e3f4ae3b79d2b2ff9dc4fae017a83d55e",
+      "sha256": "f852c064310f10aa20c79fb64cc28d9f469d25012723e15846cff968ee51e175",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/http/responses_done/responses_order.rs",
+      "final_git_blob": "fc2f9be48714f152a28eadac54feb05758551624",
+      "sha256": "3d23d0d40d66dec634a03b986f5209bbd983f19ee2c03ae32ee0b27a518fe453",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "apps/gateway/src/runtime/execution_identity.rs",
+      "final_git_blob": "69329713d0da4945fa47703c2b612d4a2a3b1c51",
+      "sha256": "2a291c531615996f837c40d42ff11b9ea5878095843b6b85ff3e09c2b9c93eed",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "crates/gateway-control/src/billing_materializer.rs",
+      "final_git_blob": "4b40424e70e61c134f51c7cc68800c7e07c6a609",
+      "sha256": "cdca43388147c713025c39a033ac963d5658c085671d89589b009efd042c6131",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "crates/gateway-control/src/management_operations_service.rs",
+      "final_git_blob": "99325079b00208ee9a1e1abef1f1819377105aad",
+      "sha256": "e7330d5bafa110a739ed00b56f60f4f0db4d3fa0543509a855efc6d30f75631a",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "crates/gateway-router/src/attempt_orchestrator.rs",
+      "final_git_blob": "564887e79525a4a9e0a589d224789b5646515afd",
+      "sha256": "40f52010dbee3546cd7694955010725d3995e00c5cd9f782619b26edbae11a04",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "crates/gateway-store/src/billing_ledger.rs",
+      "final_git_blob": "c3e66d0b94a4120b26c0790a767e676c132013a3",
+      "sha256": "05e80033ba2ffed80962ca8ff2c16e335ae927465c8132b2f29e27dd19c6e773",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_final_spec_store",
+        "reviewed_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "crates/gateway-store/src/event_store.rs",
+      "final_git_blob": "f3ff2ccd19dd26d5eb6dde250e7521aa78e5cf7d",
+      "sha256": "a4d96b7a3eb9dac83e53710e47e7ae18a45066f961f0a7eb17f29600bc80c0d1",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped + /root/b04_final_standards_delta",
+        "reviewed_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_final_spec_store",
+        "reviewed_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "crates/protocol-openai-chat/src/upstream_response.rs",
+      "final_git_blob": "db3cb2d897c03f4869ff317a68c64bd3d8f5dc3e",
+      "sha256": "937674de12676b32c1ba645a87ef9fa69ca632b18b8ff163bbd443ca038ec536",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "crates/protocol-openai-responses/src/upstream_response.rs",
+      "final_git_blob": "7f6dde81e80bb718ac9611920b7ccde83842bcd9",
+      "sha256": "9fe9c586a789ee8464336bb1971913ddc0589690d11da55c61ff5f4ef4388f63",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_bootstrap",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0027-append-only-bounded-sqlite-event-writer.md",
+      "final_git_blob": "fc40ed0a5f9492d1467be3e353f01b780e34afae",
+      "sha256": "0c809aa9950b17dbce22281ff99b774f64bac32d6fd2277357a19acb8ae5b1e4",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0077-durable-usage-cost-operations-read-model.md",
+      "final_git_blob": "b393f5c8ded8a0121723233820470ebaff9ebace",
+      "sha256": "79493dead9738424326d7bad541bbefd486bb5554266d687b5765e955085dc7e",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0079-billing-materialization-and-read-model.md",
+      "final_git_blob": "24928841792c451da441096be381465d1df72f1e",
+      "sha256": "bf7cd6721623ec5ed67831deb7bf2019dadac27fdd56930906792d645dcc5113",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0103-failed-bootstrap-usage-attribution.md",
+      "final_git_blob": "b012da7cdaf36e155fe2d64e9ff0a681075c67f8",
+      "sha256": "dd6df6bb978b14a2c27f06037061ee580834c8b6e3a791b3331372abc1ecdc6b",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/adr/README.md",
+      "final_git_blob": "1579f3a3326cedbd7a8a7d3bb7b4b278b0f8d98f",
+      "sha256": "4b53b68b149cc770dbbb86efdb4f09649f6e7af1adc7e8e403913037e6916660",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/contracts/BC-MGMT-010-durable-usage-cost-operations.md",
+      "final_git_blob": "897928fabda003047943507dacd9557fc5887fd4",
+      "sha256": "805234e6676a2b02b5da01e8098db1048ff51535b6741e3797bb79ee8a27bae4",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/contracts/BC-MGMT-012-billing-materialization-read-model.md",
+      "final_git_blob": "737a49c79adcfcdf2b766a935619c82282813f9a",
+      "sha256": "95f3208191a22df3fae98d3324433a8adea625a53dfbb2bf42577e31e5dc99e7",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/contracts/BC-OBS-001-bounded-request-attempt-usage-events.md",
+      "final_git_blob": "b3da69dd10d8a627c063bc8640ddfe077b20cddd",
+      "sha256": "4cf7c79a0f2582cbdc7cd905bc049bb6ec5a5a85e06a687feb5982e9b36b6171",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/contracts/BC-OBS-002-append-only-sqlite-event-writer.md",
+      "final_git_blob": "6c9d36086fc95504a01823d72a0905207f1c9411",
+      "sha256": "9f806ddce7ef0a4ebfef8a10cc68b87493f82c3c6116a18df99fc16a5e1d269e",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped + /root/b04_final_standards_delta",
+        "reviewed_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control + /root/b04_final_spec_store",
+        "reviewed_commit": "062f8281279b9bc6a0dc36b2859120e26e5f85dd",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/reports/assets/cpar-b04-20261008/task-card.md",
+      "final_git_blob": "d956a6cb1bdc3163a966b4335b0150285937f999",
+      "sha256": "a3ec30993db5a633261fe17398dbe33d13cf7bb44e738968d2d53a3772594b5a",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/reports/cpar-b04-bootstrap-usage-20261008.md",
+      "final_git_blob": "f70ee260cb6490211c9a36e11c22996b019c2eeb",
+      "sha256": "de67c31e142bbf2bf73cc674aba135ca8289070b0239130c1fb262c85dfb8b47",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_scoped",
+        "reviewed_commit": "42fae997ef7c82f7e611e97f22da8b5a79634233",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    },
+    {
+      "path": "docs/traceability.md",
+      "final_git_blob": "0cb7654c12541ba3a4b479e1e2ed1ca05631a631",
+      "sha256": "90aded2c322110f15083a6b972f8e5bb95e686a69b07d9ea559ceebdc51bd8dd",
+      "standards": {
+        "status": "PASS",
+        "reviewer": "/root/b04_standards_recheck",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      },
+      "spec": {
+        "status": "PASS",
+        "reviewer": "/root/b04_spec_control",
+        "reviewed_commit": "640f4a188336326b58c85266182d8faabad5d725",
+        "final_blob_equal": true
+      }
+    }
+  ]
+}

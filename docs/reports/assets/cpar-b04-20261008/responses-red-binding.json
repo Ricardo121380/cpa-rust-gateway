@@ -1,0 +1,8 @@
+{
+  "base": "08812db2373583b8a725b80071efe75b69f9d7ae",
+  "unchanged_product_behavior": true,
+  "runtime_only_cfg_test_read_capture": true,
+  "receipt": "responses-red-route-fixed-receipt.json",
+  "fixture_sha256": "2e09472b05f8c9619c706a667ee3a1a8e82b2a52842c80abe7ce0412e5cc5863",
+  "harness_sha256": "82f380195aed6b78d3e05ddc61b257f1ce93ff99b9f37ee75a1fd08d4c433462"
+}

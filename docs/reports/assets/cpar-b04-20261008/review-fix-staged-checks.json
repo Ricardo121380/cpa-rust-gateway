@@ -1,0 +1,10 @@
+{
+  "whitespace": {
+    "exit_code": 0,
+    "output": ""
+  },
+  "secrets": {
+    "exit_code": 0,
+    "output": "secret-scan: ok (--staged)\n"
+  }
+}
