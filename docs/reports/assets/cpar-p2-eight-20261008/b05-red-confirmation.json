@@ -1,0 +1,24 @@
+{
+  "binary_sha256": "5be1121564a8559d1694b2db30bb455972b84f55fa71bffb080887569fa3178c",
+  "checks_before_failure": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_stored_write",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_compact_write",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_response_and_compact_active_version_1",
+      "status": "PASS"
+    }
+  ],
+  "startup_error": [
+    "gateway: an option is not valid for serve"
+  ]
+}

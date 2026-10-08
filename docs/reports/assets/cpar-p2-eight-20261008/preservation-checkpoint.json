@@ -1,0 +1,9 @@
+{
+  "baseline": "3e5fe6f5bea803b09f95726c95e6f80b531e11b1",
+  "current": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+  "files_checked": 4324,
+  "changed_or_missing": [],
+  "checked_utc": "2026-10-08T16:02:26.999148+00:00",
+  "input_manifest_sha256": "73f6491c76adbb1754cb2efece327edcc8532ffbff0ccaca0111a29ff62fef02",
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+}

@@ -1,0 +1,232 @@
+{
+  "base": "3e5fe6f5bea803b09f95726c95e6f80b531e11b1",
+  "source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+  "diff_command": "git diff 3e5fe6f5bea803b09f95726c95e6f80b531e11b1...a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+  "files": [
+    {
+      "path": "apps/gateway/src/credential_refresh/ordinary_batch_a.rs",
+      "blob": "7c65a891c746ba3844e3cf4d136b0b2c5e84635c",
+      "sha256": "1bcd22929eea0110e51814293fb69ee09e9b32ca6b615884d639f4bfd4991aa8"
+    },
+    {
+      "path": "apps/gateway/src/deployment.rs",
+      "blob": "0c8c5a081bb2f53418d87d8a1900047c9d5d7e2a",
+      "sha256": "bc7d64adaab3a100ba617593c41f116355562d71523b73f2881cc54dcc665361"
+    },
+    {
+      "path": "apps/gateway/src/main.rs",
+      "blob": "f990ab34ec8c3be0345e37eb2918e58c77089e3f",
+      "sha256": "373e794174db53514516a9485506b95c58f35f6329b84c6768886d773eca90b4"
+    },
+    {
+      "path": "apps/gateway/src/provider_account_pool_adapter.rs",
+      "blob": "192e813fc7e1f3c5054d5559c13a928556059b53",
+      "sha256": "4361d304d7280ae24044e98a707e57ffcbe0e2d657d5e6e24aaebb7c760c2c02"
+    },
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "blob": "1043f3f36794d5dfc145fca02ab885f2993bb683",
+      "sha256": "6693c1fe0c6cf4ead12d018ac1b3a40f7d593201cf26301f6fe24ceec4c5daa5"
+    },
+    {
+      "path": "crates/gateway-control/src/provider_account_pool_service.rs",
+      "blob": "dcf1f08991fdcd63b263d3c4a1a012edb42671e6",
+      "sha256": "dafd163885c4b6cca4488388427941457bd941738be064cb6cb3db3411b5b37a"
+    },
+    {
+      "path": "crates/gateway-http-actix/src/management_resources.rs",
+      "blob": "629030854321ec6cfa556644d47f5d4f9746096c",
+      "sha256": "32b7b97b17dde5f2c3d9eb8cf93da38fd139c3168e4d917453d2f43f031c3bd2"
+    },
+    {
+      "path": "crates/gateway-http-actix/tests/p13_04_management_inventory.rs",
+      "blob": "a06b6a041c0291b95787345370ff493b58fe1951",
+      "sha256": "805ee13d22dc7e762d9730f1c95dc8ad2809118a232f9a1a8f1fb535bb052c07"
+    },
+    {
+      "path": "deploy/systemd/README.md",
+      "blob": "b4cfc7d6df96b10c98efd36189aefc0e1734ece1",
+      "sha256": "c5bf69d6e745c80f0ed91e20e27eed9e9048c56e919ca8307462088bb75adce4"
+    },
+    {
+      "path": "docs/contracts/BC-MGMT-002-versioned-management-openapi.md",
+      "blob": "230cbd3aaab99ae7abddb28f9c718622934bc62b",
+      "sha256": "026154cc570875cacf3b6c746b746cd1b9e94cb91fe4e5f71807a06913286b98"
+    },
+    {
+      "path": "docs/contracts/BC-SEC-001-aead-secret-store.md",
+      "blob": "a31d9c4e834354fb19f67d7fed1b12c111fcdcee",
+      "sha256": "ab410d9bbea8ca0b9dde779c1c7d0e20e3be0aa4bcad7ff553edacb06ef34ada"
+    },
+    {
+      "path": "docs/cross-boundary-log.md",
+      "blob": "e5b870d152bf35e25b94e49eda1cbfb61c52645f",
+      "sha256": "63638b5bda4aefe4837f09ae616f0ef62883810cc5f39602f6f63aa9bb122bb8"
+    },
+    {
+      "path": "docs/openapi/management-v1.json",
+      "blob": "8cc7c973fca649872a32ffba79f72f450bbbdcd1",
+      "sha256": "30887158e8a26c5014612813eb38926b451a8f95f166d6a1d857bcad56193a98"
+    },
+    {
+      "path": "docs/reports/assets/cpar-p2-eight-20261008/task-card.md",
+      "blob": "5986bbaae3316de5d6267a6d42b7897e4e5bb215",
+      "sha256": "9a3d7a1645313fddde552e250efe87374aa133369c4e0f0e23e9204b43832b4d"
+    },
+    {
+      "path": "scripts/acceptance/cpar-batch-b-http.py",
+      "blob": "2e90e59f8feee562caf19443ee0149ddefe4ce23",
+      "sha256": "9578d97ced4cc2bf878deb5ac9d57febd76f1678e52da4540b3181d6f2171b4c"
+    },
+    {
+      "path": "scripts/acceptance/cpar-p2-eight.mjs",
+      "blob": "648ea2a5c8d8256ea7c19a18f3995dc7c3899623",
+      "sha256": "44b7b5d596fe15a3b3e23379caeaba49f4806b337decf85b444197bbfb5a2497"
+    },
+    {
+      "path": "scripts/acceptance/cpar_master_key_http.py",
+      "blob": "25bcc3eab0d041b345be4147f919ae081e1f4cbb",
+      "sha256": "0a1eb5d48a5dfba060e00981f830c4636795e934fd760284bd3a92c53dfc4fec"
+    },
+    {
+      "path": "web/prism/contracts/management-v1.json",
+      "blob": "8cc7c973fca649872a32ffba79f72f450bbbdcd1",
+      "sha256": "30887158e8a26c5014612813eb38926b451a8f95f166d6a1d857bcad56193a98"
+    },
+    {
+      "path": "web/prism/src/app/AppShell.tsx",
+      "blob": "cd7828a1a5c15b8bba001a7aef44c1f361451ca0",
+      "sha256": "29f9b90196b82264551bfedda7840c222a333b794042b685174b6b9358640ca3"
+    },
+    {
+      "path": "web/prism/src/dev/fixtures.ts",
+      "blob": "ae6aabfc26e8aad8620704931e5a54667fb7427a",
+      "sha256": "8f59d738bd501f2e09b1c35e0525d9d92700ad2cf58f389aa979c43f7eb82a10"
+    },
+    {
+      "path": "web/prism/src/features/accounts/AccountModelsDialog.tsx",
+      "blob": "4227e12b826bf2fcd88af783370bec599d65c5fb",
+      "sha256": "1e238fb79857f215198a05388b32913a638786c62981580ec1745d440d092032"
+    },
+    {
+      "path": "web/prism/src/features/accounts/AccountRuntimeSummary.test.ts",
+      "blob": "fe8bf41df277ae36c800bc1b8b485ae0f702bfb2",
+      "sha256": "3173948d7b19ec37a34256cd2bbe24ac65488a81a202640c2e19f815b3558fb5"
+    },
+    {
+      "path": "web/prism/src/features/accounts/AccountRuntimeSummary.tsx",
+      "blob": "a9ebfec6b211c987d8fde227a5dca839cc44e2d5",
+      "sha256": "c60f472613b6631473d4a099c7188b34fe5e31b243d9799d80a624d2ca1688d7"
+    },
+    {
+      "path": "web/prism/src/features/accounts/AccountsPage.tsx",
+      "blob": "5174820a95a72bd7a660028fa9fc531d32d52770",
+      "sha256": "410abb5f84ac833dd3e6796feffce51ea5b3691d8a372d30c1d813ea62611b82"
+    },
+    {
+      "path": "web/prism/src/features/accounts/AddAccountDialog.tsx",
+      "blob": "88b15ab9227751d8979b41b2d1867fb2d9ac58a4",
+      "sha256": "b13224b7313fa48d9cf50516917063d96898ed981950744faeb7bfd6721c25f5"
+    },
+    {
+      "path": "web/prism/src/features/accounts/AuthorizationCodeDialog.tsx",
+      "blob": "c4f41ed6e6b2fa3583687eefc67cea98a570929d",
+      "sha256": "77bf0621a9bf99ce9a327d6c433ae9b150f19da01b25c5b3b0b0725bb8eafb12"
+    },
+    {
+      "path": "web/prism/src/features/accounts/AuthorizationRecovery.tsx",
+      "blob": "a136ad35f74b0998791bde29ee3826fbe9645b61",
+      "sha256": "9a712fa6173250e860bc8f084f696abc0c523197836de5a1d6b7007faf10f7ac"
+    },
+    {
+      "path": "web/prism/src/features/accounts/DeviceRecoveryHost.tsx",
+      "blob": "42ceaac73d04457a761d6d9a1b5a436428740b1e",
+      "sha256": "4468aa8e335ca8ffab0d9b1ded58261de0716508fddcdb40d87e312ae14591fe"
+    },
+    {
+      "path": "web/prism/src/features/accounts/KimiDeviceDialog.tsx",
+      "blob": "58192eae8649b47687497c3133730cf3dfed346f",
+      "sha256": "bad4ea0df2c08dd8ae3aeee0303401e5a82772b07038dea36d0a8a3d08185cfd"
+    },
+    {
+      "path": "web/prism/src/features/accounts/KiroDeviceDialog.tsx",
+      "blob": "db8b9aa5e7539a7d2485667540c8fc903b19e855",
+      "sha256": "1ffbf9eae9c578449212c3d63ebee2f0e7546dc7e90d353fbdf280b5d7b72f70"
+    },
+    {
+      "path": "web/prism/src/features/accounts/accountStatus.test.ts",
+      "blob": "c809b8a416bcd7f62191318fd252c2af4a6e4985",
+      "sha256": "dfbe6d873b134f31cb5aa6244477d78fe66e074f269374c6daf9d15492160ef4"
+    },
+    {
+      "path": "web/prism/src/features/accounts/accountStatus.ts",
+      "blob": "d440c2c22d666ed8927360851c4b46931692afe0",
+      "sha256": "339b7abb3b8b15be26469db30b5fec497146d5d4417bb7d79b6972f69c1a2661"
+    },
+    {
+      "path": "web/prism/src/features/accounts/callEvidence.test.ts",
+      "blob": "b5de4bde9e9285319e5e1076e912ef2377631e8e",
+      "sha256": "2d067b88012b67c25a2d751f95f895bbb091317a2899d7cf3dd9cb3f54c0574b"
+    },
+    {
+      "path": "web/prism/src/features/accounts/callEvidence.ts",
+      "blob": "43df9518a2b90b92df955f4058724f5fd0c54e14",
+      "sha256": "32a41e057a6ab2dad6fff3694be49d0c8a4b8c16b0d64c5c9f14ed317e3e6ebd"
+    },
+    {
+      "path": "web/prism/src/features/accounts/deviceRecoveryStore.test.ts",
+      "blob": "9fe2482e83aa0f2427ceac93c7ed6ed0c1c20f3e",
+      "sha256": "bfc3fbbed300c1c1eff6fb916d47ff72e1ed7adc2691a3989d9a218a763d5000"
+    },
+    {
+      "path": "web/prism/src/features/accounts/deviceRecoveryStore.ts",
+      "blob": "83e210f13f7da952f3e9bc8670f1a2bbbdb7e849",
+      "sha256": "da0abdbf8d76e08d5e86464458e6970718f6e668330b0948f3b9fadce0a7b202"
+    },
+    {
+      "path": "web/prism/src/features/config-versions/configurationTask.test.ts",
+      "blob": "f7b8aed3b65139872937215b87cb4a869bcfacf1",
+      "sha256": "c695ecc09acd0f5ffd027c8a9e610f1aa3f09c46bed8bbcda17cec6c6b24f8a6"
+    },
+    {
+      "path": "web/prism/src/features/config-versions/configurationTask.ts",
+      "blob": "6e8ef74620e091f534ec0f01eae460a36b28ca8f",
+      "sha256": "3fdeb5d47dc77f3634a72b327d05eb5e74096eebcd9155600d7c6f0c5370fc0b"
+    },
+    {
+      "path": "web/prism/src/features/config-versions/versionStore.test.ts",
+      "blob": "55440197b77c59223581d5d7ad9c08de3aee9298",
+      "sha256": "df531660f6c6db471bf525344a2463ff6c0608efd8a3608d943697b127c2be66"
+    },
+    {
+      "path": "web/prism/src/features/config-versions/versionStore.ts",
+      "blob": "8ebc16aa509ed9d8c8087c50b7a921ee0a289715",
+      "sha256": "877896130c12465879d9d0b6cc5562cc3fa2104506cbc983063e24f239648836"
+    },
+    {
+      "path": "web/prism/src/features/runtime/model.ts",
+      "blob": "5f53ec582dbd9aa4a98f3fec2c059c6b8a66c58c",
+      "sha256": "826920cfb56b5d7fb41500756a4d4f2b645670abaae393297adf0aaf57b05291"
+    },
+    {
+      "path": "web/prism/src/features/upstreams/ProviderDialog.tsx",
+      "blob": "494afc43a5d11893172afe74d0563b0ecf73d03d",
+      "sha256": "4c82f98407b11abafd774659163a72656b19a8c18f2c2a2dfdd6c3275898d9b5"
+    },
+    {
+      "path": "web/prism/src/features/upstreams/SubresourcePanel.tsx",
+      "blob": "9a91d16dfd6f0d769b432898228fa068f4011503",
+      "sha256": "16dfb48f30ecf05b72f12c35ad13d70729f06a7ab4c8508cccdee4803355223b"
+    },
+    {
+      "path": "web/prism/src/features/upstreams/subresourceModel.test.ts",
+      "blob": "3712b2b181a99147fd37075121f81ea8b8600acf",
+      "sha256": "a09da551efd5ce7f1d42fa5501128cc7c19100e40c6b3c498ebb49fc91b02d99"
+    },
+    {
+      "path": "web/prism/src/features/upstreams/subresourceModel.ts",
+      "blob": "152b97a1550a793f959f6c5109e5ea1ff929a758",
+      "sha256": "b33d94109cce6cd4f54dfa9e51c0fd89b5529c906186c22d843f6ee8f2ad67c7"
+    }
+  ]
+}

@@ -1,0 +1,243 @@
+{
+  "status": "PASS",
+  "binary_sha256": "96345a80c871e47dda30efe7db8a3077a0d90c28bca9a4615f520a0ebb2e5bf7",
+  "source_sha": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_stored_write",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_compact_write",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_response_and_compact_active_version_1",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_actual_process_restarted_with_versioned_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_old_record_public_read",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_old_compact_public_read",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_stored_write",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_compact_write",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_response_and_compact_active_version_2",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_management_active_version",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_retained_and_active_versions_after_second_restart",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_retained_and_active_versions_after_second_restart",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_missing_not_found",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_foreign_owner_same_not_found_GET",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_foreign_owner_same_not_found_DELETE",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_authentication_precedes_read",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_compact_foreign_owner_no_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_corrupt_response_fails_closed",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_corrupt_compact_no_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_invalid_active_0",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_invalid_active_-1",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_invalid_active_01",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_invalid_active_4294967296",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_invalid_active_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_invalid_active_3",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_missing_active_option",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_missing_directory_option",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_duplicate_version_option",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_duplicate_noncanonical_version",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_symlink_key",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_reject_wrong_key_length",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_missing_old_key_rejects_runtime_before_serving",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_new_management_key_consumed_by_runtime",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_new_management_compact",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_missing_old_response_key_public_failure",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_missing_old_compact_key_public_failure",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_missing_old_key_foreign_owner_stays_not_found",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_current_key_response_remains_readable",
+      "status": "PASS"
+    },
+    {
+      "check": "b05_current_key_compact_after_restart",
+      "status": "PASS"
+    }
+  ],
+  "provider_calls": [
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": true
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": true
+    },
+    {
+      "account": "c",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "c",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": true
+    },
+    {
+      "account": "c",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    }
+  ],
+  "private_state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-cyskxjcc",
+  "scope": "local_synthetic_only"
+}

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "env",
+    "CPAR_B05_ONLY=1",
+    "python3",
+    "scripts/acceptance/cpar-batch-b-http.py",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-p2-eight-20261008/final-b05-process"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/p2-eight-20261008-validation",
+  "head": "96c0a96bc7854cab92f75f6aeff30319ce14e48a",
+  "dirty_status": "",
+  "finished_status": "",
+  "changed_source_sha256": {},
+  "started_utc": "2026-10-08T15:12:40.482650+00:00",
+  "finished_utc": "2026-10-08T15:12:44.782640+00:00",
+  "duration_seconds": 4.3,
+  "exit_code": 0,
+  "log_sha256": "55e81d44ca0bf90fc4956c7cb6abc74088b5d43e6d042f0638b6eb1150d04709"
+}

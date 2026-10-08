@@ -1,0 +1,17 @@
+{
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\nKimi API 与同类 API 渠道在一张表单内完成必要参数、连接创建或复用、保存和按条件生效。\n\n实施编号 CPAR-04；实施批次：A。覆盖用户故事 1, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 24, 26；验收场景 T01, T02, T03, T05。\n\n## Acceptance criteria\n\n- [ ] 覆盖 openai-compatible、anthropic-compatible、kimi-api、grok.official 的 API 预设；空配置无需预建服务、接口或绑定。\n- [ ] 适用官方默认值可用，兼容地址／协议及必要地区／代理在当前表单完成；已有自定义设置不被覆盖。\n- [ ] 按渠道、授权方式、所有权和连接条件判断：无匹配创建、唯一匹配复用、多匹配就地选；名称相同不构成合并证据。\n- [ ] 沿用合并核对及 revision 规则，完整展示保存／连接／生效；失败保留已确认结果，可从当前任务继续。\n- [ ] 权限选择不阻塞接入，已有权限保留，新模型默认不开放；不隐式发推理测试或覆盖已有路由。\n- [ ] 在现有提供商表单上可独立演示；入口分类改造不是执行层前置，最终与三类入口集成。四类预设的 HTTP／EgoLite 正反例通过。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#11](https://github.com/Ricardo121380/cpa-rust-gateway/issues/11)：同流程核对并应用待生效修改。原因：直接接入必须复用已确定的自动应用与旧修改合并核对行为。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 13,
+  "state": "OPEN",
+  "title": "CPAR-04：上游 API Key 单表单直接接入",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/13",
+  "captured_utc": "2026-10-08T15:10:18.226190+00:00"
+}

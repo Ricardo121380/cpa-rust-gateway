@@ -1,0 +1,18 @@
+{
+  "command": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "test"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/p2-eight-20261008-validation",
+  "head": "96c0a96bc7854cab92f75f6aeff30319ce14e48a",
+  "dirty_status": "",
+  "finished_status": "",
+  "changed_source_sha256": {},
+  "started_utc": "2026-10-08T15:14:57.186458+00:00",
+  "finished_utc": "2026-10-08T15:15:00.778452+00:00",
+  "duration_seconds": 3.592,
+  "exit_code": 0,
+  "log_sha256": "b3afebfe0558aef2c334476e6e52516bd61b7d241ca5c32b457d173fff9b9c9a"
+}

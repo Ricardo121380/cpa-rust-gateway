@@ -1,0 +1,17 @@
+{
+  "command": [
+    "python3",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-p2-eight-20261008/browser.py",
+    "a08-stale"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/p2-eight-20261008-validation",
+  "head": "96c0a96bc7854cab92f75f6aeff30319ce14e48a",
+  "dirty_status": "",
+  "finished_status": "",
+  "changed_source_sha256": {},
+  "started_utc": "2026-10-08T15:11:12.889149+00:00",
+  "finished_utc": "2026-10-08T15:11:13.957431+00:00",
+  "duration_seconds": 1.068,
+  "exit_code": 0,
+  "log_sha256": "1b7f7fa5f72643a948a7d2320b3d1145d42e41fbc966911bb9aeeaf22291a04e"
+}

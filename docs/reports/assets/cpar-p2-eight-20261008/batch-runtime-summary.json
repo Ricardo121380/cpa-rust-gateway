@@ -1,0 +1,40 @@
+{
+  "source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+  "initial_accepted_source": "96c0a96bc7854cab92f75f6aeff30319ce14e48a",
+  "Full": {
+    "receipt": "accepted-full-receipt.json",
+    "exit_code": 0,
+    "steps": 45,
+    "duration_seconds": 361.617,
+    "rust_passed": 1488,
+    "clean_before": true,
+    "clean_after": true
+  },
+  "frontend": {
+    "test_files": 67,
+    "passed": 480,
+    "type": "PASS",
+    "contract": "PASS"
+  },
+  "browser": {
+    "scenarios": 16,
+    "passed": 16,
+    "space_id": 34,
+    "tool": "EgoLite / ego-browser"
+  },
+  "process": {
+    "b05_checks": 40,
+    "crossgroup_checks": 410,
+    "binary_sha256": "96345a80c871e47dda30efe7db8a3077a0d90c28bca9a4615f520a0ebb2e5bf7",
+    "same_binary": true
+  },
+  "real_provider_calls": 0,
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN",
+  "final_delta_reviews": {
+    "Standards": "PASS",
+    "Spec": "PASS",
+    "coverage": 45
+  }
+}

@@ -1,6 +1,7 @@
 # Task card: release-readiness eight remaining P2 findings
 
-Status: IN_PROGRESS. Recorded before implementation exploration.
+Status: RESOLVED_LOCAL for all eight findings; document closeout is recorded separately.
+Initial plan and budgets were recorded before implementation exploration; later checkpoints follow below.
 Task level: L (cross-module security configuration, restart persistence and frontend state).
 Fixed base: `3e5fe6f5bea803b09f95726c95e6f80b531e11b1`.
 Actual branch: `codex/prism-v4-delivery`; initial HEAD equals the fixed base.
@@ -45,16 +46,16 @@ ADR-0103 binary rollback incompatibility remains explicit.
 
 ## Acceptance ledger
 
-| Finding | Actual impact / observable target | RED | Modification | Directed checks | Browser/process | Review | Commit / status |
-|---|---|---|---|---|---|---|---|
-| B-05 | serve cannot load retained old keys with a new active version | b05-process-red | shared explicit external ring; legacy v1 | 12 deployment tests; strict Clippy | b05-process-complete: 40 PASS | pending final two-axis review | IMPLEMENTED_PENDING_BATCH_GATES |
-| A-02 | follow-up read failure erases a completed saving receipt | pending | pending | pending | actual completed receipt + 503 | pending | NOT_STARTED |
-| A-03 | ordinary close leaves an already applied version pending | pending | pending | pending | first import, close, second import | pending | NOT_STARTED |
-| A-04 | empty existing draft prevents automatic application | pending | pending | pending | empty and nonempty draft | pending | NOT_STARTED |
-| A-05 | unknown device outcome loses recovery handle on unmount | pending | pending | pending | close, return, same session read | pending | NOT_STARTED |
-| A-06 | API Key authorization failures suggest OAuth reauthorization | pending | pending | pending | real material classification | pending | NOT_STARTED |
-| A-07 | retained evidence is labelled as the new invocation result | pending | pending | pending | true then refetch pending/error | pending | NOT_STARTED |
-| A-08 | failed runtime read lets an old expired row override new auth | pending | pending | pending | new revision + retained old rows | pending | NOT_STARTED |
+| Finding | Final local status | Implementation commits | RED / GREEN and directed evidence | Final review |
+|---|---|---|---|---|
+| B-05 | RESOLVED_LOCAL | `63bfc0e0` | [per-item index](evidence-index.json): b05-process-red-receipt.json, b05-red-confirmation.json; 2 GREEN receipts | Standards PASS; Spec PASS |
+| A-02 | RESOLVED_LOCAL | `f553b9d8`, `7c6e68d7` | [per-item index](evidence-index.json): a02-oauth-red-target-receipt.json, a02-import-red-target-receipt.json, a02-api-red-target-receipt.json; 5 GREEN receipts | Standards PASS; Spec PASS |
+| A-03 | RESOLVED_LOCAL | `f553b9d8` | [per-item index](evidence-index.json): a03-browser-red-actual-receipt.json; 1 GREEN receipts | Standards PASS; Spec PASS |
+| A-04 | RESOLVED_LOCAL | `f553b9d8` | [per-item index](evidence-index.json): a04-selected-red-target-receipt.json, a04-tracked-empty-red-target-receipt.json; 3 GREEN receipts | Standards PASS; Spec PASS |
+| A-05 | RESOLVED_LOCAL | `f553b9d8` | [per-item index](evidence-index.json): a05-kiro-red-target-receipt.json, a05-kimi-red-target-receipt.json; 2 GREEN receipts | Standards PASS; Spec PASS |
+| A-06 | RESOLVED_LOCAL | `96c0a96b` | [per-item index](evidence-index.json): a06-materials-red-target-receipt.json; 1 GREEN receipts | Standards PASS; Spec PASS |
+| A-07 | RESOLVED_LOCAL | `96c0a96b` | [per-item index](evidence-index.json): a07-pending-red-target-receipt.json, a07-error-red-target-receipt.json; 2 GREEN receipts | Standards PASS; Spec PASS |
+| A-08 | RESOLVED_LOCAL | `96c0a96b`, `a98bfd5e` | [per-item index](evidence-index.json): a08-stale-red-target-receipt.json, a08-refresh-lineage-red-actual-receipt.json; 3 GREEN receipts | Standards PASS; Spec PASS |
 
 RESOLVED_LOCAL requires implementation, all necessary acceptance and both reviews.
 Each command receipt binds actual HEAD/dirty status or source hashes; final Full
@@ -64,3 +65,7 @@ the docs gate. No local PASS implies remote CI, real Provider or production PASS
 A-02–A-05 implementation checkpoint: nine actual EgoLite scenarios GREEN (ordinary close/reimport, both empty-draft modes, nonempty review, completed OAuth/import/API receipts plus follow-up failure, Kiro/Kimi close/reopen/read). Initial script input/wait failures are not RED. Directed task/store/device/import regression 51 PASS and type check PASS; final gates pending.
 
 A-06–A-08 implementation checkpoint: five actual EgoLite target REDs and GREENs; current-revision negative control retained. Runtime credential revision and ordinary configuration scope added as non-secret optional response lineage. Frontend 480 tests/type/build/contract checks PASS; HTTP inventory 4 PASS; runtime lineage 6 PASS; strict Clippy PASS. Final clean-checkout/source-bound acceptance and independent review remain pending. A-02 import configuration-read failure was additionally exercised with a verified failing-read counter and saved ID visible.
+
+Final source checkpoint: `a98bfd5e01ea51d3894cce4afcbc0324e9142702`; independent initial review retained its A-08 FAIL, then actual HTTP RED/GREEN, 11 refresh and 13 adapter regressions, and final source clean Full 45/45 with Rust 1488 PASS closed the correction. Final EgoLite16, UI480, process40 and crossgroup410 all PASS. Both final review axes PASS with 43 unchanged files inherited plus two full delta rechecks = 45/45.
+
+Initial preservation ledger recorded `2026-10-08T14:24:58.459300+00:00`; final acceptance/review checkpoint `2026-10-08T15:52:41.462300+00:00`. Elapsed wall time to this checkpoint: 87.72 minutes versus the original 290-minute planning budget; no budget overrun. Each executed command retains its own UTC timestamps, duration and source/dirty identity. Initial implementation checkpoints above are historical, not current unresolved statuses. No prerequisite blocks any of these eight local acceptances; independent release gates remain BLOCKED.

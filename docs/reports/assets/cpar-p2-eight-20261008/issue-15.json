@@ -1,0 +1,17 @@
+{
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n设备授权完成后自动登记并按条件生效，等待、拒绝、过期和结果未知都有可恢复的解释。\n\n实施编号 CPAR-06；实施批次：A。覆盖用户故事 3, 4, 7, 8, 9, 10, 12, 16, 17, 18, 19, 21, 22, 23, 40；验收场景 T01, T02, T03, T04。\n\n## Acceptance criteria\n\n- [ ] 分别覆盖 kimi-coding 与 kiro 现有设备授权；必要地区与已有连接在当前任务处理，多候选不得猜测。\n- [ ] 成功后完成必要关联及按条件应用，无二次保存；保留已有 disabled binding、权限和自定义设置。\n- [ ] pending、slow_down、denied、expired、failed 与结果未知分别处理；未知先查询，不自动重放 exchange 或误取消已完成授权。\n- [ ] 同账号更新需可靠身份，冲突不覆盖；保存成功后后续失败保留回执，关闭可继续处理。\n- [ ] 保留已经存在的 Kimi 目标选择／绑定与 Kiro 地区准备；HTTP 和 EgoLite 合成流程通过，修正对应测试入口漂移。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#11](https://github.com/Ricardo121380/cpa-rust-gateway/issues/11)：同流程核对并应用待生效修改。原因：设备授权保存后的普通配置任务需使用已完成的并发核对与应用行为。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 15,
+  "state": "OPEN",
+  "title": "CPAR-06：Kimi／Kiro 设备授权接入与恢复",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/15",
+  "captured_utc": "2026-10-08T15:10:19.778126+00:00"
+}

@@ -1,0 +1,17 @@
+{
+  "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n修正普通账号导入的虚假成功提示，保存、连接、应用和结果待确认都有可靠回执，失败后可继续处理。\n\n实施编号 CPAR-01；实施批次：A。覆盖用户故事 16, 17, 18, 19, 20, 52；验收场景 T03, T04。\n\n## Acceptance criteria\n\n- [ ] 用已支持的普通账号导入走通管理 HTTP 到前端结果页；prepare 或 working ID 不作为授权保存证据，全部失败不得出现已保存。\n- [ ] 区分已保存待应用、已保存且生效、已保存但应用失败、明确未保存和结果待确认；后续查询失败不抹掉已确认回执。\n- [ ] 响应丢失先按资源、会话及 revision 核对，不自动重放；关闭弹窗保留已保存账号与草稿。\n- [ ] 在该行为内优先复用既有配置任务和资源操作回执，必要的小范围抽取先做并保持行为回归；不建立新工作流引擎。\n- [ ] 以全失败、部分成功、保存后绑定失败、发布失败及响应丢失的受控案例完成 HTTP 和 EgoLite 验证；不把旧选择器或准备成功当作流程通过。\n- [ ] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\nNone (can start immediately). 执行优先级仍按 A → B → C；没有代码／契约依赖的 D 可独立准备。\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 10,
+  "state": "OPEN",
+  "title": "CPAR-01：普通账号导入如实反馈保存与生效",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/10",
+  "captured_utc": "2026-10-08T15:10:13.332191+00:00"
+}

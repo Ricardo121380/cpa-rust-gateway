@@ -1,0 +1,18 @@
+{
+  "command": [
+    "cargo",
+    "build",
+    "-p",
+    "gateway"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/p2-eight-20261008-validation",
+  "head": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+  "dirty_status": "",
+  "finished_status": "",
+  "changed_source_sha256": {},
+  "started_utc": "2026-10-08T15:33:27.267426+00:00",
+  "finished_utc": "2026-10-08T15:34:29.243575+00:00",
+  "duration_seconds": 61.976,
+  "exit_code": 0,
+  "log_sha256": "4db8f2c129a1c1a9cdee7f889736d18b0d6f1f424dd2ac946fc5795260f13930"
+}

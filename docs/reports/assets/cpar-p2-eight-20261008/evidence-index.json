@@ -1,0 +1,243 @@
+{
+  "baseline": "3e5fe6f5bea803b09f95726c95e6f80b531e11b1",
+  "source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+  "scope": "local_synthetic_only",
+  "items": {
+    "B-05": {
+      "impact": "serve cannot express retained old keys and new active version",
+      "red": [
+        "b05-process-red-receipt.json",
+        "b05-red-confirmation.json"
+      ],
+      "green": [
+        "accepted-b05-process-receipt.json",
+        "accepted-b05-process/receipt.json"
+      ],
+      "commits": [
+        "63bfc0e070f4faed2d731884f4df04f9785139db"
+      ],
+      "verification": [
+        "b05-directed-receipt.json",
+        "b05-clippy-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    },
+    "A-02": {
+      "impact": "completed saving reverted to unknown after config or account read failure",
+      "red": [
+        "a02-oauth-red-target-receipt.json",
+        "a02-import-red-target-receipt.json",
+        "a02-api-red-target-receipt.json"
+      ],
+      "green": [
+        "accepted-a02-oauth-receipt.json",
+        "accepted-a02-import-receipt.json",
+        "accepted-a02-api-receipt.json",
+        "accepted-a02-import-config-receipt.json",
+        "accepted-a02-api-config-receipt.json"
+      ],
+      "commits": [
+        "f553b9d8d834c65cefb8acf81c7c0d2ad4687be2",
+        "7c6e68d78e0d1f543481efcd48d8d513b2730852"
+      ],
+      "verification": [
+        "a02-a05-final-directed-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    },
+    "A-03": {
+      "impact": "acknowledged publication leaves pending draft and rejects next import",
+      "red": [
+        "a03-browser-red-actual-receipt.json"
+      ],
+      "green": [
+        "accepted-a03-close-receipt.json"
+      ],
+      "commits": [
+        "f553b9d8d834c65cefb8acf81c7c0d2ad4687be2"
+      ],
+      "verification": [
+        "a02-a05-final-directed-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    },
+    "A-04": {
+      "impact": "draft existence blocks automatic application even with no real prior change",
+      "red": [
+        "a04-selected-red-target-receipt.json",
+        "a04-tracked-empty-red-target-receipt.json"
+      ],
+      "green": [
+        "accepted-a04-selected-empty-receipt.json",
+        "accepted-a04-tracked-empty-receipt.json",
+        "accepted-a04-nonempty-receipt.json"
+      ],
+      "commits": [
+        "f553b9d8d834c65cefb8acf81c7c0d2ad4687be2"
+      ],
+      "verification": [
+        "a02-a05-final-directed-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    },
+    "A-05": {
+      "impact": "closing unknown device result drops exact original session/task",
+      "red": [
+        "a05-kiro-red-target-receipt.json",
+        "a05-kimi-red-target-receipt.json"
+      ],
+      "green": [
+        "accepted-a05-kiro-receipt.json",
+        "accepted-a05-kimi-receipt.json"
+      ],
+      "commits": [
+        "f553b9d8d834c65cefb8acf81c7c0d2ad4687be2"
+      ],
+      "verification": [
+        "a02-a05-final-directed-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    },
+    "A-06": {
+      "impact": "API key auth failures advise OAuth reauthorization",
+      "red": [
+        "a06-materials-red-target-receipt.json"
+      ],
+      "green": [
+        "accepted-a06-materials-receipt.json"
+      ],
+      "commits": [
+        "96c0a96bc7854cab92f75f6aeff30319ce14e48a"
+      ],
+      "verification": [
+        "a06-a08-ui-green-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    },
+    "A-07": {
+      "impact": "cached true heading claims current call evidence while refetch pending/error",
+      "red": [
+        "a07-pending-red-target-receipt.json",
+        "a07-error-red-target-receipt.json"
+      ],
+      "green": [
+        "accepted-a07-pending-receipt.json",
+        "accepted-a07-error-receipt.json"
+      ],
+      "commits": [
+        "96c0a96bc7854cab92f75f6aeff30319ce14e48a"
+      ],
+      "verification": [
+        "a06-a08-ui-green-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    },
+    "A-08": {
+      "impact": "stale expired runtime rows override new authorization on failed runtime read",
+      "red": [
+        "a08-stale-red-target-receipt.json",
+        "a08-refresh-lineage-red-actual-receipt.json"
+      ],
+      "green": [
+        "accepted-a08-stale-receipt.json",
+        "accepted-a08-current-receipt.json",
+        "a08-refresh-lineage-green-receipt.json"
+      ],
+      "commits": [
+        "96c0a96bc7854cab92f75f6aeff30319ce14e48a",
+        "a98bfd5e01ea51d3894cce4afcbc0324e9142702"
+      ],
+      "verification": [
+        "a06-a08-ui-green-receipt.json",
+        "a08-http-lineage-receipt.json",
+        "a08-runtime-lineage-receipt.json",
+        "a08-refresh-group-green-receipt.json",
+        "a08-adapter-group-green-receipt.json"
+      ],
+      "status": "RESOLVED_LOCAL",
+      "final_source": "a98bfd5e01ea51d3894cce4afcbc0324e9142702",
+      "review": {
+        "Standards": "PASS",
+        "Spec": "PASS",
+        "receipt": "review-final.json"
+      }
+    }
+  },
+  "shared_gates": [
+    "source-manifest.json",
+    "accepted-full-receipt.json",
+    "accepted-full-steps.md",
+    "accepted-ui-tests-receipt.json",
+    "accepted-ui-type-receipt.json",
+    "accepted-ui-contract-receipt.json",
+    "accepted-b-crossgroup-receipt.json",
+    "accepted-b-crossgroup/receipt.json",
+    "batch-runtime-summary.json",
+    "accepted-receipts-validation.json",
+    "review-final.json",
+    "review-delta-proof.json",
+    "preservation-checkpoint.json"
+  ],
+  "release": "BLOCKED",
+  "independent_open": [
+    "S-01",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "O-01"
+  ],
+  "real_provider_requests": 0,
+  "remote_ci": "NOT_RUN",
+  "production": "NOT_RUN",
+  "excluded_as_behavior_RED": {
+    "a08-refresh-lineage-red-receipt.json": "zero tests due to incomplete exact filter; NOT_RUN as behavior proof",
+    "initial harness/fixture errors": "invalid CLI script input, missing required management headers, portal selector, HMR URL mismatch and conflicting endpoint fixture are not target behavior REDs"
+  },
+  "deployment": "NOT_RUN",
+  "whole_issue_57": "BLOCKED / NOT_COMPLETED",
+  "gateway_admin_ui_full_completion": "NOT_RUN; synthetic frontend acceptance only"
+}
