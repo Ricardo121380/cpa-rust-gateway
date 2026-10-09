@@ -3732,3 +3732,14 @@ stays unknown. Release, deployment, real Provider and C/#57 completion remain di
 **Other side:** FYI — fixture-only correction; production credential classification, management OpenAPI and generated client remain authoritative and unchanged. Directed RED is 14 passed/1 failed; GREEN is 15 passed. The final clean-source batch gate and independent reviews follow; previous browser runs retain their original source identifiers.
 
 The subsequent Full passed 1493 Rust tests but its secret scan rejected credential-shaped literals in the synthetic Kiro import cases. Assemble the fake API Key from explicit synthetic fragments and use short, nonempty synthetic OAuth tokens, retaining both material-classification cases and the unchanged scanner. The intermediate staged scan failure is retained separately. This test-only adjustment has its own E-03 commit and rerun receipts.
+
+## 2026-10-09 · Codex · CPAR-48 actual Grok API creation runtime preparation
+
+**Touched:**
+- `web/prism/src/features/upstreams/connectionPresets.ts`
+- `web/prism/src/features/upstreams/connectionPresets.test.ts`
+- `web/prism/DESIGN.md`
+
+**Why:** The authorized local #57 actual-page matrix reproduced a genuine creation failure: import, binding and model configuration persisted, but validate returned 503 at endpoint runtime preparation. The old preset composed the right URL from the wrong two components, which the fixed production adapter rejects. Align only those components with production constants and add a cross-language regression. Keep fixed URL, existing-state matching and separate model permission rules.
+
+**Other side:** FYI — no backend contract or generated client change, no layout redesign and no automatic migration of existing connections. Original actual-page failure and preserved draft are retained. Directed tests and committed-source actual creation/reuse/selection, clean Full and two independent review axes are required before local closeout. Grok configuration acceptance never claims real inference.

@@ -17,6 +17,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 os.umask(0o077)
+operations = os.environ.get("CPAR_UI_OPERATIONS") == "1"
 out = pathlib.Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
 root = pathlib.Path(tempfile.mkdtemp(prefix="cpar-seo-ui-"))
@@ -31,7 +32,7 @@ materials = {name: "synthetic-" + secrets.token_hex(24) for name in ("responses"
 (root / "kiro-material.json").write_text(json.dumps({"kind":"social","access_token":"synthetic-"+secrets.token_hex(24),"refresh_token":"synthetic-"+secrets.token_hex(24),"expires_at_ms":int(time.time()*1000)+86400000}))
 (root / "current-password").write_text("Synthetic-" + secrets.token_hex(16))
 extension = root / "tls.ext"
-extension.write_text("subjectAltName=IP:127.0.0.1\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\n")
+extension.write_text("subjectAltName=IP:127.0.0.1" + (",DNS:auth.kimi.com,DNS:oidc.us-east-1.amazonaws.com" if operations else "") + "\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\n")
 commands = [
     ["openssl","req","-x509","-newkey","rsa:2048","-nodes","-days","2","-keyout",str(root/"ca.key"),"-out",str(root/"ca.pem"),"-subj","/CN=CPAR UI local CA","-addext","basicConstraints=critical,CA:TRUE"],
     ["openssl","req","-new","-newkey","rsa:2048","-nodes","-keyout",str(root/"tls.key"),"-out",str(root/"tls.csr"),"-subj","/CN=127.0.0.1"],
@@ -41,6 +42,10 @@ for command in commands:
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 receives = []
 lock = threading.Lock()
+device = None
+if operations:
+    from cpar_device_loopback import DeviceFixture
+    device = DeviceFixture(out)
 
 class Provider(BaseHTTPRequestHandler):
     def log_message(self, *_):
@@ -53,6 +58,8 @@ class Provider(BaseHTTPRequestHandler):
         with lock:receives.append({"method":"GET","path":self.path})
         self.reply(200,{"data":[],"has_more":False})
     def do_POST(self):
+        if device and device.handle(self):
+            return
         record={"method":"POST","path":self.path}
         with lock:receives.append(record)
         body=json.loads(self.rfile.read(int(self.headers.get("Content-Length","0"))))
@@ -92,6 +99,13 @@ print(json.dumps({"localhost_connect":True,"test_net_outbound_denied":True,"real
 preflight=subprocess.check_output(["/usr/bin/sandbox-exec","-p",network_profile,sys.executable,"-c",preflight_code,str(provider.server_port)],text=True)
 (out/"network-sandbox.json").write_text(preflight)
 command=["/usr/bin/sandbox-exec","-p",network_profile,str(binary),"serve","--state-dir",str(state),"--credential-dir",str(credentials),"--data-listen",f"127.0.0.1:{data_port}","--management-listen",f"127.0.0.1:{admin_port}"]
+shim = None
+if operations:
+    shim = root / "device-loopback.dylib"
+    shim_source = pathlib.Path(__file__).with_name("cpar-device-loopback.c").resolve()
+    subprocess.run(["cc", "-dynamiclib", "-Wall", "-Wextra", "-Werror", "-o", str(shim), str(shim_source)], check=True)
+    # env sets DYLD only after the signed sandbox launcher, for this child alone.
+    command[3:3] = ["/usr/bin/env", f"DYLD_INSERT_LIBRARIES={shim}", f"CPAR_DEVICE_LOOPBACK_PORT={provider.server_port}"]
 gateway=subprocess.Popen(command,stdout=log,stderr=log,env={**os.environ,"SSL_CERT_FILE":str(root/"ca.pem")})
 client=urllib.request.build_opener(urllib.request.ProxyHandler({}))
 scope,revision=None,None
@@ -115,29 +129,35 @@ try:
     # Stock Kiro preparation checks its canonical policy. Its owner stays disabled,
     # and the child-process OS sandbox denies all non-loopback socket connections.
     api("POST","/admin/egress-policies",{"id":"kiro-us-east-1-egress","name":"Canonical Kiro under OS outbound deny","allowed_schemes":["https"],"allowed_hosts":["runtime.us-east-1.kiro.dev","q.us-east-1.amazonaws.com","management.us-east-1.kiro.dev"],"allowed_ports":[443],"allowed_cidrs":[],"redirect_mode":"deny","max_redirects":0},201)
-    presets={"responses":("openai-compatible","openai-compatible.responses","openai/responses","/responses"),"chat":("openai-compatible","openai-compatible.chat-completions","openai/chat-completions","/chat/completions"),"messages":("anthropic-compatible","anthropic-compatible.messages","anthropic/messages","/v1/messages"),"kimi":("kimi","openai-compatible.chat-completions","openai/chat-completions","/chat/completions"),"grok-api":("grok.official","grok.official.responses","openai/responses","/v1/responses"),"kiro":("kiro","kiro.messages","anthropic/messages","/")}
+    presets={"responses":("openai-compatible","openai-compatible.responses","openai/responses","/responses"),"chat":("openai-compatible","openai-compatible.chat-completions","openai/chat-completions","/chat/completions"),"messages":("anthropic-compatible","anthropic-compatible.messages","anthropic/messages","/v1/messages"),"kimi":("kimi","openai-compatible.chat-completions","openai/chat-completions","/chat/completions"),"grok-api":("grok.official","grok.official.responses","openai/responses","/responses"),"kiro":("kiro","kiro.messages","anthropic/messages","/")}
     targets={}
     for preset,(kind,adapter,api_format,path) in presets.items():
         owner="kiro-us-east-1" if preset=="kiro" else "ui-"+preset
         target=owner+"-messages" if preset=="kiro" else owner+"-connection"
         enabled=preset not in ("grok-api","kiro")
-        address="https://api.x.ai" if preset=="grok-api" else "https://runtime.us-east-1.kiro.dev" if preset=="kiro" else f"https://127.0.0.1:{provider.server_port}/v1"
+        address="https://api.x.ai/v1" if preset=="grok-api" else "https://runtime.us-east-1.kiro.dev" if preset=="kiro" else f"https://127.0.0.1:{provider.server_port}/v1"
         endpoint_enabled=preset!="grok-api"
-        api("POST","/admin/upstreams",{"id":owner,"name":"Isolated "+preset,"kind":kind,"enabled":enabled,"tags":[],"egress_policy_id":"kiro-us-east-1-egress" if preset=="kiro" else "ui-local-policy"},201)
-        api("POST",f"/admin/upstreams/{owner}/endpoints",{"id":target,"adapter_id":adapter,"api_format":api_format,"base_url":address,"inference_path":path,"models_path":None,"transport":"https","enabled":endpoint_enabled},201)
-        targets[preset]={"upstream_id":owner,"endpoint_id":target,"base":address,"path":path,"adapter":adapter,"format":api_format,"enabled":enabled,"endpoint_enabled":endpoint_enabled}
+        if not operations or preset == "kiro":
+            api("POST","/admin/upstreams",{"id":owner,"name":"Isolated "+preset,"kind":kind,"enabled":enabled,"tags":[],"egress_policy_id":"kiro-us-east-1-egress" if preset=="kiro" else "ui-local-policy"},201)
+            api("POST",f"/admin/upstreams/{owner}/endpoints",{"id":target,"adapter_id":adapter,"api_format":api_format,"base_url":address,"inference_path":path,"models_path":None,"transport":"https","enabled":endpoint_enabled},201)
+        targets[preset]={"upstream_id":owner,"endpoint_id":target,"base":address,"path":path,"adapter":adapter,"format":api_format,"kind":kind,"enabled":enabled,"endpoint_enabled":endpoint_enabled}
     assert api("POST","/admin/config-versions/ui-baseline/validate")["valid"]
     api("POST","/admin/config-versions/ui-baseline/publish",extra={"X-Expected-Active-Version":"null","X-Expected-Lifecycle-Event":"0"})
     descriptor={"origin":base,"data_origin":f"http://127.0.0.1:{data_port}","root":str(root),"state":str(state),"command":command,"gateway_pid":gateway.pid,"binary_sha256":hashlib.sha256(binary.read_bytes()).hexdigest(),"source_sha":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),"source_dirty":subprocess.check_output(["git","status","--porcelain=v1"],text=True).splitlines(),"initial_password_file":str(root/"initial-password"),"password_file":str(root/"current-password"),"api_material_file":str(root/"api-material.json"),"kiro_material_file":str(root/"kiro-material.json"),"targets":targets,"real_provider_calls":0,"outside_loopback_denied_by_os_sandbox":True,"api_targets_use_loopback_egress_policy":True}
+    descriptor["device_transport"] = {"stock_production_workflows": True, "network_interposition": bool(shim), "shim_sha256": hashlib.sha256(shim.read_bytes()).hexdigest() if shim else None, "fixed_hosts": list(device.hosts) if device else [], "tls_validation": "temporary CA, original hostname and SNI; no verification bypass"}
     (out/"descriptor.json").write_text(json.dumps(descriptor,indent=2)+"\n")
     print(json.dumps({"ready":True,"origin":base,"gateway_pid":gateway.pid,"descriptor":str(out/"descriptor.json")}),flush=True)
     while not (out/"stop").exists():
         if gateway.poll() is not None:raise RuntimeError("owned gateway exited during UI acceptance")
         (out/"provider-receives.json").write_text(json.dumps(receives,indent=2)+"\n");time.sleep(.2)
+        if device:
+            (out/"device-receives.json").write_text(json.dumps(device.snapshot(),indent=2)+"\n")
 finally:
     if gateway.poll() is None:gateway.terminate();gateway.wait(timeout=30)
     provider.shutdown();provider.server_close();log.close()
     (out/"provider-receives.json").write_text(json.dumps(receives,indent=2)+"\n")
+    if device:
+        (out/"device-receives.json").write_text(json.dumps(device.snapshot(),indent=2)+"\n")
     if (state/"control.sqlite3").exists():
         with sqlite3.connect(state/"control.sqlite3") as db:
             facts={"versions":db.execute("SELECT id,status,revision FROM config_versions").fetchall(),"accounts":db.execute("SELECT config_version_id,id,upstream_id,kind,status,revision FROM upstream_credentials").fetchall(),"bindings":db.execute("SELECT config_version_id,endpoint_id,credential_id,enabled FROM endpoint_credential_bindings").fetchall()}
