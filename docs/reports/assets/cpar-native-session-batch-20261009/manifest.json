@@ -100,11 +100,18 @@
     "final-grok-page.json": "79daa09bf74ccaaf14b89ed6c9be076a6d061c59a601e6d9b5076de494e3603b",
     "final-shared-page-summary.json": "3315d001b770906c8da973963e746e045e3b3b56c7ede0655dcd0e4c5674112a",
     "final-grok-page-transition.png": "093d911daafb558b3026fd7ab9a9782b924994c62182df71e149d7959a18fefd",
-    "final-evidence-index.json": "29140eb258072baba5fb5fbc963a1cfdf880542d21eb01b0083593cc24678ee9",
+    "final-evidence-index.json": "74920b10a3bb015dde8406a8eb72e4c636bba6db5ed41fad876edfeaf8539687",
     "final-clean-full-quiet-receipt.json": "4bd12878723068a18de5d5f9bbc7eeb13c5c9c4efd6adfea62977236178a386d",
     "final-clean-full-quiet-raw.log": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
     "final-clean-full-steps.md": "6021858f044e7d55c05c60ece0c977be3a2bbcf628ba437972f42acbc9b8746a",
-    "final-gate-attestation.json": "4b4d7a603b2cd624ea23057b1002c12cf5f75ba7fd0dd6ffd6ce623454a485de"
+    "final-gate-attestation.json": "4b4d7a603b2cd624ea23057b1002c12cf5f75ba7fd0dd6ffd6ce623454a485de",
+    "review-presentation-types-receipt.json": "bbdb44d7660f4e2f704a5f0a5db291a97d792e0a1ebfecdc1ba8229ada196d69",
+    "review-presentation-types-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+    "review-presentation-unit-tests-receipt.json": "27e00af5594259f3dc6f4ec7e41820e73b46db9106faab386d7eef940da5d351",
+    "review-presentation-unit-tests-raw.log": "7d4cb79aeac7854e8f3e544b46879573ade2a3b83eb302080ce1cbf9ab4ee6fa",
+    "review-initial.md": "de545465438c759c5ff0566819463538dd873fc85bdc364d313d977d16dbb1cf",
+    "review-unused-preflight-server-receipt.json": "11dc85076895f0d3466b407a9987676d2867134b856a1f6ad72a11fdd2a6816b",
+    "review-unused-preflight-server-raw.log": "73de3da2d930678ee64d9518757999ac9876e32a2a40646a653c9065f870f3fd"
   },
   "text_normalization": {
     "e05-public-negative-matrix-raw.log": {
@@ -255,6 +262,16 @@
     "final-clean-full-quiet-raw.log": {
       "original_raw_sha256": "1842f060b17c85f655a3f928b4e499290a9ce1f7a003c540d06cf9c78168ab47",
       "archived_sha256": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
+      "transformation": "remove per-line trailing spaces/tabs and blank lines at EOF; preserve one final newline"
+    },
+    "review-presentation-types-raw.log": {
+      "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove per-line trailing spaces/tabs and blank lines at EOF; preserve one final newline"
+    },
+    "review-presentation-unit-tests-raw.log": {
+      "original_raw_sha256": "6a0bf566dcd7686fd41b168d295154c747fce3a9c059728ca7eee4071515a23a",
+      "archived_sha256": "7d4cb79aeac7854e8f3e544b46879573ade2a3b83eb302080ce1cbf9ab4ee6fa",
       "transformation": "remove per-line trailing spaces/tabs and blank lines at EOF; preserve one final newline"
     }
   }

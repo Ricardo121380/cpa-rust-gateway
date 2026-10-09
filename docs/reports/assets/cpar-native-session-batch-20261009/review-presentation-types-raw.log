@@ -1,0 +1,3 @@
+
+> prism-admin@0.0.1 type-check
+> tsc --noEmit

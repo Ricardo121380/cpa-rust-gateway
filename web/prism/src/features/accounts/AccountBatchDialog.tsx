@@ -13,6 +13,7 @@ import { beginConfigurationTask } from "../config-versions/configurationTask";
 import type { NativeReceipt } from "./NativeAccountDialog";
 import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
 import { accountActionOutcomeLabel, type AccountActionOutcome } from "./accountActionModel";
+import { ResourceIdentity } from "../../components/ResourceIdentity";
 
 export type AccountTarget=Readonly<{id:string;native:boolean;nativeProvider?:string;upstreamId?:string;name:string;provider:string;enabled:boolean;revision:number}>;
 export type AccountAction="enable"|"disable"|"remove";
@@ -168,12 +169,12 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
     {action==="remove"&&!completed?<section aria-label="删除影响预览">
       {impacts.isPending?<p role="status">正在读取完整删除影响…</p>:null}{impacts.isError?<p role="alert">{asAppError(impacts.error).message}<button type="button" onClick={()=>{setImpactConfirmed(false);void impacts.refetch();}}>重新读取影响</button></p>:null}
       {impacts.data?.ordinary.map(impact=><article key={impact.credential_id}><h4>{impact.credential_id} · revision {impact.credential_revision}</h4><p>移除 {impact.removed_bindings.length} 个账号连接和 {impact.removed_egress_profiles} 个出口绑定。</p><ul>{impact.retained_endpoints.map(endpoint=><li key={endpoint.id}>保留共享接口 {endpoint.id}；删除本批次后承接账号 {endpoint.remaining_credentials.filter(id=>!targets.some(target=>!target.native&&target.id===id)).join("、")||"无；新请求将无法使用这个账号池"}</li>)}</ul><p>保留路由：{impact.retained_routes.join("、")||"无相关路由"}。保留客户端 Key：{impact.retained_client_keys.join("、")||"无相关 Key"}。</p></article>)}
-      {impacts.data?.native.map(impact=><article key={impact.account_id}><h4>{impact.account_id} · revision {impact.account_revision}</h4>
-        <p>{nativeCopy.pool} {impact.provider}</p>
-        <ul>{impact.connections.map(connection=><li key={connection.endpoint_id}>{connection.service_name} · {connection.upstream_id} / {connection.endpoint_id} · {connection.upstream_enabled&&connection.endpoint_enabled?nativeCopy.connectionEnabled:nativeCopy.connectionDisabled}
-          <ul>{connection.models.map(model=><li key={`${model.route_id}:${model.upstream_model}`}>{model.model} → {model.upstream_model} · {model.route_id} · {model.candidate_enabled?nativeCopy.candidateEnabled:nativeCopy.candidateDisabled}</li>)}</ul>{!connection.models.length?nativeCopy.noModels:null}</li>)}</ul>
+      {impacts.data?.native.map(impact=><article key={impact.account_id}><h4><ResourceIdentity id={impact.account_id} kind="account" name={targets.find(target=>target.native&&target.id===impact.account_id)?.name}/> · revision {impact.account_revision}</h4>
+        <p>{nativeCopy.pool} {targets.find(target=>target.native&&target.id===impact.account_id)?.provider}</p>
+        <ul>{impact.connections.map(connection=><li key={connection.endpoint_id}><ResourceIdentity id={connection.upstream_id} kind="upstream" name={connection.service_name}/> · <ResourceIdentity id={connection.endpoint_id} kind="endpoint"/> · {connection.upstream_enabled&&connection.endpoint_enabled?nativeCopy.connectionEnabled:nativeCopy.connectionDisabled}
+          <ul>{connection.models.map(model=><li key={`${model.route_id}:${model.upstream_model}`}>{model.model} → {model.upstream_model} · {model.candidate_enabled?nativeCopy.candidateEnabled:nativeCopy.candidateDisabled}</li>)}</ul>{!connection.models.length?nativeCopy.noModels:null}</li>)}</ul>
         {!impact.connections.length?<p>{nativeCopy.unbound}</p>:null}
-        <p>{nativeCopy.remaining}</p><ul>{impact.remaining_accounts.filter(row=>!targets.some(target=>target.native&&target.id===row.id)).map(row=><li key={row.id}>{row.id} · {row.enabled?nativeCopy.enabled:nativeCopy.disabled} · {row.auth_status}</li>)}</ul>
+        <p>{nativeCopy.remaining}</p><ul>{impact.remaining_accounts.filter(row=>!targets.some(target=>target.native&&target.id===row.id)).map(row=><li key={row.id}><ResourceIdentity id={row.id} kind="account"/> · revision {row.revision} · {row.enabled?nativeCopy.enabled:nativeCopy.disabled} · {row.auth_status}</li>)}</ul>
         {!impact.remaining_accounts.some(row=>!targets.some(target=>target.native&&target.id===row.id))?<p>{nativeCopy.noRemaining}</p>:null}
         <p>{nativeCopy.notGuaranteed}</p><p>{nativeCopy.retained}</p>
       </article>)}

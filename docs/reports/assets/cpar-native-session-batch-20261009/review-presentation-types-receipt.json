@@ -1,0 +1,40 @@
+{
+  "label": "review-presentation-types",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "run",
+    "type-check"
+  ],
+  "utc_start": "2026-10-09T16:14:06.966654+00:00",
+  "source_before": {
+    "head": "cbe19a44b3ffcba5551f7203f01157dae7bdad82",
+    "status": [
+      " M AGENTS.md",
+      " M docs/reports/cpar-native-session-batch-local-20261009.md",
+      " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+      " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx",
+      " M web/prism/src/features/accounts/NativeAccountDialog.tsx"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T16:14:12.746918+00:00",
+  "elapsed_seconds": 5.703064790999999,
+  "source_after": {
+    "head": "cbe19a44b3ffcba5551f7203f01157dae7bdad82",
+    "status": [
+      " M AGENTS.md",
+      " M docs/reports/cpar-native-session-batch-local-20261009.md",
+      " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+      " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx",
+      " M web/prism/src/features/accounts/NativeAccountDialog.tsx"
+    ]
+  },
+  "log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+  "log_bytes": 48
+}

@@ -12,6 +12,7 @@ import { safeExternalUrl } from "../upstreams/model";
 import { RuntimeApplyNotice } from "./RuntimeApplyNotice";
 import {useDeviceRecoveryStore,type GrokDeviceRecovery} from "./deviceRecoveryStore";
 import {useMessages} from "../../i18n/messages";
+import { IdentityDetails } from "../../components/ResourceIdentity";
 type View = Readonly<{session_id:string;state:string;user_code?:string;verification_uri?:string;expires_at_ms:number;retry_at_ms:number;identity:AccountIdentity|null;identity_state:string;runtime_applied?:boolean|null;account_id?:string|null;credential_revision?:number|null}>;
 export function GrokDeviceWizard({name,target,onClose,onComplete,recovery}:Readonly<{name:string;target?:{account_id:string;revision:number};recovery?:GrokDeviceRecovery;onClose:()=>void;onComplete?:()=>void}>) {
   const copy=useMessages().grokRecovery;
@@ -67,7 +68,8 @@ export function GrokDeviceWizard({name,target,onClose,onComplete,recovery}:Reado
         <p className="small muted">有效期至 {new Date(view.expires_at_ms).toLocaleTimeString()}。完成后此处自动更新。</p>
       </>:null}
       {view.state==="complete"?<>
-        <p>{copy.savedAccount} {view.account_id} · {copy.revision} {view.credential_revision}</p>
+        <p>{copy.savedAccount} · {copy.revision} {view.credential_revision}</p>
+        {view.account_id?<IdentityDetails entries={[["账号",view.account_id,accountName(view.identity??undefined)??"未提供账号身份"]]}/>:null}
         {view.identity?<p className="authorized-account-identity"><strong>{accountName(view.identity)}</strong></p>:null}
         {view.identity_state==="unavailable"?<p role="status">授权已保存，但暂未取得账号身份。</p>:view.identity_state==="not_provided"?<p role="status">授权服务未返回邮箱、电话或用户名。</p>:null}
         {view.runtime_applied===true?<p>授权已载入运行配置；接口连接及开放模型仍需单独核对。</p>:<RuntimeApplyNotice onApplied={()=>client.setQueryData(key,{...view,runtime_applied:true})}/>}

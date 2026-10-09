@@ -3797,3 +3797,21 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** Explicit user implementation authorization covers both backend and frontend for this batch. Reproduce actual Build commit-before-response-loss, retain actor/TTL receipt handles, share read-first account lifecycle states and exact native deletion review, retain the approved strict Build worker continuity exception, and complete targeted OAuth and maintenance evidence. The authoritative management OpenAPI was synchronized with `npm --prefix web/prism run sync-contract`; no generated file was hand-edited.
 
 **Other side:** FYI. Directed HTTP/SQLite/actual stock-process and EgoLite evidence are separate from development fixtures. Final clean Full, frontend double build and independent Standards/Spec reviews bind the committed source in the batch report. No real Provider call, production state, push or deployment. Original AGENTS.md and unrelated files are preserved.
+
+
+## 2026-10-10 — CPAR 原生账号展示与设计交接评审修正
+
+**Initiator:** backend/main agent, under the explicit batch implementation authorization.
+
+**Paths:**
+- `web/prism/src/features/accounts/AccountBatchDialog.tsx`
+- `web/prism/src/features/accounts/GrokDeviceWizard.tsx`
+- `web/prism/src/features/accounts/NativeAccountDialog.tsx`
+- `web/prism/DESIGN.md`
+- `scripts/acceptance/cpar-account-lifecycle-page.mjs`
+- `docs/reports/cpar-native-session-batch-local-20261009.md`
+- `docs/reports/assets/cpar-native-session-batch-20261009/review-initial.md`
+
+**Why:** Resolve the independent Standards findings using the existing resource-name and explicit-copy components; never turn import provenance into an account name. Record native recovery, account lifecycle and concrete deletion review decisions, and correct the Preferences storage statement. Exact mutation IDs, revisions and deletion review tokens are unchanged.
+
+**Other side:** FYI. The initial Spec finding about direct browser Back/Forward remains an inferred gap pending actual reproduction; no browser substitute or unverified recovery PASS is claimed. Prior explicit-close recovery evidence remains separately bounded. The authorized GitHub closeout is still pending final gate/review/readback.

@@ -9,7 +9,7 @@
 
 行为代码已提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档文件尾格式修正提交为 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b`，两者的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。
-[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮107份唯一原始执行回执、命令、时间及日志 SHA256。正式门槛为[45步日志](assets/cpar-native-session-batch-20261009/final-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)；独立评审与 GitHub 读回仍待最后收口。
+[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮110份唯一原始执行回执、命令、时间及日志 SHA256。正式门槛为[45步日志](assets/cpar-native-session-batch-20261009/final-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)；独立评审与 GitHub 读回仍待最后收口。
 [归档 manifest](assets/cpar-native-session-batch-20261009/manifest.json)只含安全回执、元数据和截图；临时 SQLite、凭据、TLS 私钥不归档。
 归档日志仅规范多余空白尾行、cargo诊断的行尾空格并保留末尾换行；manifest 同列原始与归档 SHA256及具体转换。output 中原始日志及回执未改写。
 失败保持原始唯一文件。仅实际页面旧实现的丢响应失败及缺失原生删除预览的 404 是行为 RED；脚本非法优先级、容量、模式、空目录或重复工具历史的失败是 harness 错误，不能当产品缺陷。
@@ -23,7 +23,7 @@
 | #22 / CPAR-13 | 普通/native 页面分别启用停用；19项生命周期矩阵包含草稿、发布/应用失败、已应用、拒绝、丢响应先读。普通受控 TLS 长流/并发新请求与 native production facade held stream 分开 | 定向 PASS。停用撤去新分配和后续重试资格，在途自然完结；启用只恢复许可，auth/权限/额度/容量/continuity仍独立 |
 | #23 / CPAR-14 | 原生 preview GET 列出精确连接、服务、public/upstream模型、停用状态、剩余账号；排除其他adapter。graph锁+库存代数+target revision同事务删除；批次新鲜预览只允许本批已确认移除项消失 | HTTP与页面定向 PASS；普通与native DELETE有独立长流/并发新请求证据，普通bootstrap失败删除后零fallback。实际普通/native请求、Usage、非空账本ID集合及审计/存储响应保留，共享连接/模型/其他账号保留；无替补保证、无上游注销承诺 |
 | #36 / CPAR-27 | 保留获批严格Build正常刷新例外；真实生产worker、文件SQLite、publicJSON/SSE、证明range/CAS负例与实际stock进程重启 | 定向 PASS。两根首轮各1、刷新后续接各1，总推理4、刷新1、fallback0。手动重新授权后旧range不匹配新runtime revision，JSON/SSE拒绝且成功根仍4。非法/缺失/冲突/noncontiguous证明不生成成功根；普通OAuth/APIKey/Web/ConsoleSSO仍精确revision |
-| #56 / CPAR-47 | Versions403及恢复、选择历史基线并核对非空差异/游标、compare403、两类audit403、backupPreview403、Settings403不可apply；保留恢复确认/备份加密与目标/unknown先读 | 新增家族定向6项 PASS；Preferences为本地sessionStorage偏好，管理资源权限拒绝N/A有源码依据。历史桌面/窄屏/主题/焦点/Escape证据仍仅证明各自原场景 |
+| #56 / CPAR-47 | Versions403及恢复、选择历史基线并核对非空差异/游标、compare403、两类audit403、backupPreview403、Settings403不可apply；保留恢复确认/备份加密与目标/unknown先读 | 新增家族定向6项 PASS；Preferences为仅内存会话偏好，管理资源权限拒绝N/A有源码依据。历史桌面/窄屏/主题/焦点/Escape证据仍仅证明各自原场景 |
 
 ## E-05 输入与断言地图
 
@@ -64,3 +64,13 @@
 | 新发布制品/签名/回退/远端CI/部署/生产 | NOT_RUN | 本批只本地源码实施，不push或发布 |
 
 结论：冻结新发布候选的全部本地前置条件尚未满足。#57与父规格#9保持OPEN；E-05已裁定，不能再写“等待用户决定”。
+
+## 初次评审后修正与当前待验边界（2026-10-10）
+
+[初次两轴终态整理](assets/cpar-native-session-batch-20261009/review-initial.md)：Standards FAIL（三项文档标准违反及一项报告事实错误，smell 0）；Spec FAIL（一项 P2，直接浏览器 Back/Forward 绕过关闭时可能丢失恢复 handle，仅源码推断）。GitHub 在该评审时尚未写入。
+
+当前展示修正使用既有 ResourceIdentity/复制入口，移除新增原生删除与完成页正文的内部主键；缺失姓名不回退导入标记。DESIGN §42 补充未知结果、批次维护和删除核对约定；Preferences 已更正为仅内存会话偏好。工作树 type-check 与 70 文件/500 项前端测试 PASS，不能替代最终 clean Full 或浏览器复验。
+
+原 EgoLite space37 已提前 finish，恢复返回 `task space not found: 37`。已按 ego-browser Skill 请求允许新建一个空间；当前未获得答复。直接浏览器导航尚未动态复现，未据静态推断宣称行为 RED，也未执行该修复；#16 及其依赖收口需要这项补验。此前显式关闭后离开/返回的实际嵌入页面记录仍是该明确路径的有效证据。
+
+待复现服务已按本任务 stop marker 正常停止；该执行回执只记录预备服务生命周期，不是直接导航行为 RED。
