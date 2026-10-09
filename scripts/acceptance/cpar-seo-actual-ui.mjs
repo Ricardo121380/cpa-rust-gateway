@@ -134,9 +134,11 @@ if(phase==="all"||phase==="presets"){
     return {unauthenticated:(await fetch("/admin/config-versions")).status,noCsrfWrite:(await fetch("/admin/config-versions",{method:"POST",headers:noCsrf,body:JSON.stringify({id:"must-not-exist",description:"CSRF negative"})})).status};
   });
   const sessionHeaders=await page.evaluate(()=>window.CPAR_SEO_HEADERS);
-  security.foreignOrigin=(await fetch(`${d.origin}/admin/config-versions`,{headers:{...sessionHeaders,Origin:"https://foreign.invalid"}})).status;
+  const foreignHeaders={...sessionHeaders,"Content-Type":"application/json",Origin:"https://foreign.invalid"};
+  security.foreignOriginRead=(await fetch(`${d.origin}/admin/config-versions`,{headers:foreignHeaders})).status;
+  security.foreignOriginWrite=(await fetch(`${d.origin}/admin/config-versions`,{method:"POST",headers:foreignHeaders,body:JSON.stringify({id:"foreign-must-not-exist",description:"Origin negative"})})).status;
   assert.equal(security.unauthenticated,404);assert.equal(security.noCsrfWrite,404);
-  assert.equal(security.foreignOrigin,404);
+  assert.equal(security.foreignOriginRead,200);assert.equal(security.foreignOriginWrite,404);
   await record({scenario:"actual-authentication-and-CSRF-negatives",result:"PASS",security});
 }else await login();
 if(phase==="all"||phase==="recovery"){

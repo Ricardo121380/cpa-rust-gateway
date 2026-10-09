@@ -1,4 +1,4 @@
-//! E-02: real management HTTP + committed SQLite, then a loopback proxy drops the reply.
+//! E-02: real management HTTP + committed `SQLite`, then a loopback proxy drops the reply.
 use super::*;
 use actix_web::HttpServer;
 use std::sync::{
