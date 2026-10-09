@@ -68,7 +68,7 @@ cross-boundary log tail, issue-tracker/domain rules, CONTEXT.md, ADR index, ADR-
 BC-RESP-003, development plan execution/quality gates, frontend development plan and prior
 eight-P2 report/supplement, release review findings and O-01 observation.
 
-## Execution settlement
+## First execution settlement before independent review
 
 Status: IMPLEMENTATION_AND_EXECUTION_COMPLETE; report/review closeout in progress.
 E-05 remains AWAITING_USER_DECISION, with no user choice or approved rule.
@@ -92,3 +92,20 @@ Clean isolated checkout: `output/cpar-seo-closeout-20261009/accepted-source`.
 Original budgets remain historical estimates. Full retries and browser/setup/oracle failures
 are reported separately; parallel command durations are not added as wall-clock task time.
 No remote write, push, deploy, real Provider/account or paid call was performed.
+
+## Corrected execution settlement
+
+Status: LOCAL_IMPLEMENTATION_VALIDATED_REVIEW_PENDING. E-05 remains AWAITING_USER_DECISION.
+Final runtime/acceptance source: `47b19545f6dd102a4cb15a8af2990b76e4a359db`.
+Clean Full 45/45 PASS, 1493 passed / 0 failed / 12 inherited ignored, 269.612 s.
+Final frontend type-check PASS, 68 files / 496 tests PASS.
+The initial complete Standards/Spec FAIL findings are preserved. Nine local commit titles
+now start with Task IDs; original history, per-commit trees, authors and body/trailers are
+preserved. E-03 imported API Key regression RED 14/1 -> GREEN 15/0. The following Full
+secret-scan FAIL and intermediate staged FAIL are retained; scanner unchanged, synthetic
+materials corrected, final directed and staged checks PASS.
+The final clean-source production binary and four SPA assets exactly match the executed
+actual UI binary/assets; backend and acceptance scripts are unchanged. Original actual
+UI/HTTP/device receipts keep their source/time. Fixture browser 17 scenes is historical
+supplementary evidence, not labelled as a fresh run at this source.
+Independent full-set reviews and final report-only delta closure remain pending.

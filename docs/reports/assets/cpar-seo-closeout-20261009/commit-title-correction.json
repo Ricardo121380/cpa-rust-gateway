@@ -1,0 +1,104 @@
+{
+  "result": "PASS",
+  "recorded_utc": "2026-10-09T04:55:19.188554+00:00",
+  "reason": "docs/06-development-plan.md section 4.2 requires Task ID at the beginning of each commit title",
+  "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
+  "original_review_head": "cb6d5bca6e9aebf6aa081247a907cf22db3205ca",
+  "corrected_equivalent_head": "64f8def49c24c2e9975a7a2f14c1a78aa60cbd0f",
+  "local_original_history_ref": "refs/archive/cpar-seo-closeout-20261009/pre-task-prefix",
+  "unpublished_local_commits_only": true,
+  "working_tree_and_index_preserved": true,
+  "original_runtime_receipt_source_ids_preserved": true,
+  "commits": [
+    {
+      "old_sha": "b16a374c2fee1767b7d9b7bcb3710d814dcfb3a1",
+      "new_sha": "5f4116aaf6c28cdd94108fca3beae22d8f2a1997",
+      "tree": "4a1ed61c350b3091882da06523ec9205176035d1",
+      "original_title": "docs: close S-01 ADR structure and compatible rollback",
+      "corrected_title": "S-01: close S-01 ADR structure and compatible rollback",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "c3caa7d9b1bda49779585c77157c7306e0787116",
+      "new_sha": "62921d4826a1ef5c6ee6ce1fabae518c7447ee1f",
+      "tree": "027e21b51a2a1968b9c9b8004aa321083fdb092c",
+      "original_title": "fix: admit ordinary Responses phase and validate private envelopes",
+      "corrected_title": "O-01: admit ordinary Responses phase and validate private envelopes",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "b9170df83e73b38428421a0c072b2e3684274c07",
+      "new_sha": "805c02d905b6f3620cf38f42a1429a477f2f0885",
+      "tree": "95fa2758789b03093c17b3b9a261f7a11d7fc042",
+      "original_title": "test: close preset, committed device recovery and public isolation cells",
+      "corrected_title": "E-01: close preset, committed device recovery and public isolation cells",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "f57a8bb23c12f986c529daeb304d4f813fa9af4d",
+      "new_sha": "f0c9fb433834c7315ad9d1b66601f46b8c61933c",
+      "tree": "faff891dd4e1d120fe89023caa7b8c844a50adf4",
+      "original_title": "fix: reuse actual management HTTPS connections",
+      "corrected_title": "E-01: reuse actual management HTTPS connections",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "0968036f336ec788d114eff561bff0e9b58279f4",
+      "new_sha": "0bafdd6d4d1780df3bd2b8e6e66fcda0ab2612ff",
+      "tree": "1d5effb777dedffe24d50f18d8b97027532c3639",
+      "original_title": "test: verify embedded management UI against isolated stock serve",
+      "corrected_title": "E-01: verify embedded management UI against isolated stock serve",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+      "new_sha": "f261b6785384ca5d324f512a1e5fc5c0e032bad5",
+      "tree": "0307ca672202112a529c28c26cf304e9b7c18023",
+      "original_title": "test: align acceptance with documentation and origin write boundary",
+      "corrected_title": "E-04: align acceptance with documentation and origin write boundary",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "new_sha": "61984d35b74fbfcadeed4a0bde8703617bc37be1",
+      "tree": "ab8cb06d1be3585c5402f4ea7b65da566f4e5ab8",
+      "original_title": "test: preserve exact origin denial for authenticated reads and writes",
+      "corrected_title": "E-04: preserve exact origin denial for authenticated reads and writes",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "cea7b1cca60b6a2fcc5528fdc48551407e44bff8",
+      "new_sha": "3de1718ad5b6fa7027028099bd03252194b34b26",
+      "tree": "ef785a575e10c427f70f2b9bd577a10e03bc3d5e",
+      "original_title": "docs: bind S E O acceptance evidence and retain pending E-05 rule",
+      "corrected_title": "S-01: bind S E O acceptance evidence and retain pending E-05 rule",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    },
+    {
+      "old_sha": "cb6d5bca6e9aebf6aa081247a907cf22db3205ca",
+      "new_sha": "64f8def49c24c2e9975a7a2f14c1a78aa60cbd0f",
+      "tree": "08e7f21a17789f51f42515c8923b5907011fb248",
+      "original_title": "docs: archive committed report validation before independent review",
+      "corrected_title": "S-01: archive committed report validation before independent review",
+      "tree_bytes_unchanged": true,
+      "commit_body_and_trailers_unchanged": true,
+      "author_and_committer_headers_unchanged": true
+    }
+  ]
+}

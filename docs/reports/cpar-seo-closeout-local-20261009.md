@@ -4,7 +4,7 @@
 
 本批完成 S-01、E-01～E-04、O-01 的本地规范、实现及证据工作，并完成实际管理监听器嵌入页面的受控验收。E-05 仍为 **AWAITING_USER_DECISION**；真实设备授权交换丢包的整条嵌入页面路径为 **NOT_RUN**。本批不标为全范围 DONE，不改变原始 13 项 P2 的 `RESOLVED_LOCAL` 统计，也不关闭 #57 或发布门槛。
 
-固定 base 为 `27ee36174f54bac059694a0870e452f9ac632ce0`，实际初始分支为 `codex/prism-v4-delivery`，初始 HEAD 与 base 一致。上一批接受运行源码为 `a98bfd5e01ea51d3894cce4afcbc0324e9142702`。本批最终运行及验收脚本源码为 **`5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1`**；后续提交只收录报告、证据及评审记录。最终源码、执行命令、clean 状态及二进制的对应关系见 [源码绑定](assets/cpar-seo-closeout-20261009/source-binding.json)。
+固定 base 为 `27ee36174f54bac059694a0870e452f9ac632ce0`，实际初始分支为 `codex/prism-v4-delivery`，初始 HEAD 与 base 一致。上一批接受运行源码为 `a98bfd5e01ea51d3894cce4afcbc0324e9142702`。本批最终运行及验收脚本源码为 **`47b19545f6dd102a4cb15a8af2990b76e4a359db`**；后续提交只收录报告、证据及评审记录。最终源码、执行命令、clean 状态及二进制的对应关系见 [源码绑定](assets/cpar-seo-closeout-20261009/source-binding.json)。
 
 直接依据包括 [上一批报告](cpar-p2-eight-local-20261008.md)、[上一批 #57 草稿](cpar-p2-eight-issue57-supplement-20261008.md)、[历史双轴评审](assets/cpar-release-readiness-20261005/review-results.md)、[O-01 独立观察](assets/cpar-b01-20261007/additional-observation.md)、[前端完成定义](../08-management-frontend-development-plan.md)、ADR-0100/0103、BC-RESP-003，以及本批只读取得的 GitHub 工单快照。原任务、任务预算、初始缺口及逐项证据均由 [证据索引](assets/cpar-seo-closeout-20261009/evidence-index.json) 汇总。
 
@@ -12,10 +12,10 @@
 
 | 项目 | 当前事实、复用证据与真正缺口 | 本轮动作与验收 | 最终本地状态 |
 |---|---|---|---|
-| S-01 | ADR-0100 已有严格协议、Usage、所有权语义；缺 ADR 模板结构及明确回滚边界 | 原九段语义与引用保持；补 Context/Decision/Consequences/Alternatives/Validation and rollback，登记任务和契约；静态比较、文档门槛 | **PASS：规范结构缺口关闭** |
+| S-01 | ADR-0100 已有严格协议、Usage、所有权语义；缺 ADR 模板结构及明确回滚边界 | 原八段正文语义与引用保持；补 Context/Decision/Consequences/Alternatives/Validation and rollback，登记任务和契约；静态比较、文档门槛 | **PASS：规范结构缺口关闭** |
 | E-01 | 旧 A-02～A-04 保存/生效证据未区分实际预设；产品有四渠道、五个选项 | 五个选项逐一验证；fixture 15 场景覆盖无匹配/唯一匹配/多匹配，单测覆盖非法材料和禁用；真实嵌入页面五次复用、保存、绑定、发布并读回准确配置 | **PASS_LOCAL：预设证据补齐；Grok 推理 NOT_RUN** |
 | E-02 | 原 unknown-before-save seam 不等于提交后丢包；复用原 session/task 恢复逻辑 | Kiro/Kimi 各一真实 HTTP/SQLite/TCP EOF 场景，提交在断开前可见；原 session 回执读取两次、同账号/修订、exchange=1、重放 409；fixture 关闭并返回原任务后完成连接/发布 | **PASS_HANDLER_AND_FIXTURE；实际 serve 设备丢包 UI NOT_RUN** |
-| E-03 | fixture bearer/null 不能证明生产 Kiro 分类错误 | 保留 OAuth marker，统一两种 fixture 清单的材料投影；单测、fixture 恢复和实际 Kiro OAuth/API Key 导入、清单、操作入口核验 | **PASS：fixture 缺陷关闭；未确认生产分类缺陷** |
+| E-03 | fixture bearer/null 不能证明生产 Kiro 分类错误 | 保留 OAuth marker，纠正 API Key 的共享投影；两次导入、两清单/目录分区和重新授权入口定向 RED/GREEN；独立 fixture 恢复和实际 Kiro OAuth/API Key 页面证据 | **PASS：fixture 缺陷关闭；未确认生产分类缺陷** |
 | E-04 | 原 410 项公开 HTTP 不能自动覆盖缺失连接/模型/共享 Upstream Chat 单元 | 保留并重跑原 410；新增 14 行、117 检查，公开请求/terminal/Attempt/执行身份/配置/候选/账号修订/出口及全接收计数一致 | **PASS_PUBLIC_HTTP：527 检查** |
 | O-01 | 历史静态观察需当前公开 JSON/SSE 复现 | JSON commentary phase-only 误拒绝与 SSE 非法私有 envelope 准入得到 RED；最小修复；合法 phase、paired metadata、16 个负例、存储/下一轮历史及 B-01～B-03 回归 | **PASS_LOCAL：限定的普通 Responses 准入修复** |
 | E-05 | #36 的全部 revision 变化拒绝与 BC-RESP-003 的严格同授权 Build 刷新例外冲突 | 仅发送一次选择卡；保留既有行为和冲突，未改规范、实现或测试预期 | **AWAITING_USER_DECISION：批准规则和对应实现/验证均 NOT_RUN** |
@@ -46,13 +46,13 @@ fixture 的五选项 × 三种匹配数共 15 场景，记录真正提交的 cha
 
 ## E-02/E-03 的证据层与实际页面
 
-设备丢包后端测试启动真实 Actix HTTP server，使用生产鉴权、handler 和临时 SQLite；只替换设备授权上游 transport 为本地合成结果。loopback proxy 读到真实 201 和 ETag，并从独立数据库连接确认 `rows=1, credential_revision=0` 后才断开原客户端，原客户端得到 EOF。两个原 session 各只读回两次，账号、配置、owner、committed revision 不变，token exchange 始终为 1；poll 重放 409、无鉴权回读 404，不新增账号。最终源码定向回执记录本轮真实 session/端口和交换次数。
+设备丢包后端测试启动真实 Actix HTTP server，使用生产鉴权、handler 和临时 SQLite；只替换设备授权上游 transport 为本地合成结果。loopback proxy 读到真实 201 和 ETag，并从独立数据库连接确认 `rows=1, credential_revision=0` 后才断开原客户端，原客户端得到 EOF。两个原 session 各只读回两次，账号、配置、owner、committed revision 不变，token exchange 始终为 1；poll 重放 409、无鉴权回读 404，不新增账号。原 `5701e0e5` 定向回执记录本轮真实 session/端口和交换次数；最终源码的后端及验收脚本逐字相同，Full 也重新覆盖这两个测试。
 
 EgoLite 的开发 fixture 另外证明关闭对话框、切页、返回原任务、只读核对回执和继续连接/应用的完整顺序；保存前 unknown 测试仍保留。两层不能拼成“实际 stock serve 设备丢包整条 UI 已通过”。stock serve 的设备 transport 固定指向真实服务，当前没有安全的本地注入入口，因此该层明确 **NOT_RUN**；回执还是进程内、有限容量与 TTL 的事实，不宣称跨进程重启恢复。
 
-Kiro fixture 完成的 bearer envelope 带 OAuth marker，两个清单共享 production-compatible 材料分类，OAuth 有重新授权入口，API Key 没有。实际页面分别导入合成 social OAuth JSON 与合成 `ksk_` API 材料，经真实 handler 保存并发布；生产清单分别为 `oauth` 和 `api_key`，OAuth 重授权入口打开后取消，未开始交换。账号目录使用 `entry_type=account` 展示 OAuth；AI 提供商目录使用 `entry_type=api` 展示 API Key。两页的真实 UI、响应和操作入口另有截图及读回补证。最初截图期待同页两行是错误验收预期，单独登记，未据此认定生产分类错误。
+Kiro fixture 完成的 bearer envelope 带 OAuth marker，纠正后两个清单共享与生产一致的材料分类，OAuth 有重新授权入口，API Key 没有。首轮 Spec 独立发现非 OAuth Kiro 仍返回 null；导入回归 RED 为 14 passed/1 failed，修复后的 15 项生成客户端测试检查 OAuth/API Key 两清单、目录分区、状态和操作入口，全部通过。实际页面分别导入合成 social OAuth JSON 与合成 `ksk_` API 材料，经真实 handler 保存并发布；生产清单分别为 `oauth` 和 `api_key`，OAuth 重授权入口打开后取消，未开始交换。账号目录使用 `entry_type=account` 展示 OAuth；AI 提供商目录使用 `entry_type=api` 展示 API Key。两页的真实 UI、响应和操作入口另有截图及读回补证。最初截图期待同页两行是错误验收预期，单独登记，未据此认定生产分类错误。
 
-实际网关 PID 为 `56948`，管理源为 `http://127.0.0.1:54641/admin-ui/`，二进制 SHA256 为 `794bf6c34b5d193ae320d879ba92ef5f15b4a0b6da3b4da4eb68fee18807cf2f`。启动和源码 clean 状态由 descriptor 记录；进程专用 macOS outbound sandbox 只允许 localhost，预检证明保留地址的出站 connect 被拒绝。API 测试另用仅允许本任务 loopback TLS 地址/端口的 egress policy。临时密钥、密码及原始材料不进入证据归档。
+实际页面验收时网关 PID 为 `56948`，管理源为 `http://127.0.0.1:54641/admin-ui/`，二进制 SHA256 为 `794bf6c34b5d193ae320d879ba92ef5f15b4a0b6da3b4da4eb68fee18807cf2f`。启动和源码 clean 状态由 descriptor 记录；进程专用 macOS outbound sandbox 只允许 localhost，预检证明保留地址的出站 connect 被拒绝。API 测试另用仅允许本任务 loopback TLS 地址/端口的 egress policy。临时密钥、密码及原始材料不进入证据归档。
 
 | 实际嵌入页面场景 | 浏览器、handler/storage 与观察 | 判定 |
 |---|---|---|
@@ -68,7 +68,7 @@ Kiro fixture 完成的 bearer envelope 带 OAuth marker，两个清单共享 pro
 | A-08 自定义映射拒绝 | 不写 candidate/grant、不 publish；active candidate 和 grant 前后读回相同 | PASS |
 | E-02 真实 serve 设备交换提交后丢包 | 当前缺安全的受控 transport/网络故障注入 | NOT_RUN |
 
-主整轮实际页面 **18 场景**；fixture **17 场景**独立列计。确认清单的部分自动指针点击被视口/固定栏遮挡，改用真正的 focus/Enter 后通过；指针滚动与布局关系仍是未确认观察，不标作生产 CSS 缺陷或全站视觉通过。非空草稿的差异清单也包含因配置 AAD 变化而重新加密的 ciphertext 差异，不能硬断言只有一个条目；验收明确检查先前 group 在完整清单中及无自动发布。
+主整轮实际页面 **18 场景**；fixture **17 场景**作为历史补证独立列计，保留 b0710eb4 的原执行源码。纠正后的 fixture 分类在最终源码的 15 项定向及 496 项整组单测中复核，没有把旧 fixture 浏览器运行改写成最终源码执行。最终 clean checkout 重建的生产嵌入页面四个静态文件，以及实际网关二进制，均与已验收对象逐字节相同；后端与验收脚本无增量。[等值复核](assets/cpar-seo-closeout-20261009/reviewed-runtime-equivalence.json) 支持实际页面及公开 HTTP 的复用，原源码、时间和 PID 保持。确认清单的部分自动指针点击被视口/固定栏遮挡，改用真正的 focus/Enter 后通过；指针滚动与布局关系仍是未确认观察，不标作生产 CSS 缺陷或全站视觉通过。非空草稿的差异清单也包含因配置 AAD 变化而重新加密的 ciphertext 差异，不能硬断言只有一个条目；验收明确检查先前 group 在完整清单中及无自动发布。
 
 ## E-04 与 O-01
 
@@ -86,18 +86,18 @@ O-01 在普通 `openai-compatible.responses` 公开路径分别测试 JSON/SSE�
 
 | 门槛 | 实际范围与结果 |
 |---|---|
-| S-01 static/docs | 9 段原语义保持，必要段落/引用和安全回滚检查；docs gate PASS |
+| S-01 static/docs | 8 段原正文语义保持，必要段落/引用和安全回滚检查；docs gate PASS |
 | 定向 RED/GREEN | O-01 1 pass/2 fail → 3 pass；E-03 分类 RED → GREEN；E-01 fixture 非法材料 RED → GREEN；F-01 两类 RED → 28 pass |
-| E-02 最终真实 handler/TCP | 2 passed、0 failed、0 ignored；原 session、commit、EOF、exchange=1 的最终源码回执 |
-| 前端类型/单测 | 干净 checkout，type-check PASS；68 files / 494 tests PASS |
+| E-02 真实 handler/TCP | 2 passed、0 failed、0 ignored；原 `5701e0e5` 定向回执及最终 Full 重新覆盖，原 session、commit、EOF、exchange=1 |
+| 前端类型/单测 | 干净 checkout，type-check PASS；68 files / 496 tests PASS |
 | 前端 `check:full` | 批次 Full 包含契约/generated freshness、source policy 和双构建字节一致性 |
-| EgoLite | 实际页面 18 PASS；development fixture 17 PASS（独立来源） |
-| 公开 HTTP | 最终源码 527 PASS；新 14 行/117 检查，原 410 不重新命名为新证据 |
-| Full | 最终 `5701e0e5` clean checkout：45/45 PASS，Rust 1493 passed / 0 failed / 12 既有 ignored；[最终 Full](assets/cpar-seo-closeout-20261009/accepted-full-final-receipt.json)，逐步骤日志独立归档 |
-| Standards / Spec | 固定 base 与完整提交变更集合分别评审；具体结论及范围见 [双轴评审](assets/cpar-seo-closeout-20261009/review-results.md) |
+| EgoLite | 实际页面 18 PASS（最终重建二进制字节相同）；development fixture 历史 17 PASS（独立来源，不改执行标签） |
+| 公开 HTTP | 527 PASS 原运行完整保留，最终后端/验收脚本与重建二进制等值；新 14 行/117 检查，原 410 不重新命名为新证据 |
+| Full | 最终 `47b19545` clean checkout：45/45 PASS，Rust 1493 passed / 0 failed / 12 既有 ignored，269.612 s；[最终 Full](assets/cpar-seo-closeout-20261009/accepted-full-closeout-receipt.json)，逐步骤日志独立归档 |
+| Standards / Spec | 首轮两个 complete FAIL 已保留并修正；纠正后固定 base 与完整提交变更集合分别复审，结论及范围见 [双轴评审](assets/cpar-seo-closeout-20261009/review-results.md) |
 | 收口文档增量 | 内容/链接/secret/whitespace/docs gate 与证据哈希复核；不将之前 Full 重标为最后的文档提交执行 |
 
-首轮 clean Full 在新增测试 doc-markdown 的 SQLite 反引号上失败；修正后 `b0710eb4` Full 45/45、1493 passed/0 failed/12 ignored。随后真实 UI 的异源 GET 断言失败；源头是验收预期/前端文档与真实鉴权不符，改为携带异源 Origin 的读写都拒绝并复核 `check_origin/check_browser_boundary`，最终页面通过。最终 Full 绑定校正后的 `5701e0e5`；保留前两个版本的失败/通过源码、命令和日志，不将它们改成最终运行。
+首轮 clean Full 在新增测试 doc-markdown 的 SQLite 反引号上失败；修正后 `b0710eb4` Full 45/45、1493 passed/0 failed/12 ignored。随后真实 UI 的异源 GET 断言失败；源头是验收预期/前端文档与真实鉴权不符，改为携带异源 Origin 的读写都拒绝并复核 `check_origin/check_browser_boundary`，最终页面通过。首轮独立评审前收口的 Full 绑定 `5701e0e5`，该版本的源码、命令和日志保留。首轮双轴独立评审均 FAIL：Standards 指出九个本地标题缺 Task ID 前缀，Spec 指出 E-03 API Key fixture 投影缺陷。标题以保留旧历史引用、逐提交 tree/body/trailer/作者字段一致的方式纠正；报告的原正文段落计数校正为八。E-03 定向修复后，新 clean Full 在 `9517ac06` 完成 1493 项 Rust 测试，却被测试合成材料的长凭据形状字面值触发 secret scan，449.293 s 的 FAIL 单独保留；中间 staged scan 也保留其 FAIL。测试材料改为短非空合成 OAuth 值与合成片段组装的 API Key，扫描规则不变，定向 15 PASS、staged scan PASS。最终 `47b19545` Full 45/45 PASS，269.612 s，1493/0/12，前端 496 PASS；没有改写任何早期结果。
 
 另外保留 fixture 设备文字/页面等待错误、真实 UI stale embedded build、无效 observer/CDP registration、关闭/确认按钮定位、错误 `#/config-versions` 路由、非空草稿差异数量预期、HTTP matrix 的非法相同 format、总 concurrency 超额、correlation header 假设、E-02 编译及 ETag 引号预期等独立失败。两轮宽范围 transport 探索被中断，只作 PARTIAL 线索；后续窄范围来源定位由主代理点验，不作为双轴最终 PASS。
 

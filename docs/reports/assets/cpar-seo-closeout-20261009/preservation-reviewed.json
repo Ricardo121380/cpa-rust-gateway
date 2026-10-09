@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "checked_utc": "2026-10-09T04:59:09.514068+00:00",
+  "baseline_utc": "2026-10-09T02:06:16.083324+00:00",
+  "baseline_file_objects": 8199,
+  "baseline_tracked_objects": 3804,
+  "original_untracked_files": 4395,
+  "authorized_existing_paths_changed": [
+    "apps/gateway/src/runtime/batch_c/http/responses_history.rs",
+    "crates/gateway-http-actix/tests/managed_resource_inventory.rs",
+    "crates/protocol-openai-responses/src/upstream_response.rs",
+    "docs/08-management-frontend-development-plan.md",
+    "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+    "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md",
+    "docs/cross-boundary-log.md",
+    "docs/reports/README.md",
+    "scripts/acceptance/cpar-batch-b-http.py",
+    "web/prism/DESIGN.md",
+    "web/prism/src/dev/fixtures.ts",
+    "web/prism/src/features/upstreams/apiProviderModel.test.ts",
+    "web/prism/src/features/upstreams/apiProviderModel.ts"
+  ],
+  "unexpected_changed": [],
+  "original_untracked_changed": [],
+  "missing": [],
+  "user_AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "expected_AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "baseline_json_sha256": "5e02e605f7c01157245a5364729df617af402ec578f92c08d031dc5796a3c900",
+  "first_oracle_error": "baseline is tracked plus untracked, not untracked alone; first check incorrectly treated authorized changes as preservation failures",
+  "checked_head": "9517ac06589a66c60e45b64e86fd3f2481f9171a",
+  "note": "Rechecked after review correction and local commit-title rewrite; all original file objects retained."
+}

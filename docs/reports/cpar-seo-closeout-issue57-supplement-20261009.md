@@ -2,9 +2,9 @@
 
 状态：LOCAL_DRAFT_NOT_SENT。目标：Ricardo121380/cpa-rust-gateway #57。日期：2026-10-09。
 
-本地完成 S-01 ADR-0100 结构/安全回滚、E-01 四渠道五选项证据、E-02 Kiro/Kimi 已提交授权的真实 handler/TCP 丢包与 fixture 关闭返回、E-03 Kiro fixture 材料投影、E-04 公开隔离矩阵和 O-01 普通 Responses phase/private-envelope 最小修复。实际 stock gateway 管理监听器 `/admin-ui/` 经 EgoLite 18 场景通过；fixture 17 场景独立列计。额外生产缺陷 F-01（HTTPS 连接复用被 operational transport 混淆）已 RESOLVED_LOCAL；原 13 项 P2 的状态保持独立。
+本地完成 S-01 ADR-0100 结构/安全回滚、E-01 四渠道五选项证据、E-02 Kiro/Kimi 已提交授权的真实 handler/TCP 丢包与 fixture 关闭返回、E-03 Kiro fixture 材料投影、E-04 公开隔离矩阵和 O-01 普通 Responses phase/private-envelope 最小修复。实际 stock gateway 管理监听器 `/admin-ui/` 经 EgoLite 18 场景通过；fixture 历史 17 场景独立列计（不重标执行源码）。额外生产缺陷 F-01（HTTPS 连接复用被 operational transport 混淆）已 RESOLVED_LOCAL；原 13 项 P2 的状态保持独立。
 
-最终运行源码为 `5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1`，本地 clean checkout、受控 loopback TLS 和隔离 SQLite。最终 Full、494 前端单测、18 实际页面场景、17 fixture 场景、527 公开 HTTP 检查及 Standards/Spec 结果，以 [统一报告](cpar-seo-closeout-local-20261009.md)、[逐项证据索引](assets/cpar-seo-closeout-20261009/evidence-index.json) 和 [源码绑定](assets/cpar-seo-closeout-20261009/source-binding.json) 为准；不将历史运行重标为当前提交。
+最终运行源码为 `47b19545f6dd102a4cb15a8af2990b76e4a359db`，本地 clean checkout、受控 loopback TLS 和隔离 SQLite。最终 Full 45/45（Rust 1493/0/12）、496 前端单测、18 实际页面场景、17 fixture 场景、527 公开 HTTP 检查及 Standards/Spec 结果，以 [统一报告](cpar-seo-closeout-local-20261009.md)、[逐项证据索引](assets/cpar-seo-closeout-20261009/evidence-index.json) 和 [源码绑定](assets/cpar-seo-closeout-20261009/source-binding.json) 为准；不将历史运行重标为当前提交。最终 clean 重建的实际网关二进制及四个生产页面静态文件与已验收对象逐字节相同，后端与验收脚本无增量，实际页面与公开 HTTP 复用的依据另有记录。首轮 Standards/Spec FAIL、标题纠正、E-03 API Key 投影 RED/GREEN 及合成材料 secret scan 失败均留档；纠正后的独立复审结论以统一报告为准。
 
 E-05 仍 AWAITING_USER_DECISION：#36 的精确 revision 拒绝与 BC-RESP-003 的严格同授权 Grok Build 刷新例外冲突，尚无批准规则。当前行为保持，获批规则实现/验证及远端同步 NOT_RUN。
 

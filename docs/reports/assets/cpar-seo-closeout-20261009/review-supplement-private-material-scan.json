@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "recorded_utc": "2026-10-09T05:17:39.810806+00:00",
+  "additional_known_synthetic_values_checked": 3,
+  "artifacts_and_raw_logs_checked": 209,
+  "matching_paths": [],
+  "values_not_recorded": true,
+  "previous_scan": "private-material-scan.json"
+}

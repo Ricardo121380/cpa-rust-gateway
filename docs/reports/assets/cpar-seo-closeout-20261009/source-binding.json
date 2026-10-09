@@ -1,77 +1,88 @@
 {
   "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
-  "validated_runtime_and_acceptance_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-  "validated_source_git_tree": "ab8cb06d1be3585c5402f4ea7b65da566f4e5ab8",
+  "validated_runtime_and_acceptance_source": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
+  "validated_source_git_tree": "1b9369c14af638012a13a4e4f19be0e7f0b617d5",
   "accepted_checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
   "binary_sha256": "794bf6c34b5d193ae320d879ba92ef5f15b4a0b6da3b4da4eb68fee18807cf2f",
-  "gateway_pid": 56948,
-  "management_origin": "http://127.0.0.1:54641",
-  "egolite_space_id": 35,
+  "actual_page_execution": {
+    "source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+    "gateway_pid": 56948,
+    "management_origin": "http://127.0.0.1:54641",
+    "egolite_space_id": 35,
+    "resources_stopped": true,
+    "current_rebuild_binary_exact_bytes_equal": true
+  },
   "gates": {
-    "accepted-full-final": {
-      "receipt": "accepted-full-final-receipt.json",
-      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "accepted-full-closeout": {
+      "receipt": "accepted-full-closeout-receipt.json",
+      "source_sha": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
+      "tracked_file_set_sha256": "c1bffc4b450e9561333a163bab4eff20c96963afaaea54856d860357cc40a4ae",
       "clean_before": true,
       "clean_after": true,
       "exit_code": 0,
-      "duration_seconds": 244.271,
+      "duration_seconds": 269.612,
       "rust_counts": {
         "passed": 1493,
         "failed": 0,
         "ignored": 12
       },
-      "frontend_counts": {}
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
     },
-    "accepted-binary-build-final": {
-      "receipt": "accepted-binary-build-final-receipt.json",
-      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "accepted-binary-build-closeout": {
+      "receipt": "accepted-binary-build-closeout-receipt.json",
+      "source_sha": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
+      "tracked_file_set_sha256": "c1bffc4b450e9561333a163bab4eff20c96963afaaea54856d860357cc40a4ae",
       "clean_before": true,
       "clean_after": true,
       "exit_code": 0,
-      "duration_seconds": 0.575,
+      "duration_seconds": 24.234,
       "rust_counts": {
         "passed": 0,
         "failed": 0,
         "ignored": 0
       },
-      "frontend_counts": {}
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
     },
-    "accepted-ui-type-current": {
-      "receipt": "accepted-ui-type-current-receipt.json",
-      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "accepted-ui-type-closeout": {
+      "receipt": "accepted-ui-type-closeout-receipt.json",
+      "source_sha": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
+      "tracked_file_set_sha256": "c1bffc4b450e9561333a163bab4eff20c96963afaaea54856d860357cc40a4ae",
       "clean_before": true,
       "clean_after": true,
       "exit_code": 0,
-      "duration_seconds": 8.527,
+      "duration_seconds": 11.132,
       "rust_counts": {
         "passed": 0,
         "failed": 0,
         "ignored": 0
       },
-      "frontend_counts": {}
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
     },
-    "accepted-ui-tests-current": {
-      "receipt": "accepted-ui-tests-current-receipt.json",
-      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "accepted-ui-tests-closeout": {
+      "receipt": "accepted-ui-tests-closeout-receipt.json",
+      "source_sha": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
+      "tracked_file_set_sha256": "c1bffc4b450e9561333a163bab4eff20c96963afaaea54856d860357cc40a4ae",
       "clean_before": true,
       "clean_after": true,
       "exit_code": 0,
-      "duration_seconds": 4.34,
+      "duration_seconds": 5.711,
       "rust_counts": {
         "passed": 0,
         "failed": 0,
         "ignored": 0
       },
       "frontend_counts": {
-        "passed": 494,
+        "passed": 496,
         "failed": 0,
         "skipped": 0
-      }
-    },
+      },
+      "role": "fresh execution at final validated source"
+    }
+  },
+  "prior_executions_reused_or_supplementary": {
     "accepted-actual-ui-browser-final": {
       "receipt": "accepted-actual-ui-browser-final-receipt.json",
       "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
@@ -85,7 +96,9 @@
         "failed": 0,
         "ignored": 0
       },
-      "frontend_counts": {}
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "prior execution reused with exact rebuilt binary and unchanged backend/acceptance sources"
     },
     "accepted-crossgroup-final": {
       "receipt": "accepted-crossgroup-final-receipt.json",
@@ -100,7 +113,9 @@
         "failed": 0,
         "ignored": 0
       },
-      "frontend_counts": {}
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "prior execution reused with exact rebuilt binary and unchanged backend/acceptance sources"
     },
     "accepted-e02-commit-loss": {
       "receipt": "accepted-e02-commit-loss-receipt.json",
@@ -115,7 +130,9 @@
         "failed": 0,
         "ignored": 0
       },
-      "frontend_counts": {}
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "prior execution reused with exact rebuilt binary and unchanged backend/acceptance sources"
     },
     "accepted-fixture-browser": {
       "receipt": "accepted-fixture-browser-receipt.json",
@@ -130,18 +147,23 @@
         "failed": 0,
         "ignored": 0
       },
-      "frontend_counts": {}
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "historical supplementary development-fixture execution"
     }
   },
-  "fixture_reuse": {
+  "runtime_equivalence_proof": "reviewed-runtime-equivalence.json",
+  "prior_source_binding_preserved": "source-binding-before-review.json",
+  "local_commit_title_aliases": "commit-title-correction.json",
+  "historical_fixture_scope": {
     "executed_source": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
-    "compared_final_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-    "paths": [
-      "web/prism",
-      "scripts/acceptance/cpar-seo-fixture.mjs"
+    "scenes": 17,
+    "relabelled_as_final_source_execution": false,
+    "current_fixture_classification_and_recovery_regression": [
+      "e03-review-materials-final-green-receipt.json",
+      "accepted-ui-tests-closeout-receipt.json"
     ],
-    "changed_paths": [],
-    "source_not_relabelled": true
+    "fixture_changed_after_old_browser_run": true
   },
   "counts": {
     "full_steps": 45,
@@ -150,14 +172,15 @@
       "failed": 0,
       "ignored": 12
     },
-    "frontend_tests": 494,
+    "frontend_tests": 496,
     "actual_ui_scenes": 18,
     "fixture_scenes": 17,
     "public_http_checks": 527,
     "existing_http_checks": 410,
     "new_http_checks": 117,
     "new_matrix_rows": 14,
-    "actual_single_call_receives": 4
+    "actual_single_call_receives": 4,
+    "fixture_scenes_role": "historical supplementary; distinct from current-source generated-client and whole-frontend regressions"
   },
   "E05": {
     "state": "AWAITING_USER_DECISION",
@@ -179,5 +202,6 @@
     "issue_57_full_scope": "NOT_COMPLETE",
     "release": "BLOCKED"
   },
-  "after_validation_policy": "Subsequent commits contain only reports, evidence and review records; verify the complete path delta and docs gate without relabelling runtime runs."
+  "independent_review_state": "PENDING new complete fixed-base reviews after initial failures and corrections",
+  "after_validation_policy": "Subsequent commits contain only docs/reports files. Check endpoint tree delta, docs gate, evidence object hashes and the final independent docs increment without relabelling runtime executions."
 }
