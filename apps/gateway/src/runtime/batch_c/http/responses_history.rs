@@ -1,6 +1,8 @@
 //! B-01 replay uses the actual public handler, native codec and loopback HTTP transport.
 use super::*;
 
+mod phase_admission;
+
 fn multipart_output() -> Value {
     json!([{
         "id":"msg-b01", "type":"message", "role":"assistant",

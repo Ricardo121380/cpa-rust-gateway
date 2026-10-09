@@ -247,3 +247,37 @@ claim production asynchronous-writer or process-restart acceptance.
 Rollback reverts this correction and its tests/supplement together. No migration is
 needed; the prior decoder again accepts the contradictory final order. Source,
 review and local gates are bound by the [B-03 report](../reports/cpar-b03-responses-output-order-20261008.md).
+
+## 2026-10-09 ordinary Responses phase admission supplement (O-01)
+
+For `openai-compatible.responses`, an assistant message's native `phase` is
+independent of the private paired-turn envelope. The currently admitted string
+values, `commentary` and `final_answer`, survive JSON/SSE output, stored-response
+GET and subsequent native history. Supplying phase alone does not require private
+turn IDs. This correction does not expand the existing field/value subset.
+
+When either `metadata` or `internal_chat_message_metadata_passthrough` is supplied,
+both must satisfy the existing closed paired-turn schema and carry the same valid
+`turn_id`. The existing message-envelope requirement for `final_answer` remains.
+Validation occurs before removing either private field, including SSE added/done
+and terminal snapshots. Unknown output fields, invalid phases and incomplete or
+conflicting envelopes fail without registering an owned stored result or retrying
+the rejected sequence. Storage ownership and output order remain unchanged.
+
+The official [Codex prompting guide's phase section](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide),
+checked on 2026-10-09, describes phase as an assistant output field that must be
+preserved when saving and resending history. It lists null as well as the two
+strings; this local correction retains the narrower pre-existing string subset.
+The source and independent observation are recorded in
+[the O-01 source receipt](../reports/assets/cpar-seo-closeout-20261009/official-phase-sources.json).
+
+## Corresponding tests
+
+- `ordinary_responses_phase_json_survives_output_storage_and_history`
+- `ordinary_responses_phase_sse_survives_output_storage_and_history`
+- `ordinary_responses_phase_rejects_invalid_private_metadata_without_storage_or_retry`
+
+Rollback reverts this correction and its tests/supplement together. No migration
+is required; the prior decoder again rejects valid phase-only JSON and strips
+unvalidated paired fields in SSE. This is an independent O-01 defect and does not
+change the earlier thirteen P2 findings or decide E-05's lineage conflict.

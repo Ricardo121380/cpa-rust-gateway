@@ -1,0 +1,17 @@
+{
+  "checked_date": "2026-10-09",
+  "source": "https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide",
+  "retrieved": "official page via web open and find, Phase section",
+  "facts": [
+    "phase appears on assistant output items including output_item.done",
+    "commentary and final_answer distinguish intermediate and final assistant items",
+    "null is also listed in the official schema; CPAR existing reviewed native subset admits the two strings",
+    "phase must be preserved in persisted output and manually replayed assistant history",
+    "public phase does not imply upstream private paired-turn metadata"
+  ],
+  "reference_attempt": {
+    "url": "https://developers.openai.com/api/reference/resources/responses/methods/create",
+    "result": "web fetch failed: content length exceeded 4194305 bytes; not used as fetched evidence"
+  },
+  "real_provider_calls": 0
+}

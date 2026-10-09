@@ -126,6 +126,11 @@ fn wire_item_metadata(
     item: &Map<String, Value>,
     completed: bool,
 ) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+    match required_string(item, "type")? {
+        "message" => validate_proven_message_metadata(item)?,
+        "function_call" => validate_proven_tool_metadata(item)?,
+        _ => {}
+    }
     let mut item = item.clone();
     // These paired, validated turn IDs identify an upstream wire envelope, not response content.
     item.remove("metadata");
@@ -245,7 +250,6 @@ impl CompletedState {
         {
             return Err(protocol_error());
         }
-        validate_proven_message_metadata(item)?;
         let content = item
             .get("content")
             .and_then(Value::as_array)
@@ -353,7 +357,6 @@ impl CompletedState {
         {
             return Err(protocol_error());
         }
-        validate_proven_tool_metadata(item)?;
         let arguments = required_string(item, "arguments")?;
         if arguments.len() > MAX_TOOL_ARGUMENT_BYTES {
             return Err(protocol_error());
@@ -1743,8 +1746,7 @@ fn validate_zero_tool_usage(tool_usage: &Map<String, Value>) -> Result<(), Gatew
 
 fn validate_proven_message_metadata(item: &Map<String, Value>) -> Result<(), GatewayError> {
     let metadata_present = item.contains_key("metadata")
-        || item.contains_key("internal_chat_message_metadata_passthrough")
-        || item.contains_key("phase");
+        || item.contains_key("internal_chat_message_metadata_passthrough");
     if !metadata_present {
         return Ok(());
     }
