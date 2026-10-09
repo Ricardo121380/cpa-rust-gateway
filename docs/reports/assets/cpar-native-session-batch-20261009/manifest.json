@@ -100,7 +100,7 @@
     "final-grok-page.json": "79daa09bf74ccaaf14b89ed6c9be076a6d061c59a601e6d9b5076de494e3603b",
     "final-shared-page-summary.json": "3315d001b770906c8da973963e746e045e3b3b56c7ede0655dcd0e4c5674112a",
     "final-grok-page-transition.png": "093d911daafb558b3026fd7ab9a9782b924994c62182df71e149d7959a18fefd",
-    "final-evidence-index.json": "0733fd336dc65953a5a06f5df357f99e3b11c6df44d8948b1b897375d9f3774e",
+    "final-evidence-index.json": "ccfa86381a2defcef8fe0f553ed7bd20c71f7323ed698f5c3110b6e637b702f7",
     "final-clean-full-quiet-receipt.json": "4bd12878723068a18de5d5f9bbc7eeb13c5c9c4efd6adfea62977236178a386d",
     "final-clean-full-quiet-raw.log": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
     "final-clean-full-steps.md": "6021858f044e7d55c05c60ece0c977be3a2bbcf628ba437972f42acbc9b8746a",
@@ -161,7 +161,7 @@
     "selected-clean-full-20261009T173441758099Z-raw.log": "cf4ad20fdd2b3e2250f56da3c9e67201a33aa9c8b0ff63b31be22e94d8ecebf7",
     "selected-clean-full-20261009T173441758099Z-receipt.json": "90fa2a997c9c93b8758da24d0c0acd82d4c46b4a62e412a94242b5556078146b",
     "selected-clean-full-steps.md": "e1b650247184c4a5c465a985f97a2aa83e4632cc52d396d42ce6e7d2eb9836a9",
-    "selected-gate-attestation.json": "b7885eee5ca21ab7dd1df4641c9ce14f9101c7ab5a43bd2fcf87753b012f991a",
+    "selected-gate-attestation.json": "2d98b64060cc93600dd70ad028d9eb42525afe7a68cd7b4fa5badd5b71c3a4ea",
     "github-closeout-apply-20261009T175700222673Z-raw.log": "f7b0a47b9cf19853a6cb4b7bff390a5e575a32a64e1cdbb2598489dd646e0809",
     "github-closeout-apply-20261009T175700222673Z-receipt.json": "50d36650808a152b395890d25bf9144338f22f7cf7eac5b2bb7ed7ac154a9be9",
     "github-closeout-apply-reconciled-20261009T175840735899Z-raw.log": "491273f039330f4c333d8ea06dbde4c1b9ae4fcd07cc4f3bcd012d2107197434",
@@ -181,7 +181,15 @@
     "github-closeout-verification-20261009T180147805947Z-receipt.json": "a043180c8aecf4a0c5addf041fc6f0dd0276ead63891471f502925200d76c867",
     "github-selected-prewrite-20261009T175134589908Z-raw.log": "eab42ee711db1d5bdab1d72f3fb7b1e9b15ce7ffd5253925d20b5d0ddfe99b79",
     "github-selected-prewrite-20261009T175134589908Z-receipt.json": "868e244a13b3350e78e6e66c5bc4deddb75923584307b705cabd85a8eb7b604d",
-    "review-final.md": "6c337b1bd68092f432ad6f4339b48a5c998e9190a9e08dbfa3fdfce1a3693aa0"
+    "review-final.md": "6c337b1bd68092f432ad6f4339b48a5c998e9190a9e08dbfa3fdfce1a3693aa0",
+    "closeout-clean-docs-20261009T180607173347Z-receipt.json": "26bb220d34cbae3c8f9766ff5f55d0893a155e30ebe5544a787faacf7e69e6e9",
+    "closeout-clean-docs-20261009T180607173347Z-raw.log": "f03f429e7518a1136e7fa2058d2062ee213261eaf92bcd5cc7afec77f6a479aa",
+    "closeout-docs-steps.md": "ae5a98646160add4261471730a033f2e55d658a2989c65c72ec0fb67852634aa",
+    "closeout-docs-attestation.json": "e20a926f78833191a8e2968cb80e730f83b47f7807e9ace57e8abba4a17f72ab",
+    "closeout-final-links-20261009T180955737785Z-receipt.json": "c951250c66abb6709c46cf437bcbb8de1a36603e54efd19c225b8cf9670e9994",
+    "closeout-final-links-20261009T180955737785Z-raw.log": "d93282455db3d4bc9280cb58d6f7315683839bcb8c15c9cd6016258a7b76f2a3",
+    "closeout-final-staged-secret-20261009T180955737909Z-receipt.json": "25ddbfb9b800a929ffe879eae61d84371a4d6a25786ea34be9f5a2355df5c162",
+    "closeout-final-staged-secret-20261009T180955737909Z-raw.log": "9707df96b0cbed2552381f241588e8a5d776894273847642d8ecdce68472730e"
   },
   "text_normalization": {
     "e05-public-negative-matrix-raw.log": {

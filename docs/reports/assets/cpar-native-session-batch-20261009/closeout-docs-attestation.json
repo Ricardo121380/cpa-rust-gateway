@@ -1,0 +1,37 @@
+{
+  "status": "PASS_LOCAL_DOCS",
+  "source": "550c621aad949b09ba22efa6c36fbbbabc639b50",
+  "code_source": "3b3896be34809f5b81f075d0500f23a2bc3020b2",
+  "code_contract_diff": "EMPTY",
+  "clean_before_after": true,
+  "steps": 7,
+  "steps_reference": "closeout-docs-steps.md",
+  "receipt": "closeout-clean-docs-20261009T180607173347Z-receipt.json",
+  "raw_log_sha256": "f03f429e7518a1136e7fa2058d2062ee213261eaf92bcd5cc7afec77f6a479aa",
+  "review_head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+  "post_review_change_scope": "report and GitHub/evidence metadata only; no behavior or contract changes",
+  "Full": "retained clean 3b3896be45-step PASS; not rerun for metadata",
+  "GitHub": "16 existing comments/5 bodies/4 closures; full readback PASS",
+  "latest_required_browser_scenes": "NOT_RUN: replacement space permission pending",
+  "real_provider_calls": 0,
+  "push": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN",
+  "post_archive_static_checks": [
+    {
+      "status": "PASS",
+      "receipt": "closeout-final-links-20261009T180955737785Z-receipt.json",
+      "source": "550c621aad949b09ba22efa6c36fbbbabc639b50",
+      "scope": "final report/archive static check in staged worktree; behavior code unchanged",
+      "raw_log_sha256": "d93282455db3d4bc9280cb58d6f7315683839bcb8c15c9cd6016258a7b76f2a3"
+    },
+    {
+      "status": "PASS",
+      "receipt": "closeout-final-staged-secret-20261009T180955737909Z-receipt.json",
+      "source": "550c621aad949b09ba22efa6c36fbbbabc639b50",
+      "scope": "final report/archive static check in staged worktree; behavior code unchanged",
+      "raw_log_sha256": "9707df96b0cbed2552381f241588e8a5d776894273847642d8ecdce68472730e"
+    }
+  ]
+}

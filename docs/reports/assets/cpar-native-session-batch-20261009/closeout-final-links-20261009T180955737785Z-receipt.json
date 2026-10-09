@@ -1,0 +1,43 @@
+{
+  "label": "closeout-final-links",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "ruby",
+    "scripts/check-doc-links.rb"
+  ],
+  "utc_start": "2026-10-09T18:09:55.738068+00:00",
+  "source_before": {
+    "head": "550c621aad949b09ba22efa6c36fbbbabc639b50",
+    "status": [
+      " M AGENTS.md",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-clean-docs-20261009T180607173347Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-clean-docs-20261009T180607173347Z-receipt.json",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-docs-attestation.json",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-docs-steps.md",
+      "M  docs/reports/assets/cpar-native-session-batch-20261009/final-evidence-index.json",
+      "M  docs/reports/assets/cpar-native-session-batch-20261009/manifest.json",
+      "M  docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+      "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T18:09:56.293994+00:00",
+  "elapsed_seconds": 0.510353875,
+  "source_after": {
+    "head": "550c621aad949b09ba22efa6c36fbbbabc639b50",
+    "status": [
+      " M AGENTS.md",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-clean-docs-20261009T180607173347Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-clean-docs-20261009T180607173347Z-receipt.json",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-docs-attestation.json",
+      "A  docs/reports/assets/cpar-native-session-batch-20261009/closeout-docs-steps.md",
+      "M  docs/reports/assets/cpar-native-session-batch-20261009/final-evidence-index.json",
+      "M  docs/reports/assets/cpar-native-session-batch-20261009/manifest.json",
+      "M  docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+      "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+    ]
+  },
+  "log_sha256": "d93282455db3d4bc9280cb58d6f7315683839bcb8c15c9cd6016258a7b76f2a3",
+  "log_bytes": 35
+}

@@ -124,6 +124,6 @@ GitHub 16个对象的本次写入前读回与此前正文、评论及原生依�
 
 48张实施票实际由21 CLOSED/27 OPEN变为**25 CLOSED/23 OPEN**；本次状态变化仅#14/#36/#37/#38。未完成的本批10票与后续#39–#50/#57保持OPEN。详见[实际回写/读回attestation](assets/cpar-native-session-batch-20261009/github-closeout-attestation.json)、[读回摘要](assets/cpar-native-session-batch-20261009/github-closeout-readback-summary.json)及[25项mutation ledger](assets/cpar-native-session-batch-20261009/github-closeout-mutation-ledger.jsonl)。评论ID及数量逐票匹配原快照，正文与预审payload逐字匹配，没有漏写、误关或删除依赖。
 
-最终代码独立评审为Standards静态PASS（hard0/smell0），Spec PARTIAL（#16 P2源码疑点1、#23必需页面缺口1，新增已确认实现硬缺陷0）。其后修改仅为报告、评审终态及GitHub回执归档，最终行为代码仍绑定clean 3b3896be。文档收口须核对链接、契约、计划状态、阈值、Caddy、secret及完整tracked whitespace；不因metadata再次重跑Full。
+最终代码独立评审为Standards静态PASS（hard0/smell0），Spec PARTIAL（#16 P2源码疑点1、#23必需页面缺口1，新增已确认实现硬缺陷0）。其后修改仅为报告、评审终态及GitHub回执归档，最终行为代码仍绑定clean 3b3896be。文档收口在干净550c621a完成7步PASS：链接、契约、计划状态、阈值、Caddy、secret及完整tracked whitespace；[7步日志](assets/cpar-native-session-batch-20261009/closeout-docs-steps.md)与[源码绑定](assets/cpar-native-session-batch-20261009/closeout-docs-attestation.json)保留原回执。执行前后checkout均clean，与3b3896be代码/契约diff为空。其后只归档该回执和事实，不因metadata重跑Full。最后归档的链接检查与staged secret扫描均PASS；完整暂存树空白检查PASS。最终执行索引为139份唯一回执。
 
 [收口时源码查询](assets/cpar-native-session-batch-20261009/github-closeout-code-not-uploaded.json)仍为GitHub 422未找到行为SHA；本批代码未push。GitHub工单回写已完成，与代码上传、远端CI、发布制品、部署及生产分别记录。

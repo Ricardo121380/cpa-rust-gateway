@@ -1,0 +1,26 @@
+{
+  "label": "closeout-clean-docs",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/closeout-docs-source-550c621a",
+  "argv": [
+    "bash",
+    "scripts/check.sh",
+    "docs"
+  ],
+  "utc_start": "2026-10-09T18:06:07.173987+00:00",
+  "source_before": {
+    "head": "550c621aad949b09ba22efa6c36fbbbabc639b50",
+    "status": []
+  },
+  "environment": {
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/closeout-docs-steps.md"
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-09T18:07:02.240287+00:00",
+  "elapsed_seconds": 55.013350541,
+  "source_after": {
+    "head": "550c621aad949b09ba22efa6c36fbbbabc639b50",
+    "status": []
+  },
+  "log_sha256": "f03f429e7518a1136e7fa2058d2062ee213261eaf92bcd5cc7afec77f6a479aa",
+  "log_bytes": 540
+}
