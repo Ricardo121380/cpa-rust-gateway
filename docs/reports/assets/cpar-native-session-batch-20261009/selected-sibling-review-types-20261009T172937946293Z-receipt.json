@@ -1,0 +1,36 @@
+{
+  "label": "selected-sibling-review-types",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "run",
+    "type-check"
+  ],
+  "utc_start": "2026-10-09T17:29:37.946575+00:00",
+  "source_before": {
+    "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+    "status": [
+      " M AGENTS.md",
+      " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+      " M web/prism/src/features/accounts/deletionImpact.ts",
+      " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T17:29:43.485541+00:00",
+  "elapsed_seconds": 5.503916958,
+  "source_after": {
+    "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+    "status": [
+      " M AGENTS.md",
+      " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+      " M web/prism/src/features/accounts/deletionImpact.ts",
+      " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+    ]
+  },
+  "log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+  "log_bytes": 48
+}

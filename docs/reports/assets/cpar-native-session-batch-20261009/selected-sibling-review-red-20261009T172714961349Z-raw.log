@@ -1,0 +1,48 @@
+
+> prism-admin@0.0.1 test
+> vitest run src/features/accounts/nativeDeletionImpact.test.ts
+
+
+ RUN  v3.2.7 /Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/web/prism
+
+ ❯ src/features/accounts/nativeDeletionImpact.test.ts (6 tests | 4 failed) 5ms
+   × native deletion review > rejects revision drift in a selected member not yet deleted 4ms
+     → expected true to be false // Object.is equality
+   × native deletion review > rejects enabled drift in a selected member not yet deleted 0ms
+     → expected true to be false // Object.is equality
+   × native deletion review > rejects auth drift in a selected member not yet deleted 0ms
+     → expected true to be false // Object.is equality
+   × native deletion review > rejects disappearance drift in a selected member not yet deleted 0ms
+     → expected true to be false // Object.is equality
+   ✓ native deletion review > permits only a previously selected batch member to disappear 0ms
+   ✓ native deletion review > rejects changed connection ownership, model reachability and target revision 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/accounts/nativeDeletionImpact.test.ts > native deletion review > rejects revision drift in a selected member not yet deleted
+ FAIL  src/features/accounts/nativeDeletionImpact.test.ts > native deletion review > rejects enabled drift in a selected member not yet deleted
+ FAIL  src/features/accounts/nativeDeletionImpact.test.ts > native deletion review > rejects auth drift in a selected member not yet deleted
+ FAIL  src/features/accounts/nativeDeletionImpact.test.ts > native deletion review > rejects disappearance drift in a selected member not yet deleted
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/features/accounts/nativeDeletionImpact.test.ts:13:77
+     11|     const next={...impact,remaining_accounts:member?[member,impact.rem…
+     12|     // The current production caller passes every selected ID before i…
+     13|     expect(sameNativeDeletionImpact(impact,next,["target","batch-membe…
+       |                                                                             ^
+     14|   });
+     15|   it("permits only a previously selected batch member to disappear",()…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  01:27:15
+   Duration  275ms (transform 20ms, setup 0ms, collect 16ms, tests 5ms, environment 0ms, prepare 46ms)

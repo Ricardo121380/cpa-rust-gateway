@@ -1,0 +1,21 @@
+diff --git a/web/prism/src/features/accounts/nativeDeletionImpact.test.ts b/web/prism/src/features/accounts/nativeDeletionImpact.test.ts
+index 0f5e3e67..b884bdff 100644
+--- a/web/prism/src/features/accounts/nativeDeletionImpact.test.ts
++++ b/web/prism/src/features/accounts/nativeDeletionImpact.test.ts
+@@ -2,6 +2,16 @@ import {describe,it,expect} from "vitest";
+ import {sameNativeDeletionImpact,type NativeDeletionImpact} from "./deletionImpact";
+ const impact:NativeDeletionImpact={config_version:"active",config_revision:1,inventory_generation:4,account_id:"target",account_revision:2,provider:"build",review_token:"review",connections:[{upstream_id:"build-owner",service_name:"Build",upstream_enabled:true,endpoint_id:"build-channel",endpoint_enabled:true,models:[{route_id:"route",model:"model",upstream_model:"grok-model",candidate_enabled:true}]}],remaining_accounts:[{id:"batch-member",revision:0,enabled:true,auth_status:"active"},{id:"retained",revision:0,enabled:false,auth_status:"active"}],replacement_guaranteed:false,history_retained:true,shared_resources_retained:true,upstream_account_revoked:false};
+ describe("native deletion review",()=>{
++  it.each([
++    ["revision",{...impact.remaining_accounts[0]!,revision:1}],
++    ["enabled",{...impact.remaining_accounts[0]!,enabled:false}],
++    ["auth",{...impact.remaining_accounts[0]!,auth_status:"reauth_required"}],
++    ["disappearance",undefined],
++  ])("rejects %s drift in a selected member not yet deleted",(_label,member)=>{
++    const next={...impact,remaining_accounts:member?[member,impact.remaining_accounts[1]!]:impact.remaining_accounts.slice(1)};
++    // The current production caller passes every selected ID before its first DELETE.
++    expect(sameNativeDeletionImpact(impact,next,["target","batch-member"])).toBe(false);
++  });
+   it("permits only a previously selected batch member to disappear",()=>{
+     expect(sameNativeDeletionImpact(impact,{...impact,inventory_generation:5,review_token:"fresh",remaining_accounts:impact.remaining_accounts.slice(1)},["target","batch-member"])).toBe(true);
+     expect(sameNativeDeletionImpact(impact,{...impact,remaining_accounts:[]},["target","batch-member"])).toBe(false);

@@ -7606,6 +7606,118 @@
       },
       "log_sha256": "5d9348a0cad9377a4b5e33825ca906433d8a35afe8812ec1994d7b353c1fd94d",
       "log_bytes": 301321
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/selected-sibling-review-green-20261009T172937946292Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/selected-sibling-review-green-20261009T172937946292Z/raw.log",
+      "label": "selected-sibling-review-green",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "test",
+        "--",
+        "src/features/accounts/nativeDeletionImpact.test.ts"
+      ],
+      "utc_start": "2026-10-09T17:29:37.946619+00:00",
+      "source_before": {
+        "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+        "status": [
+          " M AGENTS.md",
+          " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+          " M web/prism/src/features/accounts/deletionImpact.ts",
+          " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T17:29:39.021810+00:00",
+      "elapsed_seconds": 1.0401912089999998,
+      "source_after": {
+        "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+        "status": [
+          " M AGENTS.md",
+          " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+          " M web/prism/src/features/accounts/deletionImpact.ts",
+          " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+        ]
+      },
+      "log_sha256": "6d373a6aaae58b6beb8c310d128e84a1c8f12a6220f72c03b0af83ba90a3ad22",
+      "log_bytes": 429
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/selected-sibling-review-red-20261009T172714961349Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/selected-sibling-review-red-20261009T172714961349Z/raw.log",
+      "label": "selected-sibling-review-red",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "test",
+        "--",
+        "src/features/accounts/nativeDeletionImpact.test.ts"
+      ],
+      "utc_start": "2026-10-09T17:27:14.961909+00:00",
+      "source_before": {
+        "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+        "status": [
+          " M AGENTS.md",
+          " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+        ]
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-09T17:27:16.056451+00:00",
+      "elapsed_seconds": 1.056270166,
+      "source_after": {
+        "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+        "status": [
+          " M AGENTS.md",
+          " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+        ]
+      },
+      "log_sha256": "cf32ca46ba91c5c9897812b14f76f762f9ddfd31920cd162b2d6c98df0d2254e",
+      "log_bytes": 2590
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/selected-sibling-review-types-20261009T172937946293Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/selected-sibling-review-types-20261009T172937946293Z/raw.log",
+      "label": "selected-sibling-review-types",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "type-check"
+      ],
+      "utc_start": "2026-10-09T17:29:37.946575+00:00",
+      "source_before": {
+        "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+        "status": [
+          " M AGENTS.md",
+          " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+          " M web/prism/src/features/accounts/deletionImpact.ts",
+          " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T17:29:43.485541+00:00",
+      "elapsed_seconds": 5.503916958,
+      "source_after": {
+        "head": "11d40790e4b578e1d045da34472304c87a5877c1",
+        "status": [
+          " M AGENTS.md",
+          " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+          " M web/prism/src/features/accounts/deletionImpact.ts",
+          " M web/prism/src/features/accounts/nativeDeletionImpact.test.ts"
+        ]
+      },
+      "log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "log_bytes": 48
     }
   ],
   "initial_behavior_code": "eab0f044ee2c6679db4943772a6bf9d789d213fb",

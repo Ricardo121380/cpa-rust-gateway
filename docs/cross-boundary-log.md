@@ -3831,3 +3831,20 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** Resolve the remaining Standards finding in the ordinary deletion preview. Reuse ResourceIdentity for accounts, services, interfaces, routes and keys; resolve route labels from the existing version-scoped route/model inventory. Keep original IDs in machine references, mutation targets and deletion reviews. The directed browser assertion now checks readable names and exact DOM references separately.
 
 **Other side:** FYI. This is a presentation correction; backend operations, schemas and revision/CAS rules are unchanged. Fresh browser presentation replay remains NOT_RUN while the replacement EgoLite space request is pending. Direct-navigation recovery is still an inferred Spec gap pending actual reproduction.
+
+## 2026-10-10 — CPAR 批次删除只允许已确认成员消失
+
+**Initiator:** backend/main agent, under the explicit batch implementation authorization.
+
+**Paths:**
+- `web/prism/src/features/accounts/AccountBatchDialog.tsx`
+- `web/prism/src/features/accounts/deletionImpact.ts`
+- `web/prism/src/features/accounts/nativeDeletionImpact.test.ts`
+- `web/prism/DESIGN.md`
+- `docs/reports/cpar-native-session-batch-local-20261009.md`
+- `docs/reports/assets/cpar-native-session-batch-20261009/review-third.md`
+- `docs/reports/assets/cpar-native-session-batch-20261009/selected-sibling-review-red-test.patch`
+
+**Why:** The third Spec review found that every selected account was excluded from fresh impact comparison, including members not yet deleted. Four real comparer calls with the production selection reproduced revision, enabled, auth and disappearance drift incorrectly returning equal. The existing comparers now take captured targets and per-item outcomes, admit disappearance only after a successful DELETE result, keep ordinary/native namespaces separate and reject reappearance. No backend contract or storage change.
+
+**Other side:** FYI. Local comparison RED and 15-case GREEN are distinct from public HTTP and browser acceptance. The latest deletion page replay remains NOT_RUN pending the already requested replacement EgoLite space; direct-navigation recovery remains a separate unimplemented inference. Unknown writes are not replayed and prior confirmed results remain visible.

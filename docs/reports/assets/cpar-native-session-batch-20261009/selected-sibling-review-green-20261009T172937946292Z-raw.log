@@ -1,0 +1,13 @@
+
+> prism-admin@0.0.1 test
+> vitest run src/features/accounts/nativeDeletionImpact.test.ts
+
+
+ RUN  v3.2.7 /Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/web/prism
+
+ ✓ src/features/accounts/nativeDeletionImpact.test.ts (15 tests) 2ms
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  01:29:38
+   Duration  290ms (transform 27ms, setup 0ms, collect 22ms, tests 2ms, environment 0ms, prepare 44ms)

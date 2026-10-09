@@ -90,7 +90,7 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
             const before=impacts.data?.native.find(impact=>impact.account_id===target.id);
             nativeImpact=await call<NativeDeletionImpact>("getNativeAccountDeletionImpact",{path,query:{revision:target.revision},headers:{"X-Config-Version":tracked?.id??context!.configVersionId}});
             assertOwner();
-            if(!before||!sameNativeDeletionImpact(before,nativeImpact,targets.filter(target=>target.native).map(target=>target.id)))throw staleTarget();
+            if(!before||!sameNativeDeletionImpact(before,nativeImpact,targets,next))throw staleTarget();
           }
           const receipt=action==="remove"?await call<NativeReceipt>("deleteNativeAccount",{path,query:{revision:target.revision},headers:{"X-Config-Version":nativeImpact!.config_version,"X-Deletion-Impact-Review":nativeImpact!.review_token}}):await call<NativeReceipt>("updateNativeAccount",{path,body:{revision:target.revision,enabled:action==="enable"}});
           assertOwner();
@@ -109,7 +109,7 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
           if(action==="remove"){
             const before=impacts.data?.ordinary.find(impact=>impact.credential_id===target.id&&impact.upstream_id===target.upstreamId);
             const impact=await working.read<DeletionImpact>("getCredentialDeletionImpact",{path:{credential_id:target.id}});
-            if(!before||!sameDeletionImpact(before,impact,targets.filter(target=>!target.native).map(target=>target.id)))throw staleTarget();
+            if(!before||!sameDeletionImpact(before,impact,targets,next))throw staleTarget();
             await working.mutate("deleteCredential",{path:{credential_id:target.id},headers:{"X-Deletion-Impact-Review":impact.review_token}});
           }
           else await working.mutate("updateCredentialStatus",{path:{credential_id:target.id},body:{status:action==="enable"?"active":"disabled",credential_revision:target.revision}});
