@@ -1,0 +1,28 @@
+{
+  "label": "github-ordinary-prewrite",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "python3",
+    "output/cpar-native-session-batch-20261009-211528/fetch_github_snapshot.py",
+    "output/cpar-native-session-batch-20261009-211528/github-ordinary-prewrite"
+  ],
+  "utc_start": "2026-10-09T17:07:27.284702+00:00",
+  "source_before": {
+    "head": "509ec0f4988bbc76c03ea5037f0241b4270c6c1b",
+    "status": [
+      " M AGENTS.md"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T17:07:43.317484+00:00",
+  "elapsed_seconds": 15.982835125000001,
+  "source_after": {
+    "head": "509ec0f4988bbc76c03ea5037f0241b4270c6c1b",
+    "status": [
+      " M AGENTS.md"
+    ]
+  },
+  "log_sha256": "b595ed5af77bac1a3239e5147f12b1215939d2e68beac7c93895bda2ae87bba9",
+  "log_bytes": 5524
+}

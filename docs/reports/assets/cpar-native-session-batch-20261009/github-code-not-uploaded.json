@@ -1,0 +1,18 @@
+{
+  "source": "509ec0f4988bbc76c03ea5037f0241b4270c6c1b",
+  "argv": [
+    "gh",
+    "api",
+    "repos/Ricardo121380/cpa-rust-gateway/commits/509ec0f4988bbc76c03ea5037f0241b4270c6c1b"
+  ],
+  "utc": "2026-10-09T17:11:48.170110+00:00",
+  "exit_code": 1,
+  "stderr": "gh: No commit found for SHA: 509ec0f4988bbc76c03ea5037f0241b4270c6c1b (HTTP 422)",
+  "push": "NOT_RUN",
+  "response": {
+    "message": "No commit found for SHA: 509ec0f4988bbc76c03ea5037f0241b4270c6c1b",
+    "documentation_url": "https://docs.github.com/rest/commits/commits#get-a-commit",
+    "status": "422"
+  },
+  "availability": "NOT_FOUND"
+}

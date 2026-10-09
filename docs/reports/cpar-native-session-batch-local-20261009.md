@@ -7,9 +7,9 @@
 
 ## 源码与证据绑定
 
-初次行为代码提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档格式修正提交 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b` 与它的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。后续 Standards 展示/交接修正及当前干净门槛绑定 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3`。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
+初次行为代码提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档格式修正提交 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b` 与它的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。原生展示/交接修正为 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3`；普通名称修正与当前干净门槛绑定 `509ec0f4988bbc76c03ea5037f0241b4270c6c1b`。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。
-[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮117份唯一原始执行回执、命令、时间及日志 SHA256。此前门槛为[45步日志](assets/cpar-native-session-batch-20261009/final-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)；最新源码独立复评与 GitHub 读回仍待最后收口。
+[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮122份唯一原始执行回执、命令、时间及日志 SHA256。当前门槛为[新45步日志](assets/cpar-native-session-batch-20261009/ordinary-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/ordinary-gate-attestation.json)；此前[2bb门槛](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)保留各自来源。最新源码独立复评与 GitHub 读回仍待最后收口。
 [归档 manifest](assets/cpar-native-session-batch-20261009/manifest.json)只含安全回执、元数据和截图；临时 SQLite、凭据、TLS 私钥不归档。
 归档日志仅规范多余空白尾行、cargo诊断的行尾空格并保留末尾换行；manifest 同列原始与归档 SHA256及具体转换。output 中原始日志及回执未改写。
 失败保持原始唯一文件。仅实际页面旧实现的丢响应失败及缺失原生删除预览的 404 是行为 RED；脚本非法优先级、容量、模式、空目录或重复工具历史的失败是 harness 错误，不能当产品缺陷。
@@ -55,7 +55,7 @@
 | 条件 | 当前判定 | 依据 |
 | --- | --- | --- |
 | 本批必要实现/契约/定向证据 | PARTIAL | #16直接导航尚未动态复现；#23最新展示回放NOT_RUN；其他定向结果按上述六票地图保留 |
-| 最终clean Full/前端double build | PASS_LOCAL | clean源码3b4f78c8、45步PASS、Rust1499通过/12忽略、前端500/type-check/双构建PASS |
+| 最终clean Full/前端double build | PASS_LOCAL | clean源码509ec0f4、45步PASS、Rust1499通过/12忽略、前端500/type-check/双构建PASS |
 | 两轴独立评审 | 待复评 | 第二次Standards有一项名称展示发现，Spec为一项P2未满足；最新修正源码须重新评审 |
 | Grok Web原生多轮 | 未满足 | 仍是后续独立软件范围，本批未新增例外 |
 | Kiro native输出硬上限 | 未满足 | 仍是后续独立软件范围 |
@@ -76,7 +76,7 @@
 待复现服务已按本任务 stop marker 正常停止；该执行回执只记录预备服务生命周期，不是直接导航行为 RED。
 
 
-## 评审修正候选的干净检查
+## 第一次展示修正候选（3b4f78c8）的干净检查
 
 展示及交接修正源码 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3` 的干净隔离 checkout 已完成 Full 45 步 PASS、Rust1499通过/0失败/12忽略、前端70文件/500测试 PASS、type-check PASS；Full 的 Management SPA 步调用 check:full，完成双构建。stock gateway 已按该源码构建，但新页面验收未执行。详见 [新45步](assets/cpar-native-session-batch-20261009/review-clean-full-steps.md)及[新候选 attestation](assets/cpar-native-session-batch-20261009/review-gate-attestation.json)。
 
@@ -89,3 +89,7 @@
 普通删除预览已复用 ResourceIdentity，路由名称使用既有 version-scoped 路由与模型库存；精确主键继续用于 DOM 机器引用、API及删除核对。浏览器断言改为名称与精确引用分别检查。工作树 type-check、70文件/500项前端测试及验收脚本语法检查 PASS；尚不代表最新干净 Full 或页面回放。
 
 直接导航复现和最新普通/原生展示回放仍为 NOT_RUN，等待已发送的新 EgoLite 空间许可。未对直接导航推断实施修复，未宣称行为 RED 或该路径 PASS。
+
+普通展示修正源码 `509ec0f4988bbc76c03ea5037f0241b4270c6c1b` 已在干净隔离 checkout 完成 Full 45步 PASS，Rust1499通过/0失败/12忽略；前端70文件/500测试与类型检查 PASS，Full Management SPA步骤完成双构建。该源码的后端/权威契约/行为契约以及 Codex/Claude 授权实现、fixture和定向驱动相对 eab0f044 diff 均为空。旧定向证据依各自source有效，最新删除名称和直接导航仍待实际页面验收。
+
+GitHub 16个对象的本次写入前读回与此前正文、评论及原生依赖一致，48张实施票仍21关闭/27 OPEN。本轮未push；GitHub commit查询返回422“未找到该SHA”，[实际读回](assets/cpar-native-session-batch-20261009/github-code-not-uploaded.json)确认当前行为提交未上传，不提供该提交的远端证据链接。一次查询准备断言只接受404而失败，是检查入口错误，不是产品行为RED。

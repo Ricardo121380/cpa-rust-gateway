@@ -100,7 +100,7 @@
     "final-grok-page.json": "79daa09bf74ccaaf14b89ed6c9be076a6d061c59a601e6d9b5076de494e3603b",
     "final-shared-page-summary.json": "3315d001b770906c8da973963e746e045e3b3b56c7ede0655dcd0e4c5674112a",
     "final-grok-page-transition.png": "093d911daafb558b3026fd7ab9a9782b924994c62182df71e149d7959a18fefd",
-    "final-evidence-index.json": "dfa513771b68d7bdd1eb1f6d47ec794f54c83b93b8b41579f81ef2c8b269ac8a",
+    "final-evidence-index.json": "f6840092020a690a79793b068eb3b49e1407903047f18245e813c162f941c3c1",
     "final-clean-full-quiet-receipt.json": "4bd12878723068a18de5d5f9bbc7eeb13c5c9c4efd6adfea62977236178a386d",
     "final-clean-full-quiet-raw.log": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
     "final-clean-full-steps.md": "6021858f044e7d55c05c60ece0c977be3a2bbcf628ba437972f42acbc9b8746a",
@@ -128,7 +128,21 @@
     "ordinary-labels-page-syntax-20261009T170000524601Z-receipt.json": "4a712b20c04f551342fdbbe7cd1d542ac1c28c6c0c1d865cfbb4885882618c92",
     "ordinary-labels-type-check-20261009T170000524599Z-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
     "ordinary-labels-type-check-20261009T170000524599Z-receipt.json": "269fcd250806af23a9ddbbd508f2105170580da9d0bae80d55c452d84caad6d5",
-    "review-second.md": "d54fb541634095258a1416ae5d192f0c7a38b328c271e82a0606d6d1013c2a2d"
+    "review-second.md": "d54fb541634095258a1416ae5d192f0c7a38b328c271e82a0606d6d1013c2a2d",
+    "github-code-not-uploaded.json": "41ce44b8ad1d8ad91c777e57cbfa89949b71e28473df8f9cae9fa1d52a4182eb",
+    "github-current-code-availability-20261009T171146724834Z-raw.log": "2f668e97eb2207dcad7c9c3ea147be899818ca44ef73eb1cfa38384c9c518043",
+    "github-current-code-availability-20261009T171146724834Z-receipt.json": "56f32bc4d30c30a3ae9449bbc11c77fc21236b3c327d968df42ae588c7e24925",
+    "github-ordinary-prewrite-20261009T170727284129Z-raw.log": "b595ed5af77bac1a3239e5147f12b1215939d2e68beac7c93895bda2ae87bba9",
+    "github-ordinary-prewrite-20261009T170727284129Z-receipt.json": "673e45db4e41b33e4c40eef0a35b66b9934359095f3adbf7bef62b61c9916c2b",
+    "github-ordinary-prewrite-summary.json": "e61b1e88e8edee0fccc8b5f4e557998cf46e9e5a0a55a96339fcc4613551c1f6",
+    "ordinary-clean-frontend-types-20261009T171036987532Z-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+    "ordinary-clean-frontend-types-20261009T171036987532Z-receipt.json": "6fcf6e1e2451aaad0fd37f7c2e87a3b0aa2e4bf3c57fea7117cab57ec2170d38",
+    "ordinary-clean-frontend-units-20261009T171036986826Z-raw.log": "b40dc191630b57818afac47fbbaf1134b48f2a023150bc9775193295b6fc6420",
+    "ordinary-clean-frontend-units-20261009T171036986826Z-receipt.json": "ab6ce30c98fa073a1a851bfca98aa181eafe90f0e7d73ac0157f3d3825a75d10",
+    "ordinary-clean-full-20261009T170524135303Z-raw.log": "b3028020756fe61c5d7f0ef1b0849e528b52b77b6c5f9364e880141fff709a57",
+    "ordinary-clean-full-20261009T170524135303Z-receipt.json": "2c74fcd691d48a62ea76ec81c2116792fb2450e44980e98ff1300518eb658b1e",
+    "ordinary-clean-full-steps.md": "d74b5078bc0a004e15cb326e84967edd549b65f4ba99ebfc1b640d8315286a74",
+    "ordinary-gate-attestation.json": "10f95cf9919620cb68591a2dd1c3c0bcba033b3fd10f87ecdbc0fead1a2fc7cb"
   },
   "text_normalization": {
     "e05-public-negative-matrix-raw.log": {
@@ -314,6 +328,21 @@
     "ordinary-labels-type-check-20261009T170000524599Z-raw.log": {
       "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
       "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
+    },
+    "ordinary-clean-frontend-types-20261009T171036987532Z-raw.log": {
+      "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
+    },
+    "ordinary-clean-frontend-units-20261009T171036986826Z-raw.log": {
+      "original_raw_sha256": "8f6f5a8c36a324dc0f72064dfae6f593fffefec240d7d97d854fbb78f38a9fae",
+      "archived_sha256": "b40dc191630b57818afac47fbbaf1134b48f2a023150bc9775193295b6fc6420",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
+    },
+    "ordinary-clean-full-20261009T170524135303Z-raw.log": {
+      "original_raw_sha256": "5d9348a0cad9377a4b5e33825ca906433d8a35afe8812ec1994d7b353c1fd94d",
+      "archived_sha256": "b3028020756fe61c5d7f0ef1b0849e528b52b77b6c5f9364e880141fff709a57",
       "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
     }
   }
