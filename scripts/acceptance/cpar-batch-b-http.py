@@ -593,7 +593,7 @@ def wait_ready():
 
 
 def restart():
-    global gateway
+    global gateway, passed
     gateway.terminate()
     gateway.wait(timeout=30)
     gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
