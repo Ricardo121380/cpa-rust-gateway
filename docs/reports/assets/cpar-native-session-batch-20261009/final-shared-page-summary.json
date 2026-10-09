@@ -1,0 +1,72 @@
+[
+  {
+    "kind": "d",
+    "scenario": "maintenance-denied-compare",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "native-connection-zero",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "native-connection-one",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "native-connection-multiple",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "native-build-apply-failed",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "native-mixed-batch",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "delete-shared-account",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "local-release",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "pin-default-closed",
+    "exit_code": 0
+  },
+  {
+    "kind": "a",
+    "scenario": "pin-explicit-success",
+    "exit_code": 0
+  },
+  {
+    "kind": "d",
+    "scenario": "runtime",
+    "exit_code": 0
+  },
+  {
+    "kind": "d",
+    "scenario": "failures",
+    "exit_code": 0
+  },
+  {
+    "kind": "d",
+    "scenario": "recovery-uncertain",
+    "exit_code": 0
+  },
+  {
+    "kind": "d",
+    "scenario": "apply-uncertain",
+    "exit_code": 0
+  }
+]

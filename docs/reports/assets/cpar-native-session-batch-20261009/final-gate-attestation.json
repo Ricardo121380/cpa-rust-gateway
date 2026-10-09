@@ -1,0 +1,43 @@
+{
+  "fixed_base": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+  "behavior_code": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+  "clean_gate_source": "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b",
+  "clean_gate_checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-gate-source-2bbd48b9",
+  "full": {
+    "status": "PASS",
+    "steps": 45,
+    "rust_passed": 1499,
+    "rust_failed": 0,
+    "rust_ignored": 12,
+    "raw_log_sha256": "1842f060b17c85f655a3f928b4e499290a9ce1f7a003c540d06cf9c78168ab47",
+    "elapsed_seconds": 315.18627208299995
+  },
+  "frontend": {
+    "test_files": 70,
+    "tests_passed": 500,
+    "types": "PASS",
+    "double_build": "PASS"
+  },
+  "environment": {
+    "os": "Darwin",
+    "release": "27.0.0",
+    "architecture": "arm64",
+    "versions": {
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+      "node": "v26.8.2",
+      "npm": "11.19.1"
+    },
+    "browser": "EgoLite space37; finished exactly once",
+    "gateway_binary_sha256": "5e54f753b4db07bd7854a5360810ac95e11ae6cfbf5a084b8c3a8a4b7402a43d"
+  },
+  "real_provider_calls": 0,
+  "remote_ci": "NOT_RUN",
+  "push": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN",
+  "review": "PENDING",
+  "github_sync": "PENDING",
+  "agents_content_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_diff_sha256": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f"
+}

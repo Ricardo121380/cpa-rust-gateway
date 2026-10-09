@@ -1,0 +1,4793 @@
+{
+  "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+  "spaceId": 37,
+  "result": "PASS",
+  "cases": [
+    {
+      "native": false,
+      "action": "enable",
+      "mode": "applied",
+      "id": "ordinary-enable-applied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "applied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+            "status": 200
+          },
+          {
+            "operation": "updateCredentialStatus",
+            "id": "cred-relay-key",
+            "version": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+            "status": 200
+          }
+        ],
+        "mode": "applied",
+        "mutations": 1,
+        "working": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-d325e1e6-3879-4a29-8907-552e95ca0c5d",
+          "status": "active",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 3,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "disable",
+      "mode": "applied",
+      "id": "ordinary-disable-applied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "applied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+            "status": 200
+          },
+          {
+            "operation": "updateCredentialStatus",
+            "id": "cred-relay-key",
+            "version": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+            "status": 200
+          }
+        ],
+        "mode": "applied",
+        "mutations": 1,
+        "working": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-39c10c60-fae7-4100-9855-a6ad991c9ccc",
+          "status": "active",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 3,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "disable",
+      "mode": "draft",
+      "id": "ordinary-disable-draft",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "saved_draft"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "updateUpstream",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "summarizeRequests",
+            "status": 200
+          },
+          {
+            "operation": "listOperationalBilling",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listOperationalBilling",
+            "status": 200
+          },
+          {
+            "operation": "getBillingProcessingStatus",
+            "status": 200
+          },
+          {
+            "operation": "getObservabilityMetrics",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listPublicModels",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listClientKeys",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listOperationalBilling",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "updateCredentialStatus",
+            "id": "cred-relay-key",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "lifecycle-existing-draft",
+            "status": 200
+          }
+        ],
+        "mode": "draft",
+        "mutations": 1,
+        "working": "lifecycle-existing-draft",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "lifecycle-existing-draft",
+          "status": "draft",
+          "revision": "rev-2"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 3,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Existing draft modification",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "disable",
+      "mode": "publish-failed",
+      "id": "ordinary-disable-publish-failed",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "saved_unapplied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-50b77eb8-49ed-4edb-b098-4f793d541321",
+            "status": 200
+          },
+          {
+            "operation": "updateCredentialStatus",
+            "id": "cred-relay-key",
+            "version": "edit-50b77eb8-49ed-4edb-b098-4f793d541321",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion"
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          }
+        ],
+        "mode": "publish-failed",
+        "mutations": 1,
+        "working": "edit-50b77eb8-49ed-4edb-b098-4f793d541321",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-50b77eb8-49ed-4edb-b098-4f793d541321",
+          "status": "draft",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 3,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "disable",
+      "mode": "rejected",
+      "id": "ordinary-disable-rejected",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "rejected"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-d435132e-d5c7-4814-8c19-f1b1ed013f7c",
+            "status": 200
+          },
+          {
+            "operation": "updateCredentialStatus",
+            "id": "cred-relay-key",
+            "version": "edit-d435132e-d5c7-4814-8c19-f1b1ed013f7c"
+          }
+        ],
+        "mode": "rejected",
+        "mutations": 1,
+        "working": "edit-d435132e-d5c7-4814-8c19-f1b1ed013f7c",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-d435132e-d5c7-4814-8c19-f1b1ed013f7c",
+          "status": "draft",
+          "revision": "rev-0"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "disable",
+      "mode": "lost",
+      "id": "ordinary-disable-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "unconfirmed"
+      ],
+      "readbackOutcomes": [
+        "saved_application_unconfirmed"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-e0b28237-c261-4b74-a449-17d2d55b9cea",
+            "status": 200
+          },
+          {
+            "operation": "updateCredentialStatus",
+            "id": "cred-relay-key",
+            "version": "edit-e0b28237-c261-4b74-a449-17d2d55b9cea",
+            "status": 200
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-e0b28237-c261-4b74-a449-17d2d55b9cea",
+            "status": 200
+          }
+        ],
+        "mode": "lost",
+        "mutations": 1,
+        "working": "edit-e0b28237-c261-4b74-a449-17d2d55b9cea",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-e0b28237-c261-4b74-a449-17d2d55b9cea",
+          "status": "draft",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 3,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "remove",
+      "mode": "applied",
+      "id": "ordinary-remove-applied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 1 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×cred-relay-key · revision 2移除 1 个账号连接和 0 个出口绑定。保留共享接口 ep-relay-a-responses；删除本批次后承接账号 cred-relay-spare、cred-relay-third保留路由：rt-minimax。保留客户端 Key：key-cli、key-dead。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择1 份授权0 项已处理未提供账号身份API待处理取消确认删除",
+      "initialOutcomes": [
+        "applied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 200
+          },
+          {
+            "operation": "deleteCredential",
+            "id": "cred-relay-key",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 204
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 404
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 404
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+            "status": 200
+          }
+        ],
+        "mode": "applied",
+        "mutations": 1,
+        "working": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-b65c4dfc-536a-4d88-bb14-e013c83de6a9",
+          "status": "active",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "remove",
+      "mode": "publish-failed",
+      "id": "ordinary-remove-publish-failed",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 1 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×cred-relay-key · revision 2移除 1 个账号连接和 0 个出口绑定。保留共享接口 ep-relay-a-responses；删除本批次后承接账号 cred-relay-spare、cred-relay-third保留路由：rt-minimax。保留客户端 Key：key-cli、key-dead。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择1 份授权0 项已处理未提供账号身份API待处理取消确认删除",
+      "initialOutcomes": [
+        "saved_unapplied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-28ea9bdd-59f3-4188-9ee5-8011839e256c",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-28ea9bdd-59f3-4188-9ee5-8011839e256c",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-28ea9bdd-59f3-4188-9ee5-8011839e256c",
+            "status": 200
+          },
+          {
+            "operation": "deleteCredential",
+            "id": "cred-relay-key",
+            "version": "edit-28ea9bdd-59f3-4188-9ee5-8011839e256c",
+            "status": 204
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-28ea9bdd-59f3-4188-9ee5-8011839e256c",
+            "status": 404
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion"
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          }
+        ],
+        "mode": "publish-failed",
+        "mutations": 1,
+        "working": "edit-28ea9bdd-59f3-4188-9ee5-8011839e256c",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-28ea9bdd-59f3-4188-9ee5-8011839e256c",
+          "status": "draft",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "remove",
+      "mode": "rejected",
+      "id": "ordinary-remove-rejected",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 1 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×cred-relay-key · revision 2移除 1 个账号连接和 0 个出口绑定。保留共享接口 ep-relay-a-responses；删除本批次后承接账号 cred-relay-spare、cred-relay-third保留路由：rt-minimax。保留客户端 Key：key-cli、key-dead。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择1 份授权0 项已处理未提供账号身份API待处理取消确认删除",
+      "initialOutcomes": [
+        "rejected"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-6bc244bd-4f14-4fc2-8afd-9ebf4f7d2e46",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-6bc244bd-4f14-4fc2-8afd-9ebf4f7d2e46",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-6bc244bd-4f14-4fc2-8afd-9ebf4f7d2e46",
+            "status": 200
+          },
+          {
+            "operation": "deleteCredential",
+            "id": "cred-relay-key",
+            "version": "edit-6bc244bd-4f14-4fc2-8afd-9ebf4f7d2e46"
+          }
+        ],
+        "mode": "rejected",
+        "mutations": 1,
+        "working": "edit-6bc244bd-4f14-4fc2-8afd-9ebf4f7d2e46",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-6bc244bd-4f14-4fc2-8afd-9ebf4f7d2e46",
+          "status": "draft",
+          "revision": "rev-0"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": false,
+      "action": "remove",
+      "mode": "batch-lost",
+      "id": "ordinary-remove-batch-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 3 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×cred-relay-key · revision 2移除 1 个账号连接和 0 个出口绑定。保留共享接口 ep-relay-a-responses；删除本批次后承接账号 无；新请求将无法使用这个账号池保留路由：rt-minimax。保留客户端 Key：key-cli、key-dead。cred-relay-spare · revision 1移除 1 个账号连接和 0 个出口绑定。保留共享接口 ep-relay-a-responses；删除本批次后承接账号 无；新请求将无法使用这个账号池保留路由：rt-minimax。保留客户端 Key：key-cli、key-dead。cred-relay-third · revision 0移除 1 个账号连接和 0 个出口绑定。保留共享接口 ep-relay-a-responses；删除本批次后承接账号 无；新请求将无法使用这个账号池保留路由：rt-minimax。保留客户端 Key：key-cli、key-dead。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择3 份授权0 项已处理未提供账号身份API待处理未提供账号身份API待处理未提供账号身份API待处理取消确认删除",
+      "initialOutcomes": [
+        "saved_unapplied",
+        "unconfirmed",
+        "unexecuted"
+      ],
+      "readbackOutcomes": [
+        "saved_unapplied",
+        "saved_application_unconfirmed",
+        "unexecuted"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-spare",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-third",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-key",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-spare",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-third",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "deleteCredential",
+            "id": "cred-relay-key",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 204
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-key",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 404
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-spare",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-spare",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialDeletionImpact",
+            "id": "cred-relay-spare",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 200
+          },
+          {
+            "operation": "deleteCredential",
+            "id": "cred-relay-spare",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 204
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "cred-relay-spare",
+            "version": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+            "status": 404
+          }
+        ],
+        "mode": "batch-lost",
+        "mutations": 2,
+        "working": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "edit-89fcdd2d-a92b-481a-8b66-66d685dda38d",
+          "status": "draft",
+          "revision": "rev-2"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "relay-a",
+            "name": "Fixture API",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://relay-a.example.test/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "cand-relay",
+            "route_id": "rt-minimax",
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_model": "minimax-m3",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "enable",
+      "mode": "applied",
+      "id": "native-enable-applied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "applied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "updateNativeAccount",
+            "id": "native-lifecycle-a",
+            "status": 200
+          }
+        ],
+        "mode": "applied",
+        "mutations": 1,
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-a",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-a",
+            "identity": {
+              "email": "a@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": false,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": false,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "disable",
+      "mode": "applied",
+      "id": "native-disable-applied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "applied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-b",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-c",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "updateNativeAccount",
+            "id": "native-lifecycle-a",
+            "status": 200
+          }
+        ],
+        "mode": "applied",
+        "mutations": 1,
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-a",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": false,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-a",
+            "identity": {
+              "email": "a@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "enable",
+      "mode": "unapplied",
+      "id": "native-enable-unapplied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "saved_unapplied"
+      ],
+      "runtimeReadBeforeExplicitApply": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "updateNativeAccount",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "applyRuntimeConfiguration",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "applyRuntimeConfiguration",
+            "status": 200
+          }
+        ],
+        "mode": "unapplied",
+        "mutations": 1,
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-a",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-a",
+            "identity": {
+              "email": "a@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": false,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": false,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "disable",
+      "mode": "rejected",
+      "id": "native-disable-rejected",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "rejected"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-b",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-c",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "updateNativeAccount",
+            "id": "native-lifecycle-a"
+          }
+        ],
+        "mode": "rejected",
+        "mutations": 1,
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-a",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 0,
+            "import_batch_id": "native-lifecycle-a",
+            "identity": {
+              "email": "a@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "disable",
+      "mode": "lost",
+      "id": "native-disable-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "initialOutcomes": [
+        "unconfirmed"
+      ],
+      "readbackOutcomes": [
+        "saved_application_unconfirmed"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-b",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-c",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "updateNativeAccount",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          }
+        ],
+        "mode": "lost",
+        "mutations": 1,
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-a",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": false,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-a",
+            "identity": {
+              "email": "a@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "remove",
+      "mode": "applied",
+      "id": "native-remove-applied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 1 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×native-lifecycle-a · revision 0原生账号池 buildFixture Grok 1 · batch-a-native-1 / batch-a-native-1-endpoint · 连接已停用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用Fixture Grok 2 · batch-a-native-2 / batch-a-native-2-endpoint · 连接已启用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用删除本批次后保留的同 Provider 账号：native-lifecycle-b · 允许参与调度 · activenative-lifecycle-c · 允许参与调度 · active其他账号仅为当前清单，不保证能够替补；授权、连接、权限、额度和容量仍须满足。原生账号从独立池移除，共享连接、模型、权限及历史保留。运行应用失败会暂停全局新请求，需核对运行应用回执。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择1 份授权0 项已处理a@example.testGrok Build待处理取消确认删除",
+      "initialOutcomes": [
+        "applied"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-b",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-c",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "deleteNativeAccount",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          }
+        ],
+        "mode": "applied",
+        "mutations": 1,
+        "working": "v-2026-07",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "remove",
+      "mode": "unapplied",
+      "id": "native-remove-unapplied",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 1 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×native-lifecycle-a · revision 0原生账号池 buildFixture Grok 1 · batch-a-native-1 / batch-a-native-1-endpoint · 连接已停用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用Fixture Grok 2 · batch-a-native-2 / batch-a-native-2-endpoint · 连接已启用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用删除本批次后保留的同 Provider 账号：native-lifecycle-b · 允许参与调度 · activenative-lifecycle-c · 允许参与调度 · active其他账号仅为当前清单，不保证能够替补；授权、连接、权限、额度和容量仍须满足。原生账号从独立池移除，共享连接、模型、权限及历史保留。运行应用失败会暂停全局新请求，需核对运行应用回执。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择1 份授权0 项已处理a@example.testGrok Build待处理取消确认删除",
+      "initialOutcomes": [
+        "saved_unapplied"
+      ],
+      "runtimeReadBeforeExplicitApply": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-b",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-c",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "deleteNativeAccount",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "applyRuntimeConfiguration",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "applyRuntimeConfiguration",
+            "status": 200
+          }
+        ],
+        "mode": "unapplied",
+        "mutations": 1,
+        "working": "v-2026-07",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "remove",
+      "mode": "rejected",
+      "id": "native-remove-rejected",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 1 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×native-lifecycle-a · revision 0原生账号池 buildFixture Grok 1 · batch-a-native-1 / batch-a-native-1-endpoint · 连接已停用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用Fixture Grok 2 · batch-a-native-2 / batch-a-native-2-endpoint · 连接已启用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用删除本批次后保留的同 Provider 账号：native-lifecycle-b · 允许参与调度 · activenative-lifecycle-c · 允许参与调度 · active其他账号仅为当前清单，不保证能够替补；授权、连接、权限、额度和容量仍须满足。原生账号从独立池移除，共享连接、模型、权限及历史保留。运行应用失败会暂停全局新请求，需核对运行应用回执。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择1 份授权0 项已处理a@example.testGrok Build待处理取消确认删除",
+      "initialOutcomes": [
+        "rejected"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-b",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-c",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "deleteNativeAccount",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07"
+          }
+        ],
+        "mode": "rejected",
+        "mutations": 1,
+        "working": "v-2026-07",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-a",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 0,
+            "import_batch_id": "native-lifecycle-a",
+            "identity": {
+              "email": "a@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-b",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 1,
+            "import_batch_id": "native-lifecycle-b",
+            "identity": {
+              "email": "b@example.test",
+              "phone": null,
+              "username": null
+            }
+          },
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "native": true,
+      "action": "remove",
+      "mode": "batch-lost",
+      "id": "native-remove-batch-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+      "spaceId": 37,
+      "preview": "删除 3 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×native-lifecycle-a · revision 0原生账号池 buildFixture Grok 1 · batch-a-native-1 / batch-a-native-1-endpoint · 连接已停用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用Fixture Grok 2 · batch-a-native-2 / batch-a-native-2-endpoint · 连接已启用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用删除本批次后保留的同 Provider 账号：无其他同 Provider 账号。其他账号仅为当前清单，不保证能够替补；授权、连接、权限、额度和容量仍须满足。原生账号从独立池移除，共享连接、模型、权限及历史保留。运行应用失败会暂停全局新请求，需核对运行应用回执。native-lifecycle-b · revision 1原生账号池 buildFixture Grok 1 · batch-a-native-1 / batch-a-native-1-endpoint · 连接已停用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用Fixture Grok 2 · batch-a-native-2 / batch-a-native-2-endpoint · 连接已启用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用删除本批次后保留的同 Provider 账号：无其他同 Provider 账号。其他账号仅为当前清单，不保证能够替补；授权、连接、权限、额度和容量仍须满足。原生账号从独立池移除，共享连接、模型、权限及历史保留。运行应用失败会暂停全局新请求，需核对运行应用回执。native-lifecycle-c · revision 2原生账号池 buildFixture Grok 1 · batch-a-native-1 / batch-a-native-1-endpoint · 连接已停用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用Fixture Grok 2 · batch-a-native-2 / batch-a-native-2-endpoint · 连接已启用minimax-m3 → grok-lifecycle-model · rt-minimax · 候选已启用删除本批次后保留的同 Provider 账号：无其他同 Provider 账号。其他账号仅为当前清单，不保证能够替补；授权、连接、权限、额度和容量仍须满足。原生账号从独立池移除，共享连接、模型、权限及历史保留。运行应用失败会暂停全局新请求，需核对运行应用回执。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择3 份授权0 项已处理a@example.testGrok Build待处理b@example.testGrok Build待处理c@example.testGrok Build待处理取消确认删除",
+      "initialOutcomes": [
+        "applied",
+        "unconfirmed",
+        "unexecuted"
+      ],
+      "readbackOutcomes": [
+        "applied",
+        "saved_application_unconfirmed",
+        "unexecuted"
+      ],
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountInventory",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-a",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-b",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountUsage",
+            "id": "native-lifecycle-c",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-b",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-c",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "deleteNativeAccount",
+            "id": "native-lifecycle-a",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "getNativeAccountDeletionImpact",
+            "id": "native-lifecycle-b",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "deleteNativeAccount",
+            "id": "native-lifecycle-b",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listNativeAccounts",
+            "status": 200
+          }
+        ],
+        "mode": "batch-lost",
+        "mutations": 2,
+        "working": "v-2026-07",
+        "applyLost": false
+      },
+      "savedMetadata": {
+        "version": {
+          "id": "v-2026-07",
+          "status": "active",
+          "revision": "rev-87"
+        },
+        "accounts": [
+          {
+            "id": "cred-relay-key",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 2,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-spare",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          },
+          {
+            "id": "cred-relay-third",
+            "upstream_id": "relay-a",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [
+          {
+            "id": "native-lifecycle-c",
+            "provider": "grok_build",
+            "auth_status": "active",
+            "enabled": true,
+            "revision": 2,
+            "import_batch_id": "native-lifecycle-c",
+            "identity": {
+              "email": "c@example.test",
+              "phone": null,
+              "username": null
+            }
+          }
+        ],
+        "bindings": [
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-key",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-spare",
+            "enabled": true,
+            "priority": 10,
+            "weight": 1,
+            "concurrency": 1
+          },
+          {
+            "endpoint_id": "ep-relay-a-responses",
+            "upstream_id": "relay-a",
+            "credential_id": "cred-relay-third",
+            "enabled": true,
+            "priority": 20,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ],
+        "providers": [
+          {
+            "id": "batch-a-native-1",
+            "name": "Fixture Grok 1",
+            "kind": "grok-build-native",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": null
+          },
+          {
+            "id": "batch-a-native-2",
+            "name": "Fixture Grok 2",
+            "kind": "grok-build-native",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "batch-a-native-1-endpoint",
+            "upstream_id": "batch-a-native-1",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": false
+          },
+          {
+            "id": "batch-a-native-2-endpoint",
+            "upstream_id": "batch-a-native-2",
+            "adapter_id": "grok.build.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://cli-chat-proxy.grok.com/v1",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [
+          {
+            "id": "pm-minimax",
+            "model_name": "minimax-m3",
+            "display_name": "MiniMax M3",
+            "status": "active",
+            "capabilities": {
+              "streaming": true,
+              "tools": false,
+              "reasoning": false
+            }
+          }
+        ],
+        "candidates": [
+          {
+            "id": "native-lifecycle-candidate-0",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-1-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "capability_override": {}
+          },
+          {
+            "id": "native-lifecycle-candidate-1",
+            "route_id": "rt-minimax",
+            "endpoint_id": "batch-a-native-2-endpoint",
+            "upstream_model": "grok-lifecycle-model",
+            "credential_scope": "all_active",
+            "transform_mode": "passthrough",
+            "enabled": true,
+            "priority": 1,
+            "weight": 1,
+            "capability_override": {}
+          }
+        ],
+        "permissions": [
+          {
+            "access_group_id": "team-default",
+            "route_id": "rt-minimax",
+            "enabled": true
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,427 @@
+{
+  "results": [
+    {
+      "scenario": "grok-build-real-page-commit-before-response-loss",
+      "result": "OBSERVED",
+      "sessionId": "OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+      "saved": [
+        [
+          "grok-641b90e8d042a1c9f3325741cd7b31c3",
+          "build",
+          0,
+          1,
+          "active"
+        ]
+      ],
+      "loss": {
+        "records": [
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+              "state": "pending",
+              "expires_at_ms": 1791561085909,
+              "retry_at_ms": 1791560970909,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations/OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84/poll",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+              "state": "pending",
+              "expires_at_ms": 1791561085909,
+              "retry_at_ms": 1791560970909,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          }
+        ],
+        "text": "OAuth 授权选择渠道完成官方登录，成功后自动登记账号。已有账号的重新授权从账号行发起。账号管理Codex / ChatGPT官方登录授权授权 Codex / ChatGPTClaude官方登录授权授权 ClaudeKimi Coding官方登录授权授权 Kimi CodingGrok Build官方登录授权授权 Grok BuildKiro官方登录授权授权 Kiro授权文件在账号管理导入；API Key 在 AI 提供商配置。此页不会检查模型、续期或发起推理。",
+        "dialogText": "添加 Grok 授权账号在 Grok 官方页面输入设备验证码；保存后会读取授权身份。×Grok Build · 设备授权连接 Grok 账号获取验证码 → 官方确认 → 自动保存授权结果待确认先读取原任务结果；不会重复授权交换、创建账号或取消可能已完成的授权。原会话超过有效期、管理会话结束或进程重启后可能无法确认。核对授权结果Failed to fetch关闭并标记结果未确认"
+      },
+      "transport": {
+        "events": [
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/device/code",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "scope"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/token",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "device_code",
+              "grant_type"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/userinfo",
+            "method": "GET"
+          }
+        ],
+        "refresh_requests": 0,
+        "sessions": [
+          {
+            "ordinal": 1,
+            "channel": "grok.build",
+            "mode": "success",
+            "token_requests": 1
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "grok-build-commit-loss-close-leave-return-read-original",
+      "result": "PASS",
+      "saved": [
+        [
+          "grok-641b90e8d042a1c9f3325741cd7b31c3",
+          "build",
+          0,
+          1,
+          "active"
+        ]
+      ],
+      "recovered": {
+        "records": [
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+              "state": "pending",
+              "expires_at_ms": 1791561085909,
+              "retry_at_ms": 1791560970909,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations/OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84/poll",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+              "state": "pending",
+              "expires_at_ms": 1791561085909,
+              "retry_at_ms": 1791560970909,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/accounts/inventory",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "category_totals": {
+                "grok": 1
+              },
+              "config_version": "ui-baseline",
+              "items": [
+                {
+                  "category": "grok",
+                  "id": "grok-641b90e8d042a1c9f3325741cd7b31c3",
+                  "identity": {
+                    "email": "build.member@example.test",
+                    "phone": null,
+                    "username": null
+                  },
+                  "managed": null,
+                  "name": "build.member@example.test",
+                  "native": true,
+                  "native_account": {
+                    "adapter_models": null,
+                    "auth_status": "active",
+                    "enabled": true,
+                    "id": "grok-641b90e8d042a1c9f3325741cd7b31c3",
+                    "identity": {
+                      "email": "build.member@example.test",
+                      "phone": null,
+                      "username": null
+                    },
+                    "import_batch_id": "grok-authorization-OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+                    "provider": "grok_build",
+                    "revision": 0
+                  },
+                  "operations": [
+                    "details",
+                    "enable",
+                    "disable",
+                    "remove",
+                    "models",
+                    "reauthorize"
+                  ],
+                  "plan": null,
+                  "plan_source": null,
+                  "provider": "Grok Build",
+                  "status": "enabled"
+                }
+              ],
+              "next_cursor": null,
+              "plan_totals": {},
+              "revision": "rev-4",
+              "total": 1,
+              "unobserved_plan_total": 1
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/operations/provider-account-pools",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "snapshot_id": "runtime-account-pools:9f9ec00b8e01ab81d3a12212dc34fd85:1791560973429:1",
+              "observed_at_ms": 1791560973429,
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dce7144594f558",
+              "uptime_seconds": 147
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/routes",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "ui-baseline",
+              "revision": "rev-4",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/native-accounts/grok-641b90e8d042a1c9f3325741cd7b31c3/usage",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "error": "unavailable",
+              "observation": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/route-candidates",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "ui-baseline",
+              "revision": "rev-4",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "ui-baseline",
+              "revision": "rev-4",
+              "observation_version": "audit-4",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": true,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/native-account-authorizations/OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "OaU2pNLC0RINBD4ITdKsYHXcVRN13IWM-dTYavVWk84",
+              "state": "complete",
+              "expires_at_ms": 1791561085909,
+              "retry_at_ms": 1791560970909,
+              "account_id": "grok-641b90e8d042a1c9f3325741cd7b31c3",
+              "credential_revision": 0,
+              "identity": {
+                "email": "build.member@example.test",
+                "phone": null,
+                "username": null
+              },
+              "identity_state": "observed",
+              "runtime_applied": true
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build1 份授权Grok Build账号身份渠道授权状态运行与额度接口连接操作Bbuild.member@example.test模型详情重新授权删除Grok BuildOAuth 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情重新授权删除已显示 1 / 1 份匹配授权",
+        "dialogText": "添加 Grok 授权账号在 Grok 官方页面输入设备验证码；保存后会读取授权身份。×Grok Build · 设备授权连接 Grok 账号获取验证码 → 官方确认 → 自动保存授权已保存已保存账号 grok-641b90e8d042a1c9f3325741cd7b31c3 · 授权版本 0build.member@example.test授权已载入运行配置；接口连接及开放模型仍需单独核对。配置渠道接口查看已有服务与连接关闭"
+      },
+      "transport": {
+        "events": [
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/device/code",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "scope"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/token",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "device_code",
+              "grant_type"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/userinfo",
+            "method": "GET"
+          }
+        ],
+        "refresh_requests": 0,
+        "sessions": [
+          {
+            "ordinal": 1,
+            "channel": "grok.build",
+            "mode": "success",
+            "token_requests": 1
+          }
+        ]
+      },
+      "screenshot": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-grok-page-popup-dismissed-recovered.png",
+      "foreignActorRead": 404,
+      "foreignActorPollCancel": 503,
+      "unauthenticatedRead": 404
+    }
+  ],
+  "environment": "stock serve /admin-ui/, synthetic loopback only",
+  "sourceSha": "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b",
+  "binarySha256": "5e54f753b4db07bd7854a5360810ac95e11ae6cfbf5a084b8c3a8a4b7402a43d",
+  "origin": "http://127.0.0.1:60076",
+  "spaceId": 37,
+  "timeUtc": "2026-10-09T15:49:37.479Z"
+}

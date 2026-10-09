@@ -1,0 +1,26 @@
+{
+  "label": "final-ordinary-held-delete",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-source-eab0f044",
+  "argv": [
+    "env",
+    "CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+    "python3",
+    "scripts/acceptance/cpar-batch-a-http.py",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-ordinary-http"
+  ],
+  "utc_start": "2026-10-09T15:44:12.462468+00:00",
+  "source_before": {
+    "head": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T15:44:25.716225+00:00",
+  "elapsed_seconds": 13.204915625,
+  "source_after": {
+    "head": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+    "status": []
+  },
+  "log_sha256": "463810bda07369de936cf8627b83322fb3a4b3a715abe5721f9a6fa65410a74c",
+  "log_bytes": 2136
+}

@@ -7,8 +7,9 @@
 
 ## 源码与证据绑定
 
-当前定向验证为未提交工作树证据，最终干净源码 Full、EgoLite 回放、独立评审和 GitHub 读回在后续收口追加。
+行为代码已提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档文件尾格式修正提交为 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b`，两者的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。
+[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮107份唯一原始执行回执、命令、时间及日志 SHA256。正式门槛为[45步日志](assets/cpar-native-session-batch-20261009/final-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)；独立评审与 GitHub 读回仍待最后收口。
 [归档 manifest](assets/cpar-native-session-batch-20261009/manifest.json)只含安全回执、元数据和截图；临时 SQLite、凭据、TLS 私钥不归档。
 归档日志仅去掉多余空白尾行并保留末尾换行；manifest 同列原始与归档 SHA256。output 中原始日志及回执未改写。
 失败保持原始唯一文件。仅实际页面旧实现的丢响应失败及缺失原生删除预览的 404 是行为 RED；脚本非法优先级、容量、模式、空目录或重复工具历史的失败是 harness 错误，不能当产品缺陷。
@@ -39,12 +40,23 @@
 #17混合导入结果/回读不重放、#20分离auth/runtime/health/quota/capacity、#24历史恢复账号清单与确认、#25精确隔离解除且零推理、#26显式Pin一次与证据过期、#37 compact AEAD/TTL/owner/restart、#38 WS鉴权/工具/取消/失败根、#55运行诊断失败/全局阻断/unknown回读各自保留原AC。
 共享复核使用当前 A 的 native mixed/import、restore-deleted、local-release、channel-pin 页面，accountStatus定向单元，B 的 compact/WS HTTP，以及 D 的运行诊断场景；不因关闭前置就自动关闭下游。
 
+## 最终定向回放与过程记录
+
+- 干净 `eab0f044` checkout：生命周期页面19项、Codex/Claude页面18项、下游共享页面14项均PASS。#56本家族6项包括真实选定历史基线后的非空差异、Versions/compare两种拒绝、两类审计拒绝、backup preview及Settings拒绝。共享页中的旧配置恢复有恢复账号名单和显式确认；Pin打开/选择零推理、显式执行一次、条件变化失效。
+- 实际普通管理HTTP/TLS进程：独立DELETE held stream自然结束，删除生效后新请求使用保留的sibling；bootstrap失败删除后后续重试零fallback。删除前Request/Usage/ledger ID分别7/3/3，删除后11/6/3，全部原ID保留。
+- 干净 `2bbd48b9` stock build：实际启动worker、实际原PID停止及新PID启动、Build正常刷新后JSON/SSE续接通过；推理4、刷新1、fallback0、成功root4。之后native DELETE保留Request/Usage/ledger非空ID集合6/4/4及共享endpoint/model。外国ClientKey和重新授权后的旧root不增加推理或成功root。
+- 实际 `/admin-ui/` 最终Build授权丢响应回读PASS，原actor读一次，账号ID/revision对应SQLite；exchange1、创建1、账号1、cancel0。外国actor GET404、poll/cancel503，未登录GET404。最终截图捕获了dialog过渡帧，不能作为文字可读性证明；同UI既有清晰截图与最终DOM/HTTP断言分开记录。
+- compact/WebSocket及通用续接回归410项PASS，实际受控上游receive223与执行记录223相等；它不替代Build worker证明。前端70文件/500测试、type-check、check:full双构建均PASS。
+- 两次Full失败均保留：首次在日志归档空白尾行失败，此前Rust1499通过；第二次在既有慢流时限测试报EgressUnavailable。该单项随后以完整测试名执行1项PASS。一次不完整`--exact`过滤产生0项，仅是执行入口记录，不能作测试通过证明。最终Full以原门槛重跑，未放宽时限或标准。
+- 最终Grok入口一次缺少taskSpace参数、一次被macOS iCloud密码浮层遮挡，均保留失败；补齐调用参数并用Escape关闭浮层后完成实际产品验收。这两次不作为设备恢复行为RED。受控服务已按本任务PID/stop marker停止，EgoLite space37已finish一次。
+
 ## 冻结新候选的本地前置条件
 
 | 条件 | 当前判定 | 依据 |
 | --- | --- | --- |
-| 本批必要实现/契约/定向证据 | 定向PASS，最终提交及收口待追加 | 上述六票地图，单向OpenAPI生成客户端 |
-| 最终clean Full/前端double build/两轴独立评审 | PENDING | 需固定最后行为源码后执行，不能用旧029332回执代替 |
+| 本批必要实现/契约/定向证据 | PASS_LOCAL | 上述六票地图，单向OpenAPI生成客户端；GitHub与评审待收口 |
+| 最终clean Full/前端double build | PASS_LOCAL | clean源码2bbd48b9、45步PASS、Rust1499通过/12忽略、前端500/type-check/双构建PASS |
+| 两轴独立评审 | PENDING | 最终代码和本轮证据固定后执行，不能用旧029332回执代替 |
 | Grok Web原生多轮 | 未满足 | 仍是后续独立软件范围，本批未新增例外 |
 | Kiro native输出硬上限 | 未满足 | 仍是后续独立软件范围 |
 | 完整既有数据升级兼容及回退 | 未满足 | 仅有有界合成保留/恢复证据，不代表全量既有数据 |

@@ -1,0 +1,285 @@
+[p1 "Prism · Gateway Management" | space "CPAR native continuity acceptance"(37): 1 managed, 0 untracked — p1* "Prism · Gateway Management"]
+root
+  svg_root
+  container
+    container
+      container
+        text "资源"
+        text "/"
+      text "OAuth 授权"
+    button "搜索工作区" [ref=4461, loc=css:button[aria-label="搜索工作区"]]
+      svg_root
+      text "搜索工作区"
+      text "⌘ K"
+    button "切换深浅外观" [ref=4462, loc=css:button[aria-label="切换深浅外观"]]
+      svg_root
+  container
+    svg_root
+    container
+      svg_root
+      container
+        text "Prism"
+        text "CPAR CONSOLE"
+    container
+      text "我的网关"
+      text "Prism 管理控制台"
+    container
+      text "运行"
+      anchor [ref=4463, loc=href:/admin-ui/#/, url=http://127.0.0.1:60076/admin-ui/#/]
+        svg_root
+        text "仪表盘"
+      anchor [ref=4464, loc=href:/admin-ui/#/monitoring, url=http://127.0.0.1:60076/admin-ui/#/monitoring]
+        svg_root
+        text "请求日志"
+      anchor [ref=4465, loc=href:/admin-ui/#/usage, url=http://127.0.0.1:60076/admin-ui/#/usage]
+        svg_root
+        text "用量与费用"
+    container
+      text "资源"
+      anchor [ref=4466, loc=href:/admin-ui/#/oauth, url=http://127.0.0.1:60076/admin-ui/#/oauth]
+        svg_root
+        text "OAuth 授权"
+      anchor [ref=4467, url=http://127.0.0.1:60076/admin-ui/#/accounts]
+        svg_root
+        text "账号管理"
+      anchor [ref=4468, loc=href:/admin-ui/#/upstreams, url=http://127.0.0.1:60076/admin-ui/#/upstreams]
+        svg_root
+        text "AI 提供商"
+      anchor [ref=4469, loc=href:/admin-ui/#/models, url=http://127.0.0.1:60076/admin-ui/#/models]
+        svg_root
+        text "模型管理"
+      anchor [ref=4470, loc=href:/admin-ui/#/access, url=http://127.0.0.1:60076/admin-ui/#/access]
+        svg_root
+        text "API 密钥"
+    anchor [ref=4471, loc=href:/admin-ui/#/settings, url=http://127.0.0.1:60076/admin-ui/#/settings]
+      svg_root
+      text "设置"
+    container
+      text "A"
+      container
+        text "admin"
+        text "管理会话"
+  container "OAuth 授权" [ref=4472]
+    container
+      container
+        container
+          heading
+            text "OAuth 授权"
+          paragraph
+            text "选择渠道完成官方登录，成功后自动登记账号。已有账号的重新授权从账号行发起。"
+        anchor [ref=4473, url=http://127.0.0.1:60076/admin-ui/#/accounts]
+          text "账号管理"
+      container "官方授权渠道"
+        container
+          heading
+            text "Codex / ChatGPT"
+          paragraph
+            text "官方登录授权"
+          button [ref=4474]
+            text "授权"
+            text "Codex / ChatGPT"
+        container
+          heading
+            text "Claude"
+          paragraph
+            text "官方登录授权"
+          button [ref=4475]
+            text "授权"
+            text "Claude"
+        container
+          heading
+            text "Kimi Coding"
+          paragraph
+            text "官方登录授权"
+          button [ref=4476]
+            text "授权"
+            text "Kimi Coding"
+        container
+          heading
+            text "Grok Build"
+          paragraph
+            text "官方登录授权"
+          button [ref=4477]
+            text "授权"
+            text "Grok Build"
+        container
+          heading
+            text "Kiro"
+          paragraph
+            text "官方登录授权"
+          button [ref=4478]
+            text "授权"
+            text "Kiro"
+      paragraph
+        text "授权文件在账号管理导入；API Key 在 AI 提供商配置。此页不会检查模型、续期或发起推理。"
+
+{"scenario":"grok-build-real-page-commit-before-response-loss","result":"OBSERVED"}
+{"scenario":"grok-build-commit-loss-close-leave-return-read-original","result":"PASS"}
+[p1 "Prism · Gateway Management" | space "CPAR native continuity acceptance"(37): 1 managed, 0 untracked — p1* "Prism · Gateway Management"]
+root
+  svg_root
+  container
+    container
+      container
+        text "资源"
+        text "/"
+      text "账号管理"
+    button "搜索工作区" [ref=4461, loc=css:button[aria-label="搜索工作区"]]
+      svg_root
+      text "搜索工作区"
+      text "⌘ K"
+    button "切换深浅外观" [ref=4462, loc=css:button[aria-label="切换深浅外观"]]
+      svg_root
+  container
+    svg_root
+    container
+      svg_root
+      container
+        text "Prism"
+        text "CPAR CONSOLE"
+    container
+      text "我的网关"
+      text "Prism 管理控制台"
+    container
+      text "运行"
+      anchor [ref=4463, loc=href:/admin-ui/#/, url=http://127.0.0.1:60076/admin-ui/#/]
+        svg_root
+        text "仪表盘"
+      anchor [ref=4464, loc=href:/admin-ui/#/monitoring, url=http://127.0.0.1:60076/admin-ui/#/monitoring]
+        svg_root
+        text "请求日志"
+      anchor [ref=4465, loc=href:/admin-ui/#/usage, url=http://127.0.0.1:60076/admin-ui/#/usage]
+        svg_root
+        text "用量与费用"
+    container
+      text "资源"
+      anchor [ref=4466, url=http://127.0.0.1:60076/admin-ui/#/oauth]
+        svg_root
+        text "OAuth 授权"
+      anchor [ref=4467, loc=href:/admin-ui/#/accounts, url=http://127.0.0.1:60076/admin-ui/#/accounts]
+        svg_root
+        text "账号管理"
+      anchor [ref=4468, loc=href:/admin-ui/#/upstreams, url=http://127.0.0.1:60076/admin-ui/#/upstreams]
+        svg_root
+        text "AI 提供商"
+      anchor [ref=4469, loc=href:/admin-ui/#/models, url=http://127.0.0.1:60076/admin-ui/#/models]
+        svg_root
+        text "模型管理"
+      anchor [ref=4470, loc=href:/admin-ui/#/access, url=http://127.0.0.1:60076/admin-ui/#/access]
+        svg_root
+        text "API 密钥"
+    anchor [ref=4471, loc=href:/admin-ui/#/settings, url=http://127.0.0.1:60076/admin-ui/#/settings]
+      svg_root
+      text "设置"
+    container
+      text "A"
+      container
+        text "admin"
+        text "管理会话"
+  container "账号管理" [ref=4472]
+    container
+      container
+        container
+          heading
+            text "账号管理"
+          paragraph
+            text "查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。"
+        container
+          button [ref=4479]
+            text "导入账号文件"
+          anchor [ref=4480, url=http://127.0.0.1:60076/admin-ui/#/oauth]
+            text "OAuth 授权"
+      container "账号视图"
+        button [ref=4481]
+          text "全部账号"
+        button [ref=4482]
+          text "运行状态"
+      container "账号目录摘要"
+        container
+          text "1"
+          text "匹配授权"
+        container
+          text "1"
+          text "账号类别"
+        container
+          text "1"
+          text "套餐未观测"
+      group "授权状态筛选"
+        button [ref=4483]
+          text "全部授权"
+        button [ref=4484]
+          text "需要授权"
+        button [ref=4485]
+          text "已启用"
+        button [ref=4486]
+          text "已停用"
+      container
+        textbox "搜索账号" [ref=4487, loc=css:input[placeholder="搜索邮箱、用户名、电话或渠道"]]
+          text "搜索邮箱、用户名、电话或渠道"
+        container
+          combobox "账号类别" [ref=4488, loc=css:select[aria-label="账号类别"]]
+            text "全部渠道"
+          combobox "账号套餐" [ref=4489, loc=css:select[aria-label="账号套餐"]]
+            text "全部套餐"
+          combobox "账号排序" [ref=4490, loc=css:select[aria-label="账号排序"]]
+            text "身份 A–Z"
+          container
+            button [ref=4491]
+              text "批量管理"
+            button [ref=4492]
+              text "刷新快照"
+      container "Grok 账号"
+        container
+          container
+            heading
+              text "Grok"
+            text "Web · Console · Build"
+          text "1 份授权"
+        container "Grok Build"
+          heading
+            text "Grok Build"
+          table
+            table_row
+              table_cell
+                text "账号身份"
+              table_cell
+                text "渠道"
+              table_cell
+                text "授权状态"
+              table_cell
+                text "运行与额度"
+              table_cell
+                text "接口连接"
+              table_cell
+            table_row
+              table_cell
+                text "B"
+                text "build.member@example.test"
+              table_cell
+                text "Grok Build"
+                text "OAuth 授权"
+              table_cell
+                text "未连接接口"
+              table_cell
+                anchor "查看运行证据：未观测运行连接" [ref=4493, loc=css:a[aria-label="查看运行证据：未观测运行连接"], url=http://127.0.0.1:60076/admin-ui/#/accounts?view=runtime]
+                  text "未观测运行连接"
+                text "额度余额未观测"
+              table_cell
+                button [ref=4494]
+                  text "未配置接口"
+                  text "查看接口连接"
+              table_cell
+                button [ref=4495]
+                  text "模型"
+                button [ref=4496]
+                  text "详情"
+                button [ref=4497]
+                  text "重新授权"
+                button [ref=4498]
+                  text "删除"
+      container
+        text "已显示"
+        text "1"
+        text "/"
+        text "1"
+        text "份匹配授权"

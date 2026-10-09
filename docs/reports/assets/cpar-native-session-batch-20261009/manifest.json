@@ -1,5 +1,5 @@
 {
-  "scope": "directed precommit evidence; archived text EOF normalized where listed; original raw logs and original hashes retained in output receipts",
+  "scope": "bounded local evidence; precommit and clean committed-source records distinguished by individual receipts; original raw logs preserved in output; EOF normalization listed separately",
   "files": {
     "continuity-http-regression-raw.log": "dfb474defdb9c5e2ff3f548fdbe2974251e87e703623875633e8e21b69f9c704",
     "continuity-http-regression-receipt.json": "94b638ac6d274ab7495d2b3b829b422acfc1932df64b91f8e543311d9673f6ef",
@@ -37,7 +37,74 @@
     "ordinary-held-delete-bounded-raw.log": "513e18da93f9a8acbe49569cc53d6dd3792435e0f6f7796fbac42933aa6d2a5b",
     "ordinary-held-delete-bounded-receipt.json": "8dfb708f833dbb2987c1bdc11db6252cc44fd5c4336039ee864c2c57365616f2",
     "provider-proof-matrix-raw.log": "b68708b712499ed41299138dc25a8f00158a442db63e30b90079a8c05e1978c7",
-    "provider-proof-matrix-receipt.json": "6394857d248a9606eb400c801469878271ba9532de2eb571e6b433f793358f24"
+    "provider-proof-matrix-receipt.json": "6394857d248a9606eb400c801469878271ba9532de2eb571e6b433f793358f24",
+    "final-lifecycle-receipt.json": "d856b137639425b1e13c1314a3aa420d6d79af0b8a0586891bdf4e7ae8a8a382",
+    "final-lifecycle-raw.log": "785f0a005e521cfe39db1b13e44251b1ae668a0a4962fde946a79b054feeb913",
+    "final-oauth-receipt.json": "ced75c78596f1ff61b8f9f5ff52584940a9dad86ff4afe62fb6b8ae7986cb9d5",
+    "final-oauth-raw.log": "da5b85d67d27c6db2cf074bba1925ba506ca5e7fe254b51e75a035b7224436c6",
+    "final-ordinary-held-delete-receipt.json": "7e234e0173cdd13deaa7ca7c96c155e221dca407988421a5b4b711a1ae036587",
+    "final-ordinary-held-delete-raw.log": "463810bda07369de936cf8627b83322fb3a4b3a715abe5721f9a6fa65410a74c",
+    "final-continuity-compact-websocket-receipt.json": "6372e693084184396adf8a2ce33e30536c0a133b900b2a82d0e63fc61b750a64",
+    "final-continuity-compact-websocket-raw.log": "c5ef467dfea3425ac7848738e94512baece2ac0e366e5aad27cc6dc97f7834f0",
+    "final-clean-frontend-full-receipt.json": "d4fd8079f6ad60cf09c5242f2ee1296bcf4d9f019bfed0249219e9499e1b1cfd",
+    "final-clean-frontend-full-raw.log": "792e1043d95b49e567c58c3384404763bd8da038904893035e41763209711760",
+    "final-clean-frontend-tests-receipt.json": "2aea23e2485e7d000a4527cf58b32dccfd119b66a0e57681ea5759b53b2777d6",
+    "final-clean-frontend-tests-raw.log": "54bcd0b843d0ba2f6f408957b36f693b0b926928c443465bab1a2efde25d37d4",
+    "final-clean-frontend-types-receipt.json": "af1063bf2d751faa2be488d250dd32d2805c74c8ad872bf4675b0990f110c8ed",
+    "final-clean-frontend-types-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+    "final-clean-stock-build-receipt.json": "3e762000059ae876c6818a03288e8bb8bb3a5adfdbf345a09eefa8a3b834b217",
+    "final-clean-stock-build-raw.log": "8bc619fa3dcbf27019ebecd9197f61ad0d12e15af6a5b857fc7bacd6d0586a2c",
+    "final-e05-stock-process-receipt.json": "228fff2c8dfc059ecf9bf9d16834aaf1cc2c4b90adf3f0d2259bcfc5afaa3f9e",
+    "final-e05-stock-process-raw.log": "5e33864577ac4285e5db0071ba91faee71f389fa0fb0f5e949670415d509b756",
+    "final-grok-embedded-page-popup-dismissed-receipt.json": "e01e62fb40dd558a51a725705d7622a982760664b374983194ec95b7ae7e1a93",
+    "final-grok-embedded-page-popup-dismissed-raw.log": "148db298c40d894728ebb2d2c29647741de022bb130925e817fc6ceae4e22838",
+    "final-clean-full-receipt.json": "300834b9a4d2b29ff8e7abe962c3456690a36f300dacbbf276906c2b8eae757a",
+    "final-clean-full-raw.log": "7538163225bced3cdfc612a52e10ebe6a97a2fd76122fe12e7bad6985cbecd33",
+    "final-clean-full-normalized-receipt.json": "1e8b9d5541d224fff7a15b64bbfbfefb4fc51c130803afa685fc3f7d2930c786",
+    "final-clean-full-normalized-raw.log": "baa6adbc18073002d1be8e158b3b59a0622ee6b684551484da85a2cdf11286b2",
+    "final-isolated-slow-stream-exact-receipt.json": "73712e3f8886210098857e25a4aae0520c8f300ea31d0f5a449b51ad577831b4",
+    "final-isolated-slow-stream-exact-raw.log": "4087def15f0a2040db1a2ed258b90adbf9399870c9d5fbe22f342543b74a8a07",
+    "final-d-maintenance-denied-compare-receipt.json": "0d543e66d9790f7f2836230b24fe9b94d445c6868966b591c4c442ffbd8c216a",
+    "final-d-maintenance-denied-compare-raw.log": "eca7d74c6bd52201123e1c9f73d1bf79f78ada81baaa6f6b37c8378c848b54f5",
+    "final-a-native-connection-zero-receipt.json": "5f62fcc0a9fa763a06225fbf42b708f3c582eb30ee464d4840db7af70ddf5fee",
+    "final-a-native-connection-zero-raw.log": "4e633743c84493eb3229906a1197bb6fd546f2df8d6a2418ac3c00174aa38f89",
+    "final-a-native-connection-one-receipt.json": "ca9874ca17eb964d026d49d582612d1823f0b30b6f387cd987e1459ef8a825a4",
+    "final-a-native-connection-one-raw.log": "0de441af9b677e64b48b5f8c7223a3373e505af8226e01256313b66864eafa38",
+    "final-a-native-connection-multiple-receipt.json": "b0903f3316efed1ba1166405e1edaec69fea34a76b1cc2b62557d1d5dcb66aea",
+    "final-a-native-connection-multiple-raw.log": "1f7058657e2b3d0b6b41cd229f512fa396d00c229af01c8f456d6234cd298a1a",
+    "final-a-native-build-apply-failed-receipt.json": "a5705778f08840b9d28b06cf90ea060ba654bcd91836b8f6c1567ba806d9cf49",
+    "final-a-native-build-apply-failed-raw.log": "7d55c1361ff0715715f1047d2445727d107dcefda0be375b249453c1a979b1d1",
+    "final-a-native-mixed-batch-receipt.json": "81a5f48e5d5abec18b51786c23eceee5ca7977747a29bc484df287aafbba95e8",
+    "final-a-native-mixed-batch-raw.log": "01dc1caf75b6167dd8a66bae62b3f7ad940fda4788a1278086f1840970af8d40",
+    "final-a-delete-shared-account-receipt.json": "09793b84a9c256e12f7ace1fa0d8faecf043ccee29d3777f97736d27c8140d0c",
+    "final-a-delete-shared-account-raw.log": "391bc6922c2a1679dd35edb8f63e2dd093e29d14945513ab9c3da5b4a7f0e004",
+    "final-a-local-release-receipt.json": "f106725246c6302569f89bac6c2353ada0013709847c01641db59cf3af003281",
+    "final-a-local-release-raw.log": "a79c0f72824fa2c3a785a93b577253141190a5892c97f8b5fc08b05729a75325",
+    "final-a-pin-default-closed-receipt.json": "9d23d1da086a08a0c21f32bd51698cb2bf3f0f3a9db216d7710cbcae8743675d",
+    "final-a-pin-default-closed-raw.log": "7e45e418ed43057491f4d915bba060d9cebe64fe8801efcd8c6b616fb4c583ed",
+    "final-a-pin-explicit-success-receipt.json": "d1aba3c5bc65e2cbcc052a22736c67863220b18dfb8e2474e3b47ba1d7b3df5a",
+    "final-a-pin-explicit-success-raw.log": "27bdf02cee07b28fafc6e5169de1aa8a10c27542c89761ec496904b4c97a52b9",
+    "final-d-runtime-receipt.json": "8c122c2d18e9a1071b3c1b0e05252c6b7a78ee435170ccfe57789d1a2f5f5828",
+    "final-d-runtime-raw.log": "420a1e99c5823118d1c68935369e6a27b3cc373be44a1cb45c472adeb322ad2d",
+    "final-d-failures-receipt.json": "45bc8fa1ce62c65babe54472fbac994d818d78f81905f3824fa6ca9547f76e70",
+    "final-d-failures-raw.log": "10e5fa880ba89d2c06dc054f03a56074b6ca5151959e54cc14c381fc4df53275",
+    "final-d-recovery-uncertain-receipt.json": "141c3cc204ab84d03c9cf8e3e388fbfb01930937fa5eee9f7d58edf953d4b29a",
+    "final-d-recovery-uncertain-raw.log": "6230daaf13c26050a1ddacc6f8449a8bc2afd05ddf2c47b9ee591872f5644070",
+    "final-d-apply-uncertain-receipt.json": "ec7cae96a81b573edc69a445b6af01aeac0219bc51ed0c9720b1b59cda245f38",
+    "final-d-apply-uncertain-raw.log": "161e8529dfe8e07616347b291e7602e2ada0cf9de61244197f36933247ff9a17",
+    "final-lifecycle-page.json": "0259dd423bd5673100815a25643691a0a73cb154096de91d43ff174b0156e305",
+    "final-oauth-page.json": "e61956c5e89c451db38b56360ecb2195a5bdd73475969358da04dd20d7503b17",
+    "final-ordinary-http.json": "9430740f1acd3d81a9e6086660c775122e0492edb3b17cd9d9d38aadd6c78d4e",
+    "final-continuity-http.json": "bc155ef91c93545b95fcf3b9824bc3028e821496855c8ccedbb2ccabc5cf0d8b",
+    "final-e05-process.json": "1fd2660ab7493b99aa0208674d008e1a457e5c10a0c340c9b6b71a4d23a929d0",
+    "final-grok-page.json": "79daa09bf74ccaaf14b89ed6c9be076a6d061c59a601e6d9b5076de494e3603b",
+    "final-shared-page-summary.json": "3315d001b770906c8da973963e746e045e3b3b56c7ede0655dcd0e4c5674112a",
+    "final-grok-page-transition.png": "093d911daafb558b3026fd7ab9a9782b924994c62182df71e149d7959a18fefd",
+    "final-evidence-index.json": "29140eb258072baba5fb5fbc963a1cfdf880542d21eb01b0083593cc24678ee9",
+    "final-clean-full-quiet-receipt.json": "4bd12878723068a18de5d5f9bbc7eeb13c5c9c4efd6adfea62977236178a386d",
+    "final-clean-full-quiet-raw.log": "1842f060b17c85f655a3f928b4e499290a9ce1f7a003c540d06cf9c78168ab47",
+    "final-clean-full-steps.md": "6021858f044e7d55c05c60ece0c977be3a2bbcf628ba437972f42acbc9b8746a",
+    "final-gate-attestation.json": "4b4d7a603b2cd624ea23057b1002c12cf5f75ba7fd0dd6ffd6ce623454a485de"
   },
   "text_normalization": {
     "e05-public-negative-matrix-raw.log": {
@@ -83,6 +150,106 @@
     "provider-proof-matrix-raw.log": {
       "original_raw_sha256": "572c15f747ca75f2bb69c321f76dd9febf389d390324874f35712fe4d3ffcd0b",
       "archived_sha256": "b68708b712499ed41299138dc25a8f00158a442db63e30b90079a8c05e1978c7",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-lifecycle-raw.log": {
+      "original_raw_sha256": "3cbfcdabbe0978dafb030afb5c71839f4a047a7c3a2979f5181a430cb3a2d9a6",
+      "archived_sha256": "785f0a005e521cfe39db1b13e44251b1ae668a0a4962fde946a79b054feeb913",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-oauth-raw.log": {
+      "original_raw_sha256": "e9bd5d12eb13aa9e218dc900e96791519dc85ba30638e239ad0ad573d90125bf",
+      "archived_sha256": "da5b85d67d27c6db2cf074bba1925ba506ca5e7fe254b51e75a035b7224436c6",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-clean-frontend-tests-raw.log": {
+      "original_raw_sha256": "0fb49dded0b9142e84b086693ba520bb1b60cb64d5e2cd7f8559eeeea8874804",
+      "archived_sha256": "54bcd0b843d0ba2f6f408957b36f693b0b926928c443465bab1a2efde25d37d4",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-clean-frontend-types-raw.log": {
+      "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-grok-embedded-page-popup-dismissed-raw.log": {
+      "original_raw_sha256": "2dc5d4948969530e41825dd3c4b1b82a03ca6c6a9c32e713afb5b3702fba1a37",
+      "archived_sha256": "148db298c40d894728ebb2d2c29647741de022bb130925e817fc6ceae4e22838",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-isolated-slow-stream-exact-raw.log": {
+      "original_raw_sha256": "f48aeb3dbe7b91d342a8edbcfb2928d08fe62f8daabb6b91fb808061058ecd0a",
+      "archived_sha256": "4087def15f0a2040db1a2ed258b90adbf9399870c9d5fbe22f342543b74a8a07",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-d-maintenance-denied-compare-raw.log": {
+      "original_raw_sha256": "11162ad8dad959bcdea42216498094c0fa398ff1dccd0f083a664bb21e66ff70",
+      "archived_sha256": "eca7d74c6bd52201123e1c9f73d1bf79f78ada81baaa6f6b37c8378c848b54f5",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-native-connection-zero-raw.log": {
+      "original_raw_sha256": "388f5df1eb1d35a34f3834c735ae0548459640d3d121add399328e8bf9cee133",
+      "archived_sha256": "4e633743c84493eb3229906a1197bb6fd546f2df8d6a2418ac3c00174aa38f89",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-native-connection-one-raw.log": {
+      "original_raw_sha256": "0df4e3d406a533b63a73334771adfd24d06d65c58aea31ef798dbcf1c8156484",
+      "archived_sha256": "0de441af9b677e64b48b5f8c7223a3373e505af8226e01256313b66864eafa38",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-native-connection-multiple-raw.log": {
+      "original_raw_sha256": "7c4de5db1c1583898c4edb799750b492e9156472c1bba994e528da497f02e021",
+      "archived_sha256": "1f7058657e2b3d0b6b41cd229f512fa396d00c229af01c8f456d6234cd298a1a",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-native-build-apply-failed-raw.log": {
+      "original_raw_sha256": "b0b1e0fa3cab7428575cd3c825ae106366c41a0237e39ff3900229a82d0d9706",
+      "archived_sha256": "7d55c1361ff0715715f1047d2445727d107dcefda0be375b249453c1a979b1d1",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-native-mixed-batch-raw.log": {
+      "original_raw_sha256": "df8c8f3828908a47e4ffaec785d5a223df58f59a18b396c7ac7bf808f0075479",
+      "archived_sha256": "01dc1caf75b6167dd8a66bae62b3f7ad940fda4788a1278086f1840970af8d40",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-delete-shared-account-raw.log": {
+      "original_raw_sha256": "c41ea90b6d7349b323349ce3ab5eb3b99b44a00f9fddfbed857fe0abc09488d4",
+      "archived_sha256": "391bc6922c2a1679dd35edb8f63e2dd093e29d14945513ab9c3da5b4a7f0e004",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-local-release-raw.log": {
+      "original_raw_sha256": "df55cb9cda10fd74395a9441a0069bc8152b0950ea11bfdc1ff0648a4c7ce64c",
+      "archived_sha256": "a79c0f72824fa2c3a785a93b577253141190a5892c97f8b5fc08b05729a75325",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-pin-default-closed-raw.log": {
+      "original_raw_sha256": "a6a29e219df31d1c6f32d14c0685b0bee78a24e3b796edd7557a507746b3d177",
+      "archived_sha256": "7e45e418ed43057491f4d915bba060d9cebe64fe8801efcd8c6b616fb4c583ed",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-a-pin-explicit-success-raw.log": {
+      "original_raw_sha256": "43b7f4f532977cf16ec52123f7a041dc243944adf39c035448e64a3c9fb0baf8",
+      "archived_sha256": "27bdf02cee07b28fafc6e5169de1aa8a10c27542c89761ec496904b4c97a52b9",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-d-runtime-raw.log": {
+      "original_raw_sha256": "89c29db54a32b109e538c93bb13c5bfcaba1d241ff9912e9845541df38fe1401",
+      "archived_sha256": "420a1e99c5823118d1c68935369e6a27b3cc373be44a1cb45c472adeb322ad2d",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-d-failures-raw.log": {
+      "original_raw_sha256": "657e996407023a209e9cffb6485e6332841de2b76a05b13aaf5c7ff130476666",
+      "archived_sha256": "10e5fa880ba89d2c06dc054f03a56074b6ca5151959e54cc14c381fc4df53275",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-d-recovery-uncertain-raw.log": {
+      "original_raw_sha256": "5470b43839eed33d6fe16f47736ec9462d40dae56dd310835ecda3b3e4f83157",
+      "archived_sha256": "6230daaf13c26050a1ddacc6f8449a8bc2afd05ddf2c47b9ee591872f5644070",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-d-apply-uncertain-raw.log": {
+      "original_raw_sha256": "1f5a81031565c9d3eb02ed5a01d31da8f63260f6e98aadfee77b7ab946451aa1",
+      "archived_sha256": "161e8529dfe8e07616347b291e7602e2ada0cf9de61244197f36933247ff9a17",
       "transformation": "remove blank lines at EOF; preserve one final newline"
     }
   }

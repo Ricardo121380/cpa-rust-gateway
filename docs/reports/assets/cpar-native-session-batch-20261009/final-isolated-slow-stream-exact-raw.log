@@ -1,0 +1,7 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s
+     Running unittests src/lib.rs (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/deps/gateway_upstream-f65d8e00dc328801)
+
+running 1 test
+test upstream_client::tests::only_a_short_total_deadline_truncates_the_same_live_slow_stream ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 2.08s

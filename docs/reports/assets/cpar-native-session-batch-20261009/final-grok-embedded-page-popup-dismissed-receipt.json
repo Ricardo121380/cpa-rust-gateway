@@ -1,0 +1,25 @@
+{
+  "label": "final-grok-embedded-page-popup-dismissed",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-gate-source-2bbd48b9",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "const page=(await taskSpace(37)).page(\"p1\"); await page.keyboard.press(\"Escape\"); await page.click('loc=role:button[name=\"\u4fdd\u5b58\u5e76\u91cd\u65b0\u767b\u5f55\"]'); await page.waitForSelector('input[name=\"username\"]'); const {readFile}=await import(\"node:fs/promises\"); const d=JSON.parse(await readFile(\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-grok-server/descriptor.json\",\"utf8\")); const password=(await readFile(d.password_file,\"utf8\")).trim(); await page.fill('input[name=\"password\"]',password); await page.click('loc=role:button[name=\"\u767b\u5f55\"]'); await page.waitForSelector(\"main.canvas\"); await page.waitForFunction(()=>!!window.CPAR_SEO_HEADERS?.[\"x-management-key\"]);globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\": 37, \"descriptor\": \"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-grok-server/descriptor.json\", \"out\": \"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-grok-page-popup-dismissed.json\", \"login\": false},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-gate-source-2bbd48b9/scripts/acceptance/cpar-grok-device-actual-ui.mjs\");"
+  ],
+  "utc_start": "2026-10-09T15:49:20.187838+00:00",
+  "source_before": {
+    "head": "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T15:49:37.689210+00:00",
+  "elapsed_seconds": 17.464926542,
+  "source_after": {
+    "head": "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b",
+    "status": []
+  },
+  "log_sha256": "2dc5d4948969530e41825dd3c4b1b82a03ca6c6a9c32e713afb5b3702fba1a37",
+  "log_bytes": 9671
+}

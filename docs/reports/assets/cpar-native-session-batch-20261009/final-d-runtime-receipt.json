@@ -1,0 +1,25 @@
+{
+  "label": "final-d-runtime",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-source-eab0f044",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_D={\"spaceId\": 37, \"origin\": \"http://127.0.0.1:58641\", \"outputDir\": \"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-d-runtime\", \"commit\": \"eab0f044ee2c6679db4943772a6bf9d789d213fb\", \"scenario\": \"runtime\"}; await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-source-eab0f044/scripts/acceptance/cpar-batch-d.mjs\");"
+  ],
+  "utc_start": "2026-10-09T15:45:11.975625+00:00",
+  "source_before": {
+    "head": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T15:45:24.370092+00:00",
+  "elapsed_seconds": 12.364149832999999,
+  "source_after": {
+    "head": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+    "status": []
+  },
+  "log_sha256": "89c29db54a32b109e538c93bb13c5bfcaba1d241ff9912e9845541df38fe1401",
+  "log_bytes": 116
+}

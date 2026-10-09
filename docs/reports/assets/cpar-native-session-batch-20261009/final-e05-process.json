@@ -1,0 +1,327 @@
+{
+  "result": "PASS",
+  "scope": "stock-process / public HTTP / fixed TLS loopback synthetic only",
+  "real_provider_calls": 0,
+  "checks": [
+    {
+      "case": "startup-worker-process-restart-continuation",
+      "stream": false,
+      "result": "PASS",
+      "upstream_count": 1
+    },
+    {
+      "case": "startup-worker-process-restart-continuation",
+      "stream": true,
+      "result": "PASS",
+      "upstream_count": 1
+    },
+    {
+      "case": "manual-reauthorization-rejects-old-root",
+      "stream": false,
+      "result": "PASS",
+      "upstream_count": 0,
+      "fallback_count": 0
+    },
+    {
+      "case": "manual-reauthorization-rejects-old-root",
+      "stream": true,
+      "result": "PASS",
+      "upstream_count": 0,
+      "fallback_count": 0
+    }
+  ],
+  "source_sha": "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b",
+  "source_dirty": [],
+  "binary_sha256": "5e54f753b4db07bd7854a5360810ac95e11ae6cfbf5a084b8c3a8a4b7402a43d",
+  "original_pid": 74860,
+  "sandbox": true,
+  "initial_save": {
+    "account_id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+    "credential_revision": 0,
+    "identity_state": "observed",
+    "runtime_applied": true
+  },
+  "runtime_pools": [
+    {
+      "presentation": {
+        "api_format": "openai/responses",
+        "category": "grok",
+        "host": "cli-chat-proxy.grok.com",
+        "identity": {
+          "email": "build.member@example.test",
+          "phone": null,
+          "username": null
+        },
+        "provider": "Grok Build",
+        "source": null
+      },
+      "provider_id": "e05-build",
+      "channel_id": "e05-native-endpoint",
+      "account_id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+      "account_kind": "grok_build_oauth",
+      "credential_revision": 1,
+      "config_version_id": null,
+      "auth_status": "active",
+      "runtime_status": "available",
+      "enabled": true,
+      "priority": 1000,
+      "weight": 1,
+      "max_concurrency": 1,
+      "active_leases": 1,
+      "expires_at_ms": 1791564431577,
+      "refresh_due_at_ms": 1791564371577,
+      "quota_sync_due_at_ms": null,
+      "entitlement": null
+    },
+    {
+      "presentation": {
+        "api_format": "openai/responses",
+        "category": "api",
+        "host": "127.0.0.1",
+        "identity": {
+          "email": null,
+          "phone": null,
+          "username": null
+        },
+        "provider": "API",
+        "source": null
+      },
+      "provider_id": "e05-sibling",
+      "channel_id": "e05-sibling-endpoint",
+      "account_id": "e05-sibling-account",
+      "account_kind": "bearer",
+      "credential_revision": 0,
+      "config_version_id": "e05-active",
+      "auth_status": "active",
+      "runtime_status": "available",
+      "enabled": true,
+      "priority": 0,
+      "weight": 1,
+      "max_concurrency": 1,
+      "active_leases": 0,
+      "expires_at_ms": null,
+      "refresh_due_at_ms": null,
+      "quota_sync_due_at_ms": null,
+      "entitlement": null
+    }
+  ],
+  "effective_models": {
+    "config_version": "e05-active",
+    "access_group_id": "e05-group",
+    "client_key_id": "e05-owner",
+    "projection_id": "1246c9a9c462d7e732d518c927d95e44406aee65bc216e5d2f04fbb78086be88",
+    "observed_at_ms": 1791560831684,
+    "items": [
+      {
+        "id": "grok-model",
+        "public_model_id": "e05-model",
+        "public_model_name": "grok-model",
+        "route_id": "e05-route",
+        "sources": [
+          {
+            "capability_evidence": {
+              "source": "serving_snapshot",
+              "config_version_id": "e05-active",
+              "config_revision": 15,
+              "capabilities": {
+                "reasoning": true,
+                "parallel": false,
+                "stored": true,
+                "continuation": true,
+                "compact": true,
+                "websocket": true
+              }
+            },
+            "candidate_id": "e05-native-endpoint-candidate",
+            "endpoint_id": "e05-native-endpoint",
+            "upstream_id": "e05-build",
+            "api_format": "openai/responses",
+            "catalog_admission": "allowed_unlisted",
+            "catalog_evidence": []
+          },
+          {
+            "capability_evidence": {
+              "source": "serving_snapshot",
+              "config_version_id": "e05-active",
+              "config_revision": 15,
+              "capabilities": {
+                "reasoning": true,
+                "parallel": true,
+                "stored": false,
+                "continuation": true,
+                "compact": false,
+                "websocket": true
+              }
+            },
+            "candidate_id": "e05-sibling-endpoint-candidate",
+            "endpoint_id": "e05-sibling-endpoint",
+            "upstream_id": "e05-sibling",
+            "api_format": "openai/responses",
+            "catalog_admission": "allowed_unlisted",
+            "catalog_evidence": []
+          }
+        ]
+      }
+    ],
+    "next_cursor": null
+  },
+  "idle_native_before_inference": {
+    "presentation": {
+      "api_format": "openai/responses",
+      "category": "grok",
+      "host": "cli-chat-proxy.grok.com",
+      "identity": {
+        "email": "build.member@example.test",
+        "phone": null,
+        "username": null
+      },
+      "provider": "Grok Build",
+      "source": null
+    },
+    "provider_id": "e05-build",
+    "channel_id": "e05-native-endpoint",
+    "account_id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+    "account_kind": "grok_build_oauth",
+    "credential_revision": 1,
+    "config_version_id": null,
+    "auth_status": "active",
+    "runtime_status": "available",
+    "enabled": true,
+    "priority": 1000,
+    "weight": 1,
+    "max_concurrency": 1,
+    "active_leases": 0,
+    "expires_at_ms": 1791564431577,
+    "refresh_due_at_ms": 1791564371577,
+    "quota_sync_due_at_ms": null,
+    "entitlement": null
+  },
+  "before_restart": [
+    {
+      "id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+      "revision": 0,
+      "floor": null,
+      "current": null,
+      "enabled": 1,
+      "claim": null
+    }
+  ],
+  "restarted_pid": 74979,
+  "prior_exit_code": 0,
+  "after_startup_worker": [
+    {
+      "id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+      "revision": 1,
+      "floor": 1,
+      "current": 2,
+      "enabled": 1,
+      "claim": null
+    }
+  ],
+  "idle_native_after_restart": {
+    "presentation": {
+      "api_format": "openai/responses",
+      "category": "grok",
+      "host": "cli-chat-proxy.grok.com",
+      "identity": {
+        "email": "build.member@example.test",
+        "phone": null,
+        "username": null
+      },
+      "provider": "Grok Build",
+      "source": null
+    },
+    "provider_id": "e05-build",
+    "channel_id": "e05-native-endpoint",
+    "account_id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+    "account_kind": "grok_build_oauth",
+    "credential_revision": 2,
+    "config_version_id": null,
+    "auth_status": "active",
+    "runtime_status": "available",
+    "enabled": true,
+    "priority": 1000,
+    "weight": 1,
+    "max_concurrency": 1,
+    "active_leases": 0,
+    "expires_at_ms": 1791564437286,
+    "refresh_due_at_ms": 1791564117880,
+    "quota_sync_due_at_ms": null,
+    "entitlement": null
+  },
+  "manual_reauthorization": {
+    "account_id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+    "credential_revision": 2,
+    "identity_state": "observed",
+    "runtime_applied": true
+  },
+  "after_manual_reauthorization": [
+    {
+      "id": "grok-ca26766179cc0ecc5bdf4e808f22ad64",
+      "revision": 2,
+      "floor": 1,
+      "current": 2,
+      "enabled": 1,
+      "claim": null
+    }
+  ],
+  "native_deletion_history": {
+    "request": {
+      "before": 6,
+      "after": 6,
+      "all_original_ids_retained": true
+    },
+    "usage": {
+      "before": 4,
+      "after": 4,
+      "all_original_ids_retained": true
+    },
+    "ledger": {
+      "before": 4,
+      "after": 4,
+      "all_original_ids_retained": true
+    }
+  },
+  "provider_calls": [
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "protocol": "grok-build-native",
+      "ordinal": 1,
+      "model": "grok-model",
+      "stream": false,
+      "has_tool_output": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "protocol": "grok-build-native",
+      "ordinal": 2,
+      "model": "grok-model",
+      "stream": true,
+      "has_tool_output": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "protocol": "grok-build-native",
+      "ordinal": 3,
+      "model": "grok-model",
+      "stream": false,
+      "has_tool_output": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "protocol": "grok-build-native",
+      "ordinal": 4,
+      "model": "grok-model",
+      "stream": true,
+      "has_tool_output": true
+    }
+  ],
+  "refresh_requests": 1,
+  "device_exchanges": 1,
+  "fallback_calls": 0,
+  "stored_successful_roots": 4
+}

@@ -1,0 +1,25 @@
+{
+  "label": "final-d-recovery-uncertain",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-source-eab0f044",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_D={\"spaceId\": 37, \"origin\": \"http://127.0.0.1:58641\", \"outputDir\": \"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-d-recovery-uncertain\", \"commit\": \"eab0f044ee2c6679db4943772a6bf9d789d213fb\", \"scenario\": \"recovery-uncertain\"}; await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-source-eab0f044/scripts/acceptance/cpar-batch-d.mjs\");"
+  ],
+  "utc_start": "2026-10-09T15:46:03.658244+00:00",
+  "source_before": {
+    "head": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T15:46:17.367262+00:00",
+  "elapsed_seconds": 13.680146,
+  "source_after": {
+    "head": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+    "status": []
+  },
+  "log_sha256": "5470b43839eed33d6fe16f47736ec9462d40dae56dd310835ecda3b3e4f83157",
+  "log_bytes": 127
+}

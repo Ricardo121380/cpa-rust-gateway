@@ -1,0 +1,174 @@
+{
+  "result": "PASS",
+  "environment": "real-gateway-loopback-tls-synthetic",
+  "model_default_closed": true,
+  "catalog_success_empty_failure_retention_and_unsupported": true,
+  "directory_reads_are_not_inference": true,
+  "public_model_view_follows_explicit_grant": true,
+  "sibling_key_and_prior_model_preserved": true,
+  "stream_natural_completion": true,
+  "new_request_uses_enabled_sibling": true,
+  "retired_retry_sends_no_fallback": true,
+  "key_required_before_send": true,
+  "explicit_pin_sends_once": true,
+  "local_release_sends_zero_inference": true,
+  "release_preserves_disabled_auth_quota_and_permission_blocks": true,
+  "release_audit_distinguishes_completion": true,
+  "calls": [
+    {
+      "account": "a",
+      "scenario": "held-stream",
+      "stream": true
+    },
+    {
+      "account": "b",
+      "scenario": "short",
+      "stream": false
+    },
+    {
+      "account": "b",
+      "scenario": "short",
+      "stream": false
+    },
+    {
+      "account": "b",
+      "scenario": "short",
+      "stream": false
+    },
+    {
+      "account": "a",
+      "scenario": "held-failure",
+      "stream": false
+    },
+    {
+      "account": "b",
+      "scenario": "quota-block",
+      "stream": false
+    },
+    {
+      "account": "a",
+      "scenario": "auth-block",
+      "stream": false
+    },
+    {
+      "account": "c",
+      "scenario": "held-delete-stream",
+      "stream": true
+    },
+    {
+      "account": "d",
+      "scenario": "short",
+      "stream": false
+    },
+    {
+      "account": "d",
+      "scenario": "held-delete-failure",
+      "stream": false
+    },
+    {
+      "account": "e",
+      "scenario": "short",
+      "stream": false
+    }
+  ],
+  "catalog_calls": [
+    {
+      "scenario": "success"
+    },
+    {
+      "scenario": "success"
+    },
+    {
+      "scenario": "empty"
+    },
+    {
+      "scenario": "failure"
+    }
+  ],
+  "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-a-http-xewkxn04",
+  "delete_held_stream_natural_completion": true,
+  "delete_new_request_uses_retained_sibling": true,
+  "delete_retired_attempt_sends_no_fallback": true,
+  "deletion_impacts": [
+    {
+      "credential_id": "account-c",
+      "credential_revision": 0,
+      "removed_bindings": [
+        {
+          "enabled": true,
+          "endpoint_id": "local-endpoint"
+        }
+      ],
+      "retained_endpoints": [
+        {
+          "enabled": true,
+          "id": "local-endpoint",
+          "remaining_credentials": [
+            "account-a",
+            "account-b",
+            "account-d",
+            "account-e"
+          ]
+        }
+      ],
+      "retained_routes": [
+        "local-route",
+        "other-route"
+      ],
+      "retained_client_keys": [
+        "local-key",
+        "sibling-key"
+      ],
+      "history_retained": true,
+      "upstream_account_revoked": false
+    },
+    {
+      "credential_id": "account-d",
+      "credential_revision": 0,
+      "removed_bindings": [
+        {
+          "enabled": true,
+          "endpoint_id": "local-endpoint"
+        }
+      ],
+      "retained_endpoints": [
+        {
+          "enabled": true,
+          "id": "local-endpoint",
+          "remaining_credentials": [
+            "account-a",
+            "account-b",
+            "account-e"
+          ]
+        }
+      ],
+      "retained_routes": [
+        "local-route",
+        "other-route"
+      ],
+      "retained_client_keys": [
+        "local-key",
+        "sibling-key"
+      ],
+      "history_retained": true,
+      "upstream_account_revoked": false
+    }
+  ],
+  "history_retention": {
+    "request": {
+      "before": 7,
+      "after": 11,
+      "all_original_ids_retained": true
+    },
+    "usage": {
+      "before": 3,
+      "after": 6,
+      "all_original_ids_retained": true
+    },
+    "ledger": {
+      "before": 3,
+      "after": 3,
+      "all_original_ids_retained": true
+    }
+  }
+}
