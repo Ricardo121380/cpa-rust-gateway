@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-09T04:33:51.336368+00:00",
+  "generated_utc": "2026-10-09T04:37:19.223564+00:00",
   "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
   "validated_runtime_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
   "self_hash_exclusion": "evidence-index.json is excluded from its own object list; source-binding does not reference this index hash",
@@ -830,6 +830,20 @@
       "clean_before": false,
       "rust_counts": {
         "passed": 35,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true
+    },
+    {
+      "receipt": "report-docs-before-review-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "cea7b1cca60b6a2fcc5528fdc48551407e44bff8",
+      "clean_before": false,
+      "rust_counts": {
+        "passed": 0,
         "failed": 0,
         "ignored": 0
       },
@@ -1764,8 +1778,8 @@
     {
       "path": "log-archives.json",
       "object": "JSON_bytes",
-      "sha256": "224614b0791a7afa99d6382f761ad2b4c184b0d17697183885211ff2d35291ae",
-      "bytes": 30228
+      "sha256": "8341c1e4eebcc51a1d7b844063cb67d11458492c12b1a70d144b31a5eaf28447",
+      "bytes": 30789
     },
     {
       "path": "o01-green-receipt.json",
@@ -1826,6 +1840,18 @@
       "object": "JSON_bytes",
       "sha256": "df3165a3e69c4ba1c423e3e772929598096449ec22b6318b456a8ec5a737e8d5",
       "bytes": 182
+    },
+    {
+      "path": "report-docs-before-review-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "0c26b27dba12674e7eb294cee459441b72d6c29c4ecf89d9b6f0a4c18606352a",
+      "bytes": 18552
+    },
+    {
+      "path": "report-docs-before-review.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "2d151fa6342c17f14feb42d9fa8fb26e935f98503a8bdb2cc900bddd4f47ed23",
+      "bytes": 345
     },
     {
       "path": "request-spec.md",

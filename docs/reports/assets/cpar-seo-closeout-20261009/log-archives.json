@@ -768,5 +768,19 @@
       "bytes": 68
     },
     "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "report-docs-before-review-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/report-docs-before-review.log",
+      "sha256": "83b60107c72f5469feeeff36a8ebee8b50bea8612ad4c74631e1c321dcaf742e",
+      "bytes": 540
+    },
+    "gzip_bytes": {
+      "path": "report-docs-before-review.log.gz",
+      "sha256": "2d151fa6342c17f14feb42d9fa8fb26e935f98503a8bdb2cc900bddd4f47ed23",
+      "bytes": 345
+    },
+    "decoded_archive_matches_raw": true
   }
 ]
