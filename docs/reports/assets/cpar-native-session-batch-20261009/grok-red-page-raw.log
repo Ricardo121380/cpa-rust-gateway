@@ -1,0 +1,121 @@
+AssertionError [ERR_ASSERTION]: Saved Grok grant is displayed as pending without an unknown-result recovery path
+    at file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar-grok-device-actual-ui.mjs:41:3
+[p1 "Prism · Gateway Management" | space "CPAR native continuity acceptance"(37): 1 managed, 0 untracked — p1* "Prism · Gateway Management"]
+root
+  svg_root
+  container
+    container
+      container
+        text "资源"
+        text "/"
+      text "OAuth 授权"
+    button "搜索工作区" [ref=1, loc=css:button[aria-label="搜索工作区"]]
+      svg_root
+      text "搜索工作区"
+      text "⌘ K"
+    button "切换深浅外观" [ref=2, loc=css:button[aria-label="切换深浅外观"]]
+      svg_root
+  container
+    svg_root
+    container
+      svg_root
+      container
+        text "Prism"
+        text "CPAR CONSOLE"
+    container
+      text "我的网关"
+      text "Prism 管理控制台"
+    container
+      text "运行"
+      anchor [ref=3, loc=href:/admin-ui/#/, url=http://127.0.0.1:57173/admin-ui/#/]
+        svg_root
+        text "仪表盘"
+      anchor [ref=4, loc=href:/admin-ui/#/monitoring, url=http://127.0.0.1:57173/admin-ui/#/monitoring]
+        svg_root
+        text "请求日志"
+      anchor [ref=5, loc=href:/admin-ui/#/usage, url=http://127.0.0.1:57173/admin-ui/#/usage]
+        svg_root
+        text "用量与费用"
+    container
+      text "资源"
+      anchor [ref=6, loc=href:/admin-ui/#/oauth, url=http://127.0.0.1:57173/admin-ui/#/oauth]
+        svg_root
+        text "OAuth 授权"
+      anchor [ref=7, url=http://127.0.0.1:57173/admin-ui/#/accounts]
+        svg_root
+        text "账号管理"
+      anchor [ref=8, loc=href:/admin-ui/#/upstreams, url=http://127.0.0.1:57173/admin-ui/#/upstreams]
+        svg_root
+        text "AI 提供商"
+      anchor [ref=9, loc=href:/admin-ui/#/models, url=http://127.0.0.1:57173/admin-ui/#/models]
+        svg_root
+        text "模型管理"
+      anchor [ref=10, loc=href:/admin-ui/#/access, url=http://127.0.0.1:57173/admin-ui/#/access]
+        svg_root
+        text "API 密钥"
+    anchor [ref=11, loc=href:/admin-ui/#/settings, url=http://127.0.0.1:57173/admin-ui/#/settings]
+      svg_root
+      text "设置"
+    container
+      text "A"
+      container
+        text "admin"
+        text "管理会话"
+  container "OAuth 授权" [ref=12]
+    container
+      container
+        container
+          heading
+            text "OAuth 授权"
+          paragraph
+            text "选择渠道完成官方登录，成功后自动登记账号。已有账号的重新授权从账号行发起。"
+        anchor [ref=13, url=http://127.0.0.1:57173/admin-ui/#/accounts]
+          text "账号管理"
+      container "官方授权渠道"
+        container
+          heading
+            text "Codex / ChatGPT"
+          paragraph
+            text "官方登录授权"
+          button [ref=14]
+            text "授权"
+            text "Codex / ChatGPT"
+        container
+          heading
+            text "Claude"
+          paragraph
+            text "官方登录授权"
+          button [ref=15]
+            text "授权"
+            text "Claude"
+        container
+          heading
+            text "Kimi Coding"
+          paragraph
+            text "官方登录授权"
+          button [ref=16]
+            text "授权"
+            text "Kimi Coding"
+        container
+          heading
+            text "Grok Build"
+          paragraph
+            text "官方登录授权"
+          button [ref=17]
+            text "授权"
+            text "Grok Build"
+        container
+          heading
+            text "Kiro"
+          paragraph
+            text "官方登录授权"
+          button [ref=18]
+            text "授权"
+            text "Kiro"
+      paragraph
+        text "授权文件在账号管理导入；API Key 在 AI 提供商配置。此页不会检查模型、续期或发起推理。"
+
+{"scenario":"grok-build-real-page-commit-before-response-loss","result":"OBSERVED"}
+{"scenario":"grok-build-commit-loss-recovery","result":"FAIL"}
+
+ego's nodejs process exited with code 1.

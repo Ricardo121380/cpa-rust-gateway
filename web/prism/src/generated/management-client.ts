@@ -818,6 +818,16 @@ export const managementOperations = {
         "name": "revision",
         "in": "query",
         "required": true
+      },
+      {
+        "name": "X-Deletion-Impact-Review",
+        "in": "header",
+        "required": false
+      },
+      {
+        "name": "X-Config-Version",
+        "in": "header",
+        "required": false
       }
     ],
     "requiresAuthentication": true,
@@ -1336,6 +1346,44 @@ export const managementOperations = {
       {
         "name": "endpoint_id",
         "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getNativeAccountAuthorizationReceipt": {
+    "method": "GET",
+    "path": "/admin/native-account-authorizations/{session_id}",
+    "parameters": [
+      {
+        "name": "session_id",
+        "in": "path",
+        "required": true
+      }
+    ],
+    "requiresAuthentication": true,
+    "bodyEncoding": "none",
+    "bodyRequired": false
+  },
+  "getNativeAccountDeletionImpact": {
+    "method": "GET",
+    "path": "/admin/native-accounts/{account_id}/deletion-impact",
+    "parameters": [
+      {
+        "name": "account_id",
+        "in": "path",
+        "required": true
+      },
+      {
+        "name": "revision",
+        "in": "query",
+        "required": true
+      },
+      {
+        "name": "X-Config-Version",
+        "in": "header",
         "required": true
       }
     ],
@@ -3901,6 +3949,14 @@ export class ManagementApi {
 
   getEndpoint(request: ManagementRequest = {}): Promise<Response> {
     return this.request("getEndpoint", request);
+  }
+
+  getNativeAccountAuthorizationReceipt(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getNativeAccountAuthorizationReceipt", request);
+  }
+
+  getNativeAccountDeletionImpact(request: ManagementRequest = {}): Promise<Response> {
+    return this.request("getNativeAccountDeletionImpact", request);
   }
 
   getNativeAccountImportReceipt(request: ManagementRequest = {}): Promise<Response> {

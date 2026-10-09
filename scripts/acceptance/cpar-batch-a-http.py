@@ -11,6 +11,7 @@ import pathlib
 import secrets
 import socket
 import ssl
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -42,7 +43,7 @@ for command in [
 ]:
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-keys = {name: "synthetic-" + secrets.token_hex(24) for name in ["a", "b"]}
+keys = {name: "synthetic-" + secrets.token_hex(24) for name in ["a", "b", "c", "d", "e"]}
 calls = []
 catalog_calls = []
 catalog_mode = "success"
@@ -80,14 +81,14 @@ class Provider(BaseHTTPRequestHandler):
         if owner is None:
             return self.reply(401, {"error": {"type": "invalid_api_key"}})
         text = json.dumps(body)
-        scenario = next((name for name in ["held-stream", "held-failure", "quota-block", "auth-block"] if name in text), "short")
+        scenario = next((name for name in ["held-delete-stream", "held-delete-failure", "held-stream", "held-failure", "quota-block", "auth-block"] if name in text), "short")
         with calls_lock:
             calls.append({"account": owner, "scenario": scenario, "stream": bool(body.get("stream"))})
         if scenario == "quota-block":
             return self.reply(429, {"error": {"type": "rate_limit_exceeded"}}, retry_after=60)
         if scenario == "auth-block":
             return self.reply(401, {"error": {"type": "invalid_api_key"}})
-        if scenario == "held-failure" and owner == "a":
+        if (scenario == "held-failure" and owner == "a") or (scenario == "held-delete-failure" and owner == "d"):
             failure_started.set()
             if not release_failure.wait(20):
                 raise RuntimeError("failure barrier expired")
@@ -102,15 +103,19 @@ class Provider(BaseHTTPRequestHandler):
         self.end_headers()
         self.close_connection = True
 
+        sequence = 0
+
         def frame(kind, **payload):
-            self.wfile.write(("event: " + kind + "\ndata: " + json.dumps({"type": kind, **payload}) + "\n\n").encode())
+            nonlocal sequence
+            self.wfile.write(("event: " + kind + "\ndata: " + json.dumps({"type": kind, "sequence_number": sequence, **payload}) + "\n\n").encode())
             self.wfile.flush()
+            sequence += 1
 
         frame("response.created", response={**response, "status": "in_progress", "output": []})
         frame("response.output_item.added", output_index=0, item={**item, "status": "in_progress", "content": []})
         frame("response.content_part.added", output_index=0, content_index=0, item_id=item["id"], part={"type": "output_text", "text": "", "annotations": []})
         frame("response.output_text.delta", output_index=0, content_index=0, item_id=item["id"], delta="local complete")
-        if scenario == "held-stream":
+        if scenario in ["held-stream", "held-delete-stream"]:
             stream_started.set()
             if not release_stream.wait(20):
                 raise RuntimeError("stream barrier expired")
@@ -177,6 +182,29 @@ def set_a_enabled(enabled):
     current = api("GET", "/admin/credentials/account-a")
     api("PATCH", "/admin/credentials/account-a/status", {"status": "active" if enabled else "disabled", "credential_revision": current["revision"]})
     publish()
+
+
+def delete_account(account_id):
+    global scope, revision
+    draft = api("POST", f"/admin/config-versions/{scope}/fork", {"id": "local-delete-" + secrets.token_hex(4), "description": "Reviewed held-stream account deletion"}, expected=201)
+    scope, revision = draft["id"], draft["revision"]
+    impact = api("GET", f"/admin/credentials/{account_id}/deletion-impact")
+    assert impact["credential_id"] == account_id and impact["history_retained"] and not impact["upstream_account_revoked"]
+    assert any(row["id"] == "local-endpoint" for row in impact["retained_endpoints"])
+    api("DELETE", f"/admin/credentials/{account_id}", extra={"X-Deletion-Impact-Review": impact["review_token"]}, expected=204)
+    api("GET", f"/admin/credentials/{account_id}", expected=404)
+    assert api("GET", "/admin/upstreams/local-provider")["id"] == "local-provider"
+    assert api("GET", "/admin/endpoints/local-endpoint")["id"] == "local-endpoint"
+    assert api("GET", "/admin/public-models/public-local")["id"] == "public-local"
+    publish()
+    return {key: impact[key] for key in ["credential_id", "credential_revision", "removed_bindings", "retained_endpoints", "retained_routes", "retained_client_keys", "history_retained", "upstream_account_revoked"]}
+
+
+def historical_rows():
+    with sqlite3.connect(state / "control.sqlite3") as database:
+        return {"request":set(row[0] for row in database.execute("SELECT event_ordinal FROM gateway_event_log WHERE event_type='request'")),
+                "usage":set(row[0] for row in database.execute("SELECT event_ordinal FROM gateway_event_log WHERE event_type='usage'")),
+                "ledger":set(row[0] for row in database.execute("SELECT ledger_id FROM billing_ledger_entries"))}
 
 
 def data_request(text, stream=False, client_key=None, model="local-model"):
@@ -338,7 +366,52 @@ try:
     assert any(row["action"] == "provider_account_recovery_requested" for row in audit)
     assert any(row["action"] == "provider_account_action_completed" for row in audit)
     assert any(row["action"] == "provider_account_action_observed" for row in audit)
+    # Distinct DELETE cases use fresh synthetic accounts and an eligible
+    # fallback. Neither the earlier disable case nor an internal helper stands
+    # in for deletion through the management HTTP/public data path.
+    draft = api("POST", f"/admin/config-versions/{scope}/fork", {"id": "delete-held-accounts", "description": "Separate DELETE lifecycle acceptance"}, expected=201)
+    scope, revision = draft["id"], draft["revision"]
+    for account_id in ["account-a", "account-b"]:
+        current = api("GET", f"/admin/credentials/{account_id}")
+        api("PATCH", f"/admin/credentials/{account_id}/status", {"status": "disabled", "credential_revision": current["revision"]})
+    for name, priority in [("c", 0), ("d", 10), ("e", 20)]:
+        account = api("POST", "/admin/upstreams/local-provider/account-import", {"id": "account-" + name, "channel": "openai-compatible", "secret": keys[name]}, expected=201)
+        api("POST", "/admin/endpoints/local-endpoint/credential-bindings", {"credential_id": account["id"], "enabled": True, "priority": priority, "weight": 1, "concurrency": 1}, expected=201)
+    publish()
+    time.sleep(5.1)  # Independent endpoint cooldown from the prior 401.
+    stream_started.clear()
+    release_stream.clear()
+    downstream_delta.clear()
+    deletion_impacts = []
+    retained_history = historical_rows()
+    assert all(retained_history.values()), "retention assertion needs real completed request, Usage and ledger history"
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        held = executor.submit(data_request, "held-delete-stream", True)
+        assert stream_started.wait(10) and downstream_delta.wait(10)
+        deletion_impacts.append(delete_account("account-c"))
+        assert data_request("new-after-delete-stream")[0] == 200
+        release_stream.set()
+        held_status, held_body = held.result(20)
+        assert held_status == 200 and b"response.completed" in held_body and b"local complete" in held_body
+        assert [row["account"] for row in calls if row["scenario"] == "held-delete-stream"] == ["c"]
+        failure_started.clear()
+        release_failure.clear()
+        failed = executor.submit(data_request, "held-delete-failure")
+        assert failure_started.wait(10)
+        deletion_impacts.append(delete_account("account-d"))
+        assert data_request("new-after-delete-failure")[0] == 200
+        release_failure.set()
+        assert failed.result(20)[0] >= 400
+        assert [row["account"] for row in calls if row["scenario"] == "held-delete-failure"] == ["d"], "deleted generation must not retry into eligible account e"
+    bindings = api("GET", "/admin/endpoints/local-endpoint/credential-bindings")
+    assert any(row["credential_id"] == "account-e" for row in bindings)
+    assert not any(row["credential_id"] in ["account-c", "account-d"] for row in bindings)
+    assert api("GET", "/admin/resource-audit-events?limit=100")["items"], "deletion preserves audit history"
+    after_history=historical_rows()
+    assert all(ids.issubset(after_history[kind]) for kind,ids in retained_history.items())
     report = {"result": "PASS", "environment": "real-gateway-loopback-tls-synthetic", "model_default_closed": True, "catalog_success_empty_failure_retention_and_unsupported": True, "directory_reads_are_not_inference": True, "public_model_view_follows_explicit_grant": True, "sibling_key_and_prior_model_preserved": True, "stream_natural_completion": True, "new_request_uses_enabled_sibling": True, "retired_retry_sends_no_fallback": True, "key_required_before_send": True, "explicit_pin_sends_once": True, "local_release_sends_zero_inference": True, "release_preserves_disabled_auth_quota_and_permission_blocks": True, "release_audit_distinguishes_completion": True, "calls": calls, "catalog_calls": catalog_calls, "root": str(root)}
+    report.update(delete_held_stream_natural_completion=True, delete_new_request_uses_retained_sibling=True, delete_retired_attempt_sends_no_fallback=True, deletion_impacts=deletion_impacts)
+    report["history_retention"]={kind:{"before":len(ids),"after":len(after_history[kind]),"all_original_ids_retained":True} for kind,ids in retained_history.items()}
     (out / "batch-a-http.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({key: value for key, value in report.items() if key != "calls"}), flush=True)
 finally:

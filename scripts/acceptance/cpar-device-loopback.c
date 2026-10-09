@@ -8,7 +8,11 @@
 
 static int fixture_getaddrinfo(const char *node, const char *service,
                               const struct addrinfo *hints, struct addrinfo **result) {
-    if (node && (!strcmp(node, "auth.kimi.com") ||
+    if (node && !strcmp(node, "cli-chat-proxy.grok.com")) {
+        /* Native inference retains the runtime's explicit host-sized loopback policy. */
+        return getaddrinfo("127.0.0.1", service, hints, result);
+    }
+    if (node && (!strcmp(node, "auth.x.ai") || !strcmp(node, "auth.kimi.com") ||
                  !strcmp(node, "oidc.us-east-1.amazonaws.com"))) {
         /* Distinct loopback marker: ordinary API and management sockets are untouched. */
         return getaddrinfo("127.0.0.2", service, hints, result);
@@ -19,7 +23,7 @@ static int fixture_getaddrinfo(const char *node, const char *service,
 static int fixture_connect(int fd, const struct sockaddr *address, socklen_t length) {
     if (address && address->sa_family == AF_INET && length >= sizeof(struct sockaddr_in)) {
         const struct sockaddr_in *ipv4 = (const struct sockaddr_in *)address;
-        if (ipv4->sin_addr.s_addr == inet_addr("127.0.0.2") && ntohs(ipv4->sin_port) == 443) {
+        if ((ipv4->sin_addr.s_addr == inet_addr("127.0.0.2") || ipv4->sin_addr.s_addr == inet_addr("127.0.0.1")) && ntohs(ipv4->sin_port) == 443) {
             const char *value = getenv("CPAR_DEVICE_LOOPBACK_PORT");
             char *end = NULL;
             long port = value ? strtol(value, &end, 10) : 0;

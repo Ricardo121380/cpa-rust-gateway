@@ -28,7 +28,7 @@ struct CredentialInput {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(in crate::management_resources) struct RevisionQuery {
-    revision: u64,
+    pub(super) revision: u64,
 }
 
 fn changed(
@@ -119,17 +119,42 @@ pub(in crate::management_resources) async fn remove(
     let id = path.into_inner();
     let target = id.clone();
     let revision = query.revision;
+    let review = match request.headers().get("X-Deletion-Impact-Review") {
+        Some(token) => {
+            let context = match super::super::read_context(&request) {
+                Ok(context) => context,
+                Err(response) => return response,
+            };
+            let Ok(token) = token.to_str() else {
+                return invalid_input();
+            };
+            Some((context.version, token.to_owned()))
+        }
+        None => None,
+    };
+    let owned = state.clone();
     let result = read_operations(&state, move || {
-        Ok(native
-            .store
-            .manage_account(
+        let result = if let Some((version, token)) = review {
+            super::deletion_impact::reviewed_remove(
+                &owned,
+                &native,
+                &version,
+                &target,
+                revision,
+                &token,
+                actor.as_str(),
+                now,
+            )
+        } else {
+            native.store.manage_account(
                 &target,
                 revision,
                 GrokManagedAccountChange::Remove,
                 actor.as_str(),
                 now,
             )
-            .map(|revision| (revision, native.apply_runtime(None))))
+        };
+        Ok(result.map(|revision| (revision, native.apply_runtime(None))))
     })
     .await;
     match result {

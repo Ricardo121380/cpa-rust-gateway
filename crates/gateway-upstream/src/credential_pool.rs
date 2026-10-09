@@ -1582,6 +1582,41 @@ mod tests {
     }
 
     #[test]
+    fn non_build_kinds_never_accept_a_build_revision_range() -> TestResult {
+        for kind in ["oauth_json", "bearer", "grok_console_sso", "grok_web_sso"] {
+            let credential = CredentialId::try_new("strict-account")?;
+            let pool = EndpointCredentialPool::try_new(
+                EndpointId::try_new("strict-endpoint")?,
+                [EndpointCredentialInput {
+                    credential_id: credential.clone(),
+                    credential_kind: kind.into(),
+                    credential_revision: 2,
+                    priority: 0,
+                    weight: 1,
+                    concurrency: 1,
+                    expires_at_ms: Some(500),
+                    secret: CredentialSecret::try_new(b"synthetic-strict-material".to_vec())?,
+                }],
+            )?;
+            assert!(
+                pool.set_build_continuation_range(&credential, 1, 2)
+                    .is_err(),
+                "{kind}"
+            );
+            assert!(
+                pool.try_lease_exact_revision_eligible_at(&credential, 1, 200, |_| true)
+                    .is_none(),
+                "{kind}"
+            );
+            let exact = pool
+                .try_lease_exact_revision_eligible_at(&credential, 2, 200, |_| true)
+                .ok_or("exact revision missing")?;
+            assert_eq!(exact.credential_revision(), 2);
+        }
+        Ok(())
+    }
+
+    #[test]
     fn rejects_invalid_or_unbounded_pool_input_without_rendering_secrets() -> TestResult {
         let oversized = pool(
             "endpoint-a",

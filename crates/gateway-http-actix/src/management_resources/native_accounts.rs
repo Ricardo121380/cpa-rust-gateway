@@ -1,9 +1,11 @@
 //! Native Grok account enrollment uses the same encrypted store as the serving runtime.
+mod deletion_impact;
 mod maintenance;
 pub mod usage;
 use super::{ManagementResourceHttpState, invalid_input, parse_json, principal, read_operations};
 use actix_web::{HttpRequest, HttpResponse, http::StatusCode, web};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+pub(super) use deletion_impact::read as deletion_impact;
 pub(super) use maintenance::{apply_runtime, audit, remove, replace_credential, set_enabled};
 use provider_grok::{GrokAccountPoolError, GrokAccountPoolStore};
 use serde::{Deserialize, Serialize};

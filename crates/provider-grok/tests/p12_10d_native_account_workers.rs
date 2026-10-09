@@ -460,6 +460,177 @@ fn completion_cannot_commit_after_claim_deadline() -> TestResult {
     Ok(())
 }
 
+struct RefreshCasLoser {
+    path: PathBuf,
+    result: Mutex<Option<GrokAccountWorkerResult>>,
+}
+impl GrokAccountWorkerExecutor for RefreshCasLoser {
+    fn execute(&self, job: &GrokAccountWorkerJob) -> GrokAccountWorkerResult {
+        let changed = Connection::open(&self.path).and_then(|db| {
+            db.execute(
+                "UPDATE grok_accounts SET revision=revision+1 WHERE id=?1",
+                [job.account_id()],
+            )
+        });
+        if changed != Ok(1) {
+            return GrokAccountWorkerResult::TransientFailure;
+        }
+        self.result
+            .lock()
+            .ok()
+            .and_then(|mut result| result.take())
+            .unwrap_or(GrokAccountWorkerResult::TransientFailure)
+    }
+}
+
+#[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "one durable proof matrix plus a competing CAS input"
+)]
+fn build_proof_requires_nonempty_subject_same_client_scope_set_and_winning_cas() -> TestResult {
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+    fn grant(
+        subject: Option<&str>,
+        client: &str,
+        scope: &str,
+        email: &str,
+    ) -> Result<GrokAccountCredential, Box<dyn Error>> {
+        let token = format!(
+            "e30.{}.synthetic",
+            URL_SAFE_NO_PAD.encode(serde_json::to_vec(
+                &serde_json::json!({"sub":subject,"email":email})
+            )?)
+        );
+        let credential = provider_grok::GrokBuildCredential::import_json(
+            &serde_json::to_vec(
+                &serde_json::json!({"access_token":token,"refresh_token":"synthetic-refresh","expires_in":3600,"token_type":"Bearer","client_id":client,"scope":scope}),
+            )?,
+            NOW_MS,
+        )?;
+        Ok(GrokAccountCredential::try_from_build_credential(
+            &credential,
+        )?)
+    }
+    let scope = provider_grok::GROK_BUILD_OAUTH_SCOPE;
+    let reversed = scope.split_whitespace().rev().collect::<Vec<_>>().join(" ");
+    for (name, subject, client, next_scope, proven) in [
+        (
+            "set-order",
+            Some("owner"),
+            provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+            reversed.as_str(),
+            true,
+        ),
+        (
+            "missing-subject",
+            None,
+            provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+            scope,
+            false,
+        ),
+        (
+            "empty-subject",
+            Some(""),
+            provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+            scope,
+            false,
+        ),
+        (
+            "same-email-other-subject",
+            Some("other"),
+            provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+            scope,
+            false,
+        ),
+        (
+            "different-client",
+            Some("owner"),
+            "another-client",
+            scope,
+            false,
+        ),
+        (
+            "different-scope",
+            Some("owner"),
+            provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+            "openid",
+            false,
+        ),
+    ] {
+        let database = TemporaryDatabase::new()?;
+        let store = Arc::new(open_store(database.path())?);
+        let mut imported = account(name, NOW_MS, NOW_MS)?;
+        imported.credential = grant(
+            Some("owner"),
+            provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+            scope,
+            "same@example.test",
+        )?;
+        store.import_batch(name, &[imported], NOW_MS)?;
+        let id = store.single_import_account(name)?;
+        let summary = GrokAccountWorkerCoordinator::try_new(1, CLAIM_LEASE_MS)?.run_once(
+            &store,
+            GrokAccountWorkerKind::Refresh,
+            NOW_MS,
+            &OneResult::new(GrokAccountWorkerResult::Refreshed {
+                credential: grant(subject, client, next_scope, "same@example.test")?,
+                expires_at_ms: NOW_MS + 3_600_000,
+            }),
+        )?;
+        assert_eq!(summary.claimed, 1);
+        assert_eq!(summary.succeeded, 1);
+        assert_eq!(store.list_accounts()?[0].revision, 1);
+        assert_eq!(
+            open_store(database.path())?
+                .build_continuation_ranges()?
+                .get(&id)
+                .copied(),
+            proven.then_some((1, 2)),
+            "{name}"
+        );
+        println!("E05 {name}: durable_revision=1 proof={proven}");
+    }
+    let database = TemporaryDatabase::new()?;
+    let store = Arc::new(open_store(database.path())?);
+    let old = grant(
+        Some("owner"),
+        provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+        scope,
+        "old@example.test",
+    )?;
+    let mut imported = account("cas", NOW_MS, NOW_MS)?;
+    imported.credential = old;
+    store.import_batch("cas", &[imported], NOW_MS)?;
+    let id = store.single_import_account("cas")?;
+    let old_bytes = store.open_credential(&id)?.as_bytes().to_vec();
+    let result = GrokAccountWorkerCoordinator::try_new(1, CLAIM_LEASE_MS)?.run_once(
+        &store,
+        GrokAccountWorkerKind::Refresh,
+        NOW_MS,
+        &RefreshCasLoser {
+            path: database.path().to_owned(),
+            result: Mutex::new(Some(GrokAccountWorkerResult::Refreshed {
+                credential: grant(
+                    Some("owner"),
+                    provider_grok::GROK_BUILD_PUBLIC_CLIENT_ID,
+                    scope,
+                    "new@example.test",
+                )?,
+                expires_at_ms: NOW_MS + 3_600_000,
+            })),
+        },
+    );
+    assert_eq!(result, Err(GrokAccountWorkerError::StaleClaim));
+    assert_eq!(store.open_credential(&id)?.as_bytes(), old_bytes);
+    assert!(
+        !open_store(database.path())?
+            .build_continuation_ranges()?
+            .contains_key(&id)
+    );
+    Ok(())
+}
+
 fn account(
     identity: &str,
     refresh_due_at_ms: i64,

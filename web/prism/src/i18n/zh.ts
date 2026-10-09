@@ -4,6 +4,21 @@
 // two packs do not have to import from each other's module.
 export const zh = {
   appTitle: "Prism · 网关管理",
+  grokRecovery: {
+    uncertain:"授权结果待确认", close:"关闭并标记结果未确认", read:"核对授权结果", resume:"继续等待此授权会话",
+    help:"先读取原任务结果；不会重复授权交换、创建账号或取消可能已完成的授权。原会话超过有效期、管理会话结束或进程重启后可能无法确认。",
+    retained:"Grok Build 授权结果待确认。返回后只读取原会话结果。", returnTask:"返回 Grok Build 授权任务",
+    savedAccount:"已保存账号", revision:"授权版本", mismatch:"原授权回执不匹配，结果仍待确认。",
+  },
+  nativeDeletion: {
+    pool:"原生账号池", connectionEnabled:"连接已启用", connectionDisabled:"连接已停用", candidateEnabled:"候选已启用", candidateDisabled:"候选已停用",
+    noModels:"未关联公开模型路由。", unbound:"当前配置未关联此原生 Provider 的连接。", remaining:"删除本批次后保留的同 Provider 账号：",
+    enabled:"允许参与调度", disabled:"已停用", noRemaining:"无其他同 Provider 账号。",
+    notGuaranteed:"其他账号仅为当前清单，不保证能够替补；授权、连接、权限、额度和容量仍须满足。",
+    retained:"原生账号从独立池移除，共享连接、模型、权限及历史保留。运行应用失败会暂停全局新请求，需核对运行应用回执。",
+    description:"删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。",
+    enablePermission:"启用只恢复参与调度的许可；授权、连接、权限、额度和容量仍须满足。",
+  },
   runtimeApplication: {
     saved: "修改已保存，运行配置暂未应用。", confirmed: "运行配置应用已确认", previous: "上次应用确认时间",
     blocked: "上次观测的新请求准入已暂停。已保存的授权保留；重新应用运行配置后还需核对服务状态。",

@@ -44,7 +44,6 @@ impl GrokAccountPoolStore {
     /// Applies a single explicit change and its audit in one immediate transaction.
     /// # Errors
     /// Rejects missing accounts, stale revisions, wrong-channel material and store failures.
-    #[allow(clippy::too_many_lines)]
     pub fn manage_account(
         &self,
         id: &str,
@@ -52,6 +51,41 @@ impl GrokAccountPoolStore {
         change: GrokManagedAccountChange<'_>,
         actor: &str,
         now: i64,
+    ) -> Result<u64, GrokAccountPoolError> {
+        self.manage_account_inner(id, expected, change, actor, now, None)
+    }
+
+    /// Removes a reviewed account only while the captured inventory generation is current.
+    /// The generation, target revision, removal and audit share one immediate transaction.
+    /// # Errors
+    /// Rejects a changed inventory, stale target, missing account or unavailable store.
+    pub fn remove_reviewed_account(
+        &self,
+        id: &str,
+        expected: u64,
+        inventory_generation: i64,
+        actor: &str,
+        now: i64,
+    ) -> Result<u64, GrokAccountPoolError> {
+        self.manage_account_inner(
+            id,
+            expected,
+            GrokManagedAccountChange::Remove,
+            actor,
+            now,
+            Some(inventory_generation),
+        )
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn manage_account_inner(
+        &self,
+        id: &str,
+        expected: u64,
+        change: GrokManagedAccountChange<'_>,
+        actor: &str,
+        now: i64,
+        inventory_generation: Option<i64>,
     ) -> Result<u64, GrokAccountPoolError> {
         if id.is_empty()
             || id.len() > 128
@@ -73,6 +107,18 @@ impl GrokAccountPoolStore {
         let transaction = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+        if let Some(expected_generation) = inventory_generation {
+            let current = transaction
+                .query_row(
+                    "SELECT generation FROM native_account_inventory_generation WHERE singleton=1",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .map_err(|_| GrokAccountPoolError::StoreUnavailable)?;
+            if current != expected_generation {
+                return Err(GrokAccountPoolError::ExistingAccountConflict);
+            }
+        }
         let row = transaction
             .query_row(
                 "SELECT provider, revision, identity_digest FROM grok_accounts WHERE id=?1",

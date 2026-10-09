@@ -1,0 +1,21 @@
+   Compiling gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.50s
+     Running tests/managed_resource_inventory.rs (target/debug/deps/managed_resource_inventory-c19e5a8fceda9a3b)
+
+running 1 test
+CPAR-05 HTTP codex/same/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=1
+CPAR-05 HTTP codex/same/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=1
+CPAR-05 HTTP codex/different/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP codex/different/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP codex/unknown/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP codex/unknown/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP claude/same/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=1
+CPAR-05 HTTP claude/same/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=1
+CPAR-05 HTTP claude/different/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP claude/different/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP claude/unknown/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP claude/unknown/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+test oauth_identity_matrix::codex_claude_public_identity_matrix_preserves_disabled_intent_and_relationships ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.90s
+

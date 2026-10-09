@@ -95,14 +95,25 @@ fn run_in_directory(directory: &Path, status: u16) -> Result<(), Box<dyn Error>>
     repository.activate_version(&version)?;
     let now = now_ms()?;
     let store = Arc::new(GrokAccountPoolStore::try_open(&database, secrets.clone())?);
+    let access = "e30.eyJzdWIiOiJzYW1lLXdvcmtlci1vd25lciJ9.synthetic";
     for (id, enabled) in [("active", true), ("disabled", false)] {
-        let material = GrokBuildCredential::import_json(br#"{"access_token":"old-access","refresh_token":"old-refresh","expires_in":300,"token_type":"Bearer"}"#, now)?;
+        let material = GrokBuildCredential::import_json(
+            &serde_json::to_vec(
+                &serde_json::json!({"access_token":access,"refresh_token":"old-refresh","expires_in":300,"token_type":"Bearer","scope":provider_grok::GROK_BUILD_OAUTH_SCOPE}),
+            )?,
+            now,
+        )?;
+        let credential = GrokAccountCredential::try_from_build_credential(&material)?;
         store.import_batch(
             id,
             &[GrokAccountImport {
                 provider: GrokAccountProvider::Build,
-                identity: GrokAccountIdentity::try_from_bytes(id)?,
-                credential: GrokAccountCredential::try_from_build_credential(&material)?,
+                identity: if enabled {
+                    credential.enrollment_identity(GrokAccountProvider::Build, now, None)?
+                } else {
+                    GrokAccountIdentity::try_from_bytes(id)?
+                },
+                credential,
                 auth_status: GrokAccountAuthStatus::Active,
                 enabled,
                 priority: 0,
@@ -136,6 +147,9 @@ fn run_in_directory(directory: &Path, status: u16) -> Result<(), Box<dyn Error>>
     let calls = Arc::new(AtomicUsize::new(0));
     let peer_stopped = stopped.clone();
     let peer_calls = calls.clone();
+    let refreshed = serde_json::to_vec(
+        &serde_json::json!({"access_token":"e30.eyJzdWIiOiJzYW1lLXdvcmtlci1vd25lciJ9.rotated","refresh_token":"new-refresh","expires_in":3600,"token_type":"Bearer","scope":provider_grok::GROK_BUILD_OAUTH_SCOPE}),
+    )?;
     let peer = thread::spawn(move || -> std::io::Result<()> {
         while !peer_stopped.load(Ordering::Acquire) {
             let (mut socket, _) = match listener.accept() {
@@ -185,12 +199,12 @@ fn run_in_directory(directory: &Path, status: u16) -> Result<(), Box<dyn Error>>
             }
             let body: &[u8] = if is_post {
                 match status {
-                    200 => br#"{"access_token":"new-access","refresh_token":"new-refresh","expires_in":3600,"token_type":"Bearer"}"#,
+                    200 => &refreshed,
                     400 => br#"{"error":"invalid_grant"}"#,
                     _ => b"<html>temporary denial</html>",
                 }
             } else {
-                br#"{"email":"synthetic@example.test"}"#
+                br#"{"sub":"same-worker-owner","email":"synthetic@example.test"}"#
             };
             let reply_status = if is_post { status } else { 200 };
             write!(
@@ -217,10 +231,26 @@ fn run_in_directory(directory: &Path, status: u16) -> Result<(), Box<dyn Error>>
         format!("http://{address}/token"),
         format!("http://{address}/userinfo"),
     ));
-    let summary = worker.run_once();
+    let mut summary = None;
+    if status == 200 {
+        actix_web::rt::System::new().block_on(
+            crate::runtime::m2_continuity::verify_worker_generated_continuity(
+                &database,
+                &secrets,
+                pool.clone(),
+                &id,
+                || {
+                    summary = Some(worker.run_once()?);
+                    Ok(())
+                },
+            ),
+        )?;
+    } else {
+        summary = Some(worker.run_once()?);
+    }
     stopped.store(true, Ordering::Release);
     peer.join().map_err(|_| "Build HTTP peer panicked")??;
-    let summary = summary?;
+    let summary = summary.ok_or("worker summary")?;
     assert_eq!(
         calls.load(Ordering::SeqCst),
         1,

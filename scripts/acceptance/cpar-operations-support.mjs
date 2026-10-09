@@ -62,12 +62,25 @@ export async function operationsHarness(options){
     }
     throw new Error("Synthetic device receive snapshot did not reach the observed terminal state");
   }
-  async function login(){
+  async function login(first=false){
     await installManagementObserver(page);
     await page.goto(`${d.origin}/admin-ui/#/unlock`);await page.reload();
     await page.waitForSelector('input[name="password"]');
-    await page.fill('input[name="password"]',(await readFile(d.password_file,"utf8")).trim());
-    await page.click('loc=role:button[name="登录"]');await page.waitForSelector("main.canvas");
+    const password=(await readFile(d.password_file,"utf8")).trim();
+    const initial=first?(await readFile(d.initial_password_file,"utf8")).trim():password;
+    await page.fill('input[name="password"]',initial);
+    await page.click('loc=role:button[name="登录"]');
+    if(first){
+      await page.waitForSelector('input[autocomplete="new-password"]');
+      await page.fill('input[name="password"]',initial);
+      await page.fill('input[autocomplete="new-password"] >> nth=0',password);
+      await page.fill('input[autocomplete="new-password"] >> nth=1',password);
+      await page.click('loc=role:button[name="保存并重新登录"]');
+      await page.waitForSelector('input[name="username"]');
+      await page.fill('input[name="password"]',password);
+      await page.click('loc=role:button[name="登录"]');
+    }
+    await page.waitForSelector("main.canvas");
     await page.waitForFunction(()=>!!window.CPAR_SEO_HEADERS?.["x-management-key"]);
   }
   return {d,page,facts,clear,record,config,api,seed,deviceFacts,login};

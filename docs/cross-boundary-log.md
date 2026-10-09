@@ -3745,3 +3745,55 @@ The subsequent Full passed 1493 Rust tests but its secret scan rejected credenti
 **Other side:** FYI — no backend contract or generated client change, no layout redesign and no automatic migration of existing connections. Original actual-page failure and preserved draft are retained. Directed tests and committed-source actual creation/reuse/selection, clean Full and two independent review axes are required before local closeout. Grok configuration acceptance never claims real inference.
 
 The first clean embedded build exposed that Node filesystem types are absent from the frontend TypeScript environment. The regression now imports the two authoritative Rust sources through Vite's existing raw module support, avoiding a new dependency or compiler configuration change. The failed build remains recorded; a new clean source is required for the final build and gate.
+
+## 2026-10-09 · Codex · CPAR-05/07/13/14/27/47 native/session batch
+
+**What:** Exact task-owned implementation, contract, tests and acceptance drivers:
+
+- `apps/gateway/src/credential_refresh/native_batch_a.rs`
+- `apps/gateway/src/runtime.rs`
+- `apps/gateway/src/runtime/batch_a_native.rs`
+- `apps/gateway/src/runtime/m2_continuity.rs`
+- `crates/gateway-http-actix/src/management_resources.rs`
+- `crates/gateway-http-actix/src/management_resources/grok_device.rs`
+- `crates/gateway-http-actix/src/management_resources/native_accounts.rs`
+- `crates/gateway-http-actix/src/management_resources/native_accounts/deletion_impact.rs`
+- `crates/gateway-http-actix/src/management_resources/native_accounts/maintenance.rs`
+- `crates/gateway-http-actix/tests/managed_resource_inventory.rs`
+- `crates/gateway-http-actix/tests/managed_resource_inventory/native_deletion_impact.rs`
+- `crates/gateway-http-actix/tests/managed_resource_inventory/oauth_identity_matrix.rs`
+- `crates/gateway-upstream/src/credential_pool.rs`
+- `crates/provider-grok/src/account_pool/maintenance.rs`
+- `crates/provider-grok/tests/p12_10d_native_account_workers.rs`
+- `docs/contracts/BC-CRED-003-grok-build-oauth-device-code.md`
+- `docs/contracts/BC-RESP-003-exact-continuity-and-compaction.md`
+- `docs/openapi/management-v1.json`
+- `docs/reports/cpar-native-session-batch-local-20261009.md`
+- `scripts/acceptance/cpar-account-lifecycle-page.mjs`
+- `scripts/acceptance/cpar-batch-a-http.py`
+- `scripts/acceptance/cpar-batch-a.mjs`
+- `scripts/acceptance/cpar-batch-d.mjs`
+- `scripts/acceptance/cpar-device-loopback.c`
+- `scripts/acceptance/cpar-e05-process-http.py`
+- `scripts/acceptance/cpar-grok-device-actual-ui.mjs`
+- `scripts/acceptance/cpar-oauth-identity-page.mjs`
+- `scripts/acceptance/cpar-operations-support.mjs`
+- `scripts/acceptance/cpar_device_loopback.py`
+- `scripts/acceptance/cpar_seo_ui_http.py`
+- `web/prism/contracts/management-v1.json`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/features/accounts/AccountBatchDialog.tsx`
+- `web/prism/src/features/accounts/DeviceRecoveryHost.tsx`
+- `web/prism/src/features/accounts/GrokDeviceWizard.tsx`
+- `web/prism/src/features/accounts/NativeAccountDialog.tsx`
+- `web/prism/src/features/accounts/deletionImpact.ts`
+- `web/prism/src/features/accounts/deviceRecoveryStore.test.ts`
+- `web/prism/src/features/accounts/deviceRecoveryStore.ts`
+- `web/prism/src/features/accounts/nativeDeletionImpact.test.ts`
+- `web/prism/src/generated/management-client.ts`
+- `web/prism/src/i18n/en.ts`
+- `web/prism/src/i18n/zh.ts`
+
+**Why:** Explicit user implementation authorization covers both backend and frontend for this batch. Reproduce actual Build commit-before-response-loss, retain actor/TTL receipt handles, share read-first account lifecycle states and exact native deletion review, retain the approved strict Build worker continuity exception, and complete targeted OAuth and maintenance evidence. The authoritative management OpenAPI was synchronized with `npm --prefix web/prism run sync-contract`; no generated file was hand-edited.
+
+**Other side:** FYI. Directed HTTP/SQLite/actual stock-process and EgoLite evidence are separate from development fixtures. Final clean Full, frontend double build and independent Standards/Spec reviews bind the committed source in the batch report. No real Provider call, production state, push or deployment. Original AGENTS.md and unrelated files are preserved.

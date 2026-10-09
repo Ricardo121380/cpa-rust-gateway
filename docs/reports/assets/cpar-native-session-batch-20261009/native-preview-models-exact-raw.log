@@ -1,0 +1,75 @@
+   Compiling gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.30s
+     Running tests/managed_resource_inventory.rs (target/debug/deps/managed_resource_inventory-c19e5a8fceda9a3b)
+
+running 53 tests
+test codex_and_claude_targets_are_prepared_without_borrowing_compatible_upstreams ... ok
+test alias_delete_is_authenticated_revisioned_and_keeps_public_model ... ok
+test deleting_provider_clears_only_its_current_catalog_targets ... ok
+test credential_replacement_invalidates_old_browser_authorization ... ok
+test channel_import_is_scoped_validated_and_visible_before_binding ... ok
+test active_fork_returns_a_complete_draft_without_secret_material ... ok
+test claude_enrollment_and_reauthorization_keep_one_identity_and_reject_wrong_account ... ok
+test account_entry_type_filters_counts_and_cursors_by_actual_material ... ok
+test explicit_catalog_refresh_requires_auth_and_rejects_browser_secrets ... ok
+test first_codex_authorization_creates_only_after_callback_and_rejects_replay ... ok
+test account_plan_filter_keeps_unknown_separate_from_free_and_preserves_auth_state ... ok
+test forked_credentials_have_independent_oauth_sessions ... ok
+test identity_projection_exposes_email_but_not_token_subject_or_random_labels ... ok
+test inventory_cursor_rejects_filter_changes_and_same_revision_audit_changes ... ok
+test kimi_target_preparation_keeps_existing_api_upstream_separate ... ok
+test kiro_import_uses_its_prepared_region_target_without_an_endpoint_binding ... ok
+test kiro_target_preparation_is_region_owned_and_uses_the_fixed_runtime_shape ... ok
+test kimi_metadata_is_protected_searchable_and_invalidates_inventory_cursors ... ok
+test legacy_claude_oauth_reauthorization_keeps_its_compatible_owner ... ok
+test legacy_codex_callback_rejects_changed_draft_without_partial_credential_write ... ok
+test legacy_codex_callback_preserves_concurrent_winner_after_token_exchange ... ok
+test legacy_codex_callback_rejects_different_identity_without_changing_account ... ok
+test legacy_codex_oauth_endpoints_reject_kimi_credentials_without_mutation ... ok
+test live_account_quota_requires_management_auth_and_keeps_unsupported_unknown ... ok
+test named_channel_imports_use_prepared_targets_without_bindings ... ok
+test native_account_http_actions_are_guarded_audited_and_report_saved_vs_applied ... ok
+test legacy_codex_callback_updates_same_identity_and_preserves_disabled_intent ... ok
+test native_build_import_captures_id_token_identity_and_lists_compact_credentials ... ok
+test native_import_is_encrypted_global_and_pagination_ignores_unrelated_writes ... ok
+test native_deletion_impact::native_deletion_preview_is_concrete_revision_guarded_and_preserves_shared_graph ... ok
+test native_quota_rejects_late_response_after_account_changed ... ok
+test native_reimport_updates_same_identity_and_reads_exact_committed_batch ... ok
+test native_plan_observations_are_filterable_and_invalidate_old_cursors ... ok
+test ordinary_duplicate_import_readback_resolves_actual_existing_account ... ok
+CPAR-05 HTTP codex/same/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=1
+test refused_identity_read_preserves_import_and_reports_the_provider_refusal ... ok
+test repeated_channel_import_retains_disabled_account_and_connections ... ok
+CPAR-05 HTTP codex/same/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=1
+test repeated_oauth_import_rotates_one_account_but_keeps_other_members_separate ... ok
+test request_history_is_authenticated_and_cursor_bound_to_filters ... ok
+CPAR-05 HTTP codex/different/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+test saved_catalog_models_are_bounded_target_local_and_revision_guarded ... ok
+test sso_import_observes_identity_and_existing_account_refresh_is_revision_guarded ... ok
+CPAR-05 HTTP codex/different/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+test status_update_keeps_ciphertext_and_rejects_stale_account_revision ... ok
+test system_information_is_authenticated_and_contains_only_explicit_build_fields ... ok
+CPAR-05 HTTP codex/unknown/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+test unbound_inventory_is_complete_filtered_bounded_and_secret_free ... ok
+CPAR-05 HTTP codex/unknown/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+test unified_account_search_covers_later_pages_and_binds_filters ... ok
+CPAR-05 HTTP claude/same/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=1
+test unified_native_identity_and_generation_are_in_the_same_cursor ... ok
+CPAR-05 HTTP claude/same/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=1
+E-02 kimi-coding: real HTTP port=127.0.0.1:62657, original_session=NpFFe9o4nv42kSidRccDBYZ1DznDm0bHZLXMbRjSPBw, committed="rev-2", account=seo-device-account, rows=1, credential_revision=0, client_EOF, receipt_reads=2, token_exchanges=1, replay=409, unauthenticated=404
+CPAR-05 HTTP claude/different/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP claude/different/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP claude/unknown/disabled=false: first=1 maintenance=1 retained_accounts=251 revision=0
+CPAR-05 HTTP claude/unknown/disabled=true: first=1 maintenance=1 retained_accounts=251 revision=0
+test oauth_identity_matrix::codex_claude_public_identity_matrix_preserves_disabled_intent_and_relationships ... ok
+test legacy_codex_callback_rejects_unverifiable_identity_without_changing_account ... ok
+E-02 kiro: real HTTP port=127.0.0.1:62659, original_session=yB5D0wPSiIn1KuwkFZAHRb6hGgw-OsHanvnCTvbisXI, committed="rev-1", account=seo-device-account, rows=1, credential_revision=0, client_EOF, receipt_reads=2, token_exchanges=1, replay=409, unauthenticated=404
+test kimi_device_malformed_token_is_terminal_and_never_creates_an_account ... ok
+test kiro_device_denial_is_terminal_and_never_creates_an_account ... ok
+test device_commit_loss::kimi_committed_device_authorization_recovers_after_real_connection_loss ... ok
+test device_commit_loss::kiro_committed_device_authorization_recovers_after_real_connection_loss ... ok
+test kimi_device_enrollment_is_channel_bound_and_persists_only_after_success ... ok
+test kiro_device_enrollment_has_no_placeholder_and_persists_only_after_exchange ... ok
+
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.60s
+

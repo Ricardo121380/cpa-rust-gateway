@@ -1,0 +1,4661 @@
+{
+  "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+  "spaceId": 37,
+  "result": "PASS",
+  "cases": [
+    {
+      "id": "codex-first",
+      "channel": "codex",
+      "condition": "first",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "after": {
+        "version": {
+          "id": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-8eec64a0-d16d-4aa0-86de-404f89ff5e84",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-8eec64a0-d16d-4aa0-86de-404f89ff5e84",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "codex-8eec64a0-d16d-4aa0-86de-404f89ff5e84",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-8eec64a0-d16d-4aa0-86de-404f89ff5e84",
+            "version": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-8eec64a0-d16d-4aa0-86de-404f89ff5e84",
+            "version": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+            "status": 200
+          }
+        ],
+        "mode": "first",
+        "working": "edit-9a6fb77d-c715-4515-9cf2-761616861e66",
+        "saved": [
+          {
+            "id": "codex-8eec64a0-d16d-4aa0-86de-404f89ff5e84",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Codex 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×OpenAI连接 Codex 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。完成"
+    },
+    {
+      "id": "codex-same",
+      "channel": "codex",
+      "condition": "same",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+      "before": {
+        "version": {
+          "id": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "startCredentialOAuth",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 202
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "completeCredentialOAuth",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 202
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-d8b8789c-5537-4c25-a1fb-a24915864d4e",
+        "saved": [
+          {
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "revision": 0
+          },
+          {
+            "id": "codex-78a26e90-8a37-4fb1-8a4e-35f457064740",
+            "state": "complete"
+          }
+        ]
+      },
+      "feedback": "重新授权为当前账号更新授权；不会新建连接或改动已配置接口。×官方账号授权当前账号官方登录 → 回调确认 → 保存结果本次授权回调已由服务端确认并保存。账号资料已重新读取。完成"
+    },
+    {
+      "id": "codex-different",
+      "channel": "codex",
+      "condition": "different",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+      "before": {
+        "version": {
+          "id": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "identityVerdictRetained": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "startCredentialOAuth",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 202
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          },
+          {
+            "operation": "completeCredentialOAuth",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 409
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "version": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-f391c77f-e301-4b94-8604-7f11bd748a7a",
+        "saved": [
+          {
+            "id": "codex-b958fda2-7565-4f9f-b745-f30f1cebc0f3",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "重新授权为当前账号更新授权；不会新建连接或改动已配置接口。×官方账号授权当前账号官方登录 → 回调确认 → 保存结果授权未完成关闭重新启动授权"
+    },
+    {
+      "id": "codex-unknown",
+      "channel": "codex",
+      "condition": "unknown",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+      "before": {
+        "version": {
+          "id": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "identityVerdictRetained": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "startCredentialOAuth",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 202
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          },
+          {
+            "operation": "completeCredentialOAuth",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 409
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "version": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-45b22c2e-042a-4523-b994-41dbb61bebf9",
+        "saved": [
+          {
+            "id": "codex-c3d9ff67-c976-462d-a3cd-4014f291ab82",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "重新授权为当前账号更新授权；不会新建连接或改动已配置接口。×官方账号授权当前账号官方登录 → 回调确认 → 保存结果授权未完成关闭重新启动授权"
+    },
+    {
+      "id": "codex-disabled",
+      "channel": "codex",
+      "condition": "disabled",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+      "before": {
+        "version": {
+          "id": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "disabled",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "disabled",
+            "revision": 1,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "startCredentialOAuth",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 202
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "completeCredentialOAuth",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 202
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-177010e5-18ed-4e37-9ec4-e6d244ed8f51",
+        "saved": [
+          {
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "revision": 0
+          },
+          {
+            "id": "codex-e70e29e0-5cac-455d-954e-a5421e211724",
+            "state": "complete"
+          }
+        ]
+      },
+      "feedback": "重新授权为当前账号更新授权；不会新建连接或改动已配置接口。×官方账号授权当前账号官方登录 → 回调确认 → 保存结果本次授权回调已由服务端确认并保存。账号资料已重新读取。完成"
+    },
+    {
+      "id": "codex-callback-lost",
+      "channel": "codex",
+      "condition": "callback-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "lostResponseReadOnly": true,
+      "after": {
+        "version": {
+          "id": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-05d59a06-ed2a-40d0-bbc8-e3a074cfd852",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-05d59a06-ed2a-40d0-bbc8-e3a074cfd852",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "codex-05d59a06-ed2a-40d0-bbc8-e3a074cfd852",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-05d59a06-ed2a-40d0-bbc8-e3a074cfd852",
+            "version": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-05d59a06-ed2a-40d0-bbc8-e3a074cfd852",
+            "version": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "status": 201
+          },
+          {
+            "operation": "getAccountAuthorizationReceipt",
+            "version": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "status": 200
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-c40efb66-2fd8-40d7-b949-80c19ccac4a7",
+        "saved": [
+          {
+            "id": "codex-05d59a06-ed2a-40d0-bbc8-e3a074cfd852",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Codex 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×OpenAI连接 Codex 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。controlled consumed OAuth callback response lost查看待应用的修改完成"
+    },
+    {
+      "id": "codex-maintenance-lost",
+      "channel": "codex",
+      "condition": "maintenance-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+      "before": {
+        "version": {
+          "id": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "lostResponseReadOnly": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "startCredentialOAuth",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 202
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "completeCredentialOAuth",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 202
+          },
+          {
+            "operation": "getCredentialOAuthStatus",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          },
+          {
+            "operation": "getCredential",
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "version": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+            "status": 200
+          }
+        ],
+        "mode": "lost",
+        "working": "edit-c1f134b5-a7b5-4d30-ae82-d75cc2088544",
+        "saved": [
+          {
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "revision": 0
+          },
+          {
+            "id": "codex-b94f15cc-e8d5-4a6f-80f0-76506ba546c0",
+            "state": "complete"
+          }
+        ]
+      },
+      "feedback": "重新授权为当前账号更新授权；不会新建连接或改动已配置接口。×官方账号授权当前账号官方登录 → 回调确认 → 保存结果服务端报告账号已保存授权结果暂时无法确认；不会重复提交回调或取消请求。请重新读取状态，或稍后在账号管理中核对。账号资料已有变化，但无法确认这项变化来自本次续授权。重新读取状态关闭并标记结果未确认"
+    },
+    {
+      "id": "codex-binding-failed",
+      "channel": "codex",
+      "condition": "binding-failed",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "savedBeforeApplyFailure": true,
+      "after": {
+        "version": {
+          "id": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-be7a4e24-3a44-4dc8-a6c0-13ba4a98c22d",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-be7a4e24-3a44-4dc8-a6c0-13ba4a98c22d",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "codex-be7a4e24-3a44-4dc8-a6c0-13ba4a98c22d",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-be7a4e24-3a44-4dc8-a6c0-13ba4a98c22d",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-be7a4e24-3a44-4dc8-a6c0-13ba4a98c22d",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20"
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-b3f4f058-567e-4f87-907f-5d94ea9c7d20",
+        "saved": [
+          {
+            "id": "codex-be7a4e24-3a44-4dc8-a6c0-13ba4a98c22d",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Codex 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×OpenAI连接 Codex 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。完成"
+    },
+    {
+      "id": "codex-publish-failed",
+      "channel": "codex",
+      "condition": "publish-failed",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "savedBeforeApplyFailure": true,
+      "after": {
+        "version": {
+          "id": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "codex-daca7f81-2fa2-42dc-8eb5-445d520ed5ee",
+            "upstream_id": "codex",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "codex-daca7f81-2fa2-42dc-8eb5-445d520ed5ee",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "codex-responses",
+            "upstream_id": "codex"
+          }
+        ],
+        "providers": [
+          {
+            "id": "codex",
+            "name": "Codex / ChatGPT",
+            "kind": "codex",
+            "enabled": true,
+            "tags": [
+              "codex"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "codex-responses",
+            "upstream_id": "codex",
+            "adapter_id": "openai-compatible.responses",
+            "api_format": "openai/responses",
+            "base_url": "https://chatgpt.com/backend-api/codex",
+            "inference_path": "/responses",
+            "models_path": null,
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "codex-daca7f81-2fa2-42dc-8eb5-445d520ed5ee",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareCodexAccountTarget",
+            "version": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "status": 200
+          },
+          {
+            "operation": "startCodexEnrollment",
+            "id": "codex-daca7f81-2fa2-42dc-8eb5-445d520ed5ee",
+            "version": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "status": 202
+          },
+          {
+            "operation": "completeCodexEnrollment",
+            "id": "codex-daca7f81-2fa2-42dc-8eb5-445d520ed5ee",
+            "version": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion"
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-aa6891bd-4925-4675-bd97-73220b6a89ae",
+        "saved": [
+          {
+            "id": "codex-daca7f81-2fa2-42dc-8eb5-445d520ed5ee",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Codex 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×OpenAI连接 Codex 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。完成"
+    },
+    {
+      "id": "claude-first",
+      "channel": "claude",
+      "condition": "first",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "after": {
+        "version": {
+          "id": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-55073d9e-52c1-41b0-9958-e5942df37c48",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-55073d9e-52c1-41b0-9958-e5942df37c48",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "claude-55073d9e-52c1-41b0-9958-e5942df37c48",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-55073d9e-52c1-41b0-9958-e5942df37c48",
+            "version": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-55073d9e-52c1-41b0-9958-e5942df37c48",
+            "version": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+            "status": 200
+          }
+        ],
+        "mode": "first",
+        "working": "edit-db8d3575-7e3f-4d8a-bdaa-15f8ca1eee14",
+        "saved": [
+          {
+            "id": "claude-55073d9e-52c1-41b0-9958-e5942df37c48",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Claude 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。完成"
+    },
+    {
+      "id": "claude-same",
+      "channel": "claude",
+      "condition": "same",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+      "before": {
+        "version": {
+          "id": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+          "status": "active",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 1,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "version": "edit-1f7b2322-dab0-475c-ba50-bcfaa21ea131",
+            "status": 201
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-b1ccbb5f-dcd0-4968-9931-12f3e39f308f",
+        "saved": [
+          {
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "revision": 0
+          },
+          {
+            "id": "claude-adc8d69b-1052-476d-9b8c-5afb5a447dac",
+            "revision": 1
+          }
+        ]
+      },
+      "feedback": "重新授权 Claude 账号为当前账号更新授权，不会新建连接或改变已配置的接口。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果账号授权已保存。完成"
+    },
+    {
+      "id": "claude-different",
+      "channel": "claude",
+      "condition": "different",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+      "before": {
+        "version": {
+          "id": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-ce643759-e1c1-4e42-8fb9-2140a6f2771d",
+          "status": "draft",
+          "revision": "rev-0"
+        },
+        "accounts": [
+          {
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "identityVerdictRetained": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-ce643759-e1c1-4e42-8fb9-2140a6f2771d",
+            "version": "edit-e6a57a7d-1ba4-49a2-aed7-37d3daf3863d",
+            "status": 201
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "version": "edit-ce643759-e1c1-4e42-8fb9-2140a6f2771d",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "version": "edit-ce643759-e1c1-4e42-8fb9-2140a6f2771d",
+            "status": 409
+          },
+          {
+            "operation": "getAccountAuthorizationReceipt",
+            "version": "edit-ce643759-e1c1-4e42-8fb9-2140a6f2771d",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-ce643759-e1c1-4e42-8fb9-2140a6f2771d",
+        "saved": [
+          {
+            "id": "claude-3ac3015f-f48f-4ad9-a79f-125bdb944da5",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "重新授权 Claude 账号为当前账号更新授权，不会新建连接或改变已配置的接口。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果未能启动授权，请关闭后重新开始。授权身份不同，原账号及连接保留查看待应用的修改关闭"
+    },
+    {
+      "id": "claude-unknown",
+      "channel": "claude",
+      "condition": "unknown",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+      "before": {
+        "version": {
+          "id": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-06f3aae9-748d-45ad-b1b2-665ae71d958c",
+          "status": "draft",
+          "revision": "rev-0"
+        },
+        "accounts": [
+          {
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "identityVerdictRetained": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-06f3aae9-748d-45ad-b1b2-665ae71d958c",
+            "version": "edit-bc6a6eb2-75a0-421d-8ecf-bfa42cb5a743",
+            "status": 201
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "version": "edit-06f3aae9-748d-45ad-b1b2-665ae71d958c",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "version": "edit-06f3aae9-748d-45ad-b1b2-665ae71d958c",
+            "status": 409
+          },
+          {
+            "operation": "getAccountAuthorizationReceipt",
+            "version": "edit-06f3aae9-748d-45ad-b1b2-665ae71d958c",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-06f3aae9-748d-45ad-b1b2-665ae71d958c",
+        "saved": [
+          {
+            "id": "claude-d1154500-c976-44fb-a247-63ef9e80b560",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "重新授权 Claude 账号为当前账号更新授权，不会新建连接或改变已配置的接口。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果未能启动授权，请关闭后重新开始。授权身份无法核实，原账号及连接保留查看待应用的修改关闭"
+    },
+    {
+      "id": "claude-disabled",
+      "channel": "claude",
+      "condition": "disabled",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+      "before": {
+        "version": {
+          "id": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "after": {
+        "version": {
+          "id": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+          "status": "active",
+          "revision": "rev-1"
+        },
+        "accounts": [
+          {
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "disabled",
+            "revision": 1,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+            "version": "edit-6aa9efc8-44cd-4852-8791-89e279d3f9b7",
+            "status": 201
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "version": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "version": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-059a1c05-ed06-43ba-8643-e09e7d1ac16f",
+        "saved": [
+          {
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "revision": 0
+          },
+          {
+            "id": "claude-14178e42-4473-4a91-acd4-f9bed6f8d266",
+            "revision": 1
+          }
+        ]
+      },
+      "feedback": "重新授权 Claude 账号为当前账号更新授权，不会新建连接或改变已配置的接口。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果账号授权已保存。完成"
+    },
+    {
+      "id": "claude-callback-lost",
+      "channel": "claude",
+      "condition": "callback-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "lostResponseReadOnly": true,
+      "after": {
+        "version": {
+          "id": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-a70014e8-4149-4f5e-af44-920e4887c8ff",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-a70014e8-4149-4f5e-af44-920e4887c8ff",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "claude-a70014e8-4149-4f5e-af44-920e4887c8ff",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-a70014e8-4149-4f5e-af44-920e4887c8ff",
+            "version": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-a70014e8-4149-4f5e-af44-920e4887c8ff",
+            "version": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "status": 201
+          },
+          {
+            "operation": "getAccountAuthorizationReceipt",
+            "version": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "status": 200
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-11c54f67-7607-43bb-9412-0d8dbc27f404",
+        "saved": [
+          {
+            "id": "claude-a70014e8-4149-4f5e-af44-920e4887c8ff",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Claude 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。controlled consumed OAuth callback response lost查看待应用的修改完成"
+    },
+    {
+      "id": "claude-maintenance-lost",
+      "channel": "claude",
+      "condition": "maintenance-lost",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "accountId": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+      "before": {
+        "version": {
+          "id": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "lostResponseReadOnly": true,
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "version": "edit-d7b6a6e1-e6c8-446e-a234-7fd01f653c75",
+            "status": 201
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          },
+          {
+            "operation": "getAccountAuthorizationReceipt",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "status": 200
+          },
+          {
+            "operation": "getSystemInformation",
+            "status": 200
+          },
+          {
+            "operation": "listRoutes",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          },
+          {
+            "operation": "listRouteCandidates",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          },
+          {
+            "operation": "getCredentialMetadata",
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          },
+          {
+            "operation": "listAccountInventory",
+            "version": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-57cb376a-dfe4-4679-8887-292a8252cee8",
+        "saved": [
+          {
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "revision": 0
+          },
+          {
+            "id": "claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0",
+            "revision": 1
+          }
+        ]
+      },
+      "feedback": "重新授权 Claude 账号为当前账号更新授权，不会新建连接或改变已配置的接口。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果账号授权已保存。controlled consumed OAuth callback response lost查看待应用的修改完成"
+    },
+    {
+      "id": "claude-binding-failed",
+      "channel": "claude",
+      "condition": "binding-failed",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "savedBeforeApplyFailure": true,
+      "after": {
+        "version": {
+          "id": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-9b847e12-cee5-4306-9604-ca0e79fefe6a",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-9b847e12-cee5-4306-9604-ca0e79fefe6a",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "claude-9b847e12-cee5-4306-9604-ca0e79fefe6a",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-9b847e12-cee5-4306-9604-ca0e79fefe6a",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-9b847e12-cee5-4306-9604-ca0e79fefe6a",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256"
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-abaa37d9-c8df-4887-ac46-4589bfdd7256",
+        "saved": [
+          {
+            "id": "claude-9b847e12-cee5-4306-9604-ca0e79fefe6a",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Claude 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。完成"
+    },
+    {
+      "id": "claude-publish-failed",
+      "channel": "claude",
+      "condition": "publish-failed",
+      "result": "PASS",
+      "environment": "development-fixture-product-controls",
+      "commit": "85a168da39e79b49c58e83767bdc2bbce0b8a00a+working",
+      "spaceId": 37,
+      "savedBeforeApplyFailure": true,
+      "after": {
+        "version": {
+          "id": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+          "status": "active",
+          "revision": "rev-3"
+        },
+        "accounts": [
+          {
+            "id": "claude-b2855380-4ae5-424f-81c1-29e31f62309f",
+            "upstream_id": "claude",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          }
+        ],
+        "native": [],
+        "bindings": [
+          {
+            "credential_id": "claude-b2855380-4ae5-424f-81c1-29e31f62309f",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1,
+            "endpoint_id": "claude-messages",
+            "upstream_id": "claude"
+          }
+        ],
+        "providers": [
+          {
+            "id": "claude",
+            "name": "Claude",
+            "kind": "claude",
+            "enabled": true,
+            "tags": [
+              "claude"
+            ],
+            "egress_policy_id": null
+          }
+        ],
+        "endpoints": [
+          {
+            "id": "claude-messages",
+            "upstream_id": "claude",
+            "adapter_id": "anthropic-compatible.messages",
+            "api_format": "anthropic/messages",
+            "base_url": "https://api.anthropic.com/v1",
+            "inference_path": "/messages",
+            "models_path": "/models",
+            "transport": "https",
+            "enabled": true
+          }
+        ],
+        "models": [],
+        "candidates": [],
+        "permissions": []
+      },
+      "accountId": "claude-b2855380-4ae5-424f-81c1-29e31f62309f",
+      "counters": {
+        "calls": [
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "v-2026-07",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "forkConfigVersion",
+            "id": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "version": "v-2026-07",
+            "status": 201
+          },
+          {
+            "operation": "prepareClaudeAccountTarget",
+            "version": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "status": 200
+          },
+          {
+            "operation": "startClaudeEnrollment",
+            "id": "claude-b2855380-4ae5-424f-81c1-29e31f62309f",
+            "version": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "status": 202
+          },
+          {
+            "operation": "completeClaudeEnrollment",
+            "id": "claude-b2855380-4ae5-424f-81c1-29e31f62309f",
+            "version": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "status": 201
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "status": 200
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "version": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "status": 201
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion"
+          },
+          {
+            "operation": "getConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "version": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "status": 200
+          },
+          {
+            "operation": "compareConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "status": 200
+          },
+          {
+            "operation": "validateConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "publishConfigVersion",
+            "status": 200
+          },
+          {
+            "operation": "listConfigVersions",
+            "status": 200
+          },
+          {
+            "operation": "listAccountChannels",
+            "status": 200
+          },
+          {
+            "operation": "listUpstreams",
+            "version": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+            "status": 200
+          }
+        ],
+        "mode": "same",
+        "working": "edit-8b035c50-ef76-45bd-bc71-4b12f3416b44",
+        "saved": [
+          {
+            "id": "claude-b2855380-4ae5-424f-81c1-29e31f62309f",
+            "revision": 0
+          }
+        ]
+      },
+      "feedback": "授权 Claude 账号在官方页面完成登录后，粘贴浏览器带回的完整回调地址。×Claude连接 Claude 账号官方登录 → 回调确认 → 保存结果账号授权已保存并连接接口。完成"
+    }
+  ]
+}

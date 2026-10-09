@@ -53,3 +53,25 @@
 - `importer_rejects_duplicate_unsafe_and_ambiguous_oauth_shapes`
 - `device_code_state_machine_honors_interval_slow_down_and_redaction`
 - `refresh_requires_a_matching_client_and_never_exposes_form_secrets`
+
+## Native management recovery (CPAR-07, 2026-10-09)
+
+The P6-01 importer and transport bounds above retain their original scope. The native management
+HTTP implementation adds a read-only result projection for its existing process-local device
+session: `GET /admin/native-account-authorizations/{session_id}`. The authenticated actor must own
+the original session, and the original Provider TTL, capped at fifteen minutes, still bounds it.
+The read neither polls/exchanges, imports, cancels, nor reapplies runtime. Missing/foreign/expired
+receipts return the same missing classification and never disclose another actor's result.
+
+The receipt omits device/user codes, verification links, tokens and actor values. A completed save
+contains the exact native account ID and zero-based persisted credential revision, separately from
+identity observation and `runtime_applied`. Save completion is recorded before later metadata reads;
+a subsequent read failure must not restore a pending state or permit cancellation of the saved grant.
+The browser retains only the bounded non-secret session/name/target handle in the current management
+session. An uncertain poll stops automatic mutation; close/route return preserves the handle and reads
+the original result first. A confirmed pending receipt requires explicit continuation.
+
+This adds no durable device-receipt or cross-process recovery promise. Session replacement clears
+browser handles; process restart or TTL loss reports a missing result. Refer to the
+[local batch report](../reports/cpar-native-session-batch-local-20261009.md) for actual embedded-page
+commit-before-response-loss and actor/TTL checks, separated from scripted transport unit evidence.

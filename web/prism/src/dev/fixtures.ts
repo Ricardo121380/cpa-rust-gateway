@@ -697,7 +697,7 @@ function fixtureBuildIdentity(material:string):{email:string|null;phone:null;use
 }
 const nativeFixtureAccounts: NativeFixtureAccount[] = [];
 let nativeFixtureGeneration=0;
-const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:{email:string|null;phone:string|null;username:string|null}|null;identity_state:string;runtime_applied?:boolean|null};name:string;target?:{account_id:string;revision:number}}>();
+const nativeDeviceSessions=new Map<string,{view:{session_id:string;state:string;user_code:string;verification_uri:string;expires_at_ms:number;retry_at_ms:number;identity:{email:string|null;phone:string|null;username:string|null}|null;identity_state:string;runtime_applied?:boolean|null;account_id?:string;credential_revision?:number};actor:string;name:string;target?:{account_id:string;revision:number}}>();
 const approvedNativeSessions=new Set<string>();
 const kimiDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const kiroDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
@@ -711,6 +711,7 @@ const ordinaryImportReceipts=new Map<string,Record<string,unknown>>();
 const fixturePoolRuntime=new Map<string,string>();
 const importedDigests=new Map<string,string>();
 const oauthCredentials=new Set<string>();
+let oauthIdentityForTest:"same"|"different"|"unknown"="same";
 function fixtureCredentialPresentation(version:VersionRow,credential:CredentialRow){
   const kind=state.upstreams.get(version.id)?.find(row=>row.id===credential.upstream_id)?.kind;
   const oauth=credential.kind==="oauth_json"||oauthCredentials.has(`${version.id}:${credential.id}`);
@@ -736,6 +737,21 @@ async function fixtureDeletionImpact(version:VersionRow,id:string){
   const retained_routes=(state.routeCandidates.get(version.id)??[]).filter(row=>endpointIds.has(row.endpoint_id)).map(row=>row.route_id).sort();
   const keys=(state.keys.get(version.id)??[]).filter(key=>(state.groupRoutes.get(`${version.id}:${key.access_group_id}`)??[]).some(grant=>retained_routes.includes(grant.route_id))).map(key=>key.id).sort();
   const impact={config_version:version.id,revision:revisionToken(version),credential_id:id,upstream_id:credential.upstream_id,credential_revision:credential.revision,removed_bindings:removed.map(row=>({endpoint_id:row.endpoint_id,enabled:row.enabled})).sort((a,b)=>a.endpoint_id.localeCompare(b.endpoint_id)),removed_egress_profiles:(state.compatBindings.get(version.id)??[]).filter(row=>row.credential_id===id).length,retained_endpoints:(state.endpoints.get(version.id)??[]).filter(row=>endpointIds.has(row.id)).map(row=>({id:row.id,enabled:row.enabled,remaining_credentials:bindings.filter(binding=>binding.endpoint_id===row.id&&binding.credential_id!==id).map(binding=>binding.credential_id).sort()})),retained_routes,retained_client_keys:keys,history_retained:true,upstream_account_revoked:false};
+  return {...impact,review_token:await fixtureDigest(impact)};
+}
+async function fixtureNativeDeletionImpact(version:VersionRow,id:string){
+  const target=nativeFixtureAccounts.find(row=>row.id===id);if(!target)return undefined;
+  const provider=target.provider.replace("grok_","");
+  const connections=(state.endpoints.get(version.id)??[]).flatMap(endpoint=>{
+    if(endpoint.adapter_id!==`grok.${provider}.responses`)return [];
+    const upstream=state.upstreams.get(version.id)?.find(row=>row.id===endpoint.upstream_id&&row.kind===`grok-${provider}-native`);if(!upstream)return [];
+    const models=(state.routeCandidates.get(version.id)??[]).filter(candidate=>candidate.endpoint_id===endpoint.id).flatMap(candidate=>{
+      const route=state.routes.get(version.id)?.find(row=>row.id===candidate.route_id);const model=state.models.get(version.id)?.find(row=>row.id===route?.public_model_id);
+      return model?[{route_id:route!.id,model:model.model_name,upstream_model:candidate.upstream_model,candidate_enabled:candidate.enabled}]:[];
+    });
+    return [{upstream_id:upstream.id,service_name:upstream.name,upstream_enabled:upstream.enabled,endpoint_id:endpoint.id,endpoint_enabled:endpoint.enabled,models}];
+  });
+  const impact={config_version:version.id,config_revision:version.revision,inventory_generation:nativeFixtureGeneration,account_id:id,account_revision:target.revision,provider,connections,remaining_accounts:nativeFixtureAccounts.filter(row=>row.id!==id&&row.provider===target.provider).map(row=>({id:row.id,revision:row.revision,enabled:row.enabled,auth_status:row.auth_status})).sort((a,b)=>a.id.localeCompare(b.id)),replacement_guaranteed:false,history_retained:true,shared_resources_retained:true,upstream_account_revoked:false};
   return {...impact,review_token:await fixtureDigest(impact)};
 }
 let credentialOAuthStatusFailures = 0;
@@ -818,7 +834,7 @@ export function resetFixturesForTest(): void {
   approvedNativeSessions.clear();
   kimiDeviceSessions.clear();
   kiroDeviceSessions.clear();
-  authorizationReceipts.clear();ordinaryImportReceipts.clear();codeEnrollments.clear();importedDigests.clear();oauthCredentials.clear();deletedAccounts.clear();deletionSequence=0;
+  authorizationReceipts.clear();ordinaryImportReceipts.clear();codeEnrollments.clear();importedDigests.clear();oauthCredentials.clear();oauthIdentityForTest="same";deletedAccounts.clear();deletionSequence=0;
   unresolvedDevicePolls.clear();
   lostDeviceCompletions.clear();completedDeviceExchanges.clear();
   credentialOAuthStatusFailures = 0;
@@ -884,6 +900,35 @@ export function prepareSharedDeletionForTest():void {
   if(!version)throw new Error("active fixture version unavailable");
   state.credentials.get(version.id)!.push({id:"cred-relay-spare",upstream_id:"relay-a",kind:"bearer",status:"active",revision:1,secret_present:true});
   state.bindings.get(version.id)!.push({endpoint_id:"ep-relay-a-responses",upstream_id:"relay-a",credential_id:"cred-relay-spare",enabled:true,priority:10,weight:1,concurrency:1});
+}
+
+/** Exact shared resources and three redacted accounts for lifecycle UI acceptance. */
+export function prepareAccountLifecycleForTest(native:boolean,enabled:boolean):void {
+  prepareSharedDeletionForTest();
+  const version=state.versions.find(row=>row.status==="active")!;
+  state.credentials.get(version.id)!.push({id:"cred-relay-third",upstream_id:"relay-a",kind:"bearer",status:"active",revision:0,secret_present:true});
+  state.bindings.get(version.id)!.push({endpoint_id:"ep-relay-a-responses",upstream_id:"relay-a",credential_id:"cred-relay-third",enabled:true,priority:20,weight:1,concurrency:1});
+  for(const row of state.credentials.get(version.id)!)row.status=enabled?"active":"disabled";
+  if(native){
+    prepareNativeConnectionMatchesForTest(2);
+    state.routeCandidates.set(version.id,(state.endpoints.get(version.id)??[]).map((endpoint,index)=>({id:`native-lifecycle-candidate-${index}`,route_id:"rt-minimax",endpoint_id:endpoint.id,upstream_model:"grok-lifecycle-model",credential_scope:"all_active",transform_mode:"passthrough",enabled:true,priority:index,weight:1,capability_override:{}})));
+    nativeFixtureAccounts.splice(0,nativeFixtureAccounts.length,...["a","b","c"].map((suffix,index)=>({id:`native-lifecycle-${suffix}`,provider:"grok_build",auth_status:"active",enabled,revision:index,import_batch_id:`native-lifecycle-${suffix}`,identity:{email:`${suffix}@example.test`,phone:null,username:null}})));
+    nativeFixtureGeneration+=1;
+  }
+}
+
+/** Metadata only; no callback, state, authorization URL or credential material. */
+export function accountLifecycleSnapshotForTest(versionId?:string){
+  const version=versionId?state.versions.find(row=>row.id===versionId):state.versions.find(row=>row.status==="active");
+  if(!version)throw new Error("fixture version unavailable");
+  return structuredClone({version:{id:version.id,status:version.status,revision:revisionToken(version)},accounts:state.credentials.get(version.id)??[],native:nativeFixtureAccounts,bindings:state.bindings.get(version.id)??[],providers:state.upstreams.get(version.id)??[],endpoints:state.endpoints.get(version.id)??[],models:state.models.get(version.id)??[],candidates:state.routeCandidates.get(version.id)??[],permissions:state.groupRoutes.get(`${version.id}:team-default`)??[]});
+}
+
+/** Project a synthetic exchange identity verdict from the separately tested HTTP guard. */
+export function setOAuthIdentityForTest(outcome:"same"|"different"|"unknown"):void {oauthIdentityForTest=outcome;}
+export function disableOAuthCredentialForTest(id:string):void {
+  for(const rows of state.credentials.values())for(const row of rows)if(row.id===id)row.status="disabled";
+  inventorySequence+=1;
 }
 
 export function prepareModelMappingConflictForTest():void {
@@ -980,6 +1025,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if(restoration){const target=state.versions.find(row=>row.id===decodeURIComponent(restoration[1]!));return target?json(200,await fixtureRestorationReview(target)):errorResponse(404,"management_resource_not_found","configuration not found");}
     const deletionImpact=/^GET \/admin\/credentials\/([^/]+)\/deletion-impact$/u.exec(route);
     if(deletionImpact){const version=versionByHeader(headers);if(version instanceof Response)return version;const impact=await fixtureDeletionImpact(version,decodeURIComponent(deletionImpact[1]!));return impact?json(200,impact):errorResponse(404,"management_resource_not_found","credential not found");}
+    const nativeDeletionImpact=/^GET \/admin\/native-accounts\/([^/]+)\/deletion-impact$/u.exec(route);
+    if(nativeDeletionImpact){const version=versionByHeader(headers);if(version instanceof Response)return version;const impact=await fixtureNativeDeletionImpact(version,decodeURIComponent(nativeDeletionImpact[1]!));if(!impact)return errorResponse(404,"management_native_account_not_found","账号不存在");return impact.account_revision===Number(url.searchParams.get("revision"))?json(200,impact):errorResponse(409,"management_native_account_conflict","账号已变化");}
     const authorizationRead=/^GET \/admin\/account-authorization\/([^/]+)$/u.exec(route);
     if(authorizationRead){const version=versionByHeader(headers);if(version instanceof Response)return version;const receipt=authorizationReceipts.get(decodeURIComponent(authorizationRead[1]!));if(!receipt||receipt.actor!==headers.get("X-Management-Key")||receipt.config_version!==version.id)return errorResponse(404,"management_authorization_receipt_missing","授权回执不在保留范围内");const {actor:_,...view}=receipt;return json(200,{...view,state:view.state==="pending"&&view.expires_at_ms<=Date.now()?"expired":view.state});}
 
@@ -1761,12 +1808,17 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const input=JSON.parse(bodyText??"{}") as {revision:number;enabled?:boolean;secret?:string};
       const revision=nativeAction[1]==="DELETE"?Number(url.searchParams.get("revision")):input.revision;
       if(row.revision!==revision)return errorResponse(409,"management_native_account_conflict","账号已变化");
+      if(nativeAction[1]==="DELETE"&&headers.has("X-Deletion-Impact-Review")){
+        const version=versionByHeader(headers);if(version instanceof Response)return version;
+        if(headers.get("X-Deletion-Impact-Review")!==(await fixtureNativeDeletionImpact(version,row.id))?.review_token)return errorResponse(409,"management_native_account_conflict","删除影响已变化");
+      }
       if(nativeAction[1]==="PUT"&&row.provider==="grok_build")return errorResponse(400,"invalid_management_request","请使用重新授权");
       row.revision+=1;nativeFixtureGeneration+=1;
       if(nativeAction[1]==="PATCH")row.enabled=Boolean(input.enabled);
       if(nativeAction[1]==="PUT")row.identity={email:"session.member@example.test",phone:null,username:null};
       if(nativeAction[1]==="DELETE")nativeFixtureAccounts.splice(nativeFixtureAccounts.indexOf(row),1);
-      return json(200,{account_id:row.id,revision:row.revision,removed:nativeAction[1]==="DELETE",runtime_applied:true,...(nativeAction[1]==="PUT"?{identity_state:"observed"}:{})});
+      const runtime_applied=nativeRuntimeApplyFailures===0;if(!runtime_applied)nativeRuntimeApplyFailures-=1;
+      return json(200,{account_id:row.id,revision:row.revision,removed:nativeAction[1]==="DELETE",runtime_applied,...(nativeAction[1]==="PUT"?{identity_state:"observed"}:{})});
     }
     if(/^GET \/admin\/native-accounts\/[^/]+\/audit$/u.test(route))return json(200,[]);
     if(route==="POST /admin/operations/runtime/apply")return json(200,{runtime_applied:true});
@@ -1800,16 +1852,20 @@ export const fixtureFetch: typeof fetch = (input, init) => {
     if(route === "POST /admin/native-account-authorizations") {
       const input=JSON.parse(bodyText??"{}") as {name:string;target?:{account_id:string;revision:number}};
       const id=crypto.randomUUID();const view={session_id:id,state:"pending",user_code:"TEST-1234",verification_uri:"https://auth.fixture.example/verify",expires_at_ms:Date.now()+60000,retry_at_ms:Date.now()+1000,identity:null,identity_state:"pending"};
-      nativeDeviceSessions.set(id,{view,...input,name:input.name||`grok-authorization-${id}`});return json(200,view);
+      nativeDeviceSessions.set(id,{view,...input,actor:headers.get("X-Management-Key")!,name:input.name||`grok-authorization-${id}`});return json(200,view);
     }
+    const nativeDeviceRead=/^GET \/admin\/native-account-authorizations\/([^/]+)$/u.exec(route);
+    if(nativeDeviceRead){const entry=nativeDeviceSessions.get(nativeDeviceRead[1]!);if(!entry||entry.actor!==headers.get("X-Management-Key")||entry.view.expires_at_ms<=Date.now())return errorResponse(404,"management_native_authorization_receipt_missing","原授权回执未保留，结果待确认");const {user_code:_,verification_uri:__,...view}=entry.view;return json(200,view);}
     const nativeDevice=/^(POST|DELETE) \/admin\/native-account-authorizations\/([^/]+)(?:\/poll)?$/u.exec(route);
-    if(nativeDevice){const entry=nativeDeviceSessions.get(nativeDevice[2]??"");if(!entry)return errorResponse(400,"invalid_management_request","授权不存在");
+    if(nativeDevice){const entry=nativeDeviceSessions.get(nativeDevice[2]??"");if(!entry||entry.actor!==headers.get("X-Management-Key"))return errorResponse(400,"invalid_management_request","授权不存在");
       if(nativeDevice[1]==="DELETE"&&entry.view.state==="pending")entry.view.state="cancelled";
       else if(entry.view.state==="pending"&&approvedNativeSessions.has(entry.view.session_id)){
         if(entry.target){const account=nativeFixtureAccounts.find((r)=>r.id===entry.target?.account_id);if(!account||account.revision!==entry.target.revision)entry.view.state="persistence_conflict";else{account.revision+=1;nativeFixtureGeneration+=1;entry.view.state="complete";}}
         else{nativeFixtureAccounts.push({id:`grok-fixture-${++nativeFixtureGeneration}`,provider:"grok_build",auth_status:"active",enabled:true,revision:0,import_batch_id:entry.name,identity:{email:"authorized.member@example.test",phone:null,username:null}});entry.view.state="complete";}
       }
       if(entry.view.state==="complete"){
+        const account=nativeFixtureAccounts.find(row=>entry.target?row.id===entry.target.account_id:row.import_batch_id===entry.name);
+        entry.view.account_id=account?.id;entry.view.credential_revision=account?.revision;
         entry.view.identity={email:"authorized.member@example.test",phone:null,username:null};entry.view.identity_state="observed";
         if(entry.view.runtime_applied===undefined){entry.view.runtime_applied=nativeRuntimeApplyFailures>0?false:true;if(!entry.view.runtime_applied)nativeRuntimeApplyFailures-=1;}
       }
@@ -1909,6 +1965,10 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if(!input.callback.code)return errorResponse(400,"management_invalid_input","缺少回调授权码");
       const rows=state.credentials.get(version.id)??[];const identityKey=`${version.id}:${upstreamId}:${channel}:fixture-oauth-identity`;const dedupId=importedDigests.get(identityKey);const previous=rows.find(row=>row.id===(entry.replaceExisting?input.id:dedupId));
       if(entry.replaceExisting&&(!previous||previous.upstream_id!==upstreamId))return errorResponse(409,"management_authorization_conflict","账号身份已变化");
+      if(entry.replaceExisting&&oauthIdentityForTest!=="same"){
+        receipt.state="failed";codeEnrollments.delete(key);
+        return errorResponse(409,"management_credential_identity_unverified",oauthIdentityForTest==="different"?"授权身份不同，原账号及连接保留":"授权身份无法核实，原账号及连接保留");
+      }
       const row:CredentialRow=previous??{id:input.id,upstream_id:upstreamId,kind:channel==="codex"?"oauth_json":"bearer",status:"active",revision:0,secret_present:true};if(previous){row.revision+=1;if(row.status!=="disabled")row.status="active";}else rows.push(row);state.credentials.set(version.id,rows);oauthCredentials.add(`${version.id}:${row.id}`);importedDigests.set(identityKey,row.id);version.revision+=1;receipt.state="completed";receipt.credential_id=row.id;receipt.revision=revisionToken(version);codeEnrollments.delete(key);return json(previous?200:201,row,revisionToken(version));
     }
 
@@ -3078,7 +3138,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const id = decodeURIComponent(credGet[1] ?? "");
       const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
       if (row === undefined) {
-        return errorResponse(409, "management_lifecycle_conflict", "unknown credential");
+        return errorResponse(404, "management_resource_not_found", "unknown credential");
       }
       return json(200, row);
     }
@@ -3210,10 +3270,14 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         op.state = "failed";
         op.failure_class = "provider_rejected";
       } else {
+        if(oauthIdentityForTest!=="same"){
+          op.state="failed";op.failure_class="persistence_conflict";
+          return errorResponse(409,"management_credential_identity_unverified",oauthIdentityForTest==="different"?"授权身份不同，原账号及连接保留":"授权身份无法核实，原账号及连接保留");
+        }
         op.state = "complete";
         const row = (state.credentials.get(version.id) ?? []).find((entry) => entry.id === id);
         if (row !== undefined) {
-          row.status = "active";
+          if(row.status!=="disabled")row.status = "active";
           row.kind = "oauth_json";
           row.revision += 1;
           inventorySequence += 1;

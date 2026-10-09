@@ -78,6 +78,20 @@ impl GrokBuildResponseBody for HeldBody {
 )]
 fn native_disable_rebuild_preserves_an_open_stream_and_retires_new_execution()
 -> Result<(), Box<dyn Error>> {
+    held_stream_management_change(false)
+}
+
+#[test]
+fn native_delete_http_preserves_an_open_stream_and_retires_new_execution()
+-> Result<(), Box<dyn Error>> {
+    held_stream_management_change(true)
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "shared held-stream setup; disable and delete execute separate public mutations and assertions"
+)]
+fn held_stream_management_change(remove: bool) -> Result<(), Box<dyn Error>> {
     let directory = TemporaryDirectory::new()?;
     let database = directory.path().join("batch-a-native.sqlite3");
     let secrets = test_secret_store()?;
@@ -121,7 +135,10 @@ fn native_disable_rebuild_preserves_an_open_stream_and_retires_new_execution()
     lifecycle.set_runtime_preparer(composition.reload.clone());
     lifecycle.publish_configuration(&config.version.id)?;
     let now = system_now_ms_runtime()?;
-    let store = provider_grok::GrokAccountPoolStore::try_open(&database, secrets.clone())?;
+    let store = Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+        &database,
+        secrets.clone(),
+    )?);
     let material=GrokBuildCredential::import_json(br#"{"access_token":"synthetic-access","refresh_token":"synthetic-refresh","expires_in":3600,"token_type":"Bearer"}"#,now)?;
     let credential = provider_grok::GrokAccountCredential::try_from_build_credential(&material)?;
     let account = provider_grok::GrokAccountImport {
@@ -187,21 +204,78 @@ fn native_disable_rebuild_preserves_an_open_stream_and_retires_new_execution()
         Ok::<_, GatewayError>(source)
     })?;
     assert_eq!(pool.active_lease_count(&credential_id), Some(1));
-    store.manage_account(
-        &account,
-        0,
-        provider_grok::GrokManagedAccountChange::SetEnabled(false),
-        "batch-a",
-        now + 1,
-    )?;
-    assert!(composition.reload.apply(None));
+    actix_web::rt::System::new().block_on(async {
+        use actix_web::{App, http::StatusCode, test, web};
+        use gateway_http_actix::{
+            management_resources::{
+                ManagementResourceHttpState, configure_management_resources,
+                native_accounts::NativeAccountManagement,
+            },
+            management_security::{
+                ManagementBrowserPolicy, ManagementHttpState, ManagementKey,
+                ManagementNetworkPolicy,
+            },
+        };
+        let key = "mgmt_native_retirement_synthetic_01234567890123456789";
+        let security = ManagementHttpState::new(
+            ManagementKey::try_new(key)?,
+            ManagementNetworkPolicy::LoopbackOnly,
+            ManagementBrowserPolicy::DenyBrowserOrigins,
+        )?;
+        let resources = ManagementResourceHttpState::new(
+            gateway_control::management_mutation_service::ManagementMutationService::new(
+                SqliteControlPlaneRepository::open(&database)?,
+                secrets.clone(),
+            ),
+        )
+        .with_native_accounts(
+            NativeAccountManagement::new(store.clone())?.with_runtime(composition.reload.clone()),
+        );
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(security))
+                .app_data(web::Data::new(resources))
+                .configure(configure_management_resources),
+        )
+        .await;
+        let path = format!("/admin/native-accounts/{account}");
+        let request = if remove {
+            test::TestRequest::delete().uri(&format!("{path}?revision=0"))
+        } else {
+            test::TestRequest::patch()
+                .uri(&path)
+                .set_json(serde_json::json!({"revision":0,"enabled":false}))
+        };
+        let response = test::call_service(
+            &app,
+            request
+                .peer_addr("127.0.0.1:34567".parse()?)
+                .insert_header(("X-Management-Key", key))
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let value: Value = test::read_body_json(response).await;
+        assert_eq!(value["removed"], remove);
+        assert_eq!(value["runtime_applied"], true);
+        Ok::<(), Box<dyn Error>>(())
+    })?;
     let page = composition
         .provider_account_pools
         .list_provider_account_pools(
             &gateway_control::provider_account_pool_service::ProviderAccountPoolQuery::default(),
         )?;
-    assert_eq!(page.items.len(), 1);
-    assert!(!page.items[0].enabled);
+    if remove {
+        assert!(page.items.is_empty());
+        assert!(store.list_accounts()?.is_empty());
+        assert_eq!(
+            store.account_management_events(&account)?[0].action,
+            "removed"
+        );
+    } else {
+        assert_eq!(page.items.len(), 1);
+        assert!(!page.items[0].enabled);
+    }
     let mut runtime: Box<dyn gateway_http_actix::management_resources::ManagementRuntimeFacade> =
         Box::new(composition.reload.as_ref().clone());
     let effective = runtime

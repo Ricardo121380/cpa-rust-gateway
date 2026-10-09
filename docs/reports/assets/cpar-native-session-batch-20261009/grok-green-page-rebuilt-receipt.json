@@ -1,0 +1,61 @@
+{
+  "label": "grok-green-page-rebuilt",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_OPERATIONS={spaceId:37,pageLabel:\"p1\",taskSpace,descriptor:\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/grok-green-rebuilt-server/descriptor.json\",out:\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/grok-green-page-rebuilt.json\",login:true,firstLogin:true};await import(\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar-grok-device-actual-ui.mjs\");"
+  ],
+  "utc_start": "2026-10-09T13:49:41.762902+00:00",
+  "source_before": {
+    "head": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+    "status": [
+      " M AGENTS.md",
+      " M crates/gateway-http-actix/src/management_resources.rs",
+      " M crates/gateway-http-actix/src/management_resources/grok_device.rs",
+      " M crates/gateway-http-actix/src/management_resources/native_accounts.rs",
+      " M crates/gateway-http-actix/src/management_resources/native_accounts/maintenance.rs",
+      " M crates/gateway-http-actix/tests/managed_resource_inventory.rs",
+      " M docs/openapi/management-v1.json",
+      " M scripts/acceptance/cpar-device-loopback.c",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M scripts/acceptance/cpar_device_loopback.py",
+      " M scripts/acceptance/cpar_seo_ui_http.py",
+      " M web/prism/contracts/management-v1.json",
+      " M web/prism/src/features/accounts/DeviceRecoveryHost.tsx",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.test.ts",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.ts",
+      " M web/prism/src/generated/management-client.ts"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T13:49:59.451791+00:00",
+  "elapsed_seconds": 17.666140375,
+  "source_after": {
+    "head": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+    "status": [
+      " M AGENTS.md",
+      " M crates/gateway-http-actix/src/management_resources.rs",
+      " M crates/gateway-http-actix/src/management_resources/grok_device.rs",
+      " M crates/gateway-http-actix/src/management_resources/native_accounts.rs",
+      " M crates/gateway-http-actix/src/management_resources/native_accounts/maintenance.rs",
+      " M crates/gateway-http-actix/tests/managed_resource_inventory.rs",
+      " M docs/openapi/management-v1.json",
+      " M scripts/acceptance/cpar-device-loopback.c",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M scripts/acceptance/cpar_device_loopback.py",
+      " M scripts/acceptance/cpar_seo_ui_http.py",
+      " M web/prism/contracts/management-v1.json",
+      " M web/prism/src/features/accounts/DeviceRecoveryHost.tsx",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.test.ts",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.ts",
+      " M web/prism/src/generated/management-client.ts"
+    ]
+  },
+  "log_sha256": "ccfc9a9b52a30fe3a4e030335feee41dfbcb74c185ec364fd28fa43871401d2d",
+  "log_bytes": 9571
+}

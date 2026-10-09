@@ -1,6 +1,7 @@
 import { useMutation, useQuery, isCancelledError, CancelledError } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { sameDeletionImpact, type DeletionImpact } from "./deletionImpact";
+import { sameDeletionImpact, sameNativeDeletionImpact, type DeletionImpact, type NativeDeletionImpact } from "./deletionImpact";
+import {useMessages} from "../../i18n/messages";
 import { ConfigurationTaskReview } from "../config-versions/ConfigurationTaskReview";
 import type { ConfigurationTask } from "../config-versions/configurationTask";
 import { call } from "../../api/client";
@@ -22,6 +23,7 @@ function knownRejection(cause:unknown):boolean { const error=asAppError(cause); 
 const staleTarget=()=>({kind:"conflict" as const,code:"account_target_changed",message:"账号授权已变化，请重新选择后核对。",status:409});
 
 export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly<{targets:readonly AccountTarget[];action:AccountAction;onClose:()=>void;onCompleted:(notice:string,version?:ConfigVersionSummary)=>void}>) {
+  const nativeCopy=useMessages().nativeDeletion;
   const [outcomes,setOutcomes]=useState<readonly AccountActionOutcome[]>(targets.map(pending));
   const [taskReceipt,setTaskReceipt]=useState<ConfigurationTask>();
   const [reviewBusy,setReviewBusy]=useState(false);
@@ -29,7 +31,10 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
   const context=useVersionStore(state=>state.context);
   const tracked=useVersionStore(state=>state.pending);
   const impacts=useQuery({queryKey:["account-delete-impact",tracked?.id??context?.configVersionId,tracked?.revision??context?.revision,targets.map(target=>target.id)],enabled:action==="remove"&&!!context,retry:false,queryFn:async()=>{
-    const rows:DeletionImpact[]=[];for(const target of targets.filter(target=>!target.native))rows.push(await call<DeletionImpact>("getCredentialDeletionImpact",{path:{credential_id:target.id},headers:{"X-Config-Version":tracked?.id??context!.configVersionId}}));return rows;
+    const ordinary:DeletionImpact[]=[],native:NativeDeletionImpact[]=[];
+    const headers={"X-Config-Version":tracked?.id??context!.configVersionId};
+    for(const target of targets)if(target.native)native.push(await call<NativeDeletionImpact>("getNativeAccountDeletionImpact",{path:{account_id:target.id},query:{revision:target.revision},headers}));else ordinary.push(await call<DeletionImpact>("getCredentialDeletionImpact",{path:{credential_id:target.id},headers}));
+    return {ordinary,native};
   }});
   useEffect(()=>setImpactConfirmed(false),[impacts.dataUpdatedAt,context?.configVersionId,context?.revision]);
   const [completed,setCompleted]=useState(false);
@@ -79,7 +84,14 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
           if(observed===undefined||observed.revision!==target.revision||observed.enabled!==target.enabled)throw staleTarget();
           if(!needsChange(target)){record(index,{kind:"skipped"});continue;}
           const path={account_id:target.id};
-          const receipt=action==="remove"?await call<NativeReceipt>("deleteNativeAccount",{path,query:{revision:target.revision}}):await call<NativeReceipt>("updateNativeAccount",{path,body:{revision:target.revision,enabled:action==="enable"}});
+          let nativeImpact:NativeDeletionImpact|undefined;
+          if(action==="remove"){
+            const before=impacts.data?.native.find(impact=>impact.account_id===target.id);
+            nativeImpact=await call<NativeDeletionImpact>("getNativeAccountDeletionImpact",{path,query:{revision:target.revision},headers:{"X-Config-Version":tracked?.id??context!.configVersionId}});
+            assertOwner();
+            if(!before||!sameNativeDeletionImpact(before,nativeImpact,targets.filter(target=>target.native).map(target=>target.id)))throw staleTarget();
+          }
+          const receipt=action==="remove"?await call<NativeReceipt>("deleteNativeAccount",{path,query:{revision:target.revision},headers:{"X-Config-Version":nativeImpact!.config_version,"X-Deletion-Impact-Review":nativeImpact!.review_token}}):await call<NativeReceipt>("updateNativeAccount",{path,body:{revision:target.revision,enabled:action==="enable"}});
           assertOwner();
           if(receipt.runtime_applied) record(index,{kind:"applied"});
           else { record(index,{kind:"saved_unapplied"});setNeedsApply(true);stop(index,{kind:"saved_unapplied"}); }
@@ -94,7 +106,7 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
           const currentEnabled=current.status!=="disabled";
           if(current.id!==target.id||current.upstream_id!==target.upstreamId||current.revision!==target.revision||(action!=="remove"&&currentEnabled!==target.enabled))throw staleTarget();
           if(action==="remove"){
-            const before=impacts.data?.find(impact=>impact.credential_id===target.id&&impact.upstream_id===target.upstreamId);
+            const before=impacts.data?.ordinary.find(impact=>impact.credential_id===target.id&&impact.upstream_id===target.upstreamId);
             const impact=await working.read<DeletionImpact>("getCredentialDeletionImpact",{path:{credential_id:target.id}});
             if(!before||!sameDeletionImpact(before,impact,targets.filter(target=>!target.native).map(target=>target.id)))throw staleTarget();
             await working.mutate("deleteCredential",{path:{credential_id:target.id},headers:{"X-Deletion-Impact-Review":impact.review_token}});
@@ -152,14 +164,23 @@ export function AccountBatchDialog({targets,action,onClose,onCompleted}:Readonly
   const review=useMutation({mutationFn:()=>call<ConfigVersionSummary>("getConfigVersion",{path:{config_version_id:workingId!}}),onSuccess:(next)=>onCompleted("请核对已保存的账号修改。",next)});
   const busy=change.isPending||review.isPending||reconcile.isPending||nativeApplying||reviewBusy;
   const close=()=>{if(busy)return;if(completed)onCompleted(needsApply?"账号修改已保存，运行配置暂未应用。":"账号操作已处理，请查看各项结果。",version);else onClose();};
-  return <Sheet title={`${labels[action]} ${targets.length} 份授权`} description={action==="remove"?"从 CPAR 删除选中的账号授权及其连接，历史请求与账本保留。这不会注销上游账号；再次使用需要重新授权或导入。":"仅改变所选授权的启停状态，不改变其他渠道。"} layout="confirm" tone={action==="remove"?"danger":"default"} onEscape={close} busy={busy} footer={<><SheetDismissButton className="secondary" disabled={busy}>{completed?"完成":"取消"}</SheetDismissButton>{!completed?<button className={action==="remove"?"danger":"primary"} disabled={busy||(action==="remove"&&(!impacts.data||!impactConfirmed||impacts.isFetching))} onClick={()=>change.mutate(false)}>确认{labels[action]}</button>:null}</>}>
+  return <Sheet title={`${labels[action]} ${targets.length} 份授权`} description={action==="remove"?nativeCopy.description:"仅改变所选授权的启停状态，不改变其他渠道。"} layout="confirm" tone={action==="remove"?"danger":"default"} onEscape={close} busy={busy} footer={<><SheetDismissButton className="secondary" disabled={busy}>{completed?"完成":"取消"}</SheetDismissButton>{!completed?<button className={action==="remove"?"danger":"primary"} disabled={busy||(action==="remove"&&(!impacts.data||!impactConfirmed||impacts.isFetching))} onClick={()=>change.mutate(false)}>确认{labels[action]}</button>:null}</>}>
     {action==="remove"&&!completed?<section aria-label="删除影响预览">
       {impacts.isPending?<p role="status">正在读取完整删除影响…</p>:null}{impacts.isError?<p role="alert">{asAppError(impacts.error).message}<button type="button" onClick={()=>{setImpactConfirmed(false);void impacts.refetch();}}>重新读取影响</button></p>:null}
-      {impacts.data?.map(impact=><article key={impact.credential_id}><h4>{impact.credential_id} · revision {impact.credential_revision}</h4><p>移除 {impact.removed_bindings.length} 个账号连接和 {impact.removed_egress_profiles} 个出口绑定。</p><ul>{impact.retained_endpoints.map(endpoint=><li key={endpoint.id}>保留共享接口 {endpoint.id}；删除本批次后承接账号 {endpoint.remaining_credentials.filter(id=>!targets.some(target=>!target.native&&target.id===id)).join("、")||"无；新请求将无法使用这个账号池"}</li>)}</ul><p>保留路由：{impact.retained_routes.join("、")||"无相关路由"}。保留客户端 Key：{impact.retained_client_keys.join("、")||"无相关 Key"}。</p></article>)}
-      {targets.some(target=>target.native)?<p>所选原生账号将从独立账号池移除；共享渠道接口、路由和客户端权限保留。运行应用失败会阻断服务的新请求，需要核对全局应用回执。</p>:null}
+      {impacts.data?.ordinary.map(impact=><article key={impact.credential_id}><h4>{impact.credential_id} · revision {impact.credential_revision}</h4><p>移除 {impact.removed_bindings.length} 个账号连接和 {impact.removed_egress_profiles} 个出口绑定。</p><ul>{impact.retained_endpoints.map(endpoint=><li key={endpoint.id}>保留共享接口 {endpoint.id}；删除本批次后承接账号 {endpoint.remaining_credentials.filter(id=>!targets.some(target=>!target.native&&target.id===id)).join("、")||"无；新请求将无法使用这个账号池"}</li>)}</ul><p>保留路由：{impact.retained_routes.join("、")||"无相关路由"}。保留客户端 Key：{impact.retained_client_keys.join("、")||"无相关 Key"}。</p></article>)}
+      {impacts.data?.native.map(impact=><article key={impact.account_id}><h4>{impact.account_id} · revision {impact.account_revision}</h4>
+        <p>{nativeCopy.pool} {impact.provider}</p>
+        <ul>{impact.connections.map(connection=><li key={connection.endpoint_id}>{connection.service_name} · {connection.upstream_id} / {connection.endpoint_id} · {connection.upstream_enabled&&connection.endpoint_enabled?nativeCopy.connectionEnabled:nativeCopy.connectionDisabled}
+          <ul>{connection.models.map(model=><li key={`${model.route_id}:${model.upstream_model}`}>{model.model} → {model.upstream_model} · {model.route_id} · {model.candidate_enabled?nativeCopy.candidateEnabled:nativeCopy.candidateDisabled}</li>)}</ul>{!connection.models.length?nativeCopy.noModels:null}</li>)}</ul>
+        {!impact.connections.length?<p>{nativeCopy.unbound}</p>:null}
+        <p>{nativeCopy.remaining}</p><ul>{impact.remaining_accounts.filter(row=>!targets.some(target=>target.native&&target.id===row.id)).map(row=><li key={row.id}>{row.id} · {row.enabled?nativeCopy.enabled:nativeCopy.disabled} · {row.auth_status}</li>)}</ul>
+        {!impact.remaining_accounts.some(row=>!targets.some(target=>target.native&&target.id===row.id))?<p>{nativeCopy.noRemaining}</p>:null}
+        <p>{nativeCopy.notGuaranteed}</p><p>{nativeCopy.retained}</p>
+      </article>)}
       <p>历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。</p>
       <label className="check-row"><input type="checkbox" checked={impactConfirmed} disabled={!impacts.data||impacts.isFetching||busy} onChange={event=>setImpactConfirmed(event.target.checked)}/>已核对删除对象、移除的绑定与保留的共享资源</label>
     </section>:null}
+    {action==="enable"?<p>{nativeCopy.enablePermission}</p>:null}
     <div className="operation-summary" role="status"><span>{completed?"处理结果":change.isPending?"正在处理":"已选择"}</span><strong>{targets.length} 份授权</strong><small>{outcomes.filter(item=>item.kind!=="pending"&&item.kind!=="unexecuted").length} 项已处理</small></div>
     <ul className="operation-items" aria-label="账号操作结果">{targets.map((target,index)=><li key={`${target.native}:${target.id}`}><div><strong>{target.name}</strong><span>{target.provider}</span></div><p data-outcome={outcomes[index]?.kind??"unexecuted"}>{accountActionOutcomeLabel(outcomes[index]??unexecuted())}</p></li>)}</ul>
     {needsApply?<RuntimeApplyNotice onBusyChange={setNativeApplying} onApplied={()=>{setNeedsApply(false);setOutcomes((items)=>items.map((outcome,index)=>targets[index]?.native&&outcome.kind==="saved_unapplied"?{kind:"applied"}:outcome));}}/>:null}

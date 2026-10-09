@@ -9,6 +9,21 @@ import type { Pack } from "./zh";
 
 export const en: Pack = {
   appTitle: "Prism · Gateway admin",
+  grokRecovery: {
+    uncertain:"Authorization result is unknown", close:"Close with result unconfirmed", read:"Read authorization result", resume:"Continue waiting for this authorization",
+    help:"Read the original task first. This will not repeat exchange, create another account or cancel a potentially completed grant. Confirmation may be unavailable after the original expiry, management session ends or process restarts.",
+    retained:"Grok Build authorization is unconfirmed. Returning reads only the original session.", returnTask:"Return to Grok Build authorization",
+    savedAccount:"Saved account", revision:"Authorization revision", mismatch:"The original authorization receipt does not match. The result remains unconfirmed.",
+  },
+  nativeDeletion: {
+    pool:"Native account pool", connectionEnabled:"Connection enabled", connectionDisabled:"Connection disabled", candidateEnabled:"Candidate enabled", candidateDisabled:"Candidate disabled",
+    noModels:"No public model routes are associated.", unbound:"No connection for this native Provider is associated in the selected configuration.", remaining:"Same Provider accounts retained after this batch:",
+    enabled:"Scheduling permitted", disabled:"Disabled", noRemaining:"No other accounts for this Provider.",
+    notGuaranteed:"These accounts are an observed inventory, with no replacement guarantee. Authorization, connections, permissions, quota and capacity must still qualify.",
+    retained:"The native account leaves its independent pool. Shared connections, models, permissions and history remain. Failed runtime application pauses global new requests; reconcile its receipt.",
+    description:"Delete selected authorizations. Ordinary account bindings are removed; shared native connections remain. Historical requests and ledgers remain, and upstream accounts are not closed.",
+    enablePermission:"Enabling permits scheduling only. Authorization, connections, permissions, quota and capacity must still qualify.",
+  },
   runtimeApplication: {
     saved: "Changes are saved; runtime configuration is awaiting application.", confirmed: "Runtime application confirmed", previous: "Previous confirmed application",
     blocked: "The previous observation showed new requests paused. Saved authorization is retained; check service state after applying runtime configuration.",

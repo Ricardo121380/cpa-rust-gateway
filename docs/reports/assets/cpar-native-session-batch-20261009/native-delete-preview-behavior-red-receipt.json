@@ -1,0 +1,65 @@
+{
+  "label": "native-delete-preview-behavior-red",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway-http-actix",
+    "--test",
+    "managed_resource_inventory",
+    "native_deletion_preview",
+    "--",
+    "--nocapture"
+  ],
+  "utc_start": "2026-10-09T13:47:21.857478+00:00",
+  "source_before": {
+    "head": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+    "status": [
+      " M AGENTS.md",
+      " M crates/gateway-http-actix/src/management_resources.rs",
+      " M crates/gateway-http-actix/src/management_resources/grok_device.rs",
+      " M crates/gateway-http-actix/tests/managed_resource_inventory.rs",
+      " M docs/openapi/management-v1.json",
+      " M scripts/acceptance/cpar-device-loopback.c",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M scripts/acceptance/cpar_device_loopback.py",
+      " M scripts/acceptance/cpar_seo_ui_http.py",
+      " M web/prism/contracts/management-v1.json",
+      " M web/prism/src/features/accounts/DeviceRecoveryHost.tsx",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.test.ts",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.ts",
+      " M web/prism/src/generated/management-client.ts"
+    ]
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+  },
+  "exit_code": 101,
+  "utc_end": "2026-10-09T13:47:32.652005+00:00",
+  "elapsed_seconds": 10.761287667,
+  "source_after": {
+    "head": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+    "status": [
+      " M AGENTS.md",
+      " M crates/gateway-http-actix/src/management_resources.rs",
+      " M crates/gateway-http-actix/src/management_resources/grok_device.rs",
+      " M crates/gateway-http-actix/tests/managed_resource_inventory.rs",
+      " M docs/openapi/management-v1.json",
+      " M scripts/acceptance/cpar-device-loopback.c",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M scripts/acceptance/cpar_device_loopback.py",
+      " M scripts/acceptance/cpar_seo_ui_http.py",
+      " M web/prism/contracts/management-v1.json",
+      " M web/prism/src/features/accounts/DeviceRecoveryHost.tsx",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.test.ts",
+      " M web/prism/src/features/accounts/deviceRecoveryStore.ts",
+      " M web/prism/src/generated/management-client.ts"
+    ]
+  },
+  "log_sha256": "4b123225cd0fa0ab48cc435c98be3100310ac1decddf89f86f6d778c02298b8c",
+  "log_bytes": 1136
+}

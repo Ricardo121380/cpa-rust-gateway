@@ -353,6 +353,8 @@
                         "unavailable"
                       ]
                     },
+                    "account_id": {"type": ["string", "null"]},
+                    "credential_revision": {"type": ["integer", "null"], "minimum": 0},
                     "runtime_applied": {
                       "type": [
                         "boolean",
@@ -455,6 +457,8 @@
                         "unavailable"
                       ]
                     },
+                    "account_id": {"type": ["string", "null"]},
+                    "credential_revision": {"type": ["integer", "null"], "minimum": 0},
                     "runtime_applied": {
                       "type": [
                         "boolean",
@@ -473,6 +477,7 @@
       }
     },
     "/admin/native-account-authorizations/{session_id}": {
+      "get": {"tags":["native-accounts"],"operationId":"getNativeAccountAuthorizationReceipt","summary":"Read the original Grok Build device result without exchanging or applying","description":"Actor-bound and process-local, within the original device TTL. Excludes device codes and URLs; a missing, foreign, expired or restarted session remains unconfirmed. A saved result identifies the exact account and credential revision separately from runtime application. No Provider I/O, credential mutation or runtime apply.","responses":{"200":{"description":"Value-free original device result","content":{"application/json":{"schema":{"type":"object","additionalProperties":false,"required":["session_id","state","expires_at_ms","retry_at_ms","identity","identity_state","account_id","credential_revision"],"properties":{"session_id":{"type":"string"},"state":{"type":"string","enum":["pending","complete","denied","expired","cancelled","failed","persistence_conflict"]},"expires_at_ms":{"type":"integer","format":"int64","minimum":0},"retry_at_ms":{"type":"integer","format":"int64","minimum":0},"identity":{"anyOf":[{"$ref":"#/components/schemas/AccountDisplayIdentity"},{"type":"null"}]},"identity_state":{"type":"string","enum":["pending","observed","not_provided","unavailable"]},"runtime_applied":{"type":["boolean","null"]},"account_id":{"type":["string","null"]},"credential_revision":{"type":["integer","null"],"minimum":0}}}}}},"404":{"description":"Missing, foreign or expired receipt; reconcile the saved account without replay"},"503":{"description":"Management read unavailable"}}},
       "parameters": [
         {
           "name": "session_id",
@@ -557,6 +562,8 @@
                         "unavailable"
                       ]
                     },
+                    "account_id": {"type": ["string", "null"]},
+                    "credential_revision": {"type": ["integer", "null"], "minimum": 0},
                     "runtime_applied": {
                       "type": [
                         "boolean",
@@ -1799,6 +1806,207 @@
         }
       }
     },
+    "/admin/native-accounts/{account_id}/deletion-impact": {
+      "get": {
+        "operationId": "getNativeAccountDeletionImpact",
+        "summary": "Review exact native account deletion impact",
+        "description": "Reads selected configuration and bounded native metadata without opening credentials or contacting Providers. Shows matching native connections and routed models. Remaining accounts are observed metadata, never a replacement guarantee. Reviewed DELETE rechecks the token and target revision.",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ConfigVersion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact value-free impact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "config_version",
+                    "config_revision",
+                    "inventory_generation",
+                    "account_id",
+                    "account_revision",
+                    "provider",
+                    "connections",
+                    "remaining_accounts",
+                    "replacement_guaranteed",
+                    "history_retained",
+                    "shared_resources_retained",
+                    "upstream_account_revoked",
+                    "review_token"
+                  ],
+                  "properties": {
+                    "config_version": {
+                      "type": "string"
+                    },
+                    "config_revision": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    },
+                    "inventory_generation": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    },
+                    "account_id": {
+                      "type": "string"
+                    },
+                    "account_revision": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 0
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "connections": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "upstream_id",
+                          "service_name",
+                          "upstream_enabled",
+                          "endpoint_id",
+                          "endpoint_enabled",
+                          "models"
+                        ],
+                        "properties": {
+                          "upstream_id": {
+                            "type": "string"
+                          },
+                          "service_name": {
+                            "type": "string"
+                          },
+                          "upstream_enabled": {
+                            "type": "boolean"
+                          },
+                          "endpoint_id": {
+                            "type": "string"
+                          },
+                          "endpoint_enabled": {
+                            "type": "boolean"
+                          },
+                          "models": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "route_id",
+                                "model",
+                                "upstream_model",
+                                "candidate_enabled"
+                              ],
+                              "properties": {
+                                "route_id": {
+                                  "type": "string"
+                                },
+                                "model": {
+                                  "type": "string"
+                                },
+                                "upstream_model": {
+                                  "type": "string"
+                                },
+                                "candidate_enabled": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "remaining_accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "revision",
+                          "enabled",
+                          "auth_status"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "format": "int64",
+                            "minimum": 0
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "auth_status": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "replacement_guaranteed": {
+                      "type": "boolean"
+                    },
+                    "history_retained": {
+                      "type": "boolean"
+                    },
+                    "shared_resources_retained": {
+                      "type": "boolean"
+                    },
+                    "upstream_account_revoked": {
+                      "type": "boolean"
+                    },
+                    "review_token": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/admin/native-accounts/{account_id}": {
       "patch": {
         "operationId": "updateNativeAccount",
@@ -1899,6 +2107,25 @@
               "type": "integer",
               "format": "int64",
               "minimum": 0
+            }
+          },
+          {
+            "name": "X-Deletion-Impact-Review",
+            "in": "header",
+            "required": false,
+            "description": "Exact reviewed impact token. When supplied X-Config-Version is required; changed graph or native generation rejects removal.",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "X-Config-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
             }
           }
         ]

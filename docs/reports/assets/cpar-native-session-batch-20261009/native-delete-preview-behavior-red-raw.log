@@ -1,0 +1,21 @@
+   Compiling gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.38s
+     Running tests/managed_resource_inventory.rs (target/debug/deps/managed_resource_inventory-c19e5a8fceda9a3b)
+
+running 1 test
+
+thread 'native_deletion_impact::native_deletion_preview_is_concrete_revision_guarded_and_preserves_shared_graph' (48263618) panicked at crates/gateway-http-actix/tests/managed_resource_inventory/native_deletion_impact.rs:24:5:
+assertion `left == right` failed
+  left: 404
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test native_deletion_impact::native_deletion_preview_is_concrete_revision_guarded_and_preserves_shared_graph ... FAILED
+
+failures:
+
+failures:
+    native_deletion_impact::native_deletion_preview_is_concrete_revision_guarded_and_preserves_shared_graph
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `-p gateway-http-actix --test managed_resource_inventory`

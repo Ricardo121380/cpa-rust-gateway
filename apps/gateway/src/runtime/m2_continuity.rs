@@ -98,6 +98,321 @@ struct Executor {
     codec: provider_grok::GrokBuildReasoningCodec,
     pool: Arc<EndpointCredentialPool>,
     transport: Arc<Transport>,
+    credential: CredentialId,
+    now: i64,
+}
+
+fn durable_state(
+    pool: Arc<EndpointCredentialPool>,
+    credential: CredentialId,
+    transport: Arc<Transport>,
+    secrets: &SecretStore,
+    store: Arc<SqliteStoredResponseStore>,
+) -> TestResultState {
+    let auth = Arc::new(InMemoryClientKeyAuthenticator::try_new([
+        InMemoryClientKey::try_new("m2-owner-secret", ClientKeyId::try_new("owner")?, true)?,
+        InMemoryClientKey::try_new("m2-foreign-secret", ClientKeyId::try_new("foreign")?, true)?,
+    ])?);
+    Ok(ResponsesHttpState::new(
+        Arc::new(Executor {
+            codec: provider_grok::GrokBuildReasoningCodec::new(secrets.clone()),
+            pool,
+            credential,
+            transport,
+            now: system_now_ms_runtime()?,
+        }),
+        auth,
+        default_stream_capacity()?,
+    )
+    .with_stored_response_store(store))
+}
+type TestResultState = Result<ResponsesHttpState, Box<dyn Error>>;
+
+/// Joins the production refresh worker to HTTP history, reopened encrypted stores and native pools.
+/// The caller owns the fixed-target loopback worker; this helper never manufactures a proof range.
+#[allow(
+    clippy::too_many_lines,
+    reason = "one receipt chain proves JSON/SSE roots, durable refresh, reload and zero-send rejection"
+)]
+pub(crate) async fn verify_worker_generated_continuity<F>(
+    database: &std::path::Path,
+    secrets: &SecretStore,
+    original: Arc<EndpointCredentialPool>,
+    account: &str,
+    refresh: F,
+) -> TestResult
+where
+    F: FnOnce() -> TestResult,
+{
+    let credential = CredentialId::try_new(account)?;
+    let mut scenarios = Vec::new();
+    for streaming in [false, true] {
+        let path = database.with_file_name(format!("responses-{streaming}.sqlite3"));
+        let store = Arc::new(SqliteStoredResponseStore::open(&path, secrets.clone())?);
+        let transport = Arc::new(Transport {
+            bodies: Mutex::new(Vec::new()),
+            streaming,
+        });
+        let state = durable_state(
+            original.clone(),
+            credential.clone(),
+            transport.clone(),
+            secrets,
+            store.clone(),
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(gateway_http_actix::configure),
+        )
+        .await;
+        let request=test::TestRequest::post().uri("/v1/responses").insert_header(("authorization","Bearer m2-owner-secret")).set_json(serde_json::json!({"model":"grok-model","input":"durable first turn","store":true,"stream":streaming,"reasoning":{"effort":"low","summary":"auto"},"tools":[{"type":"function","name":"local_tool","parameters":{"type":"object"}}]})).to_request();
+        let response = test::call_service(&app, request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = test::read_body(response).await;
+        assert!(String::from_utf8_lossy(&body).contains(if streaming {
+            "response.completed"
+        } else {
+            "completed"
+        }));
+        let root = store
+            .get_owned(
+                &ClientKeyId::try_new("owner")?,
+                &ResponseId::try_new("m2-native-1")?,
+                system_now_ms_runtime()?,
+            )?
+            .ok_or("durable root")?;
+        assert_eq!(
+            root.payload().lineage().credential().credential_revision(),
+            1
+        );
+        assert_eq!(original.active_lease_count(&credential), Some(0));
+        scenarios.push((streaming, path, transport));
+    }
+    refresh()?;
+    // All objects used to read response history and native proof below are newly opened.
+    let native = provider_grok::GrokAccountPoolStore::try_open(database, secrets.clone())?;
+    assert_eq!(
+        native.build_continuation_ranges()?.get(account).copied(),
+        Some((1, 2))
+    );
+    let binding = provider_grok::GrokAccountEndpointBinding::new(
+        provider_grok::GrokAccountProvider::Build,
+        original.endpoint_id().clone(),
+    );
+    let compiled =
+        native.compile_native_runtime(std::slice::from_ref(&binding), system_now_ms_runtime()?)?;
+    let pools = compiled.credential_pools();
+    let rotated = pools
+        .pool(original.endpoint_id())
+        .ok_or("reloaded pool")?
+        .clone();
+    for (streaming, path, transport) in scenarios {
+        let store = Arc::new(SqliteStoredResponseStore::open(&path, secrets.clone())?);
+        let state = durable_state(
+            rotated.clone(),
+            credential.clone(),
+            transport.clone(),
+            secrets,
+            store.clone(),
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(gateway_http_actix::configure),
+        )
+        .await;
+        let body = serde_json::json!({"model":"grok-model","input":[{"type":"function_call_output","call_id":"tool-call","output":"durable result"}],"previous_response_id":"m2-native-1","store":true,"stream":streaming,"reasoning":{"effort":"low","summary":"auto"}});
+        let response = test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header(("authorization", "Bearer m2-owner-secret"))
+                .set_json(&body)
+                .to_request(),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = test::read_body(response).await;
+        assert!(String::from_utf8_lossy(&bytes).contains("completed"));
+        let continued = store
+            .get_owned(
+                &ClientKeyId::try_new("owner")?,
+                &ResponseId::try_new("m2-native-2")?,
+                system_now_ms_runtime()?,
+            )?
+            .ok_or("continued durable root")?;
+        assert_eq!(
+            continued
+                .payload()
+                .lineage()
+                .credential()
+                .credential_revision(),
+            2
+        );
+        assert_eq!(transport.bodies.lock().map_err(|_| "capture")?.len(), 2);
+        for (secret, model) in [
+            ("m2-foreign-secret", "grok-model"),
+            ("m2-owner-secret", "changed-model"),
+        ] {
+            let mut changed = body.clone();
+            changed["model"] = serde_json::json!(model);
+            let rejected = test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .insert_header(("authorization", format!("Bearer {secret}")))
+                    .set_json(changed)
+                    .to_request(),
+            )
+            .await;
+            assert!(rejected.status().is_client_error());
+        }
+        // Corrupt only owned copies: recompile from durable range metadata and
+        // prove that missing, conflicting or noncontiguous proof cannot reuse
+        // revision 1 even though this current grant is still active.
+        for (condition, floor, current) in [
+            ("missing", None, None),
+            ("noncontiguous", Some(2), Some(2)),
+            ("conflicting", Some(1), Some(3)),
+        ] {
+            let copied = database.with_file_name(format!("{condition}-{streaming}.sqlite3"));
+            gateway_store::open(database)?.execute(
+                "VACUUM INTO ?1",
+                [copied.to_str().ok_or("proof copy path")?],
+            )?;
+            gateway_store::open(&copied)?.execute(
+                "UPDATE grok_accounts SET continuation_floor_revision=?1,continuation_current_revision=?2 WHERE id=?3",
+                (floor, current, account),
+            )?;
+            let reopened = provider_grok::GrokAccountPoolStore::try_open(&copied, secrets.clone())?;
+            let compiled = reopened
+                .compile_native_runtime(std::slice::from_ref(&binding), system_now_ms_runtime()?)?;
+            let pools = compiled.credential_pools();
+            let pool = pools
+                .pool(original.endpoint_id())
+                .ok_or("negative proof pool")?
+                .clone();
+            let state = durable_state(
+                pool.clone(),
+                credential.clone(),
+                transport.clone(),
+                secrets,
+                store.clone(),
+            )?;
+            let app = test::init_service(
+                App::new()
+                    .app_data(web::Data::new(state))
+                    .configure(gateway_http_actix::configure),
+            )
+            .await;
+            let rejected = test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .insert_header(("authorization", "Bearer m2-owner-secret"))
+                    .set_json(&body)
+                    .to_request(),
+            )
+            .await;
+            assert_eq!(
+                rejected.status(),
+                StatusCode::SERVICE_UNAVAILABLE,
+                "{condition}/stream={streaming}"
+            );
+            let bytes = test::read_body(rejected).await;
+            assert!(!String::from_utf8_lossy(&bytes).contains("response.completed"));
+            assert!(
+                store
+                    .get_owned(
+                        &ClientKeyId::try_new("owner")?,
+                        &ResponseId::try_new("m2-native-3")?,
+                        system_now_ms_runtime()?
+                    )?
+                    .is_none()
+            );
+            assert_eq!(transport.bodies.lock().map_err(|_| "capture")?.len(), 2);
+            assert_eq!(pool.active_lease_count(&credential), Some(0));
+            println!(
+                "E05 public {condition}/stream={streaming}: rejected_send=0 fallback=0 erroneous_root=0"
+            );
+        }
+        // Isolate destructive test changes from the production-worker caller's original database.
+        let manual = database.with_file_name(format!("manual-{streaming}.sqlite3"));
+        gateway_store::open(database)?
+            .execute("VACUUM INTO ?1", [manual.to_str().ok_or("manual path")?])?;
+        let reopened = provider_grok::GrokAccountPoolStore::try_open(&manual, secrets.clone())?;
+        let material = GrokBuildCredential::import_refreshable_runtime(
+            reopened.open_credential(account)?.as_bytes(),
+            system_now_ms_runtime()?,
+        )?;
+        reopened.replace_build_authorization(account, 1, &material, system_now_ms_runtime()?)?;
+        assert!(!reopened.build_continuation_ranges()?.contains_key(account));
+        let replaced = reopened
+            .compile_native_runtime(std::slice::from_ref(&binding), system_now_ms_runtime()?)?;
+        let replacement_pools = replaced.credential_pools();
+        let replacement = replacement_pools
+            .pool(original.endpoint_id())
+            .ok_or("replacement pool")?
+            .clone();
+        let state = durable_state(
+            replacement.clone(),
+            credential.clone(),
+            transport.clone(),
+            secrets,
+            store.clone(),
+        )?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(state))
+                .configure(gateway_http_actix::configure),
+        )
+        .await;
+        let rejected = test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/v1/responses")
+                .insert_header(("authorization", "Bearer m2-owner-secret"))
+                .set_json(&body)
+                .to_request(),
+        )
+        .await;
+        assert_eq!(rejected.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert!(
+            store
+                .get_owned(
+                    &ClientKeyId::try_new("owner")?,
+                    &ResponseId::try_new("m2-native-3")?,
+                    system_now_ms_runtime()?
+                )?
+                .is_none()
+        );
+        let mut phantom = body.clone();
+        phantom["previous_response_id"] = serde_json::json!("m2-native-3");
+        assert_eq!(
+            test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .insert_header(("authorization", "Bearer m2-owner-secret"))
+                    .set_json(phantom)
+                    .to_request()
+            )
+            .await
+            .status(),
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            transport.bodies.lock().map_err(|_| "capture")?.len(),
+            2,
+            "rejection cannot send, fallback or retry"
+        );
+        assert_eq!(replacement.active_lease_count(&credential), Some(0));
+        println!(
+            "E05 durable worker + reopened store stream={streaming}: first=1 continuation=1 rejected_send=0 fallback=0 erroneous_root=0"
+        );
+    }
+    Ok(())
 }
 impl ResponsesExecutor for Executor {
     fn supports_stored_response_lineage(&self) -> bool {
@@ -118,7 +433,7 @@ impl ResponsesExecutor for Executor {
         execution: ResponsesExecution,
     ) -> ResponsesFuture<'_, Result<Box<dyn ResponsesEventSource>, GatewayError>> {
         Box::pin(async move {
-            let credential = CredentialId::try_new("m2-account").map_err(|_| internal_error())?;
+            let credential = self.credential.clone();
             let client = execution
                 .context()
                 .client_key_id()
@@ -126,26 +441,26 @@ impl ResponsesExecutor for Executor {
             let pin = self.codec.continuation_pin(
                 execution.request(),
                 client,
-                10_000,
+                u64::try_from(self.now).map_err(|_| internal_error())?,
                 execution.continuation_pin().cloned(),
             )?;
             let lease = if let Some(pin) = pin.as_ref() {
                 self.pool.try_lease_exact_revision_eligible_at(
                     pin.lineage().credential_id(),
                     pin.lineage().credential_revision(),
-                    NOW,
+                    self.now,
                     |_| true,
                 )
             } else {
                 self.pool
-                    .try_lease_exact_eligible_at(&credential, NOW, |_| true)
+                    .try_lease_exact_eligible_at(&credential, self.now, |_| true)
             }
             .ok_or_else(credential_unavailable_error)?;
             let lineage = ResponsesExecutionLineage::new(
                 SnapshotVersion::try_new("m2-config").map_err(|_| internal_error())?,
                 ProviderId::try_new("m2-provider").map_err(|_| internal_error())?,
                 gateway_core::UpstreamId::try_new("m2-provider").map_err(|_| internal_error())?,
-                EndpointId::try_new("m2-channel").map_err(|_| internal_error())?,
+                self.pool.endpoint_id().clone(),
                 RouteId::try_new("m2-route").map_err(|_| internal_error())?,
                 RouteCandidateId::try_new("m2-candidate").map_err(|_| internal_error())?,
                 credential,
@@ -160,7 +475,8 @@ impl ResponsesExecutor for Executor {
                 GrokBuildExecutionMode::NonStreaming
             };
             let adapter = GrokBuildInferenceAdapter::try_new(
-                GrokBuildCredential::import_json(lease.secret_bytes(), NOW)
+                GrokBuildCredential::import_active_runtime(lease.secret_bytes(), self.now)
+                    .or_else(|_| GrokBuildCredential::import_json(lease.secret_bytes(), self.now))
                     .map_err(|_| credential_unavailable_error())?,
                 "grok-model",
                 mode,
@@ -172,7 +488,7 @@ impl ResponsesExecutor for Executor {
                 execution.request().requested_model.clone(),
                 "grok-model".into(),
                 lineage,
-                10_000,
+                u64::try_from(self.now).map_err(|_| internal_error())?,
             ));
             let inner = adapter
                 .execute(execution.context().clone(), execution.request().clone())
@@ -230,6 +546,8 @@ async fn native_build_http_history_survives_proven_rotation_in_json_and_sse() ->
                 )),
                 pool: pool.clone(),
                 transport: transport.clone(),
+                credential: credential.clone(),
+                now: NOW,
             }),
             auth,
             default_stream_capacity()?,
@@ -398,6 +716,8 @@ async fn native_build_stateless_cipher_history_preserves_tools_without_storing_r
                 codec: provider_grok::GrokBuildReasoningCodec::new(secret_store),
                 pool,
                 transport: transport.clone(),
+                credential: credential.clone(),
+                now: NOW,
             }),
             auth,
             default_stream_capacity()?,

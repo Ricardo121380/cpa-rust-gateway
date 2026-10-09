@@ -1,0 +1,37 @@
+{
+  "label": "grok-red-page",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_OPERATIONS={spaceId:37,pageLabel:\"p1\",taskSpace,descriptor:\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/grok-red-server/descriptor.json\",out:\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/grok-red-page.json\"}; await import(\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar-grok-device-actual-ui.mjs\");"
+  ],
+  "utc_start": "2026-10-09T13:28:32.383961+00:00",
+  "source_before": {
+    "head": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+    "status": [
+      " M AGENTS.md",
+      " M scripts/acceptance/cpar-device-loopback.c",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M scripts/acceptance/cpar_device_loopback.py",
+      " M scripts/acceptance/cpar_seo_ui_http.py"
+    ]
+  },
+  "environment": {},
+  "exit_code": 1,
+  "utc_end": "2026-10-09T13:28:40.019712+00:00",
+  "elapsed_seconds": 7.5950929170000006,
+  "source_after": {
+    "head": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+    "status": [
+      " M AGENTS.md",
+      " M scripts/acceptance/cpar-device-loopback.c",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M scripts/acceptance/cpar_device_loopback.py",
+      " M scripts/acceptance/cpar_seo_ui_http.py"
+    ]
+  },
+  "log_sha256": "af49a00f3f7b1da491cbe268f51963cf549a2d3f46d05736da7004f7ffef4f71",
+  "log_bytes": 4137
+}

@@ -328,7 +328,7 @@ if(scenario==="local-release") {
   await page.evaluate(async id=>{const {approveNativeDeviceForTest}=await import(window.CPAR_A_FIXTURE_URL);approveNativeDeviceForTest(id);},id);
   await page.waitForSelector('loc=role:button[name="应用运行配置"]');
   assert.match(await page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??""),/授权已保存.*运行配置暂未应用/u);
-  assert.match(await page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??""),/新请求被全局阻断/u);
+  assert.match(await page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??""),/上次观测的新请求准入已暂停/u);
   await page.click('loc=role:button[name="应用运行配置"]');
   await page.waitForFunction(()=>document.querySelector('[role="dialog"]')?.textContent?.includes("授权已载入运行配置"));
   console.log(JSON.stringify({scenario,result:"PASS",environment:"local-synthetic",spaceId}));

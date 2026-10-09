@@ -1,0 +1,28 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.76s
+     Running tests/p12_10d_native_account_workers.rs (target/debug/deps/p12_10d_native_account_workers-bb8575608715e85b)
+
+running 11 tests
+test refresh_jitter_is_stable_and_between_five_and_eight_minutes ... ok
+test provider_scoped_refresh_never_claims_a_sibling_channel ... ok
+test coordinator_never_exceeds_configured_parallelism ... ok
+test stale_refresh_worker_cannot_overwrite_a_newer_revision ... ok
+E05 set-order: durable_revision=1 proof=true
+test transient_backoff_and_reauth_are_durable_and_restart_safe ... ok
+test quota_sync_is_atomic_and_restores_exact_runtime_targets_after_restart ... ok
+test refresh_success_commits_next_revision_and_redacted_replacement ... ok
+test durable_claim_is_cross_kind_singleflight_and_reclaimed_only_after_expiry ... ok
+test proven_build_rotation_survives_reload_and_rejects_unknown_or_changed_owner ... ok
+E05 missing-subject: durable_revision=1 proof=false
+E05 empty-subject: durable_revision=1 proof=false
+E05 same-email-other-subject: durable_revision=1 proof=false
+E05 different-client: durable_revision=1 proof=false
+E05 different-scope: durable_revision=1 proof=false
+test build_proof_requires_nonempty_subject_same_client_scope_set_and_winning_cas ... ok
+test completion_cannot_commit_after_claim_deadline ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
+

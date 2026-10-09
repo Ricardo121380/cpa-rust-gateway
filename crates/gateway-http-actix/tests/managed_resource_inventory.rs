@@ -35,6 +35,10 @@ type TestResult = Result<(), Box<dyn Error>>;
 
 #[path = "managed_resource_inventory/device_commit_loss.rs"]
 mod device_commit_loss;
+#[path = "managed_resource_inventory/native_deletion_impact.rs"]
+mod native_deletion_impact;
+#[path = "managed_resource_inventory/oauth_identity_matrix.rs"]
+mod oauth_identity_matrix;
 
 #[actix_web::test]
 async fn saved_catalog_models_are_bounded_target_local_and_revision_guarded() -> TestResult {

@@ -49,6 +49,12 @@ remain authoritative for encrypted stored responses and create/retrieve/delete d
   strict revision equality; absent Provider evidence never broadens continuity.
 - See [M2 change request](../change-requests/CR-20260926-channel-refresh-lifecycle.md) for migration
   and local validation. This is not evidence of deployment or real-provider acceptance.
+- The user's 2026-10-09 decision for [CPAR-27 / #36](https://github.com/Ricardo121380/cpa-rust-gateway/issues/36)
+  explicitly retains this strict exception. Historical reports awaiting that decision do not define
+  the current policy. The [native/session batch](../reports/cpar-native-session-batch-local-20261009.md)
+  records fixed-origin production-worker proof, public JSON/SSE, actual process restart and negative
+  range/CAS evidence. Stale proof fields after manual reauthorization are not loaded at the new runtime
+  revision; a later proved refresh begins a new range, as specified above.
 
 ## Canonical history
 

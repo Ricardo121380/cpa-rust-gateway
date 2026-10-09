@@ -19,6 +19,7 @@ pub(super) struct DeviceSessions {
     transport: Transport,
 }
 struct Session {
+    actor: String,
     name: String,
     target: Option<Target>,
     poller: Option<GrokBuildDevicePoller>,
@@ -32,6 +33,21 @@ pub(super) struct View {
     verification_uri: String,
     expires_at_ms: i64,
     retry_at_ms: i64,
+    identity: Option<gateway_store::account_identity::AccountIdentity>,
+    identity_state: String,
+    runtime_applied: Option<bool>,
+    account_id: Option<String>,
+    credential_revision: Option<u64>,
+}
+/// Recovery deliberately excludes the device challenge and credential material.
+#[derive(Serialize)]
+struct Receipt {
+    session_id: String,
+    state: String,
+    expires_at_ms: i64,
+    retry_at_ms: i64,
+    account_id: Option<String>,
+    credential_revision: Option<u64>,
     identity: Option<gateway_store::account_identity::AccountIdentity>,
     identity_state: String,
     runtime_applied: Option<bool>,
@@ -138,7 +154,7 @@ impl DeviceSessions {
     ) -> Result<(), provider_grok::GrokBuildOAuthError> {
         credential.acquire_identity(&self.transport)
     }
-    fn start(&self, input: Start, now: i64) -> Result<View, ()> {
+    fn start(&self, input: Start, now: i64, actor: &str) -> Result<View, ()> {
         if input.name.len() > 128
             || input
                 .target
@@ -164,6 +180,8 @@ impl DeviceSessions {
             input.name
         };
         let view = View {
+            account_id: None,
+            credential_revision: None,
             runtime_applied: None,
             identity: None,
             identity_state: "pending".to_owned(),
@@ -181,6 +199,7 @@ impl DeviceSessions {
         sessions.insert(
             id,
             Session {
+                actor: actor.to_owned(),
                 name,
                 target: input.target,
                 poller: Some(GrokBuildDevicePoller::new(auth)),
@@ -189,9 +208,22 @@ impl DeviceSessions {
         );
         Ok(view)
     }
-    fn poll(&self, id: &str, native: &NativeAccountManagement, now: i64) -> Result<View, ()> {
+    #[allow(
+        clippy::too_many_lines,
+        reason = "keep grant save, irreversible completion and receipt together"
+    )]
+    fn poll(
+        &self,
+        id: &str,
+        native: &NativeAccountManagement,
+        now: i64,
+        actor: &str,
+    ) -> Result<View, ()> {
         let mut sessions = self.sessions.lock().map_err(|_| ())?;
-        let entry = sessions.get_mut(id).ok_or(())?;
+        let entry = sessions
+            .get_mut(id)
+            .filter(|entry| entry.actor == actor)
+            .ok_or(())?;
         if entry.view.state != "pending" {
             return Ok(entry.view.clone());
         }
@@ -267,6 +299,25 @@ impl DeviceSessions {
                     entry.view.identity = Some(retained.identity().clone());
                     "observed".clone_into(&mut entry.view.identity_state);
                 }
+                if result.is_ok() {
+                    // Persistence is already committed. A failed receipt read must never leave a
+                    // terminal poller looking pending or allow a later cancel to erase that fact.
+                    entry.view.state = "complete".into();
+                    entry.poller = None;
+                    if let Some(target) = &entry.target {
+                        entry.view.account_id = Some(target.account_id.clone());
+                        entry.view.credential_revision = target.revision.checked_add(1);
+                    } else {
+                        let receipt = native
+                            .store
+                            .managed_import_receipt(&entry.name)
+                            .map_err(|_| ())?;
+                        entry.view.account_id =
+                            Some(receipt["account_id"].as_str().ok_or(())?.to_owned());
+                        entry.view.credential_revision =
+                            Some(receipt["credential_revision"].as_u64().ok_or(())?);
+                    }
+                }
                 entry.view.state = if result.is_ok() {
                     entry.view.runtime_applied = Some(
                         native.apply_runtime(
@@ -289,14 +340,40 @@ impl DeviceSessions {
         }
         Ok(entry.view.clone())
     }
-    fn cancel(&self, id: &str) -> Result<View, ()> {
+    fn cancel(&self, id: &str, actor: &str) -> Result<View, ()> {
         let mut sessions = self.sessions.lock().map_err(|_| ())?;
-        let entry = sessions.get_mut(id).ok_or(())?;
+        let entry = sessions
+            .get_mut(id)
+            .filter(|entry| entry.actor == actor)
+            .ok_or(())?;
         if entry.view.state == "pending" {
             entry.view.state = "cancelled".into();
             entry.poller = None;
         }
         Ok(entry.view.clone())
+    }
+    fn read(&self, id: &str, actor: &str, now: i64) -> Option<Receipt> {
+        let mut sessions = self.sessions.lock().ok()?;
+        let entry = sessions.get_mut(id).filter(|entry| entry.actor == actor)?;
+        if entry.view.expires_at_ms <= now {
+            if entry.view.state != "pending" {
+                return None;
+            }
+            "expired".clone_into(&mut entry.view.state);
+            entry.poller = None;
+        }
+        let view = &entry.view;
+        Some(Receipt {
+            session_id: view.session_id.clone(),
+            state: view.state.clone(),
+            expires_at_ms: view.expires_at_ms,
+            retry_at_ms: view.retry_at_ms,
+            account_id: view.account_id.clone(),
+            credential_revision: view.credential_revision,
+            identity: view.identity.clone(),
+            identity_state: view.identity_state.clone(),
+            runtime_applied: view.runtime_applied,
+        })
     }
 }
 
@@ -305,25 +382,30 @@ pub(super) async fn start(
     body: actix_web::web::Bytes,
     state: actix_web::web::Data<super::ManagementResourceHttpState>,
 ) -> actix_web::HttpResponse {
-    if let Err(response) = super::principal(&request) {
-        return response;
-    }
+    let actor = match super::principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
     let input: Start = match super::parse_json(&body) {
         Ok(value) => value,
         Err(response) => return response,
     };
-    execute(state, move |native, now| native.device.start(input, now)).await
+    execute(state, move |native, now| {
+        native.device.start(input, now, actor.as_str())
+    })
+    .await
 }
 pub(super) async fn poll(
     request: actix_web::HttpRequest,
     path: actix_web::web::Path<String>,
     state: actix_web::web::Data<super::ManagementResourceHttpState>,
 ) -> actix_web::HttpResponse {
-    if let Err(response) = super::principal(&request) {
-        return response;
-    }
+    let actor = match super::principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
     execute(state, move |native, now| {
-        native.device.poll(&path, native, now)
+        native.device.poll(&path, native, now, actor.as_str())
     })
     .await
 }
@@ -332,10 +414,41 @@ pub(super) async fn cancel(
     path: actix_web::web::Path<String>,
     state: actix_web::web::Data<super::ManagementResourceHttpState>,
 ) -> actix_web::HttpResponse {
-    if let Err(response) = super::principal(&request) {
-        return response;
+    let actor = match super::principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    execute(state, move |native, _| {
+        native.device.cancel(&path, actor.as_str())
+    })
+    .await
+}
+pub(super) async fn read(
+    request: actix_web::HttpRequest,
+    path: actix_web::web::Path<String>,
+    state: actix_web::web::Data<super::ManagementResourceHttpState>,
+) -> actix_web::HttpResponse {
+    let actor = match super::principal(&request) {
+        Ok(actor) => actor,
+        Err(response) => return response,
+    };
+    let native = state.native_accounts.clone();
+    let value = super::read_operations(&state, move || {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .ok()
+            .and_then(|value| i64::try_from(value.as_millis()).ok())
+            .ok_or(super::ManagementOperationsError::SourceUnavailable)?;
+        Ok(native
+            .as_ref()
+            .and_then(|native| native.device.read(&path, actor.as_str(), now)))
+    })
+    .await;
+    match value {
+        Ok(Some(receipt)) => actix_web::HttpResponse::Ok().insert_header(("Cache-Control", "no-store")).json(receipt),
+        Ok(None) => actix_web::HttpResponse::NotFound().insert_header(("Cache-Control", "no-store")).json(serde_json::json!({"error":{"code":"management_native_authorization_receipt_missing","message":"原授权结果无法确认，请核对账号与运行状态。"}})),
+        Err(_) => actix_web::HttpResponse::ServiceUnavailable().insert_header(("Cache-Control", "no-store")).json(serde_json::json!({"error":{"code":"management_native_oauth_unavailable","message":"原授权结果暂不可读，请稍后核对；不要重新提交。"}})),
     }
-    execute(state, move |native, _| native.device.cancel(&path)).await
 }
 async fn execute<F>(
     state: actix_web::web::Data<super::ManagementResourceHttpState>,
@@ -468,12 +581,13 @@ mod tests {
                     target: None,
                 },
                 1000,
+                "local",
             )
             .map_err(|()| "start")?;
         assert_eq!(
             native
                 .device
-                .poll(&first.session_id, &native, 1500)
+                .poll(&first.session_id, &native, 1500, "local")
                 .map_err(|()| "poll")?
                 .state,
             "pending"
@@ -481,7 +595,7 @@ mod tests {
         assert_eq!(
             native
                 .device
-                .poll(&first.session_id, &native, 2000)
+                .poll(&first.session_id, &native, 2000, "local")
                 .map_err(|()| "grant")?
                 .state,
             "complete"
@@ -492,7 +606,7 @@ mod tests {
         assert_stored_identity(&native, &id)?;
         let terminal = native
             .device
-            .poll(&first.session_id, &native, 2500)
+            .poll(&first.session_id, &native, 2500, "local")
             .map_err(|()| "terminal")?;
         assert_eq!(terminal.identity_state, "observed");
         assert_eq!(
@@ -510,12 +624,13 @@ mod tests {
                     }),
                 },
                 3000,
+                "local",
             )
             .map_err(|()| "start")?;
         assert_eq!(
             native
                 .device
-                .poll(&second.session_id, &native, 4000)
+                .poll(&second.session_id, &native, 4000, "local")
                 .map_err(|()| "poll")?
                 .state,
             "complete"
@@ -536,12 +651,13 @@ mod tests {
                         }),
                     },
                     now,
+                    "local",
                 )
                 .map_err(|()| "start")?;
             assert_eq!(
                 native
                     .device
-                    .poll(&session.session_id, &native, now + 1000)
+                    .poll(&session.session_id, &native, now + 1000, "local")
                     .map_err(|()| "poll")?
                     .state,
                 "persistence_conflict"
@@ -564,12 +680,13 @@ mod tests {
                     target: None,
                 },
                 1000,
+                "local",
             )
             .map_err(|()| "start")?;
         assert_eq!(
             native
                 .device
-                .cancel(&view.session_id)
+                .cancel(&view.session_id, "local")
                 .map_err(|()| "cancel")?
                 .state,
             "cancelled"
@@ -577,7 +694,7 @@ mod tests {
         assert_eq!(
             native
                 .device
-                .poll(&view.session_id, &native, 2000)
+                .poll(&view.session_id, &native, 2000, "local")
                 .map_err(|()| "poll")?
                 .state,
             "cancelled"
@@ -590,12 +707,13 @@ mod tests {
                     target: None,
                 },
                 3000,
+                "local",
             )
             .map_err(|()| "start")?;
         assert_eq!(
             native
                 .device
-                .poll(&view.session_id, &native, 63000)
+                .poll(&view.session_id, &native, 63000, "local")
                 .map_err(|()| "poll")?
                 .state,
             "expired"
@@ -606,6 +724,98 @@ mod tests {
                 .managed_account_page(100, "", "", None)?
                 .items
                 .is_empty()
+        );
+        Ok(())
+    }
+    #[test]
+    fn receipt_reads_are_actor_ttl_bound_and_never_exchange_or_cancel_saved_grants()
+    -> Result<(), Box<dyn Error>> {
+        let (_file, native) = fixture()?;
+        let session = native
+            .device
+            .start(
+                Start {
+                    name: "receipt-build".into(),
+                    target: None,
+                },
+                1000,
+                "owner",
+            )
+            .map_err(|()| "start")?;
+        assert!(
+            native
+                .device
+                .read(&session.session_id, "foreign", 1000)
+                .is_none()
+        );
+        assert!(
+            native
+                .device
+                .poll(&session.session_id, &native, 2000, "foreign")
+                .is_err()
+        );
+        assert!(
+            native
+                .device
+                .cancel(&session.session_id, "foreign")
+                .is_err()
+        );
+        let pending = native
+            .device
+            .read(&session.session_id, "owner", 2000)
+            .ok_or("pending receipt")?;
+        assert_eq!(pending.state, "pending");
+        assert!(
+            native
+                .store
+                .managed_account_page(100, "", "", None)?
+                .items
+                .is_empty()
+        );
+        let completed = native
+            .device
+            .poll(&session.session_id, &native, 2000, "owner")
+            .map_err(|()| "grant")?;
+        for _ in 0..2 {
+            let receipt = native
+                .device
+                .read(&session.session_id, "owner", 3000)
+                .ok_or("saved receipt")?;
+            assert_eq!(receipt.account_id, completed.account_id);
+            assert_eq!(receipt.credential_revision, Some(0));
+            assert_eq!(receipt.state, "complete");
+            let json = serde_json::to_value(receipt)?;
+            for field in [
+                "user_code",
+                "verification_uri",
+                "access_token",
+                "refresh_token",
+                "actor",
+            ] {
+                assert!(json.get(field).is_none());
+            }
+        }
+        assert_eq!(
+            native
+                .device
+                .cancel(&session.session_id, "owner")
+                .map_err(|()| "cancel")?
+                .state,
+            "complete"
+        );
+        let accounts = native.store.managed_account_page(100, "", "", None)?;
+        assert_eq!(accounts.items.len(), 1);
+        assert_eq!(accounts.items[0].revision, 0);
+        assert!(
+            native
+                .device
+                .read(&session.session_id, "owner", session.expires_at_ms)
+                .is_none()
+        );
+        assert!(
+            DeviceSessions::new()
+                .read(&session.session_id, "owner", 3000)
+                .is_none()
         );
         Ok(())
     }

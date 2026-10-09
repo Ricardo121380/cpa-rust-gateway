@@ -1,0 +1,41 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.01s
+     Running unittests src/main.rs (target/debug/deps/gateway-14662d417b6e7eb8)
+
+running 21 tests
+test native_account_usage::tests::web_requires_observed_counts_and_does_not_invent_reset ... ok
+test native_account_usage::tests::build_bounds_breakdowns_and_flags_partial_data ... ok
+test native_account_usage::tests::console_zero_limit_is_not_zero_percent_and_duplicate_kinds_fail ... ok
+test native_account_usage::tests::build_preserves_observed_zero_and_rejects_missing_usage ... ok
+test native_account_usage::grpc::tests::quota_frames_require_valid_status_and_preserve_absent_percentage ... ok
+test native_account_usage::tests::web_rest_scoped_cookie_skips_optional_billing_without_network ... ok
+test runtime::m2_continuity::native_build_http_history_survives_proven_rotation_in_json_and_sse ... ok
+E05 durable worker + reopened store stream=false: first=1 continuation=1 rejected_send=0 fallback=0 erroneous_root=0
+test runtime::m2_continuity::native_build_stateless_cipher_history_preserves_tools_without_storing_responses ... ok
+test runtime::tests::generic_responses_continuity_opt_in_matches_compiler_without_native_escalation ... ok
+E05 durable worker + reopened store stream=true: first=1 continuation=1 rejected_send=0 fallback=0 erroneous_root=0
+test runtime::batch_a_native::native_delete_http_preserves_an_open_stream_and_retires_new_execution ... ok
+test runtime::batch_a_native::native_disable_rebuild_preserves_an_open_stream_and_retires_new_execution ... ok
+test tests::native_grok_commands_require_explicit_local_inputs ... ok
+test runtime::tests::native_grok_metadata_maps_to_the_configured_provider_channel_without_a_send ... ok
+test runtime::tests::native_account_changes_rebuild_the_running_generation_including_an_empty_pool ... ok
+test runtime::batch_c::grok::grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges ... ok
+test credential_refresh::native_batch_a::build_loopback_refresh_reaches_durable_runtime_and_management_http ... ok
+test runtime::batch_c::http::responses_done::contradictory_native_done_confirmations_fail_public_storage_and_continuation ... ok
+test runtime::batch_c::http::responses_done::valid_native_done_preserves_parts_and_allows_owned_stored_continuation ... ok
+test runtime::batch_c::http::responses_done::responses_order::interleaved_native_output_preserves_order_metadata_storage_and_continuation ... ok
+test runtime::batch_c::http::ordinary_native_families_use_the_public_factory_and_preserve_identity ... ok
+test runtime::batch_c::http::responses_done::native_done_lifecycle_and_metadata_conflicts_fail_publicly ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 183 filtered out; finished in 10.02s
+
+     Running tests/component_smoke.rs (target/debug/deps/component_smoke-930d932e27f350a0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

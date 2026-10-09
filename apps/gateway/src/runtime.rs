@@ -14996,4 +14996,4 @@ mod tests {
 }
 
 #[cfg(test)]
-mod m2_continuity;
+pub(crate) mod m2_continuity;

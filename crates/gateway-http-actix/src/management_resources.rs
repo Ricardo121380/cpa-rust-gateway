@@ -2844,9 +2844,17 @@ fn configure_inventory_resource_routes(config: &mut web::ServiceConfig) {
         )
         .route(
             "/native-account-authorizations/{session_id}",
+            web::get().to(grok_device::read),
+        )
+        .route(
+            "/native-account-authorizations/{session_id}",
             web::delete().to(grok_device::cancel),
         )
         .route("/native-accounts", web::get().to(native_accounts::list))
+        .route(
+            "/native-accounts/{account_id}/deletion-impact",
+            web::get().to(native_accounts::deletion_impact),
+        )
         .route(
             "/native-account-imports/{batch_id}",
             web::get().to(native_accounts::import_receipt),

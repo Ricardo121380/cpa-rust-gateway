@@ -27,7 +27,7 @@ const hook=()=>page.evaluate(async()=>{
   const reply=(status,body)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
   ManagementApi.prototype.request=async function(operation,request){
     const state=window.CPAR_D_HTTP,mode=state.modes[operation];
-    state.calls.push({operation,cursor:request.query?.cursor??request.query?.before_id??null});
+    state.calls.push({operation,cursor:request.query?.cursor??request.query?.before_id??null,path:request.path,baseId:request.query?.base_id});
     if(mode==="error")return reply(500,{error:{code:"synthetic_read_failed",message:"D controlled source unavailable"}});
     if(mode==="denied")return reply(403,{error:{code:"synthetic_permission_denied",message:"D controlled permission denied"}});
     if(mode==="locked")return reply(404,{error:{code:"management_access_denied",message:"D controlled expired session"}});
@@ -44,6 +44,7 @@ const hook=()=>page.evaluate(async()=>{
     if(mode==="hold")await new Promise(resolve=>{state.release[operation]=resolve;});
     const response=await original.call(this,operation,request);
     state.replies.push({operation,status:response.status});
+    if(operation==="compareConfigVersions"&&response.ok)state.comparisons=[...(state.comparisons??[]),await response.clone().json()];
     if(mode==="lost-after-write"&&response.ok){state.applied.push({operation,status:response.status});throw new TypeError("D controlled response lost after fixture mutation");}
     if(!response.ok||!mode)return response;
     const body=await response.clone().json();
@@ -217,6 +218,26 @@ try {
     assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute("aria-label")),"搜索栏目");record("settings no-match recovery restores focus");
     await route("/versions");await page.waitForSelector('loc=role:button[name="查看历史差异"]');await page.click('loc=role:button[name="查看历史差异"]');
     await page.waitForFunction(()=>document.activeElement?.textContent==="历史配置差异");await page.keyboard.press("Escape");await page.waitForFunction(()=>document.activeElement?.textContent==="查看历史差异");record("historical difference view restores opener focus");
+  } else if(scenario==="maintenance-denied-compare") {
+    await reset();await mode("listConfigVersions","denied");await route("/versions");await waitText("synthetic_permission_denied");
+    assert((await calls("listConfigVersions")).length>0);assert.doesNotMatch(await text(),/没有草稿|暂无历史配置/u);record("versions family denied read is distinct from empty history");await screenshot("versions-denied");
+    await mode("listConfigVersions",undefined);await page.click('loc=role:button[name="重新读取配置"]');await readyButton("查看历史差异");
+    await page.click('loc=role:button[name="查看历史差异"]');
+    const target=await page.evaluate(()=>document.querySelector('.published-configuration')?.dataset.versionId);
+    const baselines=await page.evaluate(target=>[...document.querySelectorAll('.configuration-history-review select option')].map(row=>row.value).filter(id=>id&&id!==target),target);
+    assert(baselines.length>0);await page.selectOption('loc=css:.configuration-history-review select',baselines[0]);await waitText("完整差异");
+    const comparison=await page.evaluate(()=>window.CPAR_D_HTTP.comparisons?.at(-1));
+    assert.equal(comparison.base.id,baselines[0]);assert.equal(comparison.target.id,target);assert(comparison.items.length>0);assert.equal(comparison.next_cursor,null);
+    const visible=await page.evaluate(()=>document.querySelector('.configuration-history-review')?.textContent??"");
+    assert.match(visible,new RegExp(`完整差异：${comparison.items.length} 项`,"u"));
+    for(const item of comparison.items)assert(visible.includes(item.resource_key),`missing actual difference ${item.resource_key}`);
+    record("selected baseline produces actual resource differences",{base:comparison.base,target:comparison.target,items:comparison.items});await screenshot("history-selected-baseline");
+    await mode("compareConfigVersions","denied");await page.click('loc=role:button[name="重新比较"]');await waitText("synthetic_permission_denied");assert.match(await text(),/已载入部分差异/u);assert.doesNotMatch(await text(),/两个版本的资源记录没有差异/u);record("history comparison denial retains prior rows as incomplete");
+    await reset();await mode("listManagementAuditEvents","denied");await mode("listManagementResourceAuditEvents","denied");await route("/audit");await waitText("synthetic_permission_denied");
+    assert((await calls("listManagementAuditEvents")).length>0);assert((await calls("listManagementResourceAuditEvents")).length>0);record("audit lifecycle and resource read denial",{families:["lifecycle","resource"]});await screenshot("audit-denied");
+    await mode("previewBackup","denied");await page.click('loc=role:button[name="源库备份预检"]');await waitText("D controlled permission denied");assert.doesNotMatch(await text(),/源库预检已确认/u);record("backup preflight denial does not create a successful receipt or artifact");
+    await reset();await mode("getSystemInformation","denied");await route("/settings");await waitText("synthetic_permission_denied");
+    assert.equal(await page.evaluate(()=>![...document.querySelectorAll('button')].some(button=>button.textContent==="应用运行配置"&&!button.disabled)),true);record("settings system read denial gates runtime action");await screenshot("settings-denied");
   } else if(scenario==="catalog") {
     await reset();await prepareTarget();await mode("listCatalogModels","catalog-evidence");await route("/catalog?endpoint_id=ep-relay-a-responses&credential_id=cred-relay-key");await waitText("目录观测已陈旧");
     await page.click('loc=css:input[aria-label="选择 d-source-model"]');
