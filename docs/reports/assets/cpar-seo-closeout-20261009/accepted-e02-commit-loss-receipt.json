@@ -1,0 +1,47 @@
+{
+  "name": "accepted-e02-commit-loss",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway-http-actix",
+    "--test",
+    "managed_resource_inventory",
+    "--all-features",
+    "device_commit_loss",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "started_utc": "2026-10-09T04:06:28.322409+00:00",
+  "finished_utc": "2026-10-09T04:06:52.739821+00:00",
+  "duration_seconds": 24.417,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+    "dirty": [],
+    "tracked_files_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+    "dirty": [],
+    "tracked_files_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-e02-commit-loss.log",
+      "sha256": "27b8754bd3282064ce13e85aa7b7414d2089ae177fe4e1107754b1e729bc2674",
+      "bytes": 1282
+    }
+  }
+}

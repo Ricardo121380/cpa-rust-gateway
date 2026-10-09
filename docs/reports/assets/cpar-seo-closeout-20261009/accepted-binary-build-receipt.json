@@ -1,0 +1,43 @@
+{
+  "name": "accepted-binary-build",
+  "command": [
+    "cargo",
+    "build",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "started_utc": "2026-10-09T03:58:22.885396+00:00",
+  "finished_utc": "2026-10-09T03:58:23.460513+00:00",
+  "duration_seconds": 0.575,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+    "dirty": [],
+    "tracked_files_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+    "dirty": [],
+    "tracked_files_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-binary-build.log",
+      "sha256": "a16685927daa0790a2b357e2b56df170e7bad259186d3c802d6d441422dfd0cf",
+      "bytes": 72
+    }
+  }
+}

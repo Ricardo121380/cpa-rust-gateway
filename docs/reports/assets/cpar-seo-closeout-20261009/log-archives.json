@@ -1,0 +1,772 @@
+[
+  {
+    "receipt": "accepted-actual-ui-browser-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-actual-ui-browser-final.log",
+      "sha256": "a84157126a1f365ce44e5481ae0c9f45309f5172c5e3fa1324539a1716ff733c",
+      "bytes": 1426
+    },
+    "gzip_bytes": {
+      "path": "accepted-actual-ui-browser-final.log.gz",
+      "sha256": "6a98d260238eedfb5104273775802d9ec2ad7f5439c642c6c0dce835c11226ac",
+      "bytes": 382
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-actual-ui-browser-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-actual-ui-browser.log",
+      "sha256": "685463d08f8b6130aef5e3b8ac485da26837074091d0649e1f8e128fc8f97aa0",
+      "bytes": 814
+    },
+    "gzip_bytes": {
+      "path": "accepted-actual-ui-browser.log.gz",
+      "sha256": "30723d4038e8202b1eb19fcbf7f7fb48db2d9862ec501ca3a65056207e789b46",
+      "bytes": 404
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-binary-build-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-binary-build-final.log",
+      "sha256": "45d8f7d972875790a6cec7ca48e9acc17c5af68372da1940633becec3b4cd60a",
+      "bytes": 72
+    },
+    "gzip_bytes": {
+      "path": "accepted-binary-build-final.log.gz",
+      "sha256": "d49cdc761c7805b11c9a2ae15a07bb318cdc54015977e0838a5db39f4b239860",
+      "bytes": 91
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-binary-build-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-binary-build.log",
+      "sha256": "a16685927daa0790a2b357e2b56df170e7bad259186d3c802d6d441422dfd0cf",
+      "bytes": 72
+    },
+    "gzip_bytes": {
+      "path": "accepted-binary-build.log.gz",
+      "sha256": "eb0b5264cffb6d292ce9a05414669e3d5132a9ee450955ea2e8cd5e5be3b456e",
+      "bytes": 91
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-crossgroup-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-crossgroup-final.log",
+      "sha256": "221c62f0cda031f3271efa3c067463610ab65cf89a829869a732fcbc566ef39a",
+      "bytes": 124
+    },
+    "gzip_bytes": {
+      "path": "accepted-crossgroup-final.log.gz",
+      "sha256": "6e776bff0ad5b3ef3afb705ed814af31c9759d7bb2234e8fbc089ebcb06e7d66",
+      "bytes": 134
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-crossgroup-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-crossgroup.log",
+      "sha256": "7a2d7cff10d64857207a8b3ece724669a72be90701acbb151371ff744b2a6086",
+      "bytes": 124
+    },
+    "gzip_bytes": {
+      "path": "accepted-crossgroup.log.gz",
+      "sha256": "4f1ba2ea6ca2253139514f31ec4f3deb9409926d685f86c01f072d1410241a66",
+      "bytes": 134
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-e02-commit-loss-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-e02-commit-loss.log",
+      "sha256": "27b8754bd3282064ce13e85aa7b7414d2089ae177fe4e1107754b1e729bc2674",
+      "bytes": 1282
+    },
+    "gzip_bytes": {
+      "path": "accepted-e02-commit-loss.log.gz",
+      "sha256": "b66aa0171fea2c59df681a7eb7b247d236c122a31055ec78667dbf0d482cfbc6",
+      "bytes": 647
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-fixture-browser-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-fixture-browser.log",
+      "sha256": "70c19ce1892d38320ad9542498f2ce707ddb75d47c6652362b899fb834ecac52",
+      "bytes": 85135
+    },
+    "gzip_bytes": {
+      "path": "accepted-fixture-browser.log.gz",
+      "sha256": "9e848b7abac241eadf9be533652a6d2d62a7ed86709109fdd3102aa6d31bec35",
+      "bytes": 5869
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-full-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-full-final.log",
+      "sha256": "654c37161622dc71f62508dae24f934759879a1bca9aa021b808a60385df5eaa",
+      "bytes": 288593
+    },
+    "gzip_bytes": {
+      "path": "accepted-full-final.log.gz",
+      "sha256": "2df1aeaf67b2967feb28714ed6f8eb61dc2723d871344d06cdc3c508d65c2f4b",
+      "bytes": 48225
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-full-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-full-green.log",
+      "sha256": "e3829fa916957e1ddd84c3a864ca2ed848fa189b82adbce4237df838795d9c31",
+      "bytes": 295137
+    },
+    "gzip_bytes": {
+      "path": "accepted-full-green.log.gz",
+      "sha256": "8ed800448ecbacd3a1d4eb1f7782c6d6202edf472350f520d83103f36c107135",
+      "bytes": 48670
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-full-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-full.log",
+      "sha256": "e3dcb61d3b7c875088c7bb0caac7a7c0669339f0c7b5c7478d5c1b80fff81cb3",
+      "bytes": 10185
+    },
+    "gzip_bytes": {
+      "path": "accepted-full.log.gz",
+      "sha256": "6f35e1b0b8dd79b6c413f79848e29aea5fc576d867b9aada70530665bf123a25",
+      "bytes": 2501
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-ui-tests-current-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-tests-current.log",
+      "sha256": "ba0fc20431047947f6c51ca8a03a273f4e991782cfd1f4e2d65240fed576fd43",
+      "bytes": 4538
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-tests-current.log.gz",
+      "sha256": "1297c94e7403c8b51e8b26582ef9c33fce9cb5ff3c5d3a68ee92fb6f983c219d",
+      "bytes": 1232
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-ui-tests-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-tests-final.log",
+      "sha256": "849d9cd0a1accc46352f0f1633d71fcbc78d8af565d141800d52feca1bf88843",
+      "bytes": 4538
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-tests-final.log.gz",
+      "sha256": "cc62145b35c41a9e916754131e4815652d91622c43316cfeb3096842dd3058eb",
+      "bytes": 1226
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-ui-tests-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-tests.log",
+      "sha256": "8612c3bcf53745f1a6263dcf8f83d3ee7440f56dfebe8aea119df55419b20178",
+      "bytes": 4533
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-tests.log.gz",
+      "sha256": "245e355b973baebc81ce4d8fdabb675c281bcfe31c6cc5b568e10797c21227db",
+      "bytes": 1217
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-ui-type-current-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-type-current.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-type-current.log.gz",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-ui-type-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-type-final.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-type-final.log.gz",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "accepted-ui-type-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-type.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-type.log.gz",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-a08-exploratory-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-a08-exploratory.log",
+      "sha256": "b2243ab4d842c41e449940b29af895ec909fc59600a7c313dc18a578ddd691fa",
+      "bytes": 105
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-a08-exploratory.log.gz",
+      "sha256": "4dd6706967a97011df3877ff7cc7ed0d015c6e1d82e9b7e94ca3c2959f63d2d4",
+      "bytes": 115
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-all-exploratory-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-all-exploratory.log",
+      "sha256": "e87e7dd65c069c6b564fc0928ef9487d304859247ab7bf47e12519fafb1289fa",
+      "bytes": 1390
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-all-exploratory.log.gz",
+      "sha256": "19a8a04f8f934eff52a1c56dd28116013ef739e31f1d01787fbf7946a7fc01aa",
+      "bytes": 566
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-build-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-build-green.log",
+      "sha256": "45d8f7d972875790a6cec7ca48e9acc17c5af68372da1940633becec3b4cd60a",
+      "bytes": 72
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-build-green.log.gz",
+      "sha256": "d49cdc761c7805b11c9a2ae15a07bb318cdc54015977e0838a5db39f4b239860",
+      "bytes": 91
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-calls-exploratory-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-calls-exploratory.log",
+      "sha256": "b34cf6ddb201fe64a49088a1a2c11f0ea49e5ec03d77338e954092733725d543",
+      "bytes": 651
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-calls-exploratory.log.gz",
+      "sha256": "e2fe7c92a5c49b0a5e5b20b38ba48fd4c3711e27e2de98450d0ce1ecd1be67a2",
+      "bytes": 364
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-calls-resumed-exploratory-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-calls-resumed-exploratory.log",
+      "sha256": "8faf9326745be341331989abc6f85bd8e7dc4f2a38edbd133cb529d5d108bfbf",
+      "bytes": 913
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-calls-resumed-exploratory.log.gz",
+      "sha256": "ff3bcee63edaae08cf98ed7a58cff5fb80b4d5977fca4663f00c39ae47fca99f",
+      "bytes": 480
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-forced-build-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-forced-build-green.log",
+      "sha256": "9641639655652ebcc677ba813008f2475760ae61ba7ed63037298da8b7ae4d49",
+      "bytes": 305
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-forced-build-green.log.gz",
+      "sha256": "bbd6dbadf117703c9d1727d2b58aefe67cf713e1efca0c4bd2415cd12d8b9833",
+      "bytes": 189
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-kiro-first-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-kiro-first.log",
+      "sha256": "92c88e6ac7d4ed79443b20971fcf0a1f55f20bcfb8e6b0f33f3e45da8677de46",
+      "bytes": 357
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-kiro-first.log.gz",
+      "sha256": "341d1c94f58c6a8d383b5900ccb54a55d3d3634661258d618d6449d9048c84af",
+      "bytes": 264
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-presets-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-presets-green.log",
+      "sha256": "f60234ac37b0ef5338950830d616346f1359e7494e030db5b43482f8ede0ff0f",
+      "bytes": 428
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-presets-green.log.gz",
+      "sha256": "d07597d4b577367e94feaa8dff32ecbe30814f4be9c5594081850d855cf9d928",
+      "bytes": 314
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-presets-green2-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-presets-green2.log",
+      "sha256": "4675a5740df0d5a381991e105ffd0d397bf76726f2c3f2614d73eb0fbf15fa23",
+      "bytes": 575
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-presets-green2.log.gz",
+      "sha256": "a965abc0c6c00c8b6295ec9f3a68602d286ab73eb98e857f62d0fe9924e9273b",
+      "bytes": 364
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-presets-rest-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-presets-rest-green.log",
+      "sha256": "6310571bc8b482c238fbf322e5c2641e0826807599b16f8780107e7194e4128c",
+      "bytes": 251
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-presets-rest-green.log.gz",
+      "sha256": "a539db07c5e266e24257d224e07e5934a72e22340a9534b22ddf7091e43a4c28",
+      "bytes": 171
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-presets-rest-green2-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-presets-rest-green2.log",
+      "sha256": "025b12c620c1bf93f8a86cf645fb94f689c94a3ec9b63310d4df82169e195915",
+      "bytes": 342
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-presets-rest-green2.log.gz",
+      "sha256": "802900cf929a394a0408fb69542b2382450584307f1b9715341706be28df0069",
+      "bytes": 155
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-prior-exploratory-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-prior-exploratory.log",
+      "sha256": "68058c20cbfe526714a201eaf75827fc8d6de2d76ebddee165409f1012d38b39",
+      "bytes": 312
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-prior-exploratory.log.gz",
+      "sha256": "abbe267eeff0cd93ac02d9d5a6b7b05b20445edbe7dd0917b5357a0da812cd28",
+      "bytes": 290
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "actual-ui-recovery-first-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/actual-ui-recovery-first.log",
+      "sha256": "fdea33aaf131186b864fe92968ec88f5c8ca8ee417a8a0d2b4e1e5851c005c49",
+      "bytes": 474
+    },
+    "gzip_bytes": {
+      "path": "actual-ui-recovery-first.log.gz",
+      "sha256": "ec402bad40c6eac997a82b26f7f907f49910c0d0d3c1ae03cacdb63544d2c492",
+      "bytes": 365
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e01-e03-units-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e01-e03-units-green.log",
+      "sha256": "c5dcf562bb885dd096e90c21bb0c2760d3ff1d3d65e5c080afb686c323898d4f",
+      "bytes": 708
+    },
+    "gzip_bytes": {
+      "path": "e01-e03-units-green.log.gz",
+      "sha256": "6d2833773ca35902a5ef759e8baa6ffaefdeaf1c5d48982d96a851fea72f2b89",
+      "bytes": 375
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e01-fixture-transport-red-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e01-fixture-transport-red.log",
+      "sha256": "4f38f46d4b86e9572a56faf9613f64d5fbcdcbd3f07ac9059e92a7e4099da763",
+      "bytes": 2186
+    },
+    "gzip_bytes": {
+      "path": "e01-fixture-transport-red.log.gz",
+      "sha256": "b8d71c43824ab6a0069a03258144de517e1b49ab564a45b4ff7cd7454dac3d3d",
+      "bytes": 716
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e01-material-red-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e01-material-red.log",
+      "sha256": "5560a6b0089f27dafb2fc8be6fc4694e48074ed451a50b0f82f5117c5b5e8c58",
+      "bytes": 4309
+    },
+    "gzip_bytes": {
+      "path": "e01-material-red.log.gz",
+      "sha256": "378edda023fb371f1e10d438dde338c84d720efbdb619d0340a706ea32adb4b7",
+      "bytes": 1034
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e01-transport-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e01-transport-green.log",
+      "sha256": "c8a745b3713b83fe70601e9fa80c50b165400883f7a8a204feecc6c40d2b034d",
+      "bytes": 708
+    },
+    "gzip_bytes": {
+      "path": "e01-transport-green.log.gz",
+      "sha256": "d6dc7830cf1d3f94fc6c6259c9a5abe475f39ff7b796f010181a348e0f83bd28",
+      "bytes": 371
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e01-transport-red-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e01-transport-red.log",
+      "sha256": "e3152c76711eabb890da861e1eb53acaecd2835ed56802777962211e5dd53a5b",
+      "bytes": 3117
+    },
+    "gzip_bytes": {
+      "path": "e01-transport-red.log.gz",
+      "sha256": "a5db0f599d2560655cc9b0ea780bfd16f39b39413ed5e3e3d14f395623bef476",
+      "bytes": 971
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e01-transport-type-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e01-transport-type.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    },
+    "gzip_bytes": {
+      "path": "e01-transport-type.log.gz",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e02-handler-commit-loss-build2-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e02-handler-commit-loss-build2.log",
+      "sha256": "186a2f6814ee38be05bfe39c6b1b4a0efd061f9278c54e2130cf84e80be80a3f",
+      "bytes": 669
+    },
+    "gzip_bytes": {
+      "path": "e02-handler-commit-loss-build2.log.gz",
+      "sha256": "aa8433ad106e4f7a1b1a587ba68a836187c659857c9c59115e1125e94c580774",
+      "bytes": 386
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e02-handler-commit-loss-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e02-handler-commit-loss-green.log",
+      "sha256": "0973988528a7b44be918cacfea7263fd96e39afff774450b0660ff6e6a5c1f0e",
+      "bytes": 1170
+    },
+    "gzip_bytes": {
+      "path": "e02-handler-commit-loss-green.log.gz",
+      "sha256": "419cdfaad63749f79f025d85ea8303e3ae80327a2cab109c00461e5e2fc8f651",
+      "bytes": 610
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e02-handler-commit-loss-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e02-handler-commit-loss.log",
+      "sha256": "62a296f202b7650bcb48cbd16822fc91463440d432f92eb6b819fa268157f0bf",
+      "bytes": 1216
+    },
+    "gzip_bytes": {
+      "path": "e02-handler-commit-loss.log.gz",
+      "sha256": "2faf55ef29380996085f1d0d3892795ffc41d3243badc657794b40103762e882",
+      "bytes": 467
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e02-handler-commit-loss-run3-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e02-handler-commit-loss-run3.log",
+      "sha256": "2caf234e70d743c53fc7d4accba25344de5582fafd8efacbac4a405f1011a03a",
+      "bytes": 1612
+    },
+    "gzip_bytes": {
+      "path": "e02-handler-commit-loss-run3.log.gz",
+      "sha256": "b8df726cdeeaa1713a150896b2f5d325176a6d3ea973b2686149fa4f1a3d2cab",
+      "bytes": 598
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e03-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e03-green.log",
+      "sha256": "fdaf0523bbac1b3f6b0ff8e9a45b354d887f83119b0179b788f17f64161fb4e9",
+      "bytes": 385
+    },
+    "gzip_bytes": {
+      "path": "e03-green.log.gz",
+      "sha256": "5d06706572c3a09af54c5da810304c66f6bfcdc51a45938c8cc328271e72f548",
+      "bytes": 277
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e03-red-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e03-red.log",
+      "sha256": "f0406e17aeb5e2006e1b2d58633e8ee7f4002ae357e690c42fd44d5f131412ec",
+      "bytes": 1706
+    },
+    "gzip_bytes": {
+      "path": "e03-red.log.gz",
+      "sha256": "8e18d423304b6b93d83853fa616e36dc00446d094eb71ea1a137dc15568017f3",
+      "bytes": 763
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e04-http-bounded-graph-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e04-http-bounded-graph.log",
+      "sha256": "cbeb8ae52a0c1eef4681f137810ba3d05fb4f796e38c2e9b6a19dd493e230407",
+      "bytes": 844
+    },
+    "gzip_bytes": {
+      "path": "e04-http-bounded-graph.log.gz",
+      "sha256": "50fdd187f140afe3970617dc30fcabf91d4f04294c7f7d6830bbf60cc41b4429",
+      "bytes": 338
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e04-http-first-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e04-http-first.log",
+      "sha256": "d62345e3879100d86e0aff4f853bf01ec9c0ca927cac3dd7e195ee9944b22d93",
+      "bytes": 1117
+    },
+    "gzip_bytes": {
+      "path": "e04-http-first.log.gz",
+      "sha256": "a500aa9ffa1eb4a78986c27327df6980a5f7d7ee3f8e97371d4d8e80f518a282",
+      "bytes": 500
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e04-http-legal-connections-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e04-http-legal-connections.log",
+      "sha256": "58fde6569a2373945a1d212fa2542477fe4773c427c2ccc4e516f745ff6dda68",
+      "bytes": 1078
+    },
+    "gzip_bytes": {
+      "path": "e04-http-legal-connections.log.gz",
+      "sha256": "4257a59050d7c82a313a0347d5f08aad239d54e16e655fd1b3e298ed4fcd010d",
+      "bytes": 476
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "e04-http-targeted-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e04-http-targeted.log",
+      "sha256": "3f6f8c2486efa7e427a393bee6d92e45b7cc2f6099f68cd8aac9fc77473ba7b4",
+      "bytes": 87
+    },
+    "gzip_bytes": {
+      "path": "e04-http-targeted.log.gz",
+      "sha256": "68edc313e3b299a494e32b147cce07742499417ee61de01832827b724edde263",
+      "bytes": 101
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "o01-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/o01-green.log",
+      "sha256": "c692746fd9d16929d1f2b5343b86fad5afe63be318b1a223570b0a313d76babc",
+      "bytes": 3242
+    },
+    "gzip_bytes": {
+      "path": "o01-green.log.gz",
+      "sha256": "3c3541e194b0d7038847653d2c5571abb9446fb1b022c3b9a9999560afad5a7e",
+      "bytes": 723
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "o01-red-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/o01-red.log",
+      "sha256": "076580400940a312b61447a7e703361157fb870e40cd4a274deb336fe0ad6b68",
+      "bytes": 7672
+    },
+    "gzip_bytes": {
+      "path": "o01-red.log.gz",
+      "sha256": "a72614b866ba2fbb70b9da171c5954d2d288fba0d2c519f5cde87db76634ffa6",
+      "bytes": 1548
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "o01-regression-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/o01-regression.log",
+      "sha256": "727b53d06170ab2571184d9ee901df778791c9f9fc89b734bf98319e381cbd0f",
+      "bytes": 4814
+    },
+    "gzip_bytes": {
+      "path": "o01-regression.log.gz",
+      "sha256": "cfe307f4ba559cd97fb41a247d4d9aaa8f4a13f453c6d1d91aa40e29169d20e1",
+      "bytes": 1325
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "s01-docs-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/s01-docs.log",
+      "sha256": "127b41c25759cf6866ddc8fc9f9f2890085ae6ceee3de6d2a2338c13ebef8c48",
+      "bytes": 540
+    },
+    "gzip_bytes": {
+      "path": "s01-docs.log.gz",
+      "sha256": "c282c3e5d572cc8087b3637919fd14ecfdc1101038d58756bc88ccbafbd865ac",
+      "bytes": 345
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "seo-build-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/seo-build.log",
+      "sha256": "992a2508f4fa24a57a8cfe7c668f518bc971d7c707bf54b53f1e2b06fccf677f",
+      "bytes": 567
+    },
+    "gzip_bytes": {
+      "path": "seo-build.log.gz",
+      "sha256": "7fa283bea9541908638628d78b962f227113f0c5f87090b0952c20ccb28807c0",
+      "bytes": 226
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "seo-fixture-browser-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/seo-fixture-browser.log",
+      "sha256": "ab9074cf2a9b801048a11fbeca93e94dd3d26ad83a6cf262634135a485fc4ee0",
+      "bytes": 75269
+    },
+    "gzip_bytes": {
+      "path": "seo-fixture-browser.log.gz",
+      "sha256": "09ebbd53e5919026f25f5dee5b448fcc54e0c34724291f73f1039795ea39cadd",
+      "bytes": 4755
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "seo-fixture-device-browser-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/seo-fixture-device-browser.log",
+      "sha256": "a591ff71bae6b18f4c1be05c07999e7c1e09ba05b2a939f06a8f31495e480d90",
+      "bytes": 5364
+    },
+    "gzip_bytes": {
+      "path": "seo-fixture-device-browser.log.gz",
+      "sha256": "58b37489730c40a29404e7fcf1ad30f883db262b17366663962b2fa16d63bdc0",
+      "bytes": 1466
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "seo-fixture-kimi-browser-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/seo-fixture-kimi-browser.log",
+      "sha256": "8c86d96b824d5f6a8d38d3dced6bd8e8703a6662108e73837d60af90d7bfb9e4",
+      "bytes": 5155
+    },
+    "gzip_bytes": {
+      "path": "seo-fixture-kimi-browser.log.gz",
+      "sha256": "32c287757639f28b6c6b69e701e8c5e5efb27836a3fff4fec3ee0ef91e7fda90",
+      "bytes": 1296
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
+    "receipt": "seo-type-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/seo-type.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    },
+    "gzip_bytes": {
+      "path": "seo-type.log.gz",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    "decoded_archive_matches_raw": true
+  }
+]

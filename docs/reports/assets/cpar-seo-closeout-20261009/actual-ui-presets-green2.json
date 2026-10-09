@@ -1,0 +1,2735 @@
+{
+  "environment": "stock serve embedded /admin-ui/",
+  "spaceId": 35,
+  "pageLabel": "p3",
+  "origin": "http://127.0.0.1:63647",
+  "gatewayPid": 40240,
+  "binarySha256": "5a6bf6cea8ee9908354d63614753a0d1a345d6c3f721f274dcf5e44d4cb4e6e3",
+  "sourceSha": "f57a8bb23c12f986c529daeb304d4f813fa9af4d",
+  "managementHandlerStorage": true,
+  "upstream": "synthetic loopback only",
+  "results": [
+    {
+      "scenario": "administrator-first-change-and-login",
+      "result": "PASS",
+      "actualPage": "http://127.0.0.1:63647/admin-ui/#/"
+    },
+    {
+      "scenario": "E-01-actual-responses-reuse-save-bind-apply",
+      "result": "PASS",
+      "target": {
+        "upstream_id": "ui-responses",
+        "endpoint_id": "ui-responses-connection",
+        "base": "https://127.0.0.1:63646/v1",
+        "path": "/responses",
+        "adapter": "openai-compatible.responses",
+        "format": "openai/responses",
+        "enabled": true
+      },
+      "accountId": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+      "channel": "openai-compatible",
+      "facts": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/config-versions",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "ui-baseline",
+                "status": "active",
+                "revision": "rev-13",
+                "created_at_ms": 1791516417635,
+                "description": "Isolated embedded UI baseline"
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/admin/config-versions/ui-baseline/fork",
+            "config": "ui-baseline",
+            "ifMatch": "rev-13",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "description": "添加提供商 · Actual responses"
+            },
+            "status": 201,
+            "response": {
+              "created_at_ms": 1791516442971,
+              "description": "添加提供商 · Actual responses",
+              "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "parent_id": "ui-baseline",
+              "revision": "rev-0",
+              "status": "draft"
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-0",
+              "observation_version": "audit-0",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-0",
+              "observation_version": "audit-0",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/upstreams/ui-responses/account-import",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": "rev-0",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+              "channel": "openai-compatible"
+            },
+            "status": 201,
+            "response": {
+              "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+              "upstream_id": "ui-responses",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints/ui-responses-connection/credential-bindings",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": []
+          },
+          {
+            "method": "POST",
+            "path": "/admin/endpoints/ui-responses-connection/credential-bindings",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": "rev-1",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "credential_id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1
+            },
+            "status": 201,
+            "response": {
+              "endpoint_id": "ui-responses-connection",
+              "upstream_id": "ui-responses",
+              "credential_id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-2",
+              "observation_version": "audit-15",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "parent_id": "ui-baseline",
+                "status": "draft",
+                "revision": "rev-2",
+                "created_at_ms": 1791516442971,
+                "description": "添加提供商 · Actual responses"
+              },
+              {
+                "id": "ui-baseline",
+                "status": "active",
+                "revision": "rev-13",
+                "created_at_ms": 1791516417635,
+                "description": "Isolated embedded UI baseline"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-2",
+              "observation_version": "audit-15",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/audit-events",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": 1,
+                "action": "config_created",
+                "occurred_at_ms": 1791516417635,
+                "config_version_id": "ui-baseline"
+              },
+              {
+                "id": 2,
+                "action": "config_published",
+                "occurred_at_ms": 1791516417661,
+                "config_version_id": "ui-baseline"
+              },
+              {
+                "id": 3,
+                "action": "config_created",
+                "occurred_at_ms": 1791516442971,
+                "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions/edit-29085c98-a333-4fa7-ab93-f96bb10ca261/diff",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "base": {
+                "id": "ui-baseline",
+                "revision": "rev-13"
+              },
+              "items": [
+                {
+                  "change": "added",
+                  "changed_fields": [],
+                  "resource_key": "[\"account-11a3e6b7-6705-43b9-b691-03226c078dc3\"]",
+                  "resource_kind": "credential"
+                },
+                {
+                  "change": "added",
+                  "changed_fields": [],
+                  "resource_key": "[\"ui-responses-connection\",\"account-11a3e6b7-6705-43b9-b691-03226c078dc3\"]",
+                  "resource_kind": "credential_binding"
+                }
+              ],
+              "next_cursor": null,
+              "target": {
+                "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "revision": "rev-2"
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions/edit-29085c98-a333-4fa7-ab93-f96bb10ca261/account-restoration",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "target_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "target_revision": 2,
+              "active_id": "ui-baseline",
+              "active_revision": 13,
+              "deletion_event_id": 0,
+              "accounts": [],
+              "review_token": "8659ec6797bd3b6d4c93205e1804220e2f568ca2917ac80f5c44ef5501528a3e"
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/config-versions/edit-29085c98-a333-4fa7-ab93-f96bb10ca261/validate",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "valid": true,
+              "error_codes": []
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/config-versions/edit-29085c98-a333-4fa7-ab93-f96bb10ca261/publish",
+            "config": null,
+            "ifMatch": "rev-2",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "active_config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "replaced_config_version_id": "ui-baseline"
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "parent_id": "ui-baseline",
+                "status": "active",
+                "revision": "rev-2",
+                "created_at_ms": 1791516442971,
+                "description": "添加提供商 · Actual responses"
+              },
+              {
+                "id": "ui-baseline",
+                "status": "archived",
+                "revision": "rev-13",
+                "created_at_ms": 1791516417635,
+                "description": "Isolated embedded UI baseline"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/accounts/inventory",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "category_totals": {
+                "api": 1
+              },
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "items": [
+                {
+                  "category": "api",
+                  "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+                  "identity": {
+                    "email": null,
+                    "phone": null,
+                    "username": null
+                  },
+                  "managed": {
+                    "authentication": "api_key",
+                    "binding_count": 1,
+                    "category": "api",
+                    "connections": [
+                      {
+                        "api_format": "openai/responses",
+                        "enabled": true,
+                        "host": "127.0.0.1",
+                        "id": "ui-responses-connection"
+                      }
+                    ],
+                    "credential": {
+                      "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+                      "kind": "bearer",
+                      "revision": 0,
+                      "secret_present": true,
+                      "status": "active",
+                      "upstream_id": "ui-responses"
+                    },
+                    "identity": {
+                      "email": null,
+                      "phone": null,
+                      "username": null
+                    },
+                    "plan": null,
+                    "plan_source": null,
+                    "provider": "API"
+                  },
+                  "name": "",
+                  "native": false,
+                  "native_account": null,
+                  "operations": [
+                    "details",
+                    "update_credential",
+                    "enable",
+                    "disable",
+                    "remove",
+                    "models"
+                  ],
+                  "plan": null,
+                  "plan_source": null,
+                  "provider": "API",
+                  "status": "enabled"
+                }
+              ],
+              "next_cursor": null,
+              "plan_totals": {},
+              "revision": "rev-2",
+              "total": 1,
+              "unobserved_plan_total": 1
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/operations/provider-account-pools",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "snapshot_id": "runtime-account-pools:cc9e326c7925ce902f8df70c21a66ec0:1791516443096:1",
+              "observed_at_ms": 1791516443096,
+              "items": [
+                {
+                  "presentation": {
+                    "api_format": "openai/responses",
+                    "category": "api",
+                    "host": "127.0.0.1",
+                    "identity": {
+                      "email": null,
+                      "phone": null,
+                      "username": null
+                    },
+                    "provider": "API",
+                    "source": null
+                  },
+                  "provider_id": "ui-responses",
+                  "channel_id": "ui-responses-connection",
+                  "account_id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+                  "account_kind": "bearer",
+                  "credential_revision": 0,
+                  "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                  "auth_status": "active",
+                  "runtime_status": "available",
+                  "enabled": true,
+                  "priority": 0,
+                  "weight": 1,
+                  "max_concurrency": 1,
+                  "active_leases": 0,
+                  "expires_at_ms": null,
+                  "refresh_due_at_ms": null,
+                  "quota_sync_due_at_ms": null,
+                  "entitlement": null
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbeb09f38ff28",
+              "uptime_seconds": 25
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/routes",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-2",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-2",
+              "observation_version": "audit-15",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/route-candidates",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-2",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-2",
+              "observation_version": "audit-15",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key已配置，调用未验证可用额度余额未观测快照 2026/10/9 11:27:23 · 1 个连接 · runtime-account-pools:cc9e326c7925ce902f8df70c21a66ec0:1791516443096:1 · ui-responses/ui-responses-connection · revision 0 · 配置 edit-29085c98-a333-4fa7-ab93-f96bb10ca261Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-actual-chat-reuse-save-bind-apply",
+      "result": "PASS",
+      "target": {
+        "upstream_id": "ui-chat",
+        "endpoint_id": "ui-chat-connection",
+        "base": "https://127.0.0.1:63646/v1",
+        "path": "/chat/completions",
+        "adapter": "openai-compatible.chat-completions",
+        "format": "openai/chat-completions",
+        "enabled": true
+      },
+      "accountId": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+      "channel": "openai-compatible",
+      "facts": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/config-versions",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "parent_id": "ui-baseline",
+                "status": "active",
+                "revision": "rev-2",
+                "created_at_ms": 1791516442971,
+                "description": "添加提供商 · Actual responses"
+              },
+              {
+                "id": "ui-baseline",
+                "status": "archived",
+                "revision": "rev-13",
+                "created_at_ms": 1791516417635,
+                "description": "Isolated embedded UI baseline"
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/admin/config-versions/edit-29085c98-a333-4fa7-ab93-f96bb10ca261/fork",
+            "config": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "ifMatch": "rev-2",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "edit-90483db8-e018-4512-b030-001714decd63",
+              "description": "添加提供商 · Actual chat"
+            },
+            "status": 201,
+            "response": {
+              "created_at_ms": 1791516449597,
+              "description": "添加提供商 · Actual chat",
+              "id": "edit-90483db8-e018-4512-b030-001714decd63",
+              "parent_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "revision": "rev-0",
+              "status": "draft"
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-0",
+              "observation_version": "audit-0",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-0",
+              "observation_version": "audit-0",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/upstreams/ui-chat/account-import",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": "rev-0",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+              "channel": "openai-compatible"
+            },
+            "status": 201,
+            "response": {
+              "id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+              "upstream_id": "ui-chat",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints/ui-chat-connection/credential-bindings",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": []
+          },
+          {
+            "method": "POST",
+            "path": "/admin/endpoints/ui-chat-connection/credential-bindings",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": "rev-1",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "credential_id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1
+            },
+            "status": 201,
+            "response": {
+              "endpoint_id": "ui-chat-connection",
+              "upstream_id": "ui-chat",
+              "credential_id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-2",
+              "observation_version": "audit-17",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "parent_id": "ui-baseline",
+                "status": "active",
+                "revision": "rev-2",
+                "created_at_ms": 1791516442971,
+                "description": "添加提供商 · Actual responses"
+              },
+              {
+                "id": "edit-90483db8-e018-4512-b030-001714decd63",
+                "parent_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "status": "draft",
+                "revision": "rev-2",
+                "created_at_ms": 1791516449597,
+                "description": "添加提供商 · Actual chat"
+              },
+              {
+                "id": "ui-baseline",
+                "status": "archived",
+                "revision": "rev-13",
+                "created_at_ms": 1791516417635,
+                "description": "Isolated embedded UI baseline"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-2",
+              "observation_version": "audit-17",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/audit-events",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": 1,
+                "action": "config_created",
+                "occurred_at_ms": 1791516417635,
+                "config_version_id": "ui-baseline"
+              },
+              {
+                "id": 2,
+                "action": "config_published",
+                "occurred_at_ms": 1791516417661,
+                "config_version_id": "ui-baseline"
+              },
+              {
+                "id": 3,
+                "action": "config_created",
+                "occurred_at_ms": 1791516442971,
+                "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261"
+              },
+              {
+                "id": 4,
+                "action": "config_published",
+                "occurred_at_ms": 1791516443062,
+                "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "replaced_config_version_id": "ui-baseline"
+              },
+              {
+                "id": 5,
+                "action": "config_created",
+                "occurred_at_ms": 1791516449597,
+                "config_version_id": "edit-90483db8-e018-4512-b030-001714decd63"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions/edit-90483db8-e018-4512-b030-001714decd63/diff",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "base": {
+                "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "revision": "rev-2"
+              },
+              "items": [
+                {
+                  "change": "added",
+                  "changed_fields": [],
+                  "resource_key": "[\"account-02aba03c-5192-489d-9532-ecec83707c9e\"]",
+                  "resource_kind": "credential"
+                },
+                {
+                  "change": "changed",
+                  "changed_fields": [
+                    "ciphertext"
+                  ],
+                  "resource_key": "[\"account-11a3e6b7-6705-43b9-b691-03226c078dc3\"]",
+                  "resource_kind": "credential"
+                },
+                {
+                  "change": "added",
+                  "changed_fields": [],
+                  "resource_key": "[\"ui-chat-connection\",\"account-02aba03c-5192-489d-9532-ecec83707c9e\"]",
+                  "resource_kind": "credential_binding"
+                }
+              ],
+              "next_cursor": null,
+              "target": {
+                "id": "edit-90483db8-e018-4512-b030-001714decd63",
+                "revision": "rev-2"
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions/edit-90483db8-e018-4512-b030-001714decd63/account-restoration",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "target_id": "edit-90483db8-e018-4512-b030-001714decd63",
+              "target_revision": 2,
+              "active_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+              "active_revision": 2,
+              "deletion_event_id": 0,
+              "accounts": [],
+              "review_token": "b759e19de7e378ee0c4761046402377b650970b33704bf52e96b0701c647bf87"
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/config-versions/edit-90483db8-e018-4512-b030-001714decd63/validate",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "valid": true,
+              "error_codes": []
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/config-versions/edit-90483db8-e018-4512-b030-001714decd63/publish",
+            "config": null,
+            "ifMatch": "rev-2",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "active_config_version_id": "edit-90483db8-e018-4512-b030-001714decd63",
+              "replaced_config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261"
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "parent_id": "ui-baseline",
+                "status": "archived",
+                "revision": "rev-2",
+                "created_at_ms": 1791516442971,
+                "description": "添加提供商 · Actual responses"
+              },
+              {
+                "id": "edit-90483db8-e018-4512-b030-001714decd63",
+                "parent_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+                "status": "active",
+                "revision": "rev-2",
+                "created_at_ms": 1791516449597,
+                "description": "添加提供商 · Actual chat"
+              },
+              {
+                "id": "ui-baseline",
+                "status": "archived",
+                "revision": "rev-13",
+                "created_at_ms": 1791516417635,
+                "description": "Isolated embedded UI baseline"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-chat",
+                "name": "Isolated chat",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-grok-api",
+                "name": "Isolated grok-api",
+                "kind": "grok.official",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-kimi",
+                "name": "Isolated kimi",
+                "kind": "kimi",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-messages",
+                "name": "Isolated messages",
+                "kind": "anthropic-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              },
+              {
+                "id": "ui-responses",
+                "name": "Isolated responses",
+                "kind": "openai-compatible",
+                "enabled": true,
+                "tags": [],
+                "egress_policy_id": "ui-local-policy"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/accounts/inventory",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "category_totals": {
+                "api": 2
+              },
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "items": [
+                {
+                  "category": "api",
+                  "id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+                  "identity": {
+                    "email": null,
+                    "phone": null,
+                    "username": null
+                  },
+                  "managed": {
+                    "authentication": "api_key",
+                    "binding_count": 1,
+                    "category": "api",
+                    "connections": [
+                      {
+                        "api_format": "openai/chat-completions",
+                        "enabled": true,
+                        "host": "127.0.0.1",
+                        "id": "ui-chat-connection"
+                      }
+                    ],
+                    "credential": {
+                      "id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+                      "kind": "bearer",
+                      "revision": 0,
+                      "secret_present": true,
+                      "status": "active",
+                      "upstream_id": "ui-chat"
+                    },
+                    "identity": {
+                      "email": null,
+                      "phone": null,
+                      "username": null
+                    },
+                    "plan": null,
+                    "plan_source": null,
+                    "provider": "API"
+                  },
+                  "name": "",
+                  "native": false,
+                  "native_account": null,
+                  "operations": [
+                    "details",
+                    "update_credential",
+                    "enable",
+                    "disable",
+                    "remove",
+                    "models"
+                  ],
+                  "plan": null,
+                  "plan_source": null,
+                  "provider": "API",
+                  "status": "enabled"
+                },
+                {
+                  "category": "api",
+                  "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+                  "identity": {
+                    "email": null,
+                    "phone": null,
+                    "username": null
+                  },
+                  "managed": {
+                    "authentication": "api_key",
+                    "binding_count": 1,
+                    "category": "api",
+                    "connections": [
+                      {
+                        "api_format": "openai/responses",
+                        "enabled": true,
+                        "host": "127.0.0.1",
+                        "id": "ui-responses-connection"
+                      }
+                    ],
+                    "credential": {
+                      "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+                      "kind": "bearer",
+                      "revision": 0,
+                      "secret_present": true,
+                      "status": "active",
+                      "upstream_id": "ui-responses"
+                    },
+                    "identity": {
+                      "email": null,
+                      "phone": null,
+                      "username": null
+                    },
+                    "plan": null,
+                    "plan_source": null,
+                    "provider": "API"
+                  },
+                  "name": "",
+                  "native": false,
+                  "native_account": null,
+                  "operations": [
+                    "details",
+                    "update_credential",
+                    "enable",
+                    "disable",
+                    "remove",
+                    "models"
+                  ],
+                  "plan": null,
+                  "plan_source": null,
+                  "provider": "API",
+                  "status": "enabled"
+                }
+              ],
+              "next_cursor": null,
+              "plan_totals": {},
+              "revision": "rev-2",
+              "total": 2,
+              "unobserved_plan_total": 2
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/operations/provider-account-pools",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "snapshot_id": "runtime-account-pools:389236951ade31f31c160f561539cab1:1791516449734:1",
+              "observed_at_ms": 1791516449734,
+              "items": [
+                {
+                  "presentation": {
+                    "api_format": "openai/chat-completions",
+                    "category": "api",
+                    "host": "127.0.0.1",
+                    "identity": {
+                      "email": null,
+                      "phone": null,
+                      "username": null
+                    },
+                    "provider": "API",
+                    "source": null
+                  },
+                  "provider_id": "ui-chat",
+                  "channel_id": "ui-chat-connection",
+                  "account_id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+                  "account_kind": "bearer",
+                  "credential_revision": 0,
+                  "config_version_id": "edit-90483db8-e018-4512-b030-001714decd63",
+                  "auth_status": "active",
+                  "runtime_status": "available",
+                  "enabled": true,
+                  "priority": 0,
+                  "weight": 1,
+                  "max_concurrency": 1,
+                  "active_leases": 0,
+                  "expires_at_ms": null,
+                  "refresh_due_at_ms": null,
+                  "quota_sync_due_at_ms": null,
+                  "entitlement": null
+                },
+                {
+                  "presentation": {
+                    "api_format": "openai/responses",
+                    "category": "api",
+                    "host": "127.0.0.1",
+                    "identity": {
+                      "email": null,
+                      "phone": null,
+                      "username": null
+                    },
+                    "provider": "API",
+                    "source": null
+                  },
+                  "provider_id": "ui-responses",
+                  "channel_id": "ui-responses-connection",
+                  "account_id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+                  "account_kind": "bearer",
+                  "credential_revision": 0,
+                  "config_version_id": "edit-90483db8-e018-4512-b030-001714decd63",
+                  "auth_status": "active",
+                  "runtime_status": "available",
+                  "enabled": true,
+                  "priority": 0,
+                  "weight": 1,
+                  "max_concurrency": 1,
+                  "active_leases": 0,
+                  "expires_at_ms": null,
+                  "refresh_due_at_ms": null,
+                  "quota_sync_due_at_ms": null,
+                  "entitlement": null
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbeb09f38ff28",
+              "uptime_seconds": 32
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/routes",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-2",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-2",
+              "observation_version": "audit-17",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/route-candidates",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-2",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "edit-90483db8-e018-4512-b030-001714decd63",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "edit-90483db8-e018-4512-b030-001714decd63",
+              "revision": "rev-2",
+              "observation_version": "audit-17",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": false,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-chat-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-chat"
+                },
+                {
+                  "adapter_id": "grok.official.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://api.x.ai",
+                  "enabled": false,
+                  "id": "ui-grok-api-connection",
+                  "inference_path": "/v1/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-grok-api"
+                },
+                {
+                  "adapter_id": "openai-compatible.chat-completions",
+                  "api_format": "openai/chat-completions",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-kimi-connection",
+                  "inference_path": "/chat/completions",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-kimi"
+                },
+                {
+                  "adapter_id": "anthropic-compatible.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-messages-connection",
+                  "inference_path": "/v1/messages",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-messages"
+                },
+                {
+                  "adapter_id": "openai-compatible.responses",
+                  "api_format": "openai/responses",
+                  "base_url": "https://127.0.0.1:63646/v1",
+                  "enabled": true,
+                  "id": "ui-responses-connection",
+                  "inference_path": "/responses",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "ui-responses"
+                }
+              ],
+              "next_cursor": null
+            }
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置2匹配授权1账号类别2套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（2）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口2 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key已配置，调用未验证可用额度余额未观测快照 2026/10/9 11:27:29 · 1 个连接 · runtime-account-pools:389236951ade31f31c160f561539cab1:1791516449734:1 · ui-chat/ui-chat-connection · revision 0 · 配置 edit-90483db8-e018-4512-b030-001714decd63Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key已配置，调用未验证可用额度余额未观测快照 2026/10/9 11:27:29 · 1 个连接 · runtime-account-pools:389236951ade31f31c160f561539cab1:1791516449734:1 · ui-responses/ui-responses-connection · revision 0 · 配置 edit-90483db8-e018-4512-b030-001714decd63Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 2 / 2 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    }
+  ]
+}

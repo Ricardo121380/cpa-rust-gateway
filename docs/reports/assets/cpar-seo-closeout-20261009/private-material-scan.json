@@ -1,0 +1,6 @@
+{
+  "result": "PASS",
+  "private_fields_compared": 78,
+  "matches": [],
+  "scope": "Only task-generated private synthetic input values compared locally; values are never exported"
+}

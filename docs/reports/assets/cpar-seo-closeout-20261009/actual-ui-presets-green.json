@@ -1,0 +1,18 @@
+{
+  "environment": "stock serve embedded /admin-ui/",
+  "spaceId": 35,
+  "pageLabel": "p2",
+  "origin": "http://127.0.0.1:63430",
+  "gatewayPid": 39745,
+  "binarySha256": "350998eafeb25e5dac6a1a2ab0811a0bd37951a06d5c3620d89deeccf65150b6",
+  "sourceSha": "f57a8bb23c12f986c529daeb304d4f813fa9af4d",
+  "managementHandlerStorage": true,
+  "upstream": "synthetic loopback only",
+  "results": [
+    {
+      "scenario": "administrator-first-change-and-login",
+      "result": "PASS",
+      "actualPage": "http://127.0.0.1:63430/admin-ui/#/"
+    }
+  ]
+}

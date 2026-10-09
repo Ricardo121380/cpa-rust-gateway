@@ -1,0 +1,40 @@
+{
+  "name": "accepted-fixture-browser",
+  "command": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_SEO={spaceId:35,origin:\"http://127.0.0.1:52267\",out:\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-seo-closeout-20261009/accepted-fixture-browser.json\",taskSpace};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source/scripts/acceptance/cpar-seo-fixture.mjs\");"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "started_utc": "2026-10-09T03:55:20.835024+00:00",
+  "finished_utc": "2026-10-09T03:57:23.545647+00:00",
+  "duration_seconds": 122.728,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+    "dirty": [],
+    "tracked_files_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+    "dirty": [],
+    "tracked_files_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-fixture-browser.log",
+      "sha256": "70c19ce1892d38320ad9542498f2ce707ddb75d47c6652362b899fb834ecac52",
+      "bytes": 85135
+    }
+  }
+}

@@ -1,0 +1,4011 @@
+{
+  "environment": "development fixture only",
+  "spaceId": 35,
+  "results": [
+    {
+      "scenario": "E-01-responses-0",
+      "result": "PASS",
+      "preset": {
+        "id": "responses",
+        "name": "OpenAI 兼容 · Responses",
+        "kind": "openai-compatible",
+        "channel": "openai-compatible",
+        "adapter": "openai-compatible.responses",
+        "format": "openai/responses",
+        "base": "https://api.openai.com/v1",
+        "path": "/responses",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "provider-e1b8fb13-87ac-4ef2-86bd-e51461786771",
+              "name": "Synthetic responses 0",
+              "kind": "openai-compatible",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": "policy-719ceb7e-0f21-42b0-823d-4d959567a6a2"
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "endpoint-cbddaf4a-60b0-4f59-b7f2-376420273c3b",
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true,
+              "upstream_id": "provider-e1b8fb13-87ac-4ef2-86bd-e51461786771"
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-1294c9c4-1b8f-440c-a307-5f56a541030a",
+              "upstream_id": "provider-e1b8fb13-87ac-4ef2-86bd-e51461786771",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-1294c9c4-1b8f-440c-a307-5f56a541030a",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "endpoint-cbddaf4a-60b0-4f59-b7f2-376420273c3b",
+              "upstream_id": "provider-e1b8fb13-87ac-4ef2-86bd-e51461786771"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-d5cfe13c-9b03-4fcd-8c3b-782d495e4788"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEgressPolicy",
+            "body": {
+              "id": "policy-719ceb7e-0f21-42b0-823d-4d959567a6a2"
+            }
+          },
+          {
+            "operation": "createUpstream",
+            "body": {
+              "id": "provider-e1b8fb13-87ac-4ef2-86bd-e51461786771",
+              "kind": "openai-compatible",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "createEndpoint",
+            "path": {
+              "upstream_id": "provider-e1b8fb13-87ac-4ef2-86bd-e51461786771"
+            },
+            "body": {
+              "id": "endpoint-cbddaf4a-60b0-4f59-b7f2-376420273c3b",
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/responses",
+              "transport": "https",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "provider-e1b8fb13-87ac-4ef2-86bd-e51461786771"
+            },
+            "body": {
+              "id": "account-1294c9c4-1b8f-440c-a307-5f56a541030a",
+              "channel": "openai-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "endpoint-cbddaf4a-60b0-4f59-b7f2-376420273c3b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "endpoint-cbddaf4a-60b0-4f59-b7f2-376420273c3b"
+            },
+            "body": {
+              "credential_id": "account-1294c9c4-1b8f-440c-a307-5f56a541030a",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-d5cfe13c-9b03-4fcd-8c3b-782d495e4788"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-d5cfe13c-9b03-4fcd-8c3b-782d495e4788"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-d5cfe13c-9b03-4fcd-8c3b-782d495e4788"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-d5cfe13c-9b03-4fcd-8c3b-782d495e4788"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-responses-1",
+      "result": "PASS",
+      "preset": {
+        "id": "responses",
+        "name": "OpenAI 兼容 · Responses",
+        "kind": "openai-compatible",
+        "channel": "openai-compatible",
+        "adapter": "openai-compatible.responses",
+        "format": "openai/responses",
+        "base": "https://api.openai.com/v1",
+        "path": "/responses",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "openai-compatible",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-52cdae81-1b6c-471b-b17a-a180dfd0026d",
+              "upstream_id": "batch-a-api-1",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-52cdae81-1b6c-471b-b17a-a180dfd0026d",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-da978439-fa24-4574-bd95-41d7224d621f"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-1"
+            },
+            "body": {
+              "id": "account-52cdae81-1b6c-471b-b17a-a180dfd0026d",
+              "channel": "openai-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {
+              "credential_id": "account-52cdae81-1b6c-471b-b17a-a180dfd0026d",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-da978439-fa24-4574-bd95-41d7224d621f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-da978439-fa24-4574-bd95-41d7224d621f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-da978439-fa24-4574-bd95-41d7224d621f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-da978439-fa24-4574-bd95-41d7224d621f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-responses-2",
+      "result": "PASS",
+      "preset": {
+        "id": "responses",
+        "name": "OpenAI 兼容 · Responses",
+        "kind": "openai-compatible",
+        "channel": "openai-compatible",
+        "adapter": "openai-compatible.responses",
+        "format": "openai/responses",
+        "base": "https://api.openai.com/v1",
+        "path": "/responses",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "openai-compatible",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            },
+            {
+              "id": "batch-a-api-2",
+              "name": "Fixture API 2",
+              "kind": "openai-compatible",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            },
+            {
+              "id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2",
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-7d2cd115-c301-4d21-b784-2728058fe529",
+              "upstream_id": "batch-a-api-2",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-7d2cd115-c301-4d21-b784-2728058fe529",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-fd674d02-bc9e-4b26-b673-bb91a5ec96cf"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-2"
+            },
+            "body": {
+              "id": "account-7d2cd115-c301-4d21-b784-2728058fe529",
+              "channel": "openai-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {
+              "credential_id": "account-7d2cd115-c301-4d21-b784-2728058fe529",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-fd674d02-bc9e-4b26-b673-bb91a5ec96cf"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-fd674d02-bc9e-4b26-b673-bb91a5ec96cf"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-fd674d02-bc9e-4b26-b673-bb91a5ec96cf"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-fd674d02-bc9e-4b26-b673-bb91a5ec96cf"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-chat-0",
+      "result": "PASS",
+      "preset": {
+        "id": "chat",
+        "name": "OpenAI 兼容 · Chat Completions",
+        "kind": "openai-compatible",
+        "channel": "openai-compatible",
+        "adapter": "openai-compatible.chat-completions",
+        "format": "openai/chat-completions",
+        "base": "https://api.openai.com/v1",
+        "path": "/chat/completions",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "provider-97494c6e-3bf1-4383-9d50-f36debd4e8a9",
+              "name": "Synthetic chat 0",
+              "kind": "openai-compatible",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": "policy-3522b2ba-3806-4e07-9d96-fa1b96c9b227"
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "endpoint-e1ca52e6-b0c6-466c-88ee-1a020ebb0a96",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true,
+              "upstream_id": "provider-97494c6e-3bf1-4383-9d50-f36debd4e8a9"
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-b3ae03e8-f08d-4868-b28d-1030c9a91d46",
+              "upstream_id": "provider-97494c6e-3bf1-4383-9d50-f36debd4e8a9",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-b3ae03e8-f08d-4868-b28d-1030c9a91d46",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "endpoint-e1ca52e6-b0c6-466c-88ee-1a020ebb0a96",
+              "upstream_id": "provider-97494c6e-3bf1-4383-9d50-f36debd4e8a9"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-c504b953-6d6c-4c6b-9697-660eb5ed26b9"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEgressPolicy",
+            "body": {
+              "id": "policy-3522b2ba-3806-4e07-9d96-fa1b96c9b227"
+            }
+          },
+          {
+            "operation": "createUpstream",
+            "body": {
+              "id": "provider-97494c6e-3bf1-4383-9d50-f36debd4e8a9",
+              "kind": "openai-compatible",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "createEndpoint",
+            "path": {
+              "upstream_id": "provider-97494c6e-3bf1-4383-9d50-f36debd4e8a9"
+            },
+            "body": {
+              "id": "endpoint-e1ca52e6-b0c6-466c-88ee-1a020ebb0a96",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/chat/completions",
+              "transport": "https",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "provider-97494c6e-3bf1-4383-9d50-f36debd4e8a9"
+            },
+            "body": {
+              "id": "account-b3ae03e8-f08d-4868-b28d-1030c9a91d46",
+              "channel": "openai-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "endpoint-e1ca52e6-b0c6-466c-88ee-1a020ebb0a96"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "endpoint-e1ca52e6-b0c6-466c-88ee-1a020ebb0a96"
+            },
+            "body": {
+              "credential_id": "account-b3ae03e8-f08d-4868-b28d-1030c9a91d46",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-c504b953-6d6c-4c6b-9697-660eb5ed26b9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-c504b953-6d6c-4c6b-9697-660eb5ed26b9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-c504b953-6d6c-4c6b-9697-660eb5ed26b9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-c504b953-6d6c-4c6b-9697-660eb5ed26b9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-chat-1",
+      "result": "PASS",
+      "preset": {
+        "id": "chat",
+        "name": "OpenAI 兼容 · Chat Completions",
+        "kind": "openai-compatible",
+        "channel": "openai-compatible",
+        "adapter": "openai-compatible.chat-completions",
+        "format": "openai/chat-completions",
+        "base": "https://api.openai.com/v1",
+        "path": "/chat/completions",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "openai-compatible",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-5bed529a-5b9e-4b1d-9bd1-2e99ea8f77c3",
+              "upstream_id": "batch-a-api-1",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-5bed529a-5b9e-4b1d-9bd1-2e99ea8f77c3",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-51183151-5864-4832-aeac-fc27542aaeee"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-1"
+            },
+            "body": {
+              "id": "account-5bed529a-5b9e-4b1d-9bd1-2e99ea8f77c3",
+              "channel": "openai-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {
+              "credential_id": "account-5bed529a-5b9e-4b1d-9bd1-2e99ea8f77c3",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-51183151-5864-4832-aeac-fc27542aaeee"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-51183151-5864-4832-aeac-fc27542aaeee"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-51183151-5864-4832-aeac-fc27542aaeee"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-51183151-5864-4832-aeac-fc27542aaeee"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-chat-2",
+      "result": "PASS",
+      "preset": {
+        "id": "chat",
+        "name": "OpenAI 兼容 · Chat Completions",
+        "kind": "openai-compatible",
+        "channel": "openai-compatible",
+        "adapter": "openai-compatible.chat-completions",
+        "format": "openai/chat-completions",
+        "base": "https://api.openai.com/v1",
+        "path": "/chat/completions",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "openai-compatible",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            },
+            {
+              "id": "batch-a-api-2",
+              "name": "Fixture API 2",
+              "kind": "openai-compatible",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            },
+            {
+              "id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.openai.com/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-c9189b63-0f0a-49d2-a8ee-2766eaa7191f",
+              "upstream_id": "batch-a-api-2",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-c9189b63-0f0a-49d2-a8ee-2766eaa7191f",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-2a69beb4-0570-429a-a44e-a64956e3a1f9"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-2"
+            },
+            "body": {
+              "id": "account-c9189b63-0f0a-49d2-a8ee-2766eaa7191f",
+              "channel": "openai-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {
+              "credential_id": "account-c9189b63-0f0a-49d2-a8ee-2766eaa7191f",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-2a69beb4-0570-429a-a44e-a64956e3a1f9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-2a69beb4-0570-429a-a44e-a64956e3a1f9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-2a69beb4-0570-429a-a44e-a64956e3a1f9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-2a69beb4-0570-429a-a44e-a64956e3a1f9"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-messages-0",
+      "result": "PASS",
+      "preset": {
+        "id": "messages",
+        "name": "Anthropic 兼容 · Messages",
+        "kind": "anthropic-compatible",
+        "channel": "anthropic-compatible",
+        "adapter": "anthropic-compatible.messages",
+        "format": "anthropic/messages",
+        "base": "https://api.anthropic.com",
+        "path": "/v1/messages",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "provider-d3d9e961-35e1-4658-a071-ac650f22cdc3",
+              "name": "Synthetic messages 0",
+              "kind": "anthropic-compatible",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": "policy-f6f3dd6a-9941-43bd-b6c1-8ce0a9b936ee"
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "endpoint-08a434cb-57f5-4613-8326-6e5b043d0604",
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://api.anthropic.com",
+              "inference_path": "/v1/messages",
+              "models_path": "/v1/models",
+              "transport": "http",
+              "enabled": true,
+              "upstream_id": "provider-d3d9e961-35e1-4658-a071-ac650f22cdc3"
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-761fe14a-c8ce-4ddf-b3c6-45caa64b043a",
+              "upstream_id": "provider-d3d9e961-35e1-4658-a071-ac650f22cdc3",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-761fe14a-c8ce-4ddf-b3c6-45caa64b043a",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "endpoint-08a434cb-57f5-4613-8326-6e5b043d0604",
+              "upstream_id": "provider-d3d9e961-35e1-4658-a071-ac650f22cdc3"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-aac8010c-2072-4612-9398-a0df2e8aa41f"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEgressPolicy",
+            "body": {
+              "id": "policy-f6f3dd6a-9941-43bd-b6c1-8ce0a9b936ee"
+            }
+          },
+          {
+            "operation": "createUpstream",
+            "body": {
+              "id": "provider-d3d9e961-35e1-4658-a071-ac650f22cdc3",
+              "kind": "anthropic-compatible",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "createEndpoint",
+            "path": {
+              "upstream_id": "provider-d3d9e961-35e1-4658-a071-ac650f22cdc3"
+            },
+            "body": {
+              "id": "endpoint-08a434cb-57f5-4613-8326-6e5b043d0604",
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://api.anthropic.com",
+              "inference_path": "/v1/messages",
+              "transport": "https",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "provider-d3d9e961-35e1-4658-a071-ac650f22cdc3"
+            },
+            "body": {
+              "id": "account-761fe14a-c8ce-4ddf-b3c6-45caa64b043a",
+              "channel": "anthropic-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "endpoint-08a434cb-57f5-4613-8326-6e5b043d0604"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "endpoint-08a434cb-57f5-4613-8326-6e5b043d0604"
+            },
+            "body": {
+              "credential_id": "account-761fe14a-c8ce-4ddf-b3c6-45caa64b043a",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-aac8010c-2072-4612-9398-a0df2e8aa41f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-aac8010c-2072-4612-9398-a0df2e8aa41f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-aac8010c-2072-4612-9398-a0df2e8aa41f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-aac8010c-2072-4612-9398-a0df2e8aa41f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Messages1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-messages-1",
+      "result": "PASS",
+      "preset": {
+        "id": "messages",
+        "name": "Anthropic 兼容 · Messages",
+        "kind": "anthropic-compatible",
+        "channel": "anthropic-compatible",
+        "adapter": "anthropic-compatible.messages",
+        "format": "anthropic/messages",
+        "base": "https://api.anthropic.com",
+        "path": "/v1/messages",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "anthropic-compatible",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://api.anthropic.com",
+              "inference_path": "/v1/messages",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-ce7d77fa-13ce-4840-b522-dce1fa1c5b9a",
+              "upstream_id": "batch-a-api-1",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-ce7d77fa-13ce-4840-b522-dce1fa1c5b9a",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-b57f89b4-6dd6-40bf-97f0-98509cdbacd3"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-1"
+            },
+            "body": {
+              "id": "account-ce7d77fa-13ce-4840-b522-dce1fa1c5b9a",
+              "channel": "anthropic-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {
+              "credential_id": "account-ce7d77fa-13ce-4840-b522-dce1fa1c5b9a",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-b57f89b4-6dd6-40bf-97f0-98509cdbacd3"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-b57f89b4-6dd6-40bf-97f0-98509cdbacd3"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-b57f89b4-6dd6-40bf-97f0-98509cdbacd3"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-b57f89b4-6dd6-40bf-97f0-98509cdbacd3"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Messages1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-messages-2",
+      "result": "PASS",
+      "preset": {
+        "id": "messages",
+        "name": "Anthropic 兼容 · Messages",
+        "kind": "anthropic-compatible",
+        "channel": "anthropic-compatible",
+        "adapter": "anthropic-compatible.messages",
+        "format": "anthropic/messages",
+        "base": "https://api.anthropic.com",
+        "path": "/v1/messages",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "anthropic-compatible",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            },
+            {
+              "id": "batch-a-api-2",
+              "name": "Fixture API 2",
+              "kind": "anthropic-compatible",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://api.anthropic.com",
+              "inference_path": "/v1/messages",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            },
+            {
+              "id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2",
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://api.anthropic.com",
+              "inference_path": "/v1/messages",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-72f620b0-5a1d-437d-9fba-81112f4347b4",
+              "upstream_id": "batch-a-api-2",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-72f620b0-5a1d-437d-9fba-81112f4347b4",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-883cace5-5eb7-4acd-9ced-4b307d763c69"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-2"
+            },
+            "body": {
+              "id": "account-72f620b0-5a1d-437d-9fba-81112f4347b4",
+              "channel": "anthropic-compatible"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {
+              "credential_id": "account-72f620b0-5a1d-437d-9fba-81112f4347b4",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-883cace5-5eb7-4acd-9ced-4b307d763c69"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-883cace5-5eb7-4acd-9ced-4b307d763c69"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-883cace5-5eb7-4acd-9ced-4b307d763c69"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-883cace5-5eb7-4acd-9ced-4b307d763c69"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Messages1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-kimi-0",
+      "result": "PASS",
+      "preset": {
+        "id": "kimi",
+        "name": "Kimi · API",
+        "kind": "kimi",
+        "channel": "kimi-api",
+        "adapter": "openai-compatible.chat-completions",
+        "format": "openai/chat-completions",
+        "base": "https://api.moonshot.cn/v1",
+        "path": "/chat/completions",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "provider-1fedb6cb-c923-40f1-96ad-8a2082612aba",
+              "name": "Synthetic kimi 0",
+              "kind": "kimi",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": "policy-7d972425-96d6-4d3b-8eda-c3c11260f987"
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "endpoint-69060ff2-b5e7-4d90-9af8-3dff3cee7311",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.moonshot.cn/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true,
+              "upstream_id": "provider-1fedb6cb-c923-40f1-96ad-8a2082612aba"
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-59c77626-3e1a-4b68-9968-1470aeaec058",
+              "upstream_id": "provider-1fedb6cb-c923-40f1-96ad-8a2082612aba",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-59c77626-3e1a-4b68-9968-1470aeaec058",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "endpoint-69060ff2-b5e7-4d90-9af8-3dff3cee7311",
+              "upstream_id": "provider-1fedb6cb-c923-40f1-96ad-8a2082612aba"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-4b61281b-f98e-4e6e-8b29-3f824454700b"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEgressPolicy",
+            "body": {
+              "id": "policy-7d972425-96d6-4d3b-8eda-c3c11260f987"
+            }
+          },
+          {
+            "operation": "createUpstream",
+            "body": {
+              "id": "provider-1fedb6cb-c923-40f1-96ad-8a2082612aba",
+              "kind": "kimi",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "createEndpoint",
+            "path": {
+              "upstream_id": "provider-1fedb6cb-c923-40f1-96ad-8a2082612aba"
+            },
+            "body": {
+              "id": "endpoint-69060ff2-b5e7-4d90-9af8-3dff3cee7311",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.moonshot.cn/v1",
+              "inference_path": "/chat/completions",
+              "transport": "https",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "provider-1fedb6cb-c923-40f1-96ad-8a2082612aba"
+            },
+            "body": {
+              "id": "account-59c77626-3e1a-4b68-9968-1470aeaec058",
+              "channel": "kimi-api"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "endpoint-69060ff2-b5e7-4d90-9af8-3dff3cee7311"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "endpoint-69060ff2-b5e7-4d90-9af8-3dff3cee7311"
+            },
+            "body": {
+              "credential_id": "account-59c77626-3e1a-4b68-9968-1470aeaec058",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-4b61281b-f98e-4e6e-8b29-3f824454700b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-4b61281b-f98e-4e6e-8b29-3f824454700b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-4b61281b-f98e-4e6e-8b29-3f824454700b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-4b61281b-f98e-4e6e-8b29-3f824454700b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-kimi-1",
+      "result": "PASS",
+      "preset": {
+        "id": "kimi",
+        "name": "Kimi · API",
+        "kind": "kimi",
+        "channel": "kimi-api",
+        "adapter": "openai-compatible.chat-completions",
+        "format": "openai/chat-completions",
+        "base": "https://api.moonshot.cn/v1",
+        "path": "/chat/completions",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "kimi",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.moonshot.cn/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-822ecfbf-3de0-41b3-bdb1-d3fbf2ac8713",
+              "upstream_id": "batch-a-api-1",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-822ecfbf-3de0-41b3-bdb1-d3fbf2ac8713",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-49bee77d-f47f-463e-99e9-6192858aee9f"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-1"
+            },
+            "body": {
+              "id": "account-822ecfbf-3de0-41b3-bdb1-d3fbf2ac8713",
+              "channel": "kimi-api"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {
+              "credential_id": "account-822ecfbf-3de0-41b3-bdb1-d3fbf2ac8713",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-49bee77d-f47f-463e-99e9-6192858aee9f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-49bee77d-f47f-463e-99e9-6192858aee9f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-49bee77d-f47f-463e-99e9-6192858aee9f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-49bee77d-f47f-463e-99e9-6192858aee9f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-kimi-2",
+      "result": "PASS",
+      "preset": {
+        "id": "kimi",
+        "name": "Kimi · API",
+        "kind": "kimi",
+        "channel": "kimi-api",
+        "adapter": "openai-compatible.chat-completions",
+        "format": "openai/chat-completions",
+        "base": "https://api.moonshot.cn/v1",
+        "path": "/chat/completions",
+        "fixed": false,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "kimi",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            },
+            {
+              "id": "batch-a-api-2",
+              "name": "Fixture API 2",
+              "kind": "kimi",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.moonshot.cn/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            },
+            {
+              "id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2",
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://api.moonshot.cn/v1",
+              "inference_path": "/chat/completions",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-0c0a2939-d30f-45c4-ad04-c5d82410e56f",
+              "upstream_id": "batch-a-api-2",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-0c0a2939-d30f-45c4-ad04-c5d82410e56f",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-62d9a134-637c-47d1-9bab-d69f6e07d71c"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-2"
+            },
+            "body": {
+              "id": "account-0c0a2939-d30f-45c4-ad04-c5d82410e56f",
+              "channel": "kimi-api"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {
+              "credential_id": "account-0c0a2939-d30f-45c4-ad04-c5d82410e56f",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-62d9a134-637c-47d1-9bab-d69f6e07d71c"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-62d9a134-637c-47d1-9bab-d69f6e07d71c"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-62d9a134-637c-47d1-9bab-d69f6e07d71c"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-62d9a134-637c-47d1-9bab-d69f6e07d71c"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-grok-api-0",
+      "result": "PASS",
+      "preset": {
+        "id": "grok-api",
+        "name": "Grok · API",
+        "kind": "grok.official",
+        "channel": "grok.official",
+        "adapter": "grok.official.responses",
+        "format": "openai/responses",
+        "base": "https://api.x.ai",
+        "path": "/v1/responses",
+        "fixed": true,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "provider-a1e80eaa-1d17-4041-96c3-2538f2f4ca28",
+              "name": "Synthetic grok-api 0",
+              "kind": "grok.official",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": "policy-73d951a0-1319-47a1-b35a-4b2fdc2435f5"
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "endpoint-e0fd70d7-f4ec-47ba-97d9-49cf4d33ed27",
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "inference_path": "/v1/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true,
+              "upstream_id": "provider-a1e80eaa-1d17-4041-96c3-2538f2f4ca28"
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-e18f989a-7a79-40b3-af38-480fd8145d6f",
+              "upstream_id": "provider-a1e80eaa-1d17-4041-96c3-2538f2f4ca28",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-e18f989a-7a79-40b3-af38-480fd8145d6f",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "endpoint-e0fd70d7-f4ec-47ba-97d9-49cf4d33ed27",
+              "upstream_id": "provider-a1e80eaa-1d17-4041-96c3-2538f2f4ca28"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-0b2c9cae-76e4-41d5-9096-94aab6cf2b8f"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEgressPolicy",
+            "body": {
+              "id": "policy-73d951a0-1319-47a1-b35a-4b2fdc2435f5"
+            }
+          },
+          {
+            "operation": "createUpstream",
+            "body": {
+              "id": "provider-a1e80eaa-1d17-4041-96c3-2538f2f4ca28",
+              "kind": "grok.official",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "createEndpoint",
+            "path": {
+              "upstream_id": "provider-a1e80eaa-1d17-4041-96c3-2538f2f4ca28"
+            },
+            "body": {
+              "id": "endpoint-e0fd70d7-f4ec-47ba-97d9-49cf4d33ed27",
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "inference_path": "/v1/responses",
+              "transport": "https",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "provider-a1e80eaa-1d17-4041-96c3-2538f2f4ca28"
+            },
+            "body": {
+              "id": "account-e18f989a-7a79-40b3-af38-480fd8145d6f",
+              "channel": "grok.official"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "endpoint-e0fd70d7-f4ec-47ba-97d9-49cf4d33ed27"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "endpoint-e0fd70d7-f4ec-47ba-97d9-49cf4d33ed27"
+            },
+            "body": {
+              "credential_id": "account-e18f989a-7a79-40b3-af38-480fd8145d6f",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-0b2c9cae-76e4-41d5-9096-94aab6cf2b8f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-0b2c9cae-76e4-41d5-9096-94aab6cf2b8f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-0b2c9cae-76e4-41d5-9096-94aab6cf2b8f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-0b2c9cae-76e4-41d5-9096-94aab6cf2b8f"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-grok-api-1",
+      "result": "PASS",
+      "preset": {
+        "id": "grok-api",
+        "name": "Grok · API",
+        "kind": "grok.official",
+        "channel": "grok.official",
+        "adapter": "grok.official.responses",
+        "format": "openai/responses",
+        "base": "https://api.x.ai",
+        "path": "/v1/responses",
+        "fixed": true,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "grok.official",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "inference_path": "/v1/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-d2457ba3-ed48-46c4-870a-74ffc3fe1775",
+              "upstream_id": "batch-a-api-1",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-d2457ba3-ed48-46c4-870a-74ffc3fe1775",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-055675ab-bb41-41c8-b7b3-33db43b18d87"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-1"
+            },
+            "body": {
+              "id": "account-d2457ba3-ed48-46c4-870a-74ffc3fe1775",
+              "channel": "grok.official"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-1-endpoint"
+            },
+            "body": {
+              "credential_id": "account-d2457ba3-ed48-46c4-870a-74ffc3fe1775",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-055675ab-bb41-41c8-b7b3-33db43b18d87"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-055675ab-bb41-41c8-b7b3-33db43b18d87"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-055675ab-bb41-41c8-b7b3-33db43b18d87"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-055675ab-bb41-41c8-b7b3-33db43b18d87"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    },
+    {
+      "scenario": "E-01-grok-api-2",
+      "result": "PASS",
+      "preset": {
+        "id": "grok-api",
+        "name": "Grok · API",
+        "kind": "grok.official",
+        "channel": "grok.official",
+        "adapter": "grok.official.responses",
+        "format": "openai/responses",
+        "base": "https://api.x.ai",
+        "path": "/v1/responses",
+        "fixed": true,
+        "native": false
+      },
+      "actual": {
+        "snapshot": {
+          "providers": [
+            {
+              "id": "batch-a-api-1",
+              "name": "Fixture API 1",
+              "kind": "grok.official",
+              "enabled": false,
+              "tags": [],
+              "egress_policy_id": null
+            },
+            {
+              "id": "batch-a-api-2",
+              "name": "Fixture API 2",
+              "kind": "grok.official",
+              "enabled": true,
+              "tags": [],
+              "egress_policy_id": null
+            }
+          ],
+          "endpoints": [
+            {
+              "id": "batch-a-api-1-endpoint",
+              "upstream_id": "batch-a-api-1",
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "inference_path": "/v1/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": false
+            },
+            {
+              "id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2",
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "inference_path": "/v1/responses",
+              "models_path": "/models",
+              "transport": "http",
+              "enabled": true
+            }
+          ],
+          "accounts": [
+            {
+              "id": "account-45b4d5b3-3d03-4273-b75c-754b0a40fb91",
+              "upstream_id": "batch-a-api-2",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ],
+          "bindings": [
+            {
+              "credential_id": "account-45b4d5b3-3d03-4273-b75c-754b0a40fb91",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "concurrency": 1,
+              "endpoint_id": "batch-a-api-2-endpoint",
+              "upstream_id": "batch-a-api-2"
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-58ed1a9e-a10e-4c31-a67a-7a6c0a4e8b0b"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "importChannelAccount",
+            "path": {
+              "upstream_id": "batch-a-api-2"
+            },
+            "body": {
+              "id": "account-45b4d5b3-3d03-4273-b75c-754b0a40fb91",
+              "channel": "grok.official"
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listEndpointCredentialBindings",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "createEndpointCredentialBinding",
+            "path": {
+              "endpoint_id": "batch-a-api-2-endpoint"
+            },
+            "body": {
+              "credential_id": "account-45b4d5b3-3d03-4273-b75c-754b0a40fb91",
+              "enabled": true
+            }
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listManagementAuditEvents",
+            "body": {}
+          },
+          {
+            "operation": "compareConfigVersions",
+            "path": {
+              "config_version_id": "edit-58ed1a9e-a10e-4c31-a67a-7a6c0a4e8b0b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "getAccountRestorationReview",
+            "path": {
+              "config_version_id": "edit-58ed1a9e-a10e-4c31-a67a-7a6c0a4e8b0b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "validateConfigVersion",
+            "path": {
+              "config_version_id": "edit-58ed1a9e-a10e-4c31-a67a-7a6c0a4e8b0b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "publishConfigVersion",
+            "path": {
+              "config_version_id": "edit-58ed1a9e-a10e-4c31-a67a-7a6c0a4e8b0b"
+            },
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key运行状态未观测未观测运行连接额度余额未观测Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿"
+      }
+    }
+  ]
+}

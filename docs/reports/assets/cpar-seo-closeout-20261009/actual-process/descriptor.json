@@ -1,0 +1,94 @@
+{
+  "origin": "http://127.0.0.1:54641",
+  "data_origin": "http://127.0.0.1:54642",
+  "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn",
+  "state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn/state",
+  "command": [
+    "/usr/bin/sandbox-exec",
+    "-p",
+    "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
+    "serve",
+    "--state-dir",
+    "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn/state",
+    "--credential-dir",
+    "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn/credentials",
+    "--data-listen",
+    "127.0.0.1:54642",
+    "--management-listen",
+    "127.0.0.1:54641"
+  ],
+  "gateway_pid": 56948,
+  "binary_sha256": "794bf6c34b5d193ae320d879ba92ef5f15b4a0b6da3b4da4eb68fee18807cf2f",
+  "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+  "source_dirty": [],
+  "initial_password_file": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn/initial-password",
+  "password_file": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn/current-password",
+  "api_material_file": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn/api-material.json",
+  "kiro_material_file": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn/kiro-material.json",
+  "targets": {
+    "responses": {
+      "upstream_id": "ui-responses",
+      "endpoint_id": "ui-responses-connection",
+      "base": "https://127.0.0.1:54640/v1",
+      "path": "/responses",
+      "adapter": "openai-compatible.responses",
+      "format": "openai/responses",
+      "enabled": true,
+      "endpoint_enabled": true
+    },
+    "chat": {
+      "upstream_id": "ui-chat",
+      "endpoint_id": "ui-chat-connection",
+      "base": "https://127.0.0.1:54640/v1",
+      "path": "/chat/completions",
+      "adapter": "openai-compatible.chat-completions",
+      "format": "openai/chat-completions",
+      "enabled": true,
+      "endpoint_enabled": true
+    },
+    "messages": {
+      "upstream_id": "ui-messages",
+      "endpoint_id": "ui-messages-connection",
+      "base": "https://127.0.0.1:54640/v1",
+      "path": "/v1/messages",
+      "adapter": "anthropic-compatible.messages",
+      "format": "anthropic/messages",
+      "enabled": true,
+      "endpoint_enabled": true
+    },
+    "kimi": {
+      "upstream_id": "ui-kimi",
+      "endpoint_id": "ui-kimi-connection",
+      "base": "https://127.0.0.1:54640/v1",
+      "path": "/chat/completions",
+      "adapter": "openai-compatible.chat-completions",
+      "format": "openai/chat-completions",
+      "enabled": true,
+      "endpoint_enabled": true
+    },
+    "grok-api": {
+      "upstream_id": "ui-grok-api",
+      "endpoint_id": "ui-grok-api-connection",
+      "base": "https://api.x.ai",
+      "path": "/v1/responses",
+      "adapter": "grok.official.responses",
+      "format": "openai/responses",
+      "enabled": false,
+      "endpoint_enabled": false
+    },
+    "kiro": {
+      "upstream_id": "kiro-us-east-1",
+      "endpoint_id": "kiro-us-east-1-messages",
+      "base": "https://runtime.us-east-1.kiro.dev",
+      "path": "/",
+      "adapter": "kiro.messages",
+      "format": "anthropic/messages",
+      "enabled": false,
+      "endpoint_enabled": true
+    }
+  },
+  "real_provider_calls": 0,
+  "outside_loopback_denied_by_os_sandbox": true,
+  "api_targets_use_loopback_egress_policy": true
+}

@@ -1,0 +1,3 @@
+{
+  "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置0匹配授权0账号类别0套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（0）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照没有匹配的账号。已显示 0 / 0 份匹配授权添加 AI 提供商填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑服务名称渠道OpenAI 兼容 · ResponsesOpenAI 兼容 · Chat CompletionsAnthropic 兼容 · MessagesKimi · APIGrok · API连接接口地址请求路径没有匹配连接，将新建。账号与模型API Key仅用于保存授权，不会触发推理请求。开放模型（可选）取消保存并接入"
+}

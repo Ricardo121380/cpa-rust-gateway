@@ -1,0 +1,183 @@
+{
+  "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
+  "validated_runtime_and_acceptance_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+  "validated_source_git_tree": "ab8cb06d1be3585c5402f4ea7b65da566f4e5ab8",
+  "accepted_checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "binary_sha256": "794bf6c34b5d193ae320d879ba92ef5f15b4a0b6da3b4da4eb68fee18807cf2f",
+  "gateway_pid": 56948,
+  "management_origin": "http://127.0.0.1:54641",
+  "egolite_space_id": 35,
+  "gates": {
+    "accepted-full-final": {
+      "receipt": "accepted-full-final-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 244.271,
+      "rust_counts": {
+        "passed": 1493,
+        "failed": 0,
+        "ignored": 12
+      },
+      "frontend_counts": {}
+    },
+    "accepted-binary-build-final": {
+      "receipt": "accepted-binary-build-final-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 0.575,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {}
+    },
+    "accepted-ui-type-current": {
+      "receipt": "accepted-ui-type-current-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 8.527,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {}
+    },
+    "accepted-ui-tests-current": {
+      "receipt": "accepted-ui-tests-current-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 4.34,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {
+        "passed": 494,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "accepted-actual-ui-browser-final": {
+      "receipt": "accepted-actual-ui-browser-final-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 107.721,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {}
+    },
+    "accepted-crossgroup-final": {
+      "receipt": "accepted-crossgroup-final-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 51.625,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {}
+    },
+    "accepted-e02-commit-loss": {
+      "receipt": "accepted-e02-commit-loss-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 24.417,
+      "rust_counts": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {}
+    },
+    "accepted-fixture-browser": {
+      "receipt": "accepted-fixture-browser-receipt.json",
+      "source_sha": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+      "tracked_file_set_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 122.728,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {}
+    }
+  },
+  "fixture_reuse": {
+    "executed_source": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+    "compared_final_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+    "paths": [
+      "web/prism",
+      "scripts/acceptance/cpar-seo-fixture.mjs"
+    ],
+    "changed_paths": [],
+    "source_not_relabelled": true
+  },
+  "counts": {
+    "full_steps": 45,
+    "rust": {
+      "passed": 1493,
+      "failed": 0,
+      "ignored": 12
+    },
+    "frontend_tests": 494,
+    "actual_ui_scenes": 18,
+    "fixture_scenes": 17,
+    "public_http_checks": 527,
+    "existing_http_checks": 410,
+    "new_http_checks": 117,
+    "new_matrix_rows": 14,
+    "actual_single_call_receives": 4
+  },
+  "E05": {
+    "state": "AWAITING_USER_DECISION",
+    "user_choice": null,
+    "approved_rule": null,
+    "implementation_changed": false,
+    "approved_rule_tests": "NOT_RUN"
+  },
+  "bounds": {
+    "real_provider_calls": 0,
+    "actual_device_commit_loss_ui": "NOT_RUN",
+    "grok_api_inference": "NOT_RUN",
+    "github_writes": "NOT_RUN",
+    "push": "NOT_RUN",
+    "remote_ci": "NOT_RUN",
+    "new_candidate_artifact_signature": "NOT_RUN",
+    "deployment": "NOT_RUN",
+    "production": "NOT_RUN",
+    "issue_57_full_scope": "NOT_COMPLETE",
+    "release": "BLOCKED"
+  },
+  "after_validation_policy": "Subsequent commits contain only reports, evidence and review records; verify the complete path delta and docs gate without relabelling runtime runs."
+}

@@ -1,0 +1,226 @@
+{
+  "result": "PASS",
+  "sourceSha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+  "origin": "http://127.0.0.1:54641",
+  "gatewayPid": 56948,
+  "explanation": "OAuth accounts use entry_type=account; Kiro API keys use entry_type=api in AI providers. The earlier two-row screenshot wait was an incorrect page expectation.",
+  "oauth": {
+    "text": "有一批配置等待应用；继续编辑前请回到工作草稿。继续待应用修改账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选 · 1账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照KiroKiro 账号1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情重新授权更多删除KiroOAuth 授权已配置，调用未验证已停用额度余额未观测快照 2026/10/9 12:08:31 · 1 个连接 · runtime-account-pools:e5a4c5fc24b4b41b5b8feebcb426bc32:1791518911665:2 · kiro-us-east-1/kiro-us-east-1-messages · revision 0 · 配置 ui-routes-1791518771536Messages1 个已配置连接 · 查看模型详情重新授权更多删除已显示 1 / 1 份匹配授权",
+    "reads": [
+      {
+        "method": "GET",
+        "path": "/admin/accounts/inventory",
+        "config": "ui-routes-1791518771536",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "category_totals": {
+            "kiro": 2
+          },
+          "config_version": "ui-routes-1791518771536",
+          "items": [
+            {
+              "category": "kiro",
+              "id": "import-1b127f9f-f6a8-47c1-afd2-00e09cd4451a",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "oauth",
+                "binding_count": 1,
+                "category": "kiro",
+                "connections": [
+                  {
+                    "api_format": "anthropic/messages",
+                    "enabled": true,
+                    "host": "runtime.us-east-1.kiro.dev",
+                    "id": "kiro-us-east-1-messages"
+                  }
+                ],
+                "credential": {
+                  "id": "import-1b127f9f-f6a8-47c1-afd2-00e09cd4451a",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "Kiro"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models",
+                "reauthorize"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "Kiro",
+              "status": "enabled"
+            },
+            {
+              "category": "kiro",
+              "id": "import-e244f159-e50d-4f0e-ae5b-edf4f9d34723",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "kiro",
+                "connections": [
+                  {
+                    "api_format": "anthropic/messages",
+                    "enabled": true,
+                    "host": "runtime.us-east-1.kiro.dev",
+                    "id": "kiro-us-east-1-messages"
+                  }
+                ],
+                "credential": {
+                  "id": "import-e244f159-e50d-4f0e-ae5b-edf4f9d34723",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "Kiro"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "Kiro",
+              "status": "enabled"
+            }
+          ],
+          "next_cursor": null,
+          "plan_totals": {},
+          "revision": "rev-20",
+          "total": 2,
+          "unobserved_plan_total": 2
+        }
+      }
+    ]
+  },
+  "api": {
+    "text": "有一批配置等待应用；继续编辑前请回到工作草稿。继续待应用修改AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选 · 1账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照KiroKiro 账号1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除KiroAPI Key已配置，调用未验证已停用额度余额未观测快照 2026/10/9 12:12:07 · 1 个连接 · runtime-account-pools:e5a4c5fc24b4b41b5b8feebcb426bc32:1791519127576:3 · kiro-us-east-1/kiro-us-east-1-messages · revision 0 · 配置 ui-routes-1791518771536Messages1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权",
+    "reads": [
+      {
+        "method": "GET",
+        "path": "/admin/accounts/inventory",
+        "config": "ui-routes-1791518771536",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "category_totals": {
+            "kiro": 1
+          },
+          "config_version": "ui-routes-1791518771536",
+          "items": [
+            {
+              "category": "kiro",
+              "id": "import-e244f159-e50d-4f0e-ae5b-edf4f9d34723",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "kiro",
+                "connections": [
+                  {
+                    "api_format": "anthropic/messages",
+                    "enabled": true,
+                    "host": "runtime.us-east-1.kiro.dev",
+                    "id": "kiro-us-east-1-messages"
+                  }
+                ],
+                "credential": {
+                  "id": "import-e244f159-e50d-4f0e-ae5b-edf4f9d34723",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "kiro-us-east-1"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "Kiro"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "Kiro",
+              "status": "enabled"
+            }
+          ],
+          "next_cursor": null,
+          "plan_totals": {},
+          "revision": "rev-20",
+          "total": 1,
+          "unobserved_plan_total": 1
+        }
+      }
+    ],
+    "reauthorizeButtons": 0
+  }
+}

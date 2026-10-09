@@ -1,0 +1,61 @@
+{
+  "result": "PASS",
+  "finished_utc": "2026-10-09T04:27:33.561907+00:00",
+  "stopped_owned_final_gateway_pid": 56948,
+  "owned_vite_pid": 47135,
+  "egolite_task_space": 35,
+  "task_space_finished": true,
+  "final_serve_session_exit": 0,
+  "vite_requested_stop_exit": 130,
+  "roots": [
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-e2eh0b7r",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-gmw74eu3",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-ijjqzif4",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-j85go39l",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-oo_7pbn7",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-uixtm68k",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-8ijhy4zk",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-m8ijsvk7",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ontazxrn",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-ovvkcrlz",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-qssjz4xd",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    },
+    {
+      "root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-slahiq06",
+      "result": "REMOVED_TASK_SYNTHETIC_ONLY"
+    }
+  ],
+  "retained": "value-free command receipts, logs, JSON store facts, source checkout and screenshots"
+}

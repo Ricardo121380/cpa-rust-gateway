@@ -1,0 +1,1121 @@
+{
+  "environment": "stock serve embedded /admin-ui/",
+  "spaceId": 35,
+  "pageLabel": "p3",
+  "origin": "http://127.0.0.1:49839",
+  "gatewayPid": 41966,
+  "binarySha256": "5a6bf6cea8ee9908354d63614753a0d1a345d6c3f721f274dcf5e44d4cb4e6e3",
+  "sourceSha": "f57a8bb23c12f986c529daeb304d4f813fa9af4d",
+  "managementHandlerStorage": true,
+  "upstream": "synthetic loopback only",
+  "results": [
+    {
+      "scenario": "A-07-E-01-actual-responses-explicit-single-call",
+      "result": "PASS",
+      "prepared": {
+        "source": "resumption of owned real management-handler routes already published",
+        "scope": "ui-routes-1791517638770"
+      },
+      "receivedBefore": 0,
+      "receives": [
+        {
+          "method": "POST",
+          "path": "/v1/responses",
+          "protocol": "responses",
+          "material_channel": "new",
+          "model": "ui-wire-responses",
+          "stream": false
+        }
+      ],
+      "facts": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+              "upstream_id": "ui-responses",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/operations/channel-pin",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": "rev-20",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "provider_id": "ui-responses",
+              "channel_id": "ui-responses-connection",
+              "route_id": "ui-route-responses",
+              "credential_id": "account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+              "credential_revision": 0,
+              "requested_model": "ui-model-responses",
+              "protocol": "openai_responses",
+              "mode": "json",
+              "client_key_id": "ui-calls-key"
+            },
+            "status": 200,
+            "response": {
+              "attempt_count": 1,
+              "channel_id": "ui-responses-connection",
+              "client_key_id": "ui-calls-key",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "connection_revision": 20,
+              "credential_id": "account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+              "credential_revision": 0,
+              "execution": {
+                "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-1:1",
+                "identity": {
+                  "capabilities": {
+                    "compact": false,
+                    "continuation": true,
+                    "parallel": true,
+                    "reasoning": true,
+                    "stored": false,
+                    "websocket": true
+                  },
+                  "channel": "openai-compatible",
+                  "config_revision": 20,
+                  "config_version_id": "ui-routes-1791517638770",
+                  "credential_revision": 0,
+                  "egress": {
+                    "kind": "direct"
+                  }
+                },
+                "route_candidate_id": "ui-candidate-responses",
+                "upstream_model": "ui-wire-responses"
+              },
+              "mode": "json",
+              "observed_at_ms": 1791517719198,
+              "outcome": "succeeded",
+              "permission_basis": "management_key_projection",
+              "protocol": "openai_responses",
+              "provider_id": "ui-responses",
+              "request_id": "channel-pin-a9201836fe70d162-1",
+              "requested_model": "ui-model-responses",
+              "response_started": true,
+              "route_id": "ui-route-responses",
+              "runtime_build": "development:development:development",
+              "runtime_credential_revision": 0,
+              "server_instance": "instance-18dcbf51943cfd80",
+              "stage": "decoder",
+              "upstream_sent": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+              "upstream_id": "ui-responses",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+              "upstream_id": "ui-responses",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 610
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 610
+            }
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置3匹配授权1账号类别3套餐未观测全部授权需要授权已启用已停用搜索账号筛选 · 1账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（3）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照清除提供商筛选API密钥与兼容接口3 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key最近调用通过 · ui-model-responses / openai_responses2026/10/9 11:48:39 · 精确调用观察可用额度余额未观测快照 2026/10/9 11:48:35 · 1 个连接 · runtime-account-pools:5edc21fffc2ce8c7f18e5ace48048f7f:1791517715627:2 · ui-responses/ui-responses-connection · revision 0 · 配置 ui-routes-1791517638770Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key已配置，调用未验证可用额度余额未观测快照 2026/10/9 11:48:35 · 1 个连接 · runtime-account-pools:5edc21fffc2ce8c7f18e5ace48048f7f:1791517715627:2 · ui-responses/ui-responses-connection · revision 0 · 配置 ui-routes-1791517638770Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key已配置，调用未验证可用额度余额未观测快照 2026/10/9 11:48:35 · 1 个连接 · runtime-account-pools:5edc21fffc2ce8c7f18e5ace48048f7f:1791517715627:2 · ui-responses/ui-responses-connection · revision 0 · 配置 ui-routes-1791517638770Responses1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 3 / 3 份匹配授权"
+      },
+      "pin": {
+        "method": "POST",
+        "path": "/admin/operations/channel-pin",
+        "config": "ui-routes-1791517638770",
+        "ifMatch": "rev-20",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {
+          "provider_id": "ui-responses",
+          "channel_id": "ui-responses-connection",
+          "route_id": "ui-route-responses",
+          "credential_id": "account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+          "credential_revision": 0,
+          "requested_model": "ui-model-responses",
+          "protocol": "openai_responses",
+          "mode": "json",
+          "client_key_id": "ui-calls-key"
+        },
+        "status": 200,
+        "response": {
+          "attempt_count": 1,
+          "channel_id": "ui-responses-connection",
+          "client_key_id": "ui-calls-key",
+          "config_revision": 20,
+          "config_version_id": "ui-routes-1791517638770",
+          "connection_revision": 20,
+          "credential_id": "account-8eb66bd3-0153-4d5e-a7f5-ac61072e4465",
+          "credential_revision": 0,
+          "execution": {
+            "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-1:1",
+            "identity": {
+              "capabilities": {
+                "compact": false,
+                "continuation": true,
+                "parallel": true,
+                "reasoning": true,
+                "stored": false,
+                "websocket": true
+              },
+              "channel": "openai-compatible",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "credential_revision": 0,
+              "egress": {
+                "kind": "direct"
+              }
+            },
+            "route_candidate_id": "ui-candidate-responses",
+            "upstream_model": "ui-wire-responses"
+          },
+          "mode": "json",
+          "observed_at_ms": 1791517719198,
+          "outcome": "succeeded",
+          "permission_basis": "management_key_projection",
+          "protocol": "openai_responses",
+          "provider_id": "ui-responses",
+          "request_id": "channel-pin-a9201836fe70d162-1",
+          "requested_model": "ui-model-responses",
+          "response_started": true,
+          "route_id": "ui-route-responses",
+          "runtime_build": "development:development:development",
+          "runtime_credential_revision": 0,
+          "server_instance": "instance-18dcbf51943cfd80",
+          "stage": "decoder",
+          "upstream_sent": true
+        }
+      }
+    },
+    {
+      "scenario": "A-07-E-01-actual-chat-explicit-single-call",
+      "result": "PASS",
+      "prepared": {
+        "source": "resumption of owned real management-handler routes already published",
+        "scope": "ui-routes-1791517638770"
+      },
+      "receivedBefore": 1,
+      "receives": [
+        {
+          "method": "POST",
+          "path": "/v1/responses",
+          "protocol": "responses",
+          "material_channel": "new",
+          "model": "ui-wire-responses",
+          "stream": false
+        },
+        {
+          "method": "POST",
+          "path": "/v1/chat/completions",
+          "protocol": "chat",
+          "material_channel": "chat",
+          "model": "ui-wire-chat",
+          "stream": false
+        }
+      ],
+      "facts": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+              "upstream_id": "ui-chat",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/operations/channel-pin",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": "rev-20",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "provider_id": "ui-chat",
+              "channel_id": "ui-chat-connection",
+              "route_id": "ui-route-chat",
+              "credential_id": "account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+              "credential_revision": 0,
+              "requested_model": "ui-model-chat",
+              "protocol": "openai_chat_completions",
+              "mode": "json",
+              "client_key_id": "ui-calls-key"
+            },
+            "status": 200,
+            "response": {
+              "attempt_count": 1,
+              "channel_id": "ui-chat-connection",
+              "client_key_id": "ui-calls-key",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "connection_revision": 20,
+              "credential_id": "account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+              "credential_revision": 0,
+              "execution": {
+                "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-2:1",
+                "identity": {
+                  "capabilities": {
+                    "compact": false,
+                    "continuation": true,
+                    "parallel": true,
+                    "reasoning": true,
+                    "stored": false,
+                    "websocket": true
+                  },
+                  "channel": "openai-compatible",
+                  "config_revision": 20,
+                  "config_version_id": "ui-routes-1791517638770",
+                  "credential_revision": 0,
+                  "egress": {
+                    "kind": "direct"
+                  }
+                },
+                "route_candidate_id": "ui-candidate-chat",
+                "upstream_model": "ui-wire-chat"
+              },
+              "mode": "json",
+              "observed_at_ms": 1791517723372,
+              "outcome": "succeeded",
+              "permission_basis": "management_key_projection",
+              "protocol": "openai_chat_completions",
+              "provider_id": "ui-chat",
+              "request_id": "channel-pin-a9201836fe70d162-2",
+              "requested_model": "ui-model-chat",
+              "response_started": true,
+              "route_id": "ui-route-chat",
+              "runtime_build": "development:development:development",
+              "runtime_credential_revision": 0,
+              "server_instance": "instance-18dcbf51943cfd80",
+              "stage": "decoder",
+              "upstream_sent": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+              "upstream_id": "ui-chat",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+              "upstream_id": "ui-chat",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 614
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 614
+            }
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选 · 1账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照清除提供商筛选API密钥与兼容接口1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除APIAPI Key最近调用通过 · ui-model-chat / openai_chat_completions2026/10/9 11:48:43 · 精确调用观察可用额度余额未观测快照 2026/10/9 11:48:35 · 1 个连接 · runtime-account-pools:5edc21fffc2ce8c7f18e5ace48048f7f:1791517715627:2 · ui-chat/ui-chat-connection · revision 0 · 配置 ui-routes-1791517638770Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权"
+      },
+      "pin": {
+        "method": "POST",
+        "path": "/admin/operations/channel-pin",
+        "config": "ui-routes-1791517638770",
+        "ifMatch": "rev-20",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {
+          "provider_id": "ui-chat",
+          "channel_id": "ui-chat-connection",
+          "route_id": "ui-route-chat",
+          "credential_id": "account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+          "credential_revision": 0,
+          "requested_model": "ui-model-chat",
+          "protocol": "openai_chat_completions",
+          "mode": "json",
+          "client_key_id": "ui-calls-key"
+        },
+        "status": 200,
+        "response": {
+          "attempt_count": 1,
+          "channel_id": "ui-chat-connection",
+          "client_key_id": "ui-calls-key",
+          "config_revision": 20,
+          "config_version_id": "ui-routes-1791517638770",
+          "connection_revision": 20,
+          "credential_id": "account-fc980195-f0ab-4ecb-addc-c5c2aca18091",
+          "credential_revision": 0,
+          "execution": {
+            "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-2:1",
+            "identity": {
+              "capabilities": {
+                "compact": false,
+                "continuation": true,
+                "parallel": true,
+                "reasoning": true,
+                "stored": false,
+                "websocket": true
+              },
+              "channel": "openai-compatible",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "credential_revision": 0,
+              "egress": {
+                "kind": "direct"
+              }
+            },
+            "route_candidate_id": "ui-candidate-chat",
+            "upstream_model": "ui-wire-chat"
+          },
+          "mode": "json",
+          "observed_at_ms": 1791517723372,
+          "outcome": "succeeded",
+          "permission_basis": "management_key_projection",
+          "protocol": "openai_chat_completions",
+          "provider_id": "ui-chat",
+          "request_id": "channel-pin-a9201836fe70d162-2",
+          "requested_model": "ui-model-chat",
+          "response_started": true,
+          "route_id": "ui-route-chat",
+          "runtime_build": "development:development:development",
+          "runtime_credential_revision": 0,
+          "server_instance": "instance-18dcbf51943cfd80",
+          "stage": "decoder",
+          "upstream_sent": true
+        }
+      }
+    },
+    {
+      "scenario": "A-07-E-01-actual-messages-explicit-single-call",
+      "result": "PASS",
+      "prepared": {
+        "source": "resumption of owned real management-handler routes already published",
+        "scope": "ui-routes-1791517638770"
+      },
+      "receivedBefore": 2,
+      "receives": [
+        {
+          "method": "POST",
+          "path": "/v1/responses",
+          "protocol": "responses",
+          "material_channel": "new",
+          "model": "ui-wire-responses",
+          "stream": false
+        },
+        {
+          "method": "POST",
+          "path": "/v1/chat/completions",
+          "protocol": "chat",
+          "material_channel": "chat",
+          "model": "ui-wire-chat",
+          "stream": false
+        },
+        {
+          "method": "POST",
+          "path": "/v1/v1/messages",
+          "protocol": "messages",
+          "material_channel": "messages",
+          "model": "ui-wire-messages",
+          "stream": false
+        }
+      ],
+      "facts": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+              "upstream_id": "ui-messages",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/operations/channel-pin",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": "rev-20",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "provider_id": "ui-messages",
+              "channel_id": "ui-messages-connection",
+              "route_id": "ui-route-messages",
+              "credential_id": "account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+              "credential_revision": 0,
+              "requested_model": "ui-model-messages",
+              "protocol": "anthropic_messages",
+              "mode": "json",
+              "client_key_id": "ui-calls-key"
+            },
+            "status": 200,
+            "response": {
+              "attempt_count": 1,
+              "channel_id": "ui-messages-connection",
+              "client_key_id": "ui-calls-key",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "connection_revision": 20,
+              "credential_id": "account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+              "credential_revision": 0,
+              "execution": {
+                "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-3:1",
+                "identity": {
+                  "capabilities": {
+                    "compact": false,
+                    "continuation": true,
+                    "parallel": true,
+                    "reasoning": true,
+                    "stored": false,
+                    "websocket": true
+                  },
+                  "channel": "anthropic-compatible",
+                  "config_revision": 20,
+                  "config_version_id": "ui-routes-1791517638770",
+                  "credential_revision": 0,
+                  "egress": {
+                    "kind": "direct"
+                  }
+                },
+                "route_candidate_id": "ui-candidate-messages",
+                "upstream_model": "ui-wire-messages"
+              },
+              "mode": "json",
+              "observed_at_ms": 1791517727386,
+              "outcome": "succeeded",
+              "permission_basis": "management_key_projection",
+              "protocol": "anthropic_messages",
+              "provider_id": "ui-messages",
+              "request_id": "channel-pin-a9201836fe70d162-3",
+              "requested_model": "ui-model-messages",
+              "response_started": true,
+              "route_id": "ui-route-messages",
+              "runtime_build": "development:development:development",
+              "runtime_credential_revision": 0,
+              "server_instance": "instance-18dcbf51943cfd80",
+              "stage": "decoder",
+              "upstream_sent": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+              "upstream_id": "ui-messages",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+              "upstream_id": "ui-messages",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 618
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 618
+            }
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选 · 1账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照清除提供商筛选ClaudeAnthropic 账号1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除ClaudeAPI Key最近调用通过 · ui-model-messages / anthropic_messages2026/10/9 11:48:47 · 精确调用观察可用额度余额未观测快照 2026/10/9 11:48:35 · 1 个连接 · runtime-account-pools:5edc21fffc2ce8c7f18e5ace48048f7f:1791517715627:2 · ui-messages/ui-messages-connection · revision 0 · 配置 ui-routes-1791517638770Messages1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权"
+      },
+      "pin": {
+        "method": "POST",
+        "path": "/admin/operations/channel-pin",
+        "config": "ui-routes-1791517638770",
+        "ifMatch": "rev-20",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {
+          "provider_id": "ui-messages",
+          "channel_id": "ui-messages-connection",
+          "route_id": "ui-route-messages",
+          "credential_id": "account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+          "credential_revision": 0,
+          "requested_model": "ui-model-messages",
+          "protocol": "anthropic_messages",
+          "mode": "json",
+          "client_key_id": "ui-calls-key"
+        },
+        "status": 200,
+        "response": {
+          "attempt_count": 1,
+          "channel_id": "ui-messages-connection",
+          "client_key_id": "ui-calls-key",
+          "config_revision": 20,
+          "config_version_id": "ui-routes-1791517638770",
+          "connection_revision": 20,
+          "credential_id": "account-4ce8bf64-7068-405e-b6e2-70d58cd9702c",
+          "credential_revision": 0,
+          "execution": {
+            "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-3:1",
+            "identity": {
+              "capabilities": {
+                "compact": false,
+                "continuation": true,
+                "parallel": true,
+                "reasoning": true,
+                "stored": false,
+                "websocket": true
+              },
+              "channel": "anthropic-compatible",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "credential_revision": 0,
+              "egress": {
+                "kind": "direct"
+              }
+            },
+            "route_candidate_id": "ui-candidate-messages",
+            "upstream_model": "ui-wire-messages"
+          },
+          "mode": "json",
+          "observed_at_ms": 1791517727386,
+          "outcome": "succeeded",
+          "permission_basis": "management_key_projection",
+          "protocol": "anthropic_messages",
+          "provider_id": "ui-messages",
+          "request_id": "channel-pin-a9201836fe70d162-3",
+          "requested_model": "ui-model-messages",
+          "response_started": true,
+          "route_id": "ui-route-messages",
+          "runtime_build": "development:development:development",
+          "runtime_credential_revision": 0,
+          "server_instance": "instance-18dcbf51943cfd80",
+          "stage": "decoder",
+          "upstream_sent": true
+        }
+      }
+    },
+    {
+      "scenario": "A-07-E-01-actual-kimi-explicit-single-call",
+      "result": "PASS",
+      "prepared": {
+        "source": "resumption of owned real management-handler routes already published",
+        "scope": "ui-routes-1791517638770"
+      },
+      "receivedBefore": 3,
+      "receives": [
+        {
+          "method": "POST",
+          "path": "/v1/responses",
+          "protocol": "responses",
+          "material_channel": "new",
+          "model": "ui-wire-responses",
+          "stream": false
+        },
+        {
+          "method": "POST",
+          "path": "/v1/chat/completions",
+          "protocol": "chat",
+          "material_channel": "chat",
+          "model": "ui-wire-chat",
+          "stream": false
+        },
+        {
+          "method": "POST",
+          "path": "/v1/v1/messages",
+          "protocol": "messages",
+          "material_channel": "messages",
+          "model": "ui-wire-messages",
+          "stream": false
+        },
+        {
+          "method": "POST",
+          "path": "/v1/chat/completions",
+          "protocol": "chat",
+          "material_channel": "kimi",
+          "model": "ui-wire-kimi",
+          "stream": false
+        }
+      ],
+      "facts": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-3f342517-249e-49fc-99c8-dbe8509e8884",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-3f342517-249e-49fc-99c8-dbe8509e8884",
+              "upstream_id": "ui-kimi",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/operations/channel-pin",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": "rev-20",
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "provider_id": "ui-kimi",
+              "channel_id": "ui-kimi-connection",
+              "route_id": "ui-route-kimi",
+              "credential_id": "account-3f342517-249e-49fc-99c8-dbe8509e8884",
+              "credential_revision": 0,
+              "requested_model": "ui-model-kimi",
+              "protocol": "openai_chat_completions",
+              "mode": "json",
+              "client_key_id": "ui-calls-key"
+            },
+            "status": 200,
+            "response": {
+              "attempt_count": 1,
+              "channel_id": "ui-kimi-connection",
+              "client_key_id": "ui-calls-key",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "connection_revision": 20,
+              "credential_id": "account-3f342517-249e-49fc-99c8-dbe8509e8884",
+              "credential_revision": 0,
+              "execution": {
+                "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-4:1",
+                "identity": {
+                  "capabilities": {
+                    "compact": false,
+                    "continuation": true,
+                    "parallel": true,
+                    "reasoning": true,
+                    "stored": false,
+                    "websocket": true
+                  },
+                  "channel": "kimi-api",
+                  "config_revision": 20,
+                  "config_version_id": "ui-routes-1791517638770",
+                  "credential_revision": 0,
+                  "egress": {
+                    "kind": "direct"
+                  }
+                },
+                "route_candidate_id": "ui-candidate-kimi",
+                "upstream_model": "ui-wire-kimi"
+              },
+              "mode": "json",
+              "observed_at_ms": 1791517731407,
+              "outcome": "succeeded",
+              "permission_basis": "management_key_projection",
+              "protocol": "openai_chat_completions",
+              "provider_id": "ui-kimi",
+              "request_id": "channel-pin-a9201836fe70d162-4",
+              "requested_model": "ui-model-kimi",
+              "response_started": true,
+              "route_id": "ui-route-kimi",
+              "runtime_build": "development:development:development",
+              "runtime_credential_revision": 0,
+              "server_instance": "instance-18dcbf51943cfd80",
+              "stage": "decoder",
+              "upstream_sent": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-3f342517-249e-49fc-99c8-dbe8509e8884",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-3f342517-249e-49fc-99c8-dbe8509e8884",
+              "upstream_id": "ui-kimi",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/credentials/account-3f342517-249e-49fc-99c8-dbe8509e8884",
+            "config": "ui-routes-1791517638770",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "id": "account-3f342517-249e-49fc-99c8-dbe8509e8884",
+              "upstream_id": "ui-kimi",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 622
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dcbf51943cfd80",
+              "uptime_seconds": 622
+            }
+          }
+        ],
+        "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选 · 1账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照清除提供商筛选KimiMoonshot 账号1 份授权账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情更换 API Key更多删除KimiAPI Key最近调用通过 · ui-model-kimi / openai_chat_completions2026/10/9 11:48:51 · 精确调用观察可用额度余额未观测快照 2026/10/9 11:48:35 · 1 个连接 · runtime-account-pools:5edc21fffc2ce8c7f18e5ace48048f7f:1791517715627:2 · ui-kimi/ui-kimi-connection · revision 0 · 配置 ui-routes-1791517638770Chat Completions1 个已配置连接 · 查看模型详情更换 API Key更多删除已显示 1 / 1 份匹配授权"
+      },
+      "pin": {
+        "method": "POST",
+        "path": "/admin/operations/channel-pin",
+        "config": "ui-routes-1791517638770",
+        "ifMatch": "rev-20",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {
+          "provider_id": "ui-kimi",
+          "channel_id": "ui-kimi-connection",
+          "route_id": "ui-route-kimi",
+          "credential_id": "account-3f342517-249e-49fc-99c8-dbe8509e8884",
+          "credential_revision": 0,
+          "requested_model": "ui-model-kimi",
+          "protocol": "openai_chat_completions",
+          "mode": "json",
+          "client_key_id": "ui-calls-key"
+        },
+        "status": 200,
+        "response": {
+          "attempt_count": 1,
+          "channel_id": "ui-kimi-connection",
+          "client_key_id": "ui-calls-key",
+          "config_revision": 20,
+          "config_version_id": "ui-routes-1791517638770",
+          "connection_revision": 20,
+          "credential_id": "account-3f342517-249e-49fc-99c8-dbe8509e8884",
+          "credential_revision": 0,
+          "execution": {
+            "attempt_id": "attempt:30:channel-pin-a9201836fe70d162-4:1",
+            "identity": {
+              "capabilities": {
+                "compact": false,
+                "continuation": true,
+                "parallel": true,
+                "reasoning": true,
+                "stored": false,
+                "websocket": true
+              },
+              "channel": "kimi-api",
+              "config_revision": 20,
+              "config_version_id": "ui-routes-1791517638770",
+              "credential_revision": 0,
+              "egress": {
+                "kind": "direct"
+              }
+            },
+            "route_candidate_id": "ui-candidate-kimi",
+            "upstream_model": "ui-wire-kimi"
+          },
+          "mode": "json",
+          "observed_at_ms": 1791517731407,
+          "outcome": "succeeded",
+          "permission_basis": "management_key_projection",
+          "protocol": "openai_chat_completions",
+          "provider_id": "ui-kimi",
+          "request_id": "channel-pin-a9201836fe70d162-4",
+          "requested_model": "ui-model-kimi",
+          "response_started": true,
+          "route_id": "ui-route-kimi",
+          "runtime_build": "development:development:development",
+          "runtime_credential_revision": 0,
+          "server_instance": "instance-18dcbf51943cfd80",
+          "stage": "decoder",
+          "upstream_sent": true
+        }
+      }
+    }
+  ]
+}

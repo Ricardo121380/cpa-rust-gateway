@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "base": "27ee36174f54bac059694a0870e452f9ac632ce0",
+  "original_semantic_paragraphs_unchanged": 8,
+  "required_sections": [
+    "## Context",
+    "## Decision",
+    "## Consequences",
+    "## Alternatives considered",
+    "## Validation and rollback"
+  ],
+  "adr_sha256": "bfbcee6fad3ed9c7924c3d801ff4796db353abaac65c00fb59d777d2c766ca0f",
+  "production_restore": "NOT_RUN",
+  "recorded_utc": "2026-10-09T02:13:44.142304+00:00"
+}

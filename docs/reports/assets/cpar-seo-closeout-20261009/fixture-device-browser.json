@@ -1,0 +1,280 @@
+{
+  "environment": "development fixture only",
+  "spaceId": 35,
+  "results": [
+    {
+      "scenario": "E-02-kiro-commit-loss-close-return",
+      "result": "PASS",
+      "beforeLoss": {
+        "sessionId": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee",
+        "saved": {
+          "receipt": {
+            "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee",
+            "channel": "kiro",
+            "config_version": "edit-8138b643-3efb-413d-9aac-198bf7a1b66c",
+            "upstream_id": "kiro-us-east-1",
+            "credential_id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+            "started_revision": "rev-1",
+            "revision": "rev-2",
+            "state": "completed",
+            "expires_at_ms": 1791514969310
+          },
+          "exchanges": 1,
+          "accounts": [
+            {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+              "upstream_id": "kiro-us-east-1",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountChannels",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-8138b643-3efb-413d-9aac-198bf7a1b66c"
+            }
+          },
+          {
+            "operation": "prepareKiroAccountTarget",
+            "body": {}
+          },
+          {
+            "operation": "startKiroEnrollment",
+            "path": {
+              "upstream_id": "kiro-us-east-1"
+            },
+            "body": {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f"
+            }
+          },
+          {
+            "operation": "pollKiroEnrollment",
+            "path": {
+              "upstream_id": "kiro-us-east-1"
+            },
+            "body": {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+              "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee"
+            }
+          },
+          {
+            "operation": "pollKiroEnrollment",
+            "path": {
+              "upstream_id": "kiro-us-east-1"
+            },
+            "body": {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+              "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee"
+            }
+          }
+        ]
+      },
+      "afterRecovery": {
+        "sessionId": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee",
+        "saved": {
+          "receipt": {
+            "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee",
+            "channel": "kiro",
+            "config_version": "edit-8138b643-3efb-413d-9aac-198bf7a1b66c",
+            "upstream_id": "kiro-us-east-1",
+            "credential_id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+            "started_revision": "rev-1",
+            "revision": "rev-2",
+            "state": "completed",
+            "expires_at_ms": 1791514969310
+          },
+          "exchanges": 1,
+          "accounts": [
+            {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+              "upstream_id": "kiro-us-east-1",
+              "kind": "bearer",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountChannels",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-8138b643-3efb-413d-9aac-198bf7a1b66c"
+            }
+          },
+          {
+            "operation": "prepareKiroAccountTarget",
+            "body": {}
+          },
+          {
+            "operation": "startKiroEnrollment",
+            "path": {
+              "upstream_id": "kiro-us-east-1"
+            },
+            "body": {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f"
+            }
+          },
+          {
+            "operation": "pollKiroEnrollment",
+            "path": {
+              "upstream_id": "kiro-us-east-1"
+            },
+            "body": {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+              "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee"
+            }
+          },
+          {
+            "operation": "pollKiroEnrollment",
+            "path": {
+              "upstream_id": "kiro-us-east-1"
+            },
+            "body": {
+              "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+              "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee"
+            }
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "getAccountAuthorizationReceipt",
+            "path": {
+              "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee"
+            },
+            "body": {},
+            "receipt": {
+              "session_id": "622d7e33-439a-4c7f-9b5c-a4c96cada9ee",
+              "channel": "kiro",
+              "config_version": "edit-8138b643-3efb-413d-9aac-198bf7a1b66c",
+              "upstream_id": "kiro-us-east-1",
+              "credential_id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+              "started_revision": "rev-1",
+              "revision": "rev-2",
+              "state": "completed",
+              "expires_at_ms": 1791514969310
+            }
+          },
+          {
+            "operation": "getConfigVersion",
+            "path": {
+              "config_version_id": "edit-8138b643-3efb-413d-9aac-198bf7a1b66c"
+            },
+            "body": {}
+          }
+        ],
+        "text": "授权 Kiro 账号使用 AWS Builder ID 设备授权；组织设置只在需要时展开。×Kiro · AWS Builder ID连接 Kiro 账号获取验证码 → 官方确认 → 自动保存账号已保存，配置尚未应用。继续连接与应用已保存的修改可保留待应用，也可在这里核对完整清单后应用。授权保存不会因此撤销。核对合并清单授权已保存，连接与应用尚待核对。查看待应用的修改关闭"
+      },
+      "appliedAccount": {
+        "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+        "native": false,
+        "identity": {
+          "email": null,
+          "phone": null,
+          "username": null
+        },
+        "name": "",
+        "category": "kiro",
+        "provider": "Kiro",
+        "status": "enabled",
+        "operations": [
+          "details",
+          "update_credential",
+          "enable",
+          "disable",
+          "remove",
+          "models",
+          "reauthorize"
+        ],
+        "plan": null,
+        "plan_source": null,
+        "managed": {
+          "credential": {
+            "id": "kiro-1c12cbea-b392-4801-b33e-85cb6451644f",
+            "upstream_id": "kiro-us-east-1",
+            "kind": "bearer",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          },
+          "authentication": "oauth",
+          "category": "kiro",
+          "provider": "Kiro",
+          "identity": {
+            "email": null,
+            "phone": null,
+            "username": null
+          },
+          "plan": null,
+          "plan_source": null,
+          "connections": [
+            {
+              "id": "kiro-us-east-1-messages",
+              "api_format": "anthropic/messages",
+              "enabled": true,
+              "host": "runtime.us-east-1.kiro.dev"
+            }
+          ],
+          "binding_count": 1
+        },
+        "native_account": null
+      }
+    }
+  ]
+}

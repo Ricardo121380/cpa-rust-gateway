@@ -1,0 +1,280 @@
+{
+  "environment": "development fixture only",
+  "spaceId": 35,
+  "results": [
+    {
+      "scenario": "E-02-kimi-coding-commit-loss-close-return",
+      "result": "PASS",
+      "beforeLoss": {
+        "sessionId": "be960908-4e4b-46d8-a04c-880f20b4955f",
+        "saved": {
+          "receipt": {
+            "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f",
+            "channel": "kimi-coding",
+            "config_version": "edit-3dcad34b-cce5-4896-b2ad-818a97c7fd0a",
+            "upstream_id": "kimi-coding",
+            "credential_id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+            "started_revision": "rev-2",
+            "revision": "rev-3",
+            "state": "completed",
+            "expires_at_ms": 1791515387110
+          },
+          "exchanges": 1,
+          "accounts": [
+            {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+              "upstream_id": "kimi-coding",
+              "kind": "oauth_json",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountChannels",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-3dcad34b-cce5-4896-b2ad-818a97c7fd0a"
+            }
+          },
+          {
+            "operation": "prepareKimiAccountTarget",
+            "body": {}
+          },
+          {
+            "operation": "startKimiEnrollment",
+            "path": {
+              "upstream_id": "kimi-coding"
+            },
+            "body": {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f"
+            }
+          },
+          {
+            "operation": "pollKimiEnrollment",
+            "path": {
+              "upstream_id": "kimi-coding"
+            },
+            "body": {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+              "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f"
+            }
+          },
+          {
+            "operation": "pollKimiEnrollment",
+            "path": {
+              "upstream_id": "kimi-coding"
+            },
+            "body": {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+              "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f"
+            }
+          }
+        ]
+      },
+      "afterRecovery": {
+        "sessionId": "be960908-4e4b-46d8-a04c-880f20b4955f",
+        "saved": {
+          "receipt": {
+            "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f",
+            "channel": "kimi-coding",
+            "config_version": "edit-3dcad34b-cce5-4896-b2ad-818a97c7fd0a",
+            "upstream_id": "kimi-coding",
+            "credential_id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+            "started_revision": "rev-2",
+            "revision": "rev-3",
+            "state": "completed",
+            "expires_at_ms": 1791515387110
+          },
+          "exchanges": 1,
+          "accounts": [
+            {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+              "upstream_id": "kimi-coding",
+              "kind": "oauth_json",
+              "status": "active",
+              "revision": 0,
+              "secret_present": true
+            }
+          ]
+        },
+        "records": [
+          {
+            "operation": "listAccountChannels",
+            "body": {}
+          },
+          {
+            "operation": "listUpstreams",
+            "body": {}
+          },
+          {
+            "operation": "listConfigVersions",
+            "body": {}
+          },
+          {
+            "operation": "forkConfigVersion",
+            "path": {
+              "config_version_id": "v-2026-07"
+            },
+            "body": {
+              "id": "edit-3dcad34b-cce5-4896-b2ad-818a97c7fd0a"
+            }
+          },
+          {
+            "operation": "prepareKimiAccountTarget",
+            "body": {}
+          },
+          {
+            "operation": "startKimiEnrollment",
+            "path": {
+              "upstream_id": "kimi-coding"
+            },
+            "body": {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f"
+            }
+          },
+          {
+            "operation": "pollKimiEnrollment",
+            "path": {
+              "upstream_id": "kimi-coding"
+            },
+            "body": {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+              "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f"
+            }
+          },
+          {
+            "operation": "pollKimiEnrollment",
+            "path": {
+              "upstream_id": "kimi-coding"
+            },
+            "body": {
+              "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+              "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f"
+            }
+          },
+          {
+            "operation": "listAccountInventory",
+            "body": {}
+          },
+          {
+            "operation": "getSystemInformation",
+            "body": {}
+          },
+          {
+            "operation": "listRoutes",
+            "body": {}
+          },
+          {
+            "operation": "listProviderAccountPools",
+            "body": {}
+          },
+          {
+            "operation": "listRouteCandidates",
+            "body": {}
+          },
+          {
+            "operation": "listManagedEndpoints",
+            "body": {}
+          },
+          {
+            "operation": "getAccountAuthorizationReceipt",
+            "path": {
+              "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f"
+            },
+            "body": {},
+            "receipt": {
+              "session_id": "be960908-4e4b-46d8-a04c-880f20b4955f",
+              "channel": "kimi-coding",
+              "config_version": "edit-3dcad34b-cce5-4896-b2ad-818a97c7fd0a",
+              "upstream_id": "kimi-coding",
+              "credential_id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+              "started_revision": "rev-2",
+              "revision": "rev-3",
+              "state": "completed",
+              "expires_at_ms": 1791515387110
+            }
+          },
+          {
+            "operation": "getConfigVersion",
+            "path": {
+              "config_version_id": "edit-3dcad34b-cce5-4896-b2ad-818a97c7fd0a"
+            },
+            "body": {}
+          }
+        ],
+        "text": "授权 Kimi 账号开始后在 Kimi 官方页面完成设备授权，面板会自动核对结果。×Kimi · 设备授权连接 Kimi 账号获取验证码 → 官方确认 → 自动保存Kimi 授权已保存继续连接与应用已保存的修改可保留待应用，也可在这里核对完整清单后应用。授权保存不会因此撤销。核对合并清单授权已保存，连接与应用尚待核对。查看待应用的修改关闭"
+      },
+      "appliedAccount": {
+        "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+        "native": false,
+        "identity": {
+          "email": "kimi.member@example.test",
+          "phone": null,
+          "username": null
+        },
+        "name": "kimi.member@example.test",
+        "category": "kimi",
+        "provider": "Kimi",
+        "status": "enabled",
+        "operations": [
+          "details",
+          "update_credential",
+          "enable",
+          "disable",
+          "remove",
+          "models",
+          "reauthorize"
+        ],
+        "plan": null,
+        "plan_source": null,
+        "managed": {
+          "credential": {
+            "id": "kimi-6e31ba31-4126-4aae-9ce9-df866b08254f",
+            "upstream_id": "kimi-coding",
+            "kind": "oauth_json",
+            "status": "active",
+            "revision": 0,
+            "secret_present": true
+          },
+          "authentication": "oauth",
+          "category": "kimi",
+          "provider": "Kimi",
+          "identity": {
+            "email": "kimi.member@example.test",
+            "phone": null,
+            "username": null
+          },
+          "plan": null,
+          "plan_source": null,
+          "connections": [
+            {
+              "id": "kimi-coding-responses",
+              "api_format": "openai/responses",
+              "enabled": true,
+              "host": "api.kimi.com"
+            }
+          ],
+          "binding_count": 1
+        },
+        "native_account": null
+      }
+    }
+  ]
+}

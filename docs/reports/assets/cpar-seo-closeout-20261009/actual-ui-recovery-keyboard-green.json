@@ -1,0 +1,2224 @@
+{
+  "result": "PASS",
+  "browserActions": "focus and Enter for reviewed application",
+  "facts": {
+    "text": "提供商创建结果填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑接入修改已应用；原有停用状态保持不变。请单独设置模型权限。关闭查看工作草稿",
+    "records": [
+      {
+        "method": "GET",
+        "path": "/admin/config-versions",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "parent_id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516442971,
+            "description": "添加提供商 · Actual responses"
+          },
+          {
+            "id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "parent_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516547698,
+            "description": "添加提供商 · Actual kimi"
+          },
+          {
+            "id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "parent_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "status": "active",
+            "revision": "rev-2",
+            "created_at_ms": 1791516554835,
+            "description": "添加提供商 · Actual grok-api"
+          },
+          {
+            "id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "parent_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516449597,
+            "description": "添加提供商 · Actual chat"
+          },
+          {
+            "id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "parent_id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516540530,
+            "description": "添加提供商 · Actual messages"
+          },
+          {
+            "id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-13",
+            "created_at_ms": 1791516417635,
+            "description": "Isolated embedded UI baseline"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/admin/config-versions/edit-55bf31ba-186a-49a3-afc6-d973fdbc1399/fork",
+        "config": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+        "ifMatch": "rev-2",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {
+          "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "description": "添加提供商 · Actual responses"
+        },
+        "status": 201,
+        "response": {
+          "created_at_ms": 1791516613161,
+          "description": "添加提供商 · Actual responses",
+          "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "parent_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+          "revision": "rev-0",
+          "status": "draft"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/upstreams",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "kiro-us-east-1",
+            "name": "Isolated kiro",
+            "kind": "kiro",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-chat",
+            "name": "Isolated chat",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-grok-api",
+            "name": "Isolated grok-api",
+            "kind": "grok.official",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-kimi",
+            "name": "Isolated kimi",
+            "kind": "kimi",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-messages",
+            "name": "Isolated messages",
+            "kind": "anthropic-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-responses",
+            "name": "Isolated responses",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/upstreams",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "kiro-us-east-1",
+            "name": "Isolated kiro",
+            "kind": "kiro",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-chat",
+            "name": "Isolated chat",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-grok-api",
+            "name": "Isolated grok-api",
+            "kind": "grok.official",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-kimi",
+            "name": "Isolated kimi",
+            "kind": "kimi",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-messages",
+            "name": "Isolated messages",
+            "kind": "anthropic-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-responses",
+            "name": "Isolated responses",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "revision": "rev-0",
+          "observation_version": "audit-0",
+          "items": [
+            {
+              "adapter_id": "kiro.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://runtime.us-east-1.kiro.dev",
+              "enabled": false,
+              "id": "kiro-us-east-1-messages",
+              "inference_path": "/",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "kiro-us-east-1"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-chat-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-chat"
+            },
+            {
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "enabled": false,
+              "id": "ui-grok-api-connection",
+              "inference_path": "/v1/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-grok-api"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-kimi-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-kimi"
+            },
+            {
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-messages-connection",
+              "inference_path": "/v1/messages",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-messages"
+            },
+            {
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-responses-connection",
+              "inference_path": "/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-responses"
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "revision": "rev-0",
+          "observation_version": "audit-0",
+          "items": [
+            {
+              "adapter_id": "kiro.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://runtime.us-east-1.kiro.dev",
+              "enabled": false,
+              "id": "kiro-us-east-1-messages",
+              "inference_path": "/",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "kiro-us-east-1"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-chat-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-chat"
+            },
+            {
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "enabled": false,
+              "id": "ui-grok-api-connection",
+              "inference_path": "/v1/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-grok-api"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-kimi-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-kimi"
+            },
+            {
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-messages-connection",
+              "inference_path": "/v1/messages",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-messages"
+            },
+            {
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-responses-connection",
+              "inference_path": "/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-responses"
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/admin/upstreams/ui-responses/account-import",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": "rev-0",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {
+          "id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+          "channel": "openai-compatible"
+        },
+        "status": 201,
+        "response": {
+          "id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+          "upstream_id": "ui-responses",
+          "kind": "bearer",
+          "status": "active",
+          "revision": 0,
+          "secret_present": true
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/upstreams/ui-responses/account-imports/account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "session_id": "import-BhfNL_M9ScrQWFBj7fZtWa3GwVl0oCoNePjiSLj1fAg",
+          "channel": "openai-compatible",
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "upstream_id": "ui-responses",
+          "credential_id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+          "started_revision": "rev-0",
+          "revision": "rev-1",
+          "state": "completed",
+          "expires_at_ms": 1791516673193
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "injected": "client follow-up read failure"
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "parent_id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516442971,
+            "description": "添加提供商 · Actual responses"
+          },
+          {
+            "id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "parent_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516547698,
+            "description": "添加提供商 · Actual kimi"
+          },
+          {
+            "id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "parent_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "status": "active",
+            "revision": "rev-2",
+            "created_at_ms": 1791516554835,
+            "description": "添加提供商 · Actual grok-api"
+          },
+          {
+            "id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "parent_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516449597,
+            "description": "添加提供商 · Actual chat"
+          },
+          {
+            "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+            "parent_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "status": "draft",
+            "revision": "rev-1",
+            "created_at_ms": 1791516613161,
+            "description": "添加提供商 · Actual responses"
+          },
+          {
+            "id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "parent_id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516540530,
+            "description": "添加提供商 · Actual messages"
+          },
+          {
+            "id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-13",
+            "created_at_ms": 1791516417635,
+            "description": "Isolated embedded UI baseline"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/audit-events",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": 1,
+            "action": "config_created",
+            "occurred_at_ms": 1791516417635,
+            "config_version_id": "ui-baseline"
+          },
+          {
+            "id": 2,
+            "action": "config_published",
+            "occurred_at_ms": 1791516417661,
+            "config_version_id": "ui-baseline"
+          },
+          {
+            "id": 3,
+            "action": "config_created",
+            "occurred_at_ms": 1791516442971,
+            "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261"
+          },
+          {
+            "id": 4,
+            "action": "config_published",
+            "occurred_at_ms": 1791516443062,
+            "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "replaced_config_version_id": "ui-baseline"
+          },
+          {
+            "id": 5,
+            "action": "config_created",
+            "occurred_at_ms": 1791516449597,
+            "config_version_id": "edit-90483db8-e018-4512-b030-001714decd63"
+          },
+          {
+            "id": 6,
+            "action": "config_published",
+            "occurred_at_ms": 1791516449695,
+            "config_version_id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "replaced_config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261"
+          },
+          {
+            "id": 7,
+            "action": "config_created",
+            "occurred_at_ms": 1791516540530,
+            "config_version_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349"
+          },
+          {
+            "id": 8,
+            "action": "config_published",
+            "occurred_at_ms": 1791516540677,
+            "config_version_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "replaced_config_version_id": "edit-90483db8-e018-4512-b030-001714decd63"
+          },
+          {
+            "id": 9,
+            "action": "config_created",
+            "occurred_at_ms": 1791516547698,
+            "config_version_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda"
+          },
+          {
+            "id": 10,
+            "action": "config_published",
+            "occurred_at_ms": 1791516547800,
+            "config_version_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "replaced_config_version_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349"
+          },
+          {
+            "id": 11,
+            "action": "config_created",
+            "occurred_at_ms": 1791516554835,
+            "config_version_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399"
+          },
+          {
+            "id": 12,
+            "action": "config_published",
+            "occurred_at_ms": 1791516554937,
+            "config_version_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "replaced_config_version_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda"
+          },
+          {
+            "id": 13,
+            "action": "config_created",
+            "occurred_at_ms": 1791516613161,
+            "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa/diff",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "base": {
+            "id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "revision": "rev-2"
+          },
+          "items": [
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-02aba03c-5192-489d-9532-ecec83707c9e\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-11a3e6b7-6705-43b9-b691-03226c078dc3\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "added",
+              "changed_fields": [],
+              "resource_key": "[\"account-69fd5493-2d82-40d0-b3e0-c959f129ee9f\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-6b2bb4aa-859b-4771-8c73-b1998374a06a\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-84c074b5-f0b7-4a6f-9a95-47fcb5d36658\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-c1f00f4a-e65b-43c1-b038-a9c4829286e7\"]",
+              "resource_kind": "credential"
+            }
+          ],
+          "next_cursor": null,
+          "target": {
+            "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+            "revision": "rev-1"
+          }
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa/account-restoration",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "target_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "target_revision": 1,
+          "active_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+          "active_revision": 2,
+          "deletion_event_id": 0,
+          "accounts": [],
+          "review_token": "a479faa2dba6743e872e9d7c65dbb986838ce9e79896658954192da5ace39376"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "parent_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+          "status": "draft",
+          "revision": "rev-1",
+          "created_at_ms": 1791516613161,
+          "description": "添加提供商 · Actual responses"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/upstreams",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "kiro-us-east-1",
+            "name": "Isolated kiro",
+            "kind": "kiro",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-chat",
+            "name": "Isolated chat",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-grok-api",
+            "name": "Isolated grok-api",
+            "kind": "grok.official",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-kimi",
+            "name": "Isolated kimi",
+            "kind": "kimi",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-messages",
+            "name": "Isolated messages",
+            "kind": "anthropic-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-responses",
+            "name": "Isolated responses",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/credentials/account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+          "upstream_id": "ui-responses",
+          "kind": "bearer",
+          "status": "active",
+          "revision": 0,
+          "secret_present": true
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "revision": "rev-1",
+          "observation_version": "audit-24",
+          "items": [
+            {
+              "adapter_id": "kiro.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://runtime.us-east-1.kiro.dev",
+              "enabled": false,
+              "id": "kiro-us-east-1-messages",
+              "inference_path": "/",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "kiro-us-east-1"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-chat-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-chat"
+            },
+            {
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "enabled": false,
+              "id": "ui-grok-api-connection",
+              "inference_path": "/v1/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-grok-api"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-kimi-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-kimi"
+            },
+            {
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-messages-connection",
+              "inference_path": "/v1/messages",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-messages"
+            },
+            {
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-responses-connection",
+              "inference_path": "/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-responses"
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints/ui-responses-connection/credential-bindings",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "endpoint_id": "ui-responses-connection",
+            "upstream_id": "ui-responses",
+            "credential_id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+            "enabled": true,
+            "priority": 0,
+            "weight": 1,
+            "concurrency": 1
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/admin/endpoints/ui-responses-connection/credential-bindings",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": "rev-1",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {
+          "credential_id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+          "enabled": true,
+          "priority": 0,
+          "weight": 1,
+          "concurrency": 1
+        },
+        "status": 201,
+        "response": {
+          "endpoint_id": "ui-responses-connection",
+          "upstream_id": "ui-responses",
+          "credential_id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+          "enabled": true,
+          "priority": 0,
+          "weight": 1,
+          "concurrency": 1
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/upstreams",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "kiro-us-east-1",
+            "name": "Isolated kiro",
+            "kind": "kiro",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-chat",
+            "name": "Isolated chat",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-grok-api",
+            "name": "Isolated grok-api",
+            "kind": "grok.official",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-kimi",
+            "name": "Isolated kimi",
+            "kind": "kimi",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-messages",
+            "name": "Isolated messages",
+            "kind": "anthropic-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-responses",
+            "name": "Isolated responses",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "revision": "rev-2",
+          "observation_version": "audit-25",
+          "items": [
+            {
+              "adapter_id": "kiro.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://runtime.us-east-1.kiro.dev",
+              "enabled": false,
+              "id": "kiro-us-east-1-messages",
+              "inference_path": "/",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "kiro-us-east-1"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-chat-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-chat"
+            },
+            {
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "enabled": false,
+              "id": "ui-grok-api-connection",
+              "inference_path": "/v1/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-grok-api"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-kimi-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-kimi"
+            },
+            {
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-messages-connection",
+              "inference_path": "/v1/messages",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-messages"
+            },
+            {
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-responses-connection",
+              "inference_path": "/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-responses"
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "parent_id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516442971,
+            "description": "添加提供商 · Actual responses"
+          },
+          {
+            "id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "parent_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516547698,
+            "description": "添加提供商 · Actual kimi"
+          },
+          {
+            "id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "parent_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "status": "active",
+            "revision": "rev-2",
+            "created_at_ms": 1791516554835,
+            "description": "添加提供商 · Actual grok-api"
+          },
+          {
+            "id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "parent_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516449597,
+            "description": "添加提供商 · Actual chat"
+          },
+          {
+            "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+            "parent_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "status": "draft",
+            "revision": "rev-2",
+            "created_at_ms": 1791516613161,
+            "description": "添加提供商 · Actual responses"
+          },
+          {
+            "id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "parent_id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516540530,
+            "description": "添加提供商 · Actual messages"
+          },
+          {
+            "id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-13",
+            "created_at_ms": 1791516417635,
+            "description": "Isolated embedded UI baseline"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/audit-events",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": 1,
+            "action": "config_created",
+            "occurred_at_ms": 1791516417635,
+            "config_version_id": "ui-baseline"
+          },
+          {
+            "id": 2,
+            "action": "config_published",
+            "occurred_at_ms": 1791516417661,
+            "config_version_id": "ui-baseline"
+          },
+          {
+            "id": 3,
+            "action": "config_created",
+            "occurred_at_ms": 1791516442971,
+            "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261"
+          },
+          {
+            "id": 4,
+            "action": "config_published",
+            "occurred_at_ms": 1791516443062,
+            "config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "replaced_config_version_id": "ui-baseline"
+          },
+          {
+            "id": 5,
+            "action": "config_created",
+            "occurred_at_ms": 1791516449597,
+            "config_version_id": "edit-90483db8-e018-4512-b030-001714decd63"
+          },
+          {
+            "id": 6,
+            "action": "config_published",
+            "occurred_at_ms": 1791516449695,
+            "config_version_id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "replaced_config_version_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261"
+          },
+          {
+            "id": 7,
+            "action": "config_created",
+            "occurred_at_ms": 1791516540530,
+            "config_version_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349"
+          },
+          {
+            "id": 8,
+            "action": "config_published",
+            "occurred_at_ms": 1791516540677,
+            "config_version_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "replaced_config_version_id": "edit-90483db8-e018-4512-b030-001714decd63"
+          },
+          {
+            "id": 9,
+            "action": "config_created",
+            "occurred_at_ms": 1791516547698,
+            "config_version_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda"
+          },
+          {
+            "id": 10,
+            "action": "config_published",
+            "occurred_at_ms": 1791516547800,
+            "config_version_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "replaced_config_version_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349"
+          },
+          {
+            "id": 11,
+            "action": "config_created",
+            "occurred_at_ms": 1791516554835,
+            "config_version_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399"
+          },
+          {
+            "id": 12,
+            "action": "config_published",
+            "occurred_at_ms": 1791516554937,
+            "config_version_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "replaced_config_version_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda"
+          },
+          {
+            "id": 13,
+            "action": "config_created",
+            "occurred_at_ms": 1791516613161,
+            "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa/diff",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "base": {
+            "id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "revision": "rev-2"
+          },
+          "items": [
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-02aba03c-5192-489d-9532-ecec83707c9e\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-11a3e6b7-6705-43b9-b691-03226c078dc3\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "added",
+              "changed_fields": [],
+              "resource_key": "[\"account-69fd5493-2d82-40d0-b3e0-c959f129ee9f\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-6b2bb4aa-859b-4771-8c73-b1998374a06a\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-84c074b5-f0b7-4a6f-9a95-47fcb5d36658\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "changed",
+              "changed_fields": [
+                "ciphertext"
+              ],
+              "resource_key": "[\"account-c1f00f4a-e65b-43c1-b038-a9c4829286e7\"]",
+              "resource_kind": "credential"
+            },
+            {
+              "change": "added",
+              "changed_fields": [],
+              "resource_key": "[\"ui-responses-connection\",\"account-69fd5493-2d82-40d0-b3e0-c959f129ee9f\"]",
+              "resource_kind": "credential_binding"
+            }
+          ],
+          "next_cursor": null,
+          "target": {
+            "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+            "revision": "rev-2"
+          }
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa/account-restoration",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "target_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "target_revision": 2,
+          "active_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+          "active_revision": 2,
+          "deletion_event_id": 0,
+          "accounts": [],
+          "review_token": "f5d7f202a140d75ebef12239898801db8b63d54333449d84634b478b298f11e3"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa/validate",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "valid": true,
+          "error_codes": []
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/admin/config-versions/edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa/publish",
+        "config": null,
+        "ifMatch": "rev-2",
+        "authenticated": true,
+        "csrf": true,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "active_config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "replaced_config_version_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/config-versions",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "parent_id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516442971,
+            "description": "添加提供商 · Actual responses"
+          },
+          {
+            "id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "parent_id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516547698,
+            "description": "添加提供商 · Actual kimi"
+          },
+          {
+            "id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "parent_id": "edit-4d363d3e-fca0-4770-8bee-d153fd51cfda",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516554835,
+            "description": "添加提供商 · Actual grok-api"
+          },
+          {
+            "id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "parent_id": "edit-29085c98-a333-4fa7-ab93-f96bb10ca261",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516449597,
+            "description": "添加提供商 · Actual chat"
+          },
+          {
+            "id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+            "parent_id": "edit-55bf31ba-186a-49a3-afc6-d973fdbc1399",
+            "status": "active",
+            "revision": "rev-2",
+            "created_at_ms": 1791516613161,
+            "description": "添加提供商 · Actual responses"
+          },
+          {
+            "id": "edit-cd85b0dd-aea4-4050-b121-1149a6cea349",
+            "parent_id": "edit-90483db8-e018-4512-b030-001714decd63",
+            "status": "archived",
+            "revision": "rev-2",
+            "created_at_ms": 1791516540530,
+            "description": "添加提供商 · Actual messages"
+          },
+          {
+            "id": "ui-baseline",
+            "status": "archived",
+            "revision": "rev-13",
+            "created_at_ms": 1791516417635,
+            "description": "Isolated embedded UI baseline"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/upstreams",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "kiro-us-east-1",
+            "name": "Isolated kiro",
+            "kind": "kiro",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-chat",
+            "name": "Isolated chat",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-grok-api",
+            "name": "Isolated grok-api",
+            "kind": "grok.official",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-kimi",
+            "name": "Isolated kimi",
+            "kind": "kimi",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-messages",
+            "name": "Isolated messages",
+            "kind": "anthropic-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-responses",
+            "name": "Isolated responses",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/accounts/inventory",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "category_totals": {
+            "api": 4,
+            "claude": 1,
+            "kimi": 1
+          },
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "items": [
+            {
+              "category": "api",
+              "id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "api",
+                "connections": [
+                  {
+                    "api_format": "openai/chat-completions",
+                    "enabled": true,
+                    "host": "127.0.0.1",
+                    "id": "ui-chat-connection"
+                  }
+                ],
+                "credential": {
+                  "id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "ui-chat"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "API"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "API",
+              "status": "enabled"
+            },
+            {
+              "category": "api",
+              "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "api",
+                "connections": [
+                  {
+                    "api_format": "openai/responses",
+                    "enabled": true,
+                    "host": "127.0.0.1",
+                    "id": "ui-responses-connection"
+                  }
+                ],
+                "credential": {
+                  "id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "ui-responses"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "API"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "API",
+              "status": "enabled"
+            },
+            {
+              "category": "api",
+              "id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "api",
+                "connections": [
+                  {
+                    "api_format": "openai/responses",
+                    "enabled": true,
+                    "host": "127.0.0.1",
+                    "id": "ui-responses-connection"
+                  }
+                ],
+                "credential": {
+                  "id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "ui-responses"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "API"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "API",
+              "status": "enabled"
+            },
+            {
+              "category": "kimi",
+              "id": "account-6b2bb4aa-859b-4771-8c73-b1998374a06a",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "kimi",
+                "connections": [
+                  {
+                    "api_format": "openai/chat-completions",
+                    "enabled": true,
+                    "host": "127.0.0.1",
+                    "id": "ui-kimi-connection"
+                  }
+                ],
+                "credential": {
+                  "id": "account-6b2bb4aa-859b-4771-8c73-b1998374a06a",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "ui-kimi"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "Kimi"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "Kimi",
+              "status": "enabled"
+            },
+            {
+              "category": "api",
+              "id": "account-84c074b5-f0b7-4a6f-9a95-47fcb5d36658",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "api",
+                "connections": [
+                  {
+                    "api_format": "openai/responses",
+                    "enabled": false,
+                    "host": "api.x.ai",
+                    "id": "ui-grok-api-connection"
+                  }
+                ],
+                "credential": {
+                  "id": "account-84c074b5-f0b7-4a6f-9a95-47fcb5d36658",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "ui-grok-api"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "Grok Official"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "Grok Official",
+              "status": "enabled"
+            },
+            {
+              "category": "claude",
+              "id": "account-c1f00f4a-e65b-43c1-b038-a9c4829286e7",
+              "identity": {
+                "email": null,
+                "phone": null,
+                "username": null
+              },
+              "managed": {
+                "authentication": "api_key",
+                "binding_count": 1,
+                "category": "claude",
+                "connections": [
+                  {
+                    "api_format": "anthropic/messages",
+                    "enabled": true,
+                    "host": "127.0.0.1",
+                    "id": "ui-messages-connection"
+                  }
+                ],
+                "credential": {
+                  "id": "account-c1f00f4a-e65b-43c1-b038-a9c4829286e7",
+                  "kind": "bearer",
+                  "revision": 0,
+                  "secret_present": true,
+                  "status": "active",
+                  "upstream_id": "ui-messages"
+                },
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "plan": null,
+                "plan_source": null,
+                "provider": "Claude"
+              },
+              "name": "",
+              "native": false,
+              "native_account": null,
+              "operations": [
+                "details",
+                "update_credential",
+                "enable",
+                "disable",
+                "remove",
+                "models"
+              ],
+              "plan": null,
+              "plan_source": null,
+              "provider": "Claude",
+              "status": "enabled"
+            }
+          ],
+          "next_cursor": null,
+          "plan_totals": {},
+          "revision": "rev-2",
+          "total": 6,
+          "unobserved_plan_total": 6
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/operations/provider-account-pools",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "snapshot_id": "runtime-account-pools:df97de587d068d4557f25ae8ae91e1da:1791516712231:1",
+          "observed_at_ms": 1791516712231,
+          "items": [
+            {
+              "presentation": {
+                "api_format": "openai/chat-completions",
+                "category": "api",
+                "host": "127.0.0.1",
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "provider": "API",
+                "source": null
+              },
+              "provider_id": "ui-chat",
+              "channel_id": "ui-chat-connection",
+              "account_id": "account-02aba03c-5192-489d-9532-ecec83707c9e",
+              "account_kind": "bearer",
+              "credential_revision": 0,
+              "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+              "auth_status": "active",
+              "runtime_status": "available",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "max_concurrency": 1,
+              "active_leases": 0,
+              "expires_at_ms": null,
+              "refresh_due_at_ms": null,
+              "quota_sync_due_at_ms": null,
+              "entitlement": null
+            },
+            {
+              "presentation": {
+                "api_format": "openai/responses",
+                "category": "api",
+                "host": "api.x.ai",
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "provider": "Grok Official",
+                "source": null
+              },
+              "provider_id": "ui-grok-api",
+              "channel_id": "ui-grok-api-connection",
+              "account_id": "account-84c074b5-f0b7-4a6f-9a95-47fcb5d36658",
+              "account_kind": "bearer",
+              "credential_revision": 0,
+              "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+              "auth_status": "active",
+              "runtime_status": "available",
+              "enabled": false,
+              "priority": 0,
+              "weight": 1,
+              "max_concurrency": 1,
+              "active_leases": 0,
+              "expires_at_ms": null,
+              "refresh_due_at_ms": null,
+              "quota_sync_due_at_ms": null,
+              "entitlement": null
+            },
+            {
+              "presentation": {
+                "api_format": "openai/chat-completions",
+                "category": "kimi",
+                "host": "127.0.0.1",
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "provider": "Kimi",
+                "source": null
+              },
+              "provider_id": "ui-kimi",
+              "channel_id": "ui-kimi-connection",
+              "account_id": "account-6b2bb4aa-859b-4771-8c73-b1998374a06a",
+              "account_kind": "bearer",
+              "credential_revision": 0,
+              "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+              "auth_status": "active",
+              "runtime_status": "available",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "max_concurrency": 1,
+              "active_leases": 0,
+              "expires_at_ms": null,
+              "refresh_due_at_ms": null,
+              "quota_sync_due_at_ms": null,
+              "entitlement": null
+            },
+            {
+              "presentation": {
+                "api_format": "anthropic/messages",
+                "category": "claude",
+                "host": "127.0.0.1",
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "provider": "Claude",
+                "source": null
+              },
+              "provider_id": "ui-messages",
+              "channel_id": "ui-messages-connection",
+              "account_id": "account-c1f00f4a-e65b-43c1-b038-a9c4829286e7",
+              "account_kind": "bearer",
+              "credential_revision": 0,
+              "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+              "auth_status": "active",
+              "runtime_status": "available",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "max_concurrency": 1,
+              "active_leases": 0,
+              "expires_at_ms": null,
+              "refresh_due_at_ms": null,
+              "quota_sync_due_at_ms": null,
+              "entitlement": null
+            },
+            {
+              "presentation": {
+                "api_format": "openai/responses",
+                "category": "api",
+                "host": "127.0.0.1",
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "provider": "API",
+                "source": null
+              },
+              "provider_id": "ui-responses",
+              "channel_id": "ui-responses-connection",
+              "account_id": "account-11a3e6b7-6705-43b9-b691-03226c078dc3",
+              "account_kind": "bearer",
+              "credential_revision": 0,
+              "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+              "auth_status": "active",
+              "runtime_status": "available",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "max_concurrency": 1,
+              "active_leases": 0,
+              "expires_at_ms": null,
+              "refresh_due_at_ms": null,
+              "quota_sync_due_at_ms": null,
+              "entitlement": null
+            },
+            {
+              "presentation": {
+                "api_format": "openai/responses",
+                "category": "api",
+                "host": "127.0.0.1",
+                "identity": {
+                  "email": null,
+                  "phone": null,
+                  "username": null
+                },
+                "provider": "API",
+                "source": null
+              },
+              "provider_id": "ui-responses",
+              "channel_id": "ui-responses-connection",
+              "account_id": "account-69fd5493-2d82-40d0-b3e0-c959f129ee9f",
+              "account_kind": "bearer",
+              "credential_revision": 0,
+              "config_version_id": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+              "auth_status": "active",
+              "runtime_status": "available",
+              "enabled": true,
+              "priority": 0,
+              "weight": 1,
+              "max_concurrency": 1,
+              "active_leases": 0,
+              "expires_at_ms": null,
+              "refresh_due_at_ms": null,
+              "quota_sync_due_at_ms": null,
+              "entitlement": null
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/system",
+        "config": null,
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "accepting_requests": true,
+          "build": {
+            "build_revision": "development",
+            "build_target": "development",
+            "rust_version": "development",
+            "schema_version": 34,
+            "version": "0.1.0"
+          },
+          "configuration_application": "live",
+          "server_instance": "instance-18dcbeb09f38ff28",
+          "uptime_seconds": 294
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/routes",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "revision": "rev-2",
+          "items": [],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "revision": "rev-2",
+          "observation_version": "audit-25",
+          "items": [
+            {
+              "adapter_id": "kiro.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://runtime.us-east-1.kiro.dev",
+              "enabled": false,
+              "id": "kiro-us-east-1-messages",
+              "inference_path": "/",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "kiro-us-east-1"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-chat-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-chat"
+            },
+            {
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "enabled": false,
+              "id": "ui-grok-api-connection",
+              "inference_path": "/v1/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-grok-api"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-kimi-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-kimi"
+            },
+            {
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-messages-connection",
+              "inference_path": "/v1/messages",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-messages"
+            },
+            {
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://127.0.0.1:63646/v1",
+              "enabled": true,
+              "id": "ui-responses-connection",
+              "inference_path": "/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-responses"
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/credentials/account-6b2bb4aa-859b-4771-8c73-b1998374a06a/metadata",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "live_quota": null,
+          "live_quota_error": "not_implemented_or_not_connected",
+          "kimi": null,
+          "kimi_error": null,
+          "credential_id": "account-6b2bb4aa-859b-4771-8c73-b1998374a06a",
+          "kind": "bearer",
+          "revision": 0,
+          "plan": null,
+          "quota": null,
+          "platform": null,
+          "email": null,
+          "source_format": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/credentials/account-c1f00f4a-e65b-43c1-b038-a9c4829286e7/metadata",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "live_quota": null,
+          "live_quota_error": "not_implemented_or_not_connected",
+          "kimi": null,
+          "kimi_error": null,
+          "credential_id": "account-c1f00f4a-e65b-43c1-b038-a9c4829286e7",
+          "kind": "bearer",
+          "revision": 0,
+          "plan": null,
+          "quota": null,
+          "platform": null,
+          "email": null,
+          "source_format": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/route-candidates",
+        "config": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "sameOrigin": true,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "edit-9b1d1091-f6cc-4cf5-a50a-8d6458e7edfa",
+          "revision": "rev-2",
+          "items": [],
+          "next_cursor": null
+        }
+      }
+    ]
+  }
+}

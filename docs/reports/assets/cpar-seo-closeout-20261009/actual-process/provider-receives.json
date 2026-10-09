@@ -1,0 +1,34 @@
+[
+  {
+    "method": "POST",
+    "path": "/v1/responses",
+    "protocol": "responses",
+    "material_channel": "responses",
+    "model": "ui-wire-responses",
+    "stream": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/chat/completions",
+    "protocol": "chat",
+    "material_channel": "chat",
+    "model": "ui-wire-chat",
+    "stream": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/v1/messages",
+    "protocol": "messages",
+    "material_channel": "messages",
+    "model": "ui-wire-messages",
+    "stream": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/chat/completions",
+    "protocol": "chat",
+    "material_channel": "kimi",
+    "model": "ui-wire-kimi",
+    "stream": false
+  }
+]

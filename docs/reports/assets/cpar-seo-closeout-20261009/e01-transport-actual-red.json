@@ -1,0 +1,254 @@
+{
+  "result": "REPRODUCED",
+  "environment": "stock gateway serve embedded /admin-ui/",
+  "spaceId": 35,
+  "handlerStorage": true,
+  "facts": {
+    "url": "http://127.0.0.1:61600/admin-ui/#/upstreams?add=provider",
+    "inputs": [
+      {
+        "type": "text",
+        "value": ""
+      },
+      {
+        "type": "url",
+        "value": "https://127.0.0.1:61599/v1"
+      },
+      {
+        "type": "text",
+        "value": "/responses"
+      }
+    ],
+    "text": "AI 提供商配置 API 地址与 Key，查看连接、模型和运行状态。添加 AI 提供商高级连接配置0匹配授权0账号类别0套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（0）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照没有匹配的账号。已显示 0 / 0 份匹配授权添加 AI 提供商填写地址、API Key 与协议完成接入。模型权限可稍后独立设置。关闭编辑服务名称渠道OpenAI 兼容 · ResponsesOpenAI 兼容 · Chat CompletionsAnthropic 兼容 · MessagesKimi · APIGrok · API连接接口地址请求路径没有匹配连接，将新建。账号与模型API Key仅用于保存授权，不会触发推理请求。开放模型（可选）取消保存并接入",
+    "reads": [
+      {
+        "method": "GET",
+        "path": "/admin/upstreams",
+        "config": "ui-baseline",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "body": {},
+        "status": 200,
+        "response": [
+          {
+            "id": "kiro-us-east-1",
+            "name": "Isolated kiro",
+            "kind": "kiro",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-chat",
+            "name": "Isolated chat",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-grok-api",
+            "name": "Isolated grok-api",
+            "kind": "grok.official",
+            "enabled": false,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-kimi",
+            "name": "Isolated kimi",
+            "kind": "kimi",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-messages",
+            "name": "Isolated messages",
+            "kind": "anthropic-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          },
+          {
+            "id": "ui-responses",
+            "name": "Isolated responses",
+            "kind": "openai-compatible",
+            "enabled": true,
+            "tags": [],
+            "egress_policy_id": "ui-local-policy"
+          }
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints",
+        "config": "ui-baseline",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "ui-baseline",
+          "revision": "rev-13",
+          "observation_version": "audit-13",
+          "items": [
+            {
+              "adapter_id": "kiro.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://runtime.us-east-1.kiro.dev",
+              "enabled": false,
+              "id": "kiro-us-east-1-messages",
+              "inference_path": "/",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "kiro-us-east-1"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-chat-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-chat"
+            },
+            {
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "enabled": false,
+              "id": "ui-grok-api-connection",
+              "inference_path": "/v1/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-grok-api"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-kimi-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-kimi"
+            },
+            {
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-messages-connection",
+              "inference_path": "/v1/messages",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-messages"
+            },
+            {
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-responses-connection",
+              "inference_path": "/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-responses"
+            }
+          ],
+          "next_cursor": null
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/admin/endpoints",
+        "config": "ui-baseline",
+        "ifMatch": null,
+        "authenticated": true,
+        "csrf": false,
+        "body": {},
+        "status": 200,
+        "response": {
+          "config_version": "ui-baseline",
+          "revision": "rev-13",
+          "observation_version": "audit-13",
+          "items": [
+            {
+              "adapter_id": "kiro.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://runtime.us-east-1.kiro.dev",
+              "enabled": false,
+              "id": "kiro-us-east-1-messages",
+              "inference_path": "/",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "kiro-us-east-1"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-chat-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-chat"
+            },
+            {
+              "adapter_id": "grok.official.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://api.x.ai",
+              "enabled": false,
+              "id": "ui-grok-api-connection",
+              "inference_path": "/v1/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-grok-api"
+            },
+            {
+              "adapter_id": "openai-compatible.chat-completions",
+              "api_format": "openai/chat-completions",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-kimi-connection",
+              "inference_path": "/chat/completions",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-kimi"
+            },
+            {
+              "adapter_id": "anthropic-compatible.messages",
+              "api_format": "anthropic/messages",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-messages-connection",
+              "inference_path": "/v1/messages",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-messages"
+            },
+            {
+              "adapter_id": "openai-compatible.responses",
+              "api_format": "openai/responses",
+              "base_url": "https://127.0.0.1:61599/v1",
+              "enabled": true,
+              "id": "ui-responses-connection",
+              "inference_path": "/responses",
+              "models_path": null,
+              "transport": "https",
+              "upstream_id": "ui-responses"
+            }
+          ],
+          "next_cursor": null
+        }
+      }
+    ]
+  }
+}

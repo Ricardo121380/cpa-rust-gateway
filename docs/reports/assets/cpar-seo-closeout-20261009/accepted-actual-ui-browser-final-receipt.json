@@ -1,0 +1,40 @@
+{
+  "name": "accepted-actual-ui-browser-final",
+  "command": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_SEO={spaceId:35,pageLabel:\"p3\",phase:\"all\",descriptor:\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-actual-ui-final/descriptor.json\",out:\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-seo-closeout-20261009/accepted-actual-ui-browser-final.json\",taskSpace};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source/scripts/acceptance/cpar-seo-actual-ui.mjs\");"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "started_utc": "2026-10-09T04:04:51.564560+00:00",
+  "finished_utc": "2026-10-09T04:06:39.286594+00:00",
+  "duration_seconds": 107.721,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+    "dirty": [],
+    "tracked_files_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+    "dirty": [],
+    "tracked_files_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-actual-ui-browser-final.log",
+      "sha256": "a84157126a1f365ce44e5481ae0c9f45309f5172c5e3fa1324539a1716ff733c",
+      "bytes": 1426
+    }
+  }
+}

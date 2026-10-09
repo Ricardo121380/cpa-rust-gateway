@@ -1,0 +1,39 @@
+{
+  "name": "accepted-crossgroup",
+  "command": [
+    "python3",
+    "scripts/acceptance/cpar-batch-b-http.py",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-seo-closeout-20261009/accepted-crossgroup"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "started_utc": "2026-10-09T03:58:53.078255+00:00",
+  "finished_utc": "2026-10-09T03:59:44.929076+00:00",
+  "duration_seconds": 51.851,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+    "dirty": [],
+    "tracked_files_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+    "dirty": [],
+    "tracked_files_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-crossgroup.log",
+      "sha256": "7a2d7cff10d64857207a8b3ece724669a72be90701acbb151371ff744b2a6086",
+      "bytes": 124
+    }
+  }
+}
