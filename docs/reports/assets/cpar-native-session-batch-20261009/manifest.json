@@ -102,7 +102,7 @@
     "final-grok-page-transition.png": "093d911daafb558b3026fd7ab9a9782b924994c62182df71e149d7959a18fefd",
     "final-evidence-index.json": "29140eb258072baba5fb5fbc963a1cfdf880542d21eb01b0083593cc24678ee9",
     "final-clean-full-quiet-receipt.json": "4bd12878723068a18de5d5f9bbc7eeb13c5c9c4efd6adfea62977236178a386d",
-    "final-clean-full-quiet-raw.log": "1842f060b17c85f655a3f928b4e499290a9ce1f7a003c540d06cf9c78168ab47",
+    "final-clean-full-quiet-raw.log": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
     "final-clean-full-steps.md": "6021858f044e7d55c05c60ece0c977be3a2bbcf628ba437972f42acbc9b8746a",
     "final-gate-attestation.json": "4b4d7a603b2cd624ea23057b1002c12cf5f75ba7fd0dd6ffd6ce623454a485de"
   },
@@ -251,6 +251,11 @@
       "original_raw_sha256": "1f5a81031565c9d3eb02ed5a01d31da8f63260f6e98aadfee77b7ab946451aa1",
       "archived_sha256": "161e8529dfe8e07616347b291e7602e2ada0cf9de61244197f36933247ff9a17",
       "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "final-clean-full-quiet-raw.log": {
+      "original_raw_sha256": "1842f060b17c85f655a3f928b4e499290a9ce1f7a003c540d06cf9c78168ab47",
+      "archived_sha256": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
+      "transformation": "remove per-line trailing spaces/tabs and blank lines at EOF; preserve one final newline"
     }
   }
 }
