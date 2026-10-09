@@ -27,7 +27,12 @@
     "Standards": "FAIL: 3 standards findings and 1 report fact error",
     "Spec": "FAIL: 1 P2 inferred direct-navigation recovery gap"
   },
-  "current_review": "PENDING",
+  "current_review": {
+    "reviewed_head": "184f9daaa32c90cf60f817659ac64c349217a128",
+    "Standards": "FAIL: 1 ordinary preview display finding; corrected candidate pending new review",
+    "Spec": "PARTIAL: 1 P2 inferred direct-navigation gap",
+    "report": "review-second.md"
+  },
   "direct_navigation_reproduction": "NOT_RUN: new EgoLite space approval pending",
   "new_native_presentation_page_replay": "NOT_RUN: same pending browser access",
   "github_sync": "PENDING",

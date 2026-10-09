@@ -1,0 +1,36 @@
+{
+  "label": "ordinary-labels-page-syntax",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "node",
+    "--check",
+    "scripts/acceptance/cpar-account-lifecycle-page.mjs"
+  ],
+  "utc_start": "2026-10-09T17:00:00.525240+00:00",
+  "source_before": {
+    "head": "184f9daaa32c90cf60f817659ac64c349217a128",
+    "status": [
+      " M AGENTS.md",
+      " M docs/cross-boundary-log.md",
+      " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+      " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+      " M web/prism/src/utils/resourceLabels.ts"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T17:00:01.008509+00:00",
+  "elapsed_seconds": 0.07876829099999999,
+  "source_after": {
+    "head": "184f9daaa32c90cf60f817659ac64c349217a128",
+    "status": [
+      " M AGENTS.md",
+      " M docs/cross-boundary-log.md",
+      " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+      " M web/prism/src/features/accounts/AccountBatchDialog.tsx",
+      " M web/prism/src/utils/resourceLabels.ts"
+    ]
+  },
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "log_bytes": 0
+}

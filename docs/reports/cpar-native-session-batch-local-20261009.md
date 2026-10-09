@@ -9,7 +9,7 @@
 
 初次行为代码提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档格式修正提交 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b` 与它的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。后续 Standards 展示/交接修正及当前干净门槛绑定 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3`。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。
-[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮114份唯一原始执行回执、命令、时间及日志 SHA256。此前门槛为[45步日志](assets/cpar-native-session-batch-20261009/final-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)；独立评审与 GitHub 读回仍待最后收口。
+[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮117份唯一原始执行回执、命令、时间及日志 SHA256。此前门槛为[45步日志](assets/cpar-native-session-batch-20261009/final-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)；最新源码独立复评与 GitHub 读回仍待最后收口。
 [归档 manifest](assets/cpar-native-session-batch-20261009/manifest.json)只含安全回执、元数据和截图；临时 SQLite、凭据、TLS 私钥不归档。
 归档日志仅规范多余空白尾行、cargo诊断的行尾空格并保留末尾换行；manifest 同列原始与归档 SHA256及具体转换。output 中原始日志及回执未改写。
 失败保持原始唯一文件。仅实际页面旧实现的丢响应失败及缺失原生删除预览的 404 是行为 RED；脚本非法优先级、容量、模式、空目录或重复工具历史的失败是 harness 错误，不能当产品缺陷。
@@ -54,9 +54,9 @@
 
 | 条件 | 当前判定 | 依据 |
 | --- | --- | --- |
-| 本批必要实现/契约/定向证据 | PASS_LOCAL | 上述六票地图，单向OpenAPI生成客户端；GitHub与评审待收口 |
+| 本批必要实现/契约/定向证据 | PARTIAL | #16直接导航尚未动态复现；#23最新展示回放NOT_RUN；其他定向结果按上述六票地图保留 |
 | 最终clean Full/前端double build | PASS_LOCAL | clean源码3b4f78c8、45步PASS、Rust1499通过/12忽略、前端500/type-check/双构建PASS |
-| 两轴独立评审 | PENDING | 最终代码和本轮证据固定后执行，不能用旧029332回执代替 |
+| 两轴独立评审 | 待复评 | 第二次Standards有一项名称展示发现，Spec为一项P2未满足；最新修正源码须重新评审 |
 | Grok Web原生多轮 | 未满足 | 仍是后续独立软件范围，本批未新增例外 |
 | Kiro native输出硬上限 | 未满足 | 仍是后续独立软件范围 |
 | 完整既有数据升级兼容及回退 | 未满足 | 仅有有界合成保留/恢复证据，不代表全量既有数据 |
@@ -81,3 +81,11 @@
 展示及交接修正源码 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3` 的干净隔离 checkout 已完成 Full 45 步 PASS、Rust1499通过/0失败/12忽略、前端70文件/500测试 PASS、type-check PASS；Full 的 Management SPA 步调用 check:full，完成双构建。stock gateway 已按该源码构建，但新页面验收未执行。详见 [新45步](assets/cpar-native-session-batch-20261009/review-clean-full-steps.md)及[新候选 attestation](assets/cpar-native-session-batch-20261009/review-gate-attestation.json)。
 
 该源码的 apps/crates/权威管理契约/行为契约相对 eab0f044 diff 为空；此前 E-05、OAuth 和持久化记录按各自 source 保留。本次展示改动的实际页面回放仍待新空间确认；不能把更新后的 lifecycle 脚本当作已经重跑。
+
+## 第二次评审与普通删除预览修正
+
+[第二次两轴终态整理](assets/cpar-native-session-batch-20261009/review-second.md)绑定 `184f9daa`：Standards FAIL（一项普通删除预览名称展示违反，smell 0）；Spec PARTIAL（一项 P2 直接导航未满足，仅源码推断）。#14、#36、#37、#38 无独立阻塞项，可在本轮规范修正与最终门槛后单独收口。#16及仍未解除前置的其余票保持OPEN。
+
+普通删除预览已复用 ResourceIdentity，路由名称使用既有 version-scoped 路由与模型库存；精确主键继续用于 DOM 机器引用、API及删除核对。浏览器断言改为名称与精确引用分别检查。工作树 type-check、70文件/500项前端测试及验收脚本语法检查 PASS；尚不代表最新干净 Full 或页面回放。
+
+直接导航复现和最新普通/原生展示回放仍为 NOT_RUN，等待已发送的新 EgoLite 空间许可。未对直接导航推断实施修复，未宣称行为 RED 或该路径 PASS。

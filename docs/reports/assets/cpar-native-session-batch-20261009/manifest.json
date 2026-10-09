@@ -100,7 +100,7 @@
     "final-grok-page.json": "79daa09bf74ccaaf14b89ed6c9be076a6d061c59a601e6d9b5076de494e3603b",
     "final-shared-page-summary.json": "3315d001b770906c8da973963e746e045e3b3b56c7ede0655dcd0e4c5674112a",
     "final-grok-page-transition.png": "093d911daafb558b3026fd7ab9a9782b924994c62182df71e149d7959a18fefd",
-    "final-evidence-index.json": "12243587f3d5554dd170a55d48f424ee474ce2f49d4ee7efd1fb7092ec433439",
+    "final-evidence-index.json": "dfa513771b68d7bdd1eb1f6d47ec794f54c83b93b8b41579f81ef2c8b269ac8a",
     "final-clean-full-quiet-receipt.json": "4bd12878723068a18de5d5f9bbc7eeb13c5c9c4efd6adfea62977236178a386d",
     "final-clean-full-quiet-raw.log": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
     "final-clean-full-steps.md": "6021858f044e7d55c05c60ece0c977be3a2bbcf628ba437972f42acbc9b8746a",
@@ -121,7 +121,14 @@
     "review-clean-stock-build-receipt.json": "62421a2063f80ccc603c3fa6acb942b5c2513cacde68dcb9105f589145675bb2",
     "review-clean-stock-build-raw.log": "358434368432a659e6ef83039260ed98d88fb244724920ecb3c8d56d7d54a318",
     "review-clean-full-steps.md": "0b632a021a4751d1c7852e140ef01dc2725292ca9ab4fe2683b7c84e2d26c920",
-    "review-gate-attestation.json": "304b22f116ed45d15c6b04c2b7486cdf0ce16a7478fed9dbcd081be219804d58"
+    "review-gate-attestation.json": "dd9c8a88a5ef8276853e5484c24ce51a666576917ca7b43222bce044805538ca",
+    "ordinary-labels-frontend-units-20261009T170000524600Z-raw.log": "81c9a8f3fcf8814de17f5987576b8404521ba0231e1763497645b5d04a799591",
+    "ordinary-labels-frontend-units-20261009T170000524600Z-receipt.json": "2b5a285c54d9d76e40a52d508f581bafa1cc8f7a0cd36c65bdec0a43d7d5dd0e",
+    "ordinary-labels-page-syntax-20261009T170000524601Z-raw.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ordinary-labels-page-syntax-20261009T170000524601Z-receipt.json": "4a712b20c04f551342fdbbe7cd1d542ac1c28c6c0c1d865cfbb4885882618c92",
+    "ordinary-labels-type-check-20261009T170000524599Z-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+    "ordinary-labels-type-check-20261009T170000524599Z-receipt.json": "269fcd250806af23a9ddbbd508f2105170580da9d0bae80d55c452d84caad6d5",
+    "review-second.md": "d54fb541634095258a1416ae5d192f0c7a38b328c271e82a0606d6d1013c2a2d"
   },
   "text_normalization": {
     "e05-public-negative-matrix-raw.log": {
@@ -298,6 +305,16 @@
       "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
       "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
       "transformation": "remove per-line trailing spaces/tabs and blank lines at EOF; preserve one final newline"
+    },
+    "ordinary-labels-frontend-units-20261009T170000524600Z-raw.log": {
+      "original_raw_sha256": "9558517033d431f80aac2abedf0137b2c666b23c5a1033704137d56e475ebd8f",
+      "archived_sha256": "81c9a8f3fcf8814de17f5987576b8404521ba0231e1763497645b5d04a799591",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
+    },
+    "ordinary-labels-type-check-20261009T170000524599Z-raw.log": {
+      "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
     }
   }
 }

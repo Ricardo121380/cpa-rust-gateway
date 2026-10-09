@@ -3815,3 +3815,19 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** Resolve the independent Standards findings using the existing resource-name and explicit-copy components; never turn import provenance into an account name. Record native recovery, account lifecycle and concrete deletion review decisions, and correct the Preferences storage statement. Exact mutation IDs, revisions and deletion review tokens are unchanged.
 
 **Other side:** FYI. The initial Spec finding about direct browser Back/Forward remains an inferred gap pending actual reproduction; no browser substitute or unverified recovery PASS is claimed. Prior explicit-close recovery evidence remains separately bounded. The authorized GitHub closeout is still pending final gate/review/readback.
+
+## 2026-10-10 — CPAR 普通账号删除预览名称评审修正
+
+**Initiator:** backend/main agent, under the explicit batch implementation authorization.
+
+**Paths:**
+- `web/prism/src/features/accounts/AccountBatchDialog.tsx`
+- `web/prism/src/utils/resourceLabels.ts`
+- `web/prism/DESIGN.md`
+- `scripts/acceptance/cpar-account-lifecycle-page.mjs`
+- `docs/reports/cpar-native-session-batch-local-20261009.md`
+- `docs/reports/assets/cpar-native-session-batch-20261009/review-second.md`
+
+**Why:** Resolve the remaining Standards finding in the ordinary deletion preview. Reuse ResourceIdentity for accounts, services, interfaces, routes and keys; resolve route labels from the existing version-scoped route/model inventory. Keep original IDs in machine references, mutation targets and deletion reviews. The directed browser assertion now checks readable names and exact DOM references separately.
+
+**Other side:** FYI. This is a presentation correction; backend operations, schemas and revision/CAS rules are unchanged. Fresh browser presentation replay remains NOT_RUN while the replacement EgoLite space request is pending. Direct-navigation recovery is still an inferred Spec gap pending actual reproduction.

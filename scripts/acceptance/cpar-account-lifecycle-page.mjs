@@ -72,10 +72,16 @@ for(const item of cases.filter(item=>!only||item.id===only)){
     await page.waitForSelector(`loc=role:dialog[name="${label} ${selected.length} 份授权"]`);
     if(item.action==="remove"){
       await page.waitForFunction(()=>document.querySelector('[aria-label="删除影响预览"] input')?.disabled===false);
-      if(item.native)await page.waitForFunction(()=>![...document.querySelectorAll('[aria-label="删除影响预览"] .resource-identity')].some(row=>row.textContent?.includes("读取名称")));
+      await page.waitForFunction(()=>![...document.querySelectorAll('[aria-label="删除影响预览"] .resource-identity')].some(row=>row.textContent?.includes("读取名称")));
       const preview=await text();assert(preview.includes("历史请求"));
       if(item.native){assert(preview.includes("a@example.test")&&preview.includes("Fixture Grok 1")&&preview.includes("Responses")&&preview.includes("cli-chat-proxy.grok.com")&&preview.includes("minimax-m3")&&preview.includes("grok-lifecycle-model"));assert.match(preview,/不能保证|不保证/u);if(selected.length===1)assert(preview.includes("c@example.test"));for(const id of [...ids,"batch-a-native-1","batch-a-native-2-endpoint","rt-minimax"])assert(!preview.includes(id),`internal reference must not be ordinary display text: ${id}`);}
-      else assert(preview.includes(ids[0])&&preview.includes("ep-relay-a-responses")&&preview.includes("rt-minimax"));
+      else {
+        assert(preview.includes("Fixture API")&&preview.includes("Responses")&&preview.includes("relay-a.example.test")&&preview.includes("minimax-m3"));
+        const references=await page.evaluate(()=>[...document.querySelectorAll('[aria-label="删除影响预览"] [data-resource-id]')].map(row=>row.dataset.resourceId));
+        for(const id of [...selected,"ep-relay-a-responses","rt-minimax"])assert(references.includes(id),`exact machine reference retained: ${id}`);
+        for(const id of [...ids,"ep-relay-a-responses","rt-minimax","pm-minimax","dev-key"])assert(!preview.includes(id),`internal reference must not be ordinary display text: ${id}`);
+        row.previewReferences=references;
+      }
       row.preview=preview;await snapshot(`${item.id}-preview`);await shot(`${item.id}-preview`);
       assert.equal(await page.evaluate(label=>[...document.querySelectorAll('[role="dialog"] button')].find(button=>button.textContent===`确认${label}`)?.disabled,label),true);
       await page.click('loc=css:[aria-label="删除影响预览"] input[type="checkbox"]');

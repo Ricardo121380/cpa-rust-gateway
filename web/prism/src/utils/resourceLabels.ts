@@ -4,6 +4,7 @@ import type {ManagementOperationName} from "../generated/management-client";
 import {useVersionStore} from "../features/config-versions/versionStore";
 import type {ManagedCredential,ManagedEndpoint} from "../features/accounts/inventory";
 import type {NativeAccount} from "../features/accounts/NativeAccounts";
+import type {PublicModel,RouteListItem} from "../features/models/model";
 import {accountName,protocolName} from "../features/accounts/presentation";
 import {resourceName,type ResourceKind} from "./resourceNames";
 async function all<T>(operation:ManagementOperationName,scoped:boolean):Promise<T[]> {
@@ -19,7 +20,7 @@ async function all<T>(operation:ManagementOperationName,scoped:boolean):Promise<
 /** Shared query caches resolve real names; IDs stay untouched in links and mutations. */
 export function useResourceLabel(id:string,kind:ResourceKind,supplied?:string|null) {
   const context=useVersionStore(state=>state.context);
-  const supported=["account","upstream","endpoint","group","key"].includes(kind);
+  const supported=["account","upstream","endpoint","route","group","key"].includes(kind);
   const query=useQuery({queryKey:["resource-labels",context?.configVersionId,context?.revision,kind],enabled:!supplied&&supported&&!!context,retry:false,staleTime:10_000,queryFn:async()=>{
     const map=new Map<string,string>();
     if(kind==="account") {
@@ -28,6 +29,11 @@ export function useResourceLabel(id:string,kind:ResourceKind,supplied?:string|nu
       for(const row of native)map.set(row.id,accountName(row.identity)??"未提供账号身份");
     } else if(kind==="endpoint") {
       for(const row of await all<ManagedEndpoint>("listManagedEndpoints",true))map.set(row.id,`${protocolName(row.api_format)} · ${new URL(row.base_url).host}`);
+    } else if(kind==="route") {
+      const routes=await all<RouteListItem>("listRoutes",true);
+      const models=await call<PublicModel[]>("listPublicModels",{},{versionScoped:true});
+      const names=new Map(models.map(model=>[model.id,model.model_name]));
+      for(const row of routes)map.set(row.id,`${names.get(row.public_model_id)??"历史模型"} · 路由`);
     } else {
       const operation=kind==="upstream"?"listUpstreams":kind==="group"?"listAccessGroups":"listClientKeys";
       const rows=await call<{id:string;name?:string;prefix?:string;access_group_id?:string}[]>(operation,{},{versionScoped:true});
@@ -42,6 +48,6 @@ export function useResourceLabel(id:string,kind:ResourceKind,supplied?:string|nu
   if(supplied)return resourceName(id,kind,supplied);
   const name=query.data?.get(id);
   if(name)return name;
-  if(supported)return query.isPending&&context?"读取名称…":kind==="account"?"历史账号":kind==="upstream"?"历史提供商":kind==="endpoint"?"历史接口":kind==="key"?"历史密钥":"历史访问组";
+  if(supported)return query.isPending&&context?"读取名称…":kind==="account"?"历史账号":kind==="upstream"?"历史提供商":kind==="endpoint"?"历史接口":kind==="route"?"历史路由":kind==="key"?"历史密钥":"历史访问组";
   return resourceName(id,kind);
 }
