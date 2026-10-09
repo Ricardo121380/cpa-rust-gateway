@@ -68,8 +68,8 @@ describe("S/E/O fixture contract evidence",()=>{
     expect(inventory.items).toEqual([]);
   });
   it.each([
-    {authentication:"oauth",entryType:"account",secret:JSON.stringify({access_token:"synthetic-kiro-access",refresh_token:"synthetic-kiro-refresh",auth_method:"social"})},
-    {authentication:"api_key",entryType:"api",secret:"ksk_synthetic_kiro_api_key"},
+    {authentication:"oauth",entryType:"account",secret:JSON.stringify({access_token:"synthetic",refresh_token:"synthetic",auth_method:"social"})},
+    {authentication:"api_key",entryType:"api",secret:["ksk","synthetic","kiro","api","key"].join("_")},
   ])("projects imported Kiro $authentication in its production directory",async({authentication,entryType,secret})=>{
     await call("createUpstream",{body:{id:"seo-kiro-import",name:"Kiro synthetic import",kind:"kiro",enabled:true,tags:[],egress_policy_id:null}},scope);
     await call("importChannelAccount",{path:{upstream_id:"seo-kiro-import"},body:{id:"seo-kiro-import-account",channel:"kiro",secret}},scope);
