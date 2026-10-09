@@ -1,0 +1,41 @@
+{
+  "fixed_base": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+  "clean_code_source": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+  "clean_checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-gate-source-3b4f78c8",
+  "backend_contract_diff_from_eab0f044": "EMPTY",
+  "full": {
+    "status": "PASS_LOCAL",
+    "steps": 45,
+    "rust_passed": 1499,
+    "rust_failed": 0,
+    "rust_ignored": 12,
+    "raw_log_sha256": "d58a810b2f5e88645fb9b4efa9b73cbd27058ef0aa04107b3ff273dc54251096",
+    "receipt": "review-clean-full-receipt.json"
+  },
+  "frontend": {
+    "files": 70,
+    "passed": 500,
+    "type_check": "PASS",
+    "double_build": "PASS in Full Management SPA step"
+  },
+  "stock_build": {
+    "status": "PASS",
+    "binary_sha256": "ac6050c66ca1eb6dc9635ad587782d4a78437c52f121213e63273a38b1df2e75",
+    "actual_new_page_acceptance": "NOT_RUN"
+  },
+  "initial_review": {
+    "Standards": "FAIL: 3 standards findings and 1 report fact error",
+    "Spec": "FAIL: 1 P2 inferred direct-navigation recovery gap"
+  },
+  "current_review": "PENDING",
+  "direct_navigation_reproduction": "NOT_RUN: new EgoLite space approval pending",
+  "new_native_presentation_page_replay": "NOT_RUN: same pending browser access",
+  "github_sync": "PENDING",
+  "real_provider_calls": 0,
+  "push": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN",
+  "agents_content_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_diff_sha256": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f"
+}

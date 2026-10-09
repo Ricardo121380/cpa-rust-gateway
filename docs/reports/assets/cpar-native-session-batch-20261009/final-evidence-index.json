@@ -1,7 +1,7 @@
 {
   "fixed_base": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
-  "behavior_code": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
-  "formal_checkout": "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b",
+  "behavior_code": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+  "formal_checkout": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
   "scope": "all terminal uniquely named execution receipts; intentional dev-server stop143 and zero-test filter attempt are not failed product acceptance",
   "entries": [
     {
@@ -7231,6 +7231,122 @@
       "log_bytes": 247,
       "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-direct-route-red-stock-server-20261009T161406950781Z/receipt.json",
       "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-direct-route-red-stock-server-20261009T161406950781Z/raw.log"
+    },
+    {
+      "label": "review-clean-full",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-gate-source-3b4f78c8",
+      "argv": [
+        "bash",
+        "scripts/check.sh",
+        "full"
+      ],
+      "utc_start": "2026-10-09T16:29:26.469548+00:00",
+      "source_before": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-09T16:35:14.728660+00:00",
+      "elapsed_seconds": 347.796724166,
+      "source_after": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "log_sha256": "d58a810b2f5e88645fb9b4efa9b73cbd27058ef0aa04107b3ff273dc54251096",
+      "log_bytes": 301161,
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-full-20261009T162926469072Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-full-20261009T162926469072Z/raw.log"
+    },
+    {
+      "label": "review-clean-frontend-units",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-gate-source-3b4f78c8",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "test"
+      ],
+      "utc_start": "2026-10-09T16:34:18.353150+00:00",
+      "source_before": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T16:34:23.322048+00:00",
+      "elapsed_seconds": 4.943235833,
+      "source_after": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "log_sha256": "229d23ae04f1042bfc43a753b370c48fa727e5cf384f7309e65aecc5bb728a49",
+      "log_bytes": 4705,
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-frontend-units-20261009T163418352870Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-frontend-units-20261009T163418352870Z/raw.log"
+    },
+    {
+      "label": "review-clean-frontend-types",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-gate-source-3b4f78c8",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "type-check"
+      ],
+      "utc_start": "2026-10-09T16:34:18.353111+00:00",
+      "source_before": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T16:34:27.276374+00:00",
+      "elapsed_seconds": 8.897542207999999,
+      "source_after": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "log_bytes": 48,
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-frontend-types-20261009T163418352869Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-frontend-types-20261009T163418352869Z/raw.log"
+    },
+    {
+      "label": "review-clean-stock-build",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-gate-source-3b4f78c8",
+      "argv": [
+        "cargo",
+        "build",
+        "-p",
+        "gateway",
+        "--bin",
+        "gateway"
+      ],
+      "utc_start": "2026-10-09T16:39:04.779665+00:00",
+      "source_before": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-09T16:39:05.553225+00:00",
+      "elapsed_seconds": 0.732211083,
+      "source_after": {
+        "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+        "status": []
+      },
+      "log_sha256": "358434368432a659e6ef83039260ed98d88fb244724920ecb3c8d56d7d54a318",
+      "log_bytes": 72,
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-stock-build-20261009T163904779102Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-clean-stock-build-20261009T163904779102Z/raw.log"
     }
-  ]
+  ],
+  "initial_behavior_code": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+  "prior_formal_checkout": "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b"
 }

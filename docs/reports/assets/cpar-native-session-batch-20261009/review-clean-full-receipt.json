@@ -1,0 +1,26 @@
+{
+  "label": "review-clean-full",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-gate-source-3b4f78c8",
+  "argv": [
+    "bash",
+    "scripts/check.sh",
+    "full"
+  ],
+  "utc_start": "2026-10-09T16:29:26.469548+00:00",
+  "source_before": {
+    "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+    "status": []
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-09T16:35:14.728660+00:00",
+  "elapsed_seconds": 347.796724166,
+  "source_after": {
+    "head": "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
+    "status": []
+  },
+  "log_sha256": "d58a810b2f5e88645fb9b4efa9b73cbd27058ef0aa04107b3ff273dc54251096",
+  "log_bytes": 301161
+}
