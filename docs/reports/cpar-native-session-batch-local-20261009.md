@@ -7,9 +7,9 @@
 
 ## 源码与证据绑定
 
-初次行为代码提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档格式修正提交 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b` 与它的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。原生展示/交接修正为 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3`；普通名称修正与当前干净门槛绑定 `509ec0f4988bbc76c03ea5037f0241b4270c6c1b`。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
+初次行为代码提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档格式修正提交 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b` 与它的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。原生展示/交接修正为 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3`；普通名称修正为 `509ec0f4988bbc76c03ea5037f0241b4270c6c1b`；批次比较修正及当前干净门槛绑定 `3b3896be34809f5b81f075d0500f23a2bc3020b2`。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。
-[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮125份唯一原始执行回执、命令、时间及日志 SHA256。当前门槛为[新45步日志](assets/cpar-native-session-batch-20261009/ordinary-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/ordinary-gate-attestation.json)；此前[2bb门槛](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)保留各自来源。最新源码独立复评与 GitHub 读回仍待最后收口。
+[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮129份唯一原始执行回执、命令、时间及日志 SHA256。当前门槛为[新45步日志](assets/cpar-native-session-batch-20261009/selected-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/selected-gate-attestation.json)；此前[2bb门槛](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)保留各自来源。最新源码独立复评与 GitHub 读回仍待最后收口。
 [归档 manifest](assets/cpar-native-session-batch-20261009/manifest.json)只含安全回执、元数据和截图；临时 SQLite、凭据、TLS 私钥不归档。
 归档日志仅规范多余空白尾行、cargo诊断的行尾空格并保留末尾换行；manifest 同列原始与归档 SHA256及具体转换。output 中原始日志及回执未改写。
 失败保持原始唯一文件。仅实际页面旧实现的丢响应失败及缺失原生删除预览的 404 是行为 RED；脚本非法优先级、容量、模式、空目录或重复工具历史的失败是 harness 错误，不能当产品缺陷。
@@ -55,7 +55,7 @@
 | 条件 | 当前判定 | 依据 |
 | --- | --- | --- |
 | 本批必要实现/契约/定向证据 | PARTIAL | #16直接导航尚未动态复现；#23最新展示回放NOT_RUN；其他定向结果按上述六票地图保留 |
-| 最终clean Full/前端double build | 当前候选待检查 | 509ec0f4的45步/Rust1499/前端500/类型/双构建已PASS；新比较层修正仍待新源码干净门槛 |
+| 最终clean Full/前端double build | PASS_LOCAL | clean源码3b3896be，45步/Rust1499通过0失败12忽略/前端513/类型/双构建PASS |
 | 两轴独立评审 | 待复评 | 第二次Standards有一项名称展示发现，Spec为一项P2未满足；最新修正源码须重新评审 |
 | Grok Web原生多轮 | 未满足 | 仍是后续独立软件范围，本批未新增例外 |
 | Kiro native输出硬上限 | 未满足 | 仍是后续独立软件范围 |
@@ -101,3 +101,7 @@ GitHub 16个对象的本次写入前读回与此前正文、评论及原生依�
 #23疑点已在实际比较函数上以当时生产调用参数复现：未执行的选中成员revision、启停、auth或消失均被错误判断为相同，四项FAIL/两项既有PASS，原始回执和输入patch保留。这是本地比较层RED，未执行浏览器或公开HTTP对此场景的复现。修正后比较函数接收目标和逐项结果，仅允许成功DELETE回执对应成员消失，拒绝重新出现、未知/未执行结果和跨ordinary/native命名空间混用。15项定向比较回归与type-check PASS；新行为的实际页面回放仍NOT_RUN，#23保持PARTIAL。
 
 #16直接导航仍仅是未动态复现的独立疑点，未据此修改代码。新的最终源码须完成干净门槛和独立复评，GitHub写入依然待收口。
+
+## 当前最终行为源码的干净检查
+
+批次比较修正源码3b3896be34809f5b81f075d0500f23a2bc3020b2的干净checkout完成Full45步PASS，Rust1499通过/0失败/12忽略、前端70文件/513测试、类型检查及Full内双构建PASS。原始Full日志SHA256为`e2662b221af30a9d1ff82f34e8d510a9ae0194f4aad6006503d54aa89b7b6719`。最新源码GitHub commit查询仍返回422未找到SHA，本轮未push。新删除名称/批次变化的页面补验，以及Build直接导航复现仍NOT_RUN，不能据本地比较GREEN关闭#23或据Full关闭#16。

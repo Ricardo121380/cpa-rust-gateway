@@ -1,0 +1,58 @@
+{
+  "fixed_base": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+  "clean_code_source": "3b3896be34809f5b81f075d0500f23a2bc3020b2",
+  "clean_checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/selected-gate-source-3b3896be",
+  "backend_contract_diff_from_eab0f044": "EMPTY",
+  "oauth_implementation_fixture_driver_diff_from_eab0f044": "EMPTY",
+  "full": {
+    "status": "PASS_LOCAL",
+    "steps": 45,
+    "rust_passed": 1499,
+    "rust_failed": 0,
+    "rust_ignored": 12,
+    "raw_log_sha256": "e2662b221af30a9d1ff82f34e8d510a9ae0194f4aad6006503d54aa89b7b6719",
+    "receipt": "selected-clean-full-20261009T173441758099Z-receipt.json"
+  },
+  "frontend": {
+    "files": 70,
+    "passed": 513,
+    "units_log_sha256": "9b683cb668e67ca3c17ae9124762e26ced6c8c5b5a105a180e6e1b8a1f3ad1da",
+    "type_check": "PASS",
+    "type_log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+    "double_build": "PASS in Full Management SPA step"
+  },
+  "selected_sibling_comparison": {
+    "red": "4 FAIL / 2 prior PASS",
+    "green": "15 PASS",
+    "scope": "local comparison functions and production call argument seam; not browser or public HTTP race acceptance"
+  },
+  "current_review": "PENDING",
+  "direct_navigation_reproduction": "NOT_RUN: replacement EgoLite space permission pending",
+  "new_deletion_page_replay": "NOT_RUN: names and selected-sibling drift need page acceptance",
+  "github_sync": "PENDING: independently eligible #14/#36/#37/#38; remaining targets keep OPEN",
+  "real_provider_calls": 0,
+  "code_availability_on_github": {
+    "source": "3b3896be34809f5b81f075d0500f23a2bc3020b2",
+    "argv": [
+      "gh",
+      "api",
+      "repos/Ricardo121380/cpa-rust-gateway/commits/3b3896be34809f5b81f075d0500f23a2bc3020b2"
+    ],
+    "utc": "2026-10-09T17:37:29.987001+00:00",
+    "exit_code": 1,
+    "stderr": "gh: No commit found for SHA: 3b3896be34809f5b81f075d0500f23a2bc3020b2 (HTTP 422)",
+    "push": "NOT_RUN",
+    "response": {
+      "message": "No commit found for SHA: 3b3896be34809f5b81f075d0500f23a2bc3020b2",
+      "documentation_url": "https://docs.github.com/rest/commits/commits#get-a-commit",
+      "status": "422"
+    },
+    "availability": "NOT_FOUND"
+  },
+  "push": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN",
+  "agents_content_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_diff_sha256": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f"
+}

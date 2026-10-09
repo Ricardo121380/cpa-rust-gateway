@@ -100,7 +100,7 @@
     "final-grok-page.json": "79daa09bf74ccaaf14b89ed6c9be076a6d061c59a601e6d9b5076de494e3603b",
     "final-shared-page-summary.json": "3315d001b770906c8da973963e746e045e3b3b56c7ede0655dcd0e4c5674112a",
     "final-grok-page-transition.png": "093d911daafb558b3026fd7ab9a9782b924994c62182df71e149d7959a18fefd",
-    "final-evidence-index.json": "b85d0f513490c0cf0ca7f2e33017ef4a2aff582a2fc7d1c4d809544efc51ae10",
+    "final-evidence-index.json": "52f9472bb4c91770c34bb3850a3ab6afef011516a014db7d153c6ff8038c0711",
     "final-clean-full-quiet-receipt.json": "4bd12878723068a18de5d5f9bbc7eeb13c5c9c4efd6adfea62977236178a386d",
     "final-clean-full-quiet-raw.log": "9e549cf15fd94f531e88128b1a2261bc943d49e23d0bb838eaaf0c86fcaf02dc",
     "final-clean-full-steps.md": "6021858f044e7d55c05c60ece0c977be3a2bbcf628ba437972f42acbc9b8746a",
@@ -150,7 +150,18 @@
     "selected-sibling-review-red-20261009T172714961349Z-receipt.json": "6cdabb60a7605fd9f2502262b23583d2da340dd1a855a6dc418d5d10ff97e6cf",
     "selected-sibling-review-red-test.patch": "c8d485c6366d81c48633e4389581854333a1e0b9691fd7aac3821d74d78643af",
     "selected-sibling-review-types-20261009T172937946293Z-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
-    "selected-sibling-review-types-20261009T172937946293Z-receipt.json": "98386e84c5f029e8b2e987769697bd71cb88e2be9628540ad0c6cb7d80993a9f"
+    "selected-sibling-review-types-20261009T172937946293Z-receipt.json": "98386e84c5f029e8b2e987769697bd71cb88e2be9628540ad0c6cb7d80993a9f",
+    "github-selected-code-availability-20261009T173728456715Z-raw.log": "a3f3ca3274ea4f31b7d9cc688ff19f185e2450947a7f1360ba87683d57d4138f",
+    "github-selected-code-availability-20261009T173728456715Z-receipt.json": "08477d5de6d0aae0fcefdb6d343b0f21fe57cebcc199179bbb1a53a706e258cb",
+    "github-selected-code-not-uploaded.json": "9f08919613b813546fa693954830eea156ef5577989ea3a86fd8df25b8d8a939",
+    "selected-clean-frontend-types-20261009T173728456718Z-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+    "selected-clean-frontend-types-20261009T173728456718Z-receipt.json": "486ac13f55d4260e34caefe963ac9cefc1fcaf6dfa67c3839a46200ee341ea6a",
+    "selected-clean-frontend-units-20261009T173728456717Z-raw.log": "d7d22ceeaa8da96b54e769332468f0b0abbd0c32ca63a01821388b99ec33d7b0",
+    "selected-clean-frontend-units-20261009T173728456717Z-receipt.json": "7c306bc6f955507fe3d7a18a636961c0b2e1b8ad3f1834d1e767d23489bf8845",
+    "selected-clean-full-20261009T173441758099Z-raw.log": "cf4ad20fdd2b3e2250f56da3c9e67201a33aa9c8b0ff63b31be22e94d8ecebf7",
+    "selected-clean-full-20261009T173441758099Z-receipt.json": "90fa2a997c9c93b8758da24d0c0acd82d4c46b4a62e412a94242b5556078146b",
+    "selected-clean-full-steps.md": "e1b650247184c4a5c465a985f97a2aa83e4632cc52d396d42ce6e7d2eb9836a9",
+    "selected-gate-attestation.json": "26912d8d3e0b9ce083ef680babfcddaeae766d825bc129ce7bb410d7804d6335"
   },
   "text_normalization": {
     "e05-public-negative-matrix-raw.log": {
@@ -366,6 +377,21 @@
     "selected-sibling-review-types-20261009T172937946293Z-raw.log": {
       "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
       "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
+    },
+    "selected-clean-frontend-types-20261009T173728456718Z-raw.log": {
+      "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
+    },
+    "selected-clean-frontend-units-20261009T173728456717Z-raw.log": {
+      "original_raw_sha256": "9b683cb668e67ca3c17ae9124762e26ced6c8c5b5a105a180e6e1b8a1f3ad1da",
+      "archived_sha256": "d7d22ceeaa8da96b54e769332468f0b0abbd0c32ca63a01821388b99ec33d7b0",
+      "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
+    },
+    "selected-clean-full-20261009T173441758099Z-raw.log": {
+      "original_raw_sha256": "e2662b221af30a9d1ff82f34e8d510a9ae0194f4aad6006503d54aa89b7b6719",
+      "archived_sha256": "cf4ad20fdd2b3e2250f56da3c9e67201a33aa9c8b0ff63b31be22e94d8ecebf7",
       "transformation": "remove trailing spaces and blank EOF lines; preserve one final newline"
     }
   }
