@@ -3707,3 +3707,16 @@ stays unknown. Release, deployment, real Provider and C/#57 completion remain di
 **Why:** Explicit remaining S/E/O batch authorization includes necessary local frontend changes. Parameterize API target seeds by the actual five options across four API channels, enforce the existing API material/owner contract, and distinguish commit-then-loss from the retained unknown-before-save seam. Kiro's completed bearer envelope retains its OAuth marker; both account inventories share the same material-aware projection. Add generated-client, original-receipt and classification tests.
 
 **Other side:** FYI — fixture-only changes; production Kiro classification and management OpenAPI remain authoritative. Backend real HTTP/SQLite tests supply commit-before-connection-loss proof. EgoLite development fixture acceptance supplements the separately required actual `/admin-ui/` acceptance; no real Provider or production material is used. Batch Full and independent reviews remain pending.
+
+## 2026-10-09 · Codex · E-01 actual management HTTPS connection reuse
+
+**Touched:**
+- `web/prism/src/features/upstreams/apiProviderModel.ts`
+- `web/prism/src/features/upstreams/apiProviderModel.test.ts`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/api/seo-fixtures.test.ts`
+- `web/prism/DESIGN.md`
+
+**Why:** Explicit S/E/O batch authorization includes the affected local Prism flow. Actual stock `/admin-ui/` readback reproduced the failure to recognize a valid published HTTPS connection. The authoritative Endpoint schema and real handler allow only HTTPS; operational `http/sse` belongs to a different projection. Fix the one comparison and stop configuration fixtures from rewriting HTTPS to HTTP. Preserve operational pool values, exact target matching and disabled settings.
+
+**Other side:** FYI — no backend contract or generated client change. Actual page RED, fixture create/read RED and 28-test targeted GREEN are recorded separately. Final committed-source embedded-page replay, batch Full and independent reviews follow.

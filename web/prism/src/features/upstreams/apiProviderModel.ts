@@ -7,7 +7,7 @@ export function matchingApiConnections(providers:readonly ApiProvider[],endpoint
   try { normalizedBase(input.base); } catch { return []; }
   return endpoints.flatMap(endpoint=>{
     const provider=providers.find(row=>row.id===endpoint.upstream_id&&row.kind===input.kind);
-    return provider&&endpoint.adapter_id===input.adapter&&endpoint.api_format===input.format&&normalizedBase(endpoint.base_url)===normalizedBase(input.base)&&endpoint.inference_path===input.path&&["http","sse"].includes(endpoint.transport)?[{provider,endpoint}]:[];
+    return provider&&endpoint.adapter_id===input.adapter&&endpoint.api_format===input.format&&normalizedBase(endpoint.base_url)===normalizedBase(input.base)&&endpoint.inference_path===input.path&&endpoint.transport==="https"?[{provider,endpoint}]:[];
   });
 }
 export function chooseApiConnection(matches:readonly ApiConnection[],endpointId?:string):ApiConnection|undefined{

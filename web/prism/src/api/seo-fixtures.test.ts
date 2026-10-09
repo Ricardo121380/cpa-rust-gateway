@@ -21,6 +21,14 @@ beforeEach(async()=>{
 });
 
 describe("S/E/O fixture contract evidence",()=>{
+  it("retains management HTTPS on create and read before connection reuse",async()=>{
+    const preset=CONNECTION_PRESETS[0]!;
+    await call("createUpstream",{body:{id:"seo-https",name:"Synthetic HTTPS",kind:preset.kind,enabled:false,tags:[],egress_policy_id:null}},scope);
+    await call("createEndpoint",{path:{upstream_id:"seo-https"},body:{id:"seo-https-connection",adapter_id:preset.adapter,api_format:preset.format,base_url:preset.base,inference_path:preset.path,models_path:null,transport:"https",enabled:false}},scope);
+    const endpoint=await call<Parameters<typeof matchingApiConnections>[1][number]>("getEndpoint",{path:{endpoint_id:"seo-https-connection"}},{versionScoped:true});
+    expect(endpoint.transport).toBe("https");
+    expect(chooseApiConnection(matchingApiConnections([{id:"seo-https",name:"Synthetic HTTPS",kind:preset.kind,enabled:false}],[endpoint],preset))?.endpoint.id).toBe(endpoint.id);
+  });
   it.each(["kiro","kimi-coding"] as const)("retains the original %s receipt after commit then client loss",async channel=>{
     await call("createUpstream",{body:{id:"seo-device",name:"Synthetic device",kind:channel,enabled:true,tags:[],egress_policy_id:null}},scope);
     const start=channel==="kiro"?"startKiroEnrollment":"startKimiEnrollment",poll=channel==="kiro"?"pollKiroEnrollment":"pollKimiEnrollment";

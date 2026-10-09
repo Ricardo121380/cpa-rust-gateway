@@ -93,7 +93,7 @@ type EndpointRow = {
   base_url: string;
   inference_path: string;
   models_path: string | null;
-  transport: "http" | "sse" | "websocket";
+  transport: "https";
   enabled: boolean;
 };
 
@@ -315,7 +315,7 @@ const state = {
           base_url: "https://relay-a.example.com/v1",
           inference_path: "/responses",
           models_path: "/models",
-          transport: "http",
+          transport: "https",
           enabled: true,
         },
         {
@@ -326,7 +326,7 @@ const state = {
           base_url: "https://cli-chat-proxy.grok.com/v1",
           inference_path: "/responses",
           models_path: null,
-          transport: "http",
+          transport: "https",
           enabled: false,
         },
       ],
@@ -843,7 +843,7 @@ export function prepareApiConnectionMatchesForTest(count:0|1|2,presetId="respons
   for(let index=0;index<count;index+=1){
     const id=`batch-a-api-${index+1}`;
     providers.push({id,name:`Fixture API ${index+1}`,kind:preset.kind,enabled:index!==0,tags:[],egress_policy_id:null});
-    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:preset.adapter,api_format:preset.format,base_url:preset.base,inference_path:preset.path,models_path:"/models",transport:"http",enabled:index!==0});
+    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:preset.adapter,api_format:preset.format,base_url:preset.base,inference_path:preset.path,models_path:"/models",transport:"https",enabled:index!==0});
   }
   state.upstreams.set(version.id,providers);
   state.endpoints.set(version.id,endpoints);
@@ -860,7 +860,7 @@ export function prepareNativeConnectionMatchesForTest(count:0|1|2):void {
   for(let index=0;index<count;index+=1){
     const id=`batch-a-native-${index+1}`;
     providers.push({id,name:`Fixture Grok ${index+1}`,kind:"grok-build-native",enabled:index!==0,tags:[],egress_policy_id:null});
-    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:"grok.build.responses",api_format:"openai/responses",base_url:"https://cli-chat-proxy.grok.com/v1",inference_path:"/responses",models_path:null,transport:"http",enabled:index!==0});
+    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:"grok.build.responses",api_format:"openai/responses",base_url:"https://cli-chat-proxy.grok.com/v1",inference_path:"/responses",models_path:null,transport:"https",enabled:index!==0});
   }
   state.upstreams.set(version.id,providers);state.endpoints.set(version.id,endpoints);
 }
@@ -870,7 +870,7 @@ export function prepareAccountPinForTest(permission:boolean):void {
   const version=state.versions.find(row=>row.status==="active");
   if(!version)throw new Error("active fixture version unavailable");
   state.upstreams.set(version.id,[{id:"relay-a",name:"Fixture API",kind:"openai-compatible",enabled:true,tags:[],egress_policy_id:null}]);
-  state.endpoints.set(version.id,[{id:"ep-relay-a-responses",upstream_id:"relay-a",adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://relay-a.example.test/v1",inference_path:"/responses",models_path:null,transport:"http",enabled:true}]);
+  state.endpoints.set(version.id,[{id:"ep-relay-a-responses",upstream_id:"relay-a",adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://relay-a.example.test/v1",inference_path:"/responses",models_path:null,transport:"https",enabled:true}]);
   state.credentials.set(version.id,[{id:"cred-relay-key",upstream_id:"relay-a",kind:"bearer",status:"active",revision:2,secret_present:true}]);
   state.bindings.set(version.id,[{endpoint_id:"ep-relay-a-responses",upstream_id:"relay-a",credential_id:"cred-relay-key",enabled:true,priority:0,weight:1,concurrency:1}]);
   state.models.set(version.id,[{id:"pm-minimax",model_name:"minimax-m3",display_name:"MiniMax M3",status:"active",capabilities:{streaming:true,tools:false,reasoning:false}}]);
@@ -890,7 +890,7 @@ export function prepareModelMappingConflictForTest():void {
   prepareAccountPinForTest(false);
   const version=state.versions.find(row=>row.status==="active")!;
   state.routeCandidates.get(version.id)![0]!.upstream_model="upstream-custom-model";
-  state.endpoints.get(version.id)!.push({id:"ep-relay-second",upstream_id:"relay-a",adapter_id:"openai-compatible.chat-completions",api_format:"openai/chat-completions",base_url:"https://relay-second.example.test/v1",inference_path:"/responses",models_path:null,transport:"http",enabled:true});
+  state.endpoints.get(version.id)!.push({id:"ep-relay-second",upstream_id:"relay-a",adapter_id:"openai-compatible.chat-completions",api_format:"openai/chat-completions",base_url:"https://relay-second.example.test/v1",inference_path:"/responses",models_path:null,transport:"https",enabled:true});
   state.bindings.get(version.id)!.push({endpoint_id:"ep-relay-second",upstream_id:"relay-a",credential_id:"cred-relay-key",enabled:true,priority:0,weight:1,concurrency:1});
 }
 export function modelMappingSnapshotForTest(){
@@ -1703,7 +1703,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         return errorResponse(409, "management_lifecycle_conflict", "endpoint id already exists");
       }
       if(body.transport as string!=="https")return errorResponse(400,"invalid_management_request","管理连接写入要求 https");
-      const row = { ...body, transport:"http", upstream_id: decodeURIComponent(epCreate[1] ?? "") } as EndpointRow;
+      const row = { ...body, transport:"https", upstream_id: decodeURIComponent(epCreate[1] ?? "") } as EndpointRow;
       rows.push(row);
       state.endpoints.set(version.id, rows);
       version.revision += 1;
@@ -1736,7 +1736,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       }
       const body = JSON.parse(bodyText ?? "{}") as EndpointRow;
       if(body.transport as string!=="https")return errorResponse(400,"invalid_management_request","管理连接写入要求 https");
-      rows[index] = { ...body, transport:"http", id, upstream_id: rows[index]?.upstream_id ?? "" };
+      rows[index] = { ...body, transport:"https", id, upstream_id: rows[index]?.upstream_id ?? "" };
       version.revision += 1;
       return json(200, rows[index], revisionToken(version));
     }
@@ -1841,7 +1841,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       let upstream=candidates[0];
       if(!upstream){upstream={id:"kimi-coding",name:"Kimi Coding",kind:"kimi-coding",enabled:true,tags:["kimi","coding"],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
       const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.upstream_id===upstream.id&&row.api_format==="openai/responses");
-      if(!endpoint){endpoint={id:"kimi-coding-responses",upstream_id:upstream.id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.kimi.com/coding",inference_path:"/v1/responses",models_path:"/v1/models",transport:"http",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      if(!endpoint){endpoint={id:"kimi-coding-responses",upstream_id:upstream.id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.kimi.com/coding",inference_path:"/v1/responses",models_path:"/v1/models",transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
       version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
     }
     const preparedNamedChannel=/^POST \/admin\/account-channels\/(codex|claude)\/prepare-target$/u.exec(route);
@@ -1854,7 +1854,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.id===upstreamId);
       if(!upstream){upstream={id:upstreamId,name:channel==="codex"?"Codex / ChatGPT":"Claude",kind:channel,enabled:true,tags:[channel],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
       const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.id===endpointId);
-      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:channel==="codex"?"openai-compatible.responses":"anthropic-compatible.messages",api_format:channel==="codex"?"openai/responses":"anthropic/messages",base_url:channel==="codex"?"https://chatgpt.com/backend-api/codex":"https://api.anthropic.com/v1",inference_path:channel==="codex"?"/responses":"/messages",models_path:channel==="codex"?null:"/models",transport:"http",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:channel==="codex"?"openai-compatible.responses":"anthropic-compatible.messages",api_format:channel==="codex"?"openai/responses":"anthropic/messages",base_url:channel==="codex"?"https://chatgpt.com/backend-api/codex":"https://api.anthropic.com/v1",inference_path:channel==="codex"?"/responses":"/messages",models_path:channel==="codex"?null:"/models",transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
       version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
     }
     if(route === "POST /admin/account-channels/kiro/prepare-target") {
@@ -1865,7 +1865,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const upstreams=state.upstreams.get(version.id)??[];let upstream=upstreams.find((row)=>row.id===upstreamId);
       if(!upstream){upstream={id:upstreamId,name:"Kiro",kind:"kiro",enabled:true,tags:["kiro",region],egress_policy_id:null};upstreams.push(upstream);state.upstreams.set(version.id,upstreams);}
       const endpoints=state.endpoints.get(version.id)??[];let endpoint=endpoints.find((row)=>row.id===endpointId);
-      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:"kiro.messages",api_format:"anthropic/messages",base_url:`https://runtime.${region}.kiro.dev`,inference_path:"/",models_path:null,transport:"http",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
+      if(!endpoint){endpoint={id:endpointId,upstream_id:upstream.id,adapter_id:"kiro.messages",api_format:"anthropic/messages",base_url:`https://runtime.${region}.kiro.dev`,inference_path:"/",models_path:null,transport:"https",enabled:true};endpoints.push(endpoint);state.endpoints.set(version.id,endpoints);}
       version.revision+=1;return json(200,{upstream_id:upstream.id,endpoint_id:endpoint.id,prepared:true},revisionToken(version));
     }
     const kimiDevice=/^POST \/admin\/upstreams\/([^/]+)\/kimi-authorization\/(start|poll|cancel)$/u.exec(route);

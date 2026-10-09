@@ -2264,3 +2264,16 @@ section 子节点的 padding。圆角运行面板的工具栏/底栏水平 18px�
 
 本次仅在本地真实嵌入网关验收，未上线；证据与验证边界见
 [文字边距与弹窗精修](../../docs/reports/prism-v2-spacing-polish-20260923.md)。
+
+## 40. 管理连接的 HTTPS 与运营传输（2026-10-09）
+
+本批 E-01 的实际 `/admin-ui/` 核验发现：`ProviderDialog` 按权威管理契约创建
+`transport="https"`，而复用筛选误用了运营投影的 `http/sse`。合法已发布连接因此被
+显示为“没有匹配连接，将新建”。这与 §15.2 记录的两个端点词汇不同是一致的，
+不能把运营传输拿来校验管理连接。
+
+最小修复仅让 `matchingApiConnections` 接受管理 HTTPS。精确 owner、adapter、协议、
+地址、路径、显式多匹配选择和既有停用状态保持原有判断。配置 fixture 的 Endpoint
+创建、读取与准备数据保留 HTTPS；运营账号池继续回传自己的 `http`。
+实际页面复现、配置 fixture RED 与定向 GREEN 分别留存。本批统一报告继续区分
+开发 fixture、真实管理 handler/SQLite、合成本地上游及尚未验证的真实渠道。
