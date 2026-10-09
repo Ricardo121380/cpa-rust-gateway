@@ -93,7 +93,7 @@ Original budgets remain historical estimates. Full retries and browser/setup/ora
 are reported separately; parallel command durations are not added as wall-clock task time.
 No remote write, push, deploy, real Provider/account or paid call was performed.
 
-## Corrected execution settlement
+## First corrected execution settlement (historical)
 
 Status: LOCAL_IMPLEMENTATION_VALIDATED_REVIEW_PENDING. E-05 remains AWAITING_USER_DECISION.
 Final runtime/acceptance source: `47b19545f6dd102a4cb15a8af2990b76e4a359db`.
@@ -109,3 +109,16 @@ actual UI binary/assets; backend and acceptance scripts are unchanged. Original 
 UI/HTTP/device receipts keep their source/time. Fixture browser 17 scenes is historical
 supplementary evidence, not labelled as a fresh run at this source.
 Independent full-set reviews and final report-only delta closure remain pending.
+
+## Final code and acceptance settlement
+
+Local implementation/required executions complete; final increment verdict is governed by the external post-commit attestation. E-05 remains AWAITING_USER_DECISION; actual stock serve device commit-loss UI remains NOT_RUN. This is not full-project DONE.
+Final runtime/acceptance source: `c3d9dd949c1fab69042da97deb9482a0aa14fd47`.
+
+- Clean Full 45/45 PASS, 1493 passed / 0 failed / 12 inherited ignored, 253.553 s.
+- Clean frontend type-check PASS, 68 files / 496 tests PASS; fresh production binary and four SPA assets exactly equal the actual executed objects.
+- Fresh clean-source public HTTP 527 PASS = 410 existing + 117 new, 14 rows, 233 total upstream receives, 52.955 s. These are not 233 new matrix sends.
+- Targeted receipt oracle RED reproduced actual child exit 0/printed PASS but persisted FAIL; shared flag corrected. Clean-source GREEN child 0/339/PASS, negative child 1/FAIL/no PASS with 222 completed setup checks. The negative outer PASS verifies expected failure. Historical contradictions remain.
+- Corrected complete fixed-base Standards/Spec both PASS, each 233/233/unread 0 at `87092bcd...`. First FAILs are preserved. All later script/evidence/docs changes require independent increment closure binding actual final HEAD.
+- Final external record: `output/cpar-seo-closeout-20261009/final-review-attestation.json`, including exact manifests, axis verdicts, final UTC and wall time since the initial preservation baseline. It is outside the reviewed tracked tree; a prior terminal result cannot stand in for the final increment.
+- The original 410 min budget is historical; actual command times are recorded separately and concurrent durations are never added as wall time.

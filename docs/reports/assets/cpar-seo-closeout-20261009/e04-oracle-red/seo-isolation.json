@@ -1,0 +1,930 @@
+{
+  "status": "PASS",
+  "scope": "actual stock gateway serve, public HTTP, synthetic loopback TLS",
+  "gateway_pid": 27751,
+  "config_version_id": "seo-isolation",
+  "config_revision": "rev-51",
+  "rows": [
+    {
+      "name": "same_account_connection_failure",
+      "expected_identity": {
+        "provider_id": "seo-connections",
+        "endpoint_id": "seo-connection-a",
+        "credential_id": "seo-connections-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-connection-a-candidate",
+        "upstream_model": "seo-connection-model",
+        "protocol": "responses"
+      },
+      "status": 502,
+      "stream": false,
+      "receive_before": 102,
+      "receive_after": 103,
+      "raw_public_response_sha256": "4895613e76d61539c239807c52198ec47ceaacadda967b5d80a64116f6b4122d",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-0",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-0:1",
+            "attempt_number": 1,
+            "route_id": "seo-connection-a-route",
+            "route_candidate_id": "seo-connection-a-candidate",
+            "credential_id": "seo-connections-account",
+            "endpoint_id": "seo-connection-a",
+            "upstream_id": "seo-connections",
+            "upstream_model": "seo-connection-model",
+            "started_at_ms": 1791524653232,
+            "ended_at_ms": 1791524653236,
+            "outcome": {
+              "failed": {
+                "code": "CredentialUnauthorized",
+                "scope": "credential"
+              }
+            },
+            "retry_decision": "non_retryable"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "be8b4f87acb4b6a91ee3fb30c9d66cbb9deb70ae51ddca6ec25a3ecaeafcede9"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-0",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-connection-a",
+        "public_model": "seo-connection-a",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653231
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-0",
+          "started_at_ms": 1791524653231,
+          "finished_at_ms": 1791524653236,
+          "duration_ms": 5,
+          "first_content_ms": null,
+          "outcome": "failed",
+          "error_code": "CredentialUnauthorized"
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-0"
+    },
+    {
+      "name": "same_account_other_connection_usable",
+      "expected_identity": {
+        "provider_id": "seo-connections",
+        "endpoint_id": "seo-connection-b",
+        "credential_id": "seo-connections-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-connection-b-candidate",
+        "upstream_model": "seo-connection-model",
+        "protocol": "chat"
+      },
+      "status": 200,
+      "stream": true,
+      "receive_before": 103,
+      "receive_after": 104,
+      "raw_public_response_sha256": "24b2bfef777032be1ec9eaddf5521651392091244119e821d50ae65c0075cbd3",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-1",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-1:1",
+            "attempt_number": 1,
+            "route_id": "seo-connection-b-route",
+            "route_candidate_id": "seo-connection-b-candidate",
+            "credential_id": "seo-connections-account",
+            "endpoint_id": "seo-connection-b",
+            "upstream_id": "seo-connections",
+            "upstream_model": "seo-connection-model",
+            "started_at_ms": 1791524653240,
+            "ended_at_ms": 1791524653243,
+            "outcome": "succeeded",
+            "retry_decision": "completed"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "ee1179fca480831fa6158f065fcd0d1217b3d1f5dc1c3ba78eeb61e2c6719589"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-1",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_chat_completions",
+        "requested_model": "seo-connection-b",
+        "public_model": "seo-connection-b",
+        "route_alias": null,
+        "streaming": true,
+        "started_at_ms": 1791524653240
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-1",
+          "started_at_ms": 1791524653240,
+          "finished_at_ms": 1791524653245,
+          "duration_ms": 5,
+          "first_content_ms": 4,
+          "outcome": "succeeded",
+          "error_code": null
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-1"
+    },
+    {
+      "name": "failed_binding_remains_closed",
+      "expected_identity": {
+        "provider_id": "seo-connections",
+        "endpoint_id": "seo-connection-a",
+        "credential_id": "seo-connections-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-connection-a-candidate",
+        "upstream_model": "seo-connection-model",
+        "protocol": "responses"
+      },
+      "status": 503,
+      "stream": false,
+      "receive_before": 104,
+      "receive_after": 104,
+      "raw_public_response_sha256": "3e04bc679b46657e6570cf1c762769b2b36f53fb9c456e0d6b8774dda91f8995",
+      "attempts": [],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-2",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-connection-a",
+        "public_model": "seo-connection-a",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653248
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-2",
+          "started_at_ms": 1791524653248,
+          "finished_at_ms": 1791524653249,
+          "duration_ms": 0,
+          "first_content_ms": null,
+          "outcome": "failed",
+          "error_code": "CredentialUnavailable"
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-2"
+    },
+    {
+      "name": "model_permanent_failure",
+      "expected_identity": {
+        "provider_id": "seo-models",
+        "endpoint_id": "seo-model-connection",
+        "credential_id": "seo-models-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-model-a-candidate",
+        "upstream_model": "seo-model-a",
+        "protocol": "responses"
+      },
+      "status": 502,
+      "stream": false,
+      "receive_before": 104,
+      "receive_after": 105,
+      "raw_public_response_sha256": "3cc5bd3be3b068724fa394b125fd1affa28307254fd834d0924243091b908bdc",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-3",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-3:1",
+            "attempt_number": 1,
+            "route_id": "seo-model-a-route",
+            "route_candidate_id": "seo-model-a-candidate",
+            "credential_id": "seo-models-account",
+            "endpoint_id": "seo-model-connection",
+            "upstream_id": "seo-models",
+            "upstream_model": "seo-model-a",
+            "started_at_ms": 1791524653252,
+            "ended_at_ms": 1791524653252,
+            "outcome": {
+              "failed": {
+                "code": "ProviderPermanent",
+                "scope": "provider"
+              }
+            },
+            "retry_decision": "non_retryable"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "a2a9652e2aac11e2ed0e4b58f2e97c35f4c8d13aefc422a23a1695b675782810"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-3",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-model-a",
+        "public_model": "seo-model-a",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653251
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-3",
+          "started_at_ms": 1791524653251,
+          "finished_at_ms": 1791524653254,
+          "duration_ms": 2,
+          "first_content_ms": null,
+          "outcome": "failed",
+          "error_code": "ProviderPermanent"
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-3"
+    },
+    {
+      "name": "same_binding_other_model_usable",
+      "expected_identity": {
+        "provider_id": "seo-models",
+        "endpoint_id": "seo-model-connection",
+        "credential_id": "seo-models-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-model-b-candidate",
+        "upstream_model": "seo-model-b",
+        "protocol": "responses"
+      },
+      "status": 200,
+      "stream": false,
+      "receive_before": 105,
+      "receive_after": 106,
+      "raw_public_response_sha256": "4a81783d124139a9cb1eb616f8d1916dd5b4de96864de6a55aaf304739ac710d",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-4",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-4:1",
+            "attempt_number": 1,
+            "route_id": "seo-model-b-route",
+            "route_candidate_id": "seo-model-b-candidate",
+            "credential_id": "seo-models-account",
+            "endpoint_id": "seo-model-connection",
+            "upstream_id": "seo-models",
+            "upstream_model": "seo-model-b",
+            "started_at_ms": 1791524653258,
+            "ended_at_ms": 1791524653259,
+            "outcome": "succeeded",
+            "retry_decision": "completed"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "a72dc2d0dca5331da5310a123de91d1e6ee3115927ce235e996d97c5bd380840"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-4",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-model-b",
+        "public_model": "seo-model-b",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653258
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-4",
+          "started_at_ms": 1791524653258,
+          "finished_at_ms": 1791524653260,
+          "duration_ms": 2,
+          "first_content_ms": 2,
+          "outcome": "succeeded",
+          "error_code": null
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-4"
+    },
+    {
+      "name": "permanent_failure_has_no_retained_block",
+      "expected_identity": {
+        "provider_id": "seo-models",
+        "endpoint_id": "seo-model-connection",
+        "credential_id": "seo-models-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-model-a-candidate",
+        "upstream_model": "seo-model-a",
+        "protocol": "responses"
+      },
+      "status": 200,
+      "stream": true,
+      "receive_before": 106,
+      "receive_after": 107,
+      "raw_public_response_sha256": "b5bbed33f085dffd5cb0a20e81ba78628d84889b98d460625f3801166f50d289",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-5",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-5:1",
+            "attempt_number": 1,
+            "route_id": "seo-model-a-route",
+            "route_candidate_id": "seo-model-a-candidate",
+            "credential_id": "seo-models-account",
+            "endpoint_id": "seo-model-connection",
+            "upstream_id": "seo-models",
+            "upstream_model": "seo-model-a",
+            "started_at_ms": 1791524653264,
+            "ended_at_ms": 1791524653266,
+            "outcome": "succeeded",
+            "retry_decision": "completed"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "8f635601c320b075ef0fb0be77c5d1b52bf8849c4d48c0cad46a821b76fb86ab"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-5",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-model-a",
+        "public_model": "seo-model-a",
+        "route_alias": null,
+        "streaming": true,
+        "started_at_ms": 1791524653263
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-5",
+          "started_at_ms": 1791524653263,
+          "finished_at_ms": 1791524653268,
+          "duration_ms": 5,
+          "first_content_ms": 3,
+          "outcome": "succeeded",
+          "error_code": null
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-5"
+    },
+    {
+      "name": "binding_quota_failure",
+      "expected_identity": {
+        "provider_id": "seo-models",
+        "endpoint_id": "seo-model-connection",
+        "credential_id": "seo-models-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-model-a-candidate",
+        "upstream_model": "seo-model-a",
+        "protocol": "responses"
+      },
+      "status": 429,
+      "stream": false,
+      "receive_before": 107,
+      "receive_after": 108,
+      "raw_public_response_sha256": "97fb38ca85758c92b8fcc877355524ae0083d710374305f387e474cf8f597393",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-6",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-6:1",
+            "attempt_number": 1,
+            "route_id": "seo-model-a-route",
+            "route_candidate_id": "seo-model-a-candidate",
+            "credential_id": "seo-models-account",
+            "endpoint_id": "seo-model-connection",
+            "upstream_id": "seo-models",
+            "upstream_model": "seo-model-a",
+            "started_at_ms": 1791524653272,
+            "ended_at_ms": 1791524653273,
+            "outcome": {
+              "failed": {
+                "code": "ProviderRateLimited",
+                "scope": "provider"
+              }
+            },
+            "retry_decision": "retry_eligible"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "299516bed19f2c5d83c13f6ff6f47ee7554452d7026b55709868dcd184d41cab"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-6",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-model-a",
+        "public_model": "seo-model-a",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653272
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-6",
+          "started_at_ms": 1791524653272,
+          "finished_at_ms": 1791524653273,
+          "duration_ms": 1,
+          "first_content_ms": null,
+          "outcome": "failed",
+          "error_code": "ProviderRateLimited"
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-6"
+    },
+    {
+      "name": "binding_quota_blocks_other_model",
+      "expected_identity": {
+        "provider_id": "seo-models",
+        "endpoint_id": "seo-model-connection",
+        "credential_id": "seo-models-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-model-b-candidate",
+        "upstream_model": "seo-model-b",
+        "protocol": "responses"
+      },
+      "status": 503,
+      "stream": false,
+      "receive_before": 108,
+      "receive_after": 108,
+      "raw_public_response_sha256": "3e04bc679b46657e6570cf1c762769b2b36f53fb9c456e0d6b8774dda91f8995",
+      "attempts": [],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-7",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-model-b",
+        "public_model": "seo-model-b",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653277
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-7",
+          "started_at_ms": 1791524653277,
+          "finished_at_ms": 1791524653277,
+          "duration_ms": 0,
+          "first_content_ms": null,
+          "outcome": "failed",
+          "error_code": "CredentialUnavailable"
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-7"
+    },
+    {
+      "name": "shared_responses_endpoint_failure",
+      "expected_identity": {
+        "provider_id": "seo-shared",
+        "endpoint_id": "seo-shared-responses",
+        "credential_id": "seo-shared-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-shared-responses-candidate",
+        "upstream_model": "seo-shared-responses",
+        "protocol": "responses"
+      },
+      "status": 503,
+      "stream": false,
+      "receive_before": 108,
+      "receive_after": 109,
+      "raw_public_response_sha256": "bea34abd58a27ca1e3bc74cc77561540ce52d4ebe05f5756de4a04f9adb9f3e3",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-8",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-8:1",
+            "attempt_number": 1,
+            "route_id": "seo-shared-responses-route",
+            "route_candidate_id": "seo-shared-responses-candidate",
+            "credential_id": "seo-shared-account",
+            "endpoint_id": "seo-shared-responses",
+            "upstream_id": "seo-shared",
+            "upstream_model": "seo-shared-responses",
+            "started_at_ms": 1791524653281,
+            "ended_at_ms": 1791524653281,
+            "outcome": {
+              "failed": {
+                "code": "ProviderTransient",
+                "scope": "provider"
+              }
+            },
+            "retry_decision": "retry_eligible"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "fe06420cebbb9cd5a681734b43f641d170e193f6f154f4ab3754e59e1cf654d5"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-8",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_responses",
+        "requested_model": "seo-shared-responses",
+        "public_model": "seo-shared-responses",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653280
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-8",
+          "started_at_ms": 1791524653280,
+          "finished_at_ms": 1791524653282,
+          "duration_ms": 1,
+          "first_content_ms": null,
+          "outcome": "failed",
+          "error_code": "ProviderTransient"
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-8"
+    },
+    {
+      "name": "shared_chat_after_responses_failure",
+      "expected_identity": {
+        "provider_id": "seo-shared",
+        "endpoint_id": "seo-shared-chat",
+        "credential_id": "seo-shared-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-shared-chat-candidate",
+        "upstream_model": "seo-shared-chat",
+        "protocol": "chat"
+      },
+      "status": 200,
+      "stream": false,
+      "receive_before": 109,
+      "receive_after": 110,
+      "raw_public_response_sha256": "3e85a1315914dc2bbca3900038d5bb9f2878191f76e731f4bfde31bf29eeed3d",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-9",
+            "attempt_id": "attempt:45:p1-request-8135529c6f8927cdd18e25d05b63b003-9:1",
+            "attempt_number": 1,
+            "route_id": "seo-shared-chat-route",
+            "route_candidate_id": "seo-shared-chat-candidate",
+            "credential_id": "seo-shared-account",
+            "endpoint_id": "seo-shared-chat",
+            "upstream_id": "seo-shared",
+            "upstream_model": "seo-shared-chat",
+            "started_at_ms": 1791524653286,
+            "ended_at_ms": 1791524653286,
+            "outcome": "succeeded",
+            "retry_decision": "completed"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "8d1d1bf6c9654e468e14ea94a78688449b1856970724427a4e634ab258b0f223"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-9",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_chat_completions",
+        "requested_model": "seo-shared-chat",
+        "public_model": "seo-shared-chat",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653285
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-9",
+          "started_at_ms": 1791524653285,
+          "finished_at_ms": 1791524653287,
+          "duration_ms": 1,
+          "first_content_ms": 1,
+          "outcome": "succeeded",
+          "error_code": null
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-9"
+    },
+    {
+      "name": "shared_messages_endpoint_failure",
+      "expected_identity": {
+        "provider_id": "seo-shared",
+        "endpoint_id": "seo-shared-messages",
+        "credential_id": "seo-shared-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-shared-messages-candidate",
+        "upstream_model": "seo-shared-messages",
+        "protocol": "messages"
+      },
+      "status": 503,
+      "stream": false,
+      "receive_before": 110,
+      "receive_after": 111,
+      "raw_public_response_sha256": "2d8e1f02c5705fa5bd5c46566db3b3ff2d085875bf32a9423a29ab11c84424c8",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-10",
+            "attempt_id": "attempt:46:p1-request-8135529c6f8927cdd18e25d05b63b003-10:1",
+            "attempt_number": 1,
+            "route_id": "seo-shared-messages-route",
+            "route_candidate_id": "seo-shared-messages-candidate",
+            "credential_id": "seo-shared-account",
+            "endpoint_id": "seo-shared-messages",
+            "upstream_id": "seo-shared",
+            "upstream_model": "seo-shared-messages",
+            "started_at_ms": 1791524653292,
+            "ended_at_ms": 1791524653292,
+            "outcome": {
+              "failed": {
+                "code": "ProviderTransient",
+                "scope": "provider"
+              }
+            },
+            "retry_decision": "retry_eligible"
+          },
+          "execution": {
+            "channel": "anthropic-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "7be2b32dd2a38ef77582f1f6256bd5f48f3d92bb93b6ed0c26337fe1dc7d28cf"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-10",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "anthropic_messages",
+        "requested_model": "seo-shared-messages",
+        "public_model": "seo-shared-messages",
+        "route_alias": null,
+        "streaming": false,
+        "started_at_ms": 1791524653291
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-10",
+          "started_at_ms": 1791524653291,
+          "finished_at_ms": 1791524653293,
+          "duration_ms": 1,
+          "first_content_ms": null,
+          "outcome": "failed",
+          "error_code": "ProviderTransient"
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-10"
+    },
+    {
+      "name": "shared_chat_after_messages_failure",
+      "expected_identity": {
+        "provider_id": "seo-shared",
+        "endpoint_id": "seo-shared-chat",
+        "credential_id": "seo-shared-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-shared-chat-candidate",
+        "upstream_model": "seo-shared-chat",
+        "protocol": "chat"
+      },
+      "status": 200,
+      "stream": true,
+      "receive_before": 111,
+      "receive_after": 112,
+      "raw_public_response_sha256": "05b5ed6bf700bdcb0fcff05efb644ab06fd11228728b2bb78d73e466353a6c3d",
+      "attempts": [
+        {
+          "attempt": {
+            "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-11",
+            "attempt_id": "attempt:46:p1-request-8135529c6f8927cdd18e25d05b63b003-11:1",
+            "attempt_number": 1,
+            "route_id": "seo-shared-chat-route",
+            "route_candidate_id": "seo-shared-chat-candidate",
+            "credential_id": "seo-shared-account",
+            "endpoint_id": "seo-shared-chat",
+            "upstream_id": "seo-shared",
+            "upstream_model": "seo-shared-chat",
+            "started_at_ms": 1791524653296,
+            "ended_at_ms": 1791524653297,
+            "outcome": "succeeded",
+            "retry_decision": "completed"
+          },
+          "execution": {
+            "channel": "openai-compatible",
+            "credential_revision": 0,
+            "config_version_id": "seo-isolation",
+            "config_revision": 51,
+            "egress": {
+              "kind": "direct"
+            },
+            "capabilities": {
+              "reasoning": true,
+              "parallel": true,
+              "stored": false,
+              "continuation": true,
+              "compact": false,
+              "websocket": true
+            }
+          },
+          "attempt_payload_sha256": "014d84a14c6ad151912941f58b2b7fb3f1fa49ca734dc9e615a0455398e9f997"
+        }
+      ],
+      "public_request": {
+        "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-11",
+        "client_key_id": "seo-client",
+        "access_group_id": "local-group",
+        "protocol": "openai_chat_completions",
+        "requested_model": "seo-shared-chat",
+        "public_model": "seo-shared-chat",
+        "route_alias": null,
+        "streaming": true,
+        "started_at_ms": 1791524653296
+      },
+      "public_terminal": [
+        {
+          "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-11",
+          "started_at_ms": 1791524653296,
+          "finished_at_ms": 1791524653299,
+          "duration_ms": 2,
+          "first_content_ms": 2,
+          "outcome": "succeeded",
+          "error_code": null
+        }
+      ],
+      "request_id": "p1-request-8135529c6f8927cdd18e25d05b63b003-11"
+    },
+    {
+      "name": "misused_ungranted_client_key",
+      "expected_identity": {
+        "provider_id": "seo-shared",
+        "endpoint_id": "seo-shared-chat",
+        "credential_id": "seo-shared-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-shared-chat-candidate",
+        "upstream_model": "seo-shared-chat",
+        "protocol": "chat"
+      },
+      "status": 404,
+      "stream": false,
+      "receive_before": 112,
+      "receive_after": 112,
+      "raw_public_response_sha256": "7f4fa8ff1d91ba38f4e21da5f07d378f0b45582f5f0736ef7ae8d490b19d54e7",
+      "attempts": [],
+      "request_id": null
+    },
+    {
+      "name": "misused_unknown_client_key",
+      "expected_identity": {
+        "provider_id": "seo-shared",
+        "endpoint_id": "seo-shared-chat",
+        "credential_id": "seo-shared-account",
+        "credential_revision": 0,
+        "route_candidate_id": "seo-shared-chat-candidate",
+        "upstream_model": "seo-shared-chat",
+        "protocol": "chat"
+      },
+      "status": 401,
+      "stream": false,
+      "receive_before": 112,
+      "receive_after": 112,
+      "raw_public_response_sha256": "9dc507ff2296c044dc7b4e078235b060c145f64a364f26660a21272208571bbd",
+      "attempts": [],
+      "request_id": null
+    }
+  ],
+  "all_upstream_receive_count": 112,
+  "limits": [
+    "HTTP quota is binding-wide; it intentionally blocks both models on that binding",
+    "404 has no retained runtime state; this does not claim a public model-circuit trigger",
+    "no process restart, publication or recovery action between each fault and probe"
+  ]
+}

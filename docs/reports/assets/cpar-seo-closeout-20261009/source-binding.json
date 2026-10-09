@@ -1,7 +1,7 @@
 {
   "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
-  "validated_runtime_and_acceptance_source": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
-  "validated_source_git_tree": "1b9369c14af638012a13a4e4f19be0e7f0b617d5",
+  "validated_runtime_and_acceptance_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+  "validated_source_git_tree": "a505c18555448460298f7bd188c509de2c9c9b6a",
   "accepted_checkout": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
   "binary_sha256": "794bf6c34b5d193ae320d879ba92ef5f15b4a0b6da3b4da4eb68fee18807cf2f",
   "actual_page_execution": {
@@ -13,6 +13,192 @@
     "current_rebuild_binary_exact_bytes_equal": true
   },
   "gates": {
+    "accepted-crossgroup-oracle-final": {
+      "receipt": "accepted-crossgroup-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 52.955,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
+    },
+    "accepted-e04-oracle-green": {
+      "receipt": "accepted-e04-oracle-green-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 4.292,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
+    },
+    "accepted-e04-oracle-negative": {
+      "receipt": "accepted-e04-oracle-negative-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 4.325,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
+    },
+    "accepted-binary-build-oracle-final": {
+      "receipt": "accepted-binary-build-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 15.458,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    },
+    "accepted-full-oracle-final": {
+      "receipt": "accepted-full-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 253.553,
+      "rust_counts": {
+        "passed": 1493,
+        "failed": 0,
+        "ignored": 12
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    },
+    "accepted-ui-tests-oracle-final": {
+      "receipt": "accepted-ui-tests-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 5.63,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {
+        "passed": 496,
+        "failed": 0,
+        "skipped": 0
+      },
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    },
+    "accepted-ui-type-oracle-final": {
+      "receipt": "accepted-ui-type-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 9.559,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    }
+  },
+  "prior_executions_reused_or_supplementary": {
+    "accepted-actual-ui-browser-final": {
+      "receipt": "accepted-actual-ui-browser-final-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 107.721,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "prior production execution retained; unchanged backend, rebuilt binary and production SPA bytes support bounded reuse; E-02 tests also rerun in final Full"
+    },
+    "accepted-crossgroup-final": {
+      "receipt": "accepted-crossgroup-final-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 51.625,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "historical 527-check execution; replaced for final acceptance by a fresh c3d9dd94 527-check run"
+    },
+    "accepted-e02-commit-loss": {
+      "receipt": "accepted-e02-commit-loss-receipt.json",
+      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 24.417,
+      "rust_counts": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "prior production execution retained; unchanged backend, rebuilt binary and production SPA bytes support bounded reuse; E-02 tests also rerun in final Full"
+    },
+    "accepted-fixture-browser": {
+      "receipt": "accepted-fixture-browser-receipt.json",
+      "source_sha": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+      "tracked_file_set_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 122.728,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "execution_source_and_time_unchanged": true,
+      "role": "historical supplementary development-fixture execution"
+    },
     "accepted-full-closeout": {
       "receipt": "accepted-full-closeout-receipt.json",
       "source_sha": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
@@ -27,7 +213,7 @@
         "ignored": 12
       },
       "frontend_counts": {},
-      "role": "fresh execution at final validated source"
+      "role": "historical clean-source gate before targeted receipt correction; execution source/time unchanged"
     },
     "accepted-binary-build-closeout": {
       "receipt": "accepted-binary-build-closeout-receipt.json",
@@ -43,7 +229,7 @@
         "ignored": 0
       },
       "frontend_counts": {},
-      "role": "fresh execution at final validated source"
+      "role": "historical clean-source gate before targeted receipt correction; execution source/time unchanged"
     },
     "accepted-ui-type-closeout": {
       "receipt": "accepted-ui-type-closeout-receipt.json",
@@ -59,7 +245,7 @@
         "ignored": 0
       },
       "frontend_counts": {},
-      "role": "fresh execution at final validated source"
+      "role": "historical clean-source gate before targeted receipt correction; execution source/time unchanged"
     },
     "accepted-ui-tests-closeout": {
       "receipt": "accepted-ui-tests-closeout-receipt.json",
@@ -79,81 +265,11 @@
         "failed": 0,
         "skipped": 0
       },
-      "role": "fresh execution at final validated source"
-    }
-  },
-  "prior_executions_reused_or_supplementary": {
-    "accepted-actual-ui-browser-final": {
-      "receipt": "accepted-actual-ui-browser-final-receipt.json",
-      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
-      "clean_before": true,
-      "clean_after": true,
-      "exit_code": 0,
-      "duration_seconds": 107.721,
-      "rust_counts": {
-        "passed": 0,
-        "failed": 0,
-        "ignored": 0
-      },
-      "frontend_counts": {},
-      "execution_source_and_time_unchanged": true,
-      "role": "prior execution reused with exact rebuilt binary and unchanged backend/acceptance sources"
-    },
-    "accepted-crossgroup-final": {
-      "receipt": "accepted-crossgroup-final-receipt.json",
-      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
-      "clean_before": true,
-      "clean_after": true,
-      "exit_code": 0,
-      "duration_seconds": 51.625,
-      "rust_counts": {
-        "passed": 0,
-        "failed": 0,
-        "ignored": 0
-      },
-      "frontend_counts": {},
-      "execution_source_and_time_unchanged": true,
-      "role": "prior execution reused with exact rebuilt binary and unchanged backend/acceptance sources"
-    },
-    "accepted-e02-commit-loss": {
-      "receipt": "accepted-e02-commit-loss-receipt.json",
-      "source_sha": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-      "tracked_file_set_sha256": "bd609854d778a74bb9fb6abf8e75ec90586d8e9f3e6521116a7f491a35e779cd",
-      "clean_before": true,
-      "clean_after": true,
-      "exit_code": 0,
-      "duration_seconds": 24.417,
-      "rust_counts": {
-        "passed": 2,
-        "failed": 0,
-        "ignored": 0
-      },
-      "frontend_counts": {},
-      "execution_source_and_time_unchanged": true,
-      "role": "prior execution reused with exact rebuilt binary and unchanged backend/acceptance sources"
-    },
-    "accepted-fixture-browser": {
-      "receipt": "accepted-fixture-browser-receipt.json",
-      "source_sha": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
-      "tracked_file_set_sha256": "9a5aeaada39f910483195dd3a438f03ae461205139b6eb2a9a8a08eaa8a0491f",
-      "clean_before": true,
-      "clean_after": true,
-      "exit_code": 0,
-      "duration_seconds": 122.728,
-      "rust_counts": {
-        "passed": 0,
-        "failed": 0,
-        "ignored": 0
-      },
-      "frontend_counts": {},
-      "execution_source_and_time_unchanged": true,
-      "role": "historical supplementary development-fixture execution"
+      "role": "historical clean-source gate before targeted receipt correction; execution source/time unchanged"
     }
   },
   "runtime_equivalence_proof": "reviewed-runtime-equivalence.json",
-  "prior_source_binding_preserved": "source-binding-before-review.json",
+  "prior_source_binding_preserved": "source-binding-before-oracle-correction.json",
   "local_commit_title_aliases": "commit-title-correction.json",
   "historical_fixture_scope": {
     "executed_source": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
@@ -161,7 +277,7 @@
     "relabelled_as_final_source_execution": false,
     "current_fixture_classification_and_recovery_regression": [
       "e03-review-materials-final-green-receipt.json",
-      "accepted-ui-tests-closeout-receipt.json"
+      "accepted-ui-tests-oracle-final-receipt.json"
     ],
     "fixture_changed_after_old_browser_run": true
   },
@@ -180,7 +296,9 @@
     "new_http_checks": 117,
     "new_matrix_rows": 14,
     "actual_single_call_receives": 4,
-    "fixture_scenes_role": "historical supplementary; distinct from current-source generated-client and whole-frontend regressions"
+    "fixture_scenes_role": "historical supplementary; distinct from current-source generated-client and whole-frontend regressions",
+    "targeted_oracle_checks": 339,
+    "negative_control_completed_setup_checks": 222
   },
   "E05": {
     "state": "AWAITING_USER_DECISION",
@@ -202,6 +320,38 @@
     "issue_57_full_scope": "NOT_COMPLETE",
     "release": "BLOCKED"
   },
-  "independent_review_state": "PENDING new complete fixed-base reviews after initial failures and corrections",
-  "after_validation_policy": "Subsequent commits contain only docs/reports files. Check endpoint tree delta, docs gate, evidence object hashes and the final independent docs increment without relabelling runtime executions."
+  "independent_review_state": {
+    "complete_fixed_base_review": {
+      "review_head": "87092bcd366e9b37cf0c00c6577c113e5a850bbe",
+      "files": 233,
+      "unread": 0,
+      "Standards": {
+        "verdict": "PASS",
+        "hard_findings": 0,
+        "suggestions": 0,
+        "Fowler_smells": 0,
+        "terminal_text": "review-corrected-standards.md"
+      },
+      "Spec": {
+        "verdict": "PASS_LOCAL_SCOPE",
+        "findings": 0,
+        "terminal_text": "review-corrected-spec.md"
+      },
+      "scope": "review-corrected-scope.json"
+    },
+    "final_commit_increment": {
+      "result_authority": "output/cpar-seo-closeout-20261009/final-review-attestation.json",
+      "policy": "Both independent terminal reviews must match actual final HEAD and its exact increment manifest; no verdict is inferred from earlier PASS."
+    }
+  },
+  "after_validation_policy": "All commits after c3d9dd94 are docs/reports only. Validate exact post-runtime delta, docs gate and object/archive hashes. Final independent increment attestations are outside the reviewed tracked tree and must bind actual final HEAD; runtime execution sources/times are not relabelled.",
+  "public_http_final_execution": {
+    "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+    "receipt": "accepted-crossgroup-oracle-final/receipt.json",
+    "rows": 14,
+    "checks": 527,
+    "all_upstream_receives": 233
+  },
+  "acceptance_oracle_correction": "e04-oracle-closure.json",
+  "execution_name_restoration": "execution-name-restoration.json"
 }

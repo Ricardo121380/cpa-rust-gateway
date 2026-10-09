@@ -1,0 +1,2937 @@
+{
+  "status": "PASS",
+  "binary_sha256": "794bf6c34b5d193ae320d879ba92ef5f15b4a0b6da3b4da4eb68fee18807cf2f",
+  "source_sha": "87092bcd366e9b37cf0c00c6577c113e5a850bbe",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_wire_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_sidecar_present",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_response_exact_usage_correlation",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_response_exact_usage_correlation",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_response_exact_usage_correlation",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_response_exact_usage_correlation",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_response_exact_usage_correlation",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_response_exact_usage_correlation",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_exact_request_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_payload_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_lease_and_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_actual_channel",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_direct_revision_not_applicable",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_declaration_inherited",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_protected_capabilities_match_actual_candidate",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_value_free",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_exact_request_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_payload_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_lease_and_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_actual_channel",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_direct_revision_not_applicable",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_declaration_inherited",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_protected_capabilities_match_actual_candidate",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_value_free",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_exact_request_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_payload_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_lease_and_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_actual_channel",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_direct_revision_not_applicable",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_declaration_inherited",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_protected_capabilities_match_actual_candidate",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_value_free",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_exact_request_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_payload_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_lease_and_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_actual_channel",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_direct_revision_not_applicable",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_declaration_inherited",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_protected_capabilities_match_actual_candidate",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_value_free",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_exact_request_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_payload_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_lease_and_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_actual_channel",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_direct_revision_not_applicable",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_declaration_inherited",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_protected_capabilities_match_actual_candidate",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_value_free",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_exact_request_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_payload_bound",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_lease_and_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_actual_channel",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_direct_revision_not_applicable",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_declaration_inherited",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_protected_capabilities_match_actual_candidate",
+      "status": "PASS"
+    },
+    {
+      "check": "execution_value_free",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_requires_selected_candidate_capability_False",
+      "status": "PASS"
+    },
+    {
+      "check": "stored_requires_selected_candidate_capability_True",
+      "status": "PASS"
+    },
+    {
+      "check": "known_model_permission_before_inference",
+      "status": "PASS"
+    },
+    {
+      "check": "known_model_permission_before_count_tokens_capability",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_chat_to_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_chat_to_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_responses_to_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_effort_responses_to_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "native_exact_thinking_budget",
+      "status": "PASS"
+    },
+    {
+      "check": "native_cache_control_or_exact_rejection_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "native_cache_control_or_exact_rejection_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "native_cache_control_or_exact_rejection_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_chat_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_responses_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_messages_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_chat_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_responses_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_messages_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_chat_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_chat_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_responses_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_responses_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_messages_json",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_messages_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_False_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_False_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_chat_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_responses_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_chat_to_messages_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_chat_to_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_chat_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_chat_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_chat_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_chat_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_responses_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_responses_to_messages_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_responses_to_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_responses_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_responses_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_responses_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_chat_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_chat_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_chat_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_responses_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_responses_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_responses_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "text_messages_to_messages_sse",
+      "status": "PASS"
+    },
+    {
+      "check": "usage_messages_to_messages_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_True_False",
+      "status": "PASS"
+    },
+    {
+      "check": "tools_messages_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "outbound_controls_messages_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "tool_followup_messages_to_messages_True_True",
+      "status": "PASS"
+    },
+    {
+      "check": "unknown_ingress_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "unknown_ingress_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "unknown_ingress_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "malformed_tag_before_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_connection_failure_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_account_other_connection_usable_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_failed_binding_remains_closed_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_failed_binding_remains_closed_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_failed_binding_remains_closed_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_failed_binding_remains_closed_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_failed_binding_remains_closed_zero_started_attempts",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_model_permanent_failure_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_same_binding_other_model_usable_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_permanent_failure_has_no_retained_block_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_failure_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_blocks_other_model_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_blocks_other_model_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_blocks_other_model_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_blocks_other_model_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_binding_quota_blocks_other_model_zero_started_attempts",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_responses_endpoint_failure_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_responses_failure_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_messages_endpoint_failure_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_single_public_request",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_request_id",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_single_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_payload_hash",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_actual_lease",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_exact_configuration",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_shared_chat_after_messages_failure_actual_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_misused_ungranted_client_key_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_misused_ungranted_client_key_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_misused_ungranted_client_key_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_misused_unknown_client_key_public_status",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_misused_unknown_client_key_all_receives",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_misused_unknown_client_key_no_reset",
+      "status": "PASS"
+    },
+    {
+      "check": "seo_fault_probe_configuration_unchanged",
+      "status": "PASS"
+    }
+  ],
+  "provider_calls": [
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "thinking-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "tool-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "parallel-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "auth-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "seo-missing-model",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "seo-quota",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "messages",
+      "scenario": "always-fail",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    }
+  ],
+  "all_upstream_receives": [
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-connection-a/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-connection-b/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-model-connection/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-model-connection/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-model-connection/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-model-connection/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-shared-responses/responses",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-shared-chat/chat/completions",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-shared-messages/messages",
+      "listener_port": 55968
+    },
+    {
+      "method": "POST",
+      "path": "/v1/seo-shared-chat/chat/completions",
+      "listener_port": 55968
+    }
+  ],
+  "private_state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-592olihz",
+  "scope": "local_synthetic_only"
+}

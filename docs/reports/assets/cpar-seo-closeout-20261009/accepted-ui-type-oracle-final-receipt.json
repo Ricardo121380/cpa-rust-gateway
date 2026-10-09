@@ -1,0 +1,52 @@
+{
+  "name": "accepted-ui-type-final",
+  "command": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "run",
+    "type-check"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "started_utc": "2026-10-09T05:50:43.351360+00:00",
+  "finished_utc": "2026-10-09T05:50:52.910631+00:00",
+  "duration_seconds": 9.559,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+    "dirty": [],
+    "tracked_files_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+    "dirty": [],
+    "tracked_files_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-type-oracle-final.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    }
+  },
+  "record_kind": "derived execution receipt with relocated raw-log address; immutable original preserved",
+  "artifact_relocation": {
+    "immutable_original_receipt": "execution-name-collision/accepted-ui-type-final-receipt.json",
+    "immutable_original_receipt_sha256": "66ad672e8754ec45f4d9beaa94c05153f71221e36725fe7ef0b533802692cada",
+    "original_declared_raw_log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-type-final.log",
+    "preserved_raw_log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-type-oracle-final.log",
+    "preserved_original_raw_log_gzip": "execution-name-collision/accepted-ui-type-final.log.gz",
+    "execution_facts_and_original_raw_sha256_unchanged": true,
+    "only_changed_original_field": "hash_objects.raw_log.path",
+    "executed_run_name_unchanged": "accepted-ui-type-final"
+  }
+}

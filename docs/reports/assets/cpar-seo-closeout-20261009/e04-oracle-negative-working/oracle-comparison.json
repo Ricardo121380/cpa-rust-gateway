@@ -1,0 +1,10 @@
+{
+  "negative_failure_injection": true,
+  "child_exit_code": 1,
+  "printed_results": [],
+  "persisted_status": "FAIL",
+  "checks": 222,
+  "all_completed_checks_pass": true,
+  "forced_failure_reached": true,
+  "source_sha": "87092bcd366e9b37cf0c00c6577c113e5a850bbe"
+}

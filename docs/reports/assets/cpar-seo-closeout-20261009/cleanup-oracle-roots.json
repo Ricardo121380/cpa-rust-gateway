@@ -1,0 +1,45 @@
+{
+  "result": "PASS",
+  "finished_utc": "2026-10-09T05:59:45.682486+00:00",
+  "private_material_scan": "oracle-private-material-scan.json",
+  "removed_owned_roots": [
+    {
+      "inner_receipt": "e04-oracle-red/receipt.json",
+      "owned_root_path_sha256": "f7109c744d2f9ab7e96ef5fdb665bf61a5b8823735f1eb791e76a4f6588c2457",
+      "active_process_reference_before_delete": false,
+      "removed": true
+    },
+    {
+      "inner_receipt": "e04-oracle-green-working/receipt.json",
+      "owned_root_path_sha256": "15d00eee6c93a0f3415d01eebbef426fae2f51e18d6b7aad68fce4b91dd30f5d",
+      "active_process_reference_before_delete": false,
+      "removed": true
+    },
+    {
+      "inner_receipt": "e04-oracle-negative-working/receipt.json",
+      "owned_root_path_sha256": "214407eb9dd816fa08721d982708b42cd4770c425b88f88c038f313caf24f720",
+      "active_process_reference_before_delete": false,
+      "removed": true
+    },
+    {
+      "inner_receipt": "accepted-e04-oracle-green/receipt.json",
+      "owned_root_path_sha256": "428de93ddbdefdd034b2227fcf39cd34075dae407095c1e41284c799c8ec0525",
+      "active_process_reference_before_delete": false,
+      "removed": true
+    },
+    {
+      "inner_receipt": "accepted-e04-oracle-negative/receipt.json",
+      "owned_root_path_sha256": "72c7a07db2010aa4ef04e06f96f1f5a7cbb334ed1298d217e1f0200ecea4fc06",
+      "active_process_reference_before_delete": false,
+      "removed": true
+    },
+    {
+      "inner_receipt": "accepted-crossgroup-oracle-final/receipt.json",
+      "owned_root_path_sha256": "ca1e1fd0aa69b31485cda478879d2046b88852ee2f48d7a79a7ed13d7be17de4",
+      "active_process_reference_before_delete": false,
+      "removed": true
+    }
+  ],
+  "retained": "value-free receipts/raw logs/archive inputs, clean accepted checkout and regression helpers",
+  "prior_browser_and_serve_cleanup": "cleanup.json"
+}

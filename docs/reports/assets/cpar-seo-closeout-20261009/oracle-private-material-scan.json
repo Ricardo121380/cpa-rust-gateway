@@ -1,0 +1,13 @@
+{
+  "result": "PASS",
+  "checked_utc": "2026-10-09T05:59:45.666100+00:00",
+  "scope": "known private credentials/master keys/TLS private keys from the six newly owned HTTP oracle/matrix roots; all asset JSON/text/PNG and command raw logs",
+  "owned_roots": 6,
+  "private_material_source_files": 48,
+  "representations_checked": 144,
+  "evidence_objects_checked": 247,
+  "matches": [],
+  "values_recorded": false,
+  "prior_actual_ui_scan_preserved": "private-material-scan.json",
+  "prior_import_material_scan_preserved": "review-supplement-private-material-scan.json"
+}

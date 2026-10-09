@@ -1,0 +1,15 @@
+{
+  "negative_failure_injection": false,
+  "child_exit_code": 0,
+  "printed_results": [
+    {
+      "status": "PASS",
+      "checks": 339,
+      "scope": "E-04 missing public isolation cells only"
+    }
+  ],
+  "persisted_status": "FAIL",
+  "checks": 339,
+  "all_completed_checks_pass": true,
+  "source_sha": "87092bcd366e9b37cf0c00c6577c113e5a850bbe"
+}

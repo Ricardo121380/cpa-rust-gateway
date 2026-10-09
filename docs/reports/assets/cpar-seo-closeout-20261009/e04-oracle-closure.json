@@ -1,0 +1,79 @@
+{
+  "result": "RESOLVED_LOCAL",
+  "kind": "acceptance-script completion status; independent of production protocol defects and original 13 P2",
+  "initial_review_head": "87092bcd366e9b37cf0c00c6577c113e5a850bbe",
+  "final_code_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+  "changed_path": "scripts/acceptance/cpar-batch-b-http.py",
+  "change": "restart declares global gateway, passed; successful targeted completion reaches the module flag used by finally",
+  "historical_contradictory_pair_preserved": [
+    "e04-http-targeted-receipt.json",
+    "e04-targeted/receipt.json"
+  ],
+  "red": {
+    "outer_comparison_receipt": "e04-oracle-red-receipt.json",
+    "helper_bytes": "e04-oracle-red-witness.py",
+    "comparison": "e04-oracle-red/oracle-comparison.json",
+    "child_facts": {
+      "negative_failure_injection": false,
+      "child_exit_code": 0,
+      "printed_results": [
+        {
+          "status": "PASS",
+          "checks": 339,
+          "scope": "E-04 missing public isolation cells only"
+        }
+      ],
+      "persisted_status": "FAIL",
+      "checks": 339,
+      "all_completed_checks_pass": true,
+      "source_sha": "87092bcd366e9b37cf0c00c6577c113e5a850bbe"
+    }
+  },
+  "green": {
+    "outer_comparison_receipt": "accepted-e04-oracle-green-receipt.json",
+    "comparison": "accepted-e04-oracle-green/oracle-comparison.json",
+    "child_facts": {
+      "negative_failure_injection": false,
+      "child_exit_code": 0,
+      "printed_results": [
+        {
+          "status": "PASS",
+          "checks": 339,
+          "scope": "E-04 missing public isolation cells only"
+        }
+      ],
+      "persisted_status": "PASS",
+      "checks": 339,
+      "all_completed_checks_pass": true,
+      "forced_failure_reached": null,
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47"
+    }
+  },
+  "negative_control": {
+    "outer_comparison_receipt": "accepted-e04-oracle-negative-receipt.json",
+    "comparison": "accepted-e04-oracle-negative/oracle-comparison.json",
+    "child_facts": {
+      "negative_failure_injection": true,
+      "child_exit_code": 1,
+      "printed_results": [],
+      "persisted_status": "FAIL",
+      "checks": 222,
+      "all_completed_checks_pass": true,
+      "forced_failure_reached": true,
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47"
+    },
+    "meaning": "outer PASS asserts the real child failure/FAIL receipt/no PASS print; 222 setup checks completed before the forced matrix assertion",
+    "failure_injection": "in-memory callback in the regression child only; no product hook"
+  },
+  "full_public_http": {
+    "receipt": "accepted-crossgroup-oracle-final/receipt.json",
+    "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+    "checks": 527,
+    "existing_checks": 410,
+    "new_checks": 117,
+    "rows": 14,
+    "all_upstream_receives": 233,
+    "not_added_to_targeted_339": true
+  },
+  "regression_harness": "e04-oracle-regression.py"
+}

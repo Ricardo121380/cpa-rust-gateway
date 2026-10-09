@@ -11,7 +11,8 @@
       "sha256": "6a98d260238eedfb5104273775802d9ec2ad7f5439c642c6c0dce835c11226ac",
       "bytes": 382
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-actual-ui-browser-receipt.json",
@@ -25,7 +26,8 @@
       "sha256": "30723d4038e8202b1eb19fcbf7f7fb48db2d9862ec501ca3a65056207e789b46",
       "bytes": 404
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-binary-build-closeout-receipt.json",
@@ -39,7 +41,8 @@
       "sha256": "85b4609ac920797b52dcdb20ad7be731617b830b29c7784ac8321c1a4548082a",
       "bytes": 223
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-binary-build-final-receipt.json",
@@ -53,7 +56,23 @@
       "sha256": "d49cdc761c7805b11c9a2ae15a07bb318cdc54015977e0838a5db39f4b239860",
       "bytes": 91
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "accepted-binary-build-oracle-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-binary-build-oracle-final.log",
+      "sha256": "287b8e00467322456891bdf28d3e92887045132c2aea9156fc3d41c822003e12",
+      "bytes": 405
+    },
+    "gzip_bytes": {
+      "path": "accepted-binary-build-oracle-final.log.gz",
+      "sha256": "4ad55f9b8ae904005de01532b59379bb61e25872be06897dbbec510faa5aa1d2",
+      "bytes": 223
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": "execution-name-collision/accepted-binary-build-final-receipt.json"
   },
   {
     "receipt": "accepted-binary-build-receipt.json",
@@ -67,7 +86,8 @@
       "sha256": "eb0b5264cffb6d292ce9a05414669e3d5132a9ee450955ea2e8cd5e5be3b456e",
       "bytes": 91
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-binary-build-reviewed-receipt.json",
@@ -81,7 +101,8 @@
       "sha256": "c700a74dfeddc02e6c7daea5ccb12fddc58ea83e2b854d3fcd52d14c3e754258",
       "bytes": 224
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-crossgroup-final-receipt.json",
@@ -95,7 +116,23 @@
       "sha256": "6e776bff0ad5b3ef3afb705ed814af31c9759d7bb2234e8fbc089ebcb06e7d66",
       "bytes": 134
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "accepted-crossgroup-oracle-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-crossgroup-oracle-final.log",
+      "sha256": "44419463e148eb42362a51e5a149856056d819c1f5bdd72a0f550bb9cad18edb",
+      "bytes": 124
+    },
+    "gzip_bytes": {
+      "path": "accepted-crossgroup-oracle-final.log.gz",
+      "sha256": "38133bb14fb0385e49afb3da551d1c8f71bd3de58bf5355cd048fd270f93e7c1",
+      "bytes": 134
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-crossgroup-receipt.json",
@@ -109,7 +146,8 @@
       "sha256": "4f1ba2ea6ca2253139514f31ec4f3deb9409926d685f86c01f072d1410241a66",
       "bytes": 134
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-e02-commit-loss-receipt.json",
@@ -123,7 +161,38 @@
       "sha256": "b66aa0171fea2c59df681a7eb7b247d236c122a31055ec78667dbf0d482cfbc6",
       "bytes": 647
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "accepted-e04-oracle-green-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-e04-oracle-green.log",
+      "sha256": "2105fa89ed75f3728d44c991b88e58e4810a71d172b766e32b493c1ef836dabb",
+      "bytes": 337
+    },
+    "gzip_bytes": {
+      "path": "accepted-e04-oracle-green.log.gz",
+      "sha256": "bddc3397e3317caeaf2cf7b008fd736c9f8cc855465b601fb550b682e8c10c5c",
+      "bytes": 241
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "accepted-e04-oracle-negative-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-e04-oracle-negative.log",
+      "sha256": "41a152f07aaa31ecab54f5a7e7f8dbf1ff035b3c93d81ef56376ed31575b758e",
+      "bytes": 250
+    },
+    "gzip_bytes": {
+      "path": "accepted-e04-oracle-negative.log.gz",
+      "sha256": "95839086dd5179dcbe05cd610833f5de09865d124343d74ba8c546d70e2d1023",
+      "bytes": 195
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-fixture-browser-receipt.json",
@@ -137,7 +206,8 @@
       "sha256": "9e848b7abac241eadf9be533652a6d2d62a7ed86709109fdd3102aa6d31bec35",
       "bytes": 5869
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-full-closeout-receipt.json",
@@ -151,7 +221,8 @@
       "sha256": "b82cd9bdb0d09066006ec540503ea761f9fb69fefcde556087be04af8b18e59c",
       "bytes": 48097
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-full-final-receipt.json",
@@ -165,7 +236,8 @@
       "sha256": "2df1aeaf67b2967feb28714ed6f8eb61dc2723d871344d06cdc3c508d65c2f4b",
       "bytes": 48225
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-full-green-receipt.json",
@@ -179,7 +251,23 @@
       "sha256": "8ed800448ecbacd3a1d4eb1f7782c6d6202edf472350f520d83103f36c107135",
       "bytes": 48670
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "accepted-full-oracle-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-full-oracle-final.log",
+      "sha256": "c6952ca80eab0a451e0c98cacf743b3321d141f18d67659cf0cdd1fb5a9043ca",
+      "bytes": 282269
+    },
+    "gzip_bytes": {
+      "path": "accepted-full-oracle-final.log.gz",
+      "sha256": "1f5a5ebd0b612f8e3f9d5e7f06051a47964f9e04f0bb71d158d3987e3aa0b85f",
+      "bytes": 48049
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": "execution-name-collision/accepted-full-final-receipt.json"
   },
   {
     "receipt": "accepted-full-receipt.json",
@@ -193,7 +281,8 @@
       "sha256": "6f35e1b0b8dd79b6c413f79848e29aea5fc576d867b9aada70530665bf123a25",
       "bytes": 2501
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-full-reviewed-receipt.json",
@@ -207,7 +296,8 @@
       "sha256": "c3f45c4e0eb129feb674d00c9c883b171bb1742f8e28ea2525f812cc518c3ca5",
       "bytes": 43618
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-tests-closeout-receipt.json",
@@ -221,7 +311,8 @@
       "sha256": "a710d6ed3baa43e9d9f7891130844f7a356f9e2a5b46115504f9e13700520533",
       "bytes": 1235
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-tests-current-receipt.json",
@@ -235,7 +326,8 @@
       "sha256": "1297c94e7403c8b51e8b26582ef9c33fce9cb5ff3c5d3a68ee92fb6f983c219d",
       "bytes": 1232
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-tests-final-receipt.json",
@@ -249,7 +341,23 @@
       "sha256": "cc62145b35c41a9e916754131e4815652d91622c43316cfeb3096842dd3058eb",
       "bytes": 1226
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "accepted-ui-tests-oracle-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-tests-oracle-final.log",
+      "sha256": "65a2a0dbc63f1b77cb993b856271db0eb53dd1b89ebb67a81714c14dcbfeedd9",
+      "bytes": 4540
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-tests-oracle-final.log.gz",
+      "sha256": "a43ccf2f30efd1f0b4b5abb53b6c95543d32ac35c9a8c0bb901325f646f85826",
+      "bytes": 1231
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": "execution-name-collision/accepted-ui-tests-final-receipt.json"
   },
   {
     "receipt": "accepted-ui-tests-receipt.json",
@@ -263,7 +371,8 @@
       "sha256": "245e355b973baebc81ce4d8fdabb675c281bcfe31c6cc5b568e10797c21227db",
       "bytes": 1217
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-tests-reviewed-receipt.json",
@@ -277,7 +386,8 @@
       "sha256": "bd98a346089d119bed3d5664a22d113c1e3e2da6de63a4023e3a5cf5d1ebcb2e",
       "bytes": 1227
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-type-closeout-receipt.json",
@@ -291,7 +401,8 @@
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-type-current-receipt.json",
@@ -305,7 +416,8 @@
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-type-final-receipt.json",
@@ -319,7 +431,23 @@
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "accepted-ui-type-oracle-final-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-ui-type-oracle-final.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    },
+    "gzip_bytes": {
+      "path": "accepted-ui-type-oracle-final.log.gz",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": "execution-name-collision/accepted-ui-type-final-receipt.json"
   },
   {
     "receipt": "accepted-ui-type-receipt.json",
@@ -333,7 +461,8 @@
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "accepted-ui-type-reviewed-receipt.json",
@@ -347,7 +476,8 @@
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-a08-exploratory-receipt.json",
@@ -361,7 +491,8 @@
       "sha256": "4dd6706967a97011df3877ff7cc7ed0d015c6e1d82e9b7e94ca3c2959f63d2d4",
       "bytes": 115
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-all-exploratory-receipt.json",
@@ -375,7 +506,8 @@
       "sha256": "19a8a04f8f934eff52a1c56dd28116013ef739e31f1d01787fbf7946a7fc01aa",
       "bytes": 566
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-build-green-receipt.json",
@@ -389,7 +521,8 @@
       "sha256": "d49cdc761c7805b11c9a2ae15a07bb318cdc54015977e0838a5db39f4b239860",
       "bytes": 91
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-calls-exploratory-receipt.json",
@@ -403,7 +536,8 @@
       "sha256": "e2fe7c92a5c49b0a5e5b20b38ba48fd4c3711e27e2de98450d0ce1ecd1be67a2",
       "bytes": 364
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-calls-resumed-exploratory-receipt.json",
@@ -417,7 +551,8 @@
       "sha256": "ff3bcee63edaae08cf98ed7a58cff5fb80b4d5977fca4663f00c39ae47fca99f",
       "bytes": 480
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-forced-build-green-receipt.json",
@@ -431,7 +566,8 @@
       "sha256": "bbd6dbadf117703c9d1727d2b58aefe67cf713e1efca0c4bd2415cd12d8b9833",
       "bytes": 189
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-kiro-first-receipt.json",
@@ -445,7 +581,8 @@
       "sha256": "341d1c94f58c6a8d383b5900ccb54a55d3d3634661258d618d6449d9048c84af",
       "bytes": 264
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-presets-green-receipt.json",
@@ -459,7 +596,8 @@
       "sha256": "d07597d4b577367e94feaa8dff32ecbe30814f4be9c5594081850d855cf9d928",
       "bytes": 314
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-presets-green2-receipt.json",
@@ -473,7 +611,8 @@
       "sha256": "a965abc0c6c00c8b6295ec9f3a68602d286ab73eb98e857f62d0fe9924e9273b",
       "bytes": 364
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-presets-rest-green-receipt.json",
@@ -487,7 +626,8 @@
       "sha256": "a539db07c5e266e24257d224e07e5934a72e22340a9534b22ddf7091e43a4c28",
       "bytes": 171
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-presets-rest-green2-receipt.json",
@@ -501,7 +641,8 @@
       "sha256": "802900cf929a394a0408fb69542b2382450584307f1b9715341706be28df0069",
       "bytes": 155
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-prior-exploratory-receipt.json",
@@ -515,7 +656,8 @@
       "sha256": "abbe267eeff0cd93ac02d9d5a6b7b05b20445edbe7dd0917b5357a0da812cd28",
       "bytes": 290
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "actual-ui-recovery-first-receipt.json",
@@ -529,7 +671,8 @@
       "sha256": "ec402bad40c6eac997a82b26f7f907f49910c0d0d3c1ae03cacdb63544d2c492",
       "bytes": 365
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e01-e03-units-green-receipt.json",
@@ -543,7 +686,8 @@
       "sha256": "6d2833773ca35902a5ef759e8baa6ffaefdeaf1c5d48982d96a851fea72f2b89",
       "bytes": 375
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e01-fixture-transport-red-receipt.json",
@@ -557,7 +701,8 @@
       "sha256": "b8d71c43824ab6a0069a03258144de517e1b49ab564a45b4ff7cd7454dac3d3d",
       "bytes": 716
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e01-material-red-receipt.json",
@@ -571,7 +716,8 @@
       "sha256": "378edda023fb371f1e10d438dde338c84d720efbdb619d0340a706ea32adb4b7",
       "bytes": 1034
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e01-transport-green-receipt.json",
@@ -585,7 +731,8 @@
       "sha256": "d6dc7830cf1d3f94fc6c6259c9a5abe475f39ff7b796f010181a348e0f83bd28",
       "bytes": 371
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e01-transport-red-receipt.json",
@@ -599,7 +746,8 @@
       "sha256": "a5db0f599d2560655cc9b0ea780bfd16f39b39413ed5e3e3d14f395623bef476",
       "bytes": 971
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e01-transport-type-receipt.json",
@@ -613,7 +761,8 @@
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e02-handler-commit-loss-build2-receipt.json",
@@ -627,7 +776,8 @@
       "sha256": "aa8433ad106e4f7a1b1a587ba68a836187c659857c9c59115e1125e94c580774",
       "bytes": 386
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e02-handler-commit-loss-green-receipt.json",
@@ -641,7 +791,8 @@
       "sha256": "419cdfaad63749f79f025d85ea8303e3ae80327a2cab109c00461e5e2fc8f651",
       "bytes": 610
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e02-handler-commit-loss-receipt.json",
@@ -655,7 +806,8 @@
       "sha256": "2faf55ef29380996085f1d0d3892795ffc41d3243badc657794b40103762e882",
       "bytes": 467
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e02-handler-commit-loss-run3-receipt.json",
@@ -669,7 +821,8 @@
       "sha256": "b8df726cdeeaa1713a150896b2f5d325176a6d3ea973b2686149fa4f1a3d2cab",
       "bytes": 598
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-green-receipt.json",
@@ -683,7 +836,8 @@
       "sha256": "5d06706572c3a09af54c5da810304c66f6bfcdc51a45938c8cc328271e72f548",
       "bytes": 277
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-red-receipt.json",
@@ -697,7 +851,8 @@
       "sha256": "8e18d423304b6b93d83853fa616e36dc00446d094eb71ea1a137dc15568017f3",
       "bytes": 763
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-review-import-green-receipt.json",
@@ -711,7 +866,8 @@
       "sha256": "32e90700e28c40f1c6a9b7c8cc8a26d07172f244e7d116ae21ff7fa52a84659f",
       "bytes": 281
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-review-import-red-receipt.json",
@@ -725,7 +881,8 @@
       "sha256": "368576383cea8f1a18b0ca382465f6083cefe9a9354782e6c7beebb855247b5b",
       "bytes": 1049
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-review-materials-final-green-receipt.json",
@@ -739,7 +896,8 @@
       "sha256": "1474595f5346f51e0a9620d50224e81e13e5ae97716527f09a4ebe56b18c4fb9",
       "bytes": 284
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-review-scanner-staged-corrected-receipt.json",
@@ -753,7 +911,8 @@
       "sha256": "9ebb04cbd45934df2febbf234b0f3776411f7218b41d355290e118d679268915",
       "bytes": 47
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-review-scanner-staged-green-receipt.json",
@@ -767,7 +926,8 @@
       "sha256": "48b147b7fad72f1bc85b4ac533e42a98603ffbe118b65b269a809274ba88384c",
       "bytes": 132
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e03-review-synthetic-green-receipt.json",
@@ -781,7 +941,8 @@
       "sha256": "d90d4f8d8af09d94cceab1aa9055bcd30271f70add4fdd2146c5d1881c4c9c61",
       "bytes": 282
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e04-http-bounded-graph-receipt.json",
@@ -795,7 +956,8 @@
       "sha256": "50fdd187f140afe3970617dc30fcabf91d4f04294c7f7d6830bbf60cc41b4429",
       "bytes": 338
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e04-http-first-receipt.json",
@@ -809,7 +971,8 @@
       "sha256": "a500aa9ffa1eb4a78986c27327df6980a5f7d7ee3f8e97371d4d8e80f518a282",
       "bytes": 500
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e04-http-legal-connections-receipt.json",
@@ -823,7 +986,8 @@
       "sha256": "4257a59050d7c82a313a0347d5f08aad239d54e16e655fd1b3e298ed4fcd010d",
       "bytes": 476
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "e04-http-targeted-receipt.json",
@@ -837,7 +1001,53 @@
       "sha256": "68edc313e3b299a494e32b147cce07742499417ee61de01832827b724edde263",
       "bytes": 101
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "e04-oracle-green-working-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e04-oracle-green-working.log",
+      "sha256": "5c47a2aa35f9aa6038f875949c86a70b5faba741217f0339bcbafbf78225fd0e",
+      "bytes": 337
+    },
+    "gzip_bytes": {
+      "path": "e04-oracle-green-working.log.gz",
+      "sha256": "6d7bfa2ba5b2d48afa67f2eba63f730ee7ae24361226130184bfe7451341fa00",
+      "bytes": 243
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "e04-oracle-negative-working-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e04-oracle-negative-working.log",
+      "sha256": "cbda5524cc17ee30a0fcd0761309bc1dca6620845e4e8497b024a172320fe583",
+      "bytes": 250
+    },
+    "gzip_bytes": {
+      "path": "e04-oracle-negative-working.log.gz",
+      "sha256": "a004134d898ae431d0a50953ebc90dfaf5d0e1c3eab4d3daeaaac559cbf43262",
+      "bytes": 197
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "e04-oracle-red-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/e04-oracle-red.log",
+      "sha256": "3ae14f90dd0a86787e4dc3890dd767b95a32f22417a00ff4e906b790b1e05e3f",
+      "bytes": 838
+    },
+    "gzip_bytes": {
+      "path": "e04-oracle-red.log.gz",
+      "sha256": "070637a747d34da7776e6de031218b5a691385e732df06621ffd6b7ce14816e3",
+      "bytes": 488
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "o01-green-receipt.json",
@@ -851,7 +1061,8 @@
       "sha256": "3c3541e194b0d7038847653d2c5571abb9446fb1b022c3b9a9999560afad5a7e",
       "bytes": 723
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "o01-red-receipt.json",
@@ -865,7 +1076,8 @@
       "sha256": "a72614b866ba2fbb70b9da171c5954d2d288fba0d2c519f5cde87db76634ffa6",
       "bytes": 1548
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "o01-regression-receipt.json",
@@ -879,7 +1091,8 @@
       "sha256": "cfe307f4ba559cd97fb41a247d4d9aaa8f4a13f453c6d1d91aa40e29169d20e1",
       "bytes": 1325
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "report-docs-before-review-receipt.json",
@@ -893,7 +1106,8 @@
       "sha256": "2d151fa6342c17f14feb42d9fa8fb26e935f98503a8bdb2cc900bddd4f47ed23",
       "bytes": 345
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "report-docs-corrected-before-review-receipt.json",
@@ -907,7 +1121,23 @@
       "sha256": "9628fecedff279eb2cc68894f49165d9470a973d0aafcbf20e74d5d1ab10757f",
       "bytes": 346
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
+  },
+  {
+    "receipt": "report-docs-oracle-closeout-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/report-docs-oracle-closeout.log",
+      "sha256": "5043ac54637bedf2665a5ec8a9bfb65ec87fe52fa3f98c47bf65ac7c83b02ee0",
+      "bytes": 540
+    },
+    "gzip_bytes": {
+      "path": "report-docs-oracle-closeout.log.gz",
+      "sha256": "473adb6a1e069f7c1dc768542a6c4f072759df4bdd25a32f420f0461a79c8ae8",
+      "bytes": 345
+    },
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "s01-docs-receipt.json",
@@ -921,7 +1151,8 @@
       "sha256": "c282c3e5d572cc8087b3637919fd14ecfdc1101038d58756bc88ccbafbd865ac",
       "bytes": 345
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "seo-build-receipt.json",
@@ -935,7 +1166,8 @@
       "sha256": "7fa283bea9541908638628d78b962f227113f0c5f87090b0952c20ccb28807c0",
       "bytes": 226
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "seo-fixture-browser-receipt.json",
@@ -949,7 +1181,8 @@
       "sha256": "09ebbd53e5919026f25f5dee5b448fcc54e0c34724291f73f1039795ea39cadd",
       "bytes": 4755
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "seo-fixture-device-browser-receipt.json",
@@ -963,7 +1196,8 @@
       "sha256": "58b37489730c40a29404e7fcf1ad30f883db262b17366663962b2fa16d63bdc0",
       "bytes": 1466
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "seo-fixture-kimi-browser-receipt.json",
@@ -977,7 +1211,8 @@
       "sha256": "32c287757639f28b6c6b69e701e8c5e5efb27836a3fff4fec3ee0ef91e7fda90",
       "bytes": 1296
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   },
   {
     "receipt": "seo-type-receipt.json",
@@ -991,6 +1226,7 @@
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
     },
-    "decoded_archive_matches_raw": true
+    "decoded_archive_matches_raw": true,
+    "immutable_original_receipt": null
   }
 ]

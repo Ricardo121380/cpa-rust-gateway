@@ -1,17 +1,20 @@
 {
   "result": "PASS",
-  "recorded_utc": "2026-10-09T05:11:55.708151+00:00",
+  "recorded_utc": "2026-10-09T05:55:33.998642+00:00",
   "previous_actual_execution_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
-  "current_review_fix_source": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
-  "current_source_tree": "1b9369c14af638012a13a4e4f19be0e7f0b617d5",
+  "current_review_fix_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+  "current_source_tree": "a505c18555448460298f7bd188c509de2c9c9b6a",
   "post_previous_runtime_non_report_paths": [
     "docs/cross-boundary-log.md",
+    "scripts/acceptance/cpar-batch-b-http.py",
     "web/prism/src/api/seo-fixtures.test.ts",
     "web/prism/src/dev/fixtures.ts"
   ],
   "changed_backend_source_paths": [],
-  "changed_acceptance_script_paths": [],
-  "current_clean_binary_build_receipt": "accepted-binary-build-closeout-receipt.json",
+  "changed_acceptance_script_paths": [
+    "scripts/acceptance/cpar-batch-b-http.py"
+  ],
+  "current_clean_binary_build_receipt": "accepted-binary-build-oracle-final-receipt.json",
   "actual_executed_and_current_rebuilt_binary": {
     "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
     "bytes": 123692840,
@@ -47,8 +50,7 @@
   "development_fixture_exclusion": "web/prism/src/api/client.ts guards the fixture import with import.meta.env.DEV; production bundle bytes and gateway binary were independently compared",
   "reused_current_production_scopes": [
     "18 actual stock embedded-page scenes",
-    "527 public HTTP checks",
-    "E-02 real handler/TCP two-device selected run"
+    "E-02 real handler/TCP two-device selected run; both tests rerun in final Full"
   ],
   "reuse_does_not_relabel_execution_source_or_time": true,
   "historical_fixture_browser": {
@@ -63,5 +65,14 @@
     "e03-review-materials-final-green-receipt.json",
     "e03-review-scanner-staged-corrected-receipt.json",
     "accepted-ui-tests-closeout-receipt.json"
-  ]
+  ],
+  "acceptance_script_change_scope": "one shared completion flag in CPAR_SEO_ONLY; new clean-source positive/negative controls and a fresh complete 527-check execution",
+  "fresh_public_http_scope": {
+    "receipt": "accepted-crossgroup-oracle-final-receipt.json",
+    "inner_receipt": "accepted-crossgroup-oracle-final/receipt.json",
+    "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+    "checks": 527
+  },
+  "prior_equivalence_preserved": "reviewed-runtime-equivalence-before-oracle-correction.json",
+  "execution_name_restoration": "execution-name-restoration.json"
 }

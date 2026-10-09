@@ -1,0 +1,42 @@
+{
+  "name": "accepted-crossgroup-oracle-final",
+  "command": [
+    "env",
+    "CPAR_GATEWAY_BINARY=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
+    "CPAR_SEO_MATRIX=1",
+    "python3",
+    "scripts/acceptance/cpar-batch-b-http.py",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-seo-closeout-20261009/accepted-crossgroup-oracle-final"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-source",
+  "started_utc": "2026-10-09T05:51:48.485829+00:00",
+  "finished_utc": "2026-10-09T05:52:41.441925+00:00",
+  "duration_seconds": 52.955,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+    "dirty": [],
+    "tracked_files_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+    "dirty": [],
+    "tracked_files_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/accepted-crossgroup-oracle-final.log",
+      "sha256": "44419463e148eb42362a51e5a149856056d819c1f5bdd72a0f550bb9cad18edb",
+      "bytes": 124
+    }
+  }
+}

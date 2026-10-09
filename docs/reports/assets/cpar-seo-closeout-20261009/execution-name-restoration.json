@@ -1,0 +1,70 @@
+{
+  "result": "PASS",
+  "recorded_utc": "2026-10-09T06:04:55.367215+00:00",
+  "problem": "four reused execution names replaced current receipt/raw-log files while their earlier gzip remained; detected by raw/gzip equality assertion before any closeout commit",
+  "restoration_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47 tracked historical receipts/steps and unchanged historical gzip",
+  "historical_receipt_step_and_raw_bytes_restored_exactly": true,
+  "new_immutable_execution_receipts_and_raw_bytes_preserved": true,
+  "derived_current_receipts_change_artifact_location_only": true,
+  "entries": [
+    {
+      "restored_historical_receipt": "accepted-binary-build-final-receipt.json",
+      "historical_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "restored_receipt_sha256": "98b70289358fed3a3a42319538a45e99dd36e16237529bcd7481dc7586fa61ee",
+      "restored_original_log_sha256": "45d8f7d972875790a6cec7ca48e9acc17c5af68372da1940633becec3b4cd60a",
+      "historical_gzip_untouched": true,
+      "preserved_new_immutable_receipt": "execution-name-collision/accepted-binary-build-final-receipt.json",
+      "new_execution_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "new_immutable_receipt_sha256": "1c4383d7517e1f0c5dba2608fa02fcfc8951d897594be8227ff8fc731dfd285f",
+      "relocated_derived_receipt": "accepted-binary-build-oracle-final-receipt.json",
+      "new_raw_log_sha256": "287b8e00467322456891bdf28d3e92887045132c2aea9156fc3d41c822003e12",
+      "new_execution_facts_unchanged": true
+    },
+    {
+      "restored_historical_receipt": "accepted-full-final-receipt.json",
+      "historical_source": "5701e0e5f5fe7e6b663561b8a0fcce02885e2bb1",
+      "restored_receipt_sha256": "6c10579d4c83ffc6d9377ba833b1510c0c691ca3797d9066a3f7ba8fe94d5813",
+      "restored_original_log_sha256": "654c37161622dc71f62508dae24f934759879a1bca9aa021b808a60385df5eaa",
+      "historical_gzip_untouched": true,
+      "preserved_new_immutable_receipt": "execution-name-collision/accepted-full-final-receipt.json",
+      "new_execution_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "new_immutable_receipt_sha256": "2c60077ffc23a85497d77017691d150f38c272b4311fa8443407e8d4b8463432",
+      "relocated_derived_receipt": "accepted-full-oracle-final-receipt.json",
+      "new_raw_log_sha256": "c6952ca80eab0a451e0c98cacf743b3321d141f18d67659cf0cdd1fb5a9043ca",
+      "new_execution_facts_unchanged": true
+    },
+    {
+      "restored_historical_receipt": "accepted-ui-tests-final-receipt.json",
+      "historical_source": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+      "restored_receipt_sha256": "d56c42474dae3c690ed4e08455a3f0469658d32cc6b1e6cf0f820cb4ea4fb082",
+      "restored_original_log_sha256": "849d9cd0a1accc46352f0f1633d71fcbc78d8af565d141800d52feca1bf88843",
+      "historical_gzip_untouched": true,
+      "preserved_new_immutable_receipt": "execution-name-collision/accepted-ui-tests-final-receipt.json",
+      "new_execution_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "new_immutable_receipt_sha256": "ad78dd0efbef4645f0844cd5f77c25ece11720a1a29bfdf26881e67527fe0218",
+      "relocated_derived_receipt": "accepted-ui-tests-oracle-final-receipt.json",
+      "new_raw_log_sha256": "65a2a0dbc63f1b77cb993b856271db0eb53dd1b89ebb67a81714c14dcbfeedd9",
+      "new_execution_facts_unchanged": true
+    },
+    {
+      "restored_historical_receipt": "accepted-ui-type-final-receipt.json",
+      "historical_source": "b0710eb410fc37f72ef8dd017e67a53d2aa81c09",
+      "restored_receipt_sha256": "6ce3f99a6e777f73b6491a5e6cb4d5327e01ea153c84375795b56690d047f335",
+      "restored_original_log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "historical_gzip_untouched": true,
+      "preserved_new_immutable_receipt": "execution-name-collision/accepted-ui-type-final-receipt.json",
+      "new_execution_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "new_immutable_receipt_sha256": "66ad672e8754ec45f4d9beaa94c05153f71221e36725fe7ef0b533802692cada",
+      "relocated_derived_receipt": "accepted-ui-type-oracle-final-receipt.json",
+      "new_raw_log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "new_execution_facts_unchanged": true
+    }
+  ],
+  "step_records": {
+    "restored_historical": "accepted-full-final-steps.md",
+    "preserved_new": "execution-name-collision/accepted-full-final-steps.md",
+    "current_alias": "accepted-full-oracle-final-steps.md",
+    "new_bytes_sha256": "2e134f62baba6f42593848200826da7bd7e0fd6fb9020b4f4fc31e7360fc4fcb",
+    "old_bytes_sha256": "22e118d2b0af5e1bb5a8a5c6478856896da340f2f9e5368f4cdd55d7f9c5ee4c"
+  }
+}

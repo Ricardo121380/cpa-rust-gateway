@@ -1,7 +1,7 @@
 {
-  "generated_utc": "2026-10-09T05:21:13.168916+00:00",
+  "generated_utc": "2026-10-09T06:10:03.126388+00:00",
   "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
-  "validated_runtime_source": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
+  "validated_runtime_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
   "self_hash_exclusion": "evidence-index.json is excluded from its own object list; source-binding does not reference this index hash",
   "items": {
     "S-01": {
@@ -9,7 +9,7 @@
       "evidence": [
         "s01-static.json",
         "s01-docs-receipt.json",
-        "accepted-full-closeout-receipt.json"
+        "accepted-full-oracle-final-receipt.json"
       ],
       "original_body_paragraphs_preserved": 8
     },
@@ -23,7 +23,7 @@
         "e01-transport-green-receipt.json",
         "accepted-fixture-browser.json",
         "accepted-actual-ui-browser-final.json",
-        "accepted-ui-tests-closeout-receipt.json",
+        "accepted-ui-tests-oracle-final-receipt.json",
         "reviewed-runtime-equivalence.json"
       ],
       "actual_scope": "five existing-connection reuse flows; four local explicit calls; Grok disabled configuration only",
@@ -43,7 +43,8 @@
       "evidence": [
         "accepted-e02-commit-loss-receipt.json",
         "accepted-e02-commit-loss.log.gz",
-        "accepted-fixture-browser.json"
+        "accepted-fixture-browser.json",
+        "accepted-full-oracle-final-receipt.json"
       ],
       "actual_stock_serve_device_loss_ui": "NOT_RUN",
       "actual_API_response_loss_layer": "browser discards genuine 201 and injects one failed follow-up read"
@@ -56,7 +57,7 @@
         "e03-review-import-red-receipt.json",
         "e03-review-materials-final-green-receipt.json",
         "e03-review-scanner-staged-corrected-receipt.json",
-        "accepted-ui-tests-closeout-receipt.json",
+        "accepted-ui-tests-oracle-final-receipt.json",
         "accepted-actual-ui-browser-final.json",
         "actual-kiro-screen-supplement.json",
         "actual-kiro-oauth.png",
@@ -70,9 +71,12 @@
     "E-04": {
       "status": "PASS_PUBLIC_HTTP",
       "evidence": [
-        "accepted-crossgroup-final/receipt.json",
-        "accepted-crossgroup-final/seo-isolation.json",
-        "accepted-crossgroup-final-receipt.json"
+        "accepted-crossgroup-oracle-final/receipt.json",
+        "accepted-crossgroup-oracle-final/seo-isolation.json",
+        "accepted-crossgroup-oracle-final-receipt.json",
+        "e04-oracle-closure.json",
+        "accepted-e04-oracle-green-receipt.json",
+        "accepted-e04-oracle-negative-receipt.json"
       ],
       "existing_checks": 410,
       "new_checks": 117,
@@ -86,7 +90,7 @@
         "o01-green-receipt.json",
         "o01-regression-receipt.json",
         "official-phase-sources.json",
-        "accepted-full-closeout-receipt.json"
+        "accepted-full-oracle-final-receipt.json"
       ],
       "supported_phase_subset": [
         "commentary",
@@ -131,7 +135,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-actual-ui-browser-receipt.json",
@@ -145,7 +151,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-binary-build-closeout-receipt.json",
@@ -159,7 +167,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-binary-build-final-receipt.json",
@@ -173,7 +183,25 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "accepted-binary-build-oracle-final-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": true,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "derived raw-log relocation",
+      "immutable_original_receipt": "execution-name-collision/accepted-binary-build-final-receipt.json"
     },
     {
       "receipt": "accepted-binary-build-receipt.json",
@@ -187,7 +215,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-binary-build-reviewed-receipt.json",
@@ -201,7 +231,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-crossgroup-final-receipt.json",
@@ -215,7 +247,25 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "accepted-crossgroup-oracle-final-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": true,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-crossgroup-receipt.json",
@@ -229,7 +279,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-e02-commit-loss-receipt.json",
@@ -243,7 +295,41 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "accepted-e04-oracle-green-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": true,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "accepted-e04-oracle-negative-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": true,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-fixture-browser-receipt.json",
@@ -257,7 +343,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-full-closeout-receipt.json",
@@ -271,7 +359,9 @@
         "ignored": 12
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-full-final-receipt.json",
@@ -285,7 +375,9 @@
         "ignored": 12
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-full-green-receipt.json",
@@ -299,7 +391,25 @@
         "ignored": 12
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "accepted-full-oracle-final-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": true,
+      "rust_counts": {
+        "passed": 1493,
+        "failed": 0,
+        "ignored": 12
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "derived raw-log relocation",
+      "immutable_original_receipt": "execution-name-collision/accepted-full-final-receipt.json"
     },
     {
       "receipt": "accepted-full-receipt.json",
@@ -313,7 +423,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-full-reviewed-receipt.json",
@@ -327,7 +439,9 @@
         "ignored": 12
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-tests-closeout-receipt.json",
@@ -345,7 +459,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-tests-current-receipt.json",
@@ -363,7 +479,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-tests-final-receipt.json",
@@ -381,7 +499,29 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "accepted-ui-tests-oracle-final-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": true,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {
+        "passed": 496,
+        "failed": 0,
+        "skipped": 0
+      },
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "derived raw-log relocation",
+      "immutable_original_receipt": "execution-name-collision/accepted-ui-tests-final-receipt.json"
     },
     {
       "receipt": "accepted-ui-tests-receipt.json",
@@ -399,7 +539,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-tests-reviewed-receipt.json",
@@ -417,7 +559,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-type-closeout-receipt.json",
@@ -431,7 +575,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-type-current-receipt.json",
@@ -445,7 +591,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-type-final-receipt.json",
@@ -459,7 +607,25 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "accepted-ui-type-oracle-final-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": true,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "derived raw-log relocation",
+      "immutable_original_receipt": "execution-name-collision/accepted-ui-type-final-receipt.json"
     },
     {
       "receipt": "accepted-ui-type-receipt.json",
@@ -473,7 +639,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "accepted-ui-type-reviewed-receipt.json",
@@ -487,7 +655,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-a08-exploratory-receipt.json",
@@ -501,7 +671,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-all-exploratory-receipt.json",
@@ -515,7 +687,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-build-green-receipt.json",
@@ -529,7 +703,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-calls-exploratory-receipt.json",
@@ -543,7 +719,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-calls-resumed-exploratory-receipt.json",
@@ -557,7 +735,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-forced-build-green-receipt.json",
@@ -571,7 +751,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-kiro-first-receipt.json",
@@ -585,7 +767,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-presets-green-receipt.json",
@@ -599,7 +783,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-presets-green2-receipt.json",
@@ -613,7 +799,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-presets-rest-green-receipt.json",
@@ -627,7 +815,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-presets-rest-green2-receipt.json",
@@ -641,7 +831,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-prior-exploratory-receipt.json",
@@ -655,7 +847,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "actual-ui-recovery-first-receipt.json",
@@ -669,7 +863,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e01-e03-units-green-receipt.json",
@@ -687,7 +883,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e01-fixture-transport-red-receipt.json",
@@ -705,7 +903,9 @@
         "failed": 1,
         "skipped": 12
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e01-material-red-receipt.json",
@@ -723,7 +923,9 @@
         "failed": 4,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e01-transport-green-receipt.json",
@@ -741,7 +943,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e01-transport-red-receipt.json",
@@ -759,7 +963,9 @@
         "failed": 3,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e01-transport-type-receipt.json",
@@ -773,7 +979,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e02-handler-commit-loss-build2-receipt.json",
@@ -787,7 +995,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e02-handler-commit-loss-green-receipt.json",
@@ -801,7 +1011,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e02-handler-commit-loss-receipt.json",
@@ -815,7 +1027,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e02-handler-commit-loss-run3-receipt.json",
@@ -829,7 +1043,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-green-receipt.json",
@@ -847,7 +1063,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-red-receipt.json",
@@ -865,7 +1083,9 @@
         "failed": 1,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-review-import-green-receipt.json",
@@ -883,7 +1103,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-review-import-red-receipt.json",
@@ -901,7 +1123,9 @@
         "failed": 1,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-review-materials-final-green-receipt.json",
@@ -919,7 +1143,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-review-scanner-staged-corrected-receipt.json",
@@ -933,7 +1159,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-review-scanner-staged-green-receipt.json",
@@ -947,7 +1175,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e03-review-synthetic-green-receipt.json",
@@ -965,7 +1195,9 @@
         "failed": 0,
         "skipped": 0
       },
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e04-http-bounded-graph-receipt.json",
@@ -979,7 +1211,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e04-http-first-receipt.json",
@@ -993,7 +1227,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e04-http-legal-connections-receipt.json",
@@ -1007,7 +1243,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "e04-http-targeted-receipt.json",
@@ -1021,7 +1259,57 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "e04-oracle-green-working-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "87092bcd366e9b37cf0c00c6577c113e5a850bbe",
+      "clean_before": false,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "e04-oracle-negative-working-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "87092bcd366e9b37cf0c00c6577c113e5a850bbe",
+      "clean_before": false,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "e04-oracle-red-receipt.json",
+      "result": "FAIL",
+      "exit_code": 1,
+      "source": "87092bcd366e9b37cf0c00c6577c113e5a850bbe",
+      "clean_before": false,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "o01-green-receipt.json",
@@ -1035,7 +1323,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "o01-red-receipt.json",
@@ -1049,7 +1339,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "o01-regression-receipt.json",
@@ -1063,7 +1355,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "report-docs-before-review-receipt.json",
@@ -1077,7 +1371,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "report-docs-corrected-before-review-receipt.json",
@@ -1091,7 +1387,25 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
+    },
+    {
+      "receipt": "report-docs-oracle-closeout-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "clean_before": false,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "s01-docs-receipt.json",
@@ -1105,7 +1419,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "seo-build-receipt.json",
@@ -1119,7 +1435,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "seo-fixture-browser-receipt.json",
@@ -1133,7 +1451,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "seo-fixture-device-browser-receipt.json",
@@ -1147,7 +1467,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "seo-fixture-kimi-browser-receipt.json",
@@ -1161,7 +1483,9 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     },
     {
       "receipt": "seo-type-receipt.json",
@@ -1175,22 +1499,31 @@
         "ignored": 0
       },
       "frontend_counts_from_receipt_or_raw_vitest": {},
-      "original_receipt_not_rewritten": true
+      "original_receipt_not_rewritten": true,
+      "receipt_kind": "original execution receipt",
+      "immutable_original_receipt": null
     }
   ],
   "log_archive_map": "log-archives.json",
+  "execution_name_restoration": "execution-name-restoration.json",
   "source_binding": "source-binding.json",
   "current_source_gates": [
-    "accepted-full-closeout-receipt.json",
-    "accepted-ui-type-closeout-receipt.json",
-    "accepted-ui-tests-closeout-receipt.json",
-    "accepted-binary-build-closeout-receipt.json"
+    "accepted-full-oracle-final-receipt.json",
+    "accepted-ui-type-oracle-final-receipt.json",
+    "accepted-ui-tests-oracle-final-receipt.json",
+    "accepted-binary-build-oracle-final-receipt.json",
+    "accepted-crossgroup-oracle-final-receipt.json",
+    "accepted-e04-oracle-green-receipt.json",
+    "accepted-e04-oracle-negative-receipt.json"
   ],
   "production_runtime_reuse_proof": "reviewed-runtime-equivalence.json",
   "fixture_browser_role": "Historical 17-scene supplementary development-fixture evidence; current corrected material/inventory and device recovery regressions are in 15 directed and 496 full frontend tests.",
-  "preservation": "preservation-reviewed.json",
+  "preservation": "preservation-final-closeout.json",
   "cleanup": "cleanup.json",
+  "additional_owned_http_cleanup": "cleanup-oracle-roots.json",
+  "private_material_scan_supplement": "oracle-private-material-scan.json",
   "review": "review-results.md",
+  "final_increment_review_authority": "output/cpar-seo-closeout-20261009/final-review-attestation.json",
   "objects": [
     {
       "path": "accepted-actual-ui-browser-final-receipt.json",
@@ -1253,6 +1586,18 @@
       "bytes": 91
     },
     {
+      "path": "accepted-binary-build-oracle-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "af10569efa65895d8c43f41f34e17a0acfad294e0a4834cfa2478f79c9afb0a6",
+      "bytes": 2397
+    },
+    {
+      "path": "accepted-binary-build-oracle-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "4ad55f9b8ae904005de01532b59379bb61e25872be06897dbbec510faa5aa1d2",
+      "bytes": 223
+    },
+    {
       "path": "accepted-binary-build-receipt.json",
       "object": "JSON_bytes",
       "sha256": "e99ae2a63f95f160882c96a405ccbb4dfd7be8e4420494dbc279dd3615a8bb3d",
@@ -1313,6 +1658,30 @@
       "bytes": 134
     },
     {
+      "path": "accepted-crossgroup-oracle-final/receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "af1beea9aa10d7959ae25d15340acab577c298869804a00d865cc7d033600aff",
+      "bytes": 121641
+    },
+    {
+      "path": "accepted-crossgroup-oracle-final/seo-isolation.json",
+      "object": "JSON_bytes",
+      "sha256": "f4283f23ab6560e0ca4ae3f10e4d0af103c9efa405a377f8f3bb3a731f0e6aa6",
+      "bytes": 33400
+    },
+    {
+      "path": "accepted-crossgroup-oracle-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "36561be80df31aa5309a4276a1b9aafefc314a0ddc250334d3ec3b41a7c04ec3",
+      "bytes": 1577
+    },
+    {
+      "path": "accepted-crossgroup-oracle-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "38133bb14fb0385e49afb3da551d1c8f71bd3de58bf5355cd048fd270f93e7c1",
+      "bytes": 134
+    },
+    {
       "path": "accepted-crossgroup-receipt.json",
       "object": "JSON_bytes",
       "sha256": "d53706014f0bdbc39ed5868e791e5167a1ecd31593ce59d5f1fc2568a8681e15",
@@ -1335,6 +1704,60 @@
       "object": "gzip_archive_bytes",
       "sha256": "b66aa0171fea2c59df681a7eb7b247d236c122a31055ec78667dbf0d482cfbc6",
       "bytes": 647
+    },
+    {
+      "path": "accepted-e04-oracle-green/oracle-comparison.json",
+      "object": "JSON_bytes",
+      "sha256": "90d73e1917b4315578c4858f2d2df028f332483751d5123baf82de85988b7a50",
+      "bytes": 387
+    },
+    {
+      "path": "accepted-e04-oracle-green/receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "d9641c2334fb2cc68eeac52cda4d390a6090c1ba34980fdc4e4bf9f354efe7f3",
+      "bytes": 66673
+    },
+    {
+      "path": "accepted-e04-oracle-green/seo-isolation.json",
+      "object": "JSON_bytes",
+      "sha256": "9795d45fd9ee15b7c04f430a7bb75a4a6af2f88cc33d9c5d12f4bf44093e0577",
+      "bytes": 33400
+    },
+    {
+      "path": "accepted-e04-oracle-green-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "4c98820e8f2d6c67e3a4a9f2d0679fa142eb86971fd8b4171ec4beb1ffe9d160",
+      "bytes": 1562
+    },
+    {
+      "path": "accepted-e04-oracle-green.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "bddc3397e3317caeaf2cf7b008fd736c9f8cc855465b601fb550b682e8c10c5c",
+      "bytes": 241
+    },
+    {
+      "path": "accepted-e04-oracle-negative/oracle-comparison.json",
+      "object": "JSON_bytes",
+      "sha256": "31210d1415e1fedd74666bb62afb3325d0c246effdc5b67e20abd52249a3f0f6",
+      "bytes": 268
+    },
+    {
+      "path": "accepted-e04-oracle-negative/receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "6d176b0d96d078580f8fe53f8816b3d9ac64c4a388d8ead6d2f7c910ac27e2bf",
+      "bytes": 51276
+    },
+    {
+      "path": "accepted-e04-oracle-negative-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "f9ac3b64b5625b1acdf6c49925922cc6c5f190c2307e956f0e6264ec8cf76219",
+      "bytes": 1587
+    },
+    {
+      "path": "accepted-e04-oracle-negative.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "95839086dd5179dcbe05cd610833f5de09865d124343d74ba8c546d70e2d1023",
+      "bytes": 195
     },
     {
       "path": "accepted-fixture-browser-receipt.json",
@@ -1409,6 +1832,24 @@
       "bytes": 48670
     },
     {
+      "path": "accepted-full-oracle-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "d970957190ac226115e7e425ed47d4970266a3963766a8282edb29ae70c1e1dc",
+      "bytes": 2187
+    },
+    {
+      "path": "accepted-full-oracle-final-steps.md",
+      "object": "document_bytes",
+      "sha256": "2e134f62baba6f42593848200826da7bd7e0fd6fb9020b4f4fc31e7360fc4fcb",
+      "bytes": 1847
+    },
+    {
+      "path": "accepted-full-oracle-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "1f5a5ebd0b612f8e3f9d5e7f06051a47964f9e04f0bb71d158d3987e3aa0b85f",
+      "bytes": 48049
+    },
+    {
       "path": "accepted-full-receipt.json",
       "object": "JSON_bytes",
       "sha256": "a413326772fb2afc69d44c27b9d63d65b1a7a24ba6158d29356cac64e2022e8b",
@@ -1481,6 +1922,18 @@
       "bytes": 1226
     },
     {
+      "path": "accepted-ui-tests-oracle-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "3e9fe25033890c364ccda39060b1931368c62fda2dde4f348b6d3c209f10120b",
+      "bytes": 2316
+    },
+    {
+      "path": "accepted-ui-tests-oracle-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "a43ccf2f30efd1f0b4b5abb53b6c95543d32ac35c9a8c0bb901325f646f85826",
+      "bytes": 1231
+    },
+    {
       "path": "accepted-ui-tests-receipt.json",
       "object": "JSON_bytes",
       "sha256": "ee3d339552275a2bdc1cd94ee43e3b9d1b58a948e495e9f484d12efcb35a8525",
@@ -1536,6 +1989,18 @@
     },
     {
       "path": "accepted-ui-type-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    {
+      "path": "accepted-ui-type-oracle-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "a0554f2deec95888b7c6a283c0d9f36f70980c463e4cbebe9da80f168beb23f2",
+      "bytes": 2235
+    },
+    {
+      "path": "accepted-ui-type-oracle-final.log.gz",
       "object": "gzip_archive_bytes",
       "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
       "bytes": 68
@@ -1821,6 +2286,12 @@
       "object": "JSON_bytes",
       "sha256": "02e057637c4447f8198489121912828e4f5e462db0abab5feabe5f29b11f2d32",
       "bytes": 74951
+    },
+    {
+      "path": "cleanup-oracle-roots.json",
+      "object": "JSON_bytes",
+      "sha256": "6d321bc53b2fd1ce59c4156534f4a463d4fa26ef1916f34930a5b4b53dbaca54",
+      "bytes": 1864
     },
     {
       "path": "cleanup.json",
@@ -2111,6 +2582,108 @@
       "bytes": 101
     },
     {
+      "path": "e04-oracle-closure.json",
+      "object": "JSON_bytes",
+      "sha256": "0554cab94242192cea771f9c0038b50d09246de67cc62ae05998d7df8773780c",
+      "bytes": 2940
+    },
+    {
+      "path": "e04-oracle-green-working/oracle-comparison.json",
+      "object": "JSON_bytes",
+      "sha256": "3f56a47017953c517cb419aaf969575f8c24239ed2aed4a74e429addc8e90b1a",
+      "bytes": 387
+    },
+    {
+      "path": "e04-oracle-green-working/receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "9f177c850e1374dc36f34a176d43c3a1fd13d63fe0690dbeaeb73c451a7b22ae",
+      "bytes": 66673
+    },
+    {
+      "path": "e04-oracle-green-working/seo-isolation.json",
+      "object": "JSON_bytes",
+      "sha256": "9f864bb2d0f934024a6daec967d7f0fa050e80b5a0bc6794918897dc1f3c0d8e",
+      "bytes": 33400
+    },
+    {
+      "path": "e04-oracle-green-working-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "dfd689698d10c46c42f229ba863da2a35bae9d5b8e7bf271c39f3571c5763eef",
+      "bytes": 19601
+    },
+    {
+      "path": "e04-oracle-green-working.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "6d7bfa2ba5b2d48afa67f2eba63f730ee7ae24361226130184bfe7451341fa00",
+      "bytes": 243
+    },
+    {
+      "path": "e04-oracle-negative-working/oracle-comparison.json",
+      "object": "JSON_bytes",
+      "sha256": "ec906243737f6a18f460364776180de9d02b76cbe3032fad60610e12e4886793",
+      "bytes": 268
+    },
+    {
+      "path": "e04-oracle-negative-working/receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "edf34c5f7e3b65b59823209e28eeb9a3a04ed1d2d3e2bd39c4fde815a809bc2c",
+      "bytes": 51276
+    },
+    {
+      "path": "e04-oracle-negative-working-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "3cd8a24945912c2aadfc6445b3217bcf48ac3d5157dbaf16db7973d0f7773157",
+      "bytes": 19992
+    },
+    {
+      "path": "e04-oracle-negative-working.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "a004134d898ae431d0a50953ebc90dfaf5d0e1c3eab4d3daeaaac559cbf43262",
+      "bytes": 197
+    },
+    {
+      "path": "e04-oracle-red/oracle-comparison.json",
+      "object": "JSON_bytes",
+      "sha256": "9dfefe1d0e58b56a09315d75c19cd447739bc57d894890f0b94ee333783d11f0",
+      "bytes": 353
+    },
+    {
+      "path": "e04-oracle-red/receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "f61f0cf5cebcc827c5afb8567b746c602849619f8c6294cbb72670afb5875f8b",
+      "bytes": 66673
+    },
+    {
+      "path": "e04-oracle-red/seo-isolation.json",
+      "object": "JSON_bytes",
+      "sha256": "edb857e48a5db65f64b27c1749938902f8b441c09338f7f788bbd69174f2358d",
+      "bytes": 33400
+    },
+    {
+      "path": "e04-oracle-red-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "926f2386732e87b9db5b3153a6e0e6e2219cd3e38f6456b0ffbd13725babbf01",
+      "bytes": 18709
+    },
+    {
+      "path": "e04-oracle-red-witness.py",
+      "object": "document_bytes",
+      "sha256": "a5510131e7b6b8392a0f7b4fb9c5633e0327d0cd422122126e38552632278a35",
+      "bytes": 1888
+    },
+    {
+      "path": "e04-oracle-red.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "070637a747d34da7776e6de031218b5a691385e732df06621ffd6b7ce14816e3",
+      "bytes": 488
+    },
+    {
+      "path": "e04-oracle-regression.py",
+      "object": "document_bytes",
+      "sha256": "f57d36ecc8f0152b1969c6c4fec7868af9e7b8a6f7f108edc46f26f0382d61e3",
+      "bytes": 2400
+    },
+    {
       "path": "e04-second/receipt.json",
       "object": "JSON_bytes",
       "sha256": "e831115318b7d776a4c1507f285c41647ea9ea194540e91363949aa8f6f42ee1",
@@ -2139,6 +2712,66 @@
       "object": "JSON_bytes",
       "sha256": "42c2d3324917b552df75644d892ff61ea519f75c3e3ac36d82873114010ad911",
       "bytes": 49
+    },
+    {
+      "path": "execution-name-collision/accepted-binary-build-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "1c4383d7517e1f0c5dba2608fa02fcfc8951d897594be8227ff8fc731dfd285f",
+      "bytes": 1410
+    },
+    {
+      "path": "execution-name-collision/accepted-binary-build-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "4ad55f9b8ae904005de01532b59379bb61e25872be06897dbbec510faa5aa1d2",
+      "bytes": 223
+    },
+    {
+      "path": "execution-name-collision/accepted-full-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "2c60077ffc23a85497d77017691d150f38c272b4311fa8443407e8d4b8463432",
+      "bytes": 1240
+    },
+    {
+      "path": "execution-name-collision/accepted-full-final-steps.md",
+      "object": "document_bytes",
+      "sha256": "2e134f62baba6f42593848200826da7bd7e0fd6fb9020b4f4fc31e7360fc4fcb",
+      "bytes": 1847
+    },
+    {
+      "path": "execution-name-collision/accepted-full-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "1f5a5ebd0b612f8e3f9d5e7f06051a47964f9e04f0bb71d158d3987e3aa0b85f",
+      "bytes": 48049
+    },
+    {
+      "path": "execution-name-collision/accepted-ui-tests-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "ad78dd0efbef4645f0844cd5f77c25ece11720a1a29bfdf26881e67527fe0218",
+      "bytes": 1349
+    },
+    {
+      "path": "execution-name-collision/accepted-ui-tests-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "a43ccf2f30efd1f0b4b5abb53b6c95543d32ac35c9a8c0bb901325f646f85826",
+      "bytes": 1231
+    },
+    {
+      "path": "execution-name-collision/accepted-ui-type-final-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "66ad672e8754ec45f4d9beaa94c05153f71221e36725fe7ef0b533802692cada",
+      "bytes": 1273
+    },
+    {
+      "path": "execution-name-collision/accepted-ui-type-final.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "bytes": 68
+    },
+    {
+      "path": "execution-name-restoration.json",
+      "object": "JSON_bytes",
+      "sha256": "fd5b8a5e2dff1948e6225c5a2c5ed3c451a4633dafd07c40fd73c8eac1da1979",
+      "bytes": 4683
     },
     {
       "path": "fixture-browser.json",
@@ -2215,8 +2848,8 @@
     {
       "path": "log-archives.json",
       "object": "JSON_bytes",
-      "sha256": "9c0aad2752110f6e74c609d7832bb97409409b7ab29df9c8a03300ba3214aeca",
-      "bytes": 39316
+      "sha256": "d7bb6cd9d20e443905a515f325bb9a6cb7b4cdeca13aa49e15445a4516c489db",
+      "bytes": 49070
     },
     {
       "path": "o01-green-receipt.json",
@@ -2261,10 +2894,22 @@
       "bytes": 900
     },
     {
+      "path": "oracle-private-material-scan.json",
+      "object": "JSON_bytes",
+      "sha256": "d03666caa4d392c867b10c1b47c2e4f2b3ea1df7cb7f284dfea77b1a61a2ba55",
+      "bytes": 570
+    },
+    {
       "path": "preservation-counting-first.json",
       "object": "JSON_bytes",
       "sha256": "fa95c388adde36f0e5c8273733f171031c35bd21920cd37b87867e3d58390a6a",
       "bytes": 1177
+    },
+    {
+      "path": "preservation-final-closeout.json",
+      "object": "JSON_bytes",
+      "sha256": "b731f67ccb1f33da4483f45f59147d52b92c6dc21912ef21b247a7ca91cbf863",
+      "bytes": 1377
     },
     {
       "path": "preservation-final.json",
@@ -2309,10 +2954,40 @@
       "bytes": 346
     },
     {
+      "path": "report-docs-oracle-closeout-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "567cb5973d729e9b3fe09838b6bfd0668b95e32688f16c2ecded4233196f60d5",
+      "bytes": 31242
+    },
+    {
+      "path": "report-docs-oracle-closeout.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "473adb6a1e069f7c1dc768542a6c4f072759df4bdd25a32f420f0461a79c8ae8",
+      "bytes": 345
+    },
+    {
       "path": "request-spec.md",
       "object": "document_bytes",
       "sha256": "983229d593303a7d4be16bba9a8e98937d3200d8288cd7ad9c8dba6011c7e31d",
       "bytes": 13140
+    },
+    {
+      "path": "review-corrected-scope.json",
+      "object": "JSON_bytes",
+      "sha256": "966134f4d3e3481a4c3b7565becf4fd0bfacdc2daec64ca6c21418f536e71808",
+      "bytes": 70125
+    },
+    {
+      "path": "review-corrected-spec.md",
+      "object": "document_bytes",
+      "sha256": "b5a94dbbbb6827e9767a88ca3770ed2a4ce4bb31b59691e27e96ebf0e9e391ce",
+      "bytes": 3366
+    },
+    {
+      "path": "review-corrected-standards.md",
+      "object": "document_bytes",
+      "sha256": "64ec710b5cf43701185d21a27d6085508d66c5763fee709de2bf6d5a46ffcbff",
+      "bytes": 2573
     },
     {
       "path": "review-initial-scope.json",
@@ -2335,14 +3010,20 @@
     {
       "path": "review-results.md",
       "object": "document_bytes",
-      "sha256": "2e41e5119b3e5284bcfaf3d3d9ff0883ba8e8c763efa8155c539f2d96735012f",
-      "bytes": 1634
+      "sha256": "3cd50330ac496b865a78967f9e4ae2f76d66124f3137f5c1e1cf7f783e4e29fa",
+      "bytes": 3348
     },
     {
       "path": "review-supplement-private-material-scan.json",
       "object": "JSON_bytes",
       "sha256": "2bddd0bc6bf01ef327a9e099b7caca5677490e46d5cc5ac47bda09bb8b84f40d",
       "bytes": 272
+    },
+    {
+      "path": "reviewed-runtime-equivalence-before-oracle-correction.json",
+      "object": "JSON_bytes",
+      "sha256": "06033496fddf331d3c46d7be6646b5d9dc5d635cf9f87b319cf23c947f27c0ba",
+      "bytes": 2806
     },
     {
       "path": "reviewed-runtime-equivalence-before-secret-correction.json",
@@ -2353,8 +3034,8 @@
     {
       "path": "reviewed-runtime-equivalence.json",
       "object": "JSON_bytes",
-      "sha256": "06033496fddf331d3c46d7be6646b5d9dc5d635cf9f87b319cf23c947f27c0ba",
-      "bytes": 2806
+      "sha256": "67475530ddfc55aca2a1269db9ae662ab5344660e395a252c668e48ebbe97172",
+      "bytes": 3485
     },
     {
       "path": "s01-docs-receipt.json",
@@ -2435,6 +3116,12 @@
       "bytes": 68
     },
     {
+      "path": "source-binding-before-oracle-correction.json",
+      "object": "JSON_bytes",
+      "sha256": "c605a8cd24a3630d3696f5bccbd9a7c2a80800ee942db3cf644075161f5ea5f9",
+      "bytes": 7735
+    },
+    {
       "path": "source-binding-before-review.json",
       "object": "JSON_bytes",
       "sha256": "b17534b8bf437b62619bbfdf54efac37a78cc1fec1777fd255dbb1f7ea00cb4a",
@@ -2443,26 +3130,26 @@
     {
       "path": "source-binding.json",
       "object": "JSON_bytes",
-      "sha256": "c605a8cd24a3630d3696f5bccbd9a7c2a80800ee942db3cf644075161f5ea5f9",
-      "bytes": 7735
+      "sha256": "50a2eb4a4ffa289a47d05e7f21ffd56e255b60748cdaa1f4d1743b79b00b4463",
+      "bytes": 13734
     },
     {
       "path": "task-card.md",
       "object": "document_bytes",
-      "sha256": "0cf6e079cf89bf35a91a2d138464b51b2366d64909f428e41092b4789f6cfb6c",
-      "bytes": 8930
+      "sha256": "578af83d86bc106773493e31bf1e700155e88f51b091e19e0e27dc8943bec507",
+      "bytes": 10687
     },
     {
       "path": "../../cpar-seo-closeout-local-20261009.md",
       "object": "document_bytes",
-      "sha256": "54b225c124c178ff43812ca1fb202ef891a39de650dc590a47b4538c1dbdc2e2",
-      "bytes": 21341
+      "sha256": "5a6e54627a64a6a52c2a4f3ec3da83cdc9842909a745ade3dfe939e01d6f32ff",
+      "bytes": 24146
     },
     {
       "path": "../../cpar-seo-closeout-issue57-supplement-20261009.md",
       "object": "document_bytes",
-      "sha256": "534ffbc55bdf3beea220b5bc4c76195c5c8bea7526be7f9a202f88a3b7a4bbe4",
-      "bytes": 2459
+      "sha256": "4925b1e719b3f0175aa54a0ecaaea3533be075d295fc708313eb79824ee7bc00",
+      "bytes": 3020
     }
   ]
 }
