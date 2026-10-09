@@ -448,7 +448,7 @@ if active_candidates.is_empty() {
 4. 涉及后端文件的改动已记入 `docs/cross-boundary-log.md` 并带 `Cross-Boundary:` trailer;
 5. 设计决策与踩到的坑记入 `web/prism/DESIGN.md`。
 
-**关于第 3 条:** 网关把唯一允许的浏览器 origin 推导为管理监听器自身地址(`apps/gateway/src/deployment.rs::management_origin`)。任何其他来源的写操作一律 `404 management_access_denied`,而 GET 照常成功 —— 极易误判为前端 bug。
+**关于第 3 条:** 网关把唯一允许的浏览器 origin 推导为管理监听器自身地址(`apps/gateway/src/deployment.rs::management_origin`)。请求携带 `Origin` 时,异源 GET 与写操作均返回 `404 management_access_denied`;管理密钥或浏览器会话都不能绕过该边界。未携带 `Origin` 的 CLI 读取按管理密钥正常鉴权。浏览器会话的写操作还需要独立 CSRF token。此区分由 `crates/gateway-http-actix/src/management_security.rs` 的 `check_origin`/`check_browser_boundary` 和本批实际 `/admin-ui/` 验收确认(2026-10-09)。
 
 ```bash
 cargo build -p gateway --bin gateway

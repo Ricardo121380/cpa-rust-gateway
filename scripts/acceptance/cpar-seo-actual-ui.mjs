@@ -138,7 +138,7 @@ if(phase==="all"||phase==="presets"){
   security.foreignOriginRead=(await fetch(`${d.origin}/admin/config-versions`,{headers:foreignHeaders})).status;
   security.foreignOriginWrite=(await fetch(`${d.origin}/admin/config-versions`,{method:"POST",headers:foreignHeaders,body:JSON.stringify({id:"foreign-must-not-exist",description:"Origin negative"})})).status;
   assert.equal(security.unauthenticated,404);assert.equal(security.noCsrfWrite,404);
-  assert.equal(security.foreignOriginRead,200);assert.equal(security.foreignOriginWrite,404);
+  assert.equal(security.foreignOriginRead,404);assert.equal(security.foreignOriginWrite,404);
   await record({scenario:"actual-authentication-and-CSRF-negatives",result:"PASS",security});
 }else await login();
 if(phase==="all"||phase==="recovery"){
