@@ -8,6 +8,8 @@
 // matching If-Match and advance the revision; mismatches produce 409 with the
 // uniform error envelope.
 
+import {CONNECTION_PRESETS} from "../features/upstreams/connectionPresets";
+
 type VersionRow = {
   id: string;
   parent_id: string | null;
@@ -700,6 +702,8 @@ const approvedNativeSessions=new Set<string>();
 const kimiDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const kiroDeviceSessions=new Map<string,{id:string;upstreamId:string;polls:number;replaceExisting:boolean}>();
 const unresolvedDevicePolls = new Set<"kimi-coding" | "kiro">();
+const lostDeviceCompletions = new Set<"kimi-coding" | "kiro">();
+const completedDeviceExchanges = new Map<string,number>();
 type FixtureAuthorizationReceipt={session_id:string;channel:string;config_version:string;upstream_id:string;credential_id:string;started_revision:string;revision:string;state:string;expires_at_ms:number;actor:string};
 const authorizationReceipts=new Map<string,FixtureAuthorizationReceipt>();
 const codeEnrollments=new Map<string,{handle:string;state:string;replaceExisting:boolean}>();
@@ -707,6 +711,13 @@ const ordinaryImportReceipts=new Map<string,Record<string,unknown>>();
 const fixturePoolRuntime=new Map<string,string>();
 const importedDigests=new Map<string,string>();
 const oauthCredentials=new Set<string>();
+function fixtureCredentialPresentation(version:VersionRow,credential:CredentialRow){
+  const kind=state.upstreams.get(version.id)?.find(row=>row.id===credential.upstream_id)?.kind;
+  const oauth=credential.kind==="oauth_json"||oauthCredentials.has(`${version.id}:${credential.id}`);
+  const category=kind==="kimi-coding"?"kimi":kind==="claude"?"claude":kind==="kiro"?"kiro":credential.kind==="oauth_json"?"codex":"api";
+  const provider=category==="kimi"?"Kimi":category==="codex"?"Codex":category==="claude"?"Claude":category==="kiro"?"Kiro":"API";
+  return {authentication:oauth?"oauth":kind==="kiro"?null:"api_key",category,provider,identity:{email:kind==="kimi-coding"?"kimi.member@example.test":credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null},plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null};
+}
 const deletedAccounts=new Map<string,number>();
 let deletionSequence=0;
 async function fixtureDigest(value:unknown):Promise<string>{return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(value))))].map(byte=>byte.toString(16).padStart(2,"0")).join("");}
@@ -809,6 +820,7 @@ export function resetFixturesForTest(): void {
   kiroDeviceSessions.clear();
   authorizationReceipts.clear();ordinaryImportReceipts.clear();codeEnrollments.clear();importedDigests.clear();oauthCredentials.clear();deletedAccounts.clear();deletionSequence=0;
   unresolvedDevicePolls.clear();
+  lostDeviceCompletions.clear();completedDeviceExchanges.clear();
   credentialOAuthStatusFailures = 0;
   loseCredentialOAuthCompletionResponse = false;
   credentialReadFailures = 0;
@@ -822,14 +834,16 @@ export function resetFixturesForTest(): void {
 }
 
 /** Seeds exact API target matches for browser acceptance; never called by production UI. */
-export function prepareApiConnectionMatchesForTest(count:0|1|2):void {
+export function prepareApiConnectionMatchesForTest(count:0|1|2,presetId="responses"):void {
   const version=state.versions.find(row=>row.status==="active");
   if(!version)throw new Error("active fixture version unavailable");
+  const preset=CONNECTION_PRESETS.find(row=>row.id===presetId&&["openai-compatible","anthropic-compatible","kimi-api","grok.official"].includes(row.channel));
+  if(!preset)throw new Error("API fixture preset unavailable");
   const providers:UpstreamRow[]=[],endpoints:EndpointRow[]=[];
   for(let index=0;index<count;index+=1){
     const id=`batch-a-api-${index+1}`;
-    providers.push({id,name:`Fixture API ${index+1}`,kind:"openai-compatible",enabled:index!==0,tags:[],egress_policy_id:null});
-    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:"openai-compatible.responses",api_format:"openai/responses",base_url:"https://api.openai.com/v1",inference_path:"/responses",models_path:"/models",transport:"http",enabled:index!==0});
+    providers.push({id,name:`Fixture API ${index+1}`,kind:preset.kind,enabled:index!==0,tags:[],egress_policy_id:null});
+    endpoints.push({id:`${id}-endpoint`,upstream_id:id,adapter_id:preset.adapter,api_format:preset.format,base_url:preset.base,inference_path:preset.path,models_path:"/models",transport:"http",enabled:index!==0});
   }
   state.upstreams.set(version.id,providers);
   state.endpoints.set(version.id,endpoints);
@@ -894,6 +908,12 @@ export function nativeBatchSnapshotForTest(){return structuredClone(nativeFixtur
 export function approveNativeDeviceForTest(session:string):void {approvedNativeSessions.add(session);}
 /** Simulates a provider transport uncertainty after the server drops its session. */
 export function failNextDevicePollForTest(channel:"kimi-coding"|"kiro"):void { unresolvedDevicePolls.add(channel); }
+/** Persist first, then reject the client response. The unknown-before-save seam remains. */
+export function loseNextDeviceCompletionResponseForTest(channel:"kiro"|"kimi-coding"):void {lostDeviceCompletions.add(channel);}
+export function deviceCompletionSnapshotForTest(sessionId:string){
+  const receipt=authorizationReceipts.get(sessionId);
+  return {receipt:receipt?structuredClone(receipt):undefined,exchanges:completedDeviceExchanges.get(sessionId)??0,accounts:receipt?structuredClone((state.credentials.get(receipt.config_version)??[]).filter(row=>row.id===receipt.credential_id)):[]};
+}
 /** Simulates a transient status-read transport failure without retaining request material. */
 export function failNextCredentialOAuthStatusForTest(): void { credentialOAuthStatusFailures += 1; }
 /** Simulates persistence succeeding while the callback response is lost. */
@@ -1872,7 +1892,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       if(action==="cancel"){kiroDeviceSessions.delete(input.session_id!);receipt.state="cancelled";return json(200,{state:"cancelled"},revisionToken(version));}
       if(unresolvedDevicePolls.delete("kiro")){kiroDeviceSessions.delete(input.session_id!);receipt.state="unknown";return errorResponse(503,"management_kiro_authorization_unresolved","授权结果暂时无法确认");}
       entry.polls+=1;if(entry.polls===1)return json(200,{state:"pending",interval_ms:1000},revisionToken(version));
-      const rows=state.credentials.get(version.id)??[];const previous=rows.find(row=>row.id===entry.id);if(previous){if(previous.upstream_id!==entry.upstreamId||!entry.replaceExisting)return errorResponse(409,"management_kiro_authorization_conflict","账号所有权已变化");previous.revision+=1;if(previous.status!=="disabled")previous.status="active";}else rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"bearer",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);kiroDeviceSessions.delete(input.session_id!);version.revision+=1;receipt.state="completed";receipt.revision=revisionToken(version);return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
+      const rows=state.credentials.get(version.id)??[];const previous=rows.find(row=>row.id===entry.id);if(previous){if(previous.upstream_id!==entry.upstreamId||!entry.replaceExisting)return errorResponse(409,"management_kiro_authorization_conflict","账号所有权已变化");previous.revision+=1;if(previous.status!=="disabled")previous.status="active";}else rows.push({id:entry.id,upstream_id:entry.upstreamId,kind:"bearer",status:"active",revision:0,secret_present:true});state.credentials.set(version.id,rows);oauthCredentials.add(`${version.id}:${entry.id}`);kiroDeviceSessions.delete(input.session_id!);version.revision+=1;receipt.state="completed";receipt.revision=revisionToken(version);return json(201,{state:"completed",credential_id:entry.id},revisionToken(version));
     }
     const codeEnrollment=/^POST \/admin\/upstreams\/([^/]+)\/(codex|claude)-authorization\/(start|callback|cancel)$/u.exec(route);
     if(codeEnrollment){
@@ -1906,6 +1926,11 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       }
       if (route.endsWith("/account-import")) {
         if (!["openai-compatible", "anthropic-compatible", "codex", "claude", "kimi-api", "kimi-coding", "grok.official", "kiro"].includes(body.channel ?? "")) return errorResponse(400, "invalid_management_request", "Unsupported import");
+        if(["openai-compatible","anthropic-compatible","kimi-api","grok.official"].includes(body.channel??"")){
+          const kind=body.channel==="kimi-api"?"kimi":body.channel;
+          const owner=state.upstreams.get(version.id)?.find(row=>row.id===decodeURIComponent(credCreate[1]!));
+          if(owner?.kind!==kind||body.secret.length>65536||!/^[\x21-\x7e]+$/u.test(body.secret)||body.secret.startsWith("{"))return errorResponse(400,"invalid_management_request","API material or owner does not match channel");
+        }
         body.kind = body.channel === "codex" || body.channel === "kimi-coding" ? "oauth_json" : "bearer";
         body.status = "active";
       }
@@ -2726,13 +2751,8 @@ export const fixtureFetch: typeof fetch = (input, init) => {
       const ordinary=(state.credentials.get(version.id)??[]).filter(c=>!owner||c.upstream_id===owner).map(credential=>{
         const bindings=(state.bindings.get(version.id)??[]).filter(b=>b.credential_id===credential.id);
         const connections=bindings.flatMap(b=>{const e=state.endpoints.get(version.id)?.find(e=>e.id===b.endpoint_id);return e?[{id:e.id,api_format:e.api_format,enabled:b.enabled&&e.enabled,host:new URL(e.base_url).hostname}]:[];});
-        const kimi=state.upstreams.get(version.id)?.some(upstream=>upstream.id===credential.upstream_id&&upstream.kind==="kimi-coding");
-        const identity={email:kimi?"kimi.member@example.test":credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null};
-        const kind=state.upstreams.get(version.id)?.find(upstream=>upstream.id===credential.upstream_id)?.kind;
-        const oauth=credential.kind==="oauth_json"||oauthCredentials.has(`${version.id}:${credential.id}`);
-        const category=kimi?"kimi":kind==="claude"?"claude":kind==="kiro"?"kiro":credential.kind==="oauth_json"?"codex":"api",provider=kimi?"Kimi":category==="codex"?"Codex":category==="claude"?"Claude":category==="kiro"?"Kiro":"API";
-        const authentication=oauth?"oauth":kind==="kiro"?null:"api_key";
-        return {id:credential.id,native:false,identity,name:identity.email??"",category,provider,status:credential.status==="active"?"enabled":credential.status==="unauthorized"?"reauth_required":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(oauth?["reauthorize"]:[])],plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,managed:{credential,identity,authentication,plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,category,provider,connections,binding_count:bindings.length},native_account:null};
+        const presentation=fixtureCredentialPresentation(version,credential);
+        return {id:credential.id,native:false,identity:presentation.identity,name:presentation.identity.email??"",category:presentation.category,provider:presentation.provider,status:credential.status==="active"?"enabled":credential.status==="unauthorized"?"reauth_required":"disabled",operations:["details","update_credential","enable","disable","remove","models",...(presentation.authentication==="oauth"?["reauthorize"]:[])],plan:presentation.plan,plan_source:presentation.plan_source,managed:{credential,...presentation,connections,binding_count:bindings.length},native_account:null};
       });
       const native=owner?[]:nativeFixtureAccounts.map(row=>{const identity=row.identity??{email:row.provider==="grok_build"?"grok.member@example.test":null,phone:null,username:null};return {id:row.id,native:true,identity,name:identity.email??identity.phone??identity.username??"",category:"grok",provider:row.provider==="grok_build"?"Grok Build":row.provider==="grok_console"?"Grok Console":"Grok Web",status:!row.enabled||row.auth_status==="disabled"?"disabled":row.auth_status==="active"?"enabled":"reauth_required",operations:["details","update_credential","enable","disable","remove","models",...(row.provider==="grok_build"?["reauthorize"]:[])],plan:null,plan_source:null,managed:null,native_account:{...row,identity,adapter_models:fixtureAdapterModels(row.provider)}};});
       let rows=[...ordinary,...native].filter(r=>(entryType===null||(entryType==="api")===(r.managed?.authentication==="api_key"))&&(!category||r.category===category)&&(!status||r.status===status)&&[r.name,r.provider,r.category,r.identity.email,r.identity.phone,r.identity.username].join(" ").toLowerCase().includes(q));
@@ -2773,8 +2793,7 @@ export const fixtureFetch: typeof fetch = (input, init) => {
         const credential = item as CredentialRow;
         const bindings=(state.bindings.get(version.id)??[]).filter((b)=>b.credential_id===credential.id);
         const connections=bindings.flatMap((b)=>{const e=state.endpoints.get(version.id)?.find((e)=>e.id===b.endpoint_id);return e?[{id:e.id,api_format:e.api_format,enabled:b.enabled&&e.enabled,host:new URL(e.base_url).hostname}]:[];});
-        const category=credential.kind==="oauth_json"?"codex":"api";
-        return {credential,authentication:category==="codex"?"oauth":"api_key",plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null,binding_count:bindings.length,identity:{email:credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null},category,provider:category==="codex"?"Codex":"API",connections};
+        return {credential,...fixtureCredentialPresentation(version,credential),binding_count:bindings.length,connections};
       }) : selected;
       return json(200, {config_version: version.id, revision: revisionToken(version), observation_version: `audit-${inventorySequence}`, items, next_cursor: cursor}, revisionToken(version));
     }
@@ -3405,6 +3424,12 @@ export const fixtureFetch: typeof fetch = (input, init) => {
   };
 
   return respond().then(response=>{
+    const completedDevice=/^POST \/admin\/upstreams\/[^/]+\/(kimi|kiro)-authorization\/poll$/u.exec(route);
+    if(completedDevice&&response.status===201){
+      const sessionId=(JSON.parse(bodyText??"{}") as {session_id:string}).session_id;
+      completedDeviceExchanges.set(sessionId,(completedDeviceExchanges.get(sessionId)??0)+1);
+      if(lostDeviceCompletions.delete(completedDevice[1]==="kiro"?"kiro":"kimi-coding"))throw new TypeError("Synthetic completed device response lost");
+    }
     if(response.ok&&method!=="GET"){
       const version=headers.get("X-Config-Version");
       const body=bodyText?JSON.parse(bodyText) as Record<string,unknown>:{};

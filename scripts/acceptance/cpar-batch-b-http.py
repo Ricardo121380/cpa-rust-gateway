@@ -26,6 +26,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import cpar_execution_evidence_http
 import cpar_master_key_http
+import cpar_seo_isolation_http
 
 os.umask(0o077)
 repo = pathlib.Path.cwd()
@@ -51,6 +52,7 @@ for command in [
 
 keys = {name: "synthetic-" + secrets.token_hex(24) for name in ["a", "b"]}
 calls = []
+all_receives = []
 calls_lock = threading.Lock()
 held_started, held_closed = threading.Event(), threading.Event()
 identity_release = threading.Event()
@@ -80,13 +82,16 @@ class Provider(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_POST(self):
+        # Count every received request before parsing/authentication, including unknown keys.
+        with calls_lock:
+            all_receives.append({"method": "POST", "path": self.path, "listener_port": self.server.server_port})
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
         owner = next((name for name, key in keys.items() if self.headers.get("Authorization") == "Bearer " + key or self.headers.get("x-api-key") == key), None)
         if owner is None:
             return self.reply(401, {"error": {"type": "invalid_api_key"}})
         protocol = "chat" if self.path.endswith("/chat/completions") else "messages" if self.path.endswith("/messages") else "responses"
         text = json.dumps(body, ensure_ascii=False)
-        markers = ["identity-switch", "parallel-round", "tool-round", "invalid-args", "serial-violation", "thinking-round", "reasoning-only-round", "usage-error-round", "signed-round", "citation-round", "private-reasoning", "truncated-round", "held-round", "retry-round", "always-fail", "slow-bootstrap", "duplicate-root", "auth-round"]
+        markers = ["seo-quota", "seo-missing-model", "identity-switch", "parallel-round", "tool-round", "invalid-args", "serial-violation", "thinking-round", "reasoning-only-round", "usage-error-round", "signed-round", "citation-round", "private-reasoning", "truncated-round", "held-round", "retry-round", "always-fail", "slow-bootstrap", "duplicate-root", "auth-round"]
         scenario = next((marker for marker in markers if marker in text), "text-round")
         has_result = '"tool_call_id"' in text or '"function_call_output"' in text or '"tool_result"' in text
         compact = "Create a concise factual conversation summary" in text
@@ -94,6 +99,10 @@ class Provider(BaseHTTPRequestHandler):
         call = {"account": owner, "connection": connection_kind, "protocol": protocol, "scenario": scenario, "stream": bool(body.get("stream")), "has_result": has_result, "compact": compact, "body": body}
         with calls_lock:
             calls.append(call)
+        if scenario == "seo-quota":
+            return self.reply(429, {"error": {"type": "rate_limit_error" if protocol == "messages" else "rate_limit_exceeded"}})
+        if scenario == "seo-missing-model":
+            return self.reply(404, {"error": {"type": "model_not_found"}})
         if scenario == "identity-switch":
             held_started.set()
             if not identity_release.wait(10):
@@ -589,6 +598,11 @@ def restart():
     gateway.wait(timeout=30)
     gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
     wait_ready()
+    if os.environ.get("CPAR_SEO_ONLY") == "1":
+        cpar_seo_isolation_http.run(globals())
+        passed = True
+        print(json.dumps({"status":"PASS","checks":len(checks),"scope":"E-04 missing public isolation cells only"}))
+        sys.exit(0)
 
 
 try:
@@ -1101,6 +1115,8 @@ try:
             checks[-1]["elapsed_ms"] = round(elapsed * 1000)
     cpar_execution_evidence_http.final(globals(), execution_initial_ids)
     cpar_execution_evidence_http.rotations(globals())
+    if os.environ.get("CPAR_SEO_MATRIX") == "1":
+        cpar_seo_isolation_http.run(globals())
     passed = True
     print(json.dumps({"status": "PASS", "checks": len(checks), "private_state": str(root)}))
 finally:
@@ -1109,5 +1125,5 @@ finally:
     provider.shutdown()
     fallback_provider.shutdown()
     log.close()
-    receipt = {"status": "PASS" if passed else "FAIL", "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "checks": checks, "provider_calls": [{key: call[key] for key in ["account", "connection", "protocol", "scenario", "stream", "has_result", "compact"]} for call in calls], "private_state": str(root), "scope": "local_synthetic_only"}
+    receipt = {"status": "PASS" if passed else "FAIL", "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "checks": checks, "provider_calls": [{key: call[key] for key in ["account", "connection", "protocol", "scenario", "stream", "has_result", "compact"]} for call in calls], "all_upstream_receives": all_receives, "private_state": str(root), "scope": "local_synthetic_only"}
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")

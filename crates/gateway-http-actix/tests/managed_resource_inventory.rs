@@ -33,6 +33,9 @@ use std::{
 
 type TestResult = Result<(), Box<dyn Error>>;
 
+#[path = "managed_resource_inventory/device_commit_loss.rs"]
+mod device_commit_loss;
+
 #[actix_web::test]
 async fn saved_catalog_models_are_bounded_target_local_and_revision_guarded() -> TestResult {
     let (file, state) = fixture(false)?;

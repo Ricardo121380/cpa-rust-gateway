@@ -3697,3 +3697,13 @@ stays unknown. Release, deployment, real Provider and C/#57 completion remain di
 **Why:** Explicit eight-P2 batch authorization. Use actual material classification, unify current call-evidence guards, and separate current authorization from retained runtime observations with exact non-secret source lineage. The authoritative backend OpenAPI was synchronized with `npm --prefix web/prism run sync-contract`; generated client was regenerated and its blob remained unchanged because these response fields do not change generated operation descriptors.
 
 **Other side:** FYI — local synthetic browser and typed/component/authenticated HTTP checks passed; final clean Full and independent reviews still pending.
+
+## 2026-10-09 · Codex · E-01–E-03 preset and committed device fixture evidence
+
+**Touched:**
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/api/seo-fixtures.test.ts`
+
+**Why:** Explicit remaining S/E/O batch authorization includes necessary local frontend changes. Parameterize API target seeds by the actual five options across four API channels, enforce the existing API material/owner contract, and distinguish commit-then-loss from the retained unknown-before-save seam. Kiro's completed bearer envelope retains its OAuth marker; both account inventories share the same material-aware projection. Add generated-client, original-receipt and classification tests.
+
+**Other side:** FYI — fixture-only changes; production Kiro classification and management OpenAPI remain authoritative. Backend real HTTP/SQLite tests supply commit-before-connection-loss proof. EgoLite development fixture acceptance supplements the separately required actual `/admin-ui/` acceptance; no real Provider or production material is used. Batch Full and independent reviews remain pending.
