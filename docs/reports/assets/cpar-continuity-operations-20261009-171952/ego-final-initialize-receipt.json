@@ -1,0 +1,38 @@
+{
+  "name": "ego-final-initialize",
+  "command": [
+    "ego-browser",
+    "nodejs"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-continuity-operations-20261009-171952/accepted-source",
+  "started_utc": "2026-10-09T10:25:33.198463+00:00",
+  "finished_utc": "2026-10-09T10:25:39.827266+00:00",
+  "duration_seconds": 6.628,
+  "exit_code": 1,
+  "result": "FAIL",
+  "source_before": {
+    "head": "6a37f74d63258d283da5f55e5e5ef31b9b9ed0c4",
+    "dirty": [],
+    "tracked_files_sha256": "7a6ebc281c1e8226326f1bfb79abfd587d2c89215c708870d51fa82a4c04df89",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "6a37f74d63258d283da5f55e5e5ef31b9b9ed0c4",
+    "dirty": [],
+    "tracked_files_sha256": "7a6ebc281c1e8226326f1bfb79abfd587d2c89215c708870d51fa82a4c04df89",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-continuity-operations-20261009-171952/ego-final-initialize.log",
+      "sha256": "ca46de54004db6f874dc3035365ce4161eae6b1160ec504165efbcef42a0750b",
+      "bytes": 537
+    }
+  }
+}

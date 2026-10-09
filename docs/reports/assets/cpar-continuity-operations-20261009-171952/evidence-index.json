@@ -1,0 +1,1172 @@
+{
+  "run_id": "cpar-continuity-operations-20261009-171952",
+  "archived_utc": "2026-10-09T11:04:49.953273+00:00",
+  "archive_is_not_reexecution": true,
+  "runtime_source": "6a37f74d63258d283da5f55e5e5ef31b9b9ed0c4",
+  "formal_browser_receipts": [
+    "ego-final-initialize-green-receipt.json",
+    "ego-final-api-5x3-green-receipt.json",
+    "ego-final-device-desktop-receipt.json"
+  ],
+  "browser_result_files": [
+    "final-initialize-green.json.gz",
+    "final-api-5x3-green.json.gz",
+    "final-device-main.json.gz",
+    "final-device-boundaries.json.gz",
+    "final-desktop-pointer.json.gz"
+  ],
+  "oracle": "final-persistence-verification.json.gz",
+  "full_receipts": [
+    "full-final-receipt.json",
+    "full-final-corrected-receipt.json"
+  ],
+  "counts": {
+    "actual_page_scenes": 33,
+    "api": 15,
+    "device_commit_loss": 2,
+    "device_boundaries": 12,
+    "desktop_pointer": 2,
+    "login_and_auth_boundaries": 2,
+    "active_accounts": 21,
+    "active_bindings": 21,
+    "device_sessions": 14,
+    "device_token_requests": 14,
+    "real_provider_calls": 0
+  },
+  "omitted_sensitive_artifacts": [
+    "temporary passwords/API material/credential files/TLS private keys/SQLite binary/gateway startup log"
+  ],
+  "pilot_screenshots": "earlier duplicate-basename Kiro images were overwritten before unique naming; retained final copies are pilot witnesses only; formal names unique",
+  "entries": [
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/clean-stock-rebuild-final.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/clean-stock-rebuild-final.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "65cddb1e5d0fa1e1261735b5384568e8c2eadd1a6a9607ef4919a573215fddd2",
+      "archive_sha256": "72a1bfd5037eb1ec1e0d9c52e6daf7ce34337b134e3a2a9fa217fc353772a0ce",
+      "original_bytes": 3926,
+      "archive_bytes": 462,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/clean-stock-rebuild.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/clean-stock-rebuild.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "f4b66a370727c84069cd072839ca582a72c610e9199c4f4c6a2ebc4cbe44114b",
+      "archive_sha256": "838b1ae15eec6292c69f62b625d056da49e09f5ff5f5f7c422a868308dc40bd1",
+      "original_bytes": 6472,
+      "archive_bytes": 826,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-api-matrix-first.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-api-matrix-first.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "7029114f7bbd4878a14b0756e2a7ab0660e0e60d4882e7883e8b1257046aa0f2",
+      "archive_sha256": "5ef094751f0361a2ca8ca746738bcd335821953458da9e087ad8f6b1f6eaa7b3",
+      "original_bytes": 294,
+      "archive_bytes": 248,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-api-matrix-remaining.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-api-matrix-remaining.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "604f262bd7ec54d1436078f775cfb740570e9f88c45535224f828bae0f560429",
+      "archive_sha256": "6787f32fe65cd6cf46ca348da3932d755f2f1510487332220fb58a96390bc837",
+      "original_bytes": 1033,
+      "archive_bytes": 385,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-api-responses-resume.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-api-responses-resume.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "7b763960c75ef8cc7c8bc8bd490c569f8f27bc38f9d5291b59fe6d305a47350a",
+      "archive_sha256": "a13d34929e3fa009b822da0935a7f394c7a9817496a088cbcad4b79f926de579",
+      "original_bytes": 866,
+      "archive_bytes": 413,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-api-responses-resume2.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-api-responses-resume2.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "27c202cec7248297f153ca2832ccf542df05848ef37c1751628f5b529aab0c2d",
+      "archive_sha256": "de4ab84ab6a32adf65b87c2c82c269848743def350771c4fd55771a575916180",
+      "original_bytes": 261,
+      "archive_bytes": 211,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-api-responses-resume3.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-api-responses-resume3.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "d2517546525f17f2ddb8d311aab5fabc8d74e543b689d14e356c4c7259e3af81",
+      "archive_sha256": "7ad1c1e05990f9f81bbded36c487197c98865b742f576b876906f295ebc2689a",
+      "original_bytes": 626,
+      "archive_bytes": 401,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-api-responses-resume4.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-api-responses-resume4.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "0e0a53a667c417fd2a8f19e05fe2bde87139401462aa69e0b11d1b002f81378b",
+      "archive_sha256": "d7c49622786d761ad9fc4f2bda793379cd48e45700bf3458c1e884167bedee73",
+      "original_bytes": 307,
+      "archive_bytes": 261,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "7b70d0dc9d29e7e8fa8f62ef22855c1f0b60f84a15de2ec525ca6f3eded927be",
+      "archive_sha256": "69a1d74f6e1b98ed751d66440638e8da37b6cc3b9f43c9b8d2741f9504535901",
+      "original_bytes": 285,
+      "archive_bytes": 228,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary2.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary2.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "dacad4262ccc9c55955ae5442acabfd34e4445a0b8cdbd33bbd678b2b8a2d0d7",
+      "archive_sha256": "e693251a8e5ea217927d5777233a05310442086dedeb2f3d9ce8f69a2e0ce603",
+      "original_bytes": 908,
+      "archive_bytes": 406,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary3.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary3.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "823008ea553671a297f23be7b7091e241e5efd5552244015ea580880585757a4",
+      "archive_sha256": "f28851d340f08918b83f803188080116d72f25d33ae26a6c4e29d20f02b53aed",
+      "original_bytes": 827,
+      "archive_bytes": 369,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary4.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-desktop-pointer-preliminary4.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "3cd8eaf05ffd770a7cf15e9ebf06277687d88623be18f5364eed2a88e9d568bd",
+      "archive_sha256": "eb86cb62879e36b2a707736753170318ce15e924c4c93d4e6e697c41389e24cc",
+      "original_bytes": 8351,
+      "archive_bytes": 1847,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-device-boundaries-preliminary.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-device-boundaries-preliminary.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "af59179dffda389deaf9a947345450f3757525720ec2d535feb8d5410c29cf74",
+      "archive_sha256": "3176a9c7155f777fa94dec3ee8895427dfe0de6d8dec76b2cd5ee653d1c8de92",
+      "original_bytes": 340,
+      "archive_bytes": 275,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-device-boundaries-preliminary2.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-device-boundaries-preliminary2.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "6b08e060f8918a0779c8805c9b25d1c77fc9eb4b5c434fe85e3b65b62ab87bc8",
+      "archive_sha256": "b97b6aa8ec24d6d12597ebb368693f58a832a28814db0f60af7a0ae49f6dbd2e",
+      "original_bytes": 4138,
+      "archive_bytes": 1300,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-device-boundaries-preliminary3.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-device-boundaries-preliminary3.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "0c5cb771c54850110898027c4d8837832be7e99fe99baf2f591576da6bda59be",
+      "archive_sha256": "fdf844b30b4bf1cfc566970a73258b84d95a74ad448b54e20fb4b496c3e624b6",
+      "original_bytes": 49995,
+      "archive_bytes": 2561,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-device-kiro-network-probe.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-device-kiro-network-probe.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "71931459e419837544dbfd6377474d3e65cf82edc04264804742ca20c225788f",
+      "archive_sha256": "a757444f376ced30389f38a4460f5ec1650fdeb9f4c5de929b5467943873528a",
+      "original_bytes": 4564,
+      "archive_bytes": 1482,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-device-negatives-preliminary.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-device-negatives-preliminary.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "b803c026c89d7b564eaf15c8b7eb81896b9f212b3a2a0ac43ccf6a984fafb622",
+      "archive_sha256": "8fc936727e4bc46af5616c56890b5cd0082d02c5c4144e921c4cfd872c8e5a71",
+      "original_bytes": 15904,
+      "archive_bytes": 2078,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-final-api-5x3-green.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-final-api-5x3-green.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "f36849a97c999f02bf517e77f3a3d9bdbe2c1979169109fa91ea065b7799cb2c",
+      "archive_sha256": "30e13d2599885a86a76188a491a82eb90ffb7be71f49cf254447e818429e45df",
+      "original_bytes": 8692,
+      "archive_bytes": 1945,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-final-api-5x3.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-final-api-5x3.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "3ec3b684733de2ba84d7bbcb2d6e16a7de68d71de50b253042b9a0dd73641d8e",
+      "archive_sha256": "1a30e0a6ddbfc6ff8527cc87e1411ce808d03f787eb559fd7d5d6c4c46972322",
+      "original_bytes": 203,
+      "archive_bytes": 164,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-final-device-desktop.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-final-device-desktop.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "9fd40a04b19c9d094975877f1f85f1282d84e1d208a2d51c049be8f4e76e7d2f",
+      "archive_sha256": "c8adf427f85902eb275f1ecbb45a4517a73e89f32521309f7d21dafaf688f816",
+      "original_bytes": 72927,
+      "archive_bytes": 5364,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-final-initialize-green.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-final-initialize-green.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "30f35f0f85e55aefe5788e5c8f87d329b3b015860a23a669b03348a1129631ac",
+      "archive_sha256": "329e783cffa87f0cbf5466ab877bb48423c3bd02e9c934dcbed8e1674ac7d006",
+      "original_bytes": 124,
+      "archive_bytes": 110,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-final-initialize.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-final-initialize.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "ca46de54004db6f874dc3035365ce4161eae6b1160ec504165efbcef42a0750b",
+      "archive_sha256": "2467955506316ea445023a4be466dacf769fa7bf852ae00381467a2396fd9788",
+      "original_bytes": 537,
+      "archive_bytes": 364,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-initialize-pointer-reproduction.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-initialize-pointer-reproduction.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "cdb8cc7e3d84dec3d26c4b4c7f5a2e88f55fb37b496ea4e7e37449fbb491393b",
+      "archive_sha256": "fd09707ebaf7507f7385dface72777f648fd35cfc33aeac8648960eca5b88f5a",
+      "original_bytes": 681,
+      "archive_bytes": 389,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-kimi-commit-loss-first.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-kimi-commit-loss-first.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "d4378258f8dfa8701bb2170660c7b61d864d62ea282f8da2da034b47b13a091c",
+      "archive_sha256": "182aac75547be142d0ee5a023dafb6e1fc46bd1ea9639b1cbec741c2dd00451c",
+      "original_bytes": 8710,
+      "archive_bytes": 1851,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-first.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-first.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "db1b877d6ec0412cd2fee904d3926c411ab0bfbd0f2b0c57ed6a8d7ca04ce99b",
+      "archive_sha256": "4cd6a1c50b8d64a896e87b07e9ccdb324708d2ac4dfe480067a6f99a99ef4c96",
+      "original_bytes": 776,
+      "archive_bytes": 443,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-green.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-green.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "5f0e864a4e1b6fbbd2181827a4feafcfa15e4113220915c1d3ad2b56e16c43a6",
+      "archive_sha256": "856f83cae93a6abea815981ddcc38b38818d8a9d5c76fb6abc676292363c1fc1",
+      "original_bytes": 304,
+      "archive_bytes": 262,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-green2.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-green2.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "7566b0fe78db8292cfd4cd9c7c64235417ec8ebd3ca140146fb84e04f1a7a751",
+      "archive_sha256": "c5805878078665b5476e10ca162f3fb9d0f0d5fc273f94ffbec8b28f66af0c52",
+      "original_bytes": 8820,
+      "archive_bytes": 1805,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-resume.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-kiro-commit-loss-resume.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "bcd922319188e9ac56f3a61141430ef7c4d2cc894734ac17e816cd3b6d631908",
+      "archive_sha256": "eccd82c431eb12321f4e857555c244a792086a5ac9ab2026997a6e52dd18b2e5",
+      "original_bytes": 278,
+      "archive_bytes": 234,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-stock-initialize.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-stock-initialize.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "b32bcca3bf4a761f9890f4011beed7625f13644d8a6ce30b16c1da34aa731610",
+      "archive_sha256": "3c7d44dc8edfdd2c15b41399f414d018cf3a8fb2f18ca1af3840b7ccd66fe04f",
+      "original_bytes": 7157,
+      "archive_bytes": 1853,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/ego-task-finish.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/ego-task-finish.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "db91950c574462df866c82a6e0c854f01cde7ba30cd01af784fb25c2759b82bb",
+      "archive_sha256": "1f0359a8ae2a5185a01d3cb2ae658df694aff34b157864879ef2e9e60d29d2c8",
+      "original_bytes": 52,
+      "archive_bytes": 72,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/frontend-final-tests.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/frontend-final-tests.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "6b2e5e4adabe00c978065f818978c63d794727d015f5b19fb73e710335af24cf",
+      "archive_sha256": "b65a9451472ab0b33c85b71437fd94ccac4c34fdb578b017d7d9222489c88164",
+      "original_bytes": 4618,
+      "archive_bytes": 1249,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/frontend-final-type.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/frontend-final-type.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "archive_sha256": "74eb4cf3c9cbea8b6c187ebecaa71e11b231eed5b529eedcf3ead29a9933a858",
+      "original_bytes": 48,
+      "archive_bytes": 68,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/full-final-corrected.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/full-final-corrected.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "dac137c59975e8666a90cb7ac3e20675f80209651fc5a783541dce32c5e30a16",
+      "archive_sha256": "5ce9806d82844fbf811cfa4d2c9e740994b8a84f3be69e508ca894c1280bbf43",
+      "original_bytes": 288929,
+      "archive_bytes": 48208,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/full-final.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/full-final.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "46db85de9648cb06737c1e0deb83b3ad683e912e47ea06b4dc5ed78a01004f29",
+      "archive_sha256": "724589ff5f333905352bab40ade8d216a82d6c4fb05ea2fe8e6dbd2cc1d4c79f",
+      "original_bytes": 187691,
+      "archive_bytes": 40708,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/grok-preset-directed-green.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/grok-preset-directed-green.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "710fc429cf95a0d18233f7de978eed32ddaeca99159bf754bd5c29ffa007097c",
+      "archive_sha256": "c444ea6e452d52ea1e7137b090d99c09687654b8b4346b94676f0d6c90be3915",
+      "original_bytes": 621,
+      "archive_bytes": 348,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/grok-preset-type-green.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/grok-preset-type-green.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "4221dc0af64c0c88a24f1d6230f00bfa4fa6f3c935b28a1ad8e86058a9a31f54",
+      "archive_sha256": "fc86283f2ee4964b0d9537920c04e7311603b157cf4ce7ff9221f5480339edb5",
+      "original_bytes": 469,
+      "archive_bytes": 303,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/persistence-oracle-recheck.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/persistence-oracle-recheck.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "3ca41575a2cd72d53417a14af0f6c92efc32d44b7828daa8df11eb4e52350b67",
+      "archive_sha256": "e43aab1eef8bff54765320103a7d29ff56246ab2c9c578e22f5722bda34daad2",
+      "original_bytes": 590,
+      "archive_bytes": 346,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-base-build.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-base-build.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "3bb679965f0a12982e07be2b1c71ba457c15ceb768859fabb10911106022ba16",
+      "archive_sha256": "e3c926e4f9837008c6f8fc50e10a88316a330c8e8cd56dea7bfb2a3a21465845",
+      "original_bytes": 72,
+      "archive_bytes": 91,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-operations-server-final.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-operations-server-final.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "f3f06b80cd9b3010fdbee69cc930d4df50d9545e7b6637ca9f4766c73b15cd6b",
+      "archive_sha256": "59d7a85115970c48248ba5a883c05b722ea1a691e06d99dafe12f7c8fc553cbb",
+      "original_bytes": 232,
+      "archive_bytes": 201,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-operations-server.log",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-operations-server.log.gz",
+      "role": "raw command log; original receipt source/time/exit unchanged",
+      "original_sha256": "c0b3c333df4386a6e7f2797c618227284a0de672c7c841c01d47a526ecb810b7",
+      "archive_sha256": "57637298bcffe2e9bb88e501471a686e36a993c77de1b69d248311c2bcf79774",
+      "original_bytes": 242,
+      "archive_bytes": 203,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/actual-device-first.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/actual-device-first.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "da2601839c0d6b1a9be8dc94fd7baff4e88a89db5619106ec9fc36188775f8e4",
+      "archive_sha256": "2b4e58cc887dbc0cf0089c5296266f1d11bcf6f476c12c788b3af30956456797",
+      "original_bytes": 67831,
+      "archive_bytes": 5181,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/actual-device-green.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/actual-device-green.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "71ae4825ba778fb521327b0bd05d74d71fe99ead10d2999fd7b828e60627202c",
+      "archive_sha256": "30ba4c4f40c9401763f4c7e0faa19aa1bb426911ceb41c94660b561b90514e78",
+      "original_bytes": 84145,
+      "archive_bytes": 4886,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/actual-device-green2.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/actual-device-green2.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "64298c1bd35b3087af933d35d4aa61cec81906e20514cb701df8bdfd620af655",
+      "archive_sha256": "87e6add63cd9897019d0f0d4a8f91b2897c41e92a1165349acfc413a81c5e46d",
+      "original_bytes": 77333,
+      "archive_bytes": 5115,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/actual-device-kimi-first.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/actual-device-kimi-first.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "9f22306710daccf6691f65a662a0e502adc7e5ae67c22016a2d5e7883773cbbe",
+      "archive_sha256": "a07ed20766b5a8a9727aef292f10b1c6efcde69dbd503449dcf07341aff296f5",
+      "original_bytes": 91630,
+      "archive_bytes": 6553,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/api-first-failure-observation.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/api-first-failure-observation.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "444acc7e0c519fa189638859204d2a89094464865e2aec47e85bb0ee95e21649",
+      "archive_sha256": "76c88807c0e200fae1b162b385bc8331c90707de822a89bfb382f894bdb8caa6",
+      "original_bytes": 86803,
+      "archive_bytes": 5870,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/api-matrix-remaining.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/api-matrix-remaining.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "17a2a1ef2d899251b82b0a270ea4efa3471443eb1f793f6df83e536b2415b512",
+      "archive_sha256": "60e7135b2a79f76c488bc6c8e83598b346aaf250a157135019570e81f9cbfcf7",
+      "original_bytes": 1571405,
+      "archive_bytes": 95162,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/api-responses-resume.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/api-responses-resume.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "b9e62bcbe3bd14e47c6ceb74b6ea7e4f79907a5a2ab3aa9838b3505883500c50",
+      "archive_sha256": "67d249e7ec447afd856c2985f9d84b218a6742a54d27fad4aa4fa28e9af3187d",
+      "original_bytes": 129413,
+      "archive_bytes": 6721,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/api-responses-resume2.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/api-responses-resume2.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "8cd1fe7af19ec1d00da31c703503c22c837b6c8bbc56528ef75e78f50b6859c4",
+      "archive_sha256": "c02e538d6362e804edd880ecd4c9b03398276b639bca35d59736b75510a80a26",
+      "original_bytes": 566,
+      "archive_bytes": 388,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/api-responses-resume3.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/api-responses-resume3.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "4accea9a039d97ffc5e143519744b179de8b24594d15fb6110a6ec80cbab0cbb",
+      "archive_sha256": "0ff8955b25855de11ce822b46a7802aba246284a6c3b85159c98153155f070d5",
+      "original_bytes": 1744,
+      "archive_bytes": 1200,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/api-responses-resume4.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/api-responses-resume4.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "871aa2f1901329a2b73395b5e81466b206b37d24e87d7dc45ea997f98c032038",
+      "archive_sha256": "5992d4f10b259451b9dc812a238b9b8088c2e9ae34e4ffa86cdee5a0903c2554",
+      "original_bytes": 201478,
+      "archive_bytes": 9884,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "f6124d53feb8d0371c106c104aa382845254b08407605218d082a54fc2919ab7",
+      "archive_sha256": "6cec789cd00806714d94cc16b8a29da2be61120d6a97368d5091e7c6ac4599bc",
+      "original_bytes": 453491,
+      "archive_bytes": 23655,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary2.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary2.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "024e7c0eab81e3c0b437ed0878723eb5b2404d1cd32221b65552b5b8c690abca",
+      "archive_sha256": "444712986597bcaea3f806db6003d64cbb3bfd53d151ed2727fdaa135b709a1c",
+      "original_bytes": 1025398,
+      "archive_bytes": 65322,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary3.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary3.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "8dc607fdf9cdb864e8e5939c9d6282b2d35fa7c83ff7cc20e14ec2ba0688f197",
+      "archive_sha256": "c17cb93509ffb73806e07697d3d8f6a0b85f855df8808710ff31a6135c484f76",
+      "original_bytes": 326420,
+      "archive_bytes": 21323,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary4.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/desktop-pointer-preliminary4.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "34713675d4f1d185ebdf1cc4eb27765af8ab17a16d7e713a59c1511b429cb696",
+      "archive_sha256": "14be63f0e1542bd4200a1fa2924882ba96c3d9dc8caad2d8a26885cef262b526",
+      "original_bytes": 1257513,
+      "archive_bytes": 82186,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/device-boundaries-preliminary.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/device-boundaries-preliminary.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "98f03d825ebce8091d80fca9ea9f73b282142632da4be691bee27d139f9fa18f",
+      "archive_sha256": "03c48d9d8ebef2572e14ef90526fbce8f65674205a53071d97e64a1bd469afd6",
+      "original_bytes": 67668,
+      "archive_bytes": 5895,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/device-boundaries-preliminary2.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/device-boundaries-preliminary2.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "8d9ca776888d2df4d371271b28ca4b3e7ef087716225875be0d177b754299e57",
+      "archive_sha256": "5955c0b9f37176f93f3771bf73f918462851b7d5dcfae75d2240a88133f83d38",
+      "original_bytes": 197352,
+      "archive_bytes": 15293,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/device-boundaries-preliminary3.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/device-boundaries-preliminary3.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "28273bc475556272d0f105e0d888d75902eb7a653094048f26d8abfaa1f44da5",
+      "archive_sha256": "fdee8810281037980907204c533de30865fcad65f32728f0aad2436e577d4f70",
+      "original_bytes": 712636,
+      "archive_bytes": 52549,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/device-negatives-preliminary.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/device-negatives-preliminary.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "b1c8b0a9f106aa00577a467d8b54c8e0b9f0d76edd00ada7545dac263265ad96",
+      "archive_sha256": "cec498c55b385e803a3bb385d5e3bb5762c8d0f371505dafa17c327d2e633f96",
+      "original_bytes": 1728669,
+      "archive_bytes": 78021,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "d96cd4796121c2c6ce1ff764951b7de63bd6a06f31eb93ee9dbc04e8765eb36b",
+      "archive_sha256": "89747472de9f02f8b1452b27e93929055a0cf53e8b5818fd85237831583c32f5",
+      "original_bytes": 2565287,
+      "archive_bytes": 146402,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-desktop-pointer.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-desktop-pointer.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "486db89b54169965294f9f3837bf4d8b6295579224ba0b03961615a37d530ff2",
+      "archive_sha256": "8c9684f44d8443bfe0aa61225f2845ab2cfb876d70d5fed8d78366df3d6fd4da",
+      "original_bytes": 1667398,
+      "archive_bytes": 103947,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-device-boundaries.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-device-boundaries.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "90eed7aef609bf053b033382b3a0cab8839a27a9203a580f276c246f76531300",
+      "archive_sha256": "6eac4c4482365fd7861bf4f23cb7dbfd070939c1af5cad6d1cb2549cfd3f2d04",
+      "original_bytes": 571248,
+      "archive_bytes": 43358,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-device-main.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-device-main.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "615ce3cd7ca1db182e51ac75be2b4bf63bcbcba155eef6d6ddd588499c6a3e94",
+      "archive_sha256": "08830160b7bee57d61f75bbd50dfa9c08f25801beb94fbb47f9fa1108c1073cc",
+      "original_bytes": 682303,
+      "archive_bytes": 57281,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-initialize-green.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-initialize-green.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "909f385a159322da68af12bfa6ab3e1b1b7de989de67f7bdde67244e5d534d0e",
+      "archive_sha256": "ccb94006bd0533e3efd883b3948284aad954e716dc16a00fd0a9809ccb9d42d7",
+      "original_bytes": 784,
+      "archive_bytes": 445,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-persistence-oracle.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-persistence-oracle.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "7f9c098aff7546d41a520215ecbbde877aae0b57c1fcacbfeb85b09bc827f105",
+      "archive_sha256": "4ff93e1912aae05c5c0bbb3e8b74f64786f9c2fefd8ee7a5096b5b2535fac884",
+      "original_bytes": 2181,
+      "archive_bytes": 1088,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-persistence-verification.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-persistence-verification.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "c8706746a9cf0cfd2efa4722ad7fe41869c05098079df20b0352d1cd2da7cf64",
+      "archive_sha256": "53054cf611bb3116e6bfd703514263ad7c87e8fac93b78f4149128c637698307",
+      "original_bytes": 1716,
+      "archive_bytes": 857,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/initial-baseline.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/initial-baseline.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "134adcbe123883f3c4b5b2e075de482051ccd4b8d615bfdf9bd518e379ed89c4",
+      "archive_sha256": "15cd849808f12746581a83bbc8d11472aa13c83399103ad5066be09745011539",
+      "original_bytes": 560,
+      "archive_bytes": 377,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/initial-issue57-matrix.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/initial-issue57-matrix.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "856ed3aac36fbc795e8575676d114e57d8e295fa1cbdbb8d9ce02afa1a167986",
+      "archive_sha256": "69fdf61418595caea2c87722535e59a00a995b077db0077315862540f196dd5e",
+      "original_bytes": 73482,
+      "archive_bytes": 10070,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/initialize-pointer-diagnostic.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/initialize-pointer-diagnostic.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "28efe3511e7908fb67b4350fe60e98166d4c4b1357a94daf926071ead8732ddb",
+      "archive_sha256": "c90160a83f1d7044d68e7031d2365631832cebad160d408c8e8cff9b5db1f21c",
+      "original_bytes": 2228,
+      "archive_bytes": 386,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/initialize.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/initialize.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "61512b35b63a18cbb6f5d86a4971578191c72ac9aa1e558fba95ff6f6940a707",
+      "archive_sha256": "44e1fe1976aecc0b4ff60cd0872c04ffcec630438c3d1f8cf70b552ff9669fec",
+      "original_bytes": 802,
+      "archive_bytes": 456,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/issue36-final-read.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/issue36-final-read.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "2023238b738dcdb92f65f420a67284575dda025ab19e3a3047204ecb24d2c4c9",
+      "archive_sha256": "56e6ca5e61ad2959de1612abccb65df9d6f909e4e01135b17bfdd643e9973637",
+      "original_bytes": 2730,
+      "archive_bytes": 1640,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/issue36.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/issue36.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "d0894da254c984b486ecdd63236ec2be49b61da013537e6aaf6c222bc05cb733",
+      "archive_sha256": "1f3e630e93e3b7c6ec43d6e88c4dc96eb562d0b36ee4ed23d53f452e85b1c19f",
+      "original_bytes": 2869,
+      "archive_bytes": 1744,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/issue57-final-read.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/issue57-final-read.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "1c53cf0995497205fab2811c510b23a61f882f6f0caa59951c17827b38839c3d",
+      "archive_sha256": "424890280de88f081648bdaf4f709e6888a3b239f158f4892085d8012bb48852",
+      "original_bytes": 7772,
+      "archive_bytes": 2245,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/issue57.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/issue57.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "dea7e62f616272cbfb7f52a5ceeb28c42857cce20da7dda455d61031a5dda152",
+      "archive_sha256": "11716855c85a598e8a474a4515e23f49f751b9b96ce0821ab1bf87d2c444163d",
+      "original_bytes": 7911,
+      "archive_bytes": 2353,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/issue9.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/issue9.json.gz",
+      "role": "original JSON; no new execution or source relabel",
+      "original_sha256": "914b3dd6152401b0c78609caa33bc3f36bc014f1ab59e6558106d3b65917ed89",
+      "archive_sha256": "c9b8da95442da917bb6c6e3cdce64416ee7688c47993fdc59c374b511cb1c56c",
+      "original_bytes": 51004,
+      "archive_bytes": 20035,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/accepted-stock/descriptor.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/accepted-stock-descriptor.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "5a2b7b1d06623a232a01ba2a88c780ba77e22f7081b4486e46fc5e6f98f9380f",
+      "archive_sha256": "d238abc87d941629fb8e532c87c8c298b89fd31b78e91951bcc4307fb79d1996",
+      "original_bytes": 4276,
+      "archive_bytes": 1243,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/accepted-stock/network-sandbox.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/accepted-stock-network-sandbox.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "0b0531c756109082b7ea09ac71871f1de81a16a4bad1d4fead7cb894b9f1917d",
+      "archive_sha256": "3ef797a48a434ba1df6d1cbc4b348836cc509268da7df016c348cd119ac88394",
+      "original_bytes": 91,
+      "archive_bytes": 95,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/accepted-stock/device-receives.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/accepted-stock-device-receives.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "89d30f0dee923225c66baa959cd50f534fa0d3ab66f09c36725d7f8ca8ce0d94",
+      "archive_sha256": "94cffcddc5a09a4c15d9a51d54df57e682bc94edf5438a9bb6c3af73b6e386a4",
+      "original_bytes": 10585,
+      "archive_bytes": 548,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/accepted-stock/provider-receives.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/accepted-stock-provider-receives.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "archive_sha256": "abc129be8d26e8d4afe9ce45f9d5a73c8ed9aa62810ca24ee789fe4581dc4a80",
+      "original_bytes": 3,
+      "archive_bytes": 23,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/accepted-stock/stored-facts.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/accepted-stock-stored-facts.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "3ee11ded875eac1565ada5d4574e01ed3c97a2cafd48f27e401cf1209490b86e",
+      "archive_sha256": "da08eca7bf2540dda3a130dc74e25c1488528d219c72995da4d5438ba4a0fc45",
+      "original_bytes": 180213,
+      "archive_bytes": 7828,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-operations-server/descriptor.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-operations-server-descriptor.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "4e4609db8aa56301de4b3eda551714708118b2c2cebb20feefdff1c062629713",
+      "archive_sha256": "e7a65cc39c58972ce8edcaba19f341b512217b0702eee512427e8ef65257cfea",
+      "original_bytes": 12962,
+      "archive_bytes": 2316,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-operations-server/network-sandbox.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-operations-server-network-sandbox.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "0b0531c756109082b7ea09ac71871f1de81a16a4bad1d4fead7cb894b9f1917d",
+      "archive_sha256": "3ef797a48a434ba1df6d1cbc4b348836cc509268da7df016c348cd119ac88394",
+      "original_bytes": 91,
+      "archive_bytes": 95,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-operations-server/device-receives.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-operations-server-device-receives.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "9a420e15f9419f3710eb72898be7252b6a41493ebd60489e25fb21c89c0d4434",
+      "archive_sha256": "30a348aeb41995cfdb2eeddad1ad8f4d4f7b263f2c2467bdd0db31cf89a01b93",
+      "original_bytes": 17977,
+      "archive_bytes": 628,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-operations-server/provider-receives.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-operations-server-provider-receives.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "archive_sha256": "abc129be8d26e8d4afe9ce45f9d5a73c8ed9aa62810ca24ee789fe4581dc4a80",
+      "original_bytes": 3,
+      "archive_bytes": 23,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/stock-operations-server/stored-facts.json",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/stock-operations-server-stored-facts.json.gz",
+      "role": "owned isolated server facts; no credentials or DB payload",
+      "original_sha256": "a6edb6a35a52fd5f58997b6366eb39585a911ae7189e6721c8af60de22c9d32b",
+      "archive_sha256": "8f02a8dee4914e6285085ad7a1e11d9181572d37a332ce657cf5ee100080f473",
+      "original_bytes": 247541,
+      "archive_bytes": 10506,
+      "transform": "gzip-mtime0"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-chat-0-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-chat-0-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "da17fef25081c3d19d25edaea8dedf210607792bed084e1b78448a6ff53db831",
+      "archive_sha256": "da17fef25081c3d19d25edaea8dedf210607792bed084e1b78448a6ff53db831",
+      "original_bytes": 345393,
+      "archive_bytes": 345393,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-chat-1-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-chat-1-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "7cee545466a1440a3e8766b60bf1a8bc5e825536155101228b23decfd712dd24",
+      "archive_sha256": "7cee545466a1440a3e8766b60bf1a8bc5e825536155101228b23decfd712dd24",
+      "original_bytes": 346658,
+      "archive_bytes": 346658,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-chat-2-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-chat-2-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "dbe67dd1d8104a288020334918ead580d0ae55de88b529dac8398a446b118379",
+      "archive_sha256": "dbe67dd1d8104a288020334918ead580d0ae55de88b529dac8398a446b118379",
+      "original_bytes": 346402,
+      "archive_bytes": 346402,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-grok-api-0-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-grok-api-0-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "89a900d27348ca96bd9b577ca0fee53bd6079d66cd9ee4792fe3b026b4a56ea9",
+      "archive_sha256": "89a900d27348ca96bd9b577ca0fee53bd6079d66cd9ee4792fe3b026b4a56ea9",
+      "original_bytes": 345707,
+      "archive_bytes": 345707,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-grok-api-1-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-grok-api-1-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "98d439f14470081e417afbc7bcda8618bed7144223ed74bd1f32f671a516282f",
+      "archive_sha256": "98d439f14470081e417afbc7bcda8618bed7144223ed74bd1f32f671a516282f",
+      "original_bytes": 346335,
+      "archive_bytes": 346335,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-grok-api-2-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-grok-api-2-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "5015047de2ba8f909b395439f28a86adc15ec13fb23db3cf57144d0b7d59d829",
+      "archive_sha256": "5015047de2ba8f909b395439f28a86adc15ec13fb23db3cf57144d0b7d59d829",
+      "original_bytes": 346601,
+      "archive_bytes": 346601,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-kimi-0-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-kimi-0-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "91e772dc2b0b7c4a74af3480a665cd7ccb62f3c36dd4862f7519eb53912b0091",
+      "archive_sha256": "91e772dc2b0b7c4a74af3480a665cd7ccb62f3c36dd4862f7519eb53912b0091",
+      "original_bytes": 344860,
+      "archive_bytes": 344860,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-kimi-1-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-kimi-1-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "83d302772fe2d87838ff683de62ffeb65aa438b41c50184e109db4ec11271ae4",
+      "archive_sha256": "83d302772fe2d87838ff683de62ffeb65aa438b41c50184e109db4ec11271ae4",
+      "original_bytes": 346029,
+      "archive_bytes": 346029,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-kimi-2-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-kimi-2-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "f304c545a73f1e874680f7b0b712f3c27d46b2d6efd5476ed655980e7efbf6a0",
+      "archive_sha256": "f304c545a73f1e874680f7b0b712f3c27d46b2d6efd5476ed655980e7efbf6a0",
+      "original_bytes": 346910,
+      "archive_bytes": 346910,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-messages-0-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-messages-0-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "72a7385b89206817c6f161c079c612e047e0b11e14e323119048a124631ef076",
+      "archive_sha256": "72a7385b89206817c6f161c079c612e047e0b11e14e323119048a124631ef076",
+      "original_bytes": 346674,
+      "archive_bytes": 346674,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-messages-1-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-messages-1-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "72875614c3e35f57ffb8f26ccb76efaf1d697975d9dab63a986e9540a92f6e05",
+      "archive_sha256": "72875614c3e35f57ffb8f26ccb76efaf1d697975d9dab63a986e9540a92f6e05",
+      "original_bytes": 345933,
+      "archive_bytes": 345933,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-messages-2-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-messages-2-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "f6f6ed35e8ffe0189ce7613fff3cdb26e8b85d06db2ce53ee9304b700c34ffad",
+      "archive_sha256": "f6f6ed35e8ffe0189ce7613fff3cdb26e8b85d06db2ce53ee9304b700c34ffad",
+      "original_bytes": 346886,
+      "archive_bytes": 346886,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-responses-0-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-responses-0-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "c03bdba6c8e65b17a0c76136203497c66cd9cecc85970fb5fe8dd81013ee55c0",
+      "archive_sha256": "c03bdba6c8e65b17a0c76136203497c66cd9cecc85970fb5fe8dd81013ee55c0",
+      "original_bytes": 322644,
+      "archive_bytes": 322644,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-responses-1-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-responses-1-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "456395031f4c130008a8e88c4eac908c8746f89961949b2662d63a024d976b8e",
+      "archive_sha256": "456395031f4c130008a8e88c4eac908c8746f89961949b2662d63a024d976b8e",
+      "original_bytes": 344978,
+      "archive_bytes": 344978,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-api-5x3-green-responses-2-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-api-5x3-green-responses-2-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "d5188300746f9bac62a04b6434f1f15e29c7e7f4c4ec2e165bdde71ee91da2dc",
+      "archive_sha256": "d5188300746f9bac62a04b6434f1f15e29c7e7f4c4ec2e165bdde71ee91da2dc",
+      "original_bytes": 344088,
+      "archive_bytes": 344088,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-desktop-pointer-1280-before-apply.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-desktop-pointer-1280-before-apply.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "a0b9e803e72f77943105e59201976d429498f3383b5056ac8c17d66952339870",
+      "archive_sha256": "a0b9e803e72f77943105e59201976d429498f3383b5056ac8c17d66952339870",
+      "original_bytes": 262469,
+      "archive_bytes": 262469,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-desktop-pointer-1440-before-apply.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-desktop-pointer-1440-before-apply.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "75ce750a3364be8d18fd9f28714803b5ed806c3044d01b6ed3d0dc63387117d3",
+      "archive_sha256": "75ce750a3364be8d18fd9f28714803b5ed806c3044d01b6ed3d0dc63387117d3",
+      "original_bytes": 310302,
+      "archive_bytes": 310302,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-device-main-kimi-coding-commit-loss.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-device-main-kimi-coding-commit-loss.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "1638568420d37c024ef23c0f1bcdc2b635a400249b60db69de28cb69fc111683",
+      "archive_sha256": "1638568420d37c024ef23c0f1bcdc2b635a400249b60db69de28cb69fc111683",
+      "original_bytes": 327936,
+      "archive_bytes": 327936,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-device-main-kimi-coding-restored-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-device-main-kimi-coding-restored-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "02d04d7a28d2fecbc1b7e2ef7aaf5fa2a9d0a7b9b5df07e5bf3f7c760627b548",
+      "archive_sha256": "02d04d7a28d2fecbc1b7e2ef7aaf5fa2a9d0a7b9b5df07e5bf3f7c760627b548",
+      "original_bytes": 313866,
+      "archive_bytes": 313866,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-device-main-kiro-commit-loss.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-device-main-kiro-commit-loss.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "154351cf5173b4b477cf1e0651a9f5bd7c24670de8f994bf5e408cffcf74dae7",
+      "archive_sha256": "154351cf5173b4b477cf1e0651a9f5bd7c24670de8f994bf5e408cffcf74dae7",
+      "original_bytes": 328094,
+      "archive_bytes": 328094,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-device-main-kiro-restored-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-device-main-kiro-restored-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "b9e53980e796679061b31d8bc2fb73ed04588eb1770f46e147eea7ac20db2a0f",
+      "archive_sha256": "b9e53980e796679061b31d8bc2fb73ed04588eb1770f46e147eea7ac20db2a0f",
+      "original_bytes": 309596,
+      "archive_bytes": 309596,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/final-login-pointer-failure.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/final-login-pointer-failure.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "0eeb1c88bff9ab41dd4d98a8f94822561ce3701448b5703e2c0bfdbf0ac52de9",
+      "archive_sha256": "0eeb1c88bff9ab41dd4d98a8f94822561ce3701448b5703e2c0bfdbf0ac52de9",
+      "original_bytes": 163646,
+      "archive_bytes": 163646,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/grok-actual-first-failure.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/grok-actual-first-failure.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "796a455b58add9706f329c18f730919bec30833ee2912c49e4757c9ce94b6fc2",
+      "archive_sha256": "796a455b58add9706f329c18f730919bec30833ee2912c49e4757c9ce94b6fc2",
+      "original_bytes": 204905,
+      "archive_bytes": 204905,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/initialize-password-before-pointer.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/initialize-password-before-pointer.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "64039af012da583faf94f02d2777b0a88ba58a9a4b7ff6f98197e75054a2625e",
+      "archive_sha256": "64039af012da583faf94f02d2777b0a88ba58a9a4b7ff6f98197e75054a2625e",
+      "original_bytes": 187330,
+      "archive_bytes": 187330,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/preliminary-last-kiro-commit-loss.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/preliminary-last-kiro-commit-loss.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "e0699dfce60f7b325a0974c5189c08a291fe9afd4f67a947d1ee44f5abf9766b",
+      "archive_sha256": "e0699dfce60f7b325a0974c5189c08a291fe9afd4f67a947d1ee44f5abf9766b",
+      "original_bytes": 296203,
+      "archive_bytes": 296203,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/preliminary-last-kiro-restored-applied.png",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/preliminary-last-kiro-restored-applied.png",
+      "role": "actual screenshot; synthetic environment; original capture only",
+      "original_sha256": "905ccd89b6cf5cdffd45a98a2bab27e3927d58c7d2c68193a45a926116a0d452",
+      "archive_sha256": "905ccd89b6cf5cdffd45a98a2bab27e3927d58c7d2c68193a45a926116a0d452",
+      "original_bytes": 313948,
+      "archive_bytes": 313948,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/run.py",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/command-recorder.py",
+      "role": "local reproducible receipt/analysis tooling",
+      "original_sha256": "b82838b52ddf6ab8efe54a7f61e909a15b1d16440f73d62c2ea497af62cbd288",
+      "archive_sha256": "b82838b52ddf6ab8efe54a7f61e909a15b1d16440f73d62c2ea497af62cbd288",
+      "original_bytes": 3014,
+      "archive_bytes": 3014,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/verify_persistence.py",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/verify-persistence.py",
+      "role": "local reproducible receipt/analysis tooling",
+      "original_sha256": "dc99e6d5bfb0d67b53a43097eee663556dc9a74051e51fe5c6ebfc7c001392ff",
+      "archive_sha256": "dc99e6d5bfb0d67b53a43097eee663556dc9a74051e51fe5c6ebfc7c001392ff",
+      "original_bytes": 4329,
+      "archive_bytes": 4329,
+      "transform": "BYTE_IDENTICAL_COPY"
+    },
+    {
+      "original": "output/cpar-continuity-operations-20261009-171952/build_matrix.py",
+      "archive": "docs/reports/assets/cpar-continuity-operations-20261009-171952/build-matrix.py",
+      "role": "local reproducible receipt/analysis tooling",
+      "original_sha256": "0f3b59bc7bc8e7767722a40f36d23fdd2b356c483a553f935d94ba3070006e50",
+      "archive_sha256": "0f3b59bc7bc8e7767722a40f36d23fdd2b356c483a553f935d94ba3070006e50",
+      "original_bytes": 20007,
+      "archive_bytes": 20007,
+      "transform": "BYTE_IDENTICAL_COPY"
+    }
+  ]
+}

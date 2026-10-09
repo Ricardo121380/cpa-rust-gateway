@@ -1,0 +1,39 @@
+{
+  "name": "clean-stock-rebuild",
+  "command": [
+    "bash",
+    "-c",
+    "npm --prefix web/prism ci --ignore-scripts --no-audit --no-fund && cargo build --locked -p gateway --bin gateway"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-continuity-operations-20261009-171952/accepted-source-78185f79",
+  "started_utc": "2026-10-09T10:21:25.000069+00:00",
+  "finished_utc": "2026-10-09T10:21:36.539936+00:00",
+  "duration_seconds": 11.54,
+  "exit_code": 101,
+  "result": "FAIL",
+  "source_before": {
+    "head": "78185f796f2fd6489454e730f12415d53dc766b2",
+    "dirty": [],
+    "tracked_files_sha256": "73d113a995fa6b0f5eb3a527337f03e6f48555ff6accb9808c61bb5deb57890a",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "78185f796f2fd6489454e730f12415d53dc766b2",
+    "dirty": [],
+    "tracked_files_sha256": "73d113a995fa6b0f5eb3a527337f03e6f48555ff6accb9808c61bb5deb57890a",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-continuity-operations-20261009-171952/clean-stock-rebuild.log",
+      "sha256": "f4b66a370727c84069cd072839ca582a72c610e9199c4f4c6a2ebc4cbe44114b",
+      "bytes": 6472
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "frontend-final-type",
+  "command": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "run",
+    "type-check"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-continuity-operations-20261009-171952/accepted-source",
+  "started_utc": "2026-10-09T10:58:26.642936+00:00",
+  "finished_utc": "2026-10-09T10:58:34.788237+00:00",
+  "duration_seconds": 8.145,
+  "exit_code": 0,
+  "result": "PASS",
+  "source_before": {
+    "head": "029332c5351c562d2dd3e5ef86c1faa84f5baab6",
+    "dirty": [],
+    "tracked_files_sha256": "b934536d4850a9e67bac204f425bd32931d88f87cdf938c54d19c6d0f119cab0",
+    "changed_files_sha256": {}
+  },
+  "source_after": {
+    "head": "029332c5351c562d2dd3e5ef86c1faa84f5baab6",
+    "dirty": [],
+    "tracked_files_sha256": "b934536d4850a9e67bac204f425bd32931d88f87cdf938c54d19c6d0f119cab0",
+    "changed_files_sha256": {}
+  },
+  "test_totals": {
+    "passed": 0,
+    "failed": 0,
+    "ignored": 0
+  },
+  "frontend_test_totals": {},
+  "hash_objects": {
+    "raw_log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-continuity-operations-20261009-171952/frontend-final-type.log",
+      "sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "bytes": 48
+    }
+  }
+}

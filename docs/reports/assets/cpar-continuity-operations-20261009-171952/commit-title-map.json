@@ -1,0 +1,32 @@
+{
+  "rule": "docs/06-development-plan.md:1448",
+  "fixed_base": "01dae81bb9778c92d7e76e49bbed14c3fdc565d7",
+  "mapping": [
+    {
+      "old": "78185f796f2fd6489454e730f12415d53dc766b2",
+      "new": "55b566f1ed5997d26b0058a82782d94499cac5d1",
+      "tree": "9d596fc696732427c22d53246364aa9b48c765c9",
+      "old_title": "fix(prism): verify stock authorization recovery and API onboarding (#57)",
+      "new_title": "CPAR-48: fix(prism): verify stock authorization recovery and API onboarding (#57)",
+      "body_trailers_and_author_committer_preserved": true
+    },
+    {
+      "old": "6a37f74d63258d283da5f55e5e5ef31b9b9ed0c4",
+      "new": "0cefefcf14e7d7f9e5fc02665284ed9850331434",
+      "tree": "231c6d63abaa8445d78a244d51f90031f4bf8ac1",
+      "old_title": "test(prism): load production constants with Vite raw modules (#57)",
+      "new_title": "CPAR-48: test(prism): load production constants with Vite raw modules (#57)",
+      "body_trailers_and_author_committer_preserved": true
+    }
+  ],
+  "original_head_preserved_ref": "refs/codex/cpar-continuity-operations-20261009-171952/original-code-head",
+  "index_and_worktree_before": {
+    "index_diff": "7a3856e7caa7d9bba399db2d3ef37727772512fd05d068384970314c19ff4a88",
+    "worktree_diff": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f"
+  },
+  "index_and_worktree_after": {
+    "index_diff": "7a3856e7caa7d9bba399db2d3ef37727772512fd05d068384970314c19ff4a88",
+    "worktree_diff": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f"
+  },
+  "runtime_source_receipts_relabelled": false
+}
