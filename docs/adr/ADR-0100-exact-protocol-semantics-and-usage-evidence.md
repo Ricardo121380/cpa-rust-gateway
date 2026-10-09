@@ -1,6 +1,13 @@
 # ADR-0100: Exact protocol semantics and source Usage evidence
 
-Status: Accepted for CPAR batch B, 2026-09-30.
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Date | `2026-09-30` |
+| Task / Matrix | CPAR batch B, CPAR-18–29 (#27–38), parent #9; protocol/tool/reasoning/Usage/stored-response semantics |
+| Contracts | [BC-RESP-002](../contracts/BC-RESP-002-stored-response-public-lifecycle.md), [BC-RESP-003](../contracts/BC-RESP-003-exact-continuity-and-compaction.md), [BC-RESP-004](../contracts/BC-RESP-004-public-responses-websocket.md), [BC-OBS-001](../contracts/BC-OBS-001-bounded-request-attempt-usage-events.md), [BC-MGMT-012](../contracts/BC-MGMT-012-billing-materialization-read-model.md) |
+
+## Context
 
 Batch B implements CPAR-18–29 (#27–38) on the registered Chat Completions,
 Responses and Messages paths. This decision supersedes the lossy reasoning,
@@ -8,6 +15,8 @@ signature and Usage restrictions in ADR-0034/0036/0037/0038 where they conflict
 with the rules below. The transport ownership, bounded queues, explicit
 capability admission and exact continuity rules of ADR-0016/0090/0091/0092 remain
 applicable.
+
+## Decision
 
 Every execution mode validates known request semantics before acquiring an
 upstream attempt. An exact native payload is insufficient authority to accept
@@ -85,6 +94,26 @@ cancels the handler/body, including bootstrap and idle SSE. Clients must keep
 both halves open while awaiting inference output. Management listener behavior
 is unchanged.
 
+## Consequences
+
+Native representation, source Usage and exact ownership remain observable across public
+output, durable records and later history. Unsupported conversions fail explicitly,
+so compatibility is bounded by demonstrable equivalence and declared capabilities.
+Unknown counters remain unknown; incomplete evidence cannot establish exact billing.
+These rules preserve the existing transport and credential ownership boundaries.
+
+## Alternatives considered
+
+- Silently drop reasoning, signatures, citations, phase or Usage detail to make a bridge
+  appear compatible: rejected because it changes the successful response's meaning.
+- Approximate token budgets as effort buckets, infer absent counters or price unknown
+  Usage: rejected because no exact source evidence supports the result.
+- Let repository availability confer store/compaction/WebSocket capability or replay
+  across a sibling account/route: rejected because capability and exact ownership belong
+  to the actual selected execution.
+
+## Validation and rollback
+
 Protocol shape references are the [OpenAI Responses output types](https://github.com/openai/openai-python/blob/main/src/openai/types/responses/response_output_text.py),
 [Anthropic citation types](https://github.com/anthropics/anthropic-sdk-python/tree/main/src/anthropic/types),
 [Anthropic thinking documentation](https://platform.claude.com/docs/en/build-with-claude/thinking),
@@ -92,3 +121,26 @@ and [Kimi thinking documentation](https://platform.kimi.com/blog/posts/kimi-thin
 These define representations; they do not constitute real-provider acceptance.
 Local evidence and remaining acceptance boundaries are recorded in the
 [batch B report](../reports/cpar-batch-b-20260930.md).
+
+Validation covers native JSON/SSE framing and terminal confirmation, ordered multi-part
+history, source Usage on completion/failure/cancellation, encrypted owner-scoped records,
+public retrieval/continuation/compaction and declared capability rejection. Each runtime,
+browser, restart and real-provider layer needs its own source-bound execution evidence;
+one layer's PASS does not establish another. The S-01 structure correction changes no
+business rule, including the separately pending E-05 revision-rule decision.
+
+Schema 0033 keeps historical Usage provenance unknown. Subsequent
+[ADR-0103](ADR-0103-failed-bootstrap-usage-attribution.md) changes explicit Usage identity
+to Attempt-scoped events: old binaries do not recognize the new identity. After new
+events have been accepted, switching only the binary is not a safe data rollback.
+Rollback requires code compatible with all accepted identities, or separately authorized
+restoration of a coherent pre-change state after preserving newly accepted history.
+Restore must bind the compatible artifact, full state snapshot and tested recovery path;
+this ADR authorizes no production restoration.
+
+Encrypted credentials, stored responses and compact blobs retain their original key
+versions. A compatible rollback must retain every required old/new key and use the
+configured active version for new writes; retaining a key does not make an old binary
+understand a new Usage identity. Preserve exact owner/AAD/TTL and history during any
+authorized recovery. Binary compatibility, state readability and production cutover
+remain independent gates.
