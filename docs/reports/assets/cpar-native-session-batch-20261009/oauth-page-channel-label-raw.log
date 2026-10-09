@@ -16,4 +16,3 @@
 {"case":"claude-maintenance-lost","result":"PASS","callbacks":2,"accountId":"claude-22df86fa-fb3c-44b1-b475-99cdba2f9db0"}
 {"case":"claude-binding-failed","result":"PASS","callbacks":1,"accountId":"claude-9b847e12-cee5-4306-9604-ca0e79fefe6a"}
 {"case":"claude-publish-failed","result":"PASS","callbacks":1,"accountId":"claude-b2855380-4ae5-424f-81c1-29e31f62309f"}
-

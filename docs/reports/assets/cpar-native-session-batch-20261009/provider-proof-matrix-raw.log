@@ -25,4 +25,3 @@ test build_proof_requires_nonempty_subject_same_client_scope_set_and_winning_cas
 test completion_cannot_commit_after_claim_deadline ... ok
 
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
-

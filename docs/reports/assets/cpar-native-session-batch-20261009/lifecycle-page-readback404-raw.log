@@ -17,4 +17,3 @@
 {"case":"native-remove-unapplied","result":"PASS","outcomes":["applied"],"mutations":1}
 {"case":"native-remove-rejected","result":"PASS","outcomes":["rejected"],"mutations":1}
 {"case":"native-remove-batch-lost","result":"PASS","outcomes":["applied","saved_application_unconfirmed","unexecuted"],"mutations":2}
-

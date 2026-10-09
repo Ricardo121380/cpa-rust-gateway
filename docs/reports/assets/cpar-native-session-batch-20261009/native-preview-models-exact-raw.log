@@ -72,4 +72,3 @@ test kimi_device_enrollment_is_channel_bound_and_persists_only_after_success ...
 test kiro_device_enrollment_has_no_placeholder_and_persists_only_after_exchange ... ok
 
 test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.60s
-

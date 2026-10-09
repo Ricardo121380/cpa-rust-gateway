@@ -1,11 +1,11 @@
 {
-  "scope": "directed precommit originals; final committed-source receipts will be added separately",
+  "scope": "directed precommit evidence; archived text EOF normalized where listed; original raw logs and original hashes retained in output receipts",
   "files": {
     "continuity-http-regression-raw.log": "dfb474defdb9c5e2ff3f548fdbe2974251e87e703623875633e8e21b69f9c704",
     "continuity-http-regression-receipt.json": "94b638ac6d274ab7495d2b3b829b422acfc1932df64b91f8e543311d9673f6ef",
     "directed-evidence-index.json": "dd24764e7540c0f14cb84346ad801306b9aec69cdbb930f0800485fee04c6daf",
     "e05-process-precommit.json": "84d9876a7478bdda5baf4ce08bd2c9bbff3e9ca3117469e508304ef475f4bf1b",
-    "e05-public-negative-matrix-raw.log": "8e61b33efbea9c103d0938669dbdb503d7bbb4601d9ca7f107e5322fede82e1b",
+    "e05-public-negative-matrix-raw.log": "074c05a0a18ef88a0617ea1eaec595d74efe21a99799acf6473717c435b478ab",
     "e05-public-negative-matrix-receipt.json": "b9dea9c7c94cf54065f06941e0bf273bd9811c086102504eab401c656cda73b1",
     "e05-stock-process-reauth-proof-invalid-raw.log": "5e33864577ac4285e5db0071ba91faee71f389fa0fb0f5e949670415d509b756",
     "e05-stock-process-reauth-proof-invalid-receipt.json": "c10126af9d91acdd1c18b4b23abc8faaf15a74489373c32d9f3c919173876ed3",
@@ -13,30 +13,77 @@
     "final-precommit-clippy-pass-receipt.json": "232783a63682534ec8f10dc936e3e81d8656197e618df5d193f5097a6a66958e",
     "grok-device-page-precommit.json": "9165dd8f9e2c470de9493fd39d5cbdc7650419406dfd6ad9abaac04a8892a037",
     "grok-device-page-precommit.png": "61f229114e1e3db101cbb38557707fd0cea3c737806034d0d8089c09d478b257",
-    "grok-green-page-rebuilt-raw.log": "ccfc9a9b52a30fe3a4e030335feee41dfbcb74c185ec364fd28fa43871401d2d",
+    "grok-green-page-rebuilt-raw.log": "3054b7d1422aebb830d1f9e3005ac0f72bb011f74ceaf2caceb3f08c3acd183c",
     "grok-green-page-rebuilt-receipt.json": "275ba6502fd24ddb4ed6cd02b63c0debe131149b8f213534ab0aede8a680dde2",
     "grok-red-page-raw.log": "af49a00f3f7b1da491cbe268f51963cf549a2d3f46d05736da7004f7ffef4f71",
     "grok-red-page-receipt.json": "8c68ba189bd4fe47ec7cd6fc5364a947703e2a99ebb5bc9681b31cf6f23b5b8b",
     "lifecycle-page-precommit.json": "e858006a1550a443c5e1d6e0ed93ea8ded91fab6b216be953b7e5e2e032e294a",
-    "lifecycle-page-readback404-raw.log": "3cbfcdabbe0978dafb030afb5c71839f4a047a7c3a2979f5181a430cb3a2d9a6",
+    "lifecycle-page-readback404-raw.log": "785f0a005e521cfe39db1b13e44251b1ae668a0a4962fde946a79b054feeb913",
     "lifecycle-page-readback404-receipt.json": "20d64bbb007eaa7facf37c4462e406d2d102dd436a38cae9bf75c54e02658877",
-    "maintenance-denied-final-raw.log": "2181c5d683d83d3efa9bb91b770b4a54887daec5896bcf1adf2f0cb4393ada27",
+    "maintenance-denied-final-raw.log": "4a25394d55e8b71909c8f48690674c598a3e7ae5957f9d8e88e27c57eb379512",
     "maintenance-denied-final-receipt.json": "aad0273fed543d023ed98826af8d0e6809d0865cdb121ab06f80e2307f63d16b",
     "native-delete-preview-behavior-red-raw.log": "4b123225cd0fa0ab48cc435c98be3100310ac1decddf89f86f6d778c02298b8c",
     "native-delete-preview-behavior-red-receipt.json": "115289ce90d1313c499ded94d0e824db26003acb547ce638a1319d68a8c80d32",
     "native-delete-preview-precommit.png": "0c3e61a339bc9efead48e3a39a91b359ba3fb5a2e80d05e5a4f34e0c124cbbb5",
-    "native-held-stream-raw.log": "291386b250ff461c5291688529764a21757598b4cdad34f8137bb92e1bfdb6a2",
+    "native-held-stream-raw.log": "25c9d795953b59301eac3baeab18ba1ff55f7f045bc69335fbc748a3f0d76e8d",
     "native-held-stream-receipt.json": "7bd7eb42ebe0bc416329ddf86d32f54c04b3a929063f11f3abd96166ceeda8dc",
-    "native-preview-models-exact-raw.log": "2e9418403db53a8eb0c7799026df8f7fdbc88345f5a4417067866971e8dbc93c",
+    "native-preview-models-exact-raw.log": "c989ca2137735b59344f4903ba1f4d86ac79e92a7d1f2fbcca75ad021066614a",
     "native-preview-models-exact-receipt.json": "a9a481b4e2a936db14bc0206cbe49ba2ac055a3ea8c0ad0fdd54142fe2a43883",
-    "oauth-http-matrix-routed-raw.log": "08ed54080980b1e4cd6e5ccc69187d2357cac3d5d1b65744f1ee5a343da23116",
+    "oauth-http-matrix-routed-raw.log": "23fe502bf3d86fb376843a1b3fd9539b2ee4fb97195e8315f2b40acb01684421",
     "oauth-http-matrix-routed-receipt.json": "cc2c44f7b9d9671b6188206b2d8f974f698ed95f8c92914d307d315fabbd2345",
-    "oauth-page-channel-label-raw.log": "0a40c93e44ae41a48ced8e1425ce4c11485725025469b454a5add187ecffd4e4",
+    "oauth-page-channel-label-raw.log": "8c8d6b331258dc1aef6fa4c799c4161db8e5e2f900706045246759f5441687f1",
     "oauth-page-channel-label-receipt.json": "ad7ae895e6b567e9df8f4c2293210ae8b0d049557f6340bb08c57dc21ef69c51",
     "oauth-page-precommit.json": "b58485685e1ee7b0b9a3b8e50edc780974e84fd2af5b4fe2d6f276b04299cf93",
     "ordinary-held-delete-bounded-raw.log": "513e18da93f9a8acbe49569cc53d6dd3792435e0f6f7796fbac42933aa6d2a5b",
     "ordinary-held-delete-bounded-receipt.json": "8dfb708f833dbb2987c1bdc11db6252cc44fd5c4336039ee864c2c57365616f2",
-    "provider-proof-matrix-raw.log": "572c15f747ca75f2bb69c321f76dd9febf389d390324874f35712fe4d3ffcd0b",
+    "provider-proof-matrix-raw.log": "b68708b712499ed41299138dc25a8f00158a442db63e30b90079a8c05e1978c7",
     "provider-proof-matrix-receipt.json": "6394857d248a9606eb400c801469878271ba9532de2eb571e6b433f793358f24"
+  },
+  "text_normalization": {
+    "e05-public-negative-matrix-raw.log": {
+      "original_raw_sha256": "8e61b33efbea9c103d0938669dbdb503d7bbb4601d9ca7f107e5322fede82e1b",
+      "archived_sha256": "074c05a0a18ef88a0617ea1eaec595d74efe21a99799acf6473717c435b478ab",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "grok-green-page-rebuilt-raw.log": {
+      "original_raw_sha256": "ccfc9a9b52a30fe3a4e030335feee41dfbcb74c185ec364fd28fa43871401d2d",
+      "archived_sha256": "3054b7d1422aebb830d1f9e3005ac0f72bb011f74ceaf2caceb3f08c3acd183c",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "lifecycle-page-readback404-raw.log": {
+      "original_raw_sha256": "3cbfcdabbe0978dafb030afb5c71839f4a047a7c3a2979f5181a430cb3a2d9a6",
+      "archived_sha256": "785f0a005e521cfe39db1b13e44251b1ae668a0a4962fde946a79b054feeb913",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "maintenance-denied-final-raw.log": {
+      "original_raw_sha256": "2181c5d683d83d3efa9bb91b770b4a54887daec5896bcf1adf2f0cb4393ada27",
+      "archived_sha256": "4a25394d55e8b71909c8f48690674c598a3e7ae5957f9d8e88e27c57eb379512",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "native-held-stream-raw.log": {
+      "original_raw_sha256": "291386b250ff461c5291688529764a21757598b4cdad34f8137bb92e1bfdb6a2",
+      "archived_sha256": "25c9d795953b59301eac3baeab18ba1ff55f7f045bc69335fbc748a3f0d76e8d",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "native-preview-models-exact-raw.log": {
+      "original_raw_sha256": "2e9418403db53a8eb0c7799026df8f7fdbc88345f5a4417067866971e8dbc93c",
+      "archived_sha256": "c989ca2137735b59344f4903ba1f4d86ac79e92a7d1f2fbcca75ad021066614a",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "oauth-http-matrix-routed-raw.log": {
+      "original_raw_sha256": "08ed54080980b1e4cd6e5ccc69187d2357cac3d5d1b65744f1ee5a343da23116",
+      "archived_sha256": "23fe502bf3d86fb376843a1b3fd9539b2ee4fb97195e8315f2b40acb01684421",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "oauth-page-channel-label-raw.log": {
+      "original_raw_sha256": "0a40c93e44ae41a48ced8e1425ce4c11485725025469b454a5add187ecffd4e4",
+      "archived_sha256": "8c8d6b331258dc1aef6fa4c799c4161db8e5e2f900706045246759f5441687f1",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    },
+    "provider-proof-matrix-raw.log": {
+      "original_raw_sha256": "572c15f747ca75f2bb69c321f76dd9febf389d390324874f35712fe4d3ffcd0b",
+      "archived_sha256": "b68708b712499ed41299138dc25a8f00158a442db63e30b90079a8c05e1978c7",
+      "transformation": "remove blank lines at EOF; preserve one final newline"
+    }
   }
 }

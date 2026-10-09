@@ -10,6 +10,7 @@
 当前定向验证为未提交工作树证据，最终干净源码 Full、EgoLite 回放、独立评审和 GitHub 读回在后续收口追加。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。
 [归档 manifest](assets/cpar-native-session-batch-20261009/manifest.json)只含安全回执、元数据和截图；临时 SQLite、凭据、TLS 私钥不归档。
+归档日志仅去掉多余空白尾行并保留末尾换行；manifest 同列原始与归档 SHA256。output 中原始日志及回执未改写。
 失败保持原始唯一文件。仅实际页面旧实现的丢响应失败及缺失原生删除预览的 404 是行为 RED；脚本非法优先级、容量、模式、空目录或重复工具历史的失败是 harness 错误，不能当产品缺陷。
 
 ## 六票 AC 与边界
