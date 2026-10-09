@@ -67,6 +67,23 @@ describe("S/E/O fixture contract evidence",()=>{
     const inventory=await call<CredentialInventory>("listManagedCredentials",{query:{upstream_id:"seo-api"}},{versionScoped:true});
     expect(inventory.items).toEqual([]);
   });
+  it.each([
+    {authentication:"oauth",entryType:"account",secret:JSON.stringify({access_token:"synthetic-kiro-access",refresh_token:"synthetic-kiro-refresh",auth_method:"social"})},
+    {authentication:"api_key",entryType:"api",secret:"ksk_synthetic_kiro_api_key"},
+  ])("projects imported Kiro $authentication in its production directory",async({authentication,entryType,secret})=>{
+    await call("createUpstream",{body:{id:"seo-kiro-import",name:"Kiro synthetic import",kind:"kiro",enabled:true,tags:[],egress_policy_id:null}},scope);
+    await call("importChannelAccount",{path:{upstream_id:"seo-kiro-import"},body:{id:"seo-kiro-import-account",channel:"kiro",secret}},scope);
+    const inventory=await call<CredentialInventory>("listManagedCredentials",{query:{upstream_id:"seo-kiro-import"}},{versionScoped:true});
+    expect(inventory.items).toHaveLength(1);
+    expect(inventory.items[0]).toMatchObject({credential:{id:"seo-kiro-import-account",kind:"bearer",status:"active"},authentication,category:"kiro",provider:"Kiro"});
+    const accounts=await call<AccountInventory>("listAccountInventory",{query:{upstream_id:"seo-kiro-import",entry_type:entryType}},{versionScoped:true});
+    expect(accounts.items).toHaveLength(1);
+    expect(accounts.items[0]).toMatchObject({id:"seo-kiro-import-account",status:"enabled",managed:{authentication,category:"kiro",provider:"Kiro"}});
+    expect(accounts.items[0]?.operations).toContain("update_credential");
+    expect(accounts.items[0]?.operations.includes("reauthorize")).toBe(authentication==="oauth");
+    const otherDirectory=await call<AccountInventory>("listAccountInventory",{query:{upstream_id:"seo-kiro-import",entry_type:entryType==="api"?"account":"api"}},{versionScoped:true});
+    expect(otherDirectory.items).toEqual([]);
+  });
   it("projects a completed Kiro bearer envelope as OAuth in both account inventories",async()=>{
     await call("createUpstream",{body:{id:"seo-kiro",name:"Kiro synthetic",kind:"kiro",enabled:true,tags:[],egress_policy_id:null}},scope);
     const started=await call<Receipt>("startKiroEnrollment",{path:{upstream_id:"seo-kiro"},body:{id:"seo-account"}},scope);

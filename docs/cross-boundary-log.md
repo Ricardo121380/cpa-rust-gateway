@@ -3720,3 +3720,13 @@ stays unknown. Release, deployment, real Provider and C/#57 completion remain di
 **Why:** Explicit S/E/O batch authorization includes the affected local Prism flow. Actual stock `/admin-ui/` readback reproduced the failure to recognize a valid published HTTPS connection. The authoritative Endpoint schema and real handler allow only HTTPS; operational `http/sse` belongs to a different projection. Fix the one comparison and stop configuration fixtures from rewriting HTTPS to HTTP. Preserve operational pool values, exact target matching and disabled settings.
 
 **Other side:** FYI — no backend contract or generated client change. Actual page RED, fixture create/read RED and 28-test targeted GREEN are recorded separately. Final committed-source embedded-page replay, batch Full and independent reviews follow.
+
+## 2026-10-09 · Codex · E-03 preserve Kiro API Key inventory classification after review
+
+**Touched:**
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/src/api/seo-fixtures.test.ts`
+
+**Why:** The authorized E-03 closeout includes production-compatible fixture material classification. Independent Spec review found the shared projection still returned null for a non-OAuth Kiro bearer. A generated-client import/inventory regression reproduced that mismatch. Return API Key for the unmarked material while retaining OAuth markers, and verify the two directory partitions and material-specific reauthorization action for both imports.
+
+**Other side:** FYI — fixture-only correction; production credential classification, management OpenAPI and generated client remain authoritative and unchanged. Directed RED is 14 passed/1 failed; GREEN is 15 passed. The final clean-source batch gate and independent reviews follow; previous browser runs retain their original source identifiers.

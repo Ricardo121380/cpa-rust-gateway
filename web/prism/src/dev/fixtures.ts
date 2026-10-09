@@ -716,7 +716,7 @@ function fixtureCredentialPresentation(version:VersionRow,credential:CredentialR
   const oauth=credential.kind==="oauth_json"||oauthCredentials.has(`${version.id}:${credential.id}`);
   const category=kind==="kimi-coding"?"kimi":kind==="claude"?"claude":kind==="kiro"?"kiro":credential.kind==="oauth_json"?"codex":"api";
   const provider=category==="kimi"?"Kimi":category==="codex"?"Codex":category==="claude"?"Claude":category==="kiro"?"Kiro":"API";
-  return {authentication:oauth?"oauth":kind==="kiro"?null:"api_key",category,provider,identity:{email:kind==="kimi-coding"?"kimi.member@example.test":credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null},plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null};
+  return {authentication:oauth?"oauth":"api_key",category,provider,identity:{email:kind==="kimi-coding"?"kimi.member@example.test":credential.id==="cred-codex-oauth"?"alex@example.test":null,phone:null,username:null},plan:category==="codex"?"free":null,plan_source:category==="codex"?"imported_metadata":null};
 }
 const deletedAccounts=new Map<string,number>();
 let deletionSequence=0;
