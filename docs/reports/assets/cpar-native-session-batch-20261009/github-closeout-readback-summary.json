@@ -1,0 +1,641 @@
+{
+  "read_utc": "2026-10-09T18:01:07.037339+00:00",
+  "repo": "Ricardo121380/cpa-rust-gateway",
+  "issues": [
+    {
+      "number": 9,
+      "state": "open",
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "comments": [
+        6081235490
+      ],
+      "blocked_by": []
+    },
+    {
+      "number": 14,
+      "state": "closed",
+      "body_sha256": "2cca7e20fa8292c8676266f750c15b7b15924eaeb9fbbc0577b9dd0f42c6fc89",
+      "comments": [
+        6081160338
+      ],
+      "blocked_by": [
+        {
+          "number": 11,
+          "state": "closed",
+          "database_id": 5631319498
+        }
+      ]
+    },
+    {
+      "number": 16,
+      "state": "open",
+      "body_sha256": "b7b2c02f39047c101be842f0febeba9ecefb0a082cf6fdbd2f054b250717b478",
+      "comments": [
+        6081163664
+      ],
+      "blocked_by": [
+        {
+          "number": 11,
+          "state": "closed",
+          "database_id": 5631319498
+        }
+      ]
+    },
+    {
+      "number": 17,
+      "state": "open",
+      "body_sha256": "3a9167bb0cc2936aaadfc81785ad2a7f1fc3eff18099f98324614cb8c6968ec4",
+      "comments": [
+        6081165210
+      ],
+      "blocked_by": [
+        {
+          "number": 16,
+          "state": "open",
+          "database_id": 5631336964
+        }
+      ]
+    },
+    {
+      "number": 20,
+      "state": "open",
+      "body_sha256": "4d5eb414f8f377fa07b1aa02bd8640e035c692ab47ad4b078558c745457a9aa2",
+      "comments": [
+        6081170429
+      ],
+      "blocked_by": [
+        {
+          "number": 16,
+          "state": "open",
+          "database_id": 5631336964
+        },
+        {
+          "number": 18,
+          "state": "closed",
+          "database_id": 5631341563
+        }
+      ]
+    },
+    {
+      "number": 22,
+      "state": "open",
+      "body_sha256": "d8c0468e80b0cb9366e2883b7e1cc2888f5c35b98fab95569858bd1d93fb0cda",
+      "comments": [
+        6081173892
+      ],
+      "blocked_by": [
+        {
+          "number": 16,
+          "state": "open",
+          "database_id": 5631336964
+        }
+      ]
+    },
+    {
+      "number": 23,
+      "state": "open",
+      "body_sha256": "48b61295a0cc165238f43f5edaff653b9fbeb079ce7fd9dc2b5aba04f184a063",
+      "comments": [
+        6081175296
+      ],
+      "blocked_by": [
+        {
+          "number": 22,
+          "state": "open",
+          "database_id": 5631349374
+        }
+      ]
+    },
+    {
+      "number": 24,
+      "state": "open",
+      "body_sha256": "16c9aea018fcb06b31c9d5de97c93ef6df2f8e544a97ba7838afb032be79457c",
+      "comments": [
+        6081176787
+      ],
+      "blocked_by": [
+        {
+          "number": 23,
+          "state": "open",
+          "database_id": 5631351673
+        }
+      ]
+    },
+    {
+      "number": 25,
+      "state": "open",
+      "body_sha256": "3bc6edb78adf7f0c31fcae614a71575de3d9dace545e17b5f410d5d1ccd40e66",
+      "comments": [
+        6081178230
+      ],
+      "blocked_by": [
+        {
+          "number": 20,
+          "state": "open",
+          "database_id": 5631344805
+        }
+      ]
+    },
+    {
+      "number": 26,
+      "state": "open",
+      "body_sha256": "2eb9f5f2b5923c21a37ce912c87caef9f4183fd617f0994a554bea7c6d3710f8",
+      "comments": [
+        6081179671
+      ],
+      "blocked_by": [
+        {
+          "number": 19,
+          "state": "closed",
+          "database_id": 5631343239
+        },
+        {
+          "number": 20,
+          "state": "open",
+          "database_id": 5631344805
+        }
+      ]
+    },
+    {
+      "number": 36,
+      "state": "closed",
+      "body_sha256": "86aa567cabbbf11d38decf0c02068151c5d6c6d8fe177b1f44dbea49bf44a95a",
+      "comments": [
+        6081197675
+      ],
+      "blocked_by": [
+        {
+          "number": 28,
+          "state": "closed",
+          "database_id": 5631367974
+        },
+        {
+          "number": 30,
+          "state": "closed",
+          "database_id": 5631372136
+        },
+        {
+          "number": 31,
+          "state": "closed",
+          "database_id": 5631373786
+        },
+        {
+          "number": 35,
+          "state": "closed",
+          "database_id": 5631380417
+        }
+      ]
+    },
+    {
+      "number": 37,
+      "state": "closed",
+      "body_sha256": "fbb2cc736e394c66c6e78e2aed3d227b7ad20bfd709ae6c69ea44d830cec4320",
+      "comments": [
+        6081199104
+      ],
+      "blocked_by": [
+        {
+          "number": 36,
+          "state": "closed",
+          "database_id": 5631381929
+        }
+      ]
+    },
+    {
+      "number": 38,
+      "state": "closed",
+      "body_sha256": "6fa8d5494b7fedcf05c21dc74870e4a13f27efcaa1768f44259895a964e0ee7e",
+      "comments": [
+        6081200568
+      ],
+      "blocked_by": [
+        {
+          "number": 29,
+          "state": "closed",
+          "database_id": 5631369676
+        },
+        {
+          "number": 33,
+          "state": "closed",
+          "database_id": 5631376962
+        },
+        {
+          "number": 36,
+          "state": "closed",
+          "database_id": 5631381929
+        }
+      ]
+    },
+    {
+      "number": 55,
+      "state": "open",
+      "body_sha256": "4363a32c3ca656936b433744595690bd05f0404d3f34d697c89e82c94558d201",
+      "comments": [
+        6081231143
+      ],
+      "blocked_by": [
+        {
+          "number": 20,
+          "state": "open",
+          "database_id": 5631344805
+        },
+        {
+          "number": 51,
+          "state": "closed",
+          "database_id": 5631491699
+        }
+      ]
+    },
+    {
+      "number": 56,
+      "state": "open",
+      "body_sha256": "5a98668c59a139ae912a40fe745028f2206ebe4267352e81f5a592295aa3714f",
+      "comments": [
+        6081232700
+      ],
+      "blocked_by": [
+        {
+          "number": 24,
+          "state": "open",
+          "database_id": 5631353971
+        },
+        {
+          "number": 51,
+          "state": "closed",
+          "database_id": 5631491699
+        }
+      ]
+    },
+    {
+      "number": 57,
+      "state": "open",
+      "body_sha256": "597ec121f4668d044ef17dd5d011380c5642abf3d03c90b017c05a8bc1d09fe1",
+      "comments": [
+        6081234278
+      ],
+      "blocked_by": [
+        {
+          "number": 12,
+          "state": "closed",
+          "database_id": 5631328914
+        },
+        {
+          "number": 17,
+          "state": "open",
+          "database_id": 5631339239
+        },
+        {
+          "number": 21,
+          "state": "closed",
+          "database_id": 5631347684
+        },
+        {
+          "number": 25,
+          "state": "open",
+          "database_id": 5631356096
+        },
+        {
+          "number": 26,
+          "state": "open",
+          "database_id": 5631358441
+        },
+        {
+          "number": 37,
+          "state": "closed",
+          "database_id": 5631386213
+        },
+        {
+          "number": 38,
+          "state": "closed",
+          "database_id": 5631388515
+        },
+        {
+          "number": 40,
+          "state": "open",
+          "database_id": 5631395778
+        },
+        {
+          "number": 41,
+          "state": "open",
+          "database_id": 5631402450
+        },
+        {
+          "number": 42,
+          "state": "open",
+          "database_id": 5631408970
+        },
+        {
+          "number": 43,
+          "state": "open",
+          "database_id": 5631415759
+        },
+        {
+          "number": 44,
+          "state": "open",
+          "database_id": 5631422686
+        },
+        {
+          "number": 45,
+          "state": "open",
+          "database_id": 5631429622
+        },
+        {
+          "number": 46,
+          "state": "open",
+          "database_id": 5631436822
+        },
+        {
+          "number": 47,
+          "state": "open",
+          "database_id": 5631444349
+        },
+        {
+          "number": 48,
+          "state": "open",
+          "database_id": 5631451729
+        },
+        {
+          "number": 49,
+          "state": "open",
+          "database_id": 5631458604
+        },
+        {
+          "number": 50,
+          "state": "open",
+          "database_id": 5631464240
+        },
+        {
+          "number": 52,
+          "state": "closed",
+          "database_id": 5631493317
+        },
+        {
+          "number": 53,
+          "state": "closed",
+          "database_id": 5631495525
+        },
+        {
+          "number": 54,
+          "state": "closed",
+          "database_id": 5631498436
+        },
+        {
+          "number": 55,
+          "state": "open",
+          "database_id": 5631513961
+        },
+        {
+          "number": 56,
+          "state": "open",
+          "database_id": 5631516660
+        }
+      ]
+    }
+  ],
+  "implementation": [
+    {
+      "number": 10,
+      "state": "closed",
+      "title": "CPAR-01：普通账号导入如实反馈保存与生效"
+    },
+    {
+      "number": 11,
+      "state": "closed",
+      "title": "CPAR-02：同流程核对并应用待生效修改"
+    },
+    {
+      "number": 12,
+      "state": "closed",
+      "title": "CPAR-03：提供商、账号与 OAuth 入口分工"
+    },
+    {
+      "number": 13,
+      "state": "closed",
+      "title": "CPAR-04：上游 API Key 单表单直接接入"
+    },
+    {
+      "number": 14,
+      "state": "closed",
+      "title": "CPAR-05：Codex／Claude 授权自动登记与结果核对"
+    },
+    {
+      "number": 15,
+      "state": "closed",
+      "title": "CPAR-06：Kimi／Kiro 设备授权接入与恢复"
+    },
+    {
+      "number": 16,
+      "state": "open",
+      "title": "CPAR-07：Grok 原生账号接入与运行应用反馈"
+    },
+    {
+      "number": 17,
+      "state": "open",
+      "title": "CPAR-08：重复与批量导入逐项核对和恢复"
+    },
+    {
+      "number": 18,
+      "state": "closed",
+      "title": "CPAR-09：模型发现、陈旧目录与手动补齐"
+    },
+    {
+      "number": 19,
+      "state": "closed",
+      "title": "CPAR-10：独立模型权限入口与默认关闭"
+    },
+    {
+      "number": 20,
+      "state": "open",
+      "title": "CPAR-11：主要状态、原因与独立证据详情"
+    },
+    {
+      "number": 21,
+      "state": "closed",
+      "title": "CPAR-12：正常续期与失效分类保留停用意图"
+    },
+    {
+      "number": 22,
+      "state": "open",
+      "title": "CPAR-13：账号启停：停止新分配、在途继续"
+    },
+    {
+      "number": 23,
+      "state": "open",
+      "title": "CPAR-14：删除影响预览与共享资源历史保留"
+    },
+    {
+      "number": 24,
+      "state": "open",
+      "title": "CPAR-15：旧配置恢复账号前明确核对"
+    },
+    {
+      "number": 25,
+      "state": "open",
+      "title": "CPAR-16：高级解除隔离只表示允许再次尝试"
+    },
+    {
+      "number": 26,
+      "state": "open",
+      "title": "CPAR-17：显式调用测试与证据失效"
+    },
+    {
+      "number": 27,
+      "state": "closed",
+      "title": "CPAR-18：三协议文本多轮与严格请求准入"
+    },
+    {
+      "number": 28,
+      "state": "closed",
+      "title": "CPAR-19：三协议非流式工具多轮闭环"
+    },
+    {
+      "number": 29,
+      "state": "closed",
+      "title": "CPAR-20：流式工具与并行控制保持完整"
+    },
+    {
+      "number": 30,
+      "state": "closed",
+      "title": "CPAR-21：思考语义与 Chat 准入一致"
+    },
+    {
+      "number": 31,
+      "state": "closed",
+      "title": "CPAR-22：签名、引用与缓存语义保真"
+    },
+    {
+      "number": 32,
+      "state": "closed",
+      "title": "CPAR-23：用量细项从响应到 Usage／账本保真"
+    },
+    {
+      "number": 33,
+      "state": "closed",
+      "title": "CPAR-24：流终态、取消与透明重试正确"
+    },
+    {
+      "number": 34,
+      "state": "closed",
+      "title": "CPAR-25：公开错误、模型权限与失败范围隔离"
+    },
+    {
+      "number": 35,
+      "state": "closed",
+      "title": "CPAR-26：已保存 Responses 的所有权与重启读取"
+    },
+    {
+      "number": 36,
+      "state": "closed",
+      "title": "CPAR-27：精确 Responses 续接保留完整历史"
+    },
+    {
+      "number": 37,
+      "state": "closed",
+      "title": "CPAR-28：Responses 压缩保持所有权与精确账号"
+    },
+    {
+      "number": 38,
+      "state": "closed",
+      "title": "CPAR-29：Responses WebSocket 生命周期与续接"
+    },
+    {
+      "number": 39,
+      "state": "open",
+      "title": "CPAR-30：Kiro 跨协议运行装配与参数转换"
+    },
+    {
+      "number": 40,
+      "state": "open",
+      "title": "CPAR-31：openai-compatible 渠道差异与逐组合验收"
+    },
+    {
+      "number": 41,
+      "state": "open",
+      "title": "CPAR-32：anthropic-compatible 渠道差异与逐组合验收"
+    },
+    {
+      "number": 42,
+      "state": "open",
+      "title": "CPAR-33：codex 渠道差异与逐组合验收"
+    },
+    {
+      "number": 43,
+      "state": "open",
+      "title": "CPAR-34：claude 渠道差异与逐组合验收"
+    },
+    {
+      "number": 44,
+      "state": "open",
+      "title": "CPAR-35：grok.official 渠道差异与逐组合验收"
+    },
+    {
+      "number": 45,
+      "state": "open",
+      "title": "CPAR-36：kimi-coding 渠道差异与逐组合验收"
+    },
+    {
+      "number": 46,
+      "state": "open",
+      "title": "CPAR-37：kimi-api 渠道差异与逐组合验收"
+    },
+    {
+      "number": 47,
+      "state": "open",
+      "title": "CPAR-38：grok.build 渠道差异与逐组合验收"
+    },
+    {
+      "number": 48,
+      "state": "open",
+      "title": "CPAR-39：grok.console 渠道差异与逐组合验收"
+    },
+    {
+      "number": 49,
+      "state": "open",
+      "title": "CPAR-40：grok.web 渠道差异与逐组合验收"
+    },
+    {
+      "number": 50,
+      "state": "open",
+      "title": "CPAR-41：kiro 渠道差异与逐组合验收"
+    },
+    {
+      "number": 51,
+      "state": "closed",
+      "title": "CPAR-42：公共外壳、登录与全局反馈基础统一"
+    },
+    {
+      "number": 52,
+      "state": "closed",
+      "title": "CPAR-43：概览、请求与失败页面基础体验"
+    },
+    {
+      "number": 53,
+      "state": "closed",
+      "title": "CPAR-44：用量／计费页面与不完整历史反馈"
+    },
+    {
+      "number": 54,
+      "state": "closed",
+      "title": "CPAR-45：模型目录、路由与访问控制基础体验"
+    },
+    {
+      "number": 55,
+      "state": "open",
+      "title": "CPAR-46：运行诊断与出口策略基础体验"
+    },
+    {
+      "number": 56,
+      "state": "open",
+      "title": "CPAR-47：配置版本、审计备份与设置基础体验"
+    },
+    {
+      "number": 57,
+      "state": "open",
+      "title": "CPAR-48：分批交付证据与全范围收口"
+    }
+  ],
+  "counts": {
+    "closed": 25,
+    "open": 23
+  }
+}

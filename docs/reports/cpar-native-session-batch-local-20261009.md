@@ -9,7 +9,7 @@
 
 初次行为代码提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档格式修正提交 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b` 与它的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。原生展示/交接修正为 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3`；普通名称修正为 `509ec0f4988bbc76c03ea5037f0241b4270c6c1b`；批次比较修正及当前干净门槛绑定 `3b3896be34809f5b81f075d0500f23a2bc3020b2`。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。
-[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮129份唯一原始执行回执、命令、时间及日志 SHA256。当前门槛为[新45步日志](assets/cpar-native-session-batch-20261009/selected-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/selected-gate-attestation.json)；此前[2bb门槛](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)保留各自来源。最新源码独立复评与 GitHub 读回仍待最后收口。
+[最终执行索引](assets/cpar-native-session-batch-20261009/final-evidence-index.json)保留本轮唯一原始执行回执、命令、时间及日志 SHA256。当前门槛为[新45步日志](assets/cpar-native-session-batch-20261009/selected-clean-full-steps.md)和[源码/环境/计数 attestation](assets/cpar-native-session-batch-20261009/selected-gate-attestation.json)；此前[2bb门槛](assets/cpar-native-session-batch-20261009/final-gate-attestation.json)保留各自来源。[最终两轴终态](assets/cpar-native-session-batch-20261009/review-final.md)绑定eb0afbba，与通过门槛的3b3896be代码/契约一致：Standards静态PASS，Spec PARTIAL。
 [归档 manifest](assets/cpar-native-session-batch-20261009/manifest.json)只含安全回执、元数据和截图；临时 SQLite、凭据、TLS 私钥不归档。
 归档日志仅规范多余空白尾行、cargo诊断的行尾空格并保留末尾换行；manifest 同列原始与归档 SHA256及具体转换。output 中原始日志及回执未改写。
 失败保持原始唯一文件。仅实际页面旧实现的丢响应失败及缺失原生删除预览的 404 是行为 RED；脚本非法优先级、容量、模式、空目录或重复工具历史的失败是 harness 错误，不能当产品缺陷。
@@ -20,10 +20,10 @@
 | --- | --- | --- |
 | #14 / CPAR-05 | 真实管理 HTTP 身份矩阵：Codex/Claude × same/different/unknown × enabled/disabled，共12组；首次创建随后维护。EgoLite 18项首次、同/异/未知身份、停用维护、callback丢响应、维护丢响应、绑定及发布失败 | 定向 PASS。HTTP 判断真实受控 identity guard；fixture 页面只投影这些已验证判定并验证控件、保存/应用、回读与不重放，不能称真实 OAuth 浏览器身份验收 |
 | #16 / CPAR-07（当前 PARTIAL） | 实际 embedded /admin-ui/ Build grant；CDP 暂停成功响应前独立 SQLite 确认保存，再丢连接，关闭/离开/返回只 GET 同原会话；保存账号ID/revision、身份、runtime分别显示 | 有意义旧页面 RED、修复 GREEN；exchange1、账号1、创建1、cancel0。actor/TTL 单元和 HTTP 隔离分别记录。恢复只限原actor、原TTL、当前进程/管理会话，无跨进程 receipt 承诺。已有 Web/Console/零一多目标及停用保持复核 |
-| #22 / CPAR-13 | 普通/native 页面分别启用停用；19项生命周期矩阵包含草稿、发布/应用失败、已应用、拒绝、丢响应先读。普通受控 TLS 长流/并发新请求与 native production facade held stream 分开 | 定向 PASS。停用撤去新分配和后续重试资格，在途自然完结；启用只恢复许可，auth/权限/额度/容量/continuity仍独立 |
-| #23 / CPAR-14（新展示复验待定） | 原生 preview GET 列出精确连接、服务、public/upstream模型、停用状态、剩余账号；排除其他adapter。graph锁+库存代数+target revision同事务删除；批次新鲜预览只允许本批已确认移除项消失 | HTTP与页面定向 PASS；普通与native DELETE有独立长流/并发新请求证据，普通bootstrap失败删除后零fallback。实际普通/native请求、Usage、非空账本ID集合及审计/存储响应保留，共享连接/模型/其他账号保留；无替补保证、无上游注销承诺 |
+| #22 / CPAR-13 | 普通/native 页面分别启用停用；19项生命周期矩阵包含草稿、发布/应用失败、已应用、拒绝、丢响应先读。普通受控 TLS 长流/并发新请求与 native production facade held stream 分开 | 自身本地AC PASS，原依赖#16仍OPEN。停用撤去新分配和后续重试资格，在途自然完结；启用只恢复许可，auth/权限/额度/容量/continuity仍独立 |
+| #23 / CPAR-14（PARTIAL） | 原生 preview GET 列出精确连接、服务、public/upstream模型、停用状态、剩余账号；排除其他adapter。graph锁+库存代数+target revision同事务删除；批次新鲜预览只允许本批已确认移除项消失 | 旧HTTP/fixture定向通过；最新比较层15项GREEN，名称及批次漂移页面NOT_RUN。普通/native真DELETE有独立在途/新分配证据，普通bootstrap失败删除后零fallback；原非空Request/Usage/账本ID及审计/存储响应、共享连接/模型/其他账号保留，无替补或上游注销承诺。原依赖#22仍OPEN |
 | #36 / CPAR-27 | 保留获批严格Build正常刷新例外；真实生产worker、文件SQLite、publicJSON/SSE、证明range/CAS负例与实际stock进程重启 | 定向 PASS。两根首轮各1、刷新后续接各1，总推理4、刷新1、fallback0。手动重新授权后旧range不匹配新runtime revision，JSON/SSE拒绝且成功根仍4。非法/缺失/冲突/noncontiguous证明不生成成功根；普通OAuth/APIKey/Web/ConsoleSSO仍精确revision |
-| #56 / CPAR-47 | Versions403及恢复、选择历史基线并核对非空差异/游标、compare403、两类audit403、backupPreview403、Settings403不可apply；保留恢复确认/备份加密与目标/unknown先读 | 新增家族定向6项 PASS；Preferences为仅内存会话偏好，管理资源权限拒绝N/A有源码依据。历史桌面/窄屏/主题/焦点/Escape证据仍仅证明各自原场景 |
+| #56 / CPAR-47 | Versions403及恢复、选择历史基线并核对非空差异/游标、compare403、两类audit403、backupPreview403、Settings403不可apply；保留恢复确认/备份加密与目标/unknown先读 | 自身本地AC PASS，原依赖#24仍OPEN。新增家族定向6项PASS；Preferences为仅内存会话偏好，管理资源权限拒绝N/A有源码依据。历史桌面/窄屏/主题/焦点/Escape证据仍仅证明各自原场景 |
 
 ## E-05 输入与断言地图
 
@@ -56,7 +56,7 @@
 | --- | --- | --- |
 | 本批必要实现/契约/定向证据 | PARTIAL | #16直接导航尚未动态复现；#23最新展示回放NOT_RUN；其他定向结果按上述六票地图保留 |
 | 最终clean Full/前端double build | PASS_LOCAL | clean源码3b3896be，45步/Rust1499通过0失败12忽略/前端513/类型/双构建PASS |
-| 两轴独立评审 | 待复评 | 第二次Standards有一项名称展示发现，Spec为一项P2未满足；最新修正源码须重新评审 |
+| 两轴独立评审 | Standards PASS / Spec PARTIAL | 最终独立终态绑定eb0afbba，与clean 3b3896be代码/契约一致；hard0/smell0，Spec保留#16源码疑点及#23必需页面缺口 |
 | Grok Web原生多轮 | 未满足 | 仍是后续独立软件范围，本批未新增例外 |
 | Kiro native输出硬上限 | 未满足 | 仍是后续独立软件范围 |
 | 完整既有数据升级兼容及回退 | 未满足 | 仅有有界合成保留/恢复证据，不代表全量既有数据 |
@@ -100,8 +100,30 @@ GitHub 16个对象的本次写入前读回与此前正文、评论及原生依�
 
 #23疑点已在实际比较函数上以当时生产调用参数复现：未执行的选中成员revision、启停、auth或消失均被错误判断为相同，四项FAIL/两项既有PASS，原始回执和输入patch保留。这是本地比较层RED，未执行浏览器或公开HTTP对此场景的复现。修正后比较函数接收目标和逐项结果，仅允许成功DELETE回执对应成员消失，拒绝重新出现、未知/未执行结果和跨ordinary/native命名空间混用。15项定向比较回归与type-check PASS；新行为的实际页面回放仍NOT_RUN，#23保持PARTIAL。
 
-#16直接导航仍仅是未动态复现的独立疑点，未据此修改代码。新的最终源码须完成干净门槛和独立复评，GitHub写入依然待收口。
+#16直接导航仍仅是未动态复现的独立疑点，未据此修改代码。第三次评审时新源码门槛、复评及GitHub尚待收口；其后门槛与最终独立复评结果分别见下节和最终终态归档。
 
 ## 当前最终行为源码的干净检查
 
 批次比较修正源码3b3896be34809f5b81f075d0500f23a2bc3020b2的干净checkout完成Full45步PASS，Rust1499通过/0失败/12忽略、前端70文件/513测试、类型检查及Full内双构建PASS。原始Full日志SHA256为`e2662b221af30a9d1ff82f34e8d510a9ae0194f4aad6006503d54aa89b7b6719`。最新源码GitHub commit查询仍返回422未找到SHA，本轮未push。新删除名称/批次变化的页面补验，以及Build直接导航复现仍NOT_RUN，不能据本地比较GREEN关闭#23或据Full关闭#16。
+
+## GitHub 实际回写与读回（2026-10-10）
+
+已完成16条已有进度评论的PATCH、5份正文的有据AC更新及4票关闭；没有新建重复评论。写前及写后均读取全部16个对象的正文、全部评论、状态和原生依赖。首次并行写前GET #17依赖遭遇EOF，尚未进入mutation loop；保留失败回执，完整读回确认未变后用唯一新执行恢复。正式回写成功，随后独立完整读回与校验PASS。
+
+| 实际对象 | 正文/状态结果 | 证据或保留原因 |
+| --- | --- | --- |
+| [#14](https://github.com/Ricardo121380/cpa-rust-gateway/issues/14) | AC5勾选，CLOSED | HTTP12与fixture18逐场景联合覆盖，#11已CLOSED |
+| [#36](https://github.com/Ricardo121380/cpa-rust-gateway/issues/36) | AC3/4/5/8勾选，CLOSED | 获批E-05正反验收及最终门槛通过；只更新决策末段验收状态，获批规则保留；四个前置实际CLOSED |
+| [#37](https://github.com/Ricardo121380/cpa-rust-gateway/issues/37)、[#38](https://github.com/Ricardo121380/cpa-rust-gateway/issues/38) | 原AC保留，CLOSED | 自身证据及本轮共享路径复核；在#36实际关闭后再核对全部blocker并收口 |
+| [#16](https://github.com/Ricardo121380/cpa-rust-gateway/issues/16) | AC5/6留空，OPEN | 原显式close路径通过；直接导航和最新身份展示未补验 |
+| [#22](https://github.com/Ricardo121380/cpa-rust-gateway/issues/22) | AC1/5勾选，OPEN | 自身本地AC齐全，仍由OPEN #16阻塞 |
+| [#23](https://github.com/Ricardo121380/cpa-rust-gateway/issues/23) | AC4勾选，AC1/5留空，OPEN | 两类真DELETE/在途/历史保留有据；新名称与批次漂移页面NOT_RUN，#22仍OPEN |
+| [#56](https://github.com/Ricardo121380/cpa-rust-gateway/issues/56) | AC4勾选，OPEN | 本家族拒绝/实际历史比较补齐，自身AC齐全；仍由OPEN #24阻塞 |
+| #17/#20/#24/#25/#26/#55 | 原自身AC保留，OPEN | 本轮共同路径复核通过，原生前置仍未解除；均更新原评论说明 |
+| [父#9进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)、[#57进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278) | 评论更新，两者OPEN | 父规格正文原字节保留；全部原生依赖数据库ID不变，能力范围不缩减 |
+
+48张实施票实际由21 CLOSED/27 OPEN变为**25 CLOSED/23 OPEN**；本次状态变化仅#14/#36/#37/#38。未完成的本批10票与后续#39–#50/#57保持OPEN。详见[实际回写/读回attestation](assets/cpar-native-session-batch-20261009/github-closeout-attestation.json)、[读回摘要](assets/cpar-native-session-batch-20261009/github-closeout-readback-summary.json)及[25项mutation ledger](assets/cpar-native-session-batch-20261009/github-closeout-mutation-ledger.jsonl)。评论ID及数量逐票匹配原快照，正文与预审payload逐字匹配，没有漏写、误关或删除依赖。
+
+最终代码独立评审为Standards静态PASS（hard0/smell0），Spec PARTIAL（#16 P2源码疑点1、#23必需页面缺口1，新增已确认实现硬缺陷0）。其后修改仅为报告、评审终态及GitHub回执归档，最终行为代码仍绑定clean 3b3896be。文档收口须核对链接、契约、计划状态、阈值、Caddy、secret及完整tracked whitespace；不因metadata再次重跑Full。
+
+[收口时源码查询](assets/cpar-native-session-batch-20261009/github-closeout-code-not-uploaded.json)仍为GitHub 422未找到行为SHA；本批代码未push。GitHub工单回写已完成，与代码上传、远端CI、发布制品、部署及生产分别记录。

@@ -1,0 +1,746 @@
+{
+  "result": "PASS_GITHUB_WRITE_AND_READBACK",
+  "verified_utc": "2026-10-09T18:01:47.879156+00:00",
+  "repo": "Ricardo121380/cpa-rust-gateway",
+  "code_source": "3b3896be34809f5b81f075d0500f23a2bc3020b2",
+  "review_head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+  "before_snapshot_utc": "2026-10-09T17:51:50.493022+00:00",
+  "readback_snapshot_utc": "2026-10-09T18:01:07.037339+00:00",
+  "closed": [
+    14,
+    36,
+    37,
+    38
+  ],
+  "updated_existing_comments": 16,
+  "changed_bodies": 5,
+  "mutations": 25,
+  "no_duplicate_comment": true,
+  "all_native_dependency_ids_preserved": true,
+  "parent9_body_preserved": true,
+  "parent9_body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+  "parents_9_57": "OPEN",
+  "counts": {
+    "closed": 25,
+    "open": 23
+  },
+  "implementation": [
+    {
+      "number": 10,
+      "state": "closed",
+      "title": "CPAR-01：普通账号导入如实反馈保存与生效"
+    },
+    {
+      "number": 11,
+      "state": "closed",
+      "title": "CPAR-02：同流程核对并应用待生效修改"
+    },
+    {
+      "number": 12,
+      "state": "closed",
+      "title": "CPAR-03：提供商、账号与 OAuth 入口分工"
+    },
+    {
+      "number": 13,
+      "state": "closed",
+      "title": "CPAR-04：上游 API Key 单表单直接接入"
+    },
+    {
+      "number": 14,
+      "state": "closed",
+      "title": "CPAR-05：Codex／Claude 授权自动登记与结果核对"
+    },
+    {
+      "number": 15,
+      "state": "closed",
+      "title": "CPAR-06：Kimi／Kiro 设备授权接入与恢复"
+    },
+    {
+      "number": 16,
+      "state": "open",
+      "title": "CPAR-07：Grok 原生账号接入与运行应用反馈"
+    },
+    {
+      "number": 17,
+      "state": "open",
+      "title": "CPAR-08：重复与批量导入逐项核对和恢复"
+    },
+    {
+      "number": 18,
+      "state": "closed",
+      "title": "CPAR-09：模型发现、陈旧目录与手动补齐"
+    },
+    {
+      "number": 19,
+      "state": "closed",
+      "title": "CPAR-10：独立模型权限入口与默认关闭"
+    },
+    {
+      "number": 20,
+      "state": "open",
+      "title": "CPAR-11：主要状态、原因与独立证据详情"
+    },
+    {
+      "number": 21,
+      "state": "closed",
+      "title": "CPAR-12：正常续期与失效分类保留停用意图"
+    },
+    {
+      "number": 22,
+      "state": "open",
+      "title": "CPAR-13：账号启停：停止新分配、在途继续"
+    },
+    {
+      "number": 23,
+      "state": "open",
+      "title": "CPAR-14：删除影响预览与共享资源历史保留"
+    },
+    {
+      "number": 24,
+      "state": "open",
+      "title": "CPAR-15：旧配置恢复账号前明确核对"
+    },
+    {
+      "number": 25,
+      "state": "open",
+      "title": "CPAR-16：高级解除隔离只表示允许再次尝试"
+    },
+    {
+      "number": 26,
+      "state": "open",
+      "title": "CPAR-17：显式调用测试与证据失效"
+    },
+    {
+      "number": 27,
+      "state": "closed",
+      "title": "CPAR-18：三协议文本多轮与严格请求准入"
+    },
+    {
+      "number": 28,
+      "state": "closed",
+      "title": "CPAR-19：三协议非流式工具多轮闭环"
+    },
+    {
+      "number": 29,
+      "state": "closed",
+      "title": "CPAR-20：流式工具与并行控制保持完整"
+    },
+    {
+      "number": 30,
+      "state": "closed",
+      "title": "CPAR-21：思考语义与 Chat 准入一致"
+    },
+    {
+      "number": 31,
+      "state": "closed",
+      "title": "CPAR-22：签名、引用与缓存语义保真"
+    },
+    {
+      "number": 32,
+      "state": "closed",
+      "title": "CPAR-23：用量细项从响应到 Usage／账本保真"
+    },
+    {
+      "number": 33,
+      "state": "closed",
+      "title": "CPAR-24：流终态、取消与透明重试正确"
+    },
+    {
+      "number": 34,
+      "state": "closed",
+      "title": "CPAR-25：公开错误、模型权限与失败范围隔离"
+    },
+    {
+      "number": 35,
+      "state": "closed",
+      "title": "CPAR-26：已保存 Responses 的所有权与重启读取"
+    },
+    {
+      "number": 36,
+      "state": "closed",
+      "title": "CPAR-27：精确 Responses 续接保留完整历史"
+    },
+    {
+      "number": 37,
+      "state": "closed",
+      "title": "CPAR-28：Responses 压缩保持所有权与精确账号"
+    },
+    {
+      "number": 38,
+      "state": "closed",
+      "title": "CPAR-29：Responses WebSocket 生命周期与续接"
+    },
+    {
+      "number": 39,
+      "state": "open",
+      "title": "CPAR-30：Kiro 跨协议运行装配与参数转换"
+    },
+    {
+      "number": 40,
+      "state": "open",
+      "title": "CPAR-31：openai-compatible 渠道差异与逐组合验收"
+    },
+    {
+      "number": 41,
+      "state": "open",
+      "title": "CPAR-32：anthropic-compatible 渠道差异与逐组合验收"
+    },
+    {
+      "number": 42,
+      "state": "open",
+      "title": "CPAR-33：codex 渠道差异与逐组合验收"
+    },
+    {
+      "number": 43,
+      "state": "open",
+      "title": "CPAR-34：claude 渠道差异与逐组合验收"
+    },
+    {
+      "number": 44,
+      "state": "open",
+      "title": "CPAR-35：grok.official 渠道差异与逐组合验收"
+    },
+    {
+      "number": 45,
+      "state": "open",
+      "title": "CPAR-36：kimi-coding 渠道差异与逐组合验收"
+    },
+    {
+      "number": 46,
+      "state": "open",
+      "title": "CPAR-37：kimi-api 渠道差异与逐组合验收"
+    },
+    {
+      "number": 47,
+      "state": "open",
+      "title": "CPAR-38：grok.build 渠道差异与逐组合验收"
+    },
+    {
+      "number": 48,
+      "state": "open",
+      "title": "CPAR-39：grok.console 渠道差异与逐组合验收"
+    },
+    {
+      "number": 49,
+      "state": "open",
+      "title": "CPAR-40：grok.web 渠道差异与逐组合验收"
+    },
+    {
+      "number": 50,
+      "state": "open",
+      "title": "CPAR-41：kiro 渠道差异与逐组合验收"
+    },
+    {
+      "number": 51,
+      "state": "closed",
+      "title": "CPAR-42：公共外壳、登录与全局反馈基础统一"
+    },
+    {
+      "number": 52,
+      "state": "closed",
+      "title": "CPAR-43：概览、请求与失败页面基础体验"
+    },
+    {
+      "number": 53,
+      "state": "closed",
+      "title": "CPAR-44：用量／计费页面与不完整历史反馈"
+    },
+    {
+      "number": 54,
+      "state": "closed",
+      "title": "CPAR-45：模型目录、路由与访问控制基础体验"
+    },
+    {
+      "number": 55,
+      "state": "open",
+      "title": "CPAR-46：运行诊断与出口策略基础体验"
+    },
+    {
+      "number": 56,
+      "state": "open",
+      "title": "CPAR-47：配置版本、审计备份与设置基础体验"
+    },
+    {
+      "number": 57,
+      "state": "open",
+      "title": "CPAR-48：分批交付证据与全范围收口"
+    }
+  ],
+  "issues": [
+    {
+      "number": 14,
+      "state": "closed",
+      "state_reason": "completed",
+      "body_sha256_before": "ec8e76e9637e986107b090a559ffd4051a546a4548e27680498b5ee42eab2aa0",
+      "body_sha256_after": "2cca7e20fa8292c8676266f750c15b7b15924eaeb9fbbc0577b9dd0f42c6fc89",
+      "body_changed": true,
+      "existing_comment_id": 6081160338,
+      "comment_sha256": "2c65478c88dfe38eddba07d414fa0dd89b41ccb7b62be9ba54846cf6c5230481",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 11,
+          "database_id": 5631319498,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:00:55.020586+00:00"
+    },
+    {
+      "number": 36,
+      "state": "closed",
+      "state_reason": "completed",
+      "body_sha256_before": "626a314fe5fea738c0464c11d761efa26e6cbdd43121bacfdc10dd3ec6fe5b7f",
+      "body_sha256_after": "86aa567cabbbf11d38decf0c02068151c5d6c6d8fe177b1f44dbea49bf44a95a",
+      "body_changed": true,
+      "existing_comment_id": 6081197675,
+      "comment_sha256": "976102d4e2d820b7ad23cc753593dbd5f28e7f3b4aa4e5951b123340240d5f31",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 28,
+          "database_id": 5631367974,
+          "state": "closed"
+        },
+        {
+          "number": 30,
+          "database_id": 5631372136,
+          "state": "closed"
+        },
+        {
+          "number": 31,
+          "database_id": 5631373786,
+          "state": "closed"
+        },
+        {
+          "number": 35,
+          "database_id": 5631380417,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:01.355052+00:00"
+    },
+    {
+      "number": 37,
+      "state": "closed",
+      "state_reason": "completed",
+      "body_sha256_before": "fbb2cc736e394c66c6e78e2aed3d227b7ad20bfd709ae6c69ea44d830cec4320",
+      "body_sha256_after": "fbb2cc736e394c66c6e78e2aed3d227b7ad20bfd709ae6c69ea44d830cec4320",
+      "body_changed": false,
+      "existing_comment_id": 6081199104,
+      "comment_sha256": "519268dd006ba713ce63ccb1f410258bda8f1473ce469e421211478c36a8509e",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 36,
+          "database_id": 5631381929,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:01.647222+00:00"
+    },
+    {
+      "number": 38,
+      "state": "closed",
+      "state_reason": "completed",
+      "body_sha256_before": "6fa8d5494b7fedcf05c21dc74870e4a13f27efcaa1768f44259895a964e0ee7e",
+      "body_sha256_after": "6fa8d5494b7fedcf05c21dc74870e4a13f27efcaa1768f44259895a964e0ee7e",
+      "body_changed": false,
+      "existing_comment_id": 6081200568,
+      "comment_sha256": "c4a860d5ff6ddce412053d3dc972ccfb101f1847e88822f8218b5e9408b3c717",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 29,
+          "database_id": 5631369676,
+          "state": "closed"
+        },
+        {
+          "number": 33,
+          "database_id": 5631376962,
+          "state": "closed"
+        },
+        {
+          "number": 36,
+          "database_id": 5631381929,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:04.279881+00:00"
+    },
+    {
+      "number": 16,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "b7b2c02f39047c101be842f0febeba9ecefb0a082cf6fdbd2f054b250717b478",
+      "body_sha256_after": "b7b2c02f39047c101be842f0febeba9ecefb0a082cf6fdbd2f054b250717b478",
+      "body_changed": false,
+      "existing_comment_id": 6081163664,
+      "comment_sha256": "7d56b58980e014de82666c8e488d63a9ec44885c2294758fc6353cea10823036",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 11,
+          "database_id": 5631319498,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:00:54.968582+00:00"
+    },
+    {
+      "number": 17,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "3a9167bb0cc2936aaadfc81785ad2a7f1fc3eff18099f98324614cb8c6968ec4",
+      "body_sha256_after": "3a9167bb0cc2936aaadfc81785ad2a7f1fc3eff18099f98324614cb8c6968ec4",
+      "body_changed": false,
+      "existing_comment_id": 6081165210,
+      "comment_sha256": "1fe0c7e4b9f32090a44c451fd555dc797f271bef2110e107b8743d1f023fcde8",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 16,
+          "database_id": 5631336964,
+          "state": "open"
+        }
+      ],
+      "read_utc": "2026-10-09T18:00:54.780935+00:00"
+    },
+    {
+      "number": 20,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "4d5eb414f8f377fa07b1aa02bd8640e035c692ab47ad4b078558c745457a9aa2",
+      "body_sha256_after": "4d5eb414f8f377fa07b1aa02bd8640e035c692ab47ad4b078558c745457a9aa2",
+      "body_changed": false,
+      "existing_comment_id": 6081170429,
+      "comment_sha256": "613100a7fb9db26969e1dd7a21a2ce978eb411670841e96ea95090e50930fde9",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 16,
+          "database_id": 5631336964,
+          "state": "open"
+        },
+        {
+          "number": 18,
+          "database_id": 5631341563,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:00:58.112530+00:00"
+    },
+    {
+      "number": 22,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "fd7cb59a56c151a53fea13fe3c105336c445683759fc233e67c5b8512760ad4c",
+      "body_sha256_after": "d8c0468e80b0cb9366e2883b7e1cc2888f5c35b98fab95569858bd1d93fb0cda",
+      "body_changed": true,
+      "existing_comment_id": 6081173892,
+      "comment_sha256": "32e3b3f1205381cc7f3b50a55527c93b60b05ca3f727efd5eade6206f6b09cba",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 16,
+          "database_id": 5631336964,
+          "state": "open"
+        }
+      ],
+      "read_utc": "2026-10-09T18:00:57.886639+00:00"
+    },
+    {
+      "number": 23,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "aa40013c1a590349924a21415427b5e0844ba19743be736291e5761bf6bb3d0b",
+      "body_sha256_after": "48b61295a0cc165238f43f5edaff653b9fbeb079ce7fd9dc2b5aba04f184a063",
+      "body_changed": true,
+      "existing_comment_id": 6081175296,
+      "comment_sha256": "3bcef3671e81f43a536448aee647b72014566f6866672aadcbc39379e2beb431",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 22,
+          "database_id": 5631349374,
+          "state": "open"
+        }
+      ],
+      "read_utc": "2026-10-09T18:00:58.209995+00:00"
+    },
+    {
+      "number": 24,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "16c9aea018fcb06b31c9d5de97c93ef6df2f8e544a97ba7838afb032be79457c",
+      "body_sha256_after": "16c9aea018fcb06b31c9d5de97c93ef6df2f8e544a97ba7838afb032be79457c",
+      "body_changed": false,
+      "existing_comment_id": 6081176787,
+      "comment_sha256": "04d441ff26923eb0ba743d0df52a04ae5380700f43dca2d1870ebb4935bf9127",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 23,
+          "database_id": 5631351673,
+          "state": "open"
+        }
+      ],
+      "read_utc": "2026-10-09T18:00:58.383595+00:00"
+    },
+    {
+      "number": 25,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "3bc6edb78adf7f0c31fcae614a71575de3d9dace545e17b5f410d5d1ccd40e66",
+      "body_sha256_after": "3bc6edb78adf7f0c31fcae614a71575de3d9dace545e17b5f410d5d1ccd40e66",
+      "body_changed": false,
+      "existing_comment_id": 6081178230,
+      "comment_sha256": "3c1a21162a31662b6535f22800fb864b75dc7562047753b5a8e5163cae228faf",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 20,
+          "database_id": 5631344805,
+          "state": "open"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:01.070756+00:00"
+    },
+    {
+      "number": 26,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "2eb9f5f2b5923c21a37ce912c87caef9f4183fd617f0994a554bea7c6d3710f8",
+      "body_sha256_after": "2eb9f5f2b5923c21a37ce912c87caef9f4183fd617f0994a554bea7c6d3710f8",
+      "body_changed": false,
+      "existing_comment_id": 6081179671,
+      "comment_sha256": "c11b7841230cb97a862f38c1a78f41681b4b1acf17aa4ab0be0cb1ca34faada8",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 19,
+          "database_id": 5631343239,
+          "state": "closed"
+        },
+        {
+          "number": 20,
+          "database_id": 5631344805,
+          "state": "open"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:01.320354+00:00"
+    },
+    {
+      "number": 55,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "4363a32c3ca656936b433744595690bd05f0404d3f34d697c89e82c94558d201",
+      "body_sha256_after": "4363a32c3ca656936b433744595690bd05f0404d3f34d697c89e82c94558d201",
+      "body_changed": false,
+      "existing_comment_id": 6081231143,
+      "comment_sha256": "e7cb732852548eec280a4cff9b1ca674e30404dd6b94330ae867f6e55c989d05",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 20,
+          "database_id": 5631344805,
+          "state": "open"
+        },
+        {
+          "number": 51,
+          "database_id": 5631491699,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:04.759674+00:00"
+    },
+    {
+      "number": 56,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "f8dbc1dc61096583f8f0bbc1e8d2cb4251a9bf4c83c304e27c3824e588c5fcf4",
+      "body_sha256_after": "5a98668c59a139ae912a40fe745028f2206ebe4267352e81f5a592295aa3714f",
+      "body_changed": true,
+      "existing_comment_id": 6081232700,
+      "comment_sha256": "56e780166be7b28885942f6a4f8a0a1379c45e0b5f86e59fa941d3f4dc4502d2",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 24,
+          "database_id": 5631353971,
+          "state": "open"
+        },
+        {
+          "number": 51,
+          "database_id": 5631491699,
+          "state": "closed"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:04.600553+00:00"
+    },
+    {
+      "number": 57,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "597ec121f4668d044ef17dd5d011380c5642abf3d03c90b017c05a8bc1d09fe1",
+      "body_sha256_after": "597ec121f4668d044ef17dd5d011380c5642abf3d03c90b017c05a8bc1d09fe1",
+      "body_changed": false,
+      "existing_comment_id": 6081234278,
+      "comment_sha256": "7e73a4ea19427db6e4d5fff9265be9578ec64864224026db03147e3182572139",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [
+        {
+          "number": 12,
+          "database_id": 5631328914,
+          "state": "closed"
+        },
+        {
+          "number": 17,
+          "database_id": 5631339239,
+          "state": "open"
+        },
+        {
+          "number": 21,
+          "database_id": 5631347684,
+          "state": "closed"
+        },
+        {
+          "number": 25,
+          "database_id": 5631356096,
+          "state": "open"
+        },
+        {
+          "number": 26,
+          "database_id": 5631358441,
+          "state": "open"
+        },
+        {
+          "number": 37,
+          "database_id": 5631386213,
+          "state": "closed"
+        },
+        {
+          "number": 38,
+          "database_id": 5631388515,
+          "state": "closed"
+        },
+        {
+          "number": 40,
+          "database_id": 5631395778,
+          "state": "open"
+        },
+        {
+          "number": 41,
+          "database_id": 5631402450,
+          "state": "open"
+        },
+        {
+          "number": 42,
+          "database_id": 5631408970,
+          "state": "open"
+        },
+        {
+          "number": 43,
+          "database_id": 5631415759,
+          "state": "open"
+        },
+        {
+          "number": 44,
+          "database_id": 5631422686,
+          "state": "open"
+        },
+        {
+          "number": 45,
+          "database_id": 5631429622,
+          "state": "open"
+        },
+        {
+          "number": 46,
+          "database_id": 5631436822,
+          "state": "open"
+        },
+        {
+          "number": 47,
+          "database_id": 5631444349,
+          "state": "open"
+        },
+        {
+          "number": 48,
+          "database_id": 5631451729,
+          "state": "open"
+        },
+        {
+          "number": 49,
+          "database_id": 5631458604,
+          "state": "open"
+        },
+        {
+          "number": 50,
+          "database_id": 5631464240,
+          "state": "open"
+        },
+        {
+          "number": 52,
+          "database_id": 5631493317,
+          "state": "closed"
+        },
+        {
+          "number": 53,
+          "database_id": 5631495525,
+          "state": "closed"
+        },
+        {
+          "number": 54,
+          "database_id": 5631498436,
+          "state": "closed"
+        },
+        {
+          "number": 55,
+          "database_id": 5631513961,
+          "state": "open"
+        },
+        {
+          "number": 56,
+          "database_id": 5631516660,
+          "state": "open"
+        }
+      ],
+      "read_utc": "2026-10-09T18:01:05.358579+00:00"
+    },
+    {
+      "number": 9,
+      "state": "open",
+      "state_reason": null,
+      "body_sha256_before": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "body_sha256_after": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "body_changed": false,
+      "existing_comment_id": 6081235490,
+      "comment_sha256": "b75059f245858ae147c31d3bbb43893f5d064c00ebdd8fae672216813a9e1c9d",
+      "comment_ids_preserved": true,
+      "native_dependencies_preserved": true,
+      "blocked_by": [],
+      "read_utc": "2026-10-09T18:00:54.665784+00:00"
+    }
+  ],
+  "first_attempt": "read-only preflight EOF; no mutation; full readback before reconciled attempt",
+  "push": "NOT_RUN",
+  "real_provider_calls": 0,
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN"
+}

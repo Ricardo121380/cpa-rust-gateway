@@ -1,0 +1,33 @@
+{
+  "label": "github-closeout-code-availability",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "python3",
+    "output/cpar-native-session-batch-20261009-211528/check_remote_code.py",
+    "output/cpar-native-session-batch-20261009-211528/github-closeout-code-not-uploaded.json",
+    "3b3896be34809f5b81f075d0500f23a2bc3020b2"
+  ],
+  "utc_start": "2026-10-09T18:02:30.124557+00:00",
+  "source_before": {
+    "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+    "status": [
+      " M AGENTS.md",
+      " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+      " M docs/reports/cpar-native-session-batch-local-20261009.md"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-09T18:02:31.295415+00:00",
+  "elapsed_seconds": 1.14577125,
+  "source_after": {
+    "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+    "status": [
+      " M AGENTS.md",
+      " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+      " M docs/reports/cpar-native-session-batch-local-20261009.md"
+    ]
+  },
+  "log_sha256": "e5d7ab8a20ebddebb2d5666861ca021463135f1e9a7c2381ec6cdcab434a0687",
+  "log_bytes": 561
+}

@@ -26,10 +26,38 @@
     "green": "15 PASS",
     "scope": "local comparison functions and production call argument seam; not browser or public HTTP race acceptance"
   },
-  "current_review": "PENDING",
+  "current_review": {
+    "review_head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+    "Standards": "PASS_STATIC",
+    "hard_findings": 0,
+    "Fowler_smells": 0,
+    "Spec": "PARTIAL",
+    "spec_unmet": 2,
+    "highest_spec_severity": "P2 source inference on #16; #23 actual latest page acceptance still missing",
+    "new_confirmed_implementation_hard_defects": 0,
+    "reference": "review-final.md",
+    "code_contract_diff_from_clean_source": "EMPTY"
+  },
   "direct_navigation_reproduction": "NOT_RUN: replacement EgoLite space permission pending",
   "new_deletion_page_replay": "NOT_RUN: names and selected-sibling drift need page acceptance",
-  "github_sync": "PENDING: independently eligible #14/#36/#37/#38; remaining targets keep OPEN",
+  "github_sync": {
+    "status": "PASS_GITHUB_WRITE_AND_READBACK",
+    "closed": [
+      14,
+      36,
+      37,
+      38
+    ],
+    "updated_existing_comments": 16,
+    "changed_bodies": 5,
+    "counts": {
+      "closed": 25,
+      "open": 23
+    },
+    "parent9_body_preserved": true,
+    "dependency_ids_preserved": true,
+    "reference": "github-closeout-attestation.json"
+  },
   "real_provider_calls": 0,
   "code_availability_on_github": {
     "source": "3b3896be34809f5b81f075d0500f23a2bc3020b2",
@@ -38,7 +66,7 @@
       "api",
       "repos/Ricardo121380/cpa-rust-gateway/commits/3b3896be34809f5b81f075d0500f23a2bc3020b2"
     ],
-    "utc": "2026-10-09T17:37:29.987001+00:00",
+    "utc": "2026-10-09T18:02:31.292381+00:00",
     "exit_code": 1,
     "stderr": "gh: No commit found for SHA: 3b3896be34809f5b81f075d0500f23a2bc3020b2 (HTTP 422)",
     "push": "NOT_RUN",
@@ -54,5 +82,6 @@
   "deployment": "NOT_RUN",
   "production": "NOT_RUN",
   "agents_content_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
-  "agents_diff_sha256": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f"
+  "agents_diff_sha256": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f",
+  "evidence_entries": 136
 }

@@ -7833,6 +7833,231 @@
       },
       "log_sha256": "a3f3ca3274ea4f31b7d9cc688ff19f185e2450947a7f1360ba87683d57d4138f",
       "log_bytes": 561
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-apply-20261009T175700222673Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-apply-20261009T175700222673Z/raw.log",
+      "label": "github-closeout-apply",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "output/cpar-native-session-batch-20261009-211528/apply_github_closeout.py",
+        "output/cpar-native-session-batch-20261009-211528/github-closeout-plan/plan.json"
+      ],
+      "utc_start": "2026-10-09T17:57:00.223253+00:00",
+      "source_before": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-09T17:57:16.570748+00:00",
+      "elapsed_seconds": 16.311773167000002,
+      "source_after": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "log_sha256": "f7b0a47b9cf19853a6cb4b7bff390a5e575a32a64e1cdbb2598489dd646e0809",
+      "log_bytes": 2191
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-apply-reconciled-20261009T175840735899Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-apply-reconciled-20261009T175840735899Z/raw.log",
+      "label": "github-closeout-apply-reconciled",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "output/cpar-native-session-batch-20261009-211528/apply_github_closeout.py",
+        "output/cpar-native-session-batch-20261009-211528/github-closeout-attempt2/plan.json"
+      ],
+      "utc_start": "2026-10-09T17:58:40.736306+00:00",
+      "source_before": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T18:00:46.371484+00:00",
+      "elapsed_seconds": 125.61449070799999,
+      "source_after": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+          " M docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "log_sha256": "491273f039330f4c333d8ea06dbde4c1b9ae4fcd07cc4f3bcd012d2107197434",
+      "log_bytes": 4529
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-code-availability-20261009T180230124306Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-code-availability-20261009T180230124306Z/raw.log",
+      "label": "github-closeout-code-availability",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "output/cpar-native-session-batch-20261009-211528/check_remote_code.py",
+        "output/cpar-native-session-batch-20261009-211528/github-closeout-code-not-uploaded.json",
+        "3b3896be34809f5b81f075d0500f23a2bc3020b2"
+      ],
+      "utc_start": "2026-10-09T18:02:30.124557+00:00",
+      "source_before": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+          " M docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T18:02:31.295415+00:00",
+      "elapsed_seconds": 1.14577125,
+      "source_after": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+          " M docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "log_sha256": "e5d7ab8a20ebddebb2d5666861ca021463135f1e9a7c2381ec6cdcab434a0687",
+      "log_bytes": 561
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-preflight-readback-20261009T175749604619Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-preflight-readback-20261009T175749604619Z/raw.log",
+      "label": "github-closeout-preflight-readback",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "output/cpar-native-session-batch-20261009-211528/fetch_github_snapshot.py",
+        "output/cpar-native-session-batch-20261009-211528/github-closeout-preflight-readback"
+      ],
+      "utc_start": "2026-10-09T17:57:49.605016+00:00",
+      "source_before": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T17:58:05.113403+00:00",
+      "elapsed_seconds": 15.476126125,
+      "source_after": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "log_sha256": "ce17d576a640f7e1f7e0c21a569a36b40e6d8e6693b46a8945c3b71a9f9b8770",
+      "log_bytes": 5534
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-readback-20261009T180051524051Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-readback-20261009T180051524051Z/raw.log",
+      "label": "github-closeout-readback",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "output/cpar-native-session-batch-20261009-211528/fetch_github_snapshot.py",
+        "output/cpar-native-session-batch-20261009-211528/github-closeout-readback"
+      ],
+      "utc_start": "2026-10-09T18:00:51.524708+00:00",
+      "source_before": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+          " M docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T18:01:07.050147+00:00",
+      "elapsed_seconds": 15.498663208,
+      "source_after": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+          " M docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "log_sha256": "cda4afce76155431079540cfe6caf8f8baeffbe329c0cfaabcfafb809d87e14d",
+      "log_bytes": 5540
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-verification-20261009T180147805947Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-closeout-verification-20261009T180147805947Z/raw.log",
+      "label": "github-closeout-verification",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "output/cpar-native-session-batch-20261009-211528/verify_github_closeout.py"
+      ],
+      "utc_start": "2026-10-09T18:01:47.806378+00:00",
+      "source_before": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+          " M docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T18:01:47.887675+00:00",
+      "elapsed_seconds": 0.049796916999999996,
+      "source_after": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md",
+          " M docs/reports/assets/cpar-native-session-batch-20261009/selected-gate-attestation.json",
+          " M docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "log_sha256": "4b929b35b7caf197238db4e3c6249aefe0312ea8acec6a539531468903e68d88",
+      "log_bytes": 289
+    },
+    {
+      "receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-selected-prewrite-20261009T175134589908Z/receipt.json",
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/github-selected-prewrite-20261009T175134589908Z/raw.log",
+      "label": "github-selected-prewrite",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "output/cpar-native-session-batch-20261009-211528/fetch_github_snapshot.py",
+        "output/cpar-native-session-batch-20261009-211528/github-selected-prewrite"
+      ],
+      "utc_start": "2026-10-09T17:51:34.590266+00:00",
+      "source_before": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-09T17:51:50.501745+00:00",
+      "elapsed_seconds": 15.8887755,
+      "source_after": {
+        "head": "eb0afbba4a93232f3c927723b1efacbffc499eb7",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "log_sha256": "eab42ee711db1d5bdab1d72f3fb7b1e9b15ce7ffd5253925d20b5d0ddfe99b79",
+      "log_bytes": 5524
     }
   ],
   "initial_behavior_code": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
@@ -7841,5 +8066,6 @@
     "2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b",
     "3b4f78c86b0fad2d048c3e09df46f2ab964d60a3",
     "509ec0f4988bbc76c03ea5037f0241b4270c6c1b"
-  ]
+  ],
+  "closure_metadata_scope": "GitHub writes and post-write readback are separate from product, browser, Provider and release verification"
 }

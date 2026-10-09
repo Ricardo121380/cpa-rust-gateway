@@ -1,0 +1,1 @@
+{"result": "PASS_GITHUB_WRITE_AND_READBACK", "closed": [14, 36, 37, 38], "updated_existing_comments": 16, "changed_bodies": 5, "mutations": 25, "no_duplicate_comment": true, "all_native_dependency_ids_preserved": true, "parent9_body_preserved": true, "counts": {"closed": 25, "open": 23}}
