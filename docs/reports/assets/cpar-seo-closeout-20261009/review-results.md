@@ -31,4 +31,4 @@ E-05 没有用户选择或批准规则；既有行为与冲突保留，获批规
 
 完整复审之后新增的 E-04 脚本、子进程回执回归、最终 clean-source 门槛和收口文档，都进入 `87092bcd...final HEAD` 的精确增量范围。主代理先提交全部可审查材料，再由两个新的只读 reviewer 分别核验 Standards/Spec；评审期间冻结工作区修改。
 
-最终 HEAD、增量文件/提交清单、逐对象 SHA256、两个轴的独立终态及覆盖计数，保存在 [最终闭合回执](../../../../output/cpar-seo-closeout-20261009/final-review-attestation.json)。该终态回执在被评审提交之外保存；必须检查其 `review_head` 等于当前实际 HEAD，不能以之前的 complete/PASS 替代增量闭合，也不为记录本身再改变受评审提交。
+最终 HEAD、增量文件/提交清单、逐对象 SHA256、两个轴的独立终态及覆盖计数，保存在 [最终闭合回执](../cpar-continuity-operations-20261009-171952/historical-seo-final-review-attestation.json)。原终态回执在上批被评审提交之外保存；本链接现为逐字节历史归档，须检查其 `review_head` 等于上批固定收口 HEAD `01dae81bb9778c92d7e76e49bbed14c3fdc565d7`，不能以之前的 complete/PASS 替代增量闭合，也不为记录本身再改变受评审提交。

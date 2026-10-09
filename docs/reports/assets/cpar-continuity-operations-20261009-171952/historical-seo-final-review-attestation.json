@@ -1,0 +1,257 @@
+{
+  "status": "COMPLETE_LOCAL_SCOPE_WITH_DECLARED_OPEN_GATES",
+  "recorded_utc": "2026-10-09T06:23:51.237758+00:00",
+  "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
+  "review_head": "01dae81bb9778c92d7e76e49bbed14c3fdc565d7",
+  "validated_runtime_source": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+  "axes": {
+    "Standards": {
+      "terminal_state": "complete",
+      "verdict": "PASS",
+      "reviewer": "/root/seo_terminal_standards",
+      "hard_findings": 0,
+      "highest_severity": null,
+      "increment_files_read": 68,
+      "unread_increment_files": 0,
+      "verbatim_terminal_text": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/review-final-increment-standards.md",
+      "verbatim_terminal_text_sha256": "2b9a59dabffd11db485d465cc7680fb9c5577c55510953f3f3c60704c9deebc2",
+      "suggestions": 0,
+      "Fowler_smells": 0,
+      "Fowler_baseline_items_checked": 12
+    },
+    "Spec": {
+      "terminal_state": "complete",
+      "verdict": "PASS_LOCAL_SCOPE",
+      "reviewer": "/root/seo_terminal_spec",
+      "hard_findings": 0,
+      "highest_severity": null,
+      "increment_files_read": 68,
+      "unread_increment_files": 0,
+      "verbatim_terminal_text": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/review-final-increment-spec.md",
+      "verbatim_terminal_text_sha256": "fa2cb3a2de33eb9c5530b43a73eaf661a5c7bdd6af6c6ed2d1258fcdf3d44a56"
+    }
+  },
+  "coverage": {
+    "prior_complete_review_head": "87092bcd366e9b37cf0c00c6577c113e5a850bbe",
+    "prior_full_set_files": 233,
+    "final_increment_files": 68,
+    "overlapping_files": 9,
+    "previously_reviewed_unchanged_files_verified": 224,
+    "combined_distinct_files": 292,
+    "combined_unread_files": 0,
+    "all_current_scope_bytes_match_pinned_HEAD": true,
+    "increment_kinds": {
+      "JSON": 42,
+      "gzip": 15,
+      "code_or_text": 11
+    },
+    "final_full_kinds": {
+      "code_or_text": 39,
+      "JSON": 165,
+      "gzip": 86,
+      "PNG": 2
+    }
+  },
+  "scope_manifest": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/review-final-increment-scope.json",
+    "sha256": "72464853e5da3eaa50ae5c789ff3588fc85439c68ab63d0116152078b92ce047"
+  },
+  "evidence_index": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-seo-closeout-20261009/evidence-index.json",
+    "sha256": "d9ac3a226e85296f6bc0405bca45e21e3b27e18def733a6e230f431f37373e72",
+    "objects": 271,
+    "command_run_records": 82,
+    "command_gzip_archives": 82,
+    "additional_preserved_original_gzip_copies": 4
+  },
+  "source_binding": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-seo-closeout-20261009/source-binding.json",
+    "sha256": "50a2eb4a4ffa289a47d05e7f21ffd56e255b60748cdaa1f4d1743b79b00b4463"
+  },
+  "execution_summary": {
+    "full_steps": 45,
+    "rust": {
+      "passed": 1493,
+      "failed": 0,
+      "ignored": 12
+    },
+    "frontend_tests": 496,
+    "actual_ui_scenes": 18,
+    "fixture_scenes": 17,
+    "public_http_checks": 527,
+    "existing_http_checks": 410,
+    "new_http_checks": 117,
+    "new_matrix_rows": 14,
+    "actual_single_call_receives": 4,
+    "fixture_scenes_role": "historical supplementary; distinct from current-source generated-client and whole-frontend regressions",
+    "targeted_oracle_checks": 339,
+    "negative_control_completed_setup_checks": 222
+  },
+  "fresh_clean_execution_gates": {
+    "accepted-crossgroup-oracle-final": {
+      "receipt": "accepted-crossgroup-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 52.955,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
+    },
+    "accepted-e04-oracle-green": {
+      "receipt": "accepted-e04-oracle-green-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 4.292,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
+    },
+    "accepted-e04-oracle-negative": {
+      "receipt": "accepted-e04-oracle-negative-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 4.325,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source"
+    },
+    "accepted-binary-build-oracle-final": {
+      "receipt": "accepted-binary-build-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 15.458,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    },
+    "accepted-full-oracle-final": {
+      "receipt": "accepted-full-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 253.553,
+      "rust_counts": {
+        "passed": 1493,
+        "failed": 0,
+        "ignored": 12
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    },
+    "accepted-ui-tests-oracle-final": {
+      "receipt": "accepted-ui-tests-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 5.63,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {
+        "passed": 496,
+        "failed": 0,
+        "skipped": 0
+      },
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    },
+    "accepted-ui-type-oracle-final": {
+      "receipt": "accepted-ui-type-oracle-final-receipt.json",
+      "source_sha": "c3d9dd949c1fab69042da97deb9482a0aa14fd47",
+      "tracked_file_set_sha256": "08a1f9e6446d69babdb87ee8205a995555e8afa1d4a8c39b1433e7f9df4af0c9",
+      "clean_before": true,
+      "clean_after": true,
+      "exit_code": 0,
+      "duration_seconds": 9.559,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts": {},
+      "role": "fresh execution at final validated source; original execution receipt preserved, raw-log relocation explicitly derived"
+    }
+  },
+  "final_docs_gate": {
+    "receipt": "docs/reports/assets/cpar-seo-closeout-20261009/report-docs-oracle-closeout-receipt.json",
+    "result": "PASS",
+    "duration_seconds": 44.727,
+    "markdown_files_checked": 977,
+    "contract_test_references_resolved": 166
+  },
+  "final_preservation_recheck": {
+    "result": "PASS",
+    "checked_utc": "2026-10-09T06:23:51.237758+00:00",
+    "baseline_objects_checked": 8199,
+    "original_tracked_objects": 3804,
+    "original_untracked_objects": 4395,
+    "unexpected_changed": [],
+    "original_untracked_changed": [],
+    "user_AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+    "prior_tracked_preservation_receipt": "docs/reports/assets/cpar-seo-closeout-20261009/preservation-final-closeout.json"
+  },
+  "time_accounting": {
+    "baseline_recorded_utc": "2026-10-09T02:06:16.083324+00:00",
+    "baseline_to_closeout_wall_minutes": 257.586,
+    "initial_planning_budget_minutes": 410,
+    "budget_delta_wall_minutes": -152.414,
+    "parallel_command_durations_not_summed": true
+  },
+  "open_gates": {
+    "real_provider_calls": 0,
+    "actual_device_commit_loss_ui": "NOT_RUN",
+    "grok_api_inference": "NOT_RUN",
+    "github_writes": "NOT_RUN",
+    "push": "NOT_RUN",
+    "remote_ci": "NOT_RUN",
+    "new_candidate_artifact_signature": "NOT_RUN",
+    "deployment": "NOT_RUN",
+    "production": "NOT_RUN",
+    "issue_57_full_scope": "NOT_COMPLETE",
+    "release": "BLOCKED"
+  },
+  "E05": {
+    "state": "AWAITING_USER_DECISION",
+    "user_choice": null,
+    "approved_rule": null,
+    "implementation_changed": false,
+    "approved_rule_tests": "NOT_RUN"
+  },
+  "local_commits_since_fixed_base": 15,
+  "post_runtime_non_report_delta": [],
+  "tracked_tree_changed_after_terminal_reviews": false,
+  "attestation_storage_policy": "Outside the reviewed tracked tree; matches actual final HEAD. Reviewer terminal texts are historical originals and their mention of awaiting attestation describes the pre-summary state."
+}

@@ -103,7 +103,7 @@ O-01 在普通 `openai-compatible.responses` 公开路径分别测试 JSON/SSE�
 
 另外保留 fixture 设备文字/页面等待错误、真实 UI stale embedded build、无效 observer/CDP registration、关闭/确认按钮定位、错误 `#/config-versions` 路由、非空草稿差异数量预期、HTTP matrix 的非法相同 format、总 concurrency 超额、correlation header 假设、E-02 编译及 ETag 引号预期等独立失败。两轮宽范围 transport 探索被中断，只作 PARTIAL 线索；后续窄范围来源定位由主代理点验，不作为双轴最终 PASS。
 
-最终提交的代码/报告增量按 [最终独立闭合回执](../../output/cpar-seo-closeout-20261009/final-review-attestation.json) 核验：该回执的 `review_head` 必须等于实际最终 HEAD，包含精确范围和两个 reviewer 的原终态，另存于被评审提交之外。记录终态不会改变受评审 tree；两个轴分别记录计数与裁定，未返回的评审不能由前一轮 PASS 推定。
+最终提交的代码/报告增量按 [最终独立闭合回执](assets/cpar-continuity-operations-20261009-171952/historical-seo-final-review-attestation.json) 核验：该历史回执的 `review_head` 必须等于上批固定收口 HEAD `01dae81bb9778c92d7e76e49bbed14c3fdc565d7`，包含精确范围和两个 reviewer 的原终态，原回执另存于上批被评审提交之外，本链接现为逐字节历史归档，不是本批新执行或当前评审。记录原终态没有改变上批受评审 tree；两个轴分别记录计数与裁定，未返回的评审不能由前一轮 PASS 推定。
 
 完整命令和 UTC 时间在每份 receipt，Rust 计数、Vitest 计数、HTTP checks 和浏览器 scenes 分开。早期 receipt 的 Rust `test_totals=0` 不代表前端没有执行；其 Vitest 实数在原始日志中，索引另外解析，不改写原 receipt。归档时发现本轮四个运行名称复用了早期同名记录，原始日志与保留 gzip 的比对及时失败。已从被提交的历史 JSON/steps 与未变的 gzip 恢复全部旧记录原始字节；本轮新原始 JSON 与原始日志另存。当前四份门槛回执是明确标识的日志路径迁移派生记录，只改变 `hash_objects.raw_log.path`，原执行命令、UTC、源码/clean 状态、退出码、计数及 raw SHA 均保持；独立原始回执及逐字段比较见 [恢复与迁移清单](assets/cpar-seo-closeout-20261009/execution-name-restoration.json)。没有把日志位置迁移当作重跑。索引明确标记原始日志字节、gzip 字节及 JSON 字节各自的 SHA256；报告不保存临时口令、token、Cookie、Authorization Header 或 credential material。
 

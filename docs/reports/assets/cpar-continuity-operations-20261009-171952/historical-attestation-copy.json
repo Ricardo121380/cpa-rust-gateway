@@ -1,0 +1,9 @@
+{
+  "kind": "BYTE_IDENTICAL_ARCHIVE_OF_HISTORICAL_EVIDENCE",
+  "original": "output/cpar-seo-closeout-20261009/final-review-attestation.json",
+  "archived": "docs/reports/assets/cpar-continuity-operations-20261009-171952/historical-seo-final-review-attestation.json",
+  "sha256": "613776394b46eac99279afd9872c5d71264066d85ae5fb4555ab3fcf3016b431",
+  "bytes": 9938,
+  "original_execution_and_review_head_preserved": true,
+  "not_a_new_execution": true
+}
