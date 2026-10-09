@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-09T05:18:50.597405+00:00",
+  "generated_utc": "2026-10-09T05:21:13.168916+00:00",
   "fixed_base": "27ee36174f54bac059694a0870e452f9ac632ce0",
   "validated_runtime_source": "47b19545f6dd102a4cb15a8af2990b76e4a359db",
   "self_hash_exclusion": "evidence-index.json is excluded from its own object list; source-binding does not reference this index hash",
@@ -1070,6 +1070,20 @@
       "result": "PASS",
       "exit_code": 0,
       "source": "cea7b1cca60b6a2fcc5528fdc48551407e44bff8",
+      "clean_before": false,
+      "rust_counts": {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0
+      },
+      "frontend_counts_from_receipt_or_raw_vitest": {},
+      "original_receipt_not_rewritten": true
+    },
+    {
+      "receipt": "report-docs-corrected-before-review-receipt.json",
+      "result": "PASS",
+      "exit_code": 0,
+      "source": "3e225e1e01daacf1ee7e651492abc92e88a4743b",
       "clean_before": false,
       "rust_counts": {
         "passed": 0,
@@ -2201,8 +2215,8 @@
     {
       "path": "log-archives.json",
       "object": "JSON_bytes",
-      "sha256": "36fa5f9d7785aec21b8cffd5a0147ccbfaf2e7f3b3733fbc04c94447912e7d76",
-      "bytes": 38725
+      "sha256": "9c0aad2752110f6e74c609d7832bb97409409b7ab29df9c8a03300ba3214aeca",
+      "bytes": 39316
     },
     {
       "path": "o01-green-receipt.json",
@@ -2281,6 +2295,18 @@
       "object": "gzip_archive_bytes",
       "sha256": "2d151fa6342c17f14feb42d9fa8fb26e935f98503a8bdb2cc900bddd4f47ed23",
       "bytes": 345
+    },
+    {
+      "path": "report-docs-corrected-before-review-receipt.json",
+      "object": "JSON_bytes",
+      "sha256": "62f9b5bca08bd3bf5b801c27bbf8ab6a0fc730d0b48b32e7aac7dedbed404a47",
+      "bytes": 18572
+    },
+    {
+      "path": "report-docs-corrected-before-review.log.gz",
+      "object": "gzip_archive_bytes",
+      "sha256": "9628fecedff279eb2cc68894f49165d9470a973d0aafcbf20e74d5d1ab10757f",
+      "bytes": 346
     },
     {
       "path": "request-spec.md",

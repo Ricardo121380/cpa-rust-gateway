@@ -896,6 +896,20 @@
     "decoded_archive_matches_raw": true
   },
   {
+    "receipt": "report-docs-corrected-before-review-receipt.json",
+    "raw_log_bytes": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/report-docs-corrected-before-review.log",
+      "sha256": "7e0f7ba97c57cbb422ecf239dcba57be5080b0ba18f29c565ca50d49261fb3e8",
+      "bytes": 540
+    },
+    "gzip_bytes": {
+      "path": "report-docs-corrected-before-review.log.gz",
+      "sha256": "9628fecedff279eb2cc68894f49165d9470a973d0aafcbf20e74d5d1ab10757f",
+      "bytes": 346
+    },
+    "decoded_archive_matches_raw": true
+  },
+  {
     "receipt": "s01-docs-receipt.json",
     "raw_log_bytes": {
       "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-seo-closeout-20261009/s01-docs.log",
