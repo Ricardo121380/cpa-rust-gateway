@@ -103,6 +103,11 @@ guess scheduler eligibility. Missing inventory blocks execution. It prevents
 fallback before a paid request; subsequent Attempt checks still verify actual
 execution and stop after any first contradiction.
 
+The management configuration inventory serializes its resource revision as `rev-N`.
+Admission compares that exact representation with the loaded integer revision already
+frozen from serving evidence. It does not derive the execution or credential lease
+revision from an ETag; different IDs, different numbers and malformed tags still reject.
+
 `LIVE_NEW_BUILD` and `PRODUCTION` additionally require `authorization` in the
 private plan: `status=APPROVED`, `basis=user_explicit`, and `binding_sha256`
 computed by `execution_binding(plan, runtime, base_url)`. It binds the source,

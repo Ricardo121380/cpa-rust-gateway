@@ -1,0 +1,33 @@
+{
+  "observed_at_utc": "2026-10-10T14:26:18.475972+00:00",
+  "basis": "user_explicit_current_prompt",
+  "candidate_host": "new-vps",
+  "candidate_service": "cpar-build-acceptance-20261010.service",
+  "candidate_root": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010",
+  "epoch": "private/revalidation-20261010",
+  "listeners": [
+    "127.0.0.1:19180",
+    "127.0.0.1:19181"
+  ],
+  "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+  "model": "grok-4.5",
+  "first_action": "at most one new Responses JSON Pin; failed or unknown stops all later real requests",
+  "conditional_actions": "only after that Pin and all prerequisites pass: other five exact protocol/mode Pins and six combinations of 3/2/4 basic requests",
+  "new_inference_limit": 60,
+  "historical_failed_provider_pin_requests": 1,
+  "cumulative_inference_limit": 61,
+  "new_catalog_requests": 0,
+  "historical_catalog_requests": 1,
+  "retries": 0,
+  "fallbacks": 0,
+  "reruns_after_new_pin_failure": 0,
+  "oauth_refresh_reauthorization": 0,
+  "account_or_model_replacement": 0,
+  "quota_queries": 0,
+  "extensions": 0,
+  "cost_policy": "UNLIMITED_USER_EXPLICIT",
+  "production_writes": 0,
+  "push": false,
+  "release": false,
+  "explicit_constraint": "production service/current/config/Caddy/18180/18181 unchanged"
+}

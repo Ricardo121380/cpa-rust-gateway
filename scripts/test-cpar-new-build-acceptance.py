@@ -306,6 +306,24 @@ class FormalOracle(unittest.TestCase):
                 invalid["authorization"].update(mutation)
                 with self.assertRaises(ValueError):oracle.verify_execution_policy(invalid, observed, base)
 
+    def test_management_revision_tag_matches_only_the_exact_frozen_configuration(self):
+        observed, plan, base = runtime(), {"layer": "LIVE_NEW_BUILD", "source_sha": SOURCE_SHA, "target": target()}, "http://127.0.0.1:1"
+        plan["authorization"] = reviewed_authorization(plan, observed, base)
+        active = observed["acceptance_inventory"]["active_configuration"]
+        active["revision"] = "rev-4"
+        oracle.verify_execution_policy(plan, observed, base)
+        for revision in ("rev-5", '"rev-4"', "rev-04", "4", None):
+            active["revision"] = revision
+            with self.subTest(revision=revision), self.assertRaisesRegex(ValueError, "execution_configuration_changed"):
+                oracle.verify_execution_policy(plan, observed, base)
+        active.update(id="other", revision="rev-4")
+        with self.assertRaisesRegex(ValueError, "execution_configuration_changed"):
+            oracle.verify_execution_policy(plan, observed, base)
+        active["id"] = "local"
+        observed["acceptance_inventory"]["inventory"]["account_pools"]["items"][0]["account_revision"] = "rev-3"
+        with self.assertRaisesRegex(ValueError, "execution_managed_account_unavailable"):
+            oracle.verify_execution_policy(plan, observed, base)
+
     def test_target_and_revision_fail_closed(self):
         for field in oracle.TARGET_FIELDS:
             value = bundle()

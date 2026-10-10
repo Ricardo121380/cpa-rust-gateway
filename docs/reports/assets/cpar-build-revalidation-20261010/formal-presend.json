@@ -1,0 +1,1 @@
+{"status": "BLOCKED", "category": "execution_configuration_changed", "active_configuration": {"id": "cpar-build-config-20261010", "status": "active", "revision": "rev-9"}, "serving_snapshot_config_revision": 9, "management_get_requests": 22, "provider_inference_requests": 0, "catalog_requests": 0}
