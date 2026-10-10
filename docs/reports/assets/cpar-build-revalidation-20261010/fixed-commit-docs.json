@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "source_sha": "68158c012ce44dd3e6aeafcd342c857e10ed37af",
+  "command": "bash scripts/check.sh docs",
+  "checks_passed": 7,
+  "raw_log_sha256": "cd603eb62a572160f309573379ce7670faa657ebc8c79d27700531237420a0b1",
+  "archive": "docs-68158c01.log.gz",
+  "product_full_reused_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7"
+}

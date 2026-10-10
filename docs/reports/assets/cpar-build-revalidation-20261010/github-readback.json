@@ -1,0 +1,74 @@
+{
+  "status": "PASS",
+  "independent_of_mutation_response": true,
+  "method": "fresh gh issue view + gh api dependencies after PATCH",
+  "local_delivery_head": "68158c012ce44dd3e6aeafcd342c857e10ed37af",
+  "issues": [
+    {
+      "issue": 47,
+      "comment_id": 6081215242,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "checks": {
+        "issue_body": true,
+        "title": true,
+        "state_open": true,
+        "labels": true,
+        "assignees": true,
+        "native_dependencies": true,
+        "comment_count": true,
+        "comment_identity": true,
+        "comment_sha256": true,
+        "historical_body_prefix": true,
+        "marker_once": true
+      },
+      "body_sha256": "7de5488b63555f2d3bd3526301edec8ea62111d52554071923c8e6db9ab99703",
+      "issue_body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "status": "PASS",
+      "observed_at_utc": "2026-10-10T15:04:29.847168+00:00"
+    },
+    {
+      "issue": 57,
+      "comment_id": 6081234278,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "checks": {
+        "issue_body": true,
+        "title": true,
+        "state_open": true,
+        "labels": true,
+        "assignees": true,
+        "native_dependencies": true,
+        "comment_count": true,
+        "comment_identity": true,
+        "comment_sha256": true,
+        "historical_body_prefix": true,
+        "marker_once": true
+      },
+      "body_sha256": "06c3cce92a83bd0af66bb15619af03892087d01bb2913d08669c53f4f4250e97",
+      "issue_body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "status": "PASS",
+      "observed_at_utc": "2026-10-10T15:04:30.030897+00:00"
+    },
+    {
+      "issue": 9,
+      "comment_id": 6081235490,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "checks": {
+        "issue_body": true,
+        "title": true,
+        "state_open": true,
+        "labels": true,
+        "assignees": true,
+        "native_dependencies": true,
+        "comment_count": true,
+        "comment_identity": true,
+        "comment_sha256": true,
+        "historical_body_prefix": true,
+        "marker_once": true
+      },
+      "body_sha256": "2f481d67487a53c76f1f378cbc0819316f7589b04b2606adcf02206ed10293ef",
+      "issue_body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "status": "PASS",
+      "observed_at_utc": "2026-10-10T15:04:29.844964+00:00"
+    }
+  ]
+}

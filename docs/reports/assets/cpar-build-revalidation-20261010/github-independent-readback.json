@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "agent": "/root/verify_github_final",
+  "method": "independent new gh issue view + gh api dependencies; read-only; terminal FINAL_ANSWER",
+  "issues": [
+    {
+      "issue": 47,
+      "comment_id": 6081215242,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "comment_body_sha256": "7de5488b63555f2d3bd3526301edec8ea62111d52554071923c8e6db9ab99703",
+      "state": "OPEN",
+      "old_body_exact_prefix_preserved": true,
+      "comment_count": 1,
+      "marker_count": 1,
+      "issue_body_ac_title_labels_assignees_unchanged": true,
+      "dependencies_semantically_unchanged": true,
+      "dependency_count": 8,
+      "issue_read_completed_at_utc": "2026-10-10T15:06:00.332557Z",
+      "content_verified_at_utc": "2026-10-10T15:06:51.198776Z"
+    },
+    {
+      "issue": 57,
+      "comment_id": 6081234278,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "comment_body_sha256": "06c3cce92a83bd0af66bb15619af03892087d01bb2913d08669c53f4f4250e97",
+      "state": "OPEN",
+      "old_body_exact_prefix_preserved": true,
+      "comment_count": 1,
+      "marker_count": 1,
+      "issue_body_ac_title_labels_assignees_unchanged": true,
+      "dependencies_semantically_unchanged": true,
+      "dependency_count": 23,
+      "issue_read_completed_at_utc": "2026-10-10T15:06:00.105061Z",
+      "content_verified_at_utc": "2026-10-10T15:06:51.257476Z"
+    },
+    {
+      "issue": 9,
+      "comment_id": 6081235490,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "comment_body_sha256": "2f481d67487a53c76f1f378cbc0819316f7589b04b2606adcf02206ed10293ef",
+      "state": "OPEN",
+      "old_body_exact_prefix_preserved": true,
+      "comment_count": 1,
+      "marker_count": 1,
+      "issue_body_ac_title_labels_assignees_unchanged": true,
+      "dependencies_semantically_unchanged": true,
+      "dependency_count": 0,
+      "issue_read_completed_at_utc": "2026-10-10T15:06:00.861128Z",
+      "content_verified_at_utc": "2026-10-10T15:06:51.197892Z"
+    }
+  ],
+  "factual_check": "Pin PASS1; basic sent1/54; original oracle FAIL/stop preserved; new2 plus old1 cumulative3; catalognew0/cum1; no real rerun; no 54PASS or unique426root cause claim",
+  "local_delivery_head": "68158c012ce44dd3e6aeafcd342c857e10ed37af"
+}

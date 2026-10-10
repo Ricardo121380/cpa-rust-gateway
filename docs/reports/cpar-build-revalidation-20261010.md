@@ -119,7 +119,9 @@ management GET 与真实推理分开：[request-counts.json](assets/cpar-build-r
 
 ## GitHub、交付边界与下一项
 
-只更新 #47／#57／#9 的既有进度评论，保留全部历史正文，不新增重复评论，不改 ticket 正文／AC／标签／负责人／native dependencies，不关闭工单。写后独立 readback 与具体本地提交见本批 GitHub 同步回执；本批没有 push，不提供不存在的远端 commit／blob 链接。
+已更新 [#47 既有进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57 既有进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9 既有进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。主代理在 15:04Z 使用新 GET 回读，独立只读代理在 15:06Z 再次读取并完成核验，均 PASS：comment SHA256 匹配、历史正文逐字保留为完整 prefix、marker 各一次、评论各仍 1 条、三票 OPEN；正文／AC／title／标签／负责人／native dependencies 均不变。见 [主代理 fresh readback](assets/cpar-build-revalidation-20261010/github-readback.json) 和 [独立 readback](assets/cpar-build-revalidation-20261010/github-independent-readback.json)。
+
+本地修复／真实证据归档提交为 `68158c012ce44dd3e6aeafcd342c857e10ed37af`；此前本批提交 `f9412895`、`a6aa31df`、`3bf9acd3` 均保留。固定 `68158c01` 的正式 docs 再核对 **7/7 PASS**，见 [固定提交门槛回执](assets/cpar-build-revalidation-20261010/fixed-commit-docs.json)。后继只归档 GitHub 回读及文档收口，实际 source／binary／真实执行结果不变。本批没有 push，不提供不存在的远端 commit／blob 链接。
 
 #47 当前共性前置 #16／#27／#29–#34 均 CLOSED，扩展关联 #35–#38 也以各自本地范围 CLOSED；它们不替代新版 Build 的真实证据。#57 仍有 11 渠道票及全承诺证据／发布候选边界未收口；#9 整体规格未满足。没有扩张到 Grok Web／Kiro 实施。
 
@@ -136,6 +138,6 @@ management GET 与真实推理分开：[request-counts.json](assets/cpar-build-r
 
 后五项 true 对应 formal 17 类检查，场景检查数不等于真实请求预算；协议适用性、受控零发送负例与真实正例需另行分开计算。基础全部通过也不能关闭这些扩展承诺。
 
-下一项是**在修复后的正式入口上，另行明确授权一个新的真实基础验收批次**，重新核对届时相同账号的资格／expiry、source／artifact／配置／lease／声明，逐协议模式 Pin 后串行 54 次基础，失败即停。当前账号有明确 expiry；若已过期或需要刷新／重新授权，须先提供该动作的明确授权，不能沿用本批禁止刷新条款绕过。此报告完成准备及本轮收口，不安排未授权后台继续。
+下一项是**在修复后的正式入口上，另行明确授权一个新的真实基础验收批次**，重新核对届时相同账号的资格／expiry、source／artifact／配置／lease／声明，逐协议模式 Pin 后串行 54 次基础，失败即停。若重新完整执行六 Pin＋54 基础，需要明确最多新增 60、历史累计最多 63（目前累计 3），不能沿用本批 61 的累计上限或停止后的剩余额度。当前账号有明确 expiry；若已过期或需要刷新／重新授权，须先提供该动作的明确授权，不能沿用本批禁止刷新条款绕过。此报告完成准备及本轮收口，不安排未授权后台继续。
 
 当前证据层：本地／受控上游及产品 Full 复用 **PASS（各自范围）**；真实 Provider Pin **PASS**，真实基础批次 **FAIL／未完成**；临时候选制品 **PASS**；当前源码 remote CI、签名正式制品、正式发布及生产部署 **NOT_RUN**。
