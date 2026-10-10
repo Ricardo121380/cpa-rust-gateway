@@ -1,0 +1,14 @@
+test_stale_observation_cannot_erase_sent_requests (__main__.FormalOracle) ... FAIL
+
+======================================================================
+FAIL: test_stale_observation_cannot_erase_sent_requests (__main__.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 283, in test_stale_observation_cannot_erase_sent_requests
+    self.assertEqual(receipt["sent_requests"], sent)
+AssertionError: 0 != 7
+
+----------------------------------------------------------------------
+Ran 1 test in 0.003s
+
+FAILED (failures=1)

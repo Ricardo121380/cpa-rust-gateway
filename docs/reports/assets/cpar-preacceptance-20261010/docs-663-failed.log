@@ -1,0 +1,23 @@
+
+==> Document links
+doc-links: ok (1014 Markdown files)
+
+==> Contract tests
+contract-tests: ok (167 referenced tests resolved)
+
+==> Plan state
+plan-state: ok (131 tasks, 1 IN_PROGRESS)
+
+==> Canary thresholds
+p12-08-canary: ok (direct cutover; 72h/1250-success observation; no production split; severity taxonomy present)
+
+==> Caddy split
+p12-caddy-split: ok (direct CPAR cutover; no production split; management plane unexposed; rollback restores CPA)
+
+==> Tracked secret scan
+secret-scan: ok (--all)
+
+==> Git whitespace
+docs/reports/assets/cpar-preacceptance-20261010/formal-scenario-red.log:1: trailing whitespace.
++test_real_http_runner_and_current_receipts (__main__.FormalOracle) ...
+check: Git whitespace failed with status 2
