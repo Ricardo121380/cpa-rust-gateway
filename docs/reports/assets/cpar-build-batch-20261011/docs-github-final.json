@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "head": "d8e615d008a0ba644e60e56129b09c1727861377",
+  "command": "bash scripts/check.sh docs",
+  "checks_passed": 7,
+  "log_sha256": "e5d3740ffe83a20301231db9dd9efa05fe77803e3755eb77c87c56515f3fafa9",
+  "scope": "final reports plus GitHub closeout asset"
+}

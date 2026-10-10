@@ -75,3 +75,6 @@ Messages thinking与Build effort没有无损转换依据，保持BLOCKED并保�
 最终回归 **45/45 PASS**、285/285公共边界的中间修复证据仍保留。随后复核发现WebSocket终态后额外帧及握手原字节审计缺口，先复现再修复，见 [复核初始结果](assets/cpar-build-batch-20261011/extensions/ws-review-initial.json) 与 [复现](assets/cpar-build-batch-20261011/extensions/ws-review-red.json)。当前最终回归 **47/47 PASS**，定向公共边界 **293/293 PASS**；36次正式执行CLI包含19正例PASS、10预期BLOCKED和7预期FAIL-stop；19个PASS另经正式CLI audit读回。实际错误content-type、发送后自有进程重启、socket截断、completed后额外帧和握手body／status矛盾都会停止并保留原请求／wire。终态后使用100毫秒有界观察，不把未来无限时间承诺为通过。合成上游独立HTTP接收44＝5Pin＋36扩展CLI接收＋3故障／取消演练，全部真实Provider0。[最终本地回执](assets/cpar-build-batch-20261011/extensions/review-final2-local-receipt.json)、[回归](assets/cpar-build-batch-20261011/extensions/review-final2-unit-tests.json)、[来源](assets/cpar-build-batch-20261011/extensions/review-final2-source-freeze.json) 与 [本地退出](assets/cpar-build-batch-20261011/extensions/review-final2-local-exit.json) 分别绑定；所有旧epoch和失败保留。
 
 Standards／Spec的限定审查、正式docs门槛、提交及GitHub写后读回由 [本批收口报告](cpar-build-batch-20261011.md) 和对应资产绑定。未完成的真实／入口／语义条件均保留，不能将本报告标为#47整票PASS。
+
+
+GitHub #47／#57／#9 的既有进度评论已追加本批脱敏收口，正文、AC、状态、标签、分配和依赖未改；写后读回见 [GitHub closeout](assets/cpar-build-batch-20261011/github-closeout.json)。三票仍 OPEN。
