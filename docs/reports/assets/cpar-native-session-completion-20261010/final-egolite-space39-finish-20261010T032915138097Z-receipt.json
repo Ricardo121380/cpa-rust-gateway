@@ -1,0 +1,25 @@
+{
+  "label": "final-egolite-space39-finish",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/docs-source-057970c7",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "const t=await taskSpace(39); await t.finish({keep:[]}); console.log(JSON.stringify({space_id:39,result:\"FINISHED\",finish_calls:1,keep:[]}));"
+  ],
+  "utc_start": "2026-10-10T03:29:15.138589+00:00",
+  "source_before": {
+    "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T03:29:15.509490+00:00",
+  "elapsed_seconds": 0.34371583299999997,
+  "source_after": {
+    "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+    "status": []
+  },
+  "log_sha256": "c5a84ee2c63f4bdeab05663c13ebd6893ff167f3ccef3e4530bc79b5769edf25",
+  "log_bytes": 64
+}

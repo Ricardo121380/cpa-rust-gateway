@@ -51,7 +51,7 @@
     "direct-red-server-network-sandbox.json": "0b0531c756109082b7ea09ac71871f1de81a16a4bad1d4fead7cb894b9f1917d",
     "direct-red-server-process-20261010T022210733538Z-raw.log": "6cf63f14d6146bd994c0528ae5b788c2304f08490e0de9b6af61b6b05ed0c76e",
     "direct-red-server-process-20261010T022210733538Z-receipt.json": "5578a2156f1c65ae99b12facd1997c7cbc0a934a78e7ccea0f2fd562866adfb9",
-    "execution-index.json": "2539767e824dfc803fb90e2ef754f89cd111774dffcd07da4bc6939771397f4f",
+    "execution-index.json": "717756ea8df93980a2c3a5256133d91feb819de6d3c285e3b8f998a8053233e9",
     "final-full-source-npm-ci-20261010T023604352964Z-raw.log": "9fa0a2b2291617aaf2c6fd437ee8fcd72a4e2fc7b9da1e34951765b31ecbcc5a",
     "final-full-source-npm-ci-20261010T023604352964Z-receipt.json": "be8333a09d551f38838b677cd42b85d3db320d38c05a7b2e17e7f9984c39b9bb",
     "final-full-spa-prerequisite-20261010T023616574267Z-raw.log": "6aad6fd39d67933881321a4296155e22253eea2f088035220a9341c0f9223d5d",
@@ -208,7 +208,7 @@
     "recovery-completion-front-tests-20261010T022643050357Z-receipt.json": "58b70a28f5af90eb92bc16647977516c9be7a3fb892005a7b03106288827a55d",
     "recovery-completion-type-check-20261010T022643051073Z-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
     "recovery-completion-type-check-20261010T022643051073Z-receipt.json": "fe5b599c92aa111f9032737e8d3fd22801e98a91836f13788856162766669a6d",
-    "README.md": "694005da236c39afaddce11d3d9bad9c14c41fa76bf1882352c4961c067041f2",
+    "README.md": "0a41097bf134d06e85ac954315aa6c17cbcad0756a8ed662dc8234272685bae0",
     "close-green-server-process-20261010T023719966170Z-raw.log": "db118058a662b87ade24535eebab86b2d22571a87665b125d86ece1febb6cf36",
     "close-green-server-process-20261010T023719966170Z-receipt.json": "66a9d51efcc583d4b52dc6011ddaf422ce2e5a77f33538ee47d8f7a6a42e2f11",
     "final-completion-clean-full-20261010T023719966253Z-raw.log": "362beedfc408322a733f597f0e0a37fdf6750ace2851851c8ccbab4da1ebeb4d",
@@ -216,7 +216,7 @@
     "final-fixture-enabled-server-20261010T023616574256Z-raw.log": "6394deca742d8409c4717be4a68100e2235d4a0a58d094a3a7d07c94c5ce4e08",
     "final-fixture-enabled-server-20261010T023616574256Z-receipt.json": "415627be3275eaea0045390961fd8afe099af67f4174635caf647edc68ee6cea",
     "full-36079c1f-steps.md": "9f3c7a7ab7ea16840162b65bea2429ed9d93a2f18e3cfac6aeabd87a5ac0c8ef",
-    "attestation.json": "0a2411d388f54bdf2f92f07becaa41610297c265ff4e4afb9fb688f4992317dd",
+    "attestation.json": "a8396936f95f7bf9cb392d457ee9d786ed90f48a4c41ed4cfcec306c8b770510",
     "final-clean-frontend-all-20261010T024317599678Z-raw.log": "44d8fe76c35b3f8b1ef367cc256acbdc20ee4f607337d76b1a054e2cc6718ca2",
     "final-clean-frontend-all-20261010T024317599678Z-receipt.json": "1e017e1600f75ce56bee521d15ca68533dfe507b3c0b0a46ef41cb2f5fdba52c",
     "final-clean-types-20261010T024317599679Z-raw.log": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
@@ -245,7 +245,17 @@
     "review-spec-navigation-final.md": "47c26e0bc4cdf63ce5da7d551054e695e94382d0dc768927b23d624e7f463fba",
     "review-spec-operations-final.md": "21bd5d5e906fa2e503ab59d525c4a87e6e0368fd3013262c049f91d0c1f5cd50",
     "review-spec-two-claims-final.md": "60691ccf68ea69a6167e60a00229c37fccf0e836b53795dc4f2a7afa92836afa",
-    "review-standards-final.md": "eba3a1a7615b259b5fb301110920775bd1708f688433a8474e5ac264eda10a82"
+    "review-standards-final.md": "eba3a1a7615b259b5fb301110920775bd1708f688433a8474e5ac264eda10a82",
+    "closeout-docs-attestation.json": "33bc6675c0a75b605d7893d52ed09d52faed97b1dfaf4607fe1cf7004fe5b9ea",
+    "closeout-docs-steps.md": "96885be7d1faba4bdaa7c9ae48263f6b7e52cdbc30a459f711f8040587eb3ac4",
+    "final-clean-closeout-docs-20261010T032735907179Z-raw.log": "7c722d602063e4c4a2ca0f3ff39d7c222bb2d5250e3377d7e17ce53c12602198",
+    "final-clean-closeout-docs-20261010T032735907179Z-receipt.json": "ddc2b1e29d856df89d3df0f1f77f1bb12e2154c38cd2c515baac1988a2a3f880",
+    "final-egolite-space39-finish-20261010T032915138097Z-raw.log": "32699554e6756980044b74e3338d917737d12a4b51549685e13b65fdb629a90b",
+    "final-egolite-space39-finish-20261010T032915138097Z-receipt.json": "a794afd5bf5a1e4016942556b2c96368d0e1b985421f3fa1bc33a6a2d299e91d",
+    "final-metadata-staged-checks-20261010T032631288310Z-raw.log": "502da8feea20162374fb2faca68d0cbc035add86adadfc98ab456d85a5b26b5f",
+    "final-metadata-staged-checks-20261010T032631288310Z-receipt.json": "1ecb3b36ab4707b905bb84642b081e66dcf9d23515b5148bf6ffd81571fa8937",
+    "final-archive-staged-checks-20261010T033024827523Z-raw.log": "40b6e6380c23b0477abe1a9749234708dccdd2bfc176260773c8ea036a5a08d2",
+    "final-archive-staged-checks-20261010T033024827523Z-receipt.json": "16eaf4d49c8535ae8577c609544aef95b529081e67ea21aa79c117e1e1f209ba"
   },
   "text_normalization": {
     "close-navigation-green-20261010T023737568593Z-raw.log": {
@@ -301,6 +311,11 @@
     "final-clean-types-20261010T024317599679Z-raw.log": {
       "original_raw_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
       "archived_sha256": "2aa52a67b6f6edcfcc32872a734ce64296cb5e4c9421bd3bf454a265848bf397",
+      "transformation": "remove blank lines at EOF and line-end spaces/tabs; preserve one final newline"
+    },
+    "final-egolite-space39-finish-20261010T032915138097Z-raw.log": {
+      "original_raw_sha256": "c5a84ee2c63f4bdeab05663c13ebd6893ff167f3ccef3e4530bc79b5769edf25",
+      "archived_sha256": "32699554e6756980044b74e3338d917737d12a4b51549685e13b65fdb629a90b",
       "transformation": "remove blank lines at EOF and line-end spaces/tabs; preserve one final newline"
     }
   }

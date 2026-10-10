@@ -1,0 +1,54 @@
+{
+  "label": "final-archive-staged-checks",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "python3",
+    "-c",
+    "import subprocess; subprocess.run([\"./scripts/check-doc-links.rb\"],check=True); subprocess.run([\"./scripts/secret-scan.sh\",\"--staged\"],check=True); subprocess.run([\"git\",\"diff\",\"--cached\",\"--check\"],check=True)"
+  ],
+  "utc_start": "2026-10-10T03:30:24.828113+00:00",
+  "source_before": {
+    "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+    "status": [
+      " M AGENTS.md",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/README.md",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/attestation.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-attestation.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-steps.md",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/execution-index.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-receipt.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-receipt.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-receipt.json",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/manifest.json",
+      "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T03:30:25.246769+00:00",
+  "elapsed_seconds": 0.396258833,
+  "source_after": {
+    "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+    "status": [
+      " M AGENTS.md",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/README.md",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/attestation.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-attestation.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-steps.md",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/execution-index.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-receipt.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-receipt.json",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-raw.log",
+      "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-receipt.json",
+      "M  docs/reports/assets/cpar-native-session-completion-20261010/manifest.json",
+      "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+    ]
+  },
+  "log_sha256": "40b6e6380c23b0477abe1a9749234708dccdd2bfc176260773c8ea036a5a08d2",
+  "log_bytes": 63
+}

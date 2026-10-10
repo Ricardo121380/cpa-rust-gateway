@@ -590,6 +590,93 @@
       "log_bytes": 269
     },
     {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-archive-staged-checks-20261010T033024827523Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-archive-staged-checks-20261010T033024827523Z/raw.log",
+      "archived_receipt": "final-archive-staged-checks-20261010T033024827523Z-receipt.json",
+      "archived_log": "final-archive-staged-checks-20261010T033024827523Z-raw.log",
+      "label": "final-archive-staged-checks",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "-c",
+        "import subprocess; subprocess.run([\"./scripts/check-doc-links.rb\"],check=True); subprocess.run([\"./scripts/secret-scan.sh\",\"--staged\"],check=True); subprocess.run([\"git\",\"diff\",\"--cached\",\"--check\"],check=True)"
+      ],
+      "utc_start": "2026-10-10T03:30:24.828113+00:00",
+      "source_before": {
+        "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+        "status": [
+          " M AGENTS.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/README.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/attestation.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-attestation.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-steps.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/execution-index.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-raw.log",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-raw.log",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-raw.log",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-receipt.json",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/manifest.json",
+          "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T03:30:25.246769+00:00",
+      "elapsed_seconds": 0.396258833,
+      "source_after": {
+        "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+        "status": [
+          " M AGENTS.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/README.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/attestation.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-attestation.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/closeout-docs-steps.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/execution-index.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-raw.log",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-clean-closeout-docs-20261010T032735907179Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-raw.log",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-egolite-space39-finish-20261010T032915138097Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-raw.log",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-metadata-staged-checks-20261010T032631288310Z-receipt.json",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/manifest.json",
+          "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "log_sha256": "40b6e6380c23b0477abe1a9749234708dccdd2bfc176260773c8ea036a5a08d2",
+      "log_bytes": 63
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-closeout-docs-20261010T032735907179Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-closeout-docs-20261010T032735907179Z/raw.log",
+      "archived_receipt": "final-clean-closeout-docs-20261010T032735907179Z-receipt.json",
+      "archived_log": "final-clean-closeout-docs-20261010T032735907179Z-raw.log",
+      "label": "final-clean-closeout-docs",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/docs-source-057970c7",
+      "argv": [
+        "env",
+        "CHECK_REPORT_PATH=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-docs-steps.md",
+        "./scripts/check.sh",
+        "docs"
+      ],
+      "utc_start": "2026-10-10T03:27:35.907726+00:00",
+      "source_before": {
+        "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T03:28:30.718951+00:00",
+      "elapsed_seconds": 54.571410666,
+      "source_after": {
+        "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+        "status": []
+      },
+      "log_sha256": "7c722d602063e4c4a2ca0f3ff39d7c222bb2d5250e3377d7e17ce53c12602198",
+      "log_bytes": 540
+    },
+    {
       "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-frontend-all-20261010T024317599678Z/receipt.json",
       "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-frontend-all-20261010T024317599678Z/raw.log",
       "archived_receipt": "final-clean-frontend-all-20261010T024317599678Z-receipt.json",
@@ -677,6 +764,35 @@
       },
       "log_sha256": "da2f48f1b7de4cb5eda65f79f928845d2a7e5044a47c31817bcc7ef8913aa5db",
       "log_bytes": 298633
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-egolite-space39-finish-20261010T032915138097Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-egolite-space39-finish-20261010T032915138097Z/raw.log",
+      "archived_receipt": "final-egolite-space39-finish-20261010T032915138097Z-receipt.json",
+      "archived_log": "final-egolite-space39-finish-20261010T032915138097Z-raw.log",
+      "label": "final-egolite-space39-finish",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/docs-source-057970c7",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "const t=await taskSpace(39); await t.finish({keep:[]}); console.log(JSON.stringify({space_id:39,result:\"FINISHED\",finish_calls:1,keep:[]}));"
+      ],
+      "utc_start": "2026-10-10T03:29:15.138589+00:00",
+      "source_before": {
+        "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T03:29:15.509490+00:00",
+      "elapsed_seconds": 0.34371583299999997,
+      "source_after": {
+        "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+        "status": []
+      },
+      "log_sha256": "c5a84ee2c63f4bdeab05663c13ebd6893ff167f3ccef3e4530bc79b5769edf25",
+      "log_bytes": 64
     },
     {
       "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-fixture-enabled-server-20261010T023616574256Z/receipt.json",
@@ -806,6 +922,86 @@
       },
       "log_sha256": "5faaeef3075ff4109b7eff86dd879da53ba21f6d8929b0eba0f42b79a449babd",
       "log_bytes": 12165
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-metadata-staged-checks-20261010T032631288310Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-metadata-staged-checks-20261010T032631288310Z/raw.log",
+      "archived_receipt": "final-metadata-staged-checks-20261010T032631288310Z-receipt.json",
+      "archived_log": "final-metadata-staged-checks-20261010T032631288310Z-raw.log",
+      "label": "final-metadata-staged-checks",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "-c",
+        "import subprocess; subprocess.run([\"./scripts/check-doc-links.rb\"],check=True); subprocess.run([\"./scripts/secret-scan.sh\",\"--staged\"],check=True); subprocess.run([\"git\",\"diff\",\"--cached\",\"--check\"],check=True)"
+      ],
+      "utc_start": "2026-10-10T03:26:31.288528+00:00",
+      "source_before": {
+        "head": "27c64b53bb5bdf8781974ac1b5bc119e889bbb5b",
+        "status": [
+          " M AGENTS.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/README.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/attestation.json",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/execution-index.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-reuse-verification.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-static-reuse-verification-20261010T031448705195Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-apply-20261010T032107621738Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-attestation.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-code-not-uploaded.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-code-query-20261010T031546429906Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-mutation-ledger.jsonl",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-prewrite-20261010T031546429658Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-prewrite-summary.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-readback-20261010T032509272737Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-readback-summary.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-verify-20261010T032550153168Z-receipt.json",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/manifest.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-accounts-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-e05-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-navigation-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-operations-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-two-claims-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-standards-final.md",
+          "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T03:26:31.863828+00:00",
+      "elapsed_seconds": 0.555016834,
+      "source_after": {
+        "head": "27c64b53bb5bdf8781974ac1b5bc119e889bbb5b",
+        "status": [
+          " M AGENTS.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/README.md",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/attestation.json",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/execution-index.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-reuse-verification.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/final-static-reuse-verification-20261010T031448705195Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-apply-20261010T032107621738Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-attestation.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-code-not-uploaded.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-code-query-20261010T031546429906Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-mutation-ledger.jsonl",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-prewrite-20261010T031546429658Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-prewrite-summary.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-readback-20261010T032509272737Z-receipt.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-readback-summary.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/github-final-verify-20261010T032550153168Z-receipt.json",
+          "M  docs/reports/assets/cpar-native-session-completion-20261010/manifest.json",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-accounts-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-e05-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-navigation-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-operations-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-spec-two-claims-final.md",
+          "A  docs/reports/assets/cpar-native-session-completion-20261010/review-standards-final.md",
+          "M  docs/reports/cpar-native-session-batch-local-20261009.md"
+        ]
+      },
+      "log_sha256": "502da8feea20162374fb2faca68d0cbc035add86adadfc98ab456d85a5b26b5f",
+      "log_bytes": 63
     },
     {
       "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-source-npm-ci-20261010T023604352964Z/receipt.json",

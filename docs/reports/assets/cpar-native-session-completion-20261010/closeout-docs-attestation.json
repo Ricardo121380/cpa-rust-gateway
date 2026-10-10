@@ -1,0 +1,33 @@
+{
+  "result": "PASS_CLEAN_CLOSEOUT_DOCS",
+  "steps": 7,
+  "source": "057970c7e31d553cd5c31899533d8e4e5196a646",
+  "source_before_after_clean": true,
+  "code_and_contract_delta_from_36079c1f": "EMPTY",
+  "receipt": {
+    "label": "final-clean-closeout-docs",
+    "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/docs-source-057970c7",
+    "argv": [
+      "env",
+      "CHECK_REPORT_PATH=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-docs-steps.md",
+      "./scripts/check.sh",
+      "docs"
+    ],
+    "utc_start": "2026-10-10T03:27:35.907726+00:00",
+    "source_before": {
+      "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+      "status": []
+    },
+    "environment": {},
+    "exit_code": 0,
+    "utc_end": "2026-10-10T03:28:30.718951+00:00",
+    "elapsed_seconds": 54.571410666,
+    "source_after": {
+      "head": "057970c7e31d553cd5c31899533d8e4e5196a646",
+      "status": []
+    },
+    "log_sha256": "7c722d602063e4c4a2ca0f3ff39d7c222bb2d5250e3377d7e17ce53c12602198",
+    "log_bytes": 540
+  },
+  "post_gate_scope": "Only closeout evidence/index/attestation metadata archived; no code/contract changes."
+}
