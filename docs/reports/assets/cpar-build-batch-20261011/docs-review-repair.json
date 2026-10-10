@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "head": "cb68ac162f2880ada49e52a03798389f62e0cdc0",
+  "command": "bash scripts/check.sh docs",
+  "checks_passed": 7,
+  "log_sha256": "e5d3740ffe83a20301231db9dd9efa05fe77803e3755eb77c87c56515f3fafa9",
+  "scope": "fixed final code and evidence; no product source change"
+}
