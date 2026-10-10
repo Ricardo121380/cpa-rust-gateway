@@ -1,0 +1,20 @@
+{
+  "utc": "2026-10-10T06:19:16.823746+00:00",
+  "exit_code": 0,
+  "argv": [
+    "python3",
+    "docs/reports/assets/cpar-channel-delivery-20261010/validate_archive.py"
+  ],
+  "head": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "validator_sha256": "7b67a4fd7c93bbaba6a6b867941a67d69ca337381db500a757f09f886a34123f",
+  "execution_index_sha256": "9b001439e8d05f3132ed21501935d55d14d5dcf2379f8d17373305d56c7d4410",
+  "result": {
+    "status": "PASS",
+    "execution_entries": 36,
+    "decompressed_archive_secret_scan": "PASS",
+    "base_rows": 198,
+    "extension_rows": 49,
+    "historical_bytes_unchanged": true,
+    "real_provider_calls": 0
+  }
+}

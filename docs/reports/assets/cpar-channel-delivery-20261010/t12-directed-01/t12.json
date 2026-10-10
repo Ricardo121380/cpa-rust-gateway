@@ -1,0 +1,11 @@
+{
+  "scope": "isolated_synthetic_only",
+  "real_provider_calls": 0,
+  "binary_sha256": {
+    "schema32": "d9c6925e9cf4ce971f2929a668555511cfe6ec5db5d75b06424e9773ead1630d",
+    "pre_attempt_usage_schema34": "0b8e1e2c3c6965336a2b32253e03bb94e8c22c70041699d065338dc42a95c7f8",
+    "current": "1c8f077aff11fc886d0a63be767ede209cec7ee2c233201fb9b4be084e5256f5"
+  },
+  "snapshots": {},
+  "processes": []
+}

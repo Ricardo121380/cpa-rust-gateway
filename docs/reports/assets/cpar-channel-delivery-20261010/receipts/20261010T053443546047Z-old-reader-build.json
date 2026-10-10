@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "env",
+    "CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+    "GATEWAY_RELEASE_REVISION=08812db2373583b8a725b80071efe75b69f9d7ae",
+    "cargo",
+    "build",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/old-usage-reader",
+  "utc_start": "2026-10-10T05:34:43.546240+00:00",
+  "source_before": {
+    "head": "08812db2373583b8a725b80071efe75b69f9d7ae",
+    "status": ""
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-10T05:35:05.855158+00:00",
+  "source_after": {
+    "head": "08812db2373583b8a725b80071efe75b69f9d7ae",
+    "status": ""
+  },
+  "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/executions/20261010T053443546047Z-old-reader-build.log",
+  "log_sha256": "ea99b17936ad43afa1587aadc915dde69d1422ec1dcd1b7ea3654e62a8d6101a",
+  "bytes": 3677
+}

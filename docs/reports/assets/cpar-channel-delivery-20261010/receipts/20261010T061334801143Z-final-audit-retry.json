@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "env",
+    "-u",
+    "GATEWAY_RELEASE_REVISION",
+    "CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/full-target",
+    "cargo",
+    "audit"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/final-source",
+  "utc_start": "2026-10-10T06:13:34.801424+00:00",
+  "source_before": {
+    "head": "c1b304d02e61fe1c75653a32fba920093462add6",
+    "status": ""
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-10T06:13:38.156267+00:00",
+  "source_after": {
+    "head": "c1b304d02e61fe1c75653a32fba920093462add6",
+    "status": ""
+  },
+  "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/executions/20261010T061334801143Z-final-audit-retry.log",
+  "log_sha256": "75ee61df0ebed2579b6d9c47a1233fb279d2c23cab46299eb88f0093314a3703",
+  "bytes": 259
+}

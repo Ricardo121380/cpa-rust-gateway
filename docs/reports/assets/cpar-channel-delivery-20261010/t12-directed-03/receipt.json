@@ -1,0 +1,263 @@
+{
+  "status": "FAIL",
+  "binary_sha256": "1c8f077aff11fc886d0a63be767ede209cec7ee2c233201fb9b4be084e5256f5",
+  "source_sha": "d3d2e3c5bf0d9521f3fb0d830344b34053f62155",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_os_denies_non_loopback_network",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_historical_binary_created_schema32",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_native_display_identity_observed",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_public_stored_json_or_sse_one_actual_receive",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_public_stored_json_or_sse_one_actual_receive",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_legacy_chat_request",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_existing_client_key_permission_denied",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_owned_process_stopped_and_flushed",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_sqlite_quick_and_foreign_key_checks",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_nonempty_existing_identity_permissions_connections_history",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_in_place_schema32_to34",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_sqlite_quick_and_foreign_key_checks",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_upgrade_preserves_every_seeded_row_and_identity",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_schema33_legacy_ledger_provenance_stays_unknown",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_management_keeps_native_identity_and_both_disabled_intents",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_encrypted_owner_read_without_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_same_group_foreign_client_key_cannot_read",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_encrypted_owner_read_without_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_same_group_foreign_client_key_cannot_read",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_conflicting_legacy_history_explicitly_excluded",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_unknown_history_does_not_fabricate_ledger",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_legacy_attempt_sidecar_stays_unknown",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_owned_process_stopped_and_flushed",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_old_schema32_binary_rejects_current_schema",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_schema34_pre_attempt_reader_accepts_legacy_usage",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_owned_process_stopped_and_flushed",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_public_stored_json_or_sse_one_actual_receive",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_new_usage_has_exact_attempt_identity",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_owned_process_stopped_and_flushed",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_old_usage_summary_is_not_source_identity_validation",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_old_billing_reader_rejects_new_attempt_source_identity",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_owned_process_stopped_and_flushed",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_public_stored_json_or_sse_one_actual_receive",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_encrypted_owner_read_without_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_same_group_foreign_client_key_cannot_read",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_encrypted_owner_read_without_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_same_group_foreign_client_key_cannot_read",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_encrypted_owner_read_without_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_same_group_foreign_client_key_cannot_read",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_encrypted_owner_read_without_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_same_group_foreign_client_key_cannot_read",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_old_new_response_key_versions",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_historical_config_names_account_restoration",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_old_configuration_cannot_silently_restore_account",
+      "status": "PASS"
+    }
+  ],
+  "provider_calls": [
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    }
+  ],
+  "all_upstream_receives": [
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 49650
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 49650
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 49650
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 49650
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 49650
+    }
+  ],
+  "private_state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-_tdi_v_a",
+  "scope": "local_synthetic_only"
+}

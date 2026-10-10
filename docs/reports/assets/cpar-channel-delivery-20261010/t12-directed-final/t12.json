@@ -1,0 +1,868 @@
+{
+  "scope": "isolated_synthetic_only",
+  "real_provider_calls": 0,
+  "binary_sha256": {
+    "schema32": "d9c6925e9cf4ce971f2929a668555511cfe6ec5db5d75b06424e9773ead1630d",
+    "pre_attempt_usage_schema34": "0b8e1e2c3c6965336a2b32253e03bb94e8c22c70041699d065338dc42a95c7f8",
+    "current": "1c8f077aff11fc886d0a63be767ede209cec7ee2c233201fb9b4be084e5256f5"
+  },
+  "snapshots": {
+    "before_upgrade": {
+      "config_versions": {
+        "columns": [
+          "id",
+          "parent_id",
+          "status",
+          "created_at_ms",
+          "description",
+          "revision"
+        ],
+        "rows": 2,
+        "sha256": "e6d71127802e163757286afc955ba87358bb404ba016a92de059d25e533a5b4e"
+      },
+      "upstreams": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "name",
+          "kind",
+          "enabled",
+          "tags_json",
+          "egress_policy_id"
+        ],
+        "rows": 12,
+        "sha256": "fa8a284ecb17b76ceeb5c1391fb5284c9f031725f92d7e8d00635adae72d5644"
+      },
+      "upstream_endpoints": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "upstream_id",
+          "adapter_id",
+          "api_format",
+          "base_url",
+          "inference_path",
+          "models_path",
+          "transport",
+          "enabled"
+        ],
+        "rows": 12,
+        "sha256": "66bd090c798d25f8076c35ea87229796702c5e7187e5e5fbd39abc848d578b43"
+      },
+      "upstream_credentials": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "upstream_id",
+          "kind",
+          "ciphertext",
+          "key_version",
+          "status",
+          "revision"
+        ],
+        "rows": 18,
+        "sha256": "660cb92b0da91b69068b0caa32ca012aacd69ee3c0c226f704a3dbd5429b5c67"
+      },
+      "endpoint_credential_bindings": {
+        "columns": [
+          "config_version_id",
+          "endpoint_id",
+          "credential_id",
+          "upstream_id",
+          "enabled",
+          "priority",
+          "weight",
+          "concurrency"
+        ],
+        "rows": 18,
+        "sha256": "e4ead704e116c1085bd0968591270ac2acc0b2582c6ffb7b991f7827021a191e"
+      },
+      "public_models": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "model_name",
+          "status",
+          "display_name",
+          "capabilities_json"
+        ],
+        "rows": 6,
+        "sha256": "8ca8ea4757cdf5d75e158b34c3f2b53d5a1fb3c6a61f57fe856d0e83d1cd44e9"
+      },
+      "model_routes": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "public_model_id",
+          "policy",
+          "max_attempts",
+          "bootstrap_timeout_ms"
+        ],
+        "rows": 6,
+        "sha256": "da97453eac3c85328588a5f26198cddb66cb29afb61393d50e27ef75467bc666"
+      },
+      "route_candidates": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "route_id",
+          "endpoint_id",
+          "upstream_model",
+          "credential_scope",
+          "transform_mode",
+          "enabled",
+          "priority",
+          "weight",
+          "capability_override_json"
+        ],
+        "rows": 12,
+        "sha256": "4745c1112b3554f7f2f03003654ad6c80503ebe7537723adf4fed75edcfacbdf"
+      },
+      "access_groups": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "name",
+          "status",
+          "limits_json"
+        ],
+        "rows": 4,
+        "sha256": "6d9894020637d121d4f5311da6efdb015b7bdc55a5e7c37d0cc198393419c8b8"
+      },
+      "access_group_routes": {
+        "columns": [
+          "config_version_id",
+          "access_group_id",
+          "route_id",
+          "enabled"
+        ],
+        "rows": 6,
+        "sha256": "1cd9f437e7b70783a8df989e1bf8002dc7683ba111353bb800fd92b5a4edc78c"
+      },
+      "client_keys": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "prefix",
+          "secret_digest",
+          "access_group_id",
+          "status",
+          "expires_at_ms"
+        ],
+        "rows": 6,
+        "sha256": "76aa42ebdbe84c341f9a5b957398fa7c359a645ae31175f01eb74473714142dc"
+      },
+      "gateway_event_log": {
+        "columns": [
+          "event_ordinal",
+          "event_type",
+          "event_id",
+          "request_id",
+          "occurred_at_ms",
+          "payload_json"
+        ],
+        "rows": 14,
+        "sha256": "3b838e2758963e3b8a2689d5a1822952fd281fbf8550af971f06993a5aa89619"
+      },
+      "billing_ledger_entries": {
+        "columns": [
+          "ledger_id",
+          "source_event_id",
+          "source_fingerprint",
+          "request_id",
+          "response_id",
+          "provider_id",
+          "channel_id",
+          "account_id",
+          "model",
+          "occurred_at_ms",
+          "catalog_version_id",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens",
+          "cached_tokens",
+          "cost_microunits",
+          "cost_confidence",
+          "billing_status",
+          "retention_expires_at_ms",
+          "recorded_at_ms"
+        ],
+        "rows": 3,
+        "sha256": "2d065301a91e7f7040c21aeb0e70e4dfa5a59fcbd1034d77105eaeebceb9f04f"
+      },
+      "management_audit_events": {
+        "columns": [
+          "id",
+          "action",
+          "actor",
+          "occurred_at_ms",
+          "config_version_id",
+          "replaced_config_version_id"
+        ],
+        "rows": 4,
+        "sha256": "c55cce583fc709863b9ad6a86d1ae8c6507daef7caebb47bcb7d3c925824e705"
+      },
+      "management_resource_audit_events": {
+        "columns": [
+          "id",
+          "action",
+          "actor",
+          "occurred_at_ms",
+          "config_version_id",
+          "resource_kind",
+          "resource_id"
+        ],
+        "rows": 53,
+        "sha256": "79f5be591f4ea887373bb97a0e9dff723e4382643893d7f7b72b1ceef2731e30"
+      },
+      "grok_accounts": {
+        "columns": [
+          "id",
+          "provider",
+          "identity_digest",
+          "credential_ciphertext",
+          "credential_key_version",
+          "auth_status",
+          "enabled",
+          "priority",
+          "weight",
+          "max_concurrency",
+          "refresh_due_at_ms",
+          "last_refresh_at_ms",
+          "refresh_failure_count",
+          "cooldown_until_ms",
+          "revision",
+          "import_batch_id",
+          "created_at_ms",
+          "updated_at_ms",
+          "quota_sync_due_at_ms",
+          "last_quota_sync_at_ms",
+          "quota_sync_failure_count",
+          "worker_claim_kind",
+          "worker_claim_id",
+          "worker_claim_expires_at_ms",
+          "continuation_floor_revision",
+          "continuation_current_revision"
+        ],
+        "rows": 1,
+        "sha256": "c62d9c7f594b994032e0f259a03133a27076e94c87f2af4b354b716ed560b0f8"
+      },
+      "native_account_identity_observations": {
+        "columns": [
+          "account_id",
+          "credential_fingerprint",
+          "ciphertext",
+          "key_version",
+          "observed_at_ms"
+        ],
+        "rows": 1,
+        "sha256": "52d0d63f73a72103e45d760b4e231a06efc2afb08effae0766b6a06da661fe1a"
+      },
+      "stored_responses": {
+        "columns": [
+          "client_key_id",
+          "response_id",
+          "created_at_ms",
+          "expires_at_ms",
+          "payload_version",
+          "key_version",
+          "ciphertext"
+        ],
+        "rows": 2,
+        "sha256": "1eb0ea174d12e88b887abe34ad856313823bc968a4610636af3db5354cd9a7c1"
+      }
+    },
+    "after_upgrade": {
+      "config_versions": {
+        "columns": [
+          "id",
+          "parent_id",
+          "status",
+          "created_at_ms",
+          "description",
+          "revision"
+        ],
+        "rows": 2,
+        "sha256": "e6d71127802e163757286afc955ba87358bb404ba016a92de059d25e533a5b4e"
+      },
+      "upstreams": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "name",
+          "kind",
+          "enabled",
+          "tags_json",
+          "egress_policy_id"
+        ],
+        "rows": 12,
+        "sha256": "fa8a284ecb17b76ceeb5c1391fb5284c9f031725f92d7e8d00635adae72d5644"
+      },
+      "upstream_endpoints": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "upstream_id",
+          "adapter_id",
+          "api_format",
+          "base_url",
+          "inference_path",
+          "models_path",
+          "transport",
+          "enabled"
+        ],
+        "rows": 12,
+        "sha256": "66bd090c798d25f8076c35ea87229796702c5e7187e5e5fbd39abc848d578b43"
+      },
+      "upstream_credentials": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "upstream_id",
+          "kind",
+          "ciphertext",
+          "key_version",
+          "status",
+          "revision"
+        ],
+        "rows": 18,
+        "sha256": "660cb92b0da91b69068b0caa32ca012aacd69ee3c0c226f704a3dbd5429b5c67"
+      },
+      "endpoint_credential_bindings": {
+        "columns": [
+          "config_version_id",
+          "endpoint_id",
+          "credential_id",
+          "upstream_id",
+          "enabled",
+          "priority",
+          "weight",
+          "concurrency"
+        ],
+        "rows": 18,
+        "sha256": "e4ead704e116c1085bd0968591270ac2acc0b2582c6ffb7b991f7827021a191e"
+      },
+      "public_models": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "model_name",
+          "status",
+          "display_name",
+          "capabilities_json"
+        ],
+        "rows": 6,
+        "sha256": "8ca8ea4757cdf5d75e158b34c3f2b53d5a1fb3c6a61f57fe856d0e83d1cd44e9"
+      },
+      "model_routes": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "public_model_id",
+          "policy",
+          "max_attempts",
+          "bootstrap_timeout_ms"
+        ],
+        "rows": 6,
+        "sha256": "da97453eac3c85328588a5f26198cddb66cb29afb61393d50e27ef75467bc666"
+      },
+      "route_candidates": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "route_id",
+          "endpoint_id",
+          "upstream_model",
+          "credential_scope",
+          "transform_mode",
+          "enabled",
+          "priority",
+          "weight",
+          "capability_override_json"
+        ],
+        "rows": 12,
+        "sha256": "4745c1112b3554f7f2f03003654ad6c80503ebe7537723adf4fed75edcfacbdf"
+      },
+      "access_groups": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "name",
+          "status",
+          "limits_json"
+        ],
+        "rows": 4,
+        "sha256": "6d9894020637d121d4f5311da6efdb015b7bdc55a5e7c37d0cc198393419c8b8"
+      },
+      "access_group_routes": {
+        "columns": [
+          "config_version_id",
+          "access_group_id",
+          "route_id",
+          "enabled"
+        ],
+        "rows": 6,
+        "sha256": "1cd9f437e7b70783a8df989e1bf8002dc7683ba111353bb800fd92b5a4edc78c"
+      },
+      "client_keys": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "prefix",
+          "secret_digest",
+          "access_group_id",
+          "status",
+          "expires_at_ms"
+        ],
+        "rows": 6,
+        "sha256": "76aa42ebdbe84c341f9a5b957398fa7c359a645ae31175f01eb74473714142dc"
+      },
+      "gateway_event_log": {
+        "columns": [
+          "event_ordinal",
+          "event_type",
+          "event_id",
+          "request_id",
+          "occurred_at_ms",
+          "payload_json"
+        ],
+        "rows": 14,
+        "sha256": "3b838e2758963e3b8a2689d5a1822952fd281fbf8550af971f06993a5aa89619"
+      },
+      "billing_ledger_entries": {
+        "columns": [
+          "ledger_id",
+          "source_event_id",
+          "source_fingerprint",
+          "request_id",
+          "response_id",
+          "provider_id",
+          "channel_id",
+          "account_id",
+          "model",
+          "occurred_at_ms",
+          "catalog_version_id",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens",
+          "cached_tokens",
+          "cost_microunits",
+          "cost_confidence",
+          "billing_status",
+          "retention_expires_at_ms",
+          "recorded_at_ms"
+        ],
+        "rows": 3,
+        "sha256": "2d065301a91e7f7040c21aeb0e70e4dfa5a59fcbd1034d77105eaeebceb9f04f"
+      },
+      "management_audit_events": {
+        "columns": [
+          "id",
+          "action",
+          "actor",
+          "occurred_at_ms",
+          "config_version_id",
+          "replaced_config_version_id"
+        ],
+        "rows": 4,
+        "sha256": "c55cce583fc709863b9ad6a86d1ae8c6507daef7caebb47bcb7d3c925824e705"
+      },
+      "management_resource_audit_events": {
+        "columns": [
+          "id",
+          "action",
+          "actor",
+          "occurred_at_ms",
+          "config_version_id",
+          "resource_kind",
+          "resource_id"
+        ],
+        "rows": 53,
+        "sha256": "79f5be591f4ea887373bb97a0e9dff723e4382643893d7f7b72b1ceef2731e30"
+      },
+      "grok_accounts": {
+        "columns": [
+          "id",
+          "provider",
+          "identity_digest",
+          "credential_ciphertext",
+          "credential_key_version",
+          "auth_status",
+          "enabled",
+          "priority",
+          "weight",
+          "max_concurrency",
+          "refresh_due_at_ms",
+          "last_refresh_at_ms",
+          "refresh_failure_count",
+          "cooldown_until_ms",
+          "revision",
+          "import_batch_id",
+          "created_at_ms",
+          "updated_at_ms",
+          "quota_sync_due_at_ms",
+          "last_quota_sync_at_ms",
+          "quota_sync_failure_count",
+          "worker_claim_kind",
+          "worker_claim_id",
+          "worker_claim_expires_at_ms",
+          "continuation_floor_revision",
+          "continuation_current_revision"
+        ],
+        "rows": 1,
+        "sha256": "c62d9c7f594b994032e0f259a03133a27076e94c87f2af4b354b716ed560b0f8"
+      },
+      "native_account_identity_observations": {
+        "columns": [
+          "account_id",
+          "credential_fingerprint",
+          "ciphertext",
+          "key_version",
+          "observed_at_ms"
+        ],
+        "rows": 1,
+        "sha256": "52d0d63f73a72103e45d760b4e231a06efc2afb08effae0766b6a06da661fe1a"
+      },
+      "stored_responses": {
+        "columns": [
+          "client_key_id",
+          "response_id",
+          "created_at_ms",
+          "expires_at_ms",
+          "payload_version",
+          "key_version",
+          "ciphertext"
+        ],
+        "rows": 2,
+        "sha256": "1eb0ea174d12e88b887abe34ad856313823bc968a4610636af3db5354cd9a7c1"
+      }
+    },
+    "post_upgrade_preserved": {
+      "config_versions": {
+        "columns": [
+          "id",
+          "parent_id",
+          "status",
+          "created_at_ms",
+          "description",
+          "revision"
+        ],
+        "rows": 3,
+        "sha256": "0dfab03955a525a162141fb42eae67ca5de07b190d554c7a8a7acbe4463d63f1"
+      },
+      "upstreams": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "name",
+          "kind",
+          "enabled",
+          "tags_json",
+          "egress_policy_id"
+        ],
+        "rows": 18,
+        "sha256": "48edc1d9975445b48b2c2b77ed189f58be614edce21c10fe045d6b74e17cb598"
+      },
+      "upstream_endpoints": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "upstream_id",
+          "adapter_id",
+          "api_format",
+          "base_url",
+          "inference_path",
+          "models_path",
+          "transport",
+          "enabled"
+        ],
+        "rows": 18,
+        "sha256": "fa5a7394a3ab174a39c42f1dc3e807a1b0ded84ffb4df94b43b0fe38892922e5"
+      },
+      "upstream_credentials": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "upstream_id",
+          "kind",
+          "ciphertext",
+          "key_version",
+          "status",
+          "revision"
+        ],
+        "rows": 26,
+        "sha256": "0a574cfe87fa9e7901f70b6dac6af1b97a8c5073b955cb4e7e1e53fb4c19b719"
+      },
+      "endpoint_credential_bindings": {
+        "columns": [
+          "config_version_id",
+          "endpoint_id",
+          "credential_id",
+          "upstream_id",
+          "enabled",
+          "priority",
+          "weight",
+          "concurrency"
+        ],
+        "rows": 26,
+        "sha256": "ff645da02b791cb7c7658dadcd5b65892c1ba020942ccea4a95a8d71615a58cf"
+      },
+      "public_models": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "model_name",
+          "status",
+          "display_name",
+          "capabilities_json"
+        ],
+        "rows": 9,
+        "sha256": "1e92234d6a8601c7329754d553507a25255f561dfce36a77d85be6c8b3419a38"
+      },
+      "model_routes": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "public_model_id",
+          "policy",
+          "max_attempts",
+          "bootstrap_timeout_ms"
+        ],
+        "rows": 9,
+        "sha256": "c38aa8b7c4a771676b72adbc7a327ee31cb520537d6bc92fe59fb0e8651bd8e3"
+      },
+      "route_candidates": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "route_id",
+          "endpoint_id",
+          "upstream_model",
+          "credential_scope",
+          "transform_mode",
+          "enabled",
+          "priority",
+          "weight",
+          "capability_override_json"
+        ],
+        "rows": 18,
+        "sha256": "5d9767103d9a14c44e9dbb2f3f813bc9ad158fcee9fbad52312dbe684c15a2e4"
+      },
+      "access_groups": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "name",
+          "status",
+          "limits_json"
+        ],
+        "rows": 6,
+        "sha256": "26e7e2191220aee4b5965434cb6a969dc60fe98191b9e28f8c298c6fb6ae1948"
+      },
+      "access_group_routes": {
+        "columns": [
+          "config_version_id",
+          "access_group_id",
+          "route_id",
+          "enabled"
+        ],
+        "rows": 9,
+        "sha256": "d1bf10dec4f740640439ca6e439c9e2bad1c907bb600d1a73a0e478f6a89b439"
+      },
+      "client_keys": {
+        "columns": [
+          "config_version_id",
+          "id",
+          "prefix",
+          "secret_digest",
+          "access_group_id",
+          "status",
+          "expires_at_ms"
+        ],
+        "rows": 9,
+        "sha256": "70acb296ac5b64fddef42cfde3f0e31d777b371558098517e3f4e69ec44102cc"
+      },
+      "gateway_event_log": {
+        "columns": [
+          "event_ordinal",
+          "event_type",
+          "event_id",
+          "request_id",
+          "occurred_at_ms",
+          "payload_json"
+        ],
+        "rows": 22,
+        "sha256": "ed38a46f1c939497d8fa95cef072c35c81d172a0febeb2a679673e1f68708398"
+      },
+      "billing_ledger_entries": {
+        "columns": [
+          "ledger_id",
+          "source_event_id",
+          "source_fingerprint",
+          "request_id",
+          "response_id",
+          "provider_id",
+          "channel_id",
+          "account_id",
+          "model",
+          "occurred_at_ms",
+          "catalog_version_id",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens",
+          "cached_tokens",
+          "cost_microunits",
+          "cost_confidence",
+          "billing_status",
+          "retention_expires_at_ms",
+          "recorded_at_ms",
+          "usage_evidence_json"
+        ],
+        "rows": 5,
+        "sha256": "d21f02341ca41d83104d8d8e6083530d1259948401c752a090652d43fb7d2ba7"
+      },
+      "management_audit_events": {
+        "columns": [
+          "id",
+          "action",
+          "actor",
+          "occurred_at_ms",
+          "config_version_id",
+          "replaced_config_version_id"
+        ],
+        "rows": 7,
+        "sha256": "3526931f2edcda1ecc0dd53ed57b2c495348e233b0c7036a7484f9fea2cf11b0"
+      },
+      "management_resource_audit_events": {
+        "columns": [
+          "id",
+          "action",
+          "actor",
+          "occurred_at_ms",
+          "config_version_id",
+          "resource_kind",
+          "resource_id"
+        ],
+        "rows": 55,
+        "sha256": "e4fd9b530fe4828274ea160a0efb1a4486c1d914c40be77350e2c096c0d0659d"
+      },
+      "grok_accounts": {
+        "columns": [
+          "id",
+          "provider",
+          "identity_digest",
+          "credential_ciphertext",
+          "credential_key_version",
+          "auth_status",
+          "enabled",
+          "priority",
+          "weight",
+          "max_concurrency",
+          "refresh_due_at_ms",
+          "last_refresh_at_ms",
+          "refresh_failure_count",
+          "cooldown_until_ms",
+          "revision",
+          "import_batch_id",
+          "created_at_ms",
+          "updated_at_ms",
+          "quota_sync_due_at_ms",
+          "last_quota_sync_at_ms",
+          "quota_sync_failure_count",
+          "worker_claim_kind",
+          "worker_claim_id",
+          "worker_claim_expires_at_ms",
+          "continuation_floor_revision",
+          "continuation_current_revision"
+        ],
+        "rows": 1,
+        "sha256": "c62d9c7f594b994032e0f259a03133a27076e94c87f2af4b354b716ed560b0f8"
+      },
+      "native_account_identity_observations": {
+        "columns": [
+          "account_id",
+          "credential_fingerprint",
+          "ciphertext",
+          "key_version",
+          "observed_at_ms"
+        ],
+        "rows": 1,
+        "sha256": "52d0d63f73a72103e45d760b4e231a06efc2afb08effae0766b6a06da661fe1a"
+      },
+      "stored_responses": {
+        "columns": [
+          "client_key_id",
+          "response_id",
+          "created_at_ms",
+          "expires_at_ms",
+          "payload_version",
+          "key_version",
+          "ciphertext"
+        ],
+        "rows": 4,
+        "sha256": "b89764c905e06ce07769ca43c287cca054bdff3dd75ad5e605731cb580d3a04f"
+      }
+    }
+  },
+  "processes": [
+    {
+      "binary_sha256": "d9c6925e9cf4ce971f2929a668555511cfe6ec5db5d75b06424e9773ead1630d",
+      "pid": 5621
+    },
+    {
+      "binary_sha256": "1c8f077aff11fc886d0a63be767ede209cec7ee2c233201fb9b4be084e5256f5",
+      "pid": 5632
+    },
+    {
+      "binary_sha256": "0b8e1e2c3c6965336a2b32253e03bb94e8c22c70041699d065338dc42a95c7f8",
+      "pid": 5637
+    },
+    {
+      "binary_sha256": "1c8f077aff11fc886d0a63be767ede209cec7ee2c233201fb9b4be084e5256f5",
+      "pid": 5640
+    },
+    {
+      "binary_sha256": "0b8e1e2c3c6965336a2b32253e03bb94e8c22c70041699d065338dc42a95c7f8",
+      "pid": 5649
+    },
+    {
+      "binary_sha256": "1c8f077aff11fc886d0a63be767ede209cec7ee2c233201fb9b4be084e5256f5",
+      "pid": 5653
+    },
+    {
+      "binary_sha256": "d9c6925e9cf4ce971f2929a668555511cfe6ec5db5d75b06424e9773ead1630d",
+      "pid": 5662
+    },
+    {
+      "binary_sha256": "1c8f077aff11fc886d0a63be767ede209cec7ee2c233201fb9b4be084e5256f5",
+      "pid": 5668
+    }
+  ],
+  "old_schema_rejection": {
+    "exit_code": 1,
+    "error": "unsupported_migration_history",
+    "stderr_sha256": "414f9f9d32a895364f96037bc489651e948f6980752f5475e62bbe9b5bdb8d52"
+  },
+  "upgrade": "PASS",
+  "coherent_restore": "PASS",
+  "binary_only_rollback": "UNSAFE",
+  "schema_start": 32,
+  "schema_end": 34,
+  "history_preserved_privately": true,
+  "restoring_prechange_state_excludes_later_writes_until_postchange_state_is_restored": true,
+  "native_display_identity": "synthetic",
+  "old_usage_summary_http": 200,
+  "attempt_usage_old_billing_reader": "REJECTED_INVALID_EVENT",
+  "upstream_receive_count": 5,
+  "key_versions_retained": [
+    1,
+    2
+  ],
+  "status": "PASS"
+}

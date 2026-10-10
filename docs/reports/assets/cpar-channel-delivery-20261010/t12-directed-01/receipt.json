@@ -1,0 +1,23 @@
+{
+  "status": "FAIL",
+  "binary_sha256": "d9c6925e9cf4ce971f2929a668555511cfe6ec5db5d75b06424e9773ead1630d",
+  "source_sha": "d3d2e3c5bf0d9521f3fb0d830344b34053f62155",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_os_denies_non_loopback_network",
+      "status": "PASS"
+    },
+    {
+      "check": "t12_historical_binary_created_schema32",
+      "status": "PASS"
+    }
+  ],
+  "provider_calls": [],
+  "all_upstream_receives": [],
+  "private_state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-e87qy6ev",
+  "scope": "local_synthetic_only"
+}

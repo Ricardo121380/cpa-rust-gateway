@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "test"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/clean-source",
+  "utc_start": "2026-10-10T05:49:25.496998+00:00",
+  "source_before": {
+    "head": "611949b6faef9788d04b3283cc4c7ad45c6dcf38",
+    "status": ""
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-10T05:49:30.865419+00:00",
+  "source_after": {
+    "head": "611949b6faef9788d04b3283cc4c7ad45c6dcf38",
+    "status": ""
+  },
+  "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/executions/20261010T054925496822Z-clean-frontend-tests.log",
+  "log_sha256": "ba15206377faecbc481c3a5f4958fc351cb0678f668d0d3f60bb7e7c0e8f5a36",
+  "bytes": 4682
+}

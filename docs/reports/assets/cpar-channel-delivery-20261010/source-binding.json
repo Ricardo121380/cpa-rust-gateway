@@ -1,0 +1,43 @@
+{
+  "initial_head": "d3d2e3c5bf0d9521f3fb0d830344b34053f62155",
+  "last_prior_behavior_and_driver_source": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+  "branch": "codex/prism-v4-delivery",
+  "behavior_and_acceptance_source": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "owned_implementation_paths": [
+    "scripts/acceptance/cpar-batch-b-http.py",
+    "scripts/acceptance/cpar_t12_upgrade_http.py",
+    "crates/gateway-store/src/event_store.rs",
+    "docs/contracts/BC-OBS-002-append-only-sqlite-event-writer.md"
+  ],
+  "production_change": "Known pre-evidence Usage encoding is readable and replayable without rewriting bytes or enriching unknown evidence; implements ADR-0100.",
+  "production_and_contract_paths": [
+    "crates/gateway-store/src/event_store.rs",
+    "docs/contracts/BC-OBS-002-append-only-sqlite-event-writer.md"
+  ],
+  "adr_openapi_ui_paths": [],
+  "acceptance_driver_file_sha256": {
+    "scripts/acceptance/cpar-batch-b-http.py": "ad9f73a5bde3cbfe9c7083abce3b1b91e20285faa4a0c0d633f757c3f0807f34",
+    "scripts/acceptance/cpar_t12_upgrade_http.py": "d01614324e55fdf292b6aa0e33328fc619a286142551d486ca336ee5dc02a201"
+  },
+  "historical_binaries": {
+    "schema32": {
+      "source_sha": "24142a9008e58fbc87d0b5791bbb166b45234850",
+      "binary_sha256": "d9c6925e9cf4ce971f2929a668555511cfe6ec5db5d75b06424e9773ead1630d"
+    },
+    "schema34_pre_attempt_usage": {
+      "source_sha": "08812db2373583b8a725b80071efe75b69f9d7ae",
+      "binary_sha256": "0b8e1e2c3c6965336a2b32253e03bb94e8c22c70041699d065338dc42a95c7f8"
+    }
+  },
+  "current_binary": {
+    "source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+    "binary_sha256": "8497bd248f043905795527a710753104e08b85fc28dfbc10e37548acfe913bc3",
+    "role": "normal debug binary compiled in clean source; not a release artifact"
+  },
+  "user_agents_sha256_unchanged": true,
+  "real_provider_calls": 0,
+  "remote_ci": "NOT_RUN",
+  "release": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN"
+}

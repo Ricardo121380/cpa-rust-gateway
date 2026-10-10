@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "env",
+    "-u",
+    "GATEWAY_RELEASE_REVISION",
+    "CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/full-target",
+    "CHECK_REPORT_PATH=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/full-check.md",
+    "scripts/check.sh",
+    "full"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/clean-source",
+  "utc_start": "2026-10-10T05:55:17.355349+00:00",
+  "source_before": {
+    "head": "611949b6faef9788d04b3283cc4c7ad45c6dcf38",
+    "status": ""
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-10T06:00:08.000175+00:00",
+  "source_after": {
+    "head": "611949b6faef9788d04b3283cc4c7ad45c6dcf38",
+    "status": ""
+  },
+  "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/executions/20261010T055517355190Z-clean-full-default-environment.log",
+  "log_sha256": "fd66af04bf432d7ee890f29dff9e67149c03c044c0070e73a194a55c5a5390e9",
+  "bytes": 293751
+}

@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "env",
+    "-u",
+    "GATEWAY_RELEASE_REVISION",
+    "CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/full-target",
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway",
+    "development_build_embeds_a_non_secret_release_identity",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/clean-source",
+  "utc_start": "2026-10-10T05:54:04.201439+00:00",
+  "source_before": {
+    "head": "611949b6faef9788d04b3283cc4c7ad45c6dcf38",
+    "status": ""
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-10T05:54:24.828059+00:00",
+  "source_after": {
+    "head": "611949b6faef9788d04b3283cc4c7ad45c6dcf38",
+    "status": ""
+  },
+  "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/executions/20261010T055404201048Z-clean-development-identity.log",
+  "log_sha256": "9403cb41d21389f63a784da4206f4744aa0a3d8c8b60f3ee367661836221d285",
+  "bytes": 2223
+}

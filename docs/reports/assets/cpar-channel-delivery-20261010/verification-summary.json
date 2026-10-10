@@ -1,0 +1,49 @@
+{
+  "behavior_source": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "full": {
+    "status": "PASS_LOCAL",
+    "steps": 45,
+    "rust": {
+      "passed": 1500,
+      "failed": 0,
+      "ignored": 12
+    },
+    "execution_ref": "receipts/20261010T061404400450Z-final-full-network-retry.json",
+    "raw_sha256": "c8d5eef10d36548284d1abb5fe25ef7a56eadb29052f2f81a724c9bde1bdd554",
+    "utc_start": "2026-10-10T06:14:04.400763+00:00",
+    "utc_end": "2026-10-10T06:18:14.414969+00:00",
+    "clean_before_and_after": true
+  },
+  "t12": {
+    "status": "PASS_PUBLIC_HTTP_LOCAL_SYNTHETIC",
+    "checks": 71,
+    "actual_loopback_receives": 5,
+    "fallback_receives": 0,
+    "execution_ref": "receipts/20261010T061404398161Z-clean-t12.json",
+    "raw_sha256": "c6dc166c8253944c1af648cf8375adf81f156b8c752bd8b9d76853b36ffd0f86",
+    "utc_start": "2026-10-10T06:14:04.398565+00:00",
+    "utc_end": "2026-10-10T06:14:14.823912+00:00",
+    "clean_before_and_after": true
+  },
+  "frontend": {
+    "status": "PASS_LOCAL_REUSED",
+    "files": 70,
+    "tests": 513,
+    "source_sha": "611949b6faef9788d04b3283cc4c7ad45c6dcf38",
+    "execution_ref": "receipts/20261010T054925496822Z-clean-frontend-tests.json",
+    "raw_sha256": "ba15206377faecbc481c3a5f4958fc351cb0678f668d0d3f60bb7e7c0e8f5a36",
+    "applicability": "web/prism is byte-identical between executed source and final behavior source; final Full repeats type check and builds"
+  },
+  "directed": {
+    "legacy_new_store_test": 1,
+    "legacy_related_regression_tests": 6,
+    "kiro_handler_fixture_tests": 1,
+    "web_preflight_handler_fixture_tests": 1
+  },
+  "real_provider_calls": 0,
+  "new_browser_behavior": "NOT_RUN_UI_UNCHANGED",
+  "remote_ci": "NOT_RUN",
+  "release_artifact": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN"
+}

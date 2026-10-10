@@ -1,0 +1,7 @@
+{
+  "observed_at_utc": "2026-10-10T06:15:26.170129+00:00",
+  "method": "lstat matches original snapshot; stat would compare symlink targets",
+  "original_untracked_entries_checked": 5817,
+  "changes": [],
+  "agents_sha256_unchanged": true
+}
