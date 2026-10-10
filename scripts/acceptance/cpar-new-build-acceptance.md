@@ -199,8 +199,11 @@ authorized operator and retain actual target and event/send/resource evidence.
 Absent observations stay `NOT_RUN`; they never become passes.
 
 Historical bundles without `basic_scenario_version` retain version 2's 2/2/3
-turn scope. Their seven-request receipts remain historical evidence; they do
-not satisfy version 3's 3/2/4 requirement.
+turn scope and original history encoding when audited. Only that read-only v2
+audit preserves its original instruction-in-result encoding; the live producer
+always uses v3's separate user instruction and deterministic tool result.
+Their seven-request receipts remain historical evidence; they do not satisfy
+version 3's 3/2/4 requirement or qualify new live tool-result acceptance.
 
 Required boundary cases are `error`, `truncation`, `cancel_before_send`,
 `cancel_bootstrap`, `cancel_after_output`, `timeout_bootstrap`,

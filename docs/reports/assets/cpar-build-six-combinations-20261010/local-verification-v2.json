@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:28:35.552236+00:00",
+  "supersedes_for_current_files": "local-verification.json; original receipt retained for 7fb544b6",
+  "formal_tests": {
+    "passed": 38,
+    "failed": 0
+  },
+  "real_provider_requests": 0,
+  "historical_cli_audit": {
+    "modes": 6,
+    "original_history_shape": true,
+    "version": 2,
+    "turns": 7,
+    "basic_status": "PASS",
+    "overall_status": "NOT_RUN",
+    "cannot_qualify_as_v3": true
+  },
+  "live_v3_public_loopback": {
+    "modes": 6,
+    "requests_per_combination": 9,
+    "wrong_tool_result_stops_at": 5
+  },
+  "red": {
+    "tests": 1,
+    "failed_subtests": 6,
+    "before_compatibility_formal_sha256": "3dee3525132871d4049a3d8b05c5481eb902425380babcdaa4e5a4a656d7c4fa"
+  },
+  "tested_file_sha256": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a",
+    "scripts/acceptance/cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+    "scripts/test-cpar-new-build-acceptance.py": "49d2f2caac3f46396c3bbfab388940e1f7ea4ffa016d467144909e69b2272f4c"
+  },
+  "logs": {
+    "history-compatibility-red.log": {
+      "raw_sha256": "2f445a9e0c49744f7e8754aefab0fe44a36bbac325fe9f4e584664ff3affa6c3",
+      "gzip_sha256": "0c541bdfb80512d8ea43f303b1950621ff33987d2bbb6213df3c7360f2d792e9"
+    },
+    "history-compatibility-green.log": {
+      "raw_sha256": "6736661f95dbbdfcd3b8a877275a13516fff6090bb54e469fd0b5a7a535438a9",
+      "gzip_sha256": "76bbf942a20dca38a8ee9d87b9df119133e0234cb65cf7d5fe5b5a8124dcb1f3"
+    }
+  }
+}

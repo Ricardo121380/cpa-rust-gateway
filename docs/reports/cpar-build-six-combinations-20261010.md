@@ -99,7 +99,11 @@
 
 修复后正式 oracle **38/38 PASS**。六模式每组合9个 loopback 请求完整通过；错误工具结果返回 `:2` 时仍于第五请求 FAIL，后续停止。零真实 Provider 调用。见 [local-verification.json](assets/cpar-build-six-combinations-20261010/local-verification.json)、其中 RED／GREEN 完整 gzip 日志及 [六模式本地回执](assets/cpar-build-six-combinations-20261010/local-http-receipts/responses-json.json)。修复后 formal SHA256 为 `3dee3525132871d4049a3d8b05c5481eb902425380babcdaa4e5a4a656d7c4fa`；真实执行的旧 SHA256 保持原值。
 
-项目 docs 门槛、独立 Standards／Spec 实际 diff 审查及固定提交回执在本轮收口归档。它们验证本地修复与证据表达，不能替代尚缺的真实五组合／工具闭环／扩展正例；#47 整票 Spec 继续 PARTIAL。
+首轮固定 `7fb544b6` 的 docs **7/7 PASS**，独立 Standards／Spec 均无已证实finding，见 [首轮审查](assets/cpar-build-six-combinations-20261010/review-7fb544b6.md)。Standards另指出历史兼容性提示：原无版本号v2的7请求历史经新函数重审变FAIL，旧测试用新函数重建历史未覆盖原encoding。
+
+主代理按已存在的历史版本契约，从公开audit CLI复现六模式原v2 encoding的FAIL后，最小修复只读version2审计比较其原历史；live producer继续固定version3，输出1／普通user指令及严格答案不变。历史7请求不能晋升为新9请求资格，任何真实旧失败／wire／时间戳均未重写。后继 **38/38 PASS**，详见 [local-verification-v2.json](assets/cpar-build-six-combinations-20261010/local-verification-v2.json)；当前formal SHA256=`b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a`。首轮3dee字节／回执另留；后继diff需新的独立审查，不能套用首轮结论。
+
+最终项目门槛及独立审查在收口资产记录。审查只验证本地修复与证据表达，不能替代尚缺的真实五组合／工具闭环／扩展正例；#47整票Spec继续PARTIAL。
 
 ## 计数、停止与退出
 

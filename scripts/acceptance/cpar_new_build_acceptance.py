@@ -678,8 +678,16 @@ def make_request(target, scenario, token):
     return result
 
 
-def check_history(protocol, previous, request, answer, calls, token):
-    expected = conversation_step(protocol, previous, answer, calls, token)
+def check_history(protocol, previous, request, answer, calls, token, *, scenario_version=3):
+    if scenario_version == 2 and calls:
+        # Read the original seven-request history without promoting it to live v3.
+        expected = legacy.followup(protocol, previous, answer, calls)
+        field = "input" if protocol == "responses" else "messages"
+        outputs = expected[field][-1]["content"] if protocol == "messages" else expected[field][-len(calls):]
+        for item in outputs:
+            item["output" if protocol == "responses" else "content"] = token
+    else:
+        expected = conversation_step(protocol, previous, answer, calls, token)
     field = "input" if protocol == "responses" else "messages"
     require(request.get(field) == expected[field], "incomplete_or_reordered_history")
     for key in previous:
@@ -893,7 +901,7 @@ def audit_bundle(bundle):
                 for index, sample in enumerate(samples):
                     request = sample["request"]
                     if previous is not None:
-                        check_history(target["protocol"], previous, request, answer, calls, token)
+                        check_history(target["protocol"], previous, request, answer, calls, token, scenario_version=version)
                     answer, calls, native = basic_answer(target, sample, scenario, index, turns_needed, seen_ids)
                     verify_turn_runtime(sample.get("runtime"), bundle["runtime"], bundle["source_sha"], layer)
                     attribution = verify_attempts(target, sample.get("evidence", {}), answer["id"])

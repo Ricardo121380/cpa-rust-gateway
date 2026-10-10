@@ -150,7 +150,17 @@ def bundle(protocol="responses", mode="json", version=3):
             else:
                 sample["next_token"] = "Return exactly ACCEPT:synthetic" if version != 3 else "Repeat the remembered token exactly." if scenario == "text_multi_turn" else "Call lookup with value 1 again." if number < count - 2 else "Return exactly ACCEPT:synthetic: followed by the lookup result, with no other text."
                 _, calls = oracle.observe(protocol, value)
-                request = oracle.conversation_step(protocol, request, value, calls, sample["next_token"])
+                if version == 2 and calls:
+                    # Original v2 wire shape, independent of the current history builder.
+                    request = legacy.followup(protocol, request, value, calls)
+                    if protocol == "responses":
+                        for item in request["input"][-len(calls):]:item["output"] = sample["next_token"]
+                    elif protocol == "chat":
+                        for item in request["messages"][-len(calls):]:item["content"] = sample["next_token"]
+                    else:
+                        for item in request["messages"][-1]["content"]:item["content"] = sample["next_token"]
+                else:
+                    request = oracle.conversation_step(protocol, request, value, calls, sample["next_token"])
         result["scenarios"][scenario] = samples
     return result
 
@@ -327,12 +337,20 @@ class FormalOracle(unittest.TestCase):
                     self.assertEqual(receipt["status"], "NOT_RUN")
 
     def test_historical_seven_request_bundles_keep_original_scope(self):
-        value = bundle(version=2)
-        value.pop("basic_scenario_version")
-        receipt = oracle.audit_bundle(value)
-        self.assertEqual(receipt["basic_status"], "PASS")
-        self.assertEqual(receipt["basic_scenario_version"], 2)
-        self.assertEqual(receipt["sent_requests"], 7)
+        for protocol in oracle.PROTOCOLS:
+            for mode in ("json", "sse"):
+                with self.subTest(protocol=protocol, mode=mode), tempfile.TemporaryDirectory() as directory:
+                    value = bundle(protocol, mode, version=2)
+                    value.pop("basic_scenario_version")
+                    source, out = (Path(directory, name) for name in ("historical.json", "receipt.json"))
+                    source.write_text(json.dumps(value))
+                    with contextlib.redirect_stdout(io.StringIO()):oracle.main(["audit", "--bundle", str(source), "--out", str(out)])
+                    receipt = json.loads(out.read_text())
+                    self.assertEqual(receipt["basic_status"], "PASS")
+                    self.assertEqual(receipt["basic_scenario_version"], 2)
+                    self.assertEqual(receipt["sent_requests"], 7)
+                    value["basic_scenario_version"] = 3
+                    self.assertEqual(oracle.audit_bundle(value)["basic_status"], "FAIL")
 
     def test_stale_observation_cannot_erase_sent_requests(self):
         for version, sent in ((2, 7), (3, 9)):

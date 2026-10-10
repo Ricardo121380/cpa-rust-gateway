@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:29:20.460225+00:00",
+  "head": "7fb544b6f211e3b43a4d5a6c9625e5fe9cfb20cf",
+  "gate_count": 7,
+  "command": "scripts/check.sh docs",
+  "log_sha256": "e3df354497d01b18d4fda239d6f281790d446799c1ec2ec2e551549557655a58",
+  "later_compatibility_diff_included": false
+}
