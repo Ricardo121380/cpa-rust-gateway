@@ -101,6 +101,7 @@ pub(crate) struct ServeCommand {
     grok_web_proxy: Option<UpstreamProxy>,
     grok_web_flaresolverr_proxy: Option<UpstreamProxy>,
     grok_web_flaresolverr_port: u16,
+    background_provider_tasks_enabled: bool,
 }
 
 /// Parses the `gateway serve` command after the top-level command name.
@@ -170,6 +171,12 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
         })
         .transpose()?
         .unwrap_or(8191);
+    let background_provider_tasks_enabled =
+        match options.remove("--background-provider-tasks").as_deref() {
+            None | Some("enabled") => true,
+            Some("disabled") => false,
+            Some(_) => return Err(DeploymentError::InvalidBackgroundProviderTasks),
+        };
     if !options.is_empty() {
         return Err(DeploymentError::UnexpectedOption);
     }
@@ -185,6 +192,7 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<ServeCommand, DeploymentEr
         grok_web_proxy,
         grok_web_flaresolverr_proxy,
         grok_web_flaresolverr_port,
+        background_provider_tasks_enabled,
     })
 }
 
@@ -367,9 +375,15 @@ async fn run_servers(
     if capacity_worker.is_none() {
         storage_capacity.observe(None);
     }
-    let runtime_workers = reload.start_workers(credential_refresh_worker, model_catalog_worker);
+    // Skip the subscription as well as initial workers: a later publication must not
+    // restart Provider traffic in a process whose operator explicitly disabled it.
+    let runtime_workers = command
+        .background_provider_tasks_enabled
+        .then(|| reload.start_workers(credential_refresh_worker, model_catalog_worker));
     let server_result = try_join(data_server, management_server).await;
-    runtime_workers.stop().await;
+    if let Some(runtime_workers) = runtime_workers {
+        runtime_workers.stop().await;
+    }
     drop(reload);
     let server_result = server_result
         .map(|_| ())
@@ -469,7 +483,7 @@ impl ManagementFailureFeedbackFacade for DeploymentManagementUsageFacade {
 // Keep the serving and management compositions visibly adjacent so one database/runtime source
 // cannot be wired into a second hidden control plane.
 fn build_application_state(command: &ServeCommand) -> Result<ApplicationState, DeploymentError> {
-    build_application_state_with_refresh(command, true)
+    build_application_state_with_refresh(command, command.background_provider_tasks_enabled)
 }
 
 #[allow(clippy::too_many_lines)]
@@ -896,6 +910,8 @@ pub(crate) enum DeploymentError {
     InvalidProxy(&'static str),
     /// The optional local `FlareSolverr` port was not a non-zero TCP port.
     InvalidPort(&'static str),
+    /// Background Provider tasks were neither explicitly enabled nor disabled.
+    InvalidBackgroundProviderTasks,
     /// The active Master Key version was not a canonical positive u32.
     InvalidMasterKeyVersion,
     /// The systemd-owned state directory could not be admitted.
@@ -946,6 +962,9 @@ impl fmt::Display for DeploymentError {
                 write!(formatter, "invalid SOCKS5 proxy for {option}")
             }
             Self::InvalidPort(option) => write!(formatter, "invalid TCP port for {option}"),
+            Self::InvalidBackgroundProviderTasks => {
+                formatter.write_str("--background-provider-tasks requires enabled or disabled")
+            }
             Self::InvalidMasterKeyVersion => {
                 formatter.write_str("invalid active master key version")
             }
@@ -1137,6 +1156,35 @@ mod tests {
             "--credential-dir".to_owned(),
             credentials.display().to_string(),
         ])
+    }
+
+    #[test]
+    fn serve_parser_accepts_only_explicit_background_provider_task_modes()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let state = TemporaryDirectory::new()?;
+        let credentials = TemporaryDirectory::new()?;
+        let arguments = |mode: &str| {
+            vec![
+                "--data-listen".to_owned(),
+                "127.0.0.1:18180".to_owned(),
+                "--management-listen".to_owned(),
+                "127.0.0.1:18181".to_owned(),
+                "--state-dir".to_owned(),
+                state.path().display().to_string(),
+                "--credential-dir".to_owned(),
+                credentials.path().display().to_string(),
+                "--background-provider-tasks".to_owned(),
+                mode.to_owned(),
+            ]
+        };
+        assert!(command(state.path(), credentials.path()).is_ok());
+        for mode in ["enabled", "disabled"] {
+            assert!(parse(arguments(mode)).is_ok(), "{mode}");
+        }
+        for mode in ["", "false", "Disabled", "unknown"] {
+            assert!(parse(arguments(mode)).is_err(), "{mode}");
+        }
+        Ok(())
     }
 
     #[test]

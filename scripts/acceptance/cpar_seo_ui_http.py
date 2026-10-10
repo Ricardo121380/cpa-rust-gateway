@@ -142,6 +142,10 @@ print(json.dumps({"localhost_connect":True,"test_net_outbound_denied":True,"real
 preflight=subprocess.check_output(["/usr/bin/sandbox-exec","-p",network_profile,sys.executable,"-c",preflight_code,str(provider.server_port)],text=True)
 (out/"network-sandbox.json").write_text(preflight)
 command=["/usr/bin/sandbox-exec","-p",network_profile,str(binary),"serve","--state-dir",str(state),"--credential-dir",str(credentials),"--data-listen",f"127.0.0.1:{data_port}","--management-listen",f"127.0.0.1:{admin_port}"]
+background_mode = os.environ.get("CPAR_UI_BACKGROUND_PROVIDER_TASKS")
+if background_mode is not None:
+    assert background_mode in {"enabled", "disabled"}
+    command.extend(["--background-provider-tasks", background_mode])
 shim = None
 if operations:
     shim = root / "device-loopback.dylib"

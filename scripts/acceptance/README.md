@@ -136,6 +136,29 @@ copied rotating grant. Re-create the copy from the live service after separately
 if needed. This command is for production-copy acceptance; it does not replace the production HTTP
 refresh workflow or prove official interactive authorization completed.
 
+For an explicitly authorized isolated serving instance, use
+`gateway serve ... --background-provider-tasks disabled`. The default remains `enabled`.
+Disabled mode skips startup credential renewal and the automatic refresh/Catalog worker
+subscription, including workers supplied by later runtime publications. Event persistence,
+billing and explicit management/data requests remain available. This flag does not authorize
+any request, prevent an operator from explicitly requesting renewal, or extend credential expiry.
+
+`python3 scripts/acceptance/cpar-background-provider-process.py <new-receipt-directory>`
+compares the default with disabled mode using owned stock processes, synthetic device grants,
+fixed-host TLS loopback and an OS outbound deny. It observes receiver counts across restart,
+publication and a real 65-second worker interval, then checks an explicit public inference.
+Use a binary built from the exact recorded source; it never uses real accounts.
+
+`cpar-build-egress-guard.c` is an additional Linux acceptance-only `LD_PRELOAD` guard.
+Compile it with `cc -fPIC -shared -O2 -Wall -Wextra -Werror ... -ldl -lpthread` and set
+`CPAR_BUILD_EGRESS_AUDIT` to a new absolute owner-only audit file in the isolated instance.
+It admits only `cli-chat-proxy.grok.com` DNS resolution and TCP/443 connections to those
+resolved addresses, plus loopback/Unix sockets; `auth.x.ai` and other outbound targets are
+denied. Audit records contain event classes only. Verify its actual loaded mapping and hash,
+positive loopback and negative DNS/socket controls before using the candidate. Resolver/socket
+events are not HTTP request counts: reconcile catalog, Pin and inference separately with their
+receipts and the durable Attempt evidence. Do not add this guard to the production service.
+
 Alias retirement also accepts `--catalog-paths <reviewed-json>` for exact endpoint IDs and model-list paths. These paths join the static graph fingerprint and expected readback; normal request timestamps do not invalidate the reviewed configuration plan. Infer no path from a provider name: verify the base path and its documented model-list endpoint first.
 
 ## M4 bounded Pi acceptance
