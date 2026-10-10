@@ -1,0 +1,72 @@
+{
+  "status": "PASS_FOR_AUTHORIZED_STOP_AND_CLOSEOUT",
+  "observed_at_utc": "2026-10-10T16:43:52.027446+00:00",
+  "baseline_head": "27f8349fff2e98e8d10700ae78c856f27503d52c",
+  "implementation_head": "c046ba2d97304f9c694b5d05e6efae9182df08a4",
+  "local_implementation_commits": [
+    "7fb544b6f211e3b43a4d5a6c9625e5fe9cfb20cf",
+    "c046ba2d97304f9c694b5d05e6efae9182df08a4"
+  ],
+  "real_source": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "real_formal_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+  "current_tested_file_sha256": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a",
+    "scripts/acceptance/cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+    "scripts/test-cpar-new-build-acceptance.py": "49d2f2caac3f46396c3bbfab388940e1f7ea4ffa016d467144909e69b2272f4c"
+  },
+  "real_basic_status": "FAIL_STOPPED",
+  "complete_scenarios": 1,
+  "complete_combinations": 0,
+  "new_pin": 1,
+  "new_basic_attempts": 5,
+  "new_inference": 6,
+  "historical_inference": 3,
+  "cumulative_inference": 9,
+  "cumulative_limit": 63,
+  "postfailure_real_reruns": 0,
+  "real_extensions": 0,
+  "extension_classes": 17,
+  "extension_execution_qualification": "BLOCKED",
+  "whole_ticket_spec": "PARTIAL",
+  "scoped_review": {
+    "base": "27f8349fff2e98e8d10700ae78c856f27503d52c",
+    "head": "c046ba2d97304f9c694b5d05e6efae9182df08a4",
+    "diff_sha256": "772aad559edfd2bd14e57473943ee2b9a903a1658c2af167a9214585c4b45e75",
+    "standards": "PASS",
+    "spec_slice": "PASS",
+    "confirmed_findings": 0,
+    "subsequent_closure_metadata": "root static verification only"
+  },
+  "github_primary_readback": "PASS",
+  "github_independent_readback": "PASS",
+  "issues_still_open": [
+    47,
+    57,
+    9
+  ],
+  "temporary_exit_evidence": "final-receipt.json; historical live exit observation, not a newly refreshed runtime observation",
+  "public_archive_verification": {
+    "json_files_parsed_before_closure": 36,
+    "gzip_files_decoded": 8,
+    "bound_local_test_logs_match": true,
+    "bound_docs_logs_match": true,
+    "tested_source_bytes_match": true,
+    "reviewed_diff_bytes_match": true,
+    "product_delta_paths": [],
+    "final_docs_log_matches": true
+  },
+  "preservation": "preservation-final.json",
+  "not_performed": [
+    "postfailure real rerun",
+    "extension Provider calls",
+    "push",
+    "release",
+    "production switch"
+  ],
+  "scope_limit": "closeout PASS does not replace real basic FAIL or whole-ticket PARTIAL",
+  "final_docs_gate": {
+    "status": "PASS",
+    "gate_count": 7,
+    "receipt": "docs-final.json"
+  }
+}

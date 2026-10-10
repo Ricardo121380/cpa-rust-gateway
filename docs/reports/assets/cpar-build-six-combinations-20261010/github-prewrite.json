@@ -1,0 +1,60 @@
+{
+  "status": "PREPARED; no writes",
+  "observed_at_utc": "2026-10-10T16:36:13.411257+00:00",
+  "issues": {
+    "47": {
+      "title": "CPAR-38：grok.build 渠道差异与逐组合验收",
+      "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "comment_id": 6081215242,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "old_comment_sha256": "7de5488b63555f2d3bd3526301edec8ea62111d52554071923c8e6db9ab99703",
+      "old_comment_bytes": 12447,
+      "new_comment_sha256": "58b56764ce0892fd6eed81134433326bf840d6bf12cbfa4c2db1cfcfa4bbe92c",
+      "new_comment_bytes": 16899,
+      "marker": "<!-- codex-cpar-build-six-combinations-20261010 -->",
+      "existing_comment_prefix_exact": true,
+      "comment_count_before": 1
+    },
+    "57": {
+      "title": "CPAR-48：分批交付证据与全范围收口",
+      "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "comment_id": 6081234278,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "old_comment_sha256": "06c3cce92a83bd0af66bb15619af03892087d01bb2913d08669c53f4f4250e97",
+      "old_comment_bytes": 20822,
+      "new_comment_sha256": "52abe6910056b159edfada35787ebfece8d87d6359b4cd524269a3bf6f0d09d2",
+      "new_comment_bytes": 25300,
+      "marker": "<!-- codex-cpar-build-six-combinations-20261010 -->",
+      "existing_comment_prefix_exact": true,
+      "comment_count_before": 1
+    },
+    "9": {
+      "title": "实施规格：CPAR 现有渠道可靠性与管理体验收敛",
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "comment_id": 6081235490,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "old_comment_sha256": "2f481d67487a53c76f1f378cbc0819316f7589b04b2606adcf02206ed10293ef",
+      "old_comment_bytes": 19129,
+      "new_comment_sha256": "c8237e3637a48a386490f694e7b15a9b49f2ccfe47148b2922d6d56ca202198c",
+      "new_comment_bytes": 23578,
+      "marker": "<!-- codex-cpar-build-six-combinations-20261010 -->",
+      "existing_comment_prefix_exact": true,
+      "comment_count_before": 1
+    }
+  }
+}

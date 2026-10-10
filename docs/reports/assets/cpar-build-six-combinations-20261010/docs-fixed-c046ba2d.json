@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:35:33.580888+00:00",
+  "head": "c046ba2d97304f9c694b5d05e6efae9182df08a4",
+  "gate_count": 7,
+  "command": "scripts/check.sh docs",
+  "log_sha256": "ae83b4c591cf891a5a504c8d844b59e68330cf26fc30d560bde5cf620a291acd",
+  "product_rust_frontend_full_rerun": false,
+  "includes_history_compatibility": true
+}

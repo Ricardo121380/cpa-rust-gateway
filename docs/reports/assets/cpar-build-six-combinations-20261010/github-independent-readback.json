@@ -1,0 +1,228 @@
+{
+  "status": "PASS",
+  "agent": "/root/github_closeout_verify",
+  "read_window_utc": {
+    "start": "2026-10-10T16:39:23.794293+00:00",
+    "end": "2026-10-10T16:39:26.283929+00:00"
+  },
+  "source": "new gh api GET full issues, comments and native dependencies; --paginate --slurp, per_page=100; all one complete page",
+  "issues": {
+    "47": {
+      "comment_id": 6081215242,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "comment_sha256": "58b56764ce0892fd6eed81134433326bf840d6bf12cbfa4c2db1cfcfa4bbe92c",
+      "old_comment_prefix_sha256": "7de5488b63555f2d3bd3526301edec8ea62111d52554071923c8e6db9ab99703",
+      "old_comment_prefix_bytes": 12447,
+      "comment_count": 1,
+      "marker_count": 1,
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "dependencies": {
+        "blocked_by": [
+          {
+            "number": 16,
+            "state": "closed"
+          },
+          {
+            "number": 27,
+            "state": "closed"
+          },
+          {
+            "number": 29,
+            "state": "closed"
+          },
+          {
+            "number": 30,
+            "state": "closed"
+          },
+          {
+            "number": 31,
+            "state": "closed"
+          },
+          {
+            "number": 32,
+            "state": "closed"
+          },
+          {
+            "number": 33,
+            "state": "closed"
+          },
+          {
+            "number": 34,
+            "state": "closed"
+          }
+        ],
+        "blocking": [
+          {
+            "number": 57,
+            "state": "open"
+          }
+        ]
+      },
+      "history_prefix_preserved": true,
+      "body_and_ac_unchanged": true,
+      "title_labels_full_objects_and_assignees_unchanged": true,
+      "dependencies_unchanged": true
+    },
+    "57": {
+      "comment_id": 6081234278,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "comment_sha256": "52abe6910056b159edfada35787ebfece8d87d6359b4cd524269a3bf6f0d09d2",
+      "old_comment_prefix_sha256": "06c3cce92a83bd0af66bb15619af03892087d01bb2913d08669c53f4f4250e97",
+      "old_comment_prefix_bytes": 20822,
+      "comment_count": 1,
+      "marker_count": 1,
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "dependencies": {
+        "blocked_by": [
+          {
+            "number": 12,
+            "state": "closed"
+          },
+          {
+            "number": 17,
+            "state": "closed"
+          },
+          {
+            "number": 21,
+            "state": "closed"
+          },
+          {
+            "number": 25,
+            "state": "closed"
+          },
+          {
+            "number": 26,
+            "state": "closed"
+          },
+          {
+            "number": 37,
+            "state": "closed"
+          },
+          {
+            "number": 38,
+            "state": "closed"
+          },
+          {
+            "number": 40,
+            "state": "open"
+          },
+          {
+            "number": 41,
+            "state": "open"
+          },
+          {
+            "number": 42,
+            "state": "open"
+          },
+          {
+            "number": 43,
+            "state": "open"
+          },
+          {
+            "number": 44,
+            "state": "open"
+          },
+          {
+            "number": 45,
+            "state": "open"
+          },
+          {
+            "number": 46,
+            "state": "open"
+          },
+          {
+            "number": 47,
+            "state": "open"
+          },
+          {
+            "number": 48,
+            "state": "open"
+          },
+          {
+            "number": 49,
+            "state": "open"
+          },
+          {
+            "number": 50,
+            "state": "open"
+          },
+          {
+            "number": 52,
+            "state": "closed"
+          },
+          {
+            "number": 53,
+            "state": "closed"
+          },
+          {
+            "number": 54,
+            "state": "closed"
+          },
+          {
+            "number": 55,
+            "state": "closed"
+          },
+          {
+            "number": 56,
+            "state": "closed"
+          }
+        ],
+        "blocking": []
+      },
+      "history_prefix_preserved": true,
+      "body_and_ac_unchanged": true,
+      "title_labels_full_objects_and_assignees_unchanged": true,
+      "dependencies_unchanged": true
+    },
+    "9": {
+      "comment_id": 6081235490,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "comment_sha256": "c8237e3637a48a386490f694e7b15a9b49f2ccfe47148b2922d6d56ca202198c",
+      "old_comment_prefix_sha256": "2f481d67487a53c76f1f378cbc0819316f7589b04b2606adcf02206ed10293ef",
+      "old_comment_prefix_bytes": 19129,
+      "comment_count": 1,
+      "marker_count": 1,
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "dependencies": {
+        "blocked_by": [],
+        "blocking": []
+      },
+      "history_prefix_preserved": true,
+      "body_and_ac_unchanged": true,
+      "title_labels_full_objects_and_assignees_unchanged": true,
+      "dependencies_unchanged": true
+    }
+  },
+  "new_batch_comment_content_verified": {
+    "new_pin": 1,
+    "new_basic_attempts": 5,
+    "new_inference": 6,
+    "cumulative_inference": 9,
+    "cumulative_limit": 63,
+    "text_pass_turns": 3,
+    "tool_scene_status": "FAIL",
+    "complete_scenarios": 1,
+    "complete_combinations": 0,
+    "extensions_and_postfailure_reruns": 0,
+    "whole_ticket_spec": "PARTIAL"
+  },
+  "confirmed_errors": [],
+  "scope_excludes": [
+    "Provider behaviour",
+    "remote private environment",
+    "production current state"
+  ],
+  "files_saved_by_agent": false
+}

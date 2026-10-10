@@ -1,0 +1,245 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:37:53.623414+00:00",
+  "readback_source": "fresh independent gh issue view and fully paginated native dependency GET after three PATCH",
+  "issues": {
+    "47": {
+      "title": "CPAR-38：grok.build 渠道差异与逐组合验收",
+      "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "comment_id": 6081215242,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "comment_sha256": "58b56764ce0892fd6eed81134433326bf840d6bf12cbfa4c2db1cfcfa4bbe92c",
+      "old_comment_prefix_sha256": "7de5488b63555f2d3bd3526301edec8ea62111d52554071923c8e6db9ab99703",
+      "old_comment_prefix_bytes": 12447,
+      "comment_count": 1,
+      "marker_count": 1,
+      "history_prefix_preserved": true,
+      "body_and_ac_unchanged": true,
+      "metadata_unchanged": true,
+      "dependencies": {
+        "blocked_by": [
+          {
+            "number": 16,
+            "state": "closed"
+          },
+          {
+            "number": 27,
+            "state": "closed"
+          },
+          {
+            "number": 29,
+            "state": "closed"
+          },
+          {
+            "number": 30,
+            "state": "closed"
+          },
+          {
+            "number": 31,
+            "state": "closed"
+          },
+          {
+            "number": 32,
+            "state": "closed"
+          },
+          {
+            "number": 33,
+            "state": "closed"
+          },
+          {
+            "number": 34,
+            "state": "closed"
+          }
+        ],
+        "blocking": [
+          {
+            "number": 57,
+            "state": "open"
+          }
+        ]
+      },
+      "dependencies_unchanged": true
+    },
+    "57": {
+      "title": "CPAR-48：分批交付证据与全范围收口",
+      "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "comment_id": 6081234278,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "comment_sha256": "52abe6910056b159edfada35787ebfece8d87d6359b4cd524269a3bf6f0d09d2",
+      "old_comment_prefix_sha256": "06c3cce92a83bd0af66bb15619af03892087d01bb2913d08669c53f4f4250e97",
+      "old_comment_prefix_bytes": 20822,
+      "comment_count": 1,
+      "marker_count": 1,
+      "history_prefix_preserved": true,
+      "body_and_ac_unchanged": true,
+      "metadata_unchanged": true,
+      "dependencies": {
+        "blocked_by": [
+          {
+            "number": 12,
+            "state": "closed"
+          },
+          {
+            "number": 17,
+            "state": "closed"
+          },
+          {
+            "number": 21,
+            "state": "closed"
+          },
+          {
+            "number": 25,
+            "state": "closed"
+          },
+          {
+            "number": 26,
+            "state": "closed"
+          },
+          {
+            "number": 37,
+            "state": "closed"
+          },
+          {
+            "number": 38,
+            "state": "closed"
+          },
+          {
+            "number": 40,
+            "state": "open"
+          },
+          {
+            "number": 41,
+            "state": "open"
+          },
+          {
+            "number": 42,
+            "state": "open"
+          },
+          {
+            "number": 43,
+            "state": "open"
+          },
+          {
+            "number": 44,
+            "state": "open"
+          },
+          {
+            "number": 45,
+            "state": "open"
+          },
+          {
+            "number": 46,
+            "state": "open"
+          },
+          {
+            "number": 47,
+            "state": "open"
+          },
+          {
+            "number": 48,
+            "state": "open"
+          },
+          {
+            "number": 49,
+            "state": "open"
+          },
+          {
+            "number": 50,
+            "state": "open"
+          },
+          {
+            "number": 52,
+            "state": "closed"
+          },
+          {
+            "number": 53,
+            "state": "closed"
+          },
+          {
+            "number": 54,
+            "state": "closed"
+          },
+          {
+            "number": 55,
+            "state": "closed"
+          },
+          {
+            "number": 56,
+            "state": "closed"
+          }
+        ],
+        "blocking": []
+      },
+      "dependencies_unchanged": true
+    },
+    "9": {
+      "title": "实施规格：CPAR 现有渠道可靠性与管理体验收敛",
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "comment_id": 6081235490,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "comment_sha256": "c8237e3637a48a386490f694e7b15a9b49f2ccfe47148b2922d6d56ca202198c",
+      "old_comment_prefix_sha256": "2f481d67487a53c76f1f378cbc0819316f7589b04b2606adcf02206ed10293ef",
+      "old_comment_prefix_bytes": 19129,
+      "comment_count": 1,
+      "marker_count": 1,
+      "history_prefix_preserved": true,
+      "body_and_ac_unchanged": true,
+      "metadata_unchanged": true,
+      "dependencies": {
+        "blocked_by": [],
+        "blocking": []
+      },
+      "dependencies_unchanged": true
+    }
+  },
+  "writes": [
+    {
+      "issue": 47,
+      "comment_id": 6081215242,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-10T16:36:59.466711+00:00",
+      "new_body_sha256": "58b56764ce0892fd6eed81134433326bf840d6bf12cbfa4c2db1cfcfa4bbe92c",
+      "patch_attempts": 1,
+      "patch_transport_error": null,
+      "independent_get_matches": true,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242"
+    },
+    {
+      "issue": 57,
+      "comment_id": 6081234278,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-10T16:37:03.853649+00:00",
+      "new_body_sha256": "52abe6910056b159edfada35787ebfece8d87d6359b4cd524269a3bf6f0d09d2",
+      "patch_attempts": 1,
+      "patch_transport_error": null,
+      "independent_get_matches": true,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278"
+    },
+    {
+      "issue": 9,
+      "comment_id": 6081235490,
+      "status": "PASS",
+      "observed_at_utc": "2026-10-10T16:37:08.041959+00:00",
+      "new_body_sha256": "c8237e3637a48a386490f694e7b15a9b49f2ccfe47148b2922d6d56ca202198c",
+      "patch_attempts": 1,
+      "patch_transport_error": null,
+      "independent_get_matches": true,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490"
+    }
+  ]
+}

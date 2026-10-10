@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:45:45.627994+00:00",
+  "command": "scripts/check.sh docs",
+  "implementation_head": "c046ba2d97304f9c694b5d05e6efae9182df08a4",
+  "gate_count": 7,
+  "started_at_utc": "2026-10-10T16:44:14Z",
+  "completed_at_utc": "2026-10-10T16:45:20Z",
+  "steps": [
+    {
+      "name": "Document links",
+      "seconds": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "Contract tests",
+      "seconds": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "Plan state",
+      "seconds": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "Canary thresholds",
+      "seconds": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "Caddy split",
+      "seconds": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "Tracked secret scan",
+      "seconds": 64,
+      "status": "PASS"
+    },
+    {
+      "name": "Git whitespace",
+      "seconds": 1,
+      "status": "PASS"
+    }
+  ],
+  "log_sha256": "6758e678c598fdf443c0f994192885b904c6d64e2b56cd9be60e7321866beeef",
+  "gzip_sha256": "3a27fd288f7f04b7b104866c4d63ac816471b54ca04cb9720792765c5ced8e75",
+  "main_report_sha256": "cd27728c4befb170bac1348bae705dbba888cf539fc5561b72ebe9153d2c6ce1",
+  "input_evidence_index_sha256": "3c805b195d755f0b44d81b80a43e87c78e9f6a5dbdeffa29d8dfba2e585bd262",
+  "scope": "closure documents and metadata; generated gate receipt and updated index subsequently checked statically",
+  "real_provider_requests": 0,
+  "product_rust_frontend_full_rerun": false
+}

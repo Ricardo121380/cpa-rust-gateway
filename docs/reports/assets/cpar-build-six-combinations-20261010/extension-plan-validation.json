@@ -1,0 +1,40 @@
+{
+  "status": "PASS",
+  "scope": "static taxonomy and actual declaration coverage only; no extension execution",
+  "observed_at_utc": "2026-10-10T16:31:09.427572+00:00",
+  "formal_sha256": "b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a",
+  "plan_sha256": "e2f6300b288200b60bea200b07effe5eaaddbbf4ee50aad9744ab22d526ad0ab",
+  "serving_capabilities": {
+    "compact": true,
+    "continuation": true,
+    "parallel": false,
+    "reasoning": true,
+    "stored": true,
+    "websocket": true
+  },
+  "declared_applicable_classes": [
+    "compact_foreign_owner",
+    "compact_lineage_rejection",
+    "compact_roundtrip",
+    "deleted_read",
+    "exact_continuation",
+    "expired_read",
+    "foreign_owner",
+    "lineage_rejection",
+    "persistence_failure",
+    "reasoning_history",
+    "restart_read",
+    "store_read",
+    "visible_reasoning",
+    "ws_cancel",
+    "ws_failed_root",
+    "ws_handshake_rejection",
+    "ws_multiturn"
+  ],
+  "count": 17,
+  "real_extension_requests": 0,
+  "real_result": "NOT_RUN",
+  "execution_qualification": "BLOCKED",
+  "parallel_explicit_rejection_separate": true,
+  "total_request_budget": "NOT_ESTIMATED; conditional per-operation lower bounds only"
+}

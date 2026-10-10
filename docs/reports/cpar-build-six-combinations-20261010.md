@@ -103,7 +103,7 @@
 
 主代理按已存在的历史版本契约，从公开audit CLI复现六模式原v2 encoding的FAIL后，最小修复只读version2审计比较其原历史；live producer继续固定version3，输出1／普通user指令及严格答案不变。历史7请求不能晋升为新9请求资格，任何真实旧失败／wire／时间戳均未重写。后继 **38/38 PASS**，详见 [local-verification-v2.json](assets/cpar-build-six-combinations-20261010/local-verification-v2.json)；当前formal SHA256=`b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a`。首轮3dee字节／回执另留；后继diff需新的独立审查，不能套用首轮结论。
 
-最终项目门槛及独立审查在收口资产记录。审查只验证本地修复与证据表达，不能替代尚缺的真实五组合／工具闭环／扩展正例；#47整票Spec继续PARTIAL。
+固定最终实现 `c046ba2d97304f9c694b5d05e6efae9182df08a4` 的正式 docs **7/7 PASS**，见 [固定提交回执](assets/cpar-build-six-combinations-20261010/docs-fixed-c046ba2d.json)。独立 Standards **PASS／硬规范0／气味0**，独立 Spec 切片 **PASS／0 findings**，绑定实际 `27f8349f...c046ba2d` 的53路径diff，见 [最终审查](assets/cpar-build-six-combinations-20261010/review.md) 与 [review binding](assets/cpar-build-six-combinations-20261010/review-binding.json)。后继GitHub／收口metadata由主代理核验，不套用该独立diff结论。它们不能替代真实五组合／工具闭环／扩展正例；#47整票Spec继续PARTIAL。
 
 ## 计数、停止与退出
 
@@ -128,7 +128,9 @@
 
 由本批实际 serving 声明建立 [17类扩展后续清单](cpar-build-extensions-next-20261010.md)：reasoning2、stored6、continuation2、compact3、websocket4。parallel=false 另保留显式拒绝资格，未关闭任何 true 声明规避验收。全部扩展真实 NOT_RUN；未证明安全执行的项目 BLOCKED。17类不等于17次请求，清单提供带前提的计数与授权缺口，不编造合计预算。
 
-GitHub 更新范围限定 [#47 原进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57 原进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9 原进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。追加本批事实并完整保留旧 prefix；正文／AC／状态／title／labels／assignees／native dependencies 不改。本轮回读和完成提交在收口资产中记录，不能以准备完成关闭 #47。
+已更新 [#47 原进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57 原进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9 原进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)，三次PATCH各一次。主代理在16:37Z以新GET回读，独立只读探子在16:39:23—16:39:26Z再次读完整issue／评论及双向完整分页dependencies，两次均 **PASS**：新commentSHA匹配、旧prefix字节完整保留、marker各一次、评论各仍1、三票OPEN；正文／AC／title／labels／assignees／native dependencies不变。见 [主回读](assets/cpar-build-six-combinations-20261010/github-readback.json) 和 [独立回读](assets/cpar-build-six-combinations-20261010/github-independent-readback.json)。#57仍有11个OPEN直接blockers；本轮不改其既有AC。两个本地实现提交7fb544b6／c046ba2d及最终收口资产保留，不push，不提供不存在的远端commit链接。
+
+17类名称与实际true声明的静态完整性核验 **PASS**，见 [清单核对](assets/cpar-build-six-combinations-20261010/extension-plan-validation.json)；该核验只证明清单覆盖，执行仍BLOCKED／真实NOT_RUN。公开文件完整hash索引见 [evidence-index.json](assets/cpar-build-six-combinations-20261010/evidence-index.json)，私有原始材料留在批准保护根，本机output工作底稿不提交。
 
 真实目标的缺口仍是单工具闭环、连续工具、其余五模式各自 Pin 与基础，以及已声明扩展。按照用户失败停止要求，本批不能用未消耗额度继续发送。后继任何真实批次都须重新明确请求授权、累计计数上限和当前资格；本报告不安排后台继续。
 
