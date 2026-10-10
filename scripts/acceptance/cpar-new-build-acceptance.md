@@ -284,6 +284,11 @@ formal collector and its unchanged source-event join. Process PID/start,
 command/state path, binary hash and embedded source revision are observed at
 every operation. `local_subprocess` is accepted only in the local layer;
 Linux `/proc` plus the reviewed release manifest remain required for real runs.
+The complete request and serialized request bytes are saved before inference.
+HTTP bodies, WebSocket handshake bytes and frame bytes are saved incrementally,
+before content/terminal validation or the post-send process observation. Partial
+or malformed bytes survive timeout, invalid content type and identity failure;
+these failed captures never qualify as successful samples.
 
 Controls are frozen in `target.parameters`, including Chat
 `reasoning_effort:"high"`, Responses `reasoning:{"effort":"high"}`, and
@@ -314,11 +319,15 @@ one socket, and separate exact attribution for both response.create frames.
 Generated bundles use `extension_bundle_version:1`, with the frozen target and
 runtime, source, case, operation log, counts, raw samples, verified_sample and
 stopped result. Samples require `extension_sample_version:1`, full request,
-wire/status, observed and frozen runtime, exact collector evidence and a digest
+serialized `request_wire_b64`, raw `wire_bytes_b64`, wire/status, observed and frozen runtime, exact collector evidence and a digest
 binding source/target/process/request. Reasoning history, compact summary and
 WebSocket turns retain their extra native history/frames and attribution. Audit
-rejects missing generated-sample versions or contradictory identity, controls,
-terminal and source-event facts. Historical extension samples remain readable
+requires the exact reviewed capture count, distinct captured response/Request
+identities, the captured root and its ordered continuation/summary/consumption,
+and a final sample matching the captured sequence. Extra unfrozen controls,
+missing raw bytes, altered frame/body bytes, unrelated parents and reduced-count
+bundles fail. Public receipts project only enum layers/cases and bounded integer
+counts, including rejection paths. Historical extension samples remain readable
 in their original audit scope; they are not generated-executor qualification.
 
 The directed regression uses the existing Batch B fixture and formal CLI:

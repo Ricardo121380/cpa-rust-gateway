@@ -8,6 +8,7 @@ import argparse
 import copy
 import datetime
 import hashlib
+import http.client
 import importlib.util
 import json
 import os
@@ -1233,7 +1234,7 @@ def http_call(base_url, key, protocol, body, timeout=90):
     return http_exchange(base_url, key, PROTOCOLS[protocol], body, timeout=timeout)
 
 
-def http_exchange(base_url, key, path, body=None, *, method="POST", timeout=90):
+def http_exchange(base_url, key, path, body=None, *, method="POST", timeout=90, on_progress=None):
     parsed = urllib.parse.urlsplit(base_url)
     require(parsed.scheme == "https" or parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "::1", "localhost"), "unsafe_data_url")
     require(not parsed.username and not parsed.password and not parsed.query and not parsed.fragment, "unsafe_data_url")
@@ -1251,6 +1252,10 @@ def http_exchange(base_url, key, path, body=None, *, method="POST", timeout=90):
     with response:
         wire_response = response.fp if isinstance(response, urllib.error.HTTPError) else response
         raw = bytearray()
+        metadata = {"http_status": response.status, "request_id": response.headers.get("x-request-id"),
+                    "content_type": response.headers.get_content_type()}
+        if on_progress is not None:
+            on_progress(metadata, bytes(raw))
         while len(raw) <= MAX_BODY:
             if wire_response.fp is None:
                 break
@@ -1265,9 +1270,16 @@ def http_exchange(base_url, key, path, body=None, *, method="POST", timeout=90):
                 chunk = wire_response.read1(min(65536, MAX_BODY + 1 - len(raw)))
             except socket.timeout:
                 raise TimeoutError("acceptance_deadline") from None
+            except http.client.IncompleteRead as error:
+                raw.extend(error.partial)
+                if on_progress is not None:
+                    on_progress(metadata, bytes(raw))
+                raise
             if not chunk:
                 break
             raw.extend(chunk)
+            if on_progress is not None:
+                on_progress(metadata, bytes(raw))
         require(len(raw) <= MAX_BODY, "response_size")
         content_type = response.headers.get_content_type()
         require(content_type == ("text/event-stream" if body and body.get("stream") and response.status == 200 else "application/json") or response.status == 204 and not raw, "wrong_content_type")

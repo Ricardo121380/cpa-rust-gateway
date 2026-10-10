@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "passed": 45,
+  "failed": 0,
+  "command": "python3 scripts/test-cpar-new-build-acceptance.py",
+  "scope": "formal oracle and extension review regressions; local HTTP deadline and socket truncation capture",
+  "log_sha256": "f962c963ab5db6207a0069523ed52d0eda7be85051e9e38aaff48cf16ae670e8",
+  "formal_tool_sha256": "0754c4181653e53b5c93053d53b320062a0f14cdd9d3ece8d1fe966ccb2612bc",
+  "test_sha256": "26143d7787f7807382141101102400618b6465e1e7f2dd064dd2f20794bd46ca",
+  "real_provider_requests": 0
+}

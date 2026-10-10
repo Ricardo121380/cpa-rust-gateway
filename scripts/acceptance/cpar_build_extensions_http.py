@@ -1,5 +1,6 @@
 """Directed public-boundary verification using the existing Batch B fixture."""
 import copy
+import base64
 import datetime
 import hashlib
 import json
@@ -9,6 +10,8 @@ import sqlite3
 import subprocess
 import sys
 import time
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import cpar_build_extensions as extensions
 import cpar_new_build_acceptance as oracle
@@ -230,7 +233,7 @@ def verify(context):
             check("extension_pin_" + key, pin["outcome"] == "succeeded" and pin["attempt_count"] == 1)
         return copy.deepcopy(plans[key])
 
-    def run(case, protocol="responses", mode="json", *, changes=None, expected_status="PASS", expected_sends=None, actual_key=None):
+    def run(case, protocol="responses", mode="json", *, changes=None, expected_status="PASS", expected_sends=None, actual_key=None, transport_fault=None):
         plan = frozen(protocol, mode)
         plan["extension"] = {"case": case, "prompt": "thinking-round" if case in ("visible_reasoning", "reasoning_history") else "text-round",
                              "next_instruction": "Repeat the exact first answer.", "expected_text": "synthetic answer", "foreign_client_evidence_id": oracle.opaque("sibling-key")}
@@ -246,10 +249,32 @@ def verify(context):
         plan_file.write_text(json.dumps(plan, indent=2) + "\n")
         runtime_file.write_text(json.dumps({"runtime": runtime}, indent=2) + "\n")
         before = len(context["calls"])
-        result = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "run-extension",
-                                "--plan", str(plan_file), "--runtime", str(runtime_file), "--base-url", "http://127.0.0.1:" + str(context["data_port"]) + "/v1",
+        base_url = "http://127.0.0.1:" + str(context["data_port"]) + "/v1"
+        proxy, thread, forwarded = None, None, []
+        if transport_fault:
+            upstream_url = base_url
+            class Handler(BaseHTTPRequestHandler):
+                def log_message(self, *_):pass
+                def do_POST(self):
+                    body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                    saved = json.loads((private / (label + "-bundle.json")).read_text())
+                    check("extension_cli_prewrite_request_" + label, saved["samples"][0]["request"] == body)
+                    response = oracle.http_exchange(upstream_url, context["issued_key"], "/responses", body)
+                    forwarded.append(response["wire"])
+                    if transport_fault == "post_process":context["restart"]()
+                    raw = response["wire"].encode()
+                    self.send_response(response["http_status"]);self.send_header("Content-Type", "text/plain" if transport_fault == "content_type" else "application/json")
+                    self.send_header("Content-Length", str(len(raw)));self.end_headers();self.wfile.write(raw)
+            proxy = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+            thread = threading.Thread(target=proxy.serve_forever, daemon=True);thread.start()
+            base_url = "http://127.0.0.1:" + str(proxy.server_port) + "/v1"
+        try:
+            result = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "run-extension",
+                                "--plan", str(plan_file), "--runtime", str(runtime_file), "--base-url", base_url,
                                 "--private-out", str(private / (label + "-bundle.json")), "--out", str(public / (label + ".json")), "--execute"],
                                 env={**os.environ, "CPAR_ACCEPTANCE_CLIENT_KEY": actual_key or context["issued_key"], "CPAR_ACCEPTANCE_FOREIGN_KEY": context["sibling_key"]}, capture_output=True, text=True, timeout=90)
+        finally:
+            if proxy is not None:proxy.shutdown();proxy.server_close();thread.join(2)
         (private / (label + "-cli.log")).write_text(result.stdout + result.stderr)
         receipt = json.loads((public / (label + ".json")).read_text())
         receives = context["calls"][before:]
@@ -271,6 +296,9 @@ def verify(context):
             check("extension_summary_and_consume_separate_" + label, len(receives) == 3 and receives[1]["compact"] is True and receives[1]["body"]["max_output_tokens"] == 2048 and receives[2]["compact"] is False)
         receipts.append(receipt)
         bundle_path = private / (label + "-bundle.json")
+        if transport_fault:
+            captured = json.loads(bundle_path.read_text())
+            check("extension_cli_failed_transport_raw_retained_" + label, len(captured["samples"]) == 1 and captured["samples"][0]["wire"] == forwarded[0] and base64.b64decode(captured["samples"][0]["wire_bytes_b64"]).decode() == forwarded[0])
         if expected_status == "PASS":
             audit_path = public / (label + "-audit.json")
             audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(bundle_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
@@ -278,10 +306,17 @@ def verify(context):
             check("extension_official_cli_audit_" + label, audit.returncode == 0 and json.loads(audit_path.read_text())["status"] == "PASS")
             actual_bundle = json.loads(bundle_path.read_text())
             if case != "ws_handshake_rejection":
-                for mutation in ("missing_capture", "wrong_root_owner", "wrong_root_terminal"):
+                for mutation in ("missing_capture", "missing_capture_adjusted_count", "unfrozen_control", "unrelated_final", "wrong_root_owner", "wrong_root_terminal"):
                     changed = copy.deepcopy(actual_bundle)
-                    if mutation == "missing_capture":
+                    if mutation.startswith("missing_capture"):
                         changed["samples"].pop(0)
+                        if mutation == "missing_capture_adjusted_count":changed["counts"]["inference_intents"] -= 1
+                    elif mutation == "unfrozen_control":
+                        changed["samples"][0]["request"]["temperature"] = .9
+                        changed["samples"][0]["request_binding_sha256"] = extensions.request_binding(changed["samples"][0])
+                    elif mutation == "unrelated_final":
+                        changed["verified_sample"]["request"]["input" if protocol == "responses" else "messages"] = "uncaptured input"
+                        changed["verified_sample"]["request_binding_sha256"] = extensions.request_binding(changed["verified_sample"])
                     elif mutation == "wrong_root_owner":
                         changed["samples"][0]["evidence"]["client_key_evidence_id"] = oracle.opaque("wrong-owner")
                     elif mode == "json":
@@ -294,6 +329,26 @@ def verify(context):
                     else:
                         changed["samples"][0]["wire"] += 'data: {"type":"error"}\n\n'
                     check("extension_bundle_audit_" + label + "_" + mutation, extensions.audit_extension_bundle(changed)["status"] in ("FAIL", "BLOCKED"))
+                    if case == "exact_continuation" and mode == "json":
+                        mutation_path, audit_path = private / (label + "-" + mutation + ".json"), public / (label + "-" + mutation + "-audit.json")
+                        mutation_path.write_text(json.dumps(changed) + "\n")
+                        audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(mutation_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
+                        check("extension_official_cli_rejects_" + mutation, audit.returncode != 0 and json.loads(audit_path.read_text())["status"] in ("FAIL", "BLOCKED"))
+                if case in ("exact_continuation", "ws_multiturn", "compact_roundtrip"):
+                    changed = copy.deepcopy(actual_bundle)
+                    changed["verified_sample"]["parent_response_id"] = "uncaptured_root"
+                    if case == "compact_roundtrip":
+                        changed["samples"][1]["request"]["previous_response_id"] = "uncaptured_root"
+                        changed["verified_sample"]["compact_request"]["previous_response_id"] = "uncaptured_root"
+                    else:
+                        for row in (changed["samples"][-1], changed["verified_sample"]):
+                            row["request"]["previous_response_id"] = "uncaptured_root"
+                    for row in changed["samples"]:
+                        sent = {**row["request"], "type": "response.create"} if "ws_frame" in row else row["request"]
+                        row["request_wire_b64"] = base64.b64encode(json.dumps(sent).encode()).decode()
+                        row["request_binding_sha256"] = extensions.request_binding(row)
+                    changed["verified_sample"]["request_binding_sha256"] = extensions.request_binding(changed["verified_sample"])
+                    check("extension_bundle_uncaptured_parent_" + label, extensions.audit_extension_bundle(changed)["status"] in ("FAIL", "BLOCKED"))
         return plan, json.loads(bundle_path.read_text()) if bundle_path.exists() else None
 
     for protocol in ("chat", "responses"):
@@ -316,6 +371,10 @@ def verify(context):
     run("reasoning_history", changes=lambda plan: plan.pop("collector"), expected_status="BLOCKED", expected_sends=0)
     run("reasoning_history", changes=lambda plan: plan["extension"].update(expected_text="WRONG"), expected_status="FAIL", expected_sends=1)
     run("reasoning_history", actual_key=context["sibling_key"], expected_status="FAIL", expected_sends=1)
+    for fault in ("content_type", "post_process"):
+        run("exact_continuation", expected_status="FAIL", expected_sends=1, transport_fault=fault)
+    run("ws_multiturn", mode="sse", changes=lambda plan: plan["extension"].update(prompt="truncated-round"), expected_status="FAIL", expected_sends=1)
+    context["restart"]()
     run("reasoning_history", changes=lambda plan: plan["extension"].update(prompt="always-fail"), expected_status="FAIL", expected_sends=1)
     # Deliberate upstream failure marks runtime health. Reopen only this owned
     # synthetic fixture before independent fault drills; never replay a case.

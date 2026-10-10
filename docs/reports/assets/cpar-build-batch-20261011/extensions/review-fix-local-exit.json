@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "layer": "LOCAL_SIMULATED",
+  "owned_running_processes": 0,
+  "owned_directory_open_handles": 0,
+  "loopback_listeners": [
+    {
+      "port": 56413,
+      "listener_present": false
+    },
+    {
+      "port": 56414,
+      "listener_present": false
+    }
+  ],
+  "all_runtime_pids_absent": true,
+  "preserved": true,
+  "private_directory_evidence_id": "ef3fecb962e2c96cd0a56d36302add33300dc73933759b9bc428ca08dfde7841",
+  "real_provider_requests": 0
+}

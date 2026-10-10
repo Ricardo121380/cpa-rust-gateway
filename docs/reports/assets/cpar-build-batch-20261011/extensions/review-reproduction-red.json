@@ -1,0 +1,30 @@
+{
+  "scope": "SYNTHETIC_SCHEMA_REPRODUCTION_ONLY",
+  "real_provider_requests": 0,
+  "base": "PASS",
+  "missing_root_with_reduced_count": "PASS",
+  "uncaptured_parent": "PASS",
+  "unfrozen_control": "PASS",
+  "untrusted_receipt_value_leaked": true,
+  "transport": [
+    {
+      "fault": "wrong_content_type",
+      "status": "FAIL",
+      "inference_intents": 1,
+      "actual_http_receives": 1,
+      "samples": 0,
+      "request_retained": false,
+      "wire_retained": false
+    },
+    {
+      "fault": "post_send_identity_failure",
+      "status": "FAIL",
+      "inference_intents": 1,
+      "actual_http_receives": 1,
+      "samples": 0,
+      "request_retained": false,
+      "wire_retained": false
+    }
+  ],
+  "transport_scope": "LOCAL_HTTP_FAILURE_REPRODUCTION_ONLY; process observer stubbed; facts preserved from pre-fix execution output"
+}

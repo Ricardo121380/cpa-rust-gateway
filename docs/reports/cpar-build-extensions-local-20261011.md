@@ -70,6 +70,8 @@ Messages thinking与Build effort没有无损转换依据，保持BLOCKED并保�
 
 其余7类的操作方案：自然到期读先取得创建／到期时间可证的30天根（或建根1并另安排30天后执行）；restart复用同批stored根，前后GET各1、只重启自有unit1次；lineage／compact lineage复用已归档根和正控制，只在独立隔离副本改变一个精确维度，分别拒绝POST1，恢复及新观察另列；持久化故障使用独立故障epoch、已审核提交点与恢复步骤，保留唯一失败终态／source-event／GET404；取消使用独立socket，在首个语义输出后close并闭合观察；failed-root使用独立可归因故障点，再以1个零发送frame验证不能续接。后3类的真实设施／稳定触发／正控制缺失，**不在33预算内，真实上限待设施本地实现并审查后单独给出**。不在真实DB修改TTL，不以Provider故障探测代替本地准备。
 
-本地最终回归 **41/41 PASS**，定向公共边界 **210/210 PASS**。32次正式执行CLI包含19正例PASS、10预期BLOCKED和3预期FAIL-stop；19个PASS另经正式CLI audit读回。合成上游独立HTTP接收40＝5Pin＋32扩展正／负例推理＋3故障／取消演练，全部真实Provider0。[本地退出](assets/cpar-build-batch-20261011/extensions/local-exit.json) 确认所有观察到的自有PID消失、loopback端口释放、保护目录无开放fd；原始epoch保留。
+初版41/41、210/210及其40次合成接收的原回执保留。独立审查发现的4项缺口已经先复现再修复：公开回执只输出受约束字段，完整请求在发送前保存，HTTP／socket原字节增量保存并与解码样本核对；PASS审计要求固定轮数、不同response／Request身份、捕获根和最终样本的一致性、真实parent／summary／消费关联，并拒绝任何未冻结controls。不得删根再调小计数取得PASS。
+
+最终回归 **45/45 PASS**，定向公共边界 **285/285 PASS**。35次正式执行CLI包含19正例PASS、10预期BLOCKED和6预期FAIL-stop；19个PASS另经正式CLI audit读回。实际错误content-type及发送后自有进程重启的失败保留完整请求／wire；实际socket截断保留partial字节。合成上游独立HTTP接收43＝5Pin＋35扩展正／负例推理＋3故障／取消演练，全部真实Provider0。[最终本地回执](assets/cpar-build-batch-20261011/extensions/review-final-local-receipt.json)、[回归](assets/cpar-build-batch-20261011/extensions/review-final-unit-tests.json)、[来源](assets/cpar-build-batch-20261011/extensions/review-final-source-freeze.json) 与 [本地退出](assets/cpar-build-batch-20261011/extensions/review-final-local-exit.json) 分别绑定；所有旧epoch和失败保留。
 
 Standards／Spec的限定审查、正式docs门槛、提交及GitHub写后读回由 [本批收口报告](cpar-build-batch-20261011.md) 和对应资产绑定。未完成的真实／入口／语义条件均保留，不能将本报告标为#47整票PASS。

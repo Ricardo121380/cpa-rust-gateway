@@ -9,6 +9,7 @@ import contextlib
 import copy
 import datetime
 import hashlib
+import http.client
 import io
 import json
 import os
@@ -82,6 +83,15 @@ def request_binding(sample):
                           "request": sample["request"]})
 
 
+def verify_controls(request, target, *, summary=False):
+    if summary:
+        oracle.require(set(request) == {"model", "previous_response_id", "stream"}, "compact_summary_control_changed")
+        return
+    fields = {"model", "stream", "input" if target["protocol"] == "responses" else "messages", "previous_response_id", "store"}
+    oracle.require(set(request) - fields == set(target["parameters"]) and
+                   all(request[key] == value for key, value in target["parameters"].items()), "changed_request_control")
+
+
 def verify_capture(sample, target):
     """Validate every captured successful inference, including an owned root."""
     oracle.available(sample.get("extension_sample_version") == 1, "extension_sample_version_required")
@@ -89,14 +99,37 @@ def verify_capture(sample, target):
     oracle.verify_turn_runtime(sample["runtime"], sample["frozen_runtime"], sample["source_sha"], sample["layer"])
     oracle.require(sample.get("request_binding_sha256") == request_binding(sample), "extension_request_binding_changed")
     request = sample["request"]
+    oracle.available(isinstance(sample.get("request_wire_b64"), str) and isinstance(sample.get("wire_bytes_b64"), str), "extension_raw_capture_missing")
+    sent = base64.b64decode(sample["request_wire_b64"], validate=True)
+    raw = base64.b64decode(sample["wire_bytes_b64"], validate=True)
+    oracle.require(oracle.load_json(sent.decode()) == (sample["ws_frame"] if "ws_frame" in sample else request), "extension_request_wire_changed")
+    if "ws_frame" not in sample:
+        oracle.require(raw.decode() == sample["wire"], "extension_response_wire_changed")
+    else:
+        offset, frames = 0, []
+        while offset < len(raw):
+            oracle.require(offset + 2 <= len(raw), "ws_capture_incomplete")
+            head, size = raw[offset], raw[offset + 1];offset += 2
+            oracle.require(head & 0x80 and not head & 0x70 and not size & 0x80, "unsupported_ws_frame")
+            size &= 0x7f
+            width = 2 if size == 126 else 8 if size == 127 else 0
+            oracle.require(offset + width <= len(raw), "ws_capture_incomplete")
+            if width:
+                size = int.from_bytes(raw[offset:offset + width], "big");offset += width
+            oracle.require(size <= oracle.MAX_BODY and offset + size <= len(raw), "ws_capture_incomplete")
+            payload = raw[offset:offset + size];offset += size
+            opcode = head & 0xf
+            if opcode in (9, 10):
+                oracle.require(size <= 125, "ws_control_frame_size")
+            else:
+                oracle.require(opcode == 1, "unsupported_ws_frame")
+                frames.append(oracle.load_json(payload.decode()))
+        oracle.require(sample["wire"] == "".join("data: " + json.dumps(frame, ensure_ascii=False) + "\n\n" for frame in frames), "extension_response_wire_changed")
     summary = sample.get("operation") == "compact_summary"
     controls = {"max_output_tokens": 2048} if summary else target["parameters"]
     expected_stream = False if summary else target["mode"] == "sse"
     oracle.require(request.get("model") == target["public_model"] and request.get("stream") is expected_stream and sample.get("http_status") == 200, "extension_response_control_changed")
-    if summary:
-        oracle.require(set(request) == {"model", "previous_response_id", "stream"}, "compact_summary_control_changed")
-    else:
-        oracle.require(all(request.get(key) == value for key, value in controls.items()), "changed_request_control")
+    verify_controls(request, target, summary=summary)
     value = oracle.load_json(sample["wire"]) if summary or target["mode"] == "json" else oracle.decode_stream(target["protocol"], sample["wire"].encode())
     oracle.require(value.get("model") == target["response_model"], "wrong_response_model")
     if summary:
@@ -116,7 +149,7 @@ def verify_sample(sample, target):
     oracle.require(sample.get("request_binding_sha256") == request_binding(sample), "extension_request_binding_changed")
     request = sample["request"]
     oracle.require(request.get("model") == target["public_model"], "extension_request_model_changed")
-    oracle.require(all(request.get(key) == value for key, value in target.get("parameters", {}).items()), "changed_request_control")
+    verify_controls(request, target)
     case = sample["case"]
     if case in {"visible_reasoning", "reasoning_history"}:
         key = "reasoning_effort" if target["protocol"] == "chat" else "reasoning"
@@ -138,8 +171,8 @@ def verify_sample(sample, target):
     if case == "ws_multiturn":
         for turn in sample["ws_turns"]:
             oracle.require(turn.get("ws_frame") == {**turn["request"], "type": "response.create"}, "ws_request_frame_changed")
-            oracle.require(turn["request"].get("model") == target["public_model"] and turn["request"].get("stream") is True and
-                           all(turn["request"].get(key) == value for key, value in target.get("parameters", {}).items()), "changed_request_control")
+            oracle.require(turn["request"].get("model") == target["public_model"] and turn["request"].get("stream") is True, "changed_request_control")
+            verify_controls(turn["request"], target)
             oracle.verify_turn_runtime(turn.get("runtime"), sample["frozen_runtime"], sample["source_sha"], sample["layer"])
             oracle.require(turn.get("request_binding_sha256") == request_binding(turn), "extension_request_binding_changed")
             value = oracle.decode_stream("responses", turn["wire"].encode())
@@ -158,31 +191,82 @@ def verify_sample(sample, target):
         oracle.require(sample["boundary_before"] == sample["boundary_after"], "rejected_extension_sent_upstream")
 
 
+def verify_sequence(bundle, values):
+    """A passed execution has exactly the reviewed roots and ordered operations."""
+    captures, sample, case, target = bundle["samples"], bundle["verified_sample"], bundle["case"], bundle["target"]
+    fields = ("extension_sample_version", "case", "layer", "source_sha", "target", "frozen_runtime", "runtime", "request", "request_binding_sha256", "request_wire_b64", "wire_bytes_b64", "wire", "expected_text")
+    def matches(actual, captured, successful=True):
+        keys = (*fields, "http_status", "evidence", "operation") if successful else fields
+        oracle.require(all(actual.get(key) == captured.get(key) for key in keys), "extension_sample_not_captured")
+    if case == "ws_handshake_rejection":
+        oracle.require(sample == captures[0], "extension_sample_not_captured")
+        return
+    ids = [value["id"] for value in values]
+    oracle.require(len(set(ids)) == len(ids) and len({row["evidence"]["request_id"] for row in captures}) == len(captures), "extension_capture_identity_reused")
+    oracle.require("previous_response_id" not in captures[0]["request"], "extension_root_missing")
+    stored = case not in ("visible_reasoning", "reasoning_history", "ws_multiturn")
+    for index, capture in enumerate(captures):
+        oracle.require(capture.get("operation") == ("compact_summary" if case == "compact_roundtrip" and index == 1 else "response_create"), "extension_operation_sequence_changed")
+        oracle.require(capture["request"].get("store") is True if stored and index == 0 else "store" not in capture["request"], "extension_store_control_changed")
+    negative = case in ("foreign_owner", "deleted_read", "compact_foreign_owner")
+    matches(sample, captures[-1], successful=not negative)
+    if negative or case == "store_read":
+        oracle.require(sample.get("root_sample") == captures[0], "extension_root_not_captured")
+        oracle.require(oracle.load_json(sample["read_wire"]) == values[0], "extension_resource_unconfirmed")
+    if case == "reasoning_history":
+        oracle.require(sample.get("previous_request") == captures[0]["request"] and oracle.load_json(sample["previous_wire"]) == values[0], "extension_history_root_not_captured")
+        oracle.extension_check("reasoning", "visible_reasoning", {**captures[0], "case": "visible_reasoning"}, target)
+    elif case in ("exact_continuation", "compact_roundtrip", "ws_multiturn"):
+        oracle.require(sample.get("parent_response_id") == ids[0] and sample.get("parent_target") == target, "continuation_parent_not_captured")
+        if case == "compact_roundtrip":
+            summary = captures[1]
+            oracle.require(summary["request"]["previous_response_id"] == ids[0] and
+                           sample.get("compact_request") == summary["request"] and sample.get("compact_wire") == summary["wire"] and
+                           sample.get("compact_evidence") == summary["evidence"] and sample.get("compact_http_status") == summary["http_status"], "compact_summary_not_captured")
+            inputs, outputs = sample["request"]["input"], values[1]["output"]
+            oracle.require(len(inputs) == len(outputs) + 1 and inputs[:-1] == outputs and inputs[-1].get("role") == "user", "compact_history_changed")
+        else:
+            oracle.require(captures[1]["request"].get("previous_response_id") == ids[0], "continuation_parent_not_captured")
+        if case == "ws_multiturn":
+            oracle.require(all(sample.get(key) == bundle.get("handshake", {}).get(key) for key in ("handshake_status", "ws_nonce", "ws_accept")), "ws_handshake_not_captured")
+            oracle.require(len(sample["ws_turns"]) == len(captures), "ws_capture_sequence_changed")
+            for actual, captured in zip(sample["ws_turns"], captures):
+                matches(actual, captured)
+
+
 def audit_extension_bundle(bundle):
-    receipt = {"schema_version": 3, "layer": bundle.get("layer"), "value_free": True,
-               "case": bundle.get("case") if bundle.get("case") in CASE_CAPABILITY else None,
-               "inference_intents": bundle.get("counts", {}).get("inference_intents", 0),
+    case = bundle.get("case")
+    count = bundle.get("counts", {}).get("inference_intents") if isinstance(bundle.get("counts"), dict) else None
+    receipt = {"schema_version": 3, "layer": bundle.get("layer") if bundle.get("layer") in ("LOCAL_SIMULATED", "LIVE_NEW_BUILD", "PRODUCTION") else None, "value_free": True,
+               "case": case if isinstance(case, str) and case in CASE_CAPABILITY else None,
+               "inference_intents": count if oracle.integer(count) and count <= 3 else None,
                "extension_tool_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     def audit():
         oracle.require(bundle.get("extension_bundle_version") == 1, "unknown_extension_bundle_version")
+        oracle.require(isinstance(case, str) and case in IMPLEMENTED, "unreviewed_extension_case")
         oracle.available(bundle.get("layer") == "LOCAL_SIMULATED", "extension_layer_not_authorized")
         result = bundle.get("result", {})
+        oracle.require(isinstance(result, dict), "extension_execution_not_passed")
         oracle.require(result.get("status") == "PASS" and result.get("stopped") is True, "extension_execution_not_passed")
         oracle.verify_runtime(bundle["runtime"], bundle["source_sha"], bundle["layer"])
         oracle.verify_target(bundle["target"])
         sample = bundle.get("verified_sample", {})
+        oracle.require(isinstance(sample, dict), "extension_sample_version_required")
         oracle.available(sample.get("extension_sample_version") == 1, "extension_sample_version_required")
         oracle.require(sample.get("frozen_runtime") == bundle["runtime"] and sample.get("source_sha") == bundle["source_sha"] and sample.get("case") == bundle["case"], "wrong_extension_target")
         captures = bundle.get("samples", [])
+        oracle.require(isinstance(captures, list) and all(isinstance(row, dict) for row in captures), "extension_capture_count_mismatch")
         if bundle["case"] == "ws_handshake_rejection":
-            oracle.require(len(captures) == 1 and bundle["counts"]["inference_intents"] == 0, "extension_capture_count_mismatch")
+            oracle.require(len(captures) == 1 and oracle.integer(count) and count == 0, "extension_capture_count_mismatch")
         else:
-            oracle.require(len(captures) == bundle["counts"]["inference_intents"] and len(captures) <= REQUEST_LIMITS[bundle["case"]], "extension_capture_count_mismatch")
+            oracle.require(oracle.integer(count) and len(captures) == count == REQUEST_LIMITS[case], "extension_capture_count_mismatch")
+        values = []
         for capture in captures:
             if bundle["case"] == "ws_handshake_rejection":
                 continue
             oracle.require(capture.get("frozen_runtime") == bundle["runtime"] and capture.get("source_sha") == bundle["source_sha"], "wrong_extension_target")
-            verify_capture(capture, bundle["target"])
+            values.append(verify_capture(capture, bundle["target"]))
+        verify_sequence(bundle, values)
         oracle.extension_check(CASE_CAPABILITY[bundle["case"]], bundle["case"], sample, bundle["target"])
     receipt.update(oracle.verdict(audit))
     return receipt
@@ -190,7 +274,7 @@ def audit_extension_bundle(bundle):
 
 class WebSocket:
     """Bounded RFC6455 public client; no redirect, reconnect or inference retry."""
-    def __init__(self, base_url, key, origin=None, timeout=30):
+    def __init__(self, base_url, key, origin=None, timeout=30, on_progress=None):
         url = urllib.parse.urlsplit(base_url)
         oracle.require(url.scheme == "https" or url.scheme == "http" and url.hostname in ("127.0.0.1", "::1", "localhost"), "unsafe_data_url")
         oracle.require(not url.username and not url.password and not url.query and not url.fragment, "unsafe_data_url")
@@ -205,6 +289,8 @@ class WebSocket:
             headers = ["GET " + path + " HTTP/1.1", "Host: " + url.netloc, "Upgrade: websocket", "Connection: Upgrade", "Sec-WebSocket-Version: 13", "Sec-WebSocket-Key: " + self.nonce, "Authorization: Bearer " + key]
             if origin is not None:
                 headers.append("Origin: " + origin)
+            if on_progress is not None:
+                on_progress({"ws_nonce": self.nonce, "ws_origin": origin}, b"")
             self.socket.sendall(("\r\n".join(headers) + "\r\n\r\n").encode())
             raw = bytearray()
             deadline = time.monotonic() + timeout
@@ -214,6 +300,8 @@ class WebSocket:
                 part = self.socket.recv(1)
                 oracle.require(bool(part), "ws_handshake_closed")
                 raw.extend(part)
+                if on_progress is not None:
+                    on_progress({}, bytes(raw))
             lines = raw.decode("ascii").split("\r\n")
             self.status = int(lines[0].split()[1])
             fields = {}
@@ -224,6 +312,8 @@ class WebSocket:
                 oracle.require(name.lower() not in fields, "duplicate_ws_header")
                 fields[name.lower()] = value.strip()
             self.accept = fields.get("sec-websocket-accept")
+            if on_progress is not None:
+                on_progress({"http_status": self.status, "handshake_status": self.status, "ws_accept": self.accept}, bytes(raw))
             if self.status == 101:
                 expected = base64.b64encode(hashlib.sha1((self.nonce + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
                 oracle.require(self.accept == expected and fields.get("upgrade", "").lower() == "websocket" and "upgrade" in fields.get("connection", "").lower().split(", "), "ws_handshake_unconfirmed")
@@ -238,9 +328,9 @@ class WebSocket:
         length = bytes([0x80 | len(raw)]) if len(raw) < 126 else b"\xfe" + struct.pack("!H", len(raw)) if len(raw) <= 65535 else b"\xff" + struct.pack("!Q", len(raw))
         self.socket.sendall(bytes([0x80 | opcode]) + length + mask + bytes(value ^ mask[index % 4] for index, value in enumerate(raw)))
 
-    def turn(self, request):
+    def turn(self, request, on_progress=None):
         self.send({**request, "type": "response.create"})
-        frames, total = [], 0
+        frames, total, received = [], 0, bytearray()
         deadline = time.monotonic() + self.timeout
         def exact(size):
             result = bytearray()
@@ -251,6 +341,9 @@ class WebSocket:
                 part = self.socket.recv(size - len(result))
                 oracle.require(bool(part), "ws_turn_closed")
                 result.extend(part)
+                received.extend(part)
+                if on_progress is not None:
+                    on_progress({}, bytes(received))
             return bytes(result)
         for _ in range(4096):
             header = exact(2)
@@ -272,6 +365,8 @@ class WebSocket:
             oracle.require(opcode == 1, "ws_turn_closed")
             value = oracle.load_json(raw.decode())
             frames.append(value)
+            if on_progress is not None:
+                on_progress({"wire": "".join("data: " + json.dumps(frame, ensure_ascii=False) + "\n\n" for frame in frames)}, bytes(received))
             if value.get("type") in ("response.completed", "response.failed", "response.incomplete", "error"):
                 return "".join("data: " + json.dumps(frame, ensure_ascii=False) + "\n\n" for frame in frames)
         raise ValueError("ws_frame_count")
@@ -289,14 +384,14 @@ class WebSocket:
 def run_extension(plan, runtime, key, base_url, private_out, *, foreign_key=None, execute=False):
     target, specification = plan.get("target", {}), plan.get("extension", {})
     case = specification.get("case")
-    receipt = {"schema_version": 3, "layer": plan.get("layer"), "status": "BLOCKED", "case": case if case in CASE_CAPABILITY else None,
+    receipt = {"schema_version": 3, "layer": plan.get("layer") if plan.get("layer") in ("LOCAL_SIMULATED", "LIVE_NEW_BUILD", "PRODUCTION") else None, "status": "BLOCKED", "case": case if isinstance(case, str) and case in CASE_CAPABILITY else None,
                "inference_intents": 0, "http_intents": 0, "ws_frame_intents": 0, "stopped": True, "value_free": True,
                "extension_tool_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     bundle = {"extension_bundle_version": 1, "layer": plan.get("layer"), "source_sha": plan.get("source_sha"),
               "target": target, "runtime": runtime, "case": case, "samples": [], "operations": []}
     saved, ws = False, None
     try:
-        oracle.require(case in CASE_CAPABILITY, "unreviewed_extension_case")
+        oracle.require(isinstance(case, str) and case in CASE_CAPABILITY, "unreviewed_extension_case")
         oracle.available(case in IMPLEMENTED, "extension_executor_not_implemented")
         oracle.available(plan.get("layer") == "LOCAL_SIMULATED", "extensions_live_execution_not_authorized")
         oracle.verify_runtime(runtime, plan.get("source_sha"), plan["layer"])
@@ -338,22 +433,41 @@ def run_extension(plan, runtime, key, base_url, private_out, *, foreign_key=None
             else:
                 private_out.write_text(raw)
         def intent(operation, inference=False, socket_frame=False):
-            observe_local_process(collector, runtime)
+            current = observe_local_process(collector, runtime)
             if inference:
                 oracle.require(receipt["inference_intents"] < REQUEST_LIMITS[case], "extension_request_limit")
                 receipt["inference_intents"] += 1
             receipt["ws_frame_intents" if socket_frame else "http_intents"] += 1
             bundle["operations"].append(operation)
             save()
+            return current
+        def progress(sample, *, socket_wire=False):
+            def capture(metadata, raw):
+                sample.update(metadata)
+                sample["wire_bytes_b64"] = base64.b64encode(raw).decode()
+                if not socket_wire:
+                    sample["wire"] = raw.decode("utf-8", errors="replace")
+                save()
+            return capture
         def sample_request(request, *, compact=False):
-            intent("compact_summary" if compact else "response_create", inference=True, socket_frame=ws is not None)
+            sample = {"extension_sample_version": 1, "case": case, "layer": plan["layer"], "source_sha": plan["source_sha"], "target": copy.deepcopy(target),
+                      "frozen_runtime": runtime, "request": copy.deepcopy(request), "expected_text": specification.get("expected_text"),
+                      "operation": "compact_summary" if compact else "response_create"}
             if ws is not None:
-                sample = {"http_status": 200, "wire": ws.turn(request), "mode": "sse", "ws_frame": {**request, "type": "response.create"}}
+                sample.update(http_status=200, mode="sse", ws_frame={**request, "type": "response.create"},
+                              request_wire_b64=base64.b64encode(json.dumps({**request, "type": "response.create"}, ensure_ascii=False, separators=(",", ":")).encode()).decode())
             else:
-                sample = oracle.http_exchange(base_url, key, "/responses/compact" if compact else oracle.PROTOCOLS[protocol], request)
-            sample.update(extension_sample_version=1, case=case, layer=plan["layer"], source_sha=plan["source_sha"], target=copy.deepcopy(target),
-                          frozen_runtime=runtime, request=copy.deepcopy(request), runtime=observe_local_process(collector, runtime), expected_text=specification.get("expected_text"), operation="compact_summary" if compact else "response_create")
+                sample["request_wire_b64"] = base64.b64encode(json.dumps(request, separators=(",", ":")).encode()).decode()
             bundle["samples"].append(sample)
+            sample["runtime"] = intent({"operation": sample["operation"], "request": copy.deepcopy(request)}, inference=True, socket_frame=ws is not None)
+            sample["request_binding_sha256"] = request_binding(sample)
+            save()
+            if ws is not None:
+                sample["wire"] = ws.turn(request, on_progress=progress(sample, socket_wire=True))
+            else:
+                sample.update(oracle.http_exchange(base_url, key, "/responses/compact" if compact else oracle.PROTOCOLS[protocol], request, on_progress=progress(sample)))
+            save()
+            sample["runtime"] = observe_local_process(collector, runtime)
             save()
             oracle.require(sample["http_status"] == 200, "extension_http_failure")
             value = oracle.load_json(sample["wire"]) if compact or target["mode"] == "json" else oracle.decode_stream(protocol, sample["wire"].encode())
@@ -379,29 +493,33 @@ def run_extension(plan, runtime, key, base_url, private_out, *, foreign_key=None
             save()
             return sample, value
         def exchange(path, body=None, *, method="GET", actual_key=key):
-            intent(method.lower() + "_" + ("compact" if path.endswith("/compact") else "resource"))
-            result = oracle.http_exchange(base_url, actual_key, path, body, method=method)
-            bundle.setdefault("resource_operations", []).append({"method": method, "path": path, **result})
+            result = {"method": method, "path": path, "request": copy.deepcopy(body)}
+            bundle.setdefault("resource_operations", []).append(result)
+            intent({"operation": method.lower() + "_" + ("compact" if path.endswith("/compact") else "resource"), **result})
+            result.update(oracle.http_exchange(base_url, actual_key, path, body, method=method, on_progress=progress(result)))
             save()
             return result
         request = {"model": target["public_model"], "stream": target["mode"] == "sse", **copy.deepcopy(target["parameters"])}
         request["input" if protocol == "responses" else "messages"] = ([{"role": "user", "content": specification.get("prompt", "Remember the acceptance fact.")}] if protocol != "responses" else specification.get("prompt", "Remember the acceptance fact."))
         if case == "ws_handshake_rejection":
-            intent("websocket_origin_upgrade")
-            before = attempt_count(collector["local_state_dir"])
-            ws = WebSocket(base_url, key, origin="https://example.invalid")
             sample = {"extension_sample_version": 1, "case": case, "layer": plan["layer"], "source_sha": plan["source_sha"], "target": target,
-                      "frozen_runtime": runtime, "runtime": observe_local_process(collector, runtime), "request": request,
-                      "http_status": ws.status, "operation": "responses_ws_upgrade", "authenticated": True,
-                      "ws_nonce": ws.nonce, "ws_accept": ws.accept, "ws_origin": "https://example.invalid", "handshake_status": ws.status,
-                      "boundary_before": before, "boundary_after": attempt_count(collector["local_state_dir"]), "evidence": {"upstream_send_count": 0}}
+                      "frozen_runtime": runtime, "request": request, "operation": "responses_ws_upgrade"}
+            bundle["samples"].append(sample)
+            sample["runtime"] = intent({"operation": "websocket_origin_upgrade", "method": "GET", "path": "/responses", "origin": "https://example.invalid"})
+            save()
+            before = attempt_count(collector["local_state_dir"])
+            ws = WebSocket(base_url, key, origin="https://example.invalid", on_progress=progress(sample, socket_wire=True))
+            sample.update(runtime=observe_local_process(collector, runtime),
+                      http_status=ws.status, authenticated=True,
+                      ws_nonce=ws.nonce, ws_accept=ws.accept, ws_origin="https://example.invalid", handshake_status=ws.status,
+                      boundary_before=before, boundary_after=attempt_count(collector["local_state_dir"]), evidence={"upstream_send_count": 0})
             sample["evidence"]["upstream_send_count"] = sample["boundary_after"] - before
             sample["request_binding_sha256"] = request_binding(sample)
-            bundle["samples"].append(sample)
         else:
             if case == "ws_multiturn":
-                intent("websocket_upgrade")
-                ws = WebSocket(base_url, key)
+                bundle["handshake"] = {"operation": "websocket_upgrade", "method": "GET", "path": "/responses", "origin": None}
+                intent(bundle["handshake"])
+                ws = WebSocket(base_url, key, on_progress=progress(bundle["handshake"], socket_wire=True))
                 oracle.require(ws.status == 101, "ws_handshake_unconfirmed")
             if case not in ("visible_reasoning", "reasoning_history", "ws_multiturn"):
                 request["store"] = True
@@ -458,7 +576,7 @@ def run_extension(plan, runtime, key, base_url, private_out, *, foreign_key=None
         receipt.update(status="PASS", category="verified", sample_request_binding_sha256=sample["request_binding_sha256"])
     except (ValueError, KeyError, TypeError, IndexError) as error:
         receipt.update(oracle.verdict(lambda: (_ for _ in ()).throw(error)))
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, http.client.HTTPException):
         receipt.update(status="FAIL" if receipt["inference_intents"] or receipt["http_intents"] else "BLOCKED", category="extension_transport_or_collector_failure")
     finally:
         if ws is not None:

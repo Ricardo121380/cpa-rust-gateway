@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Value-free, isolated regression tests for the formal C acceptance oracle."""
 import importlib.util
+import base64
 import copy
 import contextlib
 import io
@@ -11,10 +12,14 @@ import os
 from pathlib import Path
 import tempfile
 import sqlite3
+import socketserver
+import struct
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import unittest
+from unittest.mock import patch
 
 
 def load(name, filename):
@@ -27,6 +32,8 @@ def load(name, filename):
 legacy = load("legacy", "cpar-batch-c-live.py")
 oracle = legacy if os.environ.get("CPAR_TEST_LEGACY") else load("oracle", "cpar_new_build_acceptance.py")
 SOURCE_SHA = "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb"
+sys.path.insert(0, str(Path(__file__).parent / "acceptance"))
+import cpar_build_extensions as extensions
 
 
 def response(protocol="responses", tools=False):
@@ -913,6 +920,116 @@ class FormalOracle(unittest.TestCase):
             self.assertEqual(len(observed), 2)
         finally:
             server.shutdown();server.server_close();thread.join(2)
+
+    def test_extension_receipt_rejects_private_values(self):
+        for counts in ({"inference_intents": {"wire": "SYNTHETIC_PRIVATE_SENTINEL"}}, [], {"inference_intents": True}):
+            receipt = extensions.audit_extension_bundle({"layer": {"wire": "SYNTHETIC_PRIVATE_SENTINEL"}, "case": [], "counts": counts})
+            self.assertEqual(receipt["status"], "FAIL")
+            self.assertNotIn("SYNTHETIC_PRIVATE_SENTINEL", json.dumps(receipt))
+        with tempfile.TemporaryDirectory() as directory:
+            receipt = extensions.run_extension({"layer": {"wire": "SYNTHETIC_PRIVATE_SENTINEL"}, "extension": {"case": []}}, {}, None, "http://127.0.0.1:1", Path(directory) / "bundle")
+            self.assertEqual(receipt["status"], "FAIL")
+            self.assertNotIn("SYNTHETIC_PRIVATE_SENTINEL", json.dumps(receipt))
+
+    def test_extension_ordered_roots_and_full_controls(self):
+        current_target, observed = target(), runtime()
+        captures = []
+        for number in (1, 2):
+            value = response();value["id"] = "resp_" + str(number)
+            lineage = evidence(current_target, value, number)
+            request = {"model": "local-model", "stream": False, "max_output_tokens": 128, "input": "OK"}
+            request.update({"store": True} if number == 1 else {"previous_response_id": "resp_1"})
+            raw = json.dumps(value)
+            sample = {"extension_sample_version": 1, "case": "exact_continuation", "layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": current_target, "frozen_runtime": observed, "runtime": observed,
+                      "request": request, "request_wire_b64": base64.b64encode(json.dumps(request).encode()).decode(), "wire": raw, "wire_bytes_b64": base64.b64encode(raw.encode()).decode(), "http_status": 200, "operation": "response_create", "expected_text": "OK", "evidence": lineage}
+            sample["request_binding_sha256"] = extensions.request_binding(sample);captures.append(sample)
+        final = copy.deepcopy(captures[1]);final.update(parent_target=current_target, parent_response_id="resp_1")
+        original = {"extension_bundle_version": 1, "layer": "LOCAL_SIMULATED", "case": "exact_continuation", "source_sha": SOURCE_SHA, "runtime": observed, "target": current_target, "samples": captures,
+                    "verified_sample": final, "counts": {"inference_intents": 2}, "result": {"status": "PASS", "stopped": True}}
+        self.assertEqual(extensions.audit_extension_bundle(original)["status"], "PASS")
+        for mutation in ("missing_root", "uncaptured_parent", "extra_control", "unrelated_final", "missing_wire"):
+            changed = copy.deepcopy(original)
+            if mutation == "missing_root":
+                changed["samples"].pop(0);changed["counts"]["inference_intents"] = 1
+            elif mutation == "uncaptured_parent":
+                for row in (changed["samples"][-1], changed["verified_sample"]):
+                    row["request"]["previous_response_id"] = "unknown_root"
+                    row["request_binding_sha256"] = extensions.request_binding(row)
+                    row["request_wire_b64"] = base64.b64encode(json.dumps(row["request"]).encode()).decode()
+                changed["verified_sample"]["parent_response_id"] = "unknown_root"
+            elif mutation == "extra_control":
+                changed["samples"][0]["request"]["temperature"] = .9
+                changed["samples"][0]["request_binding_sha256"] = extensions.request_binding(changed["samples"][0])
+                changed["samples"][0]["request_wire_b64"] = base64.b64encode(json.dumps(changed["samples"][0]["request"]).encode()).decode()
+            elif mutation == "unrelated_final":
+                changed["verified_sample"]["request"]["input"] = "uncaptured_input"
+                changed["verified_sample"]["request_binding_sha256"] = extensions.request_binding(changed["verified_sample"])
+            else:
+                changed["samples"][0].pop("wire_bytes_b64")
+            self.assertIn(extensions.audit_extension_bundle(changed)["status"], ("FAIL", "BLOCKED"), mutation)
+
+    def test_extension_http_failures_preserve_sent_request_and_partial_wire(self):
+        # Only the process observer is stubbed in this transport regression.
+        # The directed fixture separately verifies the actual gateway and CLI.
+        current_target, observed = target(), runtime()
+        current_target["capabilities"]["continuation"] = True
+        observed["capability_observations"] = [current_target["declaration_evidence"]]
+        for fault in ("wrong_content_type", "identity_after_response", "body_deadline"):
+            with tempfile.TemporaryDirectory() as directory:
+                path, received, before_write = Path(directory) / "bundle.json", [], []
+                class Handler(BaseHTTPRequestHandler):
+                    def log_message(self, *_):pass
+                    def do_POST(self):
+                        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                        received.append(body)
+                        before_write.append(json.loads(path.read_text())["samples"][0]["request"] == body)
+                        raw = json.dumps(response()).encode()
+                        self.send_response(200);self.send_header("Content-Type", "text/plain" if fault == "wrong_content_type" else "application/json")
+                        self.send_header("Content-Length", str(len(raw)));self.end_headers()
+                        try:
+                            self.wfile.write(raw[:3]);self.wfile.flush()
+                            if fault == "body_deadline":time.sleep(.2)
+                            self.wfile.write(raw[3:]);self.wfile.flush()
+                        except (BrokenPipeError, ConnectionResetError):pass
+                server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+                thread = threading.Thread(target=server.serve_forever, daemon=True);thread.start()
+                plan = {"layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": current_target, "collector": {"local_state_dir": directory, "binary": "synthetic-observer-only"}, "extension": {"case": "exact_continuation", "prompt": "OK", "expected_text": "OK"}}
+                exchange = extensions.oracle.http_exchange
+                try:
+                    with patch.object(extensions, "observe_local_process", side_effect=[observed, ValueError("local_process_identity_changed")] if fault == "identity_after_response" else None, return_value=observed), \
+                         patch.object(extensions.oracle, "http_exchange", side_effect=lambda *args, **kwargs: exchange(*args, timeout=.07, **kwargs)):
+                        receipt = extensions.run_extension(plan, observed, "synthetic-key", "http://127.0.0.1:" + str(server.server_port), path, execute=True)
+                    retained = json.loads(path.read_text())["samples"]
+                    self.assertEqual((receipt["status"], receipt["inference_intents"], len(received)), ("FAIL", 1, 1))
+                    self.assertEqual(before_write, [True]);self.assertEqual(len(retained), 1)
+                    self.assertEqual(retained[0]["request"], received[0])
+                    raw = base64.b64decode(retained[0]["wire_bytes_b64"])
+                    self.assertTrue(raw.startswith(b'{"i'))
+                    if fault == "body_deadline":self.assertEqual(raw, b'{"i')
+                    self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+                finally:
+                    server.shutdown();server.server_close();thread.join(2)
+
+    def test_extension_websocket_partial_frame_is_retained(self):
+        captures = []
+        class Handler(socketserver.BaseRequestHandler):
+            def handle(self):
+                headers = bytearray()
+                while not headers.endswith(b"\r\n\r\n"):headers.extend(self.request.recv(1))
+                nonce = next(line.split(": ", 1)[1] for line in headers.decode().split("\r\n") if line.startswith("Sec-WebSocket-Key:"))
+                accept = base64.b64encode(hashlib.sha1((nonce + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+                self.request.sendall(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + accept + "\r\n\r\n").encode())
+                self.request.recv(4096)
+                self.request.sendall(b'\x81\x10{"type":')
+        server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True);thread.start()
+        ws = extensions.WebSocket("http://127.0.0.1:" + str(server.server_address[1]), "synthetic-key")
+        try:
+            with self.assertRaisesRegex(ValueError, "ws_turn_closed"):
+                ws.turn({"model": "local-model", "input": "OK", "stream": True}, on_progress=lambda metadata, raw: captures.append(raw))
+            self.assertEqual(captures[-1], b'\x81\x10{"type":')
+        finally:
+            ws.close();server.shutdown();server.server_close();thread.join(2)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,20 @@
+{
+  "schema": "cpar-build-extension-source-freeze-v1",
+  "status": "PASS",
+  "layer": "LOCAL_SIMULATED",
+  "prior_implementation": "93a64e6f78c37d1ef1da64fffef58f895174e7ef",
+  "product_source": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "basic_real_formal_sha256": "b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a",
+  "files": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "0754c4181653e53b5c93053d53b320062a0f14cdd9d3ece8d1fe966ccb2612bc",
+    "scripts/acceptance/cpar_build_extensions.py": "80cfa062399c691c3680dd7f1515e8fdb960aec30110f60e20e65d595f81dc2b",
+    "scripts/acceptance/cpar_build_extensions_http.py": "e6ebd78fc1c7276f3760748f5c7f0754b9febe7f9e04782bf1be852f3e4a8348",
+    "scripts/acceptance/cpar-batch-b-http.py": "7c606564342e22c1290b43c153577e109937580209e4cad7aefe46ca2b0b0c3a",
+    "scripts/acceptance/cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+    "scripts/test-cpar-new-build-acceptance.py": "26143d7787f7807382141101102400618b6465e1e7f2dd064dd2f20794bd46ca"
+  },
+  "binary_sha256": "07247ed69d4ee433abd964ae95c2de41130a087109ae03b1c5a477fa899c0413",
+  "qualified_directed_checks": 285,
+  "unit_tests": 45,
+  "real_provider_requests": 0
+}
