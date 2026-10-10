@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "observed_at_utc": "2026-10-10T07:42:10.883638+00:00",
+  "runtime": {
+    "method": null,
+    "instance": null,
+    "pid": null,
+    "process_start": null,
+    "observed_at_utc": null,
+    "artifact_sha256": null,
+    "artifact_sha": null,
+    "source_sha": null,
+    "stable_process": null,
+    "manifest_sha256": null,
+    "manifest_matches": null
+  },
+  "target": {
+    "channel": "grok.build",
+    "endpoint_id": null,
+    "route_id": null,
+    "route_candidate_id": null,
+    "upstream_model": "grok-4.7",
+    "credential_evidence_id": null,
+    "credential_revision": null,
+    "config_version_id": null,
+    "config_revision": null,
+    "egress_evidence_id": null,
+    "egress_revision": null,
+    "protocol": "responses",
+    "mode": "sse",
+    "public_model": "preacc-grok-4.7",
+    "response_model": "grok-4.7"
+  },
+  "parameters_sha256": "4fdaa0fea8992966d96fd099e55b39e96dea459db7a2bb7fe36b5aa40149ecc4",
+  "capabilities": {
+    "reasoning": null,
+    "websocket": null,
+    "stored": null,
+    "compact": null,
+    "parallel": null,
+    "continuation": null
+  },
+  "declaration_observed_at_utc": null,
+  "value_free": true,
+  "checks": [],
+  "evidence_paths": [],
+  "sent_requests": 0,
+  "preflight": {
+    "status": "BLOCKED",
+    "category": "runtime_unconfirmed"
+  },
+  "status": "BLOCKED",
+  "category": "runtime_unconfirmed",
+  "command": "cpar-batch-c-live.py --new-build run",
+  "environment": {
+    "platform": "darwin",
+    "python": "3.9.6"
+  },
+  "tool_sha256": "d0add96562fafb5e9040475fca53f1648bcca10ecc956e3a33b4f31c20db4bb0",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

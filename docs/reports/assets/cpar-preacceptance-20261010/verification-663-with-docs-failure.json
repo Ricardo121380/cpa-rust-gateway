@@ -1,0 +1,37 @@
+{
+  "entries": [
+    {
+      "name": "final-clean-oracle",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/test-cpar-new-build-acceptance.py"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-source",
+      "source_sha": "66330dc613dae49622f4f62ff6ec7c729f270d62",
+      "source_dirty_before": false,
+      "source_dirty_after": false,
+      "started_at_utc": "2026-10-10T07:48:47.692701+00:00",
+      "finished_at_utc": "2026-10-10T07:48:51.724197+00:00",
+      "exit_code": 0,
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-clean-oracle.log",
+      "sha256": "579d453da7215ae5312bacd49480b41d61fef895ed158114d8ae39cdcbcc56c5"
+    },
+    {
+      "name": "final-clean-docs",
+      "argv": [
+        "scripts/check.sh",
+        "docs"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-source",
+      "source_sha": "66330dc613dae49622f4f62ff6ec7c729f270d62",
+      "source_dirty_before": false,
+      "source_dirty_after": false,
+      "started_at_utc": "2026-10-10T07:48:51.724359+00:00",
+      "finished_at_utc": "2026-10-10T07:49:51.242871+00:00",
+      "exit_code": 2,
+      "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-clean-docs.log",
+      "sha256": "b67ecbd5ad419f978d3bd1186fe1ad7198042781978d04ac1684e63ae8666029"
+    }
+  ]
+}

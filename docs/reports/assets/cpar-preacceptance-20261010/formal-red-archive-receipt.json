@@ -1,0 +1,14 @@
+{
+  "recorded_at_utc": "2026-10-10T07:52:57.598051+00:00",
+  "original_state": "FAIL",
+  "reason": "Repository-wide git whitespace gate rejects trailing spaces in raw unittest output. Original bytes retained in gzip; .log is a labeled reading copy.",
+  "original_sha256": "119f647eff9291b9b6c18e33e3bb320cb3c1cc35549df8e75e7e54b0b95f8f25",
+  "original_bytes": 3278,
+  "original_archive": "formal-scenario-red.raw.log.gz",
+  "archive_sha256": "36c83e1cd1af3350a1b597282cf20debe49bb68bd2d4010f0d555fd3be396666",
+  "reading_copy": "formal-scenario-red.log",
+  "reading_sha256": "d83e81f9e1b7ab3c42051514520c0264aca46fba9b8923c9e59344c4a7562829",
+  "transformation": "rstrip ASCII space, tab and CR at each line end; preserve LF, all assertions and terminal FAIL.",
+  "original_execution_index_unchanged": true,
+  "original_execution_index_resolution": "formal-scenario-red.log original hash resolves by decompressing formal-scenario-red.raw.log.gz or original output/formal-scenario-red.log."
+}

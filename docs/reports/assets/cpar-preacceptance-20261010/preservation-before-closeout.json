@@ -1,0 +1,11 @@
+{
+  "observed_at_utc": "2026-10-10T07:54:25.401464+00:00",
+  "result": "PASS",
+  "baseline_head": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "current_head": "66330dc613dae49622f4f62ff6ec7c729f270d62",
+  "paths_checked": 25704,
+  "check": "lstat size/mtime_ns/mode for pre-existing git-visible dirty and untracked files; byte SHA256 for AGENTS only. Ignored nested artifacts excluded.",
+  "changes": [],
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "baseline_sha256": "7d2285e97dc9dfe1f2360bbc4ccdae22cc0354d492a187946ae561f1d7060e30"
+}

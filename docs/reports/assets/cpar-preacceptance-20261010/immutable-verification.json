@@ -1,0 +1,77 @@
+{
+  "source_sha": "af81d91108d4dd06dcfc38a6dac1adf3731fac10",
+  "entries": [
+    {
+      "name": "clean-formal-oracle",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/test-cpar-new-build-acceptance.py"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-source",
+      "source_sha": "af81d91108d4dd06dcfc38a6dac1adf3731fac10",
+      "source_dirty_before": false,
+      "started_at_utc": "2026-10-10T07:41:58.481659+00:00",
+      "finished_at_utc": "2026-10-10T07:42:02.513404+00:00",
+      "exit_code": 0,
+      "log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/clean-formal-oracle.log",
+      "log_sha256": "d92a0aedf1c7c141ab656387695f698bcc74120a33496801821b90a46a658b28",
+      "source_dirty_after": false
+    },
+    {
+      "name": "clean-node-syntax",
+      "argv": [
+        "node",
+        "--check",
+        "scripts/acceptance/cpar-web-console-actual-ui.mjs"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-source",
+      "source_sha": "af81d91108d4dd06dcfc38a6dac1adf3731fac10",
+      "source_dirty_before": false,
+      "started_at_utc": "2026-10-10T07:41:58.482042+00:00",
+      "finished_at_utc": "2026-10-10T07:41:58.641124+00:00",
+      "exit_code": 0,
+      "log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/clean-node-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_dirty_after": false
+    },
+    {
+      "name": "clean-python-syntax",
+      "argv": [
+        "python3",
+        "-B",
+        "-c",
+        "import ast,pathlib; [ast.parse(pathlib.Path(p).read_text(), filename=p) for p in [\"scripts/acceptance/cpar_seo_ui_http.py\",\"scripts/acceptance/cpar_new_build_acceptance.py\",\"scripts/test-cpar-new-build-acceptance.py\"]]"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-source",
+      "source_sha": "af81d91108d4dd06dcfc38a6dac1adf3731fac10",
+      "source_dirty_before": false,
+      "started_at_utc": "2026-10-10T07:41:58.482118+00:00",
+      "finished_at_utc": "2026-10-10T07:41:58.532035+00:00",
+      "exit_code": 0,
+      "log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/clean-python-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_dirty_after": false
+    },
+    {
+      "name": "clean-c-syntax",
+      "argv": [
+        "cc",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-fsyntax-only",
+        "scripts/acceptance/cpar-device-loopback.c"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-source",
+      "source_sha": "af81d91108d4dd06dcfc38a6dac1adf3731fac10",
+      "source_dirty_before": false,
+      "started_at_utc": "2026-10-10T07:41:58.483291+00:00",
+      "finished_at_utc": "2026-10-10T07:41:58.682519+00:00",
+      "exit_code": 0,
+      "log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/clean-c-syntax.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_dirty_after": false
+    }
+  ]
+}

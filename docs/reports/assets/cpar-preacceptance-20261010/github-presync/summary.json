@@ -1,0 +1,98 @@
+{
+  "observed_at_utc": "2026-10-10T07:53:37.858280+00:00",
+  "result": "PASS_PRESYNC_READ",
+  "issues": [
+    {
+      "number": 16,
+      "state": "closed",
+      "comments": 1,
+      "native_dependency_ids": [
+        5631319498
+      ],
+      "baseline_unchanged": true
+    },
+    {
+      "number": 39,
+      "state": "open",
+      "comments": 1,
+      "native_dependency_ids": [
+        5631366152,
+        5631369676,
+        5631372136
+      ],
+      "baseline_unchanged": true
+    },
+    {
+      "number": 49,
+      "state": "open",
+      "comments": 1,
+      "native_dependency_ids": [
+        5631336964,
+        5631366152,
+        5631373786,
+        5631375409,
+        5631376962,
+        5631378668
+      ],
+      "baseline_unchanged": true
+    },
+    {
+      "number": 50,
+      "state": "open",
+      "comments": 1,
+      "native_dependency_ids": [
+        5631334837,
+        5631392260,
+        5631373786,
+        5631375409,
+        5631376962,
+        5631378668
+      ],
+      "baseline_unchanged": true
+    },
+    {
+      "number": 57,
+      "state": "open",
+      "comments": 1,
+      "native_dependency_ids": [
+        5631328914,
+        5631339239,
+        5631347684,
+        5631356096,
+        5631358441,
+        5631386213,
+        5631388515,
+        5631395778,
+        5631402450,
+        5631408970,
+        5631415759,
+        5631422686,
+        5631429622,
+        5631436822,
+        5631444349,
+        5631451729,
+        5631458604,
+        5631464240,
+        5631493317,
+        5631495525,
+        5631498436,
+        5631513961,
+        5631516660
+      ],
+      "baseline_unchanged": true
+    },
+    {
+      "number": 9,
+      "state": "open",
+      "comments": 1,
+      "native_dependency_ids": [],
+      "baseline_unchanged": true
+    }
+  ],
+  "implementation_ticket_count": 48,
+  "implementation_states": {
+    "CLOSED": 35,
+    "OPEN": 13
+  },
+  "writes": 0
+}

@@ -43,8 +43,9 @@ stock固定 `grok.com` identity策略拒绝loopback DNS；测试interpose提供�
 | web-console-third | FAIL，12个页面检查已PASS | fixture误把 `/rest/rate-limits` POST全部当推理；事件表为空。按真实path拆开额度与推理计数。不是产品RED |
 | formal-scenario-red | FAIL，六protocol/mode子例均7≠9 | 正式执行器的旧2／2／3请求不满足首批3／2／4要求；属于 acceptance executor RED，非产品Rust／UI缺陷 |
 | final页面／formal-green | PASS | 页面13项；formal oracle32 tests；全部原失败receipt/log保留，未回标成功 |
+| af81独立Spec／stale-count-red | FAIL，P2 | 已执行且观察过期的历史bundle在预检提前返回时误报sent_requests=0；定向RED为0≠7。66330dc6把原计数移到预检前，v2七次／v3九次回归PASS；原Spec失败与RED分别保留 |
 
-没有发现需要改变产品Rust、UI或管理契约的新缺陷。三个驱动失败见 `assets/cpar-preacceptance-20261010/page` 原回执；formal RED的 [原log](assets/cpar-preacceptance-20261010/formal-scenario-red.log) 保留六个7≠9，GREEN另存，不拼接为一次成功。
+没有发现需要改变产品Rust、UI或管理契约的新缺陷。三个驱动失败见 `assets/cpar-preacceptance-20261010/page` 原回执；formal RED的 [阅读log](assets/cpar-preacceptance-20261010/formal-scenario-red.log) 保留六个7≠9，GREEN另存，不拼接为一次成功。原始RED日志含行尾空格，66330dc6的docs门槛因此FAIL；原字节已压缩保存在 [原始归档](assets/cpar-preacceptance-20261010/formal-scenario-red.raw.log.gz)，SHA256仍为 `119f647eff9291b9b6c18e33e3bb320cb3c1cc35549df8e75e7e54b0b95f8f25`。阅读副本仅去除行尾空格，转换和原索引解析方式见 [归档回执](assets/cpar-preacceptance-20261010/formal-red-archive-receipt.json)，没有改写原FAIL或原execution-index。
 
 ## B：正式入口修复与首批准备
 
@@ -79,13 +80,17 @@ Kiro K01–K05覆盖native字段／范围／单位、reasoning计数、cap-hit�
 | 静态／文档 | 后置不可变commit的定向语法／docs门槛及hash核对记录在终态资产；不把未运行项写成PASS |
 | 产品Full | PASS_LOCAL_REUSED，仅产品／未变门槛范围：c1b干净Full45/45，Rust1500/0/12；[历史摘要](assets/cpar-channel-delivery-20261010/verification-summary.json)。本批变动formal oracle另重跑，旧Full不能冒称测试了新driver |
 | 前端／T12／E-05 | 未改相关源码；沿用明确已有70文件513测试、T12 71、strict same-grant例外及#26/#55来源；不重新全站验收 |
-| Standards／当前diff Spec | 独立固定diff评审终态另归档；历史coverage与全规格另报，不能互相替代 |
+| Standards／当前diff Spec | 0258→3f初审、3f→af81补审、af81→663补审分别归档。最终Standards PASS（hard0）；Spec PASS（hard0），af81原P2已独立确认resolved，原失败未删除。初审重复fixture低优先级建议由af81移入共享helper解决 |
 | 真实Provider／远端CI／发布制品／部署／生产 | 全部NOT_RUN；源码未push，没有当前源码的GitHub blob/commit链接 |
 
 本批产品源码未变，定向页面、executor oracle和静态门槛与风险相称；不重跑不相关整套Rust/前端/T12。没有把原Full网络失败、driver失败或历史dirty归属改成clean／PASS。
 
 ## 后置收口
 
-待本地提交固定后，分别归档独立Standards、当前Spec、历史Web/Console补证完整性及全规格状态；所有结论限定实际审计范围。GitHub只维护#16／#39／#49／#50／#57／#9既有进度评论，正文／已勾AC02／state／评论数量及原生依赖保持；独立GET读回成功后记录终态。本地commit与保存核对另有机器证据。
+独立终态已归档：历史Web／Console明确页面缺口及其原映射范围 **COMPLETE、hard0**，不声称重审全项目88个映射；全项目规格仍 **PARTIAL**、真实验收 **BLOCKED／NOT_RUN**。当前diff的Standards、Spec分别以初审和两段delta组成最终PASS，见 [初审Standards](assets/cpar-preacceptance-20261010/review-standards-initial.md)、[初审Spec](assets/cpar-preacceptance-20261010/review-spec-initial.md)、[af81 Standards](assets/cpar-preacceptance-20261010/review-standards-af81-delta.md)、[af81原Spec失败](assets/cpar-preacceptance-20261010/review-spec-af81-delta-failed.md)、[663 Standards](assets/cpar-preacceptance-20261010/review-standards-663-delta.md)、[663 Spec](assets/cpar-preacceptance-20261010/review-spec-663-delta.md)、[历史页面补证](assets/cpar-preacceptance-20261010/review-historical-page-closeout.md)。评审不包含后续纯报告／归档／GitHub读回记录，也不冒称这些已独立代码审查。
+
+最终executor代码66330dc6在独立干净worktree通过33 tests：六protocol/mode正向54个实际loopback接收，8种first-response故障×6各仅1次，12种发送前拒绝×6均接收0；旧v2和新v3过期观察仍保留已发送7／9次。见 [不可变执行回执](assets/cpar-preacceptance-20261010/verification-663-with-docs-failure.json) 和 [原oracle log](assets/cpar-preacceptance-20261010/final-clean-oracle.log)。同次docs前六项PASS、原RED日志行尾空格使第七项FAIL，原结果保留，修正归档后另验不覆盖失败。
+
+GitHub随后只维护#16／#39／#49／#50／#57／#9既有进度评论；独立GET读回成功后记录终态，正文／已勾AC02／state／评论数量及原生依赖均需核对。保存核对已确认25,704条基线metadata与AGENTS字节SHA未变，见 [核对回执](assets/cpar-preacceptance-20261010/preservation-before-closeout.json)；提交范围与GitHub终态另补机器证据。
 
 下一步无需真实授权即可审阅上述本地证据与具体取证／首批清单；真实执行必须等待入口、隔离host、单账号范围、逐动作次数和货币上限的明确输入／批准，以及完整费用proof。不得以模型选择代替这些授权。

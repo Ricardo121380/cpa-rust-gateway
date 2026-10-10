@@ -1,0 +1,35 @@
+{
+  "observed_at_utc": "2026-10-10T07:54:24.738970+00:00",
+  "driver_checkout_head": "66330dc613dae49622f4f62ff6ec7c729f270d62",
+  "driver_dirty": true,
+  "driver_files_sha256": {
+    "scripts/acceptance/cpar-device-loopback.c": "ebd4f835c1f9c1b82a0c8c6716655031640e8e62f01196fbce22065c56c9f147",
+    "scripts/acceptance/cpar_seo_ui_http.py": "46dc7334067bb2697fd704ceafb5da72be29bc98d304aaaa9ef7a6262bd99f9d",
+    "scripts/acceptance/cpar-web-console-actual-ui.mjs": "3b3563d8f6e92a2d1912ee580e41de00e97d72dd2a82e40f7eb55f6194dea375",
+    "scripts/acceptance/cpar-operations-support.mjs": "5bb48fb0d84a50acc4ee9590b1e0f21d2332fd6e9ade362e9af0a5ff9735d4dd",
+    "scripts/acceptance/cpar-management-observer.mjs": "4b78e867538646ade57bdc003f1d304bf3ab2560a60c708d840c42dc38dfc02e",
+    "scripts/acceptance/cpar_new_build_acceptance.py": "67d6dbe3d4abc6e5d09d9dab6d3d6de7679e70f6cf746a17bcb1393986ca58aa",
+    "scripts/test-cpar-new-build-acceptance.py": "1c397f17468368334087e90eab9c839ce7aaeb8bcba6bb525e699b0d553f8848"
+  },
+  "stock_product_source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "stock_product_source_clean_before_build": true,
+  "stock_binary_sha256": "4648f651c58d1a8e1e0ff63bf720b7ad7546711859ce60478bb173ff10dc1f7e",
+  "environment": {
+    "os": "macOS-27.0-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.9.6"
+  },
+  "ego_space": 41,
+  "ego_space_finished": true,
+  "owned_gateway_pids_stopped": [
+    98154,
+    98716,
+    99150,
+    99768
+  ],
+  "real_provider_calls": 0,
+  "product_source_changes": [],
+  "preserved_historical_full": "docs/reports/assets/cpar-channel-delivery-20261010/verification-summary.json",
+  "scope": "Final acceptance executor (66330dc6) hash binding. Page remains source-binding.json; unchanged page driver/fixture/shim. Product source remains c1b304d0.",
+  "driver_dirty_scope": "Only owned evidence/report archive changes plus pre-existing user worktree changes. Formal execution bound to clean 66330dc6 in verification-663-with-docs-failure.json; this is a current hash attestation, not a new page run."
+}
