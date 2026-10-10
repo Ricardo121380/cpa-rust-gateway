@@ -1,0 +1,72 @@
+[
+  {
+    "url": "https://docs.x.ai/developers/models/grok-4.5.md",
+    "page_url": "https://docs.x.ai/developers/models/grok-4.5",
+    "retrieved_at_utc": "2026-10-10T07:21:52.576476+00:00",
+    "content_type": "text/markdown; charset=utf-8",
+    "bytes": 1099,
+    "sha256": "81ddddf9109893f5a84c92cf524984afe446009043dada7aeb4b85cbbb781b2b",
+    "raw_local_path": "output/cpar-preacceptance-20261010/public-sources/models-grok-4.5.md",
+    "status": "PASS_PUBLIC_DOCUMENT_ONLY"
+  },
+  {
+    "url": "https://docs.x.ai/developers/models/grok-4.6.md",
+    "page_url": "https://docs.x.ai/developers/models/grok-4.6",
+    "retrieved_at_utc": "2026-10-10T07:21:52.580383+00:00",
+    "content_type": "text/markdown; charset=utf-8",
+    "bytes": 936,
+    "sha256": "0c227f45a9c4c7c6c86e671fbeaf2284138e0fbbc36d57918400e25e5801b679",
+    "raw_local_path": "output/cpar-preacceptance-20261010/public-sources/models-grok-4.6.md",
+    "status": "PASS_PUBLIC_DOCUMENT_ONLY"
+  },
+  {
+    "url": "https://docs.x.ai/developers/models/grok-4.7.md",
+    "page_url": "https://docs.x.ai/developers/models/grok-4.7",
+    "retrieved_at_utc": "2026-10-10T07:21:52.656690+00:00",
+    "content_type": "text/markdown; charset=utf-8",
+    "bytes": 936,
+    "sha256": "3ed635f3374714d627a45b4632753004c43b09418529273f8c75075a5ae6c3e4",
+    "raw_local_path": "output/cpar-preacceptance-20261010/public-sources/models-grok-4.7.md",
+    "status": "PASS_PUBLIC_DOCUMENT_ONLY"
+  },
+  {
+    "url": "https://docs.x.ai/developers/grok-4-7.md",
+    "page_url": "https://docs.x.ai/developers/grok-4-7",
+    "retrieved_at_utc": "2026-10-10T07:21:52.576600+00:00",
+    "content_type": "text/markdown; charset=utf-8",
+    "bytes": 5318,
+    "sha256": "3e43e78cca297795003cc23b0cb9b3b28a3318deec9b2c29b7d2c335d0e7d0a6",
+    "raw_local_path": "output/cpar-preacceptance-20261010/public-sources/grok-4-7.md",
+    "status": "PASS_PUBLIC_DOCUMENT_ONLY"
+  },
+  {
+    "url": "https://docs.x.ai/developers/pricing.md",
+    "page_url": "https://docs.x.ai/developers/pricing",
+    "retrieved_at_utc": "2026-10-10T07:21:52.725588+00:00",
+    "content_type": "text/markdown; charset=utf-8",
+    "bytes": 10876,
+    "sha256": "9a3f533d4a771f77451ebd647ea65a8a35350b031ec083edd43219f2a93757ce",
+    "raw_local_path": "output/cpar-preacceptance-20261010/public-sources/pricing.md",
+    "status": "PASS_PUBLIC_DOCUMENT_ONLY"
+  },
+  {
+    "url": "https://docs.x.ai/developers/model-capabilities/text/reasoning.md",
+    "page_url": "https://docs.x.ai/developers/model-capabilities/text/reasoning",
+    "retrieved_at_utc": "2026-10-10T07:21:52.591266+00:00",
+    "content_type": "text/markdown; charset=utf-8",
+    "bytes": 10449,
+    "sha256": "5d56e0b7e24b322d9c8f45a14a19173886a5049287b19396c06854846cc5dfb8",
+    "raw_local_path": "output/cpar-preacceptance-20261010/public-sources/model-capabilities-text-reasoning.md",
+    "status": "PASS_PUBLIC_DOCUMENT_ONLY"
+  },
+  {
+    "url": "https://docs.x.ai/developers/rest-api-reference/inference/responses.md",
+    "page_url": "https://docs.x.ai/developers/rest-api-reference/inference/responses",
+    "retrieved_at_utc": "2026-10-10T07:21:52.795005+00:00",
+    "content_type": "text/markdown; charset=utf-8",
+    "bytes": 31782,
+    "sha256": "e51174e859c9376cb11a2cb1fe69b9f7c358a05cbb138c8dce7554e88f4de655",
+    "raw_local_path": "output/cpar-preacceptance-20261010/public-sources/rest-api-reference-inference-responses.md",
+    "status": "PASS_PUBLIC_DOCUMENT_ONLY"
+  }
+]

@@ -1,0 +1,296 @@
+{
+  "recorded_at_utc": "2026-10-10T07:32:10.618439+00:00",
+  "entries": [
+    {
+      "path": "baseline.json",
+      "sha256": "ff61aa87df081bbb73cee28f76f6a155370ce821e3076bcc16136831bcd03fff",
+      "bytes": 550
+    },
+    {
+      "path": "first-grok-batch.json",
+      "sha256": "a7fc2becb16679aa908385cdfa19982649d38189a880b09d3735a5a4ae2a0fe6",
+      "bytes": 5639
+    },
+    {
+      "path": "formal/chat-json.json",
+      "sha256": "6063f5d30dcbe10ff2a02d84db7bb87abb583519f8756d919a67242c521c1d28",
+      "bytes": 21017
+    },
+    {
+      "path": "formal/chat-sse.json",
+      "sha256": "a646426de69db3b0423312a870c6552ea2f5424a973bf34cb42ac05efdc5f388",
+      "bytes": 21016
+    },
+    {
+      "path": "formal/messages-json.json",
+      "sha256": "73900837decf0ea576324ce1aa0680d1610844ae34686e9b8b54f0289935702e",
+      "bytes": 21003
+    },
+    {
+      "path": "formal/messages-sse.json",
+      "sha256": "ac737d1eb6c0a2a7714648ea9ca481af59a3f170c458402dfedc63292edc8c26",
+      "bytes": 21002
+    },
+    {
+      "path": "formal/responses-json.json",
+      "sha256": "c82ca222087d853cdd6bbe0b8ce6d15afa63ec7d51f78e61e696770b60fad223",
+      "bytes": 20984
+    },
+    {
+      "path": "formal/responses-sse.json",
+      "sha256": "198d15f36e54ad51055a7cd38041e7522c3ad89c17614c678a397a313ca12088",
+      "bytes": 20983
+    },
+    {
+      "path": "formal-green-final-run.json",
+      "sha256": "90a7f6c9b95038eeb9d0256d00c9cff725518cc87c150ca3d65e279ed2f6ed9a",
+      "bytes": 686
+    },
+    {
+      "path": "formal-green-final.log",
+      "sha256": "f0a3fdb40269ac6dafc47eea89956100289f139a73e1bbc25aa316cdaf7833cb",
+      "bytes": 2685
+    },
+    {
+      "path": "formal-scenario-red.log",
+      "sha256": "119f647eff9291b9b6c18e33e3bb320cb3c1cc35549df8e75e7e54b0b95f8f25",
+      "bytes": 3278
+    },
+    {
+      "path": "github-before/issue-16-blocked-by.json",
+      "sha256": "3f216d24a1c891360e684e2d4310ccefa33cfface57ac39379238e3e64ecd057",
+      "bytes": 10338
+    },
+    {
+      "path": "github-before/issue-16.json",
+      "sha256": "b5543ce2e086251338b28f998d76ce5262fd580177d545d167d12852ce368ce1",
+      "bytes": 4644
+    },
+    {
+      "path": "github-before/issue-39-blocked-by.json",
+      "sha256": "bd73b12cdbf9eabec3aba00e849ed4dbfa3828fd5d3e10748a115ce6b5ef89ab",
+      "bytes": 30764
+    },
+    {
+      "path": "github-before/issue-39.json",
+      "sha256": "cf6c4468a099375705ad2a17da73a838c705f90158c6940d1db751c1d343b7c6",
+      "bytes": 7268
+    },
+    {
+      "path": "github-before/issue-40-blocked-by.json",
+      "sha256": "41085f9ae20e38f6902658c5f394228374366657f6f4d2ecef1cba47ac047955",
+      "bytes": 82260
+    },
+    {
+      "path": "github-before/issue-40.json",
+      "sha256": "a79063b077ddfe66952ce9d143641b6fc6711d5e8c8edaab59ad80deba67f706",
+      "bytes": 7411
+    },
+    {
+      "path": "github-before/issue-41-blocked-by.json",
+      "sha256": "41085f9ae20e38f6902658c5f394228374366657f6f4d2ecef1cba47ac047955",
+      "bytes": 82260
+    },
+    {
+      "path": "github-before/issue-41.json",
+      "sha256": "a429a5ac507789dcf19ee96348fba2d1a80de22a96bb1229258746cc34f8d372",
+      "bytes": 7343
+    },
+    {
+      "path": "github-before/issue-49-blocked-by.json",
+      "sha256": "92c9ae70cb2c359c60443241b00c6f168dd8b89dfc0d3d6871009e47512b19ce",
+      "bytes": 62160
+    },
+    {
+      "path": "github-before/issue-49.json",
+      "sha256": "69fec877ab293ddb5f67136637e7196539cdc2943a540ecf781cd8d5ae7d0bce",
+      "bytes": 9695
+    },
+    {
+      "path": "github-before/issue-50-blocked-by.json",
+      "sha256": "9552924785190f38a6317c3ada388b6c3ccbcccb27c0dff94adadf08430a4eb0",
+      "bytes": 62303
+    },
+    {
+      "path": "github-before/issue-50.json",
+      "sha256": "fa1e5034d5d662478d1a0420264970f460674235b66c29387abf41c22e1bca1a",
+      "bytes": 9443
+    },
+    {
+      "path": "github-before/issue-57-blocked-by.json",
+      "sha256": "5685ea9e4a67d0b4b6201caec3929783dc55798185d6939ed94cf071ed837f86",
+      "bytes": 276163
+    },
+    {
+      "path": "github-before/issue-57.json",
+      "sha256": "1d3a64289c8db2bae5420d6c8e7193c34320c8f9eb37889bc405f5f8c73f3af5",
+      "bytes": 14003
+    },
+    {
+      "path": "github-before/issue-9-blocked-by.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytes": 2
+    },
+    {
+      "path": "github-before/issue-9.json",
+      "sha256": "c95a78a4cbe3cf8ec2b0e3af63c5602b7313ac81f2b7bbd6fcd9b808d010a7bb",
+      "bytes": 55994
+    },
+    {
+      "path": "page/ui-service-02-binding.json",
+      "sha256": "e9affa45517878189cb93144124a791035b3d43ee2631f2e618c42440f391522",
+      "bytes": 1252
+    },
+    {
+      "path": "page/ui-service-03-binding.json",
+      "sha256": "43b2644e1381471a8d48b8a701b9cdf3c0df161cfc8e052dc543ca096088ea3b",
+      "bytes": 4657
+    },
+    {
+      "path": "page/ui-service-04-binding.json",
+      "sha256": "827f0971d8582034f431d6b90dcfcc82de5c57dcd77a18e305453b9dff185450",
+      "bytes": 5053
+    },
+    {
+      "path": "page/ui-service-binding.json",
+      "sha256": "745d652de6aa0685c41667083c8c73b15cb03150f0664e38d16f4d2c82800387",
+      "bytes": 915
+    },
+    {
+      "path": "page/web-console-final-console-loss.png",
+      "sha256": "c99d764b284c74ee0e4f1f4a08dc78630be6ea1b637818c79cd80408bba52b39",
+      "bytes": 345055
+    },
+    {
+      "path": "page/web-console-final-console-success.png",
+      "sha256": "7c7bac3f971047a7ba5c94aa4cbaddf167f23e800ac78341b7f6b3701c7f924b",
+      "bytes": 304880
+    },
+    {
+      "path": "page/web-console-final-console-unavailable.png",
+      "sha256": "fcdf9ebee5482f69852397baf2172eadf998746e9ae6f8ab620f2fb0f76ffffd",
+      "bytes": 325368
+    },
+    {
+      "path": "page/web-console-final-web-loss.png",
+      "sha256": "41ec7730fdba7216f163118cc48c26fccb64d81ba3808f778dfa348ebd6791d0",
+      "bytes": 315259
+    },
+    {
+      "path": "page/web-console-final-web-success.png",
+      "sha256": "59f27e1084c0f4463da90dce1443f514cc9563d8fab48539e127b0df5b4e63b5",
+      "bytes": 257932
+    },
+    {
+      "path": "page/web-console-final-web-unavailable.png",
+      "sha256": "8f4e3f8f09a475b741d4e05ee777f4ee1a6a235c8798c5068ee4d92648697aeb",
+      "bytes": 278361
+    },
+    {
+      "path": "page/web-console-final.json",
+      "sha256": "b5d20bf222e34cdee8d744147ae5b3efa96550142b0989ea6979559c0c05898e",
+      "bytes": 97777
+    },
+    {
+      "path": "page/web-console-first.json",
+      "sha256": "801d77f6bdb86dc9b585230fcac652b64a5768bd28cb07e3c252d8f192a93e6c",
+      "bytes": 7019
+    },
+    {
+      "path": "page/web-console-second.json",
+      "sha256": "8884896da0d1e421a15eb39e4e48bddfa3a31eb8965e37c0f573b10a215d1d44",
+      "bytes": 13371
+    },
+    {
+      "path": "page/web-console-third.json",
+      "sha256": "b39f6373f98e01e32be21b73d2fdace31bc6975e2f3a8bb05683b9091e60421c",
+      "bytes": 107644
+    },
+    {
+      "path": "plans/grok.build-chat-json.plan.json",
+      "sha256": "4f9df78c2f76c8877691042271d293bdbf7911f4b7d37a3627a45414fd17c3cc",
+      "bytes": 1696
+    },
+    {
+      "path": "plans/grok.build-chat-sse.plan.json",
+      "sha256": "912816dabf6cd897a25d6347bbb7d41a4fe19c8044c32a8398d42460e9d2712f",
+      "bytes": 1695
+    },
+    {
+      "path": "plans/grok.build-messages-json.plan.json",
+      "sha256": "b382e91bdb8ff0b483cfff78ed780df6dbcfdb00a95c6506543b231d23f18c6d",
+      "bytes": 1689
+    },
+    {
+      "path": "plans/grok.build-messages-sse.plan.json",
+      "sha256": "6b2fb5a59d66b95e371a47373240ac0874a1739f684a0e6d967584b3ef351da3",
+      "bytes": 1688
+    },
+    {
+      "path": "plans/grok.build-responses-json.plan.json",
+      "sha256": "b9fb424f6070c631c13830c492fd356168838c8f256636aa0f0cabde4583a36b",
+      "bytes": 1697
+    },
+    {
+      "path": "plans/grok.build-responses-sse.plan.json",
+      "sha256": "2d301496b2dd17a20f247f9334dd0e01f46427d179b4e14aaf482e9d1a298df7",
+      "bytes": 1696
+    },
+    {
+      "path": "plans/grok.official-chat-json.plan.json",
+      "sha256": "a811101f9230c5193ad53893e6a0290feeebe03323227d46da1b9351330184a7",
+      "bytes": 1699
+    },
+    {
+      "path": "plans/grok.official-chat-sse.plan.json",
+      "sha256": "f2c7a4d40c98aef864bd7fca3a78b12530a9b858548bd17bad299a39da4fc624",
+      "bytes": 1698
+    },
+    {
+      "path": "plans/grok.official-messages-json.plan.json",
+      "sha256": "a92e91fcfa816a44b2201127dd37708e5f549d821bfac4cd5ce0f6b2656bcb79",
+      "bytes": 1692
+    },
+    {
+      "path": "plans/grok.official-messages-sse.plan.json",
+      "sha256": "e902467bf97ea3da5f11f85df3abd14a084dd874bb0efe56800c4504e7875dd8",
+      "bytes": 1691
+    },
+    {
+      "path": "plans/grok.official-responses-json.plan.json",
+      "sha256": "0f1bc030876614b0d63108671cb67bd75942df166d7a1fcec93cebcdf0e13d1d",
+      "bytes": 1700
+    },
+    {
+      "path": "plans/grok.official-responses-sse.plan.json",
+      "sha256": "ba8b063eb33acc4d474dccdf3d3eeaa57e035439c32bc10355c256aab0397cdc",
+      "bytes": 1699
+    },
+    {
+      "path": "request.txt",
+      "sha256": "49581329758fc8188c7ba0cba0e8b975477a9d96c23ceedc02958e5ab8f6c347",
+      "bytes": 12390
+    },
+    {
+      "path": "source-binding.json",
+      "sha256": "a57ea4485f53c5162b341a9e9bbc1d88f6a41a1ab84d5ae1a7653c87f15fb409",
+      "bytes": 1656
+    },
+    {
+      "path": "stock-build-receipt.json",
+      "sha256": "355221bc03e6e4ad30ec714d384f801d54811a0bf427416bfa44bd03a6ffb1a3",
+      "bytes": 617
+    },
+    {
+      "path": "stock-build.log",
+      "sha256": "63aa3c1b1f64f7065588f266080fa947983c4d87d2a05321731b57910b4bb370",
+      "bytes": 3597
+    },
+    {
+      "path": "xai-source-index.json",
+      "sha256": "9cdedd429433e8379bb15e34dcccce7c72f920f16a9dfec1f7cbdb7a3fbd33bb",
+      "bytes": 3470
+    }
+  ],
+  "timestamp_rule": "Original receipt clocks retained; missing invocation start is unknown, never replaced by archive mtime. Formal/build run receipts carry full start/end."
+}

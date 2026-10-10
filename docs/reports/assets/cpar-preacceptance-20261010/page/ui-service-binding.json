@@ -1,0 +1,25 @@
+{
+  "origin": "http://127.0.0.1:59007",
+  "gateway_pid": 98154,
+  "binary_sha256": "4648f651c58d1a8e1e0ff63bf720b7ad7546711859ce60478bb173ff10dc1f7e",
+  "source_sha": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "real_provider_calls": 0,
+  "outside_loopback_denied_by_os_sandbox": true,
+  "device_transport": {
+    "stock_production_workflows": true,
+    "network_interposition": true,
+    "shim_sha256": "5a5322acade5b4aee13932a6651ae5e998f27e0a979c098ef4d3baab309f1b9d",
+    "fixed_hosts": [
+      "auth.x.ai",
+      "auth.kimi.com",
+      "oidc.us-east-1.amazonaws.com",
+      "cli-chat-proxy.grok.com",
+      "grok.com"
+    ],
+    "tls_validation": "temporary CA, original hostname and SNI; no verification bypass"
+  },
+  "binary_source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "source_sha_role": "dirty driver checkout HEAD, not binary build source",
+  "stopped": true,
+  "upstream_receives": []
+}

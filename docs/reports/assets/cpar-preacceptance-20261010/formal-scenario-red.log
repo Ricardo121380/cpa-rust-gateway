@@ -1,0 +1,53 @@
+test_real_http_runner_and_current_receipts (__main__.FormalOracle) ... 
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (__main__.FormalOracle) (protocol='chat', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 587, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed), 9)
+AssertionError: 7 != 9
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (__main__.FormalOracle) (protocol='chat', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 587, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed), 9)
+AssertionError: 7 != 9
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (__main__.FormalOracle) (protocol='messages', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 587, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed), 9)
+AssertionError: 7 != 9
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (__main__.FormalOracle) (protocol='messages', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 587, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed), 9)
+AssertionError: 7 != 9
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (__main__.FormalOracle) (protocol='responses', mode='json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 587, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed), 9)
+AssertionError: 7 != 9
+
+======================================================================
+FAIL: test_real_http_runner_and_current_receipts (__main__.FormalOracle) (protocol='responses', mode='sse')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 587, in test_real_http_runner_and_current_receipts
+    self.assertEqual(len(observed), 9)
+AssertionError: 7 != 9
+
+----------------------------------------------------------------------
+Ran 1 test in 3.151s
+
+FAILED (failures=6)

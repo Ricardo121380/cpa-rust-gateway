@@ -1,0 +1,33 @@
+{
+  "observed_at_utc": "2026-10-10T07:32:10.450356+00:00",
+  "driver_checkout_head": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "driver_dirty": true,
+  "driver_files_sha256": {
+    "scripts/acceptance/cpar-device-loopback.c": "ebd4f835c1f9c1b82a0c8c6716655031640e8e62f01196fbce22065c56c9f147",
+    "scripts/acceptance/cpar_seo_ui_http.py": "46dc7334067bb2697fd704ceafb5da72be29bc98d304aaaa9ef7a6262bd99f9d",
+    "scripts/acceptance/cpar-web-console-actual-ui.mjs": "3b3563d8f6e92a2d1912ee580e41de00e97d72dd2a82e40f7eb55f6194dea375",
+    "scripts/acceptance/cpar-operations-support.mjs": "5bb48fb0d84a50acc4ee9590b1e0f21d2332fd6e9ade362e9af0a5ff9735d4dd",
+    "scripts/acceptance/cpar-management-observer.mjs": "4b78e867538646ade57bdc003f1d304bf3ab2560a60c708d840c42dc38dfc02e",
+    "scripts/acceptance/cpar_new_build_acceptance.py": "b03bdc032d1a41d5c78d7629db897221410e5aeafa6c431836c9945519458ef5",
+    "scripts/test-cpar-new-build-acceptance.py": "9208e0a1018958b49690449bcf860bdb479f9acf52fdf544fe0d879f47ed9794"
+  },
+  "stock_product_source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "stock_product_source_clean_before_build": true,
+  "stock_binary_sha256": "4648f651c58d1a8e1e0ff63bf720b7ad7546711859ce60478bb173ff10dc1f7e",
+  "environment": {
+    "os": "macOS-27.0-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.9.6"
+  },
+  "ego_space": 41,
+  "ego_space_finished": true,
+  "owned_gateway_pids_stopped": [
+    98154,
+    98716,
+    99150,
+    99768
+  ],
+  "real_provider_calls": 0,
+  "product_source_changes": [],
+  "preserved_historical_full": "docs/reports/assets/cpar-channel-delivery-20261010/verification-summary.json"
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "basic_scenario_version": 3,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "target": {
+    "channel": "grok.official",
+    "endpoint_id": null,
+    "route_id": null,
+    "route_candidate_id": null,
+    "upstream_model": "grok-4.7",
+    "public_model": "preacc-grok-4.7",
+    "response_model": "grok-4.7",
+    "credential_evidence_id": null,
+    "credential_revision": null,
+    "config_version_id": null,
+    "config_revision": null,
+    "egress_evidence_id": null,
+    "egress_revision": null,
+    "protocol": "messages",
+    "mode": "sse",
+    "parameters": {
+      "max_tokens": 128
+    },
+    "capabilities": {
+      "reasoning": null,
+      "parallel": null,
+      "stored": null,
+      "continuation": null,
+      "compact": null,
+      "websocket": null
+    },
+    "declaration_observed_at_utc": null,
+    "declaration_evidence": null
+  },
+  "collector": null,
+  "authorization": {
+    "status": "PENDING",
+    "basis": null,
+    "binding_sha256": null,
+    "max_inference_requests": 9,
+    "max_attempts": 1,
+    "allow_fallback": false,
+    "currency": "USD",
+    "budget_limit": null,
+    "cost_bound": {
+      "status": "NOT_PROVEN",
+      "evidence_sha256": null,
+      "per_request_upper": null,
+      "covers": []
+    }
+  },
+  "boundaries": {},
+  "extensions": {},
+  "observation_dir": null,
+  "preparation": {
+    "status": "PROPOSED_NOT_APPROVED",
+    "environment": null,
+    "base_url": null,
+    "account_scope": null,
+    "output_limit_semantics": "VISIBLE_ONLY_CONFIRMED_FOR_OFFICIAL_RESPONSES; OTHER_MAPPINGS_REQUIRE_PROOF",
+    "provider_capabilities_do_not_replace_serving_snapshot": true
+  }
+}

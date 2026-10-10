@@ -1,0 +1,2683 @@
+{
+  "results": [
+    {
+      "scenario": "web-success-stock-import",
+      "result": "PASS",
+      "entry": "Grok Web×更换渠道粘贴凭据选择文件SSO 凭据取消导入账号",
+      "value": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/observability/metrics",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": null
+          },
+          {
+            "method": "GET",
+            "path": "/admin/config-versions",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "ui-baseline",
+                "status": "active",
+                "revision": "rev-4",
+                "created_at_ms": 1791616625351,
+                "description": "Isolated embedded UI baseline"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/requests/summary",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "items": [],
+              "ledger_snapshot": 0,
+              "next_cursor": null,
+              "series": [],
+              "snapshot": 0,
+              "summary": {
+                "attempts": 0,
+                "average_duration_ms": null,
+                "average_first_content_ms": null,
+                "cancelled": 0,
+                "failed": 0,
+                "p50_duration_ms": null,
+                "p95_duration_ms": null,
+                "requests": 0,
+                "succeeded": 0,
+                "success_rate": null,
+                "unknown": 0
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/operations/billing",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "snapshot_ledger_id": null,
+              "items": [],
+              "summary": {
+                "records": 0,
+                "exact_records": 0,
+                "partial_records": 0,
+                "unknown_records": 0,
+                "unpriced_records": 0,
+                "known_cost_microunits": null
+              },
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/accounts/inventory",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "category_totals": {},
+              "config_version": "ui-baseline",
+              "items": [],
+              "next_cursor": null,
+              "plan_totals": {},
+              "revision": "rev-4",
+              "total": 0,
+              "unobserved_plan_total": 0
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/operations/billing",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "snapshot_ledger_id": null,
+              "items": [],
+              "summary": {
+                "records": 0,
+                "exact_records": 0,
+                "partial_records": 0,
+                "unknown_records": 0,
+                "unpriced_records": 0,
+                "known_cost_microunits": null
+              },
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/upstreams",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "kiro-us-east-1",
+                "name": "Isolated kiro",
+                "kind": "kiro",
+                "enabled": false,
+                "tags": [],
+                "egress_policy_id": "kiro-us-east-1-egress"
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/public-models",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": []
+          },
+          {
+            "method": "GET",
+            "path": "/admin/client-keys",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": []
+          },
+          {
+            "method": "GET",
+            "path": "/admin/accounts/inventory",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "category_totals": {},
+              "config_version": "ui-baseline",
+              "items": [],
+              "next_cursor": null,
+              "plan_totals": {},
+              "revision": "rev-4",
+              "total": 0,
+              "unobserved_plan_total": 0
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/operations/provider-account-pools",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "snapshot_id": "runtime-account-pools:46ea315929e8ec72e2b542569743dc06:1791616648140:1",
+              "observed_at_ms": 1791616648140,
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dd19d40beba840",
+              "uptime_seconds": 22
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/routes",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "ui-baseline",
+              "revision": "rev-4",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/route-candidates",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "ui-baseline",
+              "revision": "rev-4",
+              "items": [],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "ui-baseline",
+              "revision": "rev-4",
+              "observation_version": "audit-4",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": true,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-accounts/import",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "import-fb552238-bc25-498c-b830-04f2adea3a1b",
+              "channel": "grok.web"
+            },
+            "status": 201,
+            "response": {
+              "created": 1,
+              "identity_state": "observed",
+              "runtime_applied": true,
+              "unchanged": 0,
+              "updated": 0
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态0匹配授权0账号类别0套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（0）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照没有匹配的账号。已显示 0 / 0 份匹配授权",
+        "dialogText": "导入结果×授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已添加已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      },
+      "stored": {
+        "accounts": [
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      }
+    },
+    {
+      "scenario": "web-success-close-reload-retains-confirmed",
+      "result": "PASS",
+      "stored": {
+        "accounts": [
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "screenshot": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/web-console-final-web-success.png"
+    },
+    {
+      "scenario": "web-unavailable-stock-import",
+      "result": "PASS",
+      "entry": "Grok Web×更换渠道粘贴凭据选择文件SSO 凭据取消导入账号",
+      "value": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-accounts/import",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "import-ce015ad1-23be-459b-b020-f73c18d4699d",
+              "channel": "grok.web"
+            },
+            "status": 201,
+            "response": {
+              "created": 1,
+              "identity_state": "unavailable",
+              "runtime_applied": true,
+              "unchanged": 0,
+              "updated": 0
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态1匹配授权1账号类别1套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（1）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build1 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 1 / 1 份匹配授权",
+        "dialogText": "导入结果×授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已添加渠道暂未返回身份已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      },
+      "stored": {
+        "accounts": [
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      }
+    },
+    {
+      "scenario": "web-unavailable-close-reload-retains-confirmed",
+      "result": "PASS",
+      "stored": {
+        "accounts": [
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "screenshot": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/web-console-final-web-unavailable.png"
+    },
+    {
+      "scenario": "web-unknown-import-read-original-and-unknown-apply-read-first",
+      "result": "PASS",
+      "entry": "Grok Web×更换渠道粘贴凭据选择文件SSO 凭据取消导入账号",
+      "committed": {
+        "accounts": [
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "uncertain": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态2匹配授权1账号类别2套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（2）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build2 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 2 / 2 份匹配授权",
+        "dialogText": "导入结果×授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据结果未确认Failed to fetch核对导入结果完成"
+      },
+      "recovered": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/native-account-imports/import-b545d239-ccdb-44e2-8506-986b9d1253ed",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "account_exists": true,
+              "account_id": "grok-d5acae099c32d8f0e9fbe24177a6714c",
+              "batch_id": "import-b545d239-ccdb-44e2-8506-986b9d1253ed",
+              "channel": "grok.web",
+              "credential_revision": 0,
+              "outcome": "created",
+              "saved": true,
+              "saved_at_ms": 1791616651493
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态2匹配授权1账号类别2套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（2）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build2 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 2 / 2 份匹配授权",
+        "dialogText": "导入结果×修改已保存，运行配置暂未应用。上次观测的新请求准入已暂停。已保存的授权保留；重新应用运行配置后还需核对服务状态。应用运行配置授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已回读账号，运行应用待核对账号 grok-d5acae099c32d8f0e9fbe24177a6714c已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      },
+      "reviewed": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/native-account-imports/import-b545d239-ccdb-44e2-8506-986b9d1253ed",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "account_exists": true,
+              "account_id": "grok-d5acae099c32d8f0e9fbe24177a6714c",
+              "batch_id": "import-b545d239-ccdb-44e2-8506-986b9d1253ed",
+              "channel": "grok.web",
+              "credential_revision": 0,
+              "outcome": "created",
+              "saved": true,
+              "saved_at_ms": 1791616651493
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dd19d40beba840",
+              "uptime_seconds": 26
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态2匹配授权1账号类别2套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（2）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build2 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 2 / 2 份匹配授权",
+        "dialogText": "导入结果×先前应用请求的结果仍未确认，下一次应用是新的明确操作。network_error · Failed to fetch本次服务观测：可接收新请求应用运行配置授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已回读账号，运行应用待核对账号 grok-d5acae099c32d8f0e9fbe24177a6714c已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      }
+    },
+    {
+      "scenario": "web-loss-close-reload-retains-confirmed",
+      "result": "PASS",
+      "stored": {
+        "accounts": [
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "screenshot": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/web-console-final-web-loss.png"
+    },
+    {
+      "scenario": "console-success-stock-import",
+      "result": "PASS",
+      "entry": "Grok Console×更换渠道粘贴凭据选择文件SSO 凭据取消导入账号",
+      "value": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-accounts/import",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "import-a0769ecf-6f54-447a-b846-06ab8a2a15bd",
+              "channel": "grok.console"
+            },
+            "status": 201,
+            "response": {
+              "created": 1,
+              "identity_state": "observed",
+              "runtime_applied": true,
+              "unchanged": 0,
+              "updated": 0
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态3匹配授权1账号类别3套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（3）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build3 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-loss@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 3 / 3 份匹配授权",
+        "dialogText": "导入结果×授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已添加已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      },
+      "stored": {
+        "accounts": [
+          [
+            "grok-2999abecf6a9d410b437f8e3deff6153",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      }
+    },
+    {
+      "scenario": "console-success-close-reload-retains-confirmed",
+      "result": "PASS",
+      "stored": {
+        "accounts": [
+          [
+            "grok-2999abecf6a9d410b437f8e3deff6153",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "screenshot": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/web-console-final-console-success.png"
+    },
+    {
+      "scenario": "console-unavailable-stock-import",
+      "result": "PASS",
+      "entry": "Grok Console×更换渠道粘贴凭据选择文件SSO 凭据取消导入账号",
+      "value": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/endpoints",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "config_version": "ui-baseline",
+              "revision": "rev-4",
+              "observation_version": "audit-4",
+              "items": [
+                {
+                  "adapter_id": "kiro.messages",
+                  "api_format": "anthropic/messages",
+                  "base_url": "https://runtime.us-east-1.kiro.dev",
+                  "enabled": true,
+                  "id": "kiro-us-east-1-messages",
+                  "inference_path": "/",
+                  "models_path": null,
+                  "transport": "https",
+                  "upstream_id": "kiro-us-east-1"
+                }
+              ],
+              "next_cursor": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-accounts/import",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "import-fe1ee56a-c281-4648-8943-9e0c1f92c350",
+              "channel": "grok.console"
+            },
+            "status": 201,
+            "response": {
+              "created": 1,
+              "identity_state": "unavailable",
+              "runtime_applied": true,
+              "unchanged": 0,
+              "updated": 0
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态4匹配授权1账号类别4套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（4）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build4 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-loss@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Grok Console账号身份渠道授权状态运行与额度接口连接操作Cconsole-success@example.test模型详情删除Grok ConsoleSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 4 / 4 份匹配授权",
+        "dialogText": "导入结果×授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已添加渠道暂未返回身份已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      },
+      "stored": {
+        "accounts": [
+          [
+            "grok-2999abecf6a9d410b437f8e3deff6153",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-7245ff5729ff75dd07b24d76a743df84",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      }
+    },
+    {
+      "scenario": "console-unavailable-close-reload-retains-confirmed",
+      "result": "PASS",
+      "stored": {
+        "accounts": [
+          [
+            "grok-2999abecf6a9d410b437f8e3deff6153",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-7245ff5729ff75dd07b24d76a743df84",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "screenshot": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/web-console-final-console-unavailable.png"
+    },
+    {
+      "scenario": "console-unknown-import-read-original-and-unknown-apply-read-first",
+      "result": "PASS",
+      "entry": "Grok Console×更换渠道粘贴凭据选择文件SSO 凭据取消导入账号",
+      "committed": {
+        "accounts": [
+          [
+            "grok-2999abecf6a9d410b437f8e3deff6153",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-7245ff5729ff75dd07b24d76a743df84",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b03f5b2847bcd140b874cfa903fb5b70",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "uncertain": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/native-accounts/grok-3d45ced0d4eb7ba969143767780e35dd/usage",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "error": "unavailable",
+              "observation": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态5匹配授权1账号类别5套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（5）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build5 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-loss@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Grok Console账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok ConsoleSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Cconsole-success@example.test模型详情删除Grok ConsoleSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 5 / 5 份匹配授权",
+        "dialogText": "导入结果×授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据结果未确认Failed to fetch核对导入结果完成"
+      },
+      "recovered": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/native-accounts/grok-3d45ced0d4eb7ba969143767780e35dd/usage",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "error": "unavailable",
+              "observation": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/native-account-imports/import-92bbe6fe-7db6-4ff2-9119-7f34b14cd988",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "account_exists": true,
+              "account_id": "grok-b03f5b2847bcd140b874cfa903fb5b70",
+              "batch_id": "import-92bbe6fe-7db6-4ff2-9119-7f34b14cd988",
+              "channel": "grok.console",
+              "credential_revision": 0,
+              "outcome": "created",
+              "saved": true,
+              "saved_at_ms": 1791616657082
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态5匹配授权1账号类别5套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（5）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build5 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-loss@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Grok Console账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok ConsoleSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Cconsole-success@example.test模型详情删除Grok ConsoleSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 5 / 5 份匹配授权",
+        "dialogText": "导入结果×修改已保存，运行配置暂未应用。上次观测的新请求准入已暂停。已保存的授权保留；重新应用运行配置后还需核对服务状态。应用运行配置授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已回读账号，运行应用待核对账号 grok-b03f5b2847bcd140b874cfa903fb5b70已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      },
+      "reviewed": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/native-accounts/grok-3d45ced0d4eb7ba969143767780e35dd/usage",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "error": "unavailable",
+              "observation": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "GET",
+            "path": "/admin/native-account-imports/import-92bbe6fe-7db6-4ff2-9119-7f34b14cd988",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "account_exists": true,
+              "account_id": "grok-b03f5b2847bcd140b874cfa903fb5b70",
+              "batch_id": "import-92bbe6fe-7db6-4ff2-9119-7f34b14cd988",
+              "channel": "grok.console",
+              "credential_revision": 0,
+              "outcome": "created",
+              "saved": true,
+              "saved_at_ms": 1791616657082
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/system",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "accepting_requests": true,
+              "build": {
+                "build_revision": "development",
+                "build_target": "development",
+                "rust_version": "development",
+                "schema_version": 34,
+                "version": "0.1.0"
+              },
+              "configuration_application": "live",
+              "server_instance": "instance-18dd19d40beba840",
+              "uptime_seconds": 32
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态5匹配授权1账号类别5套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（5）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照GrokWeb · Console · Build5 份授权Grok Web账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-loss@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Wweb-success@example.test模型详情删除Grok WebSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Grok Console账号身份渠道授权状态运行与额度接口连接操作?未提供账号身份授权服务或导入资料未返回身份模型详情删除Grok ConsoleSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除Cconsole-success@example.test模型详情删除Grok ConsoleSSO 授权未连接接口未观测运行连接额度余额未观测未配置接口查看接口连接模型详情删除已显示 5 / 5 份匹配授权",
+        "dialogText": "导入结果×先前应用请求的结果仍未确认，下一次应用是新的明确操作。network_error · Failed to fetch本次服务观测：可接收新请求应用运行配置授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已回读账号，运行应用待核对账号 grok-b03f5b2847bcd140b874cfa903fb5b70已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      }
+    },
+    {
+      "scenario": "console-loss-close-reload-retains-confirmed",
+      "result": "PASS",
+      "stored": {
+        "accounts": [
+          [
+            "grok-2999abecf6a9d410b437f8e3deff6153",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-7245ff5729ff75dd07b24d76a743df84",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b03f5b2847bcd140b874cfa903fb5b70",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "screenshot": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/web-console-final-console-loss.png"
+    },
+    {
+      "scenario": "web-console-exact-six-identity-reads-zero-inference-no-ordinary-bindings",
+      "result": "PASS",
+      "upstream": [
+        {
+          "method": "GET",
+          "host": "grok.com",
+          "path": "/api/auth/session",
+          "channel": "web",
+          "case": "success",
+          "status": 200,
+          "inference": false
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "GET",
+          "host": "grok.com",
+          "path": "/api/auth/session",
+          "channel": "web",
+          "case": "unavailable",
+          "status": 503,
+          "inference": false
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "GET",
+          "host": "grok.com",
+          "path": "/api/auth/session",
+          "channel": "web",
+          "case": "loss",
+          "status": 200,
+          "inference": false
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "GET",
+          "host": "grok.com",
+          "path": "/api/auth/session",
+          "channel": "console",
+          "case": "success",
+          "status": 200,
+          "inference": false
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "GET",
+          "host": "grok.com",
+          "path": "/api/auth/session",
+          "channel": "console",
+          "case": "unavailable",
+          "status": 503,
+          "inference": false
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "POST",
+          "host": "grok.com",
+          "path": "/rest/rate-limits",
+          "inference": false,
+          "quota": true,
+          "status": 400
+        },
+        {
+          "method": "GET",
+          "host": "grok.com",
+          "path": "/api/auth/session",
+          "channel": "console",
+          "case": "loss",
+          "status": 200,
+          "inference": false
+        }
+      ],
+      "quotaReads": 15,
+      "stored": {
+        "accounts": [
+          [
+            "grok-2999abecf6a9d410b437f8e3deff6153",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-3d45ced0d4eb7ba969143767780e35dd",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-7245ff5729ff75dd07b24d76a743df84",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b03f5b2847bcd140b874cfa903fb5b70",
+            "console",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-b41fba346f72630addb65fe59f737d6f",
+            "web",
+            0,
+            1,
+            "active"
+          ],
+          [
+            "grok-d5acae099c32d8f0e9fbe24177a6714c",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      },
+      "realProviderCalls": 0
+    }
+  ],
+  "environment": "stock serve /admin-ui/, synthetic loopback only",
+  "sourceSha": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "binarySha256": "4648f651c58d1a8e1e0ff63bf720b7ad7546711859ce60478bb173ff10dc1f7e",
+  "origin": "http://127.0.0.1:59749",
+  "spaceId": 41,
+  "timeUtc": "2026-10-10T07:17:38.716Z"
+}

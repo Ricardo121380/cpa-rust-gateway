@@ -1,5 +1,6 @@
 {
   "schema_version": 2,
+  "basic_scenario_version": 3,
   "layer": "LIVE_NEW_BUILD",
   "source_sha": null,
   "target": {
@@ -31,6 +32,22 @@
     "declaration_evidence": null
   },
   "collector": {"host": "new-vps", "service": "cpa-rust-gateway.service", "sudo": true},
+  "authorization": {
+    "status": "PENDING",
+    "basis": null,
+    "binding_sha256": null,
+    "max_inference_requests": 9,
+    "max_attempts": 1,
+    "allow_fallback": false,
+    "currency": "USD",
+    "budget_limit": null,
+    "cost_bound": {
+      "status": "NOT_PROVEN",
+      "evidence_sha256": null,
+      "per_request_upper": null,
+      "covers": []
+    }
+  },
   "boundaries": {},
   "extensions": {}
 }

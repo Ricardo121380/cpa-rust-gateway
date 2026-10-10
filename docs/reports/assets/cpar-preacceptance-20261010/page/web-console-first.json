@@ -1,0 +1,191 @@
+{
+  "results": [
+    {
+      "scenario": "web-console-directed-page",
+      "result": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'unavailable'\n- 'observed'\n",
+      "facts": {
+        "records": [
+          {
+            "method": "GET",
+            "path": "/admin/account-channels",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": [
+              {
+                "id": "openai-compatible",
+                "name": "OpenAI 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "openai-compatible"
+                ]
+              },
+              {
+                "id": "anthropic-compatible",
+                "name": "Anthropic 兼容 / 中转",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "anthropic-compatible"
+                ]
+              },
+              {
+                "id": "codex",
+                "name": "Codex / ChatGPT",
+                "credential_format": "cpa_sub2api_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "codex",
+                  "chatgpt"
+                ]
+              },
+              {
+                "id": "claude",
+                "name": "Claude",
+                "credential_format": "claude_json",
+                "import_available": true,
+                "authorization_flow": "authorization_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "claude"
+                ]
+              },
+              {
+                "id": "grok.official",
+                "name": "Grok Official",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.official"
+                ]
+              },
+              {
+                "id": "kimi-coding",
+                "name": "Kimi Coding",
+                "credential_format": "kimi_oauth",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kimi-coding"
+                ]
+              },
+              {
+                "id": "kimi-api",
+                "name": "Kimi API",
+                "credential_format": "api_key",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "kimi"
+                ]
+              },
+              {
+                "id": "grok.build",
+                "name": "Grok Build",
+                "credential_format": "grok_build_json",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "grok.build"
+                ]
+              },
+              {
+                "id": "grok.console",
+                "name": "Grok Console",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.console"
+                ]
+              },
+              {
+                "id": "grok.web",
+                "name": "Grok Web",
+                "credential_format": "sso",
+                "import_available": true,
+                "authorization_flow": "none",
+                "authorization_available": false,
+                "upstream_kinds": [
+                  "grok.web"
+                ]
+              },
+              {
+                "id": "kiro",
+                "name": "Kiro",
+                "credential_format": "kiro_json_or_key",
+                "import_available": true,
+                "authorization_flow": "device_code",
+                "authorization_available": true,
+                "upstream_kinds": [
+                  "kiro"
+                ]
+              }
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-accounts/import",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {
+              "id": "import-7333d2de-0c40-4960-be02-4f42443e9d2d",
+              "channel": "grok.web"
+            },
+            "status": 201,
+            "response": {
+              "created": 1,
+              "identity_state": "unavailable",
+              "runtime_applied": true,
+              "unchanged": 0,
+              "updated": 0
+            }
+          }
+        ],
+        "text": "账号管理查看已保存账号、授权文件与运行状态。官方登录在 OAuth 授权中完成。导入账号文件OAuth 授权全部账号运行状态0匹配授权0账号类别0套餐未观测全部授权需要授权已启用已停用搜索账号筛选账号类别全部渠道APICodex / ChatGPTClaudeKimiKiroGrok账号套餐全部套餐未观测套餐（0）账号排序身份 A–Z身份 Z–A按渠道批量管理刷新快照没有匹配的账号。已显示 0 / 0 份匹配授权",
+        "dialogText": "导入结果×授权保存与接口接入是独立步骤。请核对对应渠道的接口及开放模型后再使用。配置渠道接口查看已有服务与连接来源结果粘贴的凭据已添加渠道暂未返回身份已确认保存 1 项授权。配置待核对；这不代表真实调用已验证。核对导入结果完成"
+      },
+      "stored": {
+        "accounts": [
+          [
+            "grok-32a47a1d4a23a7d5f0925656e7f85b6a",
+            "web",
+            0,
+            1,
+            "active"
+          ]
+        ],
+        "ordinary": 0,
+        "bindings": 0,
+        "events": 0
+      }
+    }
+  ],
+  "environment": "stock serve /admin-ui/, synthetic loopback only",
+  "sourceSha": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "binarySha256": "4648f651c58d1a8e1e0ff63bf720b7ad7546711859ce60478bb173ff10dc1f7e",
+  "origin": "http://127.0.0.1:59007",
+  "spaceId": 41,
+  "timeUtc": "2026-10-10T07:10:21.186Z"
+}

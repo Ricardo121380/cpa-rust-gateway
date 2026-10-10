@@ -8,6 +8,11 @@
 
 static int fixture_getaddrinfo(const char *node, const char *service,
                               const struct addrinfo *hints, struct addrinfo **result) {
+    if (node && !strcmp(node, "grok.com") && getenv("CPAR_UI_NATIVE_SSO")) {
+        /* The stock identity policy rejects loopback at admission. A synthetic global
+           DNS answer is intercepted below; the OS sandbox still denies remote sockets. */
+        return getaddrinfo("93.184.216.34", service, hints, result);
+    }
     if (node && !strcmp(node, "cli-chat-proxy.grok.com")) {
         /* Native inference retains the runtime's explicit host-sized loopback policy. */
         return getaddrinfo("127.0.0.1", service, hints, result);
@@ -23,7 +28,8 @@ static int fixture_getaddrinfo(const char *node, const char *service,
 static int fixture_connect(int fd, const struct sockaddr *address, socklen_t length) {
     if (address && address->sa_family == AF_INET && length >= sizeof(struct sockaddr_in)) {
         const struct sockaddr_in *ipv4 = (const struct sockaddr_in *)address;
-        if ((ipv4->sin_addr.s_addr == inet_addr("127.0.0.2") || ipv4->sin_addr.s_addr == inet_addr("127.0.0.1")) && ntohs(ipv4->sin_port) == 443) {
+        if ((ipv4->sin_addr.s_addr == inet_addr("127.0.0.2") || ipv4->sin_addr.s_addr == inet_addr("127.0.0.1") ||
+             (getenv("CPAR_UI_NATIVE_SSO") && ipv4->sin_addr.s_addr == inet_addr("93.184.216.34"))) && ntohs(ipv4->sin_port) == 443) {
             const char *value = getenv("CPAR_DEVICE_LOOPBACK_PORT");
             char *end = NULL;
             long port = value ? strtol(value, &end, 10) : 0;

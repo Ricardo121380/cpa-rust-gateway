@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "status": "PREPARED_BLOCKED_FOR_LIVE_EXECUTION",
+  "observed_at_utc": "2026-10-10T07:28:18.351883+00:00",
+  "user_model_selection": [
+    "grok-4.5",
+    "grok-4.6",
+    "grok-4.7"
+  ],
+  "proposed_primary": "grok.official",
+  "optional_secondary": "grok.build",
+  "representative_model": "grok-4.7",
+  "environment": null,
+  "account_scope": null,
+  "authorization_status": "PENDING",
+  "request_counts_per_channel": {
+    "basic_inference": 54,
+    "pin_inference_if_no_reusable_receipts": 6,
+    "inference_total_ceiling": 60,
+    "directory_get": 1,
+    "oauth_or_refresh": 0,
+    "quota_queries": 0,
+    "extensions": 0,
+    "failure_probes": 0,
+    "retries": 0,
+    "reruns": 0
+  },
+  "proposed_primary_budget_usd": 1.0,
+  "budget_approved": false,
+  "cost_bound_status": "NOT_PROVEN",
+  "actual_capabilities": null,
+  "plans": [
+    {
+      "channel": "grok.official",
+      "model": "grok-4.7",
+      "protocol": "chat",
+      "mode": "json",
+      "plan": "plans/grok.official-chat-json.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.official",
+      "model": "grok-4.7",
+      "protocol": "chat",
+      "mode": "sse",
+      "plan": "plans/grok.official-chat-sse.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.official",
+      "model": "grok-4.7",
+      "protocol": "messages",
+      "mode": "json",
+      "plan": "plans/grok.official-messages-json.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.official",
+      "model": "grok-4.7",
+      "protocol": "messages",
+      "mode": "sse",
+      "plan": "plans/grok.official-messages-sse.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.official",
+      "model": "grok-4.7",
+      "protocol": "responses",
+      "mode": "json",
+      "plan": "plans/grok.official-responses-json.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.official",
+      "model": "grok-4.7",
+      "protocol": "responses",
+      "mode": "sse",
+      "plan": "plans/grok.official-responses-sse.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.build",
+      "model": "grok-4.7",
+      "protocol": "chat",
+      "mode": "json",
+      "plan": "plans/grok.build-chat-json.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.build",
+      "model": "grok-4.7",
+      "protocol": "chat",
+      "mode": "sse",
+      "plan": "plans/grok.build-chat-sse.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.build",
+      "model": "grok-4.7",
+      "protocol": "messages",
+      "mode": "json",
+      "plan": "plans/grok.build-messages-json.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.build",
+      "model": "grok-4.7",
+      "protocol": "messages",
+      "mode": "sse",
+      "plan": "plans/grok.build-messages-sse.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.build",
+      "model": "grok-4.7",
+      "protocol": "responses",
+      "mode": "json",
+      "plan": "plans/grok.build-responses-json.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    },
+    {
+      "channel": "grok.build",
+      "model": "grok-4.7",
+      "protocol": "responses",
+      "mode": "sse",
+      "plan": "plans/grok.build-responses-sse.plan.json",
+      "basic_turns": [
+        3,
+        2,
+        4
+      ],
+      "basic_inference_limit": 9,
+      "conditional_pin_inference_limit": 1,
+      "approved": false,
+      "real_executed": false
+    }
+  ],
+  "historical_matrix_status": {
+    "base_combinations": 198,
+    "applicable_not_executed": 186,
+    "grok_web_tools_accepted_na": 12,
+    "other_nine_channel_rows": 162,
+    "extension_actual_declared_null": 49
+  },
+  "real_provider_calls": 0
+}

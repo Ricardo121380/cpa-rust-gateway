@@ -1,0 +1,10 @@
+{
+  "at_utc": "2026-10-10T06:59:29.102356+00:00",
+  "branch": "codex/prism-v4-delivery",
+  "head": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "scope": "All preexisting git-visible modified and untracked paths; ignored nested artifacts are not enumerated.",
+  "preserved_path_count": 25704,
+  "raw_local_path": "output/cpar-preacceptance-20261010/preservation-baseline.json",
+  "raw_sha256": "7d2285e97dc9dfe1f2360bbc4ccdae22cc0354d492a187946ae561f1d7060e30"
+}

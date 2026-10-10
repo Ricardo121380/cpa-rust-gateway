@@ -93,7 +93,14 @@ def wire(protocol, value, mode):
 
 
 def runtime():
-    return {"method": "proc_executable", "instance": "isolated-fixture", "pid": 1, "process_start": "1", "observed_at_utc": oracle.now(), "stable_process": True, "artifact_sha": SOURCE_SHA, "source_sha": SOURCE_SHA, "artifact_sha256": "1" * 64, "capability_observations": [target()["declaration_evidence"]]}
+    account = oracle.opaque("synthetic-account")
+    inventory = {name: {"complete": True, "error": None, "items": items} for name, items in {
+        "routes": [{"id": "local-route", "max_attempts": 1}],
+        "candidates": [{"id": "local-candidate", "route_id": "local-route", "endpoint_id": "local-endpoint", "upstream_model": "local-model", "enabled": True, "credential_scope": "all_active"}],
+        "account_pools": [{"channel_id": "local-endpoint", "account_id": account, "configured_enabled": True, "binding_enabled": True, "account_status": "active", "account_revision": 3}],
+        "native_pools": [],
+    }.items()}
+    return {"method": "proc_executable", "instance": "isolated-fixture", "pid": 1, "process_start": "1", "observed_at_utc": oracle.now(), "stable_process": True, "artifact_sha": SOURCE_SHA, "source_sha": SOURCE_SHA, "artifact_sha256": "1" * 64, "capability_observations": [target()["declaration_evidence"]], "acceptance_inventory": {"configuration_stable": True, "active_configuration": {"id": "local", "revision": 4}, "inventory_observed_at_utc": oracle.now(), "inventory": inventory}}
 
 
 def target(protocol="responses", mode="json"):
@@ -112,14 +119,14 @@ def evidence(current_target, value, number=1):
     return {"correlation": "response_id_usage", "request_id": request_id, "client_key_evidence_id": current_target["declaration_evidence"]["client_key_evidence_id"], "protocol": {"responses": "openai_responses", "chat": "openai_chat_completions", "messages": "anthropic_messages"}[current_target["protocol"]], "stream": current_target["mode"] == "sse", "request_outcome": "succeeded", "attempts": [attempt], "usages": [usage], "ledger": [copy.deepcopy(usage)]}
 
 
-def bundle(protocol="responses", mode="json"):
+def bundle(protocol="responses", mode="json", version=3):
     current_target = target(protocol, mode)
-    result = {"layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "runtime": runtime(), "target": current_target, "scenarios": {}}
-    for scenario, count in (("text_multi_turn", 2), ("single_tool", 2), ("two_tool_cycles", 3)):
+    result = {"basic_scenario_version": version, "layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "runtime": runtime(), "target": current_target, "scenarios": {}}
+    for scenario, count in oracle.BASIC_SCENARIOS if version == 3 else oracle.HISTORICAL_BASIC_SCENARIOS:
         request = oracle.make_request(current_target, scenario, "ACCEPT:synthetic")
         samples = []
         for number in range(count):
-            tools = scenario != "text_multi_turn" and number < count - 1
+            tools = scenario != "text_multi_turn" and number < count - 1 and not (version == 3 and scenario == "two_tool_cycles" and number == 0)
             value = response(protocol, tools)
             value["id"] += "_" + scenario + str(number)
             if tools:
@@ -253,6 +260,26 @@ class FormalOracle(unittest.TestCase):
                     receipt = oracle.audit_bundle(bundle(protocol, mode))
                     self.assertEqual(receipt["basic_status"], "PASS", receipt["checks"][:3])
                     self.assertEqual(receipt["status"], "NOT_RUN")
+
+    def test_historical_seven_request_bundles_keep_original_scope(self):
+        value = bundle(version=2)
+        value.pop("basic_scenario_version")
+        receipt = oracle.audit_bundle(value)
+        self.assertEqual(receipt["basic_status"], "PASS")
+        self.assertEqual(receipt["basic_scenario_version"], 2)
+        self.assertEqual(receipt["sent_requests"], 7)
+
+    def test_reviewed_live_policy_and_native_pool_admission(self):
+        observed, plan, base = runtime(), {"layer": "LIVE_NEW_BUILD", "source_sha": SOURCE_SHA, "target": target()}, "http://127.0.0.1:1"
+        plan["authorization"] = {"status": "APPROVED", "basis": "user_explicit", "binding_sha256": oracle.execution_binding(plan, observed, base), "max_inference_requests": 9, "max_attempts": 1, "allow_fallback": False, "currency": "USD", "budget_limit": 1, "cost_bound": {"status": "PROVEN", "evidence_sha256": "4" * 64, "covers": ["input", "visible_output", "reasoning_output", "cache", "request_fees"], "per_request_upper": .01}}
+        oracle.verify_execution_policy(plan, observed, base)
+        with self.assertRaises(ValueError):oracle.verify_execution_policy(plan, observed, base + "/changed")
+        inventory = observed["acceptance_inventory"]["inventory"]
+        inventory["account_pools"]["items"] = []
+        inventory["native_pools"]["items"] = [{"channel_id": "local-endpoint", "account_id": plan["target"]["credential_evidence_id"], "enabled": True, "auth_status": "active", "runtime_status": "available", "credential_revision": 3}]
+        oracle.verify_execution_policy(plan, observed, base)
+        inventory["native_pools"]["items"][0]["credential_revision"] = 4
+        with self.assertRaises(ValueError):oracle.verify_execution_policy(plan, observed, base)
 
     def test_target_and_revision_fail_closed(self):
         for field in oracle.TARGET_FIELDS:
@@ -584,7 +611,7 @@ class FormalOracle(unittest.TestCase):
                     try:
                         plan = {"layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": current_target, "observation_dir": directory}
                         result = oracle.run_basic(plan, runtime(), "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
-                        self.assertEqual(len(observed), 7)
+                        self.assertEqual(len(observed), 9)
                         self.assertEqual(oracle.audit_bundle(result)["basic_status"], "PASS")
                         if os.environ.get("CPAR_TEST_RECEIPT_DIR"):
                             oracle.write_receipt(Path(os.environ["CPAR_TEST_RECEIPT_DIR"]) / (protocol + "-" + mode + ".json"), oracle.audit_bundle(result))
@@ -595,6 +622,30 @@ class FormalOracle(unittest.TestCase):
                                 rejected = oracle.run_basic(plan, runtime(), "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
                                 self.assertEqual(len(observed) - before, 1, kind)
                                 self.assertEqual(oracle.audit_bundle(rejected)["status"], status, rejected.get("execution_failure"))
+                        fault[0] = None
+                        for kind in ("retry", "fallback", "unknown_candidate", "second_account", "missing_inventory", "incomplete", "configuration_changed", "live_approval_missing", "cost_unknown", "budget_insufficient", "approval_binding_changed"):
+                            with self.subTest(preflight=kind):
+                                current_runtime, guarded = runtime(), copy.deepcopy(plan)
+                                inventory = current_runtime["acceptance_inventory"]["inventory"]
+                                if kind == "retry":inventory["routes"]["items"][0]["max_attempts"] = 2
+                                if kind == "fallback":inventory["candidates"]["items"].append({**inventory["candidates"]["items"][0], "id": "fallback"})
+                                if kind == "unknown_candidate":inventory["candidates"]["items"][0]["enabled"] = None
+                                if kind == "second_account":inventory["account_pools"]["items"].append({**inventory["account_pools"]["items"][0], "account_id": oracle.opaque("second")})
+                                if kind == "missing_inventory":current_runtime.pop("acceptance_inventory")
+                                if kind == "incomplete":inventory["candidates"]["complete"] = False
+                                if kind == "configuration_changed":current_runtime["acceptance_inventory"]["active_configuration"]["revision"] = 99
+                                if kind.startswith(("live_", "cost_", "budget_", "approval_")):
+                                    guarded["layer"] = "LIVE_NEW_BUILD"
+                                    current_runtime.update(manifest_sha256="3" * 64, manifest_matches=True)
+                                    guarded["authorization"] = {"status": "APPROVED", "basis": "user_explicit", "binding_sha256": oracle.execution_binding(guarded, current_runtime, "http://127.0.0.1:" + str(server.server_port)), "max_inference_requests": 9, "max_attempts": 1, "allow_fallback": False, "currency": "USD", "budget_limit": 1, "cost_bound": {"status": "PROVEN", "evidence_sha256": "4" * 64, "covers": ["input", "visible_output", "reasoning_output", "cache", "request_fees"], "per_request_upper": .01}}
+                                    if kind == "live_approval_missing":guarded.pop("authorization")
+                                    if kind == "cost_unknown":guarded["authorization"]["cost_bound"]["status"] = "NOT_PROVEN"
+                                    if kind == "budget_insufficient":guarded["authorization"]["budget_limit"] = .01
+                                    if kind == "approval_binding_changed":guarded["authorization"]["binding_sha256"] = "5" * 64
+                                before = len(observed)
+                                rejected = oracle.run_basic(guarded, current_runtime, "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
+                                self.assertEqual(len(observed), before, kind)
+                                self.assertIn(oracle.audit_bundle(rejected)["status"], ("FAIL", "BLOCKED"))
                     finally:
                         server.shutdown();server.server_close();thread.join(2)
 

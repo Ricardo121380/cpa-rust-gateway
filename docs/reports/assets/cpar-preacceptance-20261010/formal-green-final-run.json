@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/test-cpar-new-build-acceptance.py"
+  ],
+  "started_at_utc": "2026-10-10T07:23:18.229463+00:00",
+  "finished_at_utc": "2026-10-10T07:23:22.260313+00:00",
+  "exit_code": 0,
+  "source_sha": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "source_dirty": true,
+  "files_sha256": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "b03bdc032d1a41d5c78d7629db897221410e5aeafa6c431836c9945519458ef5",
+    "scripts/test-cpar-new-build-acceptance.py": "9208e0a1018958b49690449bcf860bdb479f9acf52fdf544fe0d879f47ed9794"
+  },
+  "log_sha256": "f0a3fdb40269ac6dafc47eea89956100289f139a73e1bbc25aa316cdaf7833cb",
+  "layer": "LOCAL_SIMULATED"
+}

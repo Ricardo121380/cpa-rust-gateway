@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "cargo",
+    "build",
+    "--locked",
+    "--offline",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-channel-delivery-20261010/final-source",
+  "source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "started_at_utc": "2026-10-10T07:07:27.642391+00:00",
+  "finished_at_utc": "2026-10-10T07:07:53.491197+00:00",
+  "exit_code": 0,
+  "log_sha256": "63aa3c1b1f64f7065588f266080fa947983c4d87d2a05321731b57910b4bb370",
+  "binary_sha256": "4648f651c58d1a8e1e0ff63bf720b7ad7546711859ce60478bb173ff10dc1f7e"
+}

@@ -92,9 +92,36 @@ opened by the local runner. Redirects and implicit retries are disabled; plain
 HTTP is limited to loopback. Response size is bounded and body reads enforce a
 deadline, including a peer that keeps sending small fragments.
 
-One combination sends seven basic requests: two independent text turns, one
-tool call plus result/final answer, two consecutive tool cycles plus final
-answer. Chat, Messages and Responses each support JSON and SSE. Actual IDs,
+The current inspector includes `runtime.acceptance_inventory`. Before any
+send, admission requires fresh, complete GET projections from the same stable
+configuration: route `max_attempts=1`, exactly one enabled candidate with the
+frozen endpoint/model, and exactly one account identity across its managed and
+native pools. The candidate's supported scope is `all_active`; isolate its pool
+in a dedicated instance. Account eligibility and the actual lease revision
+must match. This conservative gate includes disabled pool members and does not
+guess scheduler eligibility. Missing inventory blocks execution. It prevents
+fallback before a paid request; subsequent Attempt checks still verify actual
+execution and stop after any first contradiction.
+
+`LIVE_NEW_BUILD` and `PRODUCTION` additionally require `authorization` in the
+private plan: `status=APPROVED`, `basis=user_explicit`, and `binding_sha256`
+computed by `execution_binding(plan, runtime, base_url)`. It binds the source,
+process/artifact, target/parameters, URL and 3/2/4 scenarios. The approved
+`max_inference_requests` must be 9, `max_attempts=1`, `allow_fallback=false`,
+`currency=USD`, with a positive `budget_limit`. A `cost_bound` must have
+`status=PROVEN`, a reviewed material `evidence_sha256`, and `per_request_upper`
+whose nine-request total fits the budget; `covers` must include input, visible
+output, reasoning output, cache and request fees. These entries record an
+operator-reviewed proof and explicit user authorization; the script cannot
+certify a protocol contract by itself. Unknown native cap units or incomplete
+billing coverage stay blocked. The template deliberately supplies no approval
+or cost proof. A rerun requires a new budget decision; there is no automatic
+retry or multi-combination dispatch.
+
+One combination sends nine basic requests: three text turns, one tool call
+plus result/final answer (two turns), and an initial text turn followed by two
+consecutive tool cycles and a final answer (four turns). Chat, Messages and
+Responses each support JSON and SSE. Actual IDs,
 names, complete arguments, full ordered history and fresh second-cycle IDs are
 checked. Final text must reproduce the remembered/tool-result token. Native
 Usage is retained; the gateway's eight-field `cpar_usage`, durable Usage and
@@ -143,12 +170,16 @@ Private bundles use `schema_version: 2`, `layer`, `source_sha`, `runtime`, `targ
 `scenarios`, `boundaries`, `extensions`, and optional `evidence_paths`. Scenario
 turns contain the actual `request`, `wire`, `http_status`, lineage `evidence`,
 `next_token` or final `expected_text`. Wire bodies remain private. The automatic
-runner drives the seven basics; it imports separately captured controlled
+runner drives the nine basics (`basic_scenario_version: 3`); it imports separately captured controlled
 boundary/extension observations from the plan. It does not automatically inject
 upstream faults, restart a service or perform cross-owner/delete operations.
 Those observations must come from the existing controlled facilities or an
 authorized operator and retain actual target and event/send/resource evidence.
 Absent observations stay `NOT_RUN`; they never become passes.
+
+Historical bundles without `basic_scenario_version` retain version 2's 2/2/3
+turn scope. Their seven-request receipts remain historical evidence; they do
+not satisfy version 3's 3/2/4 requirement.
 
 Required boundary cases are `error`, `truncation`, `cancel_before_send`,
 `cancel_bootstrap`, `cancel_after_output`, `timeout_bootstrap`,

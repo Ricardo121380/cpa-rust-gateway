@@ -36,6 +36,8 @@ EXTENSION_CHECKS = {
 TARGET_FIELDS = ("channel", "endpoint_id", "route_id", "route_candidate_id", "upstream_model", "credential_evidence_id", "credential_revision", "config_version_id", "config_revision", "egress_evidence_id", "egress_revision")
 RUNTIME_FIELDS = ("method", "instance", "pid", "process_start", "observed_at_utc", "artifact_sha256", "artifact_sha", "source_sha", "stable_process", "manifest_sha256", "manifest_matches")
 USAGE_FIELDS = ("input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_creation_tokens", "cached_tokens", "provenance", "input_accounting")
+BASIC_SCENARIOS = (("text_multi_turn", 3), ("single_tool", 2), ("two_tool_cycles", 4))
+HISTORICAL_BASIC_SCENARIOS = (("text_multi_turn", 2), ("single_tool", 2), ("two_tool_cycles", 3))
 
 
 class Blocked(ValueError):
@@ -464,6 +466,60 @@ def verify_current_declaration(target, runtime):
         available(observed.tzinfo is not None and -30 <= (datetime.datetime.now(datetime.timezone.utc) - observed).total_seconds() <= 600, "capability_observation_stale")
 
 
+def execution_binding(plan, runtime, base_url):
+    return digest({"source_sha": plan["source_sha"], "runtime": {key: runtime.get(key) for key in
+        ("instance", "pid", "process_start", "artifact_sha256")}, "target": plan["target"],
+        "base_url": base_url.rstrip("/"), "scenarios": BASIC_SCENARIOS})
+
+
+def verify_execution_policy(plan, runtime, base_url):
+    """Admission before the first send; post-send Attempt checks cannot prevent fallback."""
+    target = plan["target"]
+    observation = runtime.get("acceptance_inventory")
+    available(isinstance(observation, dict), "execution_inventory_unavailable")
+    available(observation.get("configuration_stable") is True, "execution_configuration_unstable")
+    active = observation.get("active_configuration") or {}
+    require(active.get("id") == target["config_version_id"] and active.get("revision") == target["config_revision"], "execution_configuration_changed")
+    observed = datetime.datetime.fromisoformat(observation["inventory_observed_at_utc"])
+    available(observed.tzinfo is not None and -30 <= (datetime.datetime.now(datetime.timezone.utc) - observed).total_seconds() <= 600, "execution_inventory_stale")
+    inventory = observation.get("inventory", {})
+    def rows(name):
+        projection = inventory.get(name, {})
+        available(projection.get("complete") is True and projection.get("error") is None and isinstance(projection.get("items"), list), "execution_inventory_incomplete")
+        return projection["items"]
+    routes = [row for row in rows("routes") if row.get("id") == target["route_id"]]
+    require(len(routes) == 1 and type(routes[0].get("max_attempts")) is int and routes[0]["max_attempts"] == 1, "execution_retry_not_disabled")
+    route_candidates = [row for row in rows("candidates") if row.get("route_id") == target["route_id"]]
+    available(all(isinstance(row.get("enabled"), bool) for row in route_candidates), "execution_candidate_state_unknown")
+    candidates = [row for row in route_candidates if row["enabled"]]
+    require(len(candidates) == 1 and all(candidates[0].get(key) == target[field] for key, field in
+        (("id", "route_candidate_id"), ("endpoint_id", "endpoint_id"), ("upstream_model", "upstream_model"))), "execution_candidate_not_isolated")
+    require(candidates[0].get("credential_scope") == "all_active", "execution_credential_scope_unknown")
+    # Conservatively require one pool member, including disabled members: a dedicated
+    # instance can satisfy this without assuming a scheduler eligibility rule.
+    managed = [row for row in rows("account_pools") if row.get("channel_id") == target["endpoint_id"]]
+    native = [row for row in rows("native_pools") if row.get("channel_id") == target["endpoint_id"]]
+    accounts = {row.get("account_id") for row in [*managed, *native]}
+    require(accounts == {target["credential_evidence_id"]}, "execution_account_not_isolated")
+    available(bool(managed or native), "execution_account_unavailable")
+    require(all(row.get("configured_enabled") is True and row.get("binding_enabled") is True and row.get("account_status") == "active" and row.get("account_revision") == target["credential_revision"] for row in managed), "execution_managed_account_unavailable")
+    require(all(row.get("enabled") is True and row.get("auth_status") == "active" and row.get("runtime_status") == "available" and row.get("credential_revision") == target["credential_revision"] for row in native), "execution_native_account_unavailable")
+    url = urllib.parse.urlsplit(base_url)
+    require(url.scheme in ("http", "https") and url.hostname and not url.username and not url.password and not url.query and not url.fragment, "invalid_acceptance_base_url")
+    if plan["layer"] == "LOCAL_SIMULATED":
+        require(url.hostname in ("127.0.0.1", "::1", "localhost"), "simulation_requires_loopback")
+        return
+    approval = plan.get("authorization") or {}
+    available(approval.get("status") == "APPROVED" and approval.get("basis") == "user_explicit", "live_authorization_required")
+    require(approval.get("binding_sha256") == execution_binding(plan, runtime, base_url), "live_authorization_binding_changed")
+    require(type(approval.get("max_inference_requests")) is int and approval["max_inference_requests"] == sum(count for _, count in BASIC_SCENARIOS) and approval.get("max_attempts") == 1 and approval.get("allow_fallback") is False, "live_request_limit_unconfirmed")
+    bound = approval.get("cost_bound") or {}
+    available(bound.get("status") == "PROVEN" and re.fullmatch("[0-9a-f]{64}", bound.get("evidence_sha256", "")) is not None, "live_cost_bound_unproven")
+    require(approval.get("currency") == "USD" and set(bound.get("covers", [])) == {"input", "visible_output", "reasoning_output", "cache", "request_fees"}, "live_cost_coverage_incomplete")
+    budget, upper = approval.get("budget_limit"), bound.get("per_request_upper")
+    require(type(budget) in (int, float) and type(upper) in (int, float) and 0 < upper * approval["max_inference_requests"] <= budget < float("inf"), "live_budget_insufficient")
+
+
 def freeze_from_pin(plan, runtime, pin):
     """Freeze existing protected facts without sending inference or consulting inventory revisions."""
     result = copy.deepcopy(plan)
@@ -597,14 +653,14 @@ def make_request(target, scenario, token):
     parameters = target.get("parameters", {})
     require(set(parameters).issubset({"max_tokens", "max_completion_tokens", "max_output_tokens", "temperature", "reasoning", "thinking", "parallel_tool_calls"}), "unreviewed_parameter")
     result.update(copy.deepcopy(parameters))
-    if not tools:
+    if not tools or scenario == "two_tool_cycles":
         prompt = "Remember " + token + ". Reply READY."
         if protocol == "responses":
             result["input"] = prompt
         else:
             result["messages"][0]["content"] = prompt
-    else:
-        result["tool_choice"] = tool_choice(protocol, True)
+    if tools:
+        result["tool_choice"] = tool_choice(protocol, scenario != "two_tool_cycles")
     return result
 
 
@@ -782,7 +838,7 @@ def basic_answer(target, sample, scenario, index, turns_needed, seen_ids):
     answer = decode_stream(target["protocol"], sample["wire"].encode()) if target["mode"] == "sse" else load_json(sample["wire"])
     text, calls = observe(target["protocol"], answer)
     require(answer["model"] == target["response_model"], "wrong_response_model")
-    if scenario != "text_multi_turn" and index < turns_needed - 1:
+    if scenario != "text_multi_turn" and index < turns_needed - 1 and not (scenario == "two_tool_cycles" and turns_needed == 4 and index == 0):
         require(len(calls) == 1 and calls[0][2] == {"value": 1}, "missing_tool_cycle")
         require(calls[0][0] not in seen_ids, "reused_tool_cycle_id")
         seen_ids.add(calls[0][0])
@@ -807,7 +863,10 @@ def audit_bundle(bundle):
     receipt["sent_requests"] = sum(len(rows) for rows in bundle.get("scenarios", {}).values())
     if bundle.get("execution_failure"):
         receipt["checks"].append({"case": "execution", **public_failure(bundle["execution_failure"])})
-    for scenario, turns_needed in (("text_multi_turn", 2), ("single_tool", 2), ("two_tool_cycles", 3)):
+    version = bundle.get("basic_scenario_version", 2)
+    require(version in (2, 3), "unknown_basic_scenario_version")
+    receipt["basic_scenario_version"] = version
+    for scenario, turns_needed in BASIC_SCENARIOS if version == 3 else HISTORICAL_BASIC_SCENARIOS:
         samples = bundle.get("scenarios", {}).get(scenario)
         row = {"case": scenario, "status": "NOT_RUN", "category": "samples_unavailable"}
         if samples is not None and len(samples) < turns_needed and bundle.get("execution_failure"):
@@ -977,6 +1036,8 @@ if INVENTORY:
         result['bindings'].append({'endpoint_id':endpoint['id'],'error':error,'items':[{'credential_evidence_id':opaque(row.get('credential_id')),'enabled':row.get('enabled')} for row in bindings or []]})
 runtime['stable_process']=runtime['stable_process'] and pid==int(subprocess.check_output(['systemctl','show',service,'--value','--property=MainPID'])) and start==(proc/'stat').read_text().rsplit(')',1)[1].split()[19]
 result['inventory_observed_at_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+if INVENTORY:
+    runtime['acceptance_inventory']={key:result[key] for key in ['configuration_stable','active_configuration','inventory_observed_at_utc','inventory']}
 print(json.dumps(result))
 '''
 
@@ -1160,7 +1221,7 @@ def http_call(base_url, key, protocol, body, timeout=90):
 def run_basic(plan, runtime, key, base_url, progress=None):
     # Captured attribution is joined later by request-ID / response-ID, never by time window.
     # Without it every affected row is BLOCKED and no subsequent inference is sent.
-    bundle = {"schema_version": 2, "layer": plan["layer"], "source_sha": plan["source_sha"], "runtime": runtime, "target": plan["target"], "scenarios": {}, "boundaries": plan.get("boundaries", {}), "extensions": plan.get("extensions", {})}
+    bundle = {"schema_version": 2, "basic_scenario_version": 3, "layer": plan["layer"], "source_sha": plan["source_sha"], "runtime": runtime, "target": plan["target"], "scenarios": {}, "boundaries": plan.get("boundaries", {}), "extensions": plan.get("extensions", {})}
     try:
         execute_basic(plan, runtime, key, base_url, bundle, progress)
     except (ValueError, KeyError, TypeError, IndexError) as error:
@@ -1174,8 +1235,9 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
     verify_runtime(runtime, plan["source_sha"], plan["layer"])
     verify_target(plan["target"])
     verify_current_declaration(plan["target"], runtime)
+    verify_execution_policy(plan, runtime, base_url)
     target, protocol = plan["target"], plan["target"]["protocol"]
-    for scenario, count in (("text_multi_turn", 2), ("single_tool", 2), ("two_tool_cycles", 3)):
+    for scenario, count in BASIC_SCENARIOS:
         token = "ACCEPT:" + os.urandom(12).hex()
         request, samples = make_request(target, scenario, token), []
         bundle["scenarios"][scenario] = samples
@@ -1209,7 +1271,7 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
                 next_token = "Repeat the remembered token exactly." if scenario == "text_multi_turn" else "Call lookup with value 1 again." if index < count - 2 else "Return exactly " + token
                 sample["next_token"] = next_token
                 request = conversation_step(protocol, request, answer, calls, next_token)
-                if calls:
+                if scenario != "text_multi_turn":
                     request["tool_choice"] = tool_choice(protocol, index < count - 2)
 
 
@@ -1236,7 +1298,7 @@ def main(argv=None):
     audit = commands.add_parser("audit", help="Review a private wire/attempt/ledger bundle without inference")
     audit.add_argument("--bundle", type=Path, required=True)
     audit.add_argument("--out", type=Path, required=True)
-    run = commands.add_parser("run", help="Execute one frozen combination; seven basic requests, no retries")
+    run = commands.add_parser("run", help="Execute one frozen combination; nine basic requests (3/2/4), no retries")
     run.add_argument("--plan", type=Path, required=True)
     run.add_argument("--runtime", type=Path, required=True)
     run.add_argument("--base-url", required=True)
@@ -1272,6 +1334,7 @@ def main(argv=None):
             verify_runtime(runtime, plan.get("source_sha"), plan.get("layer"))
             verify_target(plan.get("target", {}))
             verify_current_declaration(plan["target"], runtime)
+            verify_execution_policy(plan, runtime, args.base_url)
             available(args.execute, "execution_not_requested")
             available(plan.get("collector") is not None or plan.get("observation_dir") is not None and Path(plan["observation_dir"]).is_dir(), "exact_attempt_collector_required")
             key = os.environ.get(args.client_key_env)
