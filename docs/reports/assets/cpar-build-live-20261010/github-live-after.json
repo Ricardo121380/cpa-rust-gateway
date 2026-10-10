@@ -1,0 +1,137 @@
+{
+  "schema": "cpar-github-live-sync-v1",
+  "repository": "Ricardo121380/cpa-rust-gateway",
+  "write_kind": "PATCH existing comments only",
+  "new_comments": 0,
+  "issues": {
+    "47": {
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47",
+      "state": "open",
+      "comments_before": 1,
+      "comments_after": 1,
+      "body_unchanged": true,
+      "state_unchanged": true,
+      "labels_unchanged": true,
+      "assignees_unchanged": true,
+      "dependencies_unchanged_semantic": true,
+      "ac02_line_preserved": null
+    },
+    "57": {
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57",
+      "state": "open",
+      "comments_before": 1,
+      "comments_after": 1,
+      "body_unchanged": true,
+      "state_unchanged": true,
+      "labels_unchanged": true,
+      "assignees_unchanged": true,
+      "dependencies_unchanged_semantic": true,
+      "ac02_line_preserved": true
+    },
+    "9": {
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9",
+      "state": "open",
+      "comments_before": 1,
+      "comments_after": 1,
+      "body_unchanged": true,
+      "state_unchanged": true,
+      "labels_unchanged": true,
+      "assignees_unchanged": true,
+      "dependencies_unchanged_semantic": true,
+      "ac02_line_preserved": null
+    }
+  },
+  "comments": {
+    "6081215242": {
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "prefix_sha256": "51806d21a6940bf07cb26acdf3e826c06a11cb6ba30bf20f43f51e8d8893a580",
+      "after_sha256": "70043f83db524bc5fa4264654650a52f436a2ca2c42930905787be07855b7804",
+      "old_prefix_preserved": true,
+      "marker_count": 1
+    },
+    "6081234278": {
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "prefix_sha256": "d379853291ae15840d5a713ad023e8b785076e92f8cc2ce2f60ce992e15c0c46",
+      "after_sha256": "be8bd7fe884c6d5e8df196f024e2c400293f59c4d0dc2d3daec283074ac8a579",
+      "old_prefix_preserved": true,
+      "marker_count": 1
+    },
+    "6081235490": {
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "prefix_sha256": "3231029a613929848a81f853db08de19e2287f6045b7e1f50cf26ca693e55a53",
+      "after_sha256": "e929fc09534e3a6eb87e028bae586d66f320c7ebd60c2b273364e8f8d0fdf52a",
+      "old_prefix_preserved": true,
+      "marker_count": 1
+    }
+  },
+  "dependencies": {
+    "47": {
+      "before_sha256": "9e3bb6e502b01b294714ce177041c0d581a933557026c26acf5d2885d57fe6be",
+      "after_sha256": "9e3bb6e502b01b294714ce177041c0d581a933557026c26acf5d2885d57fe6be",
+      "unchanged_semantic": true,
+      "blocked_by_numbers": [
+        16,
+        27,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "allowed_mutable_fields": [
+        "updated_at"
+      ]
+    },
+    "57": {
+      "before_sha256": "72a76742dcb3c5ae5459ec20e4d842d3e0a361bd0d078514fe10b183bc8f3eab",
+      "after_sha256": "72a76742dcb3c5ae5459ec20e4d842d3e0a361bd0d078514fe10b183bc8f3eab",
+      "unchanged_semantic": true,
+      "blocked_by_numbers": [
+        12,
+        17,
+        21,
+        25,
+        26,
+        37,
+        38,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        52,
+        53,
+        54,
+        55,
+        56
+      ],
+      "allowed_mutable_fields": [
+        "updated_at"
+      ]
+    },
+    "9": {
+      "before_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "after_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "unchanged_semantic": true,
+      "blocked_by_numbers": [],
+      "allowed_mutable_fields": [
+        "updated_at"
+      ]
+    }
+  },
+  "checks": {
+    "all_pass": true,
+    "comment_ids_preserved": true,
+    "no_new_comments": true,
+    "issue_state_labels_assignees_bodies_preserved": true,
+    "dependencies_preserved_semantically": true,
+    "ac02_preserved": true
+  }
+}

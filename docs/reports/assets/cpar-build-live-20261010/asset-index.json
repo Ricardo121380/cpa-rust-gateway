@@ -431,6 +431,10 @@
       "bytes": 261,
       "sha256": "a505a8cad5c85ad3353c1f862880737eb746ad37b1dcd07811edcb081ee70162"
     },
+    "github-live-after.json": {
+      "bytes": 4111,
+      "sha256": "ec8de3ebd4c3562b215dfdbd9c9e141bb7ee01cd0d14c7f14f257297739e1bcf"
+    },
     "guard-native-preflight.json": {
       "bytes": 754,
       "sha256": "0456740abed2560e40af6169052a77b178099bd9a9c016eed94eab8cf287ed7d"

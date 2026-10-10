@@ -103,6 +103,6 @@
 
 本批产品／执行支持提交分别为 f978e892（后台gate）、fb96f23c（局部assembly lint说明）、98febf05（fixture原子快照）、a3dc0c23（TCP-only guard）、f346a03f（Pin serving snapshot）、1b6023f5（公开版本漂移）。只提交自有路径，用户AGENTS.md字节保留；25,841个原有git-visible路径按基线lstat mode／size／mtime核对，不声称全内容hash或ignored nested覆盖。报告／证据后置提交与最终HEAD由output独立attestation记录，避免文件证明自己的提交hash。
 
-GitHub仅给[#47既有进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57既有进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9既有进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)追加本批范围，随后独立GET读回。最终同步回执将核对正文、OPEN、labels、assignees、原生依赖、历史评论前缀、评论数及AC02，没有push、关闭或发布动作。
+GitHub仅给[#47既有进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57既有进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9既有进度](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)追加本批范围，并已独立GET读回。读回断言为 PASS：三个既有评论 ID 和历史正文前缀保留，未新增评论；三票正文、OPEN状态、labels、assignees和语义依赖保留；#57 的 AC02 勾选保留。依赖条目中的 `updated_at` 随评论 PATCH 正常变化，依赖编号与其余语义字段不变。公开摘要见 [github-live-after.json](assets/cpar-build-live-20261010/github-live-after.json)；没有 push、关闭或发布动作。
 
 当前可独立进行的动作是审查本地后继候选与既有私有失败证据。若要重新验证真实Pin，需要单独扩展本批明确为0的rerun边界：仍固定同一专用实例、单账号、grok-4.5、单attempt、无fallback，复用已消耗的目录GET。任何新请求必须携带原失败计数，重新绑定实际候选进程和执行身份；公开版本变化不能代替成功Pin或Usage／账本证据。到期、失配、未知或新失败立即停止，不自动OAuth、续期或重新授权。
