@@ -77,3 +77,9 @@ Responses SSE [Pin](assets/cpar-build-batch-20261011/responses-sse-pin.json) 通
 ## 分层状态
 
 产品 source 未变，按已核对来源复用上批产品 Full45/45、Rust1501/0/12、Build19项与既有 ARM64 候选制品。新验收器修复独立取得39/39本地证据。真实部分一组合PASS、一组合FAIL、四组合NOT_RUN；#47整票及#57／#9继续未完成。扩展工具、本地公共边界验证、独立 Standards／Spec、正式 docs gate 与 GitHub 写后读回由本批后继收口资产分别绑定，不能由基础部分局部PASS扩大结论。远端 CI、正式发布、生产切换本轮 NOT_RUN。
+
+## 扩展本地交付
+
+[扩展实现、17类准备度及下一批准确操作清单](cpar-build-extensions-local-20261011.md) 已落地：10类正式本地执行入口，7类BLOCKED／NOT_IMPLEMENTED但另有当前源码的独立本地操作演练；Messages thinking／Build effort及真实30天expiry继续阻断。扩展真实Provider0，控制完整冻结，原native历史、根、summary、消费、socket帧与各自collector证据保留。当前真实执行入口尚未开放，不继承基础授权。
+
+最终验收器 [41/41回归](assets/cpar-build-batch-20261011/extensions/unit-tests.json)、[210/210公共边界检查](assets/cpar-build-batch-20261011/extensions/local-receipt.json) 通过；32次执行CLI为19正例PASS、10预期BLOCKED、3预期FAIL停止，19正例另经正式CLI audit读回。合成上游40次接收与5Pin／32扩展／3独立演练分别记账，不计入真实累计21。[本地退出](assets/cpar-build-batch-20261011/extensions/local-exit.json) PASS，保留 [各旧本地epoch](assets/cpar-build-batch-20261011/extensions/local-history.json)。本地debug binary SHA256=`07247ed69d4ee433abd964ae95c2de41130a087109ae03b1c5a477fa899c0413`，不是Linux候选制品替换。

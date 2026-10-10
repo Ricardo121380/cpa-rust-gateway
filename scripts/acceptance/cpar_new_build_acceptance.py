@@ -412,7 +412,8 @@ def native_usage(protocol, value):
 
 def verify_runtime(runtime, source_sha, layer):
     require(layer in ("LOCAL_SIMULATED", "LIVE_NEW_BUILD", "PRODUCTION"), "invalid_evidence_layer")
-    available(runtime.get("method") == "proc_executable" and runtime.get("stable_process") is True, "runtime_unconfirmed")
+    methods = ("proc_executable", "local_subprocess") if layer == "LOCAL_SIMULATED" else ("proc_executable",)
+    available(runtime.get("method") in methods and runtime.get("stable_process") is True, "runtime_unconfirmed")
     available(all(runtime.get(field) is not None for field in ("instance", "pid", "process_start", "observed_at_utc", "artifact_sha256", "artifact_sha", "source_sha")), "runtime_identity_incomplete")
     available(source_sha is not None, "source_version_unknown")
     require(re.fullmatch("[0-9a-f]{40}", source_sha or "") is not None, "invalid_source_sha")
@@ -454,6 +455,10 @@ def verify_target(target):
     for field in ("credential_evidence_id", "egress_evidence_id"):
         require(re.fullmatch("[0-9a-f]{64}", target[field]) is not None, "invalid_opaque_identity")
     validate_parameters(target.get("parameters", {}))
+    if "stream_options" in target.get("parameters", {}):
+        require(target["protocol"] == "chat" and target["mode"] == "sse", "stream_usage_control_not_applicable")
+    if "reasoning_effort" in target.get("parameters", {}):
+        require(target["protocol"] == "chat", "reasoning_effort_not_applicable")
     if target["channel"] == "grok.web":
         raise Blocked("software_web_native_multiturn")
     if target["channel"] == "kiro" and (target["protocol"] == "messages" or any(key in target.get("parameters", {}) for key in ("max_tokens", "max_completion_tokens", "max_output_tokens"))):
@@ -588,7 +593,7 @@ def freeze_from_pin(plan, runtime, pin):
 
 
 def validate_parameters(parameters):
-    require(isinstance(parameters, dict) and set(parameters).issubset({"max_tokens", "max_completion_tokens", "max_output_tokens", "temperature", "reasoning", "thinking", "parallel_tool_calls"}), "unreviewed_parameter")
+    require(isinstance(parameters, dict) and set(parameters).issubset({"max_tokens", "max_completion_tokens", "max_output_tokens", "temperature", "reasoning", "reasoning_effort", "thinking", "parallel_tool_calls", "stream_options"}), "unreviewed_parameter")
     for key, value in parameters.items():
         if key.startswith("max_"):
             require(integer(value) and value > 0, "invalid_output_limit")
@@ -596,13 +601,17 @@ def validate_parameters(parameters):
             require(type(value) in (int, float) and 0 <= value <= 2, "invalid_temperature")
         elif key == "parallel_tool_calls":
             require(isinstance(value, bool), "invalid_parallel_control")
+        elif key == "reasoning_effort":
+            require(value in ("none", "auto", "minimal", "low", "medium", "high", "xhigh", "max"), "invalid_reasoning_control")
+        elif key == "stream_options":
+            require(isinstance(value, dict) and set(value) == {"include_usage"} and value["include_usage"] is True, "invalid_stream_usage_control")
         elif key == "reasoning":
             require(isinstance(value, dict) and set(value).issubset({"effort", "summary"}) and value.get("effort") in ("none", "minimal", "low", "medium", "high", "xhigh") and value.get("summary") in (None, "auto", "concise", "detailed"), "invalid_reasoning_control")
         else:
             require(isinstance(value, dict) and set(value).issubset({"type", "budget_tokens"}) and value.get("type") in ("enabled", "disabled", "adaptive") and ("budget_tokens" not in value or integer(value["budget_tokens"]) and value["budget_tokens"] > 0), "invalid_thinking_control")
 
 
-def verify_attempts(target, evidence, response_id, expected="success"):
+def verify_attempts(target, evidence, response_id, expected="success", *, request_expected="succeeded"):
     available(evidence.get("correlation") in ("request_id", "response_id_usage"), "attempt_correlation_ambiguous")
     request_id = evidence.get("request_id")
     attempts = evidence.get("attempts", [])
@@ -623,8 +632,9 @@ def verify_attempts(target, evidence, response_id, expected="success"):
     available(evidence.get("protocol") is not None and evidence.get("stream") is not None, "request_protocol_unknown")
     require(evidence["protocol"] == {"responses": "openai_responses", "chat": "openai_chat_completions", "messages": "anthropic_messages"}[target["protocol"]] and evidence["stream"] is (target["mode"] == "sse"), "wrong_execution_protocol")
     if expected == "success":
+        require(request_expected in ("succeeded", "failed", "cancelled"), "unreviewed_request_outcome")
         available(evidence.get("request_outcome") is not None, "request_terminal_unknown")
-        require(evidence["request_outcome"] == "succeeded", "wrong_request_outcome")
+        require(evidence["request_outcome"] == request_expected, "wrong_request_outcome")
     usages = evidence.get("usages", [])
     available(bool(usages), "durable_usage_unavailable")
     require(all(row.get("request_id") == request_id and row.get("response_id") == response_id and row.get("attempt_id") == attempts[0]["attempt_id"] for row in usages), "usage_attribution_mismatch")
@@ -676,7 +686,7 @@ def make_request(target, scenario, token):
     for key in ("max_tokens", "max_output_tokens"):
         result.pop(key, None)
     parameters = target.get("parameters", {})
-    require(set(parameters).issubset({"max_tokens", "max_completion_tokens", "max_output_tokens", "temperature", "reasoning", "thinking", "parallel_tool_calls"}), "unreviewed_parameter")
+    validate_parameters(parameters)
     result.update(copy.deepcopy(parameters))
     if not tools or scenario == "two_tool_cycles":
         prompt = "Remember " + token + ". Reply READY."
@@ -745,6 +755,9 @@ def boundary_check(sample, target):
 
 def extension_check(name, case, sample, target):
     require(case in EXTENSION_CHECKS[name] and sample.get("target") == target, "wrong_extension_target")
+    if sample.get("extension_sample_version") == 1:
+        from cpar_build_extensions import verify_sample
+        verify_sample(sample, target)
     evidence = sample.get("evidence", {})
     # These are raw observations, never a supplied PASS or a coverage boolean.
     if case in {"foreign_owner", "deleted_read", "expired_read", "lineage_rejection", "compact_foreign_owner", "compact_lineage_rejection", "ws_handshake_rejection"}:
@@ -883,6 +896,9 @@ def basic_answer(target, sample, scenario, index, turns_needed, seen_ids):
 
 
 def audit_bundle(bundle):
+    if "extension_bundle_version" in bundle:
+        from cpar_build_extensions import audit_extension_bundle
+        return audit_extension_bundle(bundle)
     layer = bundle.get("layer")
     require(layer in ("LOCAL_SIMULATED", "LIVE_NEW_BUILD", "PRODUCTION"), "invalid_evidence_layer")
     target = bundle.get("target", {})
@@ -1214,11 +1230,17 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def http_call(base_url, key, protocol, body, timeout=90):
+    return http_exchange(base_url, key, PROTOCOLS[protocol], body, timeout=timeout)
+
+
+def http_exchange(base_url, key, path, body=None, *, method="POST", timeout=90):
     parsed = urllib.parse.urlsplit(base_url)
     require(parsed.scheme == "https" or parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "::1", "localhost"), "unsafe_data_url")
     require(not parsed.username and not parsed.password and not parsed.query and not parsed.fragment, "unsafe_data_url")
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
-    request = urllib.request.Request(base_url.rstrip("/") + PROTOCOLS[protocol], data=json.dumps(body, separators=(",", ":")).encode(), headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method="POST")
+    require(path.startswith("/") and not path.startswith("//") and not any(character in path for character in ("?", "#", "\r", "\n")), "unsafe_data_path")
+    require(method in ("POST", "GET", "DELETE"), "unreviewed_http_method")
+    request = urllib.request.Request(base_url.rstrip("/") + path, data=None if body is None else json.dumps(body, separators=(",", ":")).encode(), headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method=method)
     started = time.monotonic()
     try:
         response = opener.open(request, timeout=timeout)
@@ -1248,7 +1270,7 @@ def http_call(base_url, key, protocol, body, timeout=90):
             raw.extend(chunk)
         require(len(raw) <= MAX_BODY, "response_size")
         content_type = response.headers.get_content_type()
-        require(content_type == ("text/event-stream" if body["stream"] and response.status == 200 else "application/json"), "wrong_content_type")
+        require(content_type == ("text/event-stream" if body and body.get("stream") and response.status == 200 else "application/json") or response.status == 204 and not raw, "wrong_content_type")
         return {"http_status": response.status, "wire": raw.decode("utf-8"), "request_id": response.headers.get("x-request-id"), "duration_ms": round((time.monotonic() - started) * 1000)}
 
 
@@ -1339,6 +1361,13 @@ def main(argv=None):
     run.add_argument("--client-key-env", default="CPAR_ACCEPTANCE_CLIENT_KEY")
     run.add_argument("--execute", action="store_true")
     run.add_argument("--out", type=Path, required=True)
+    extension = commands.add_parser("run-extension", help="Execute and sample a frozen local extension at the public HTTP/SSE/WebSocket boundary; no live authorization is inherited")
+    for name in ("plan", "runtime", "private-out", "out"):
+        extension.add_argument("--" + name, type=Path, required=True)
+    extension.add_argument("--base-url", required=True)
+    extension.add_argument("--client-key-env", default="CPAR_ACCEPTANCE_CLIENT_KEY")
+    extension.add_argument("--foreign-key-env", default="CPAR_ACCEPTANCE_FOREIGN_KEY")
+    extension.add_argument("--execute", action="store_true")
     args = parser.parse_args(argv)
     receipt = {"schema_version": 2, "status": "BLOCKED", "observed_at_utc": now(), "value_free": True}
     try:
@@ -1361,6 +1390,11 @@ def main(argv=None):
         elif args.command == "collect":
             receipt = collect_attempt(args.host, args.service, args.response_id, args.sudo)
             receipt.update(schema_version=2, layer="READ_ONLY_ATTRIBUTION", status="PASS", value_free=True)
+        elif args.command == "run-extension":
+            from cpar_build_extensions import run_extension
+            receipt = run_extension(load_json(args.plan.read_text()), load_json(args.runtime.read_text()).get("runtime", {}),
+                                    os.environ.get(args.client_key_env), args.base_url, args.private_out,
+                                    foreign_key=os.environ.get(args.foreign_key_env), execute=args.execute)
         else:
             plan = load_json(args.plan.read_text())
             runtime = load_json(args.runtime.read_text()).get("runtime", {})

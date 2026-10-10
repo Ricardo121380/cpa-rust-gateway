@@ -403,6 +403,39 @@ class FormalOracle(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "execution_managed_account_unavailable"):
             oracle.verify_execution_policy(plan, observed, base)
 
+    def test_boundary_request_terminal_is_separate_from_transport_attempt(self):
+        current = bundle()
+        evidence = current["scenarios"]["text_multi_turn"][0]["evidence"]
+        value = json.loads(current["scenarios"]["text_multi_turn"][0]["wire"])
+        for outcome in ("failed", "cancelled"):
+            evidence["request_outcome"] = outcome
+            with self.assertRaisesRegex(ValueError, "wrong_request_outcome"):
+                oracle.verify_attempts(current["target"], evidence, value["id"])
+            oracle.verify_attempts(current["target"], evidence, value["id"], request_expected=outcome)
+            with self.assertRaisesRegex(ValueError, "unreviewed_request_outcome"):
+                oracle.verify_attempts(current["target"], evidence, value["id"], request_expected="unknown")
+
+    def test_explicit_reasoning_and_stream_controls_are_frozen(self):
+        current = target("chat", "sse")
+        controls = {"max_tokens": 128, "reasoning_effort": "high", "stream_options": {"include_usage": True}}
+        current["parameters"] = controls
+        oracle.verify_target(current)
+        request = oracle.make_request(current, "text_multi_turn", "acceptance-token")
+        self.assertTrue(all(request[key] == value for key, value in controls.items()))
+        for value in ({"include_usage": False}, {"include_usage": 1}, {"include_usage": True, "unexpected": True}, None):
+            with self.assertRaisesRegex(ValueError, "invalid_stream_usage_control"):
+                oracle.validate_parameters({"stream_options": value})
+        current["mode"] = "json"
+        with self.assertRaisesRegex(ValueError, "stream_usage_control_not_applicable"):
+            oracle.verify_target(current)
+        current = target("responses")
+        current["parameters"]["reasoning_effort"] = "high"
+        with self.assertRaisesRegex(ValueError, "reasoning_effort_not_applicable"):
+            oracle.verify_target(current)
+        current["parameters"].pop("reasoning_effort")
+        current["parameters"]["reasoning"] = {"effort": "high"}
+        self.assertEqual(oracle.make_request(current, "text_multi_turn", "acceptance-token")["reasoning"], {"effort": "high"})
+
     def test_target_and_revision_fail_closed(self):
         for field in oracle.TARGET_FIELDS:
             value = bundle()

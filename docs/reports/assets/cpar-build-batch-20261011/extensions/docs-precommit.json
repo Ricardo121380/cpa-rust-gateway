@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "checks": 7,
+  "source_head_before_extension_commit": "d64703c07f29d71df643b83229d57a009d610e97",
+  "scope": "staged extension code/docs plus existing owned basic receipt archive; local docs gate only",
+  "raw_log_sha256": "e5d3740ffe83a20301231db9dd9efa05fe77803e3755eb77c87c56515f3fafa9",
+  "observed_at_utc": "2026-10-10T18:07:16.673922+00:00"
+}

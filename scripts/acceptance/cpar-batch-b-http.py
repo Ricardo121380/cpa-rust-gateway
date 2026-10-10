@@ -28,6 +28,7 @@ import cpar_execution_evidence_http
 import cpar_master_key_http
 import cpar_seo_isolation_http
 import cpar_t12_upgrade_http
+import cpar_build_extensions_http
 
 os.umask(0o077)
 repo = pathlib.Path.cwd()
@@ -307,11 +308,11 @@ client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 headers = {"X-Management-Key": (credentials / "management-key").read_text(), "Content-Type": "application/json"}
 scope, revision = None, None
 log = (root / "gateway.log").open("ab")
-serve_options = []
+serve_options = ["--background-provider-tasks", "disabled"] if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1" else []
 binary = pathlib.Path(os.environ.get("CPAR_GATEWAY_BINARY", str(pathlib.Path(os.environ.get("CARGO_TARGET_DIR", str(repo / "target"))) / "debug/gateway"))).resolve()
 subprocess.run([str(binary), "admin-login", "init", "--state-dir", str(state), "--password-file", str(root / "initial-password")], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-gateway_command = [str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}"]
-if os.environ.get("CPAR_T12_ONLY") == "1":
+gateway_command = [str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options]
+if os.environ.get("CPAR_T12_ONLY") == "1" or os.environ.get("CPAR_EXTENSIONS_ONLY") == "1":
     gateway_command = cpar_t12_upgrade_http.sandbox_command(gateway_command)
 gateway = subprocess.Popen(gateway_command, stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
 
@@ -600,7 +601,10 @@ def restart():
     global gateway, passed
     gateway.terminate()
     gateway.wait(timeout=30)
-    gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
+    command = [str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options]
+    if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1":
+        command = cpar_t12_upgrade_http.sandbox_command(command)
+    gateway = subprocess.Popen(command, stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
     wait_ready()
     if os.environ.get("CPAR_SEO_ONLY") == "1":
         cpar_seo_isolation_http.run(globals())
@@ -619,11 +623,11 @@ try:
         upstream, endpoint = "upstream-" + target, "endpoint-" + target
         api("POST", "/admin/upstreams", {"id": upstream, "name": "Local " + target, "kind": kind, "enabled": True, "tags": [], "egress_policy_id": "local-policy"}, expected=201)
         api("POST", f"/admin/upstreams/{upstream}/endpoints", {"id": endpoint, "adapter_id": adapter, "api_format": api_format, "base_url": f"https://127.0.0.1:{provider.server_port}/v1", "inference_path": PROTOCOLS[target][0][3:], "models_path": None, "transport": "https", "enabled": True}, expected=201)
-        for name, priority in [("a", 0), ("b", 10)]:
+        for name, priority in ([("a", 0)] if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1" else [("a", 0), ("b", 10)]):
             account = api("POST", f"/admin/upstreams/{upstream}/account-import", {"id": "account-" + target + "-" + name, "channel": kind, "secret": keys[name]}, expected=201)
-            api("POST", f"/admin/endpoints/{endpoint}/credential-bindings", {"credential_id": account["id"], "enabled": True, "priority": priority, "weight": 1, "concurrency": 2}, expected=201)
+            api("POST", f"/admin/endpoints/{endpoint}/credential-bindings", {"credential_id": account["id"], "enabled": True, "priority": priority, "weight": 1, "concurrency": 1 if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1" else 2}, expected=201)
         api("POST", "/admin/public-models", {"id": "public-" + target, "model_name": "model-" + target, "display_name": "Local " + target, "status": "active", "capabilities": {}}, expected=201)
-        api("POST", f"/admin/public-models/public-{target}/routes", {"id": "route-" + target, "policy": "smooth_weighted_round_robin", "max_attempts": 2, "bootstrap_timeout_ms": 20000}, expected=201)
+        api("POST", f"/admin/public-models/public-{target}/routes", {"id": "route-" + target, "policy": "smooth_weighted_round_robin", "max_attempts": 1 if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1" else 2, "bootstrap_timeout_ms": 20000}, expected=201)
         override = {"allow_unlisted_model": True, **({"stored_responses": True, "response_compaction": True} if target == "responses" else {})}
         api("POST", f"/admin/routes/route-{target}/candidates", {"id": "candidate-" + target, "endpoint_id": endpoint, "upstream_model": "model-" + target, "credential_scope": "all_active", "transform_mode": "canonical_bridge", "enabled": True, "priority": 0, "weight": 1, "capability_override": override}, expected=201)
         fallback_upstream, fallback_endpoint = "fallback-upstream-" + target, "fallback-endpoint-" + target
@@ -646,6 +650,11 @@ try:
     api("POST", "/admin/billing/catalogs", {"catalog_version_id": "local-prices", "effective_at_ms": 0, "source": "operator", "entries": entries}, expected=201)
     publish()
     check("publication_has_no_inference_side_effect", not calls)
+    if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1":
+        cpar_build_extensions_http.verify(globals())
+        passed = True
+        print(json.dumps({"status": "PASS", "checks": len(checks), "scope": "formal extension CLI; isolated synthetic HTTP/SSE/WebSocket"}))
+        sys.exit(0)
     if os.environ.get("CPAR_T12_ONLY") == "1":
         cpar_t12_upgrade_http.verify(globals())
         passed = True

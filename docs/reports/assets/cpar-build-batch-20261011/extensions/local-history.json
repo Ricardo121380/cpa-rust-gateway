@@ -1,0 +1,126 @@
+{
+  "scope": "local_synthetic_only",
+  "epochs": [
+    {
+      "epoch": "extensions-local-01",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 0,
+      "synthetic_receives": 0,
+      "raw_receipt_sha256": "440cc85c324b8f964b31371083883f65de59e1ae517ca097169a2f15ac003835"
+    },
+    {
+      "epoch": "extensions-local-02",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 0,
+      "synthetic_receives": 0,
+      "raw_receipt_sha256": "63c39ac06c1421b19c4f89d6a80f6c2a5aae18c2a0e8bd880fc7145bad0d32b4"
+    },
+    {
+      "epoch": "extensions-local-03",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 2,
+      "synthetic_receives": 1,
+      "raw_receipt_sha256": "dd827efff2187269caa47f4bf2604ddf3d3afac7216992b091b380ebb505ed56"
+    },
+    {
+      "epoch": "extensions-local-04",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 2,
+      "synthetic_receives": 1,
+      "raw_receipt_sha256": "fcce777babab950a30658c8408d9212044d231dfb68916c92156cf75a44d3132"
+    },
+    {
+      "epoch": "extensions-local-05",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 2,
+      "synthetic_receives": 2,
+      "raw_receipt_sha256": "615522a1bbff8ae3f38f24c647c02f27c6b5154f97b667d82f7e5427712fc587"
+    },
+    {
+      "epoch": "extensions-local-06",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 11,
+      "synthetic_receives": 6,
+      "raw_receipt_sha256": "a75d11516e151ed5eafdac8b9fb17a080631d2c48b60cb44940f9229d8fee9a2"
+    },
+    {
+      "epoch": "extensions-local-07",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 110,
+      "synthetic_receives": 36,
+      "raw_receipt_sha256": "a8c7b875aa62a0f02c8cf9a6f1f2ed7ad38c2023322c0d35e48d2d2e469e7da4"
+    },
+    {
+      "epoch": "extensions-local-08",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 107,
+      "synthetic_receives": 36,
+      "raw_receipt_sha256": "6fcd24e107d808f92596e133d791667e68052e14e7d20451b6f7171548897d26"
+    },
+    {
+      "epoch": "extensions-local-09",
+      "real_provider_requests": 0,
+      "status": "PASS",
+      "completed_checks": 153,
+      "synthetic_receives": 40,
+      "raw_receipt_sha256": "6e5a1509b8129431adaf525e7e3d980acc00a105ce3d1f12a6461e29dc71ebaf"
+    },
+    {
+      "epoch": "extensions-local-10",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 137,
+      "synthetic_receives": 38,
+      "raw_receipt_sha256": "7d6b88d55da3069a2609266ce8b751bb0d049063f0fd17178c39db444e11b067"
+    },
+    {
+      "epoch": "extensions-local-11",
+      "real_provider_requests": 0,
+      "status": "FAIL",
+      "completed_checks": 137,
+      "synthetic_receives": 38,
+      "raw_receipt_sha256": "c4a28b14002a22706f9e2572cf0411b05f10a7c5920ac5eaec74930e74b548f1"
+    },
+    {
+      "epoch": "extensions-local-12",
+      "real_provider_requests": 0,
+      "status": "PASS",
+      "completed_checks": 156,
+      "synthetic_receives": 40,
+      "raw_receipt_sha256": "32fd4968ef2703a2064db29b6dc1cd3e1c8f774d5fae96330075be1208117af5"
+    },
+    {
+      "epoch": "extensions-local-13",
+      "real_provider_requests": 0,
+      "status": "PASS",
+      "completed_checks": 192,
+      "synthetic_receives": 40,
+      "raw_receipt_sha256": "5423a96d86b95d16e685748bdb1dae553ccd6c6159cc198440cea3599706d3db"
+    },
+    {
+      "epoch": "extensions-local-14",
+      "real_provider_requests": 0,
+      "status": "PASS",
+      "completed_checks": 210,
+      "synthetic_receives": 40,
+      "raw_receipt_sha256": "d7e7168f3fccb84136997fae2c4574ecbba2cb006b1ca126922897efa0dd48dc"
+    },
+    {
+      "epoch": "extensions-local-red",
+      "real_provider_requests": 0,
+      "status": "PREPARATION_INTERRUPTED",
+      "synthetic_receives": "UNKNOWN",
+      "receipt": "absent; no execution PASS inferred"
+    }
+  ],
+  "real_provider_requests": 0,
+  "real_batch_history_total_unaffected": 21
+}

@@ -245,6 +245,100 @@ reports. Exit 0 means `PASS`, 2 means `BLOCKED`/`NOT_RUN`, 1 means `FAIL`.
 close C or #57. Layers are `LOCAL_SIMULATED`, `LIVE_NEW_BUILD`, `PRODUCTION`;
 read-only inventory and historical collection are separate observation layers.
 
+## Execute and sample local extensions
+
+The same formal entry now has `run-extension`. This version executes only
+`LOCAL_SIMULATED`; `LIVE_NEW_BUILD` and `PRODUCTION` return
+`BLOCKED/extensions_live_execution_not_authorized` before I/O. Basic-run
+authorization does not authorize extension operations. The real basic script
+used in the 20261011 batch is frozen separately; this newer extension version
+must not replace that immutable execution source.
+
+Use a reviewed, Pin-frozen plan and a fresh runtime from an **owned local
+gateway process**. Add `collector.local_state_dir` and `collector.binary` as
+absolute paths, and `extension` with `case`, `prompt`, `next_instruction` and
+a nonempty exact `expected_text`. Foreign-owner cases additionally require
+`foreign_client_evidence_id`, different from the declared owner. Keys come only
+from `CPAR_ACCEPTANCE_CLIENT_KEY` and `CPAR_ACCEPTANCE_FOREIGN_KEY`, or their
+explicit environment-variable names; never put key values in arguments.
+
+```sh
+python3 scripts/acceptance/cpar-batch-c-live.py --new-build run-extension \
+  --plan /absolute/path/to/private/extension-plan.json \
+  --runtime /absolute/path/to/private/current-local-runtime.json \
+  --base-url http://127.0.0.1:19180/v1 \
+  --private-out /absolute/path/to/private/new-extension-bundle.json \
+  --out /absolute/path/to/extension-receipt.json --execute
+python3 scripts/acceptance/cpar-batch-c-live.py --new-build audit \
+  --bundle /absolute/path/to/private/new-extension-bundle.json \
+  --out /absolute/path/to/extension-audit.json
+```
+
+The private parent must have mode0700 and the bundle must not already exist.
+The runner creates it exclusively with mode0600, records operation intents
+before each socket write, and never retries or continues after failure or
+unknown attribution. `inference_intents` is a conservative intent count, not
+an independent Provider receive count. GET, DELETE, handshake and socket-frame
+intents are separately recorded. Exact SQLite collection uses the existing
+formal collector and its unchanged source-event join. Process PID/start,
+command/state path, binary hash and embedded source revision are observed at
+every operation. `local_subprocess` is accepted only in the local layer;
+Linux `/proc` plus the reviewed release manifest remain required for real runs.
+
+Controls are frozen in `target.parameters`, including Chat
+`reasoning_effort:"high"`, Responses `reasoning:{"effort":"high"}`, and
+Chat SSE `stream_options:{"include_usage":true}`. No control is inferred from
+durable Usage or dropped to pass. Messages thinking and Build effort have no
+proven lossless mapping; those reasoning executions return BLOCKED. Compact
+summary is a separate JSON request with the product's fixed 2048 output control;
+its Attempt/Usage/ledger and the subsequent full-item consumption are collected
+independently. WebSocket uses actual RFC6455 upgrade/nonce/accept, bounded frames,
+one socket, and separate exact attribution for both response.create frames.
+
+| Case | Implemented local execution | Maximum inference intents per invocation |
+| --- | --- | ---: |
+| visible_reasoning | Yes | 1 |
+| reasoning_history | Yes, includes its own first turn | 2 |
+| store_read | Yes | 1 |
+| foreign_owner | Yes, owner GET plus authenticated foreign GET | 1 |
+| deleted_read | Yes, owner GET / DELETE / GET | 1 |
+| exact_continuation | Yes, creates its own root | 2 |
+| compact_roundtrip | Yes, root / summary / consumption | 3 |
+| compact_foreign_owner | Yes, denies summary before inference | 1 |
+| ws_multiturn | Yes, upgrade plus two frames | 2 |
+| ws_handshake_rejection | Yes, Origin rejection | 0 |
+| expired_read / restart_read / persistence_failure | NOT_IMPLEMENTED; BLOCKED before I/O | 0 |
+| lineage_rejection / compact_lineage_rejection | NOT_IMPLEMENTED; BLOCKED before I/O | 0 |
+| ws_cancel / ws_failed_root | NOT_IMPLEMENTED; BLOCKED before I/O | 0 |
+
+Generated bundles use `extension_bundle_version:1`, with the frozen target and
+runtime, source, case, operation log, counts, raw samples, verified_sample and
+stopped result. Samples require `extension_sample_version:1`, full request,
+wire/status, observed and frozen runtime, exact collector evidence and a digest
+binding source/target/process/request. Reasoning history, compact summary and
+WebSocket turns retain their extra native history/frames and attribution. Audit
+rejects missing generated-sample versions or contradictory identity, controls,
+terminal and source-event facts. Historical extension samples remain readable
+in their original audit scope; they are not generated-executor qualification.
+
+The directed regression uses the existing Batch B fixture and formal CLI:
+
+```sh
+GATEWAY_RELEASE_REVISION=<verified-product-source-sha> cargo build --locked -p gateway
+CPAR_EXTENSIONS_ONLY=1 python3 scripts/acceptance/cpar-batch-b-http.py \
+  /absolute/path/to/new-owned-output
+```
+
+This focused fixture currently binds product source
+`1b6023f52f4c00ea6d8296524d306c141e4edae7`; the binary's embedded revision must
+match. It enforces OS loopback-only egress, disables background Provider tasks,
+and uses one enabled candidate/account at concurrency one and max_attempts one.
+It also captures current-product local drills for the seven absent executors.
+Those drills are reported separately: synthetic expiry cannot qualify real
+30-day expiry, and local restart/fault/cancel/config operations do not authorize
+their real counterparts. The generic fixture's parallel declaration remains
+true; native Grok Build parallel=false is unchanged, with separate qualification.
+
 ## Isolated regression
 
 ```sh

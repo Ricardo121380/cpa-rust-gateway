@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "preexisting_files": 36159,
+  "unchanged_lstat": 36159,
+  "missing": 0,
+  "changed": 0,
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "scope": "preexisting modified/untracked files only; initial size/mtime/mode plus exact AGENTS hash; no broad cleanup"
+}

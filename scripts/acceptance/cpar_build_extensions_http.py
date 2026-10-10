@@ -1,0 +1,354 @@
+"""Directed public-boundary verification using the existing Batch B fixture."""
+import copy
+import datetime
+import hashlib
+import json
+import os
+from pathlib import Path
+import sqlite3
+import subprocess
+import sys
+import time
+
+import cpar_build_extensions as extensions
+import cpar_new_build_acceptance as oracle
+
+
+def local_drills(context, observe, private, positive_samples):
+    """Owned synthetic operations, separate from the seven absent CLI executors.
+
+    These captures exercise current product boundaries. They do not qualify a
+    real 30-day expiry, live fault operation, or unimplemented execution entry.
+    """
+    api, check = context["api"], context["check"]
+    base_url = "http://127.0.0.1:" + str(context["data_port"]) + "/v1"
+    key, state = context["issued_key"], context["state"]
+    records, raw_records = [], []
+    store_sample = next(sample for _, sample in positive_samples if sample["case"] == "store_read" and sample["target"]["mode"] == "json")
+    stream_target = next(sample["target"] for _, sample in positive_samples if sample["case"] == "store_read" and sample["target"]["mode"] == "sse")
+    compact_sample = next(sample for _, sample in positive_samples if sample["case"] == "compact_roundtrip" and sample["target"]["mode"] == "json")
+    root = json.loads(store_sample["wire"])
+    compact = json.loads(compact_sample["compact_wire"])
+
+    def exchange(path, body=None, method="POST"):
+        extensions.observe_local_process({"binary": str(context["binary"]), "local_state_dir": str(state)}, observe())
+        result = oracle.http_exchange(base_url, key, path, body, method=method)
+        raw_records.append({"method": method, "path": path, "request": body, **result})
+        return result
+
+    def counts():
+        return len(context["calls"]), extensions.attempt_count(state)
+
+    def record(case, before, **facts):
+        after = counts()
+        row = {"case": case, "status": "PASS", "scope": "LOCAL_DRILL_ONLY", "http_receive_count": after[0] - before[0], "attempt_delta": after[1] - before[1], **facts}
+        records.append(row)
+        return row
+
+    def collect_failure(identifier, expected_request):
+        deadline = time.monotonic() + 5
+        while True:
+            collected = extensions.collect_local(state, identifier, observe())
+            if collected["evidence"].get("request_outcome") is not None and collected["evidence"].get("usages") and collected["evidence"].get("ledger"):
+                break
+            assert time.monotonic() < deadline, "local failed Request collector deadline"
+            time.sleep(.05)
+        raw_records.append({"failed_collection": collected})
+        evidence = collected["evidence"]
+        check("extension_drill_exact_failed_attempt", len(evidence["attempts"]) == 1 and evidence["request_outcome"] == expected_request)
+        # Transport Attempt success does not imply Request success: persistence,
+        # cancellation or stream validation can fail after the upstream attempt.
+        oracle.verify_attempts(stream_target, evidence, identifier, request_expected=expected_request)
+        oracle.verify_usage_lineage({"source": evidence["usages"][0]["usage"]}, evidence)
+        check("extension_drill_failed_usage_source_event_durable", bool(evidence["usages"]) and bool(evidence["ledger"]))
+        return evidence
+
+    before = counts()
+    process_before = observe()
+    context["restart"]()
+    process_after = observe()
+    read = exchange("/responses/" + root["id"], method="GET")
+    check("extension_drill_restart_owner_read_exact", read["http_status"] == 200 and json.loads(read["wire"]) == root and process_before["process_start"] != process_after["process_start"] and process_before["artifact_sha256"] == process_after["artifact_sha256"] and counts() == before)
+    record("restart_read", before, binary_unchanged=True, process_changed=True)
+
+    expiry_sample = next(sample for _, sample in positive_samples if sample["case"] == "store_read" and sample["target"]["mode"] == "sse")
+    expiry_root = oracle.decode_stream("responses", expiry_sample["wire"].encode())
+    before = counts()
+    with sqlite3.connect(state / "control.sqlite3") as database:
+        created, expires = database.execute("SELECT created_at_ms, expires_at_ms FROM stored_responses WHERE response_id=?", (expiry_root["id"],)).fetchone()
+        check("extension_drill_fixed_30_day_policy", expires - created == 30 * 24 * 60 * 60 * 1000)
+        database.execute("UPDATE stored_responses SET expires_at_ms=created_at_ms+1 WHERE response_id=?", (expiry_root["id"],))
+    context["restart"]()
+    denied = exchange("/responses/" + expiry_root["id"], method="GET")
+    check("extension_drill_synthetic_expiry_zero_send", denied["http_status"] == 404 and counts() == before)
+    record("expired_read", before, fixed_ttl_days=30, synthetic_expiry_only=True, real_30_day_expiry="BLOCKED; authentic aged root required")
+
+    before = counts()
+    with sqlite3.connect(state / "control.sqlite3") as database:
+        database.execute("CREATE TRIGGER extension_local_store_failure BEFORE INSERT ON stored_responses BEGIN SELECT RAISE(ABORT, 'owned local persistence drill'); END")
+    try:
+        failure = exchange("/responses", {"model": "model-responses", "input": "text-round", "max_output_tokens": 1024, "stream": True, "store": True})
+    finally:
+        with sqlite3.connect(state / "control.sqlite3") as database:
+            database.execute("DROP TRIGGER extension_local_store_failure")
+    frames = oracle.sse_events(failure["wire"].encode())
+    created_frame = next(frame for frame in frames if frame.get("type") == "response.created")
+    identifier = created_frame["response"]["id"]
+    check("extension_drill_persistence_failure_terminal", failure["http_status"] == 200 and sum(frame.get("type") in ("response.failed", "error") for frame in frames) == 1 and not any(frame.get("type") == "response.completed" for frame in frames))
+    denied = exchange("/responses/" + identifier, method="GET")
+    evidence = collect_failure(identifier, "failed")
+    check("extension_drill_persistence_failure_not_stored", denied["http_status"] == 404 and counts()[0] == before[0] + 1 and counts()[1] == before[1] + 1)
+    record("persistence_failure", before, failed_terminal=True, stored_read_status=404, usage_records=len(evidence["usages"]), ledger_rows=len(evidence["ledger"]))
+
+    before = counts()
+    context["held_started"].clear()
+    context["held_closed"].clear()
+    ws = context["WebSocket"](key)
+    cancellation_frames = []
+    try:
+        ws.send({"type": "response.create", "model": "model-responses", "input": "held-round", "max_output_tokens": 1024, "stream": True, "store": True})
+        check("extension_drill_cancel_upstream_started", context["held_started"].wait(5))
+        for _ in range(100):
+            opcode, payload = ws.receive()
+            assert opcode == 1
+            frame = json.loads(payload)
+            cancellation_frames.append(frame)
+            if frame["type"] == "response.output_text.delta":
+                break
+        identifier = next(frame["response"]["id"] for frame in cancellation_frames if frame["type"] == "response.created")
+        check("extension_drill_cancel_after_semantic_output", cancellation_frames[-1]["type"] == "response.output_text.delta")
+    finally:
+        ws.close()
+    check("extension_drill_cancel_upstream_eof", context["held_closed"].wait(5))
+    denied = exchange("/responses/" + identifier, method="GET")
+    evidence = collect_failure(identifier, "cancelled")
+    raw_records.append({"ws_cancel_frames": cancellation_frames})
+    check("extension_drill_cancel_not_stored_no_retry", denied["http_status"] == 404 and counts()[0] == before[0] + 1 and counts()[1] == before[1] + 1)
+    record("ws_cancel", before, semantic_output=True, upstream_socket_eof=True, stored_read_status=404, ledger_rows=len(evidence.get("ledger", [])))
+
+    before = counts()
+    ws = context["WebSocket"](key)
+    try:
+        frames = ws.turn({"model": "model-responses", "input": "truncated-round", "max_output_tokens": 1024, "store": True})
+        identifier = next(frame["response"]["id"] for frame in frames if frame["type"] == "response.created")
+        check("extension_drill_failed_ws_terminal", frames[-1]["type"] in ("error", "response.failed") and not any(frame["type"] == "response.completed" for frame in frames))
+        failure_count = counts()
+        rejected = ws.turn({"model": "model-responses", "input": "next", "previous_response_id": identifier, "max_output_tokens": 1024})
+        check("extension_drill_failed_ws_root_cannot_continue", rejected[-1]["type"] == "error" and counts() == failure_count)
+    finally:
+        ws.close()
+    raw_records.append({"ws_failed_frames": frames, "ws_failed_root_rejection": rejected})
+    denied = exchange("/responses/" + identifier, method="GET")
+    collect_failure(identifier, "failed")
+    check("extension_drill_failed_ws_not_stored_no_retry", denied["http_status"] == 404 and counts()[0] == before[0] + 1 and counts()[1] == before[1] + 1)
+    record("ws_failed_root", before, failed_terminal=True, continuation_frames=1, stored_read_status=404)
+
+    # With exactly one credential at concurrency one, a selected candidate after
+    # each terminal proves no capacity remains held. Explain is read-only.
+    for protocol in ("chat", "responses", "messages"):
+        explanation = api("GET", "/admin/routes/route-" + protocol + "/explain?requested_model=model-" + protocol + "&protocol=" + {"chat": "openai_chat_completions", "responses": "openai_responses", "messages": "anthropic_messages"}[protocol])
+        check("extension_drill_capacity_released_" + protocol, any(row["candidate_id"] == "candidate-" + protocol and row["decision"] == "selected" for row in explanation["candidates"]))
+
+    before = counts()
+    draft = api("POST", "/admin/config-versions/" + context["scope"] + "/fork", {"id": "extension-lineage-local", "description": "Owned synthetic lineage rejection drill"}, expected=201)
+    context["scope"], context["revision"] = draft["id"], draft["revision"]
+    account = api("GET", "/admin/credentials/account-responses-a")
+    api("PATCH", "/admin/credentials/account-responses-a/status", {"status": "disabled", "credential_revision": account["revision"]})
+    context["publish"]()
+    context["restart"]()
+    read = exchange("/responses/" + root["id"], method="GET")
+    check("extension_drill_lineage_root_still_owned", read["http_status"] == 200 and json.loads(read["wire"]) == root)
+    denied = exchange("/responses", {"model": "model-responses", "input": "next", "previous_response_id": root["id"], "max_output_tokens": 1024, "stream": False})
+    check("extension_drill_continuation_lineage_zero_send", denied["http_status"] in (400, 404, 409) and counts() == before)
+    record("lineage_rejection", before, disabled_original_account=True)
+    denied = exchange("/responses/compact", {"model": "model-responses", "previous_response_id": root["id"], "stream": False})
+    rejected = exchange("/responses", {"model": "model-responses", "input": [compact["output"][0], {"role": "user", "content": "next"}], "max_output_tokens": 1024, "stream": False})
+    check("extension_drill_compact_lineage_zero_send", denied["http_status"] in (400, 404, 409) and rejected["http_status"] in (400, 404, 409) and counts() == before)
+    record("compact_lineage_rejection", before, disabled_original_account=True, summary_and_consume_rejected=True)
+    path = private / "local-drills.json"
+    path.write_text(json.dumps(raw_records, indent=2) + "\n")
+    return {"status": "PASS", "executor_qualification": "NOT_IMPLEMENTED; separate synthetic product drills only", "captures_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "cases": records}
+
+
+def verify(context):
+    api, check = context["api"], context["check"]
+    private = context["root"] / "extensions"
+    private.mkdir(mode=0o700)
+    public = context["out"] / "extensions"
+    public.mkdir(mode=0o700)
+    binary = context["binary"]
+    source = "1b6023f52f4c00ea6d8296524d306c141e4edae7"
+    plans, receipts, actual_receives = {}, [], []
+    probe = 'import socket\ntry: socket.create_connection(("192.0.2.1",443),timeout=.5)\nexcept PermissionError as error: assert error.errno == 1\nelse: raise AssertionError("non-loopback was not denied")\n'
+    subprocess.run(context["cpar_t12_upgrade_http"].sandbox_command([sys.executable, "-c", probe]), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    check("extension_os_denies_non_loopback_network", True)
+
+    def observe():
+        before = [row for row in api("GET", "/admin/config-versions") if row["status"] == "active"]
+        projection = api("GET", "/admin/models/effective?client_key_id=local-key&limit=200")
+        declarations = []
+        for model in projection["items"]:
+            for candidate in model["sources"]:
+                evidence = candidate["capability_evidence"]
+                declarations.append({**evidence, "client_key_evidence_id": oracle.opaque("local-key"), "projection_id": projection["projection_id"],
+                                     "observed_at_utc": datetime.datetime.fromtimestamp(projection["observed_at_ms"] / 1000, datetime.timezone.utc).isoformat(),
+                                     "route_id": model["route_id"], "route_candidate_id": candidate["candidate_id"], "endpoint_id": candidate["endpoint_id"], "upstream_model": model["id"]})
+        pools = context["all_items"]("/admin/operations/account-pools?limit=100")
+        for row in pools:
+            row["account_id"] = oracle.opaque(row["account_id"])
+        inventory = {
+            "routes": api("GET", "/admin/routes"),
+            "candidates": context["all_items"]("/admin/route-candidates?limit=200"),
+            "account_pools": pools,
+            "native_pools": context["all_items"]("/admin/operations/provider-account-pools?limit=100"),
+        }
+        for row in inventory["native_pools"]:
+            row["account_id"] = oracle.opaque(row["account_id"])
+        inventory = {key: {"items": value.get("items", []) if isinstance(value, dict) else value, "complete": True, "error": None} for key, value in inventory.items()}
+        after = [row for row in api("GET", "/admin/config-versions") if row["status"] == "active"]
+        process_start = subprocess.check_output(["ps", "-p", str(context["gateway"].pid), "-o", "lstart="], text=True).strip() + ":" + str(context["gateway"].pid)
+        runtime = {"method": "local_subprocess", "instance": "owned-local-extension-fixture", "pid": context["gateway"].pid,
+                   "process_start": process_start, "observed_at_utc": oracle.now(), "stable_process": context["gateway"].poll() is None,
+                   "artifact_sha": source, "source_sha": source, "artifact_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+                   "capability_observations": declarations,
+                   "acceptance_inventory": {"configuration_stable": before == after, "active_configuration": {key: before[0][key] for key in ("id", "revision")}, "inventory_observed_at_utc": oracle.now(), "inventory": inventory}}
+        return runtime
+
+    def frozen(protocol, mode):
+        key = protocol + "-" + mode
+        if key not in plans:
+            pin = api("POST", "/admin/operations/channel-pin", {"provider_id": "upstream-" + protocol, "channel_id": "endpoint-" + protocol,
+                "route_id": "route-" + protocol, "credential_id": "account-" + protocol + "-a", "requested_model": "model-" + protocol,
+                "protocol": {"chat": "openai_chat_completions", "responses": "openai_responses", "messages": "anthropic_messages"}[protocol], "mode": mode,
+                "client_key_id": "local-key", "credential_revision": 0})
+            runtime = observe()
+            plan = {"layer": "LOCAL_SIMULATED", "source_sha": source, "target": {"protocol": protocol, "mode": mode, "public_model": "model-" + protocol,
+                    "response_model": "model-" + protocol, "parameters": {"max_output_tokens" if protocol == "responses" else "max_tokens": 1024}},
+                    "collector": {"local_state_dir": str(context["state"]), "binary": str(binary)}}
+            plans[key] = oracle.freeze_from_pin(plan, runtime, pin)
+            (private / (key + "-pin.json")).write_text(json.dumps(pin, indent=2) + "\n")
+            check("extension_pin_" + key, pin["outcome"] == "succeeded" and pin["attempt_count"] == 1)
+        return copy.deepcopy(plans[key])
+
+    def run(case, protocol="responses", mode="json", *, changes=None, expected_status="PASS", expected_sends=None, actual_key=None):
+        plan = frozen(protocol, mode)
+        plan["extension"] = {"case": case, "prompt": "thinking-round" if case in ("visible_reasoning", "reasoning_history") else "text-round",
+                             "next_instruction": "Repeat the exact first answer.", "expected_text": "synthetic answer", "foreign_client_evidence_id": oracle.opaque("sibling-key")}
+        if case in ("visible_reasoning", "reasoning_history"):
+            plan["target"]["parameters"]["reasoning_effort" if protocol == "chat" else "reasoning"] = "high" if protocol == "chat" else {"effort": "high"}
+        if protocol == "chat" and mode == "sse":
+            plan["target"]["parameters"]["stream_options"] = {"include_usage": True}
+        if changes:
+            changes(plan)
+        runtime = observe()
+        label = str(len(receipts)) + "-" + protocol + "-" + mode + "-" + case
+        plan_file, runtime_file = private / (label + "-plan.json"), private / (label + "-runtime.json")
+        plan_file.write_text(json.dumps(plan, indent=2) + "\n")
+        runtime_file.write_text(json.dumps({"runtime": runtime}, indent=2) + "\n")
+        before = len(context["calls"])
+        result = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "run-extension",
+                                "--plan", str(plan_file), "--runtime", str(runtime_file), "--base-url", "http://127.0.0.1:" + str(context["data_port"]) + "/v1",
+                                "--private-out", str(private / (label + "-bundle.json")), "--out", str(public / (label + ".json")), "--execute"],
+                                env={**os.environ, "CPAR_ACCEPTANCE_CLIENT_KEY": actual_key or context["issued_key"], "CPAR_ACCEPTANCE_FOREIGN_KEY": context["sibling_key"]}, capture_output=True, text=True, timeout=90)
+        (private / (label + "-cli.log")).write_text(result.stdout + result.stderr)
+        receipt = json.loads((public / (label + ".json")).read_text())
+        receives = context["calls"][before:]
+        actual_receives.append({"case": case, "protocol": protocol, "mode": mode, "http_receive_count": len(receives), "intent_count": receipt["inference_intents"]})
+        check("extension_cli_" + label + "_" + expected_status, receipt["status"] == expected_status and receipt["stopped"] is True)
+        if expected_sends is not None:
+            check("extension_cli_exact_sends_" + label, len(receives) == expected_sends)
+        elif expected_status == "PASS":
+            check("extension_cli_intents_match_independent_fixture_receives_" + label, len(receives) == receipt["inference_intents"])
+        if expected_status == "PASS" and case in ("visible_reasoning", "reasoning_history"):
+            for receive in receives:
+                body = receive["body"]
+                check("extension_effort_preserved_" + label, body.get("reasoning_effort") == "high" if protocol == "chat" else body.get("reasoning") == {"effort": "high"})
+            if case == "reasoning_history":
+                body = receives[-1]["body"]
+                thought = "synthetic visible thought"
+                check("extension_reasoning_history_reached_actual_upstream_" + label, thought in json.dumps(body) and "thinking-round" in json.dumps(body))
+        if expected_status == "PASS" and case == "compact_roundtrip":
+            check("extension_summary_and_consume_separate_" + label, len(receives) == 3 and receives[1]["compact"] is True and receives[1]["body"]["max_output_tokens"] == 2048 and receives[2]["compact"] is False)
+        receipts.append(receipt)
+        bundle_path = private / (label + "-bundle.json")
+        if expected_status == "PASS":
+            audit_path = public / (label + "-audit.json")
+            audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(bundle_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
+            (private / (label + "-audit.log")).write_text(audit.stdout + audit.stderr)
+            check("extension_official_cli_audit_" + label, audit.returncode == 0 and json.loads(audit_path.read_text())["status"] == "PASS")
+            actual_bundle = json.loads(bundle_path.read_text())
+            if case != "ws_handshake_rejection":
+                for mutation in ("missing_capture", "wrong_root_owner", "wrong_root_terminal"):
+                    changed = copy.deepcopy(actual_bundle)
+                    if mutation == "missing_capture":
+                        changed["samples"].pop(0)
+                    elif mutation == "wrong_root_owner":
+                        changed["samples"][0]["evidence"]["client_key_evidence_id"] = oracle.opaque("wrong-owner")
+                    elif mode == "json":
+                        value = json.loads(changed["samples"][0]["wire"])
+                        if protocol == "chat":
+                            value["choices"][0]["finish_reason"] = "length"
+                        else:
+                            value["status"] = "failed"
+                        changed["samples"][0]["wire"] = json.dumps(value)
+                    else:
+                        changed["samples"][0]["wire"] += 'data: {"type":"error"}\n\n'
+                    check("extension_bundle_audit_" + label + "_" + mutation, extensions.audit_extension_bundle(changed)["status"] in ("FAIL", "BLOCKED"))
+        return plan, json.loads(bundle_path.read_text()) if bundle_path.exists() else None
+
+    for protocol in ("chat", "responses"):
+        for mode in ("json", "sse"):
+            for case in ("visible_reasoning", "reasoning_history"):
+                run(case, protocol, mode)
+    positive_samples = []
+    for mode in ("json", "sse"):
+        for case in ("store_read", "exact_continuation", "compact_roundtrip"):
+            plan, bundle = run(case, mode=mode)
+            positive_samples.append((plan, bundle["verified_sample"]))
+    for case in ("foreign_owner", "deleted_read", "compact_foreign_owner"):
+        run(case)
+    run("ws_multiturn", mode="sse")
+    run("ws_handshake_rejection", mode="sse")
+    for case in sorted(set(extensions.CASE_CAPABILITY) - extensions.IMPLEMENTED):
+        run(case, expected_status="BLOCKED", expected_sends=0)
+    run("reasoning_history", "messages", expected_status="BLOCKED", expected_sends=0)
+    run("reasoning_history", changes=lambda plan: plan.update(layer="LIVE_NEW_BUILD"), expected_status="BLOCKED", expected_sends=0)
+    run("reasoning_history", changes=lambda plan: plan.pop("collector"), expected_status="BLOCKED", expected_sends=0)
+    run("reasoning_history", changes=lambda plan: plan["extension"].update(expected_text="WRONG"), expected_status="FAIL", expected_sends=1)
+    run("reasoning_history", actual_key=context["sibling_key"], expected_status="FAIL", expected_sends=1)
+    run("reasoning_history", changes=lambda plan: plan["extension"].update(prompt="always-fail"), expected_status="FAIL", expected_sends=1)
+    # Deliberate upstream failure marks runtime health. Reopen only this owned
+    # synthetic fixture before independent fault drills; never replay a case.
+    context["restart"]()
+    # Mutate captured actual samples. These guard the audit boundary in addition
+    # to all public CLI executions above, not instead of public execution.
+    for plan, sample in positive_samples:
+        for kind in ("wrong_owner", "missing_evidence", "wrong_terminal", "changed_control"):
+            changed = copy.deepcopy(sample)
+            if kind == "wrong_owner":
+                changed["evidence"]["client_key_evidence_id"] = oracle.opaque("wrong-owner")
+            elif kind == "missing_evidence":
+                changed["evidence"]["attempts"] = []
+            elif kind == "changed_control":
+                changed["request"]["max_output_tokens"] += 1
+                changed["request_binding_sha256"] = extensions.request_binding(changed)
+            else:
+                if plan["target"]["mode"] == "json":
+                    value = json.loads(changed["wire"])
+                    value["status"] = "failed"
+                    changed["wire"] = json.dumps(value)
+                else:
+                    changed["wire"] += 'data: {"type":"response.failed"}\n\n'
+            result = oracle.verdict(lambda: oracle.extension_check(extensions.CASE_CAPABILITY[changed["case"]], changed["case"], changed, plan["target"]))
+            check("extension_captured_negative_" + changed["case"] + "_" + plan["target"]["mode"] + "_" + kind, result["status"] in ("FAIL", "BLOCKED"))
+    drills = local_drills(context, observe, private, positive_samples)
+    report = {"status": "PASS", "layer": "LOCAL_SIMULATED", "real_provider_requests": 0, "source_sha": source,
+              "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "formal_tool_sha256": hashlib.sha256(Path(oracle.__file__).read_bytes()).hexdigest(),
+              "extension_tool_sha256": hashlib.sha256(Path(extensions.__file__).read_bytes()).hexdigest(), "cli_runs": len(receipts),
+              "implemented_cases": sorted(extensions.IMPLEMENTED), "not_implemented_cases": sorted(set(extensions.CASE_CAPABILITY) - extensions.IMPLEMENTED),
+              "results": [{key: row.get(key) for key in ("case", "status", "category", "inference_intents", "http_intents", "ws_frame_intents", "private_bundle_sha256")} for row in receipts],
+              "independent_fixture_receives": actual_receives, "private_state_evidence_id": oracle.opaque(str(context["root"])),
+              "local_drills": drills,
+              "candidate_proof": "source-matched local debug build, not a release artifact", "observed_at_utc": oracle.now()}
+    report["parallel_false_build_qualification"] = "BLOCKED; generic fixture declares parallel true; native Build remains false and unchanged"
+    (context["out"] / "extension-receipt.json").write_text(json.dumps(report, indent=2) + "\n")
