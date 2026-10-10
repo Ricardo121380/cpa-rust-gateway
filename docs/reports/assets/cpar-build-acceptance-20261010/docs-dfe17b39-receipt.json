@@ -1,0 +1,27 @@
+{
+  "name": "docs-dfe17b39",
+  "argv": [
+    "scripts/check.sh",
+    "docs"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-acceptance-20261010/final-source",
+  "source_sha": "dfe17b39920c51670a42fea28dce1e2880df9bda",
+  "source_dirty_before": false,
+  "source_dirty_after": false,
+  "started_at_utc": "2026-10-10T08:54:54.536561+00:00",
+  "finished_at_utc": "2026-10-10T08:55:53.566321+00:00",
+  "exit_code": 0,
+  "raw_log": "output/cpar-build-acceptance-20261010/docs-dfe17b39.log",
+  "raw_log_sha256": "8d1e3fa9ab4efee5017e9418f031e15e17620822b1c87ab55659de3a6192cb68",
+  "files_sha256": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "fbb5df7bc4fa105eef805b9c6c566349f2ac0425ae8cec23a21b57c4b42b5a0f",
+    "scripts/test-cpar-new-build-acceptance.py": "e43213c3438f7e7ec3f049a39ad36d3590a3994d9165962e3e1d5e25377ba554",
+    "scripts/acceptance/cpar-new-build-acceptance.md": "c42d3883e10d1ade7d327ce0b06fc624755aa98ea0f2d32e656f84c5af0f48a1"
+  },
+  "real_provider_calls": 0,
+  "extra_environment": {
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-acceptance-20261010/docs-dfe17b39.md"
+  },
+  "report": "output/cpar-build-acceptance-20261010/docs-dfe17b39.md",
+  "report_sha256": "ddf195a566141b8b8a9f273ace91db6da6f9f0485d5fbd8c8c5e55024ae14c68"
+}

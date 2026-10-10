@@ -1,0 +1,49 @@
+[
+  {
+    "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/comments/6081215242",
+    "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+    "issue_url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/47",
+    "id": 6081215242,
+    "node_id": "IC_kwDOUGxUj88AAAABanf7Cg",
+    "user": {
+      "login": "Ricardo121380",
+      "id": 129812278,
+      "node_id": "U_kgDOB7zHNg",
+      "avatar_url": "https://avatars.githubusercontent.com/u/129812278?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Ricardo121380",
+      "html_url": "https://github.com/Ricardo121380",
+      "followers_url": "https://api.github.com/users/Ricardo121380/followers",
+      "following_url": "https://api.github.com/users/Ricardo121380/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Ricardo121380/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Ricardo121380/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Ricardo121380/subscriptions",
+      "organizations_url": "https://api.github.com/users/Ricardo121380/orgs",
+      "repos_url": "https://api.github.com/users/Ricardo121380/repos",
+      "events_url": "https://api.github.com/users/Ricardo121380/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Ricardo121380/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2026-10-09T12:49:08Z",
+    "updated_at": "2026-10-09T12:49:08Z",
+    "body": "<!-- codex-cpar-ticket-sync-20261009-85a168da-47 -->\n\n## 工程验收同步 · 2026-10-09\n\n**BLOCKED：本地局部行为可保留，整票渠道／软件承诺尚未满足，保持 OPEN。**\n\ngrok.build：三协议工具四轮局部 PASS；历史 b0cf36e 的 Responses/Messages 真调用保持旧构建与一次工具周期范围，不升级为当前源码通过。\n\n**剩余项／交付边界：**  当前模型/参数/账号/路由/配置及实际扩展声明未冻结；2026-10-09当前源码台账198基础审计行真实执行数0。各渠道适用文本/工具多轮与已声明扩展未取得完整当前真实证据，保持OPEN；旧运行实测不重标为新源码通过。\n\n**证据定位（仓库相对路径）：**\n\n- `docs/reports/cpar-batch-c-20260930.md:54`\n- `docs/reports/cpar-batch-c-convergence-20261001.md:84`\n- `docs/reports/cpar-continuity-issue57-matrix-20261009.md:154`\n\n当前本地 HEAD 为 `85a168da39e79b49c58e83767bdc2bbce0b8a00a`。本次只复核已归档执行、源码及评审绑定，没有重跑测试或浏览器。最近一次 clean Full 源码为 `029332c5351c562d2dd3e5ef86c1faa84f5baab6`：45/45，Rust 1493 passed / 0 failed / 12 ignored；前端497项通过。本批评审 Standards=PASS、整体 Spec=PARTIAL（明确存在其他政策/验收门槛），不冒称全项目 Spec PASS。历史场景保留各自原 SHA、时间及合成/实际页面来源。\n\n本次只同步工单，未 push；当前HEAD尚未存在于GitHub。下列仓库相对路径指本地已核对材料，故不提供无法打开的GitHub blob链接。本地完成不代表真实Provider、当前源码远端CI、部署或生产通过。\n",
+    "author_association": "OWNER",
+    "pin": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/comments/6081215242/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null,
+    "minimized": null
+  }
+]

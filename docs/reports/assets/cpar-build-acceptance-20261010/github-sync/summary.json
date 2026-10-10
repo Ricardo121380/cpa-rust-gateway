@@ -1,0 +1,100 @@
+{
+  "observed_at_utc": "2026-10-10T09:07:38.941356+00:00",
+  "status": "PASS",
+  "operation": "Append new successor section to three existing comments; preserve all historical content",
+  "issues": [
+    {
+      "issue": 47,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "comment_id": 6081215242,
+      "status": "PASS",
+      "checks": {
+        "exact_comment_body": true,
+        "history_preserved": true,
+        "issue_body_unchanged": true,
+        "state_unchanged": true,
+        "labels_unchanged": true,
+        "assignees_unchanged": true,
+        "comment_count_unchanged": true,
+        "dependencies_unchanged": true
+      },
+      "expected_body_sha256": "51806d21a6940bf07cb26acdf3e826c06a11cb6ba30bf20f43f51e8d8893a580",
+      "blocker_numbers": [
+        16,
+        27,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ]
+    },
+    {
+      "issue": 57,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "comment_id": 6081234278,
+      "status": "PASS",
+      "checks": {
+        "exact_comment_body": true,
+        "history_preserved": true,
+        "issue_body_unchanged": true,
+        "state_unchanged": true,
+        "labels_unchanged": true,
+        "assignees_unchanged": true,
+        "comment_count_unchanged": true,
+        "dependencies_unchanged": true
+      },
+      "expected_body_sha256": "d379853291ae15840d5a713ad023e8b785076e92f8cc2ce2f60ce992e15c0c46",
+      "blocker_numbers": [
+        12,
+        17,
+        21,
+        25,
+        26,
+        37,
+        38,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        52,
+        53,
+        54,
+        55,
+        56
+      ]
+    },
+    {
+      "issue": 9,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "comment_id": 6081235490,
+      "status": "PASS",
+      "checks": {
+        "exact_comment_body": true,
+        "history_preserved": true,
+        "issue_body_unchanged": true,
+        "state_unchanged": true,
+        "labels_unchanged": true,
+        "assignees_unchanged": true,
+        "comment_count_unchanged": true,
+        "dependencies_unchanged": true
+      },
+      "expected_body_sha256": "3231029a613929848a81f853db08de19e2287f6045b7e1f50cf26ca693e55a53",
+      "blocker_numbers": []
+    }
+  ],
+  "implementation_count": 48,
+  "closed": 35,
+  "open": 13,
+  "real_provider_calls": 0,
+  "pushed": false,
+  "deployed": false
+}

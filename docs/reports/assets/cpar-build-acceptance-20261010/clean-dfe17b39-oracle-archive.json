@@ -1,0 +1,7 @@
+{
+  "raw_sha256": "9c1440dc9fe2d25da8471019c6d9e8d9536972ae9cd04a8a76bf81e0baa3c5c2",
+  "raw_bytes": 2858,
+  "gzip_sha256": "e5cd823601c29c29d8e91a077804f80678d8f859cf9feab838f6ba9667bbccd0",
+  "reading_sha256": "9c1440dc9fe2d25da8471019c6d9e8d9536972ae9cd04a8a76bf81e0baa3c5c2",
+  "conversion": "Reading copy strips trailing whitespace only; gzip preserves exact original bytes, mtime=0."
+}

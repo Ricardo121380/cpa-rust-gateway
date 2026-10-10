@@ -1,0 +1,11 @@
+{
+  "observed_at_utc": "2026-10-10T09:07:56.918614+00:00",
+  "baseline": "output/cpar-build-acceptance-20261010/preservation-baseline.json",
+  "baseline_sha256": "59a0d475eb24cf46de330664900829b9591fbe4f337f5666d61fa4cdecf977e3",
+  "preserved_metadata_count": 25815,
+  "changed": [],
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "status": "PASS",
+  "old_tracked_assets_changed": [],
+  "scope": "Pre-existing git-visible modified/untracked lstat metadata only; no all-file content-hash claim; ignored nested files excluded."
+}

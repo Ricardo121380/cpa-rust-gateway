@@ -64,4 +64,19 @@ Build的正常serve会执行startup refresh、每分钟refresh和立即／每小
 
 ## 最终证据与边界
 
-只读inspection和三个账号状态核对已完成；当前diff的代码与文档验证、独立两轴review、本地提交、GitHub写后读回在本报告后置终态记录。真实推理0，新候选构建／启动／生产部署／push均NOT_RUN。#47、#57、#9不以费用授权或目录available而关闭，旧186基础／49未知声明后继台账不回写PASS。
+只读inspection和三个账号状态核对已完成；本地执行器修复、固定提交验证、独立两轴review、报告归档及GitHub写后读回均已完成。真实推理0，新候选构建／启动／生产部署／push均NOT_RUN。#47、#57、#9不以费用授权或目录available而关闭，旧186基础／49未知声明后继台账不回写PASS。
+
+| 范围 | 终态与具体来源 |
+| --- | --- |
+| 最小修复 | 本地提交 `dfe17b39920c51670a42fea28dce1e2880df9bda`；只改验收Python／测试／说明和报告资产，未push。产品Rust／UI／OpenAPI无变化 |
+| 干净来源oracle | dfe17b39独立worktree前后clean，34 tests PASS；[运行回执](assets/cpar-build-acceptance-20261010/clean-dfe17b39-oracle-receipt.json)、[阅读log](assets/cpar-build-acceptance-20261010/clean-dfe17b39-oracle.log)及原字节gzip分别保存。正向108个受控loopback接收、48个首响应故障用例各1次、15类发送前拒绝×6均0；不是真实Provider |
+| 文档门槛 | 同一干净dfe17b39 `scripts/check.sh docs` 7/7 PASS，包含文档链接、contract、plan、canary、Caddy、tracked secret及whitespace；[回执](assets/cpar-build-acceptance-20261010/docs-dfe17b39-receipt.json)、[门槛表](assets/cpar-build-acceptance-20261010/docs-dfe17b39.md) |
+| 独立两轴review | 固定 `d4accdd8..dfe17b39` 的[Standards PASS](assets/cpar-build-acceptance-20261010/review-standards-dfe17b39.md)及[Spec PASS](assets/cpar-build-acceptance-20261010/review-spec-dfe17b39.md)，hard0；限本diff静态核验，不含真实运行或全项目规格 |
+| 六草案预检 | 同一dfe17b39入口、显式空的未绑定runtime、没有execute；6/6 BLOCKED `runtime_unconfirmed`，sent_requests=0；[逐次命令／hash／时间](assets/cpar-build-acceptance-20261010/draft-preflight/summary.json)。这是预期阻断验证，不是live PASS |
+| GitHub写后读回 | 17:07 CST独立GET核对 [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)的既有评论追加后继段；正文／历史评论前缀／OPEN状态／labels／assignees／评论数／native dependencies逐项PASS。48实施票35 CLOSED／13 OPEN；[读回断言](assets/cpar-build-acceptance-20261010/github-sync/summary.json) |
+| 既有工作保护 | 25,815个preexisting git-visible路径的lstat size／mtime_ns／mode及AGENTS字节SHA一致；旧两批tracked资产无diff。[保存核对](assets/cpar-build-acceptance-20261010/preservation-closeout.json)。不声称全文件内容hash或ignored nested覆盖 |
+| 真实运行 | 当前BLOCKED：旧部署native Pin／actual execution evidence不足；新候选仍NOT_RUN。候选启动前的后台OAuth／refresh／目录阻断及逐类请求审计尚未实装／验证，不将其准备度写成PASS |
+
+原c1b产品Full 45/45、Rust1500／0／12及前端70文件513测试仅按产品源码无diff复用；没有重跑Full或以旧Full证明新增Python行为。原RED／FAIL、旧Official有限预算方案及旧源回执均保留。证据资产由独立hash索引绑定；本文件和终态附件单独形成后置本地提交，最终HEAD／资产跟踪状态由本机 `output/cpar-build-acceptance-20261010/final-delivery-attestation.json` 记录，以避免在被证明文件中循环写自己的提交hash。
+
+**本批可独立执行的本地工作已完成；首批真实验收仍PARTIAL／BLOCKED。** 账号、模型、费用及VPS输入已接受；剩余用户决定仅是上述具体临时候选构建、私有副本和启动操作。后台网络控制、实际Linux制品、exact binding和有效账号必须先落实，才进入已授权请求范围。
