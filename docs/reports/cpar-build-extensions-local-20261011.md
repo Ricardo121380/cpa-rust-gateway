@@ -77,4 +77,4 @@ Messages thinking与Build effort没有无损转换依据，保持BLOCKED并保�
 Standards／Spec的限定审查、正式docs门槛、提交及GitHub写后读回由 [本批收口报告](cpar-build-batch-20261011.md) 和对应资产绑定。未完成的真实／入口／语义条件均保留，不能将本报告标为#47整票PASS。
 
 
-GitHub #47／#57／#9 的既有进度评论已追加本批脱敏收口，正文、AC、状态、标签、分配和依赖未改；写后读回见 [GitHub closeout](assets/cpar-build-batch-20261011/github-closeout.json)。三票仍 OPEN。
+GitHub #47／#57／#9 的既有进度评论已追加本批脱敏收口，正文、AC、状态、标签、分配和依赖未改；写后读回见 [GitHub closeout](assets/cpar-build-batch-20261011/github-closeout-final.json)。三票仍 OPEN。

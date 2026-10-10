@@ -91,4 +91,4 @@ Responses SSE [Pin](assets/cpar-build-batch-20261011/responses-sse-pin.json) 通
 最终 [47/47回归](assets/cpar-build-batch-20261011/extensions/review-final2-unit-tests.json)、[293/293公共边界检查](assets/cpar-build-batch-20261011/extensions/review-final2-local-receipt.json) 通过，来源见 [最终冻结](assets/cpar-build-batch-20261011/extensions/review-final2-source-freeze.json)。36次执行CLI为19正例PASS、10预期BLOCKED、7预期FAIL停止，19正例另经正式CLI audit读回；关键缺根／计数／归属／终态／controls、握手字节和终态后额外帧攻击均经CLI audit拒绝。最终epoch合成上游44次接收＝5Pin＋36扩展CLI接收＋3独立演练，不计入真实累计21。[最终本地退出](assets/cpar-build-batch-20261011/extensions/review-final2-local-exit.json) PASS，各旧本地epoch和原始失败保留。本地debug binary SHA256=`07247ed69d4ee433abd964ae95c2de41130a087109ae03b1c5a477fa899c0413`，不是Linux候选制品替换。
 
 
-GitHub #47／#57／#9 的既有进度评论已追加本批脱敏收口，正文、AC、状态、标签、分配和依赖未改；写后读回见 [GitHub closeout](assets/cpar-build-batch-20261011/github-closeout.json)。三票仍 OPEN。
+GitHub #47／#57／#9 的既有进度评论已追加本批脱敏收口，正文、AC、状态、标签、分配和依赖未改；写后读回见 [GitHub closeout](assets/cpar-build-batch-20261011/github-closeout-final.json)。三票仍 OPEN。
