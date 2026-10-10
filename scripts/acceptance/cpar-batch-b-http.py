@@ -27,6 +27,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import cpar_execution_evidence_http
 import cpar_master_key_http
 import cpar_seo_isolation_http
+import cpar_t12_upgrade_http
 
 os.umask(0o077)
 repo = pathlib.Path.cwd()
@@ -309,7 +310,10 @@ log = (root / "gateway.log").open("ab")
 serve_options = []
 binary = pathlib.Path(os.environ.get("CPAR_GATEWAY_BINARY", str(pathlib.Path(os.environ.get("CARGO_TARGET_DIR", str(repo / "target"))) / "debug/gateway"))).resolve()
 subprocess.run([str(binary), "admin-login", "init", "--state-dir", str(state), "--password-file", str(root / "initial-password")], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-gateway = subprocess.Popen([str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}"], stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
+gateway_command = [str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}"]
+if os.environ.get("CPAR_T12_ONLY") == "1":
+    gateway_command = cpar_t12_upgrade_http.sandbox_command(gateway_command)
+gateway = subprocess.Popen(gateway_command, stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
 
 
 def api(method, path, body=None, extra=None, expected=200):
@@ -642,6 +646,11 @@ try:
     api("POST", "/admin/billing/catalogs", {"catalog_version_id": "local-prices", "effective_at_ms": 0, "source": "operator", "entries": entries}, expected=201)
     publish()
     check("publication_has_no_inference_side_effect", not calls)
+    if os.environ.get("CPAR_T12_ONLY") == "1":
+        cpar_t12_upgrade_http.verify(globals())
+        passed = True
+        print(json.dumps({"status": "PASS", "checks": len(checks), "scope": "T12 synthetic existing-state upgrade and coherent restore"}))
+        sys.exit(0)
     if os.environ.get("CPAR_B05_ONLY") == "1":
         cpar_master_key_http.verify(globals())
         passed = True
