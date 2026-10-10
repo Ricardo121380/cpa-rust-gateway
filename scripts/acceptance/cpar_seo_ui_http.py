@@ -21,6 +21,14 @@ operations = os.environ.get("CPAR_UI_OPERATIONS") == "1"
 native_sso = operations and os.environ.get("CPAR_UI_NATIVE_SSO") == "1"
 out = pathlib.Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
+
+def write_receipt_snapshot(name, value):
+    # One controller writes these files; readers must see a complete snapshot.
+    target = out / name
+    temporary = target.with_suffix(target.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, indent=2) + "\n")
+    temporary.replace(target)
+
 root = pathlib.Path(tempfile.mkdtemp(prefix="cpar-seo-ui-"))
 state, credentials = root / "state", root / "credentials"
 state.mkdir(); credentials.mkdir()
@@ -210,15 +218,15 @@ try:
             descriptor["prior_process"]={"pid":previous,"exit_code":previous_code,"stopped_before_forcing_owned_refresh_due":True}
             (out/"e05-restart").unlink();(out/"descriptor.json").write_text(json.dumps(descriptor,indent=2)+"\n")
         if gateway.poll() is not None:raise RuntimeError("owned gateway exited during UI acceptance")
-        (out/"provider-receives.json").write_text(json.dumps(receives,indent=2)+"\n");time.sleep(.2)
+        write_receipt_snapshot("provider-receives.json", receives);time.sleep(.2)
         if device:
-            (out/"device-receives.json").write_text(json.dumps(device.snapshot(),indent=2)+"\n")
+            write_receipt_snapshot("device-receives.json", device.snapshot())
 finally:
     if gateway.poll() is None:gateway.terminate();gateway.wait(timeout=30)
     provider.shutdown();provider.server_close();log.close()
-    (out/"provider-receives.json").write_text(json.dumps(receives,indent=2)+"\n")
+    write_receipt_snapshot("provider-receives.json", receives)
     if device:
-        (out/"device-receives.json").write_text(json.dumps(device.snapshot(),indent=2)+"\n")
+        write_receipt_snapshot("device-receives.json", device.snapshot())
     if (state/"control.sqlite3").exists():
         with sqlite3.connect(state/"control.sqlite3") as db:
             facts={"versions":db.execute("SELECT id,status,revision FROM config_versions").fetchall(),"accounts":db.execute("SELECT config_version_id,id,upstream_id,kind,status,revision FROM upstream_credentials").fetchall(),"bindings":db.execute("SELECT config_version_id,endpoint_id,credential_id,enabled FROM endpoint_credential_bindings").fetchall()}
