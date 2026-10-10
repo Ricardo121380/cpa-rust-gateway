@@ -1,0 +1,10 @@
+{
+  "base_sha": "3bf9acd3ad28093cba4d789f996e3ba1bcdab630",
+  "files": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+    "scripts/test-cpar-new-build-acceptance.py": "95e26bfcb2737acacc03715d0bde7d7c393b69c9cfb6e6001ecc33c2445a9a54",
+    "docs/reports/assets/cpar-build-revalidation-20261010/tools/remote-basics.py": "e9caee3a8040fa6d266a5b794aef247fe2a032705e6467e689e2bc25d198887f",
+    "docs/reports/assets/cpar-build-revalidation-20261010/tools/remote-exit.py": "9a7a7f43e72bdd83b81a4277a65209b4911e86a96c50b840af9d2d73c7858dde",
+    "docs/reports/assets/cpar-build-revalidation-20261010/tools/remote-finalize.py": "18c3462500aa81ef34461ec8edd03d0c8400cd20f0a6678bfb40af57f105b426"
+  }
+}

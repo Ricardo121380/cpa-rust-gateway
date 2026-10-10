@@ -1,0 +1,237 @@
+{
+  "observed_at_utc": "2026-10-10T14:56:37.312427+00:00",
+  "direct_dependencies": {
+    "47": [
+      {
+        "number": 16,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/16"
+      },
+      {
+        "number": 27,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/27"
+      },
+      {
+        "number": 29,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/29"
+      },
+      {
+        "number": 30,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/30"
+      },
+      {
+        "number": 31,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/31"
+      },
+      {
+        "number": 32,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/32"
+      },
+      {
+        "number": 33,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/33"
+      },
+      {
+        "number": 34,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/34"
+      }
+    ],
+    "57": [
+      {
+        "number": 12,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/12"
+      },
+      {
+        "number": 17,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/17"
+      },
+      {
+        "number": 21,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/21"
+      },
+      {
+        "number": 25,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/25"
+      },
+      {
+        "number": 26,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/26"
+      },
+      {
+        "number": 37,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/37"
+      },
+      {
+        "number": 38,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/38"
+      },
+      {
+        "number": 40,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/40"
+      },
+      {
+        "number": 41,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/41"
+      },
+      {
+        "number": 42,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/42"
+      },
+      {
+        "number": 43,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/43"
+      },
+      {
+        "number": 44,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/44"
+      },
+      {
+        "number": 45,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/45"
+      },
+      {
+        "number": 46,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/46"
+      },
+      {
+        "number": 47,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47"
+      },
+      {
+        "number": 48,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/48"
+      },
+      {
+        "number": 49,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/49"
+      },
+      {
+        "number": 50,
+        "state": "open",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/50"
+      },
+      {
+        "number": 52,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/52"
+      },
+      {
+        "number": 53,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/53"
+      },
+      {
+        "number": 54,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/54"
+      },
+      {
+        "number": 55,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/55"
+      },
+      {
+        "number": 56,
+        "state": "closed",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/56"
+      }
+    ],
+    "9": []
+  },
+  "read_issue_numbers": [
+    12,
+    16,
+    17,
+    21,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    48,
+    49,
+    50,
+    52,
+    53,
+    54,
+    55,
+    56
+  ],
+  "dependency_payload_sha256": {
+    "36.json": "3fc80040b43f73892f43096febe69785c16f2088bb65fdd147a7ced795226e11",
+    "41.json": "723312e56a771945d306d1d13457d9eea254e3dfe8b368f4e9c6c206847b4ba2",
+    "16.json": "38cc932ad4b6123c304e31e1b113c64edab86a8def6e982362c5af50c7cc9f1d",
+    "56.json": "2b49dc52ca548d9473b5dbe22c285d2b9a4b961ce813c9296ec283af077b394b",
+    "17.json": "f7199fdf806c29d79516a75b139fc65383e05c72ee4aff7f6136def3af42b072",
+    "40.json": "7a42566d01c8ee751d3e9095f0a347b4a91f8e3dd3fd95069b5cd39fe5833708",
+    "37.json": "4d0f3f476a2277070da47a8e2fa48f102fb5a8f077491bd4bb88dd9fa7920715",
+    "21.json": "4380a4eafbb0182501ca74ddae57d41b23217235d1e1fe8d951b0fa0025bffad",
+    "read-time.json": "c0be7d7d089d68d0567d914daf5d65a2e04d4fd6f550c31d40525a84098614ef",
+    "26.json": "74b4d21ee28fde1f34c19dab2ff4adc88496d6336ccafc5fe35f51d071890023",
+    "30.json": "2a248cf07359fdadcf9bbccd2069e3d8260e0dfa2fd653a60f359f027d7164ec",
+    "31.json": "661f566925e9c8a4475d51c97e4faf676ba6573a99967161d2954e3c871ce57a",
+    "27.json": "0c24fb37e2fdc4c7fab8cd301cff0f47e88584a403a3abd0e9654e4d741219d2",
+    "50.json": "d1a0c463e168a6c5362c4c8bcf7138e26ce833abb380337bfc59526c203b561d",
+    "46.json": "f8b0f3851ba4b25420b2eeb8ac329163d4a2232ece86ba80e624cdedbc1cdbdf",
+    "28.json": "a6b876f37e93bfdb4bbca795f9a9f4aa8aa027def414b92b15832cde4ec6ecbd",
+    "53.json": "fd837c781d14326f7ab07f7b3b340a6db93e20fe53cbab52d00d7520bcbe8f2d",
+    "12.json": "d532c29feef547fdf8e3067a9dfa426ba61f5d5f1a81051deef91dc3a91c940a",
+    "45.json": "7363f43140358814c27ae9d9ca3bde0ffe4ef9b23ab33d8bb35ef7c6e8d1f921",
+    "32.json": "4bf3a56550e0097f703502e9740ee2bf1e4c05cfa3047a8b06f627b04d3a7456",
+    "49.json": "271ad6a822731e10ec6bd51e2a8c52c4b883740a754b95c976b73d2cf8bf411d",
+    "48.json": "208a8edb1b2f8f67515fff00e1172ae02d542d1eba16199580e0c5134e4e3d10",
+    "25.json": "82dec3b3b89fe30cad57bfaedae0b2e29c7809c37211211e5e299f61e3aa78bd",
+    "33.json": "7ec8b9c36154ea5fa8f3519112da72ebb8030eaa64d83152334e3b0902bf8265",
+    "44.json": "3f1ca529b8918a7e19fb66616c8ee2fa03b2f3467ac4327fdf48a2c3d883428e",
+    "52.json": "644eb363413a0458bbe254ed98ce8ba07b28290c0e22cf230e1bf3824531edd8",
+    "29.json": "257b714a242f5935b3d3003b4b63fb7b02f16d91713efc9dbefd165af5361449",
+    "34.json": "244e6bcc291f4a958ff2b0ac106bba5e3faab66f2e9c31034919774f0cf67788",
+    "38.json": "c612980bbbdd175c043c4d5e28290804e2b748f20c41fc50fa7e29bfc2ff102a",
+    "55.json": "ff308b2e1504acf84feaccbee51502a42c163316e409cd5dd6e6906bf5fbf020",
+    "43.json": "de62f27f5f4afdb5d07b4d792fd690c9b3fdf2a8d0f29cba38b5e6e10bf754ed",
+    "42.json": "664dce6e846566f7b5b8e246cabbfb1de47aeef5c72b528e451ab26aba217708",
+    "54.json": "f7c6e9b508304e422f8d03eb868104a2efad52d4cf9dfe7c2751374f43a9dc41",
+    "35.json": "4fa60225e0a4a2a829cfbe7748a0b932c9cbb855c8b8c5f896ad980e0a7669ac"
+  },
+  "conclusion": "common local dependencies CLOSED; channel actual evidence and parent full scope remain incomplete; no dependency writes"
+}

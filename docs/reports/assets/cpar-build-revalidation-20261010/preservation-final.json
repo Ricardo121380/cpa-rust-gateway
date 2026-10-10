@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T15:01:18.142914+00:00",
+  "baseline_head": "910cad6713444a35fb8f7b11bcb416a5fe6f1177",
+  "baseline_path_count": 41219,
+  "owned_existing_paths": [
+    "scripts/acceptance/cpar-new-build-acceptance.md",
+    "scripts/acceptance/cpar_new_build_acceptance.py",
+    "scripts/test-cpar-new-build-acceptance.py"
+  ],
+  "unrelated_metadata_changes": [],
+  "unrelated_missing_paths": [],
+  "agents_sha256_before": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_sha256_after": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "method": "all baseline git-visible paths lstat(mode,size,mtime), explicit task paths excluded; AGENTS full-byte SHA256",
+  "initial_check": "output preservation-check.json initially flagged the already committed task-owned formal README; original observation retained"
+}

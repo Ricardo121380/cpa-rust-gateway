@@ -177,6 +177,46 @@ class LegacyDefects(unittest.TestCase):
 
 @unittest.skipIf(bool(os.environ.get("CPAR_TEST_LEGACY")), "formal mode only")
 class FormalOracle(unittest.TestCase):
+    def test_responses_nullable_error_accepts_completed_json_and_sse(self):
+        for mode in ("json", "sse"):
+            current = bundle("responses", mode)
+            for samples in current["scenarios"].values():
+                for sample in samples:
+                    value = oracle.decode_stream("responses", sample["wire"].encode()) if mode == "sse" else json.loads(sample["wire"])
+                    value.update(error=None, incomplete_details=None)
+                    sample["wire"] = wire("responses", value, mode)
+            with self.subTest(mode=mode):
+                self.assertEqual(oracle.audit_bundle(current)["basic_status"], "PASS")
+
+    def test_responses_nonnull_error_and_failed_terminal_never_pass(self):
+        for error in ({"code": "provider_error"}, {}, False, 0, ""):
+            value = response()
+            value["error"] = error
+            with self.subTest(error=error), self.assertRaisesRegex(ValueError, "response_error"):
+                oracle.observe("responses", value)
+        for status in ("failed", "incomplete", "in_progress"):
+            value = response()
+            value.update(status=status, error=None)
+            with self.subTest(status=status), self.assertRaises(ValueError):
+                oracle.observe("responses", value)
+        for protocol in ("chat", "messages"):
+            value = response(protocol)
+            value["error"] = None
+            with self.subTest(protocol=protocol), self.assertRaisesRegex(ValueError, "response_error"):
+                oracle.observe(protocol, value)
+
+    def test_execution_failure_controls_the_basic_batch_verdict(self):
+        for status in ("FAIL", "BLOCKED"):
+            current = bundle()
+            current["scenarios"] = {"text_multi_turn": current["scenarios"]["text_multi_turn"][:1]}
+            current["execution_failure"] = {"status": status, "category": "response_error"}
+            receipt = oracle.audit_bundle(current)
+            with self.subTest(status=status):
+                self.assertEqual(receipt["status"], status)
+                self.assertEqual(receipt["basic_status"], status)
+                self.assertEqual(receipt["sent_requests"], 1)
+                self.assertEqual(next(row for row in receipt["checks"] if row["case"] == "text_multi_turn")["status"], "NOT_RUN")
+
     def test_freeze_uses_actual_lease_and_scoped_effective_declaration(self):
         original = target()
         plan = {"layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": copy.deepcopy(original)}

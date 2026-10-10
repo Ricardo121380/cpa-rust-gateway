@@ -1,0 +1,60 @@
+{
+  "status": "PARTIAL; received first-turn boundary PASS; full current-runtime audit BLOCKED",
+  "observed_at_utc": "2026-10-10T14:54:59.455260+00:00",
+  "networked_inference_requests": 0,
+  "management_requests": 0,
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "runtime_binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "original_executed_oracle_sha256": "a46a2880e9614048411a25f594b0532c582e0a2ba29ab32d090068d269b53683",
+  "posthoc_oracle_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+  "first_turn_response_and_request_controls": "PASS",
+  "exact_execution_and_usage_lineage": "PASS",
+  "attribution": {
+    "request_evidence_id": "57ff10b799233dbdc22df0cf7b0f3ad623ef425d42a7fc7dea4d3ea9007141db",
+    "attempt_evidence_ids": [
+      "aea2ef79998f1bf456b9eb30611ff3535771a44760954915e057fd882f7b67d9"
+    ],
+    "attempt_count": 1,
+    "ledger_rows": 1,
+    "usage_rows": 1
+  },
+  "native_usage": {
+    "native": {
+      "input_tokens": 227,
+      "output_tokens": 136,
+      "total_tokens": 363,
+      "cache_read_input_tokens": null,
+      "cache_creation_input_tokens": null,
+      "cached_tokens": 128,
+      "reasoning_tokens": 135
+    },
+    "source": {
+      "input_tokens": 227,
+      "output_tokens": 136,
+      "reasoning_tokens": 135,
+      "cache_read_tokens": null,
+      "cache_creation_tokens": null,
+      "cached_tokens": 128,
+      "provenance": "measured",
+      "input_accounting": "inclusive"
+    }
+  },
+  "tool_call_count": 0,
+  "original_execution_failure": {
+    "status": "FAIL",
+    "category": "response_error"
+  },
+  "original_batch_status_preserved": "FAIL",
+  "offline_runtime_check": {
+    "status": "BLOCKED",
+    "category": "runtime_observation_stale"
+  },
+  "offline_full_audit_status": "BLOCKED",
+  "completed_basic_scenarios": 0,
+  "observed_basic_responses": 1,
+  "audit_checks": [],
+  "private_wire_sha256": "809fa3577d88808e300b1bb314913f833cb6635308caf96e7b0b2c97d2f6e796",
+  "original_evidence_modified": false,
+  "temporary_main_pid": 0,
+  "scope": "received first turn only; no multi-turn history/tool/extension completion inferred"
+}

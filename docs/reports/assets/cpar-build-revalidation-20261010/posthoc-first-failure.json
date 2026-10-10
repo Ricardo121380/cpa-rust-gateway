@@ -1,0 +1,9 @@
+{
+  "status": "BLOCKED",
+  "category": "runtime_observation_stale",
+  "script_sha256": "15f25c436d5731c8599447f5a0972b7f70095d919cfc4b66764e41b8d36f6d23",
+  "formal_source_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+  "networked_inference_requests": 0,
+  "stop_preserved": true,
+  "raw_stderr_sha256": "e2b17322f8c7f679ebe6087d537cc2f185d0137dae74427d285b4f339672c754"
+}

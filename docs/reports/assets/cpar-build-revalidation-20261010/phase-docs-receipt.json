@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "command": "bash scripts/check.sh docs",
+  "checks_passed": 7,
+  "base_sha": "3bf9acd3ad28093cba4d789f996e3ba1bcdab630",
+  "raw_log_sha256": "cd603eb62a572160f309573379ce7670faa657ebc8c79d27700531237420a0b1",
+  "raw_log_bytes": 541,
+  "archive": "docs-report.log.gz",
+  "formal_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+  "report_sha256_at_gate": "bbfe71e37bf5f682820436d5308d6418aca6eeeee5db0da2961cf866b0629299",
+  "gate_context": "working source bytes; product source unchanged; no Full rerun"
+}

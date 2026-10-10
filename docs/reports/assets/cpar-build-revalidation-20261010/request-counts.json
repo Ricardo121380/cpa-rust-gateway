@@ -1,0 +1,65 @@
+{
+  "new": {
+    "inference_intents": 2,
+    "actual_gateway_upstream_attempts": 2,
+    "pin_intents": 1,
+    "protected_pin_upstream_sent": 1,
+    "basic_requests": 1,
+    "catalog_gets": 0,
+    "retry": 0,
+    "fallback": 0,
+    "real_rerun_after_new_failure": 0,
+    "oauth": 0,
+    "refresh": 0,
+    "auto_catalog": 0,
+    "quota_queries": 0,
+    "extensions": 0,
+    "fault_probes": 0
+  },
+  "historical": {
+    "inference_pin_sent": 1,
+    "management_pin_presend_rejection": 1,
+    "catalog_gets": 1,
+    "basic_requests": 0
+  },
+  "cumulative": {
+    "inference_attempts": 3,
+    "pin_sent": 2,
+    "basic_sent": 1,
+    "catalog_gets": 1
+  },
+  "limit": {
+    "new": 60,
+    "cumulative": 61,
+    "unused_new": 58,
+    "unused_is_not_authorization_after_stop": true
+  },
+  "management": {
+    "instrumented_get_intents": 76,
+    "coverage": {
+      "remote_precheck_v3": 1,
+      "remote_start": 6,
+      "formal_presend": 22,
+      "new_pin_inspections": 44,
+      "remote_exit": 2,
+      "remote_finalize": 1
+    },
+    "pin_post_requests": 1,
+    "all_management_get_intents_including_earlier_ad_hoc_diagnostics": "UNKNOWN",
+    "management_http_receive_count": "UNKNOWN; startup readiness may fail before receive"
+  },
+  "provider_http_receive_count": "UNKNOWN; no independent upstream counter",
+  "egress": {
+    "dns_build_allowed": 2,
+    "connect_build_allowed": 1,
+    "interpretation": "DNS/connect events are not HTTP request receive counts"
+  },
+  "fees": {
+    "money_limit": "UNLIMITED_USER_EXPLICIT",
+    "actual_provider_charge": "UNKNOWN/NOT_PROVEN",
+    "gateway_ledger_cost_microunits": null,
+    "gateway_ledger_cost_confidence": "unpriced",
+    "gateway_ledger_billing_status": "unpriced",
+    "new_quota_query_count": 0
+  }
+}

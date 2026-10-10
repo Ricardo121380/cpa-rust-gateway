@@ -1,0 +1,32 @@
+{
+  "nullable-error-red.log": {
+    "raw_sha256": "a7afd2d66b3a32eef80a7e9ec3001c19071e8e1523881b07cc0a9456d426d934",
+    "raw_bytes": 5577,
+    "archive": "nullable-error-red.log.gz",
+    "archive_sha256": "35f9d543a3d313ce216d774d024a15dd0d8f65cbabf7f1238345bb65b90a49ed"
+  },
+  "nullable-error-green.log": {
+    "raw_sha256": "4341a4cfb3d87b7972bd1875e6a1959f2aa4dd5764b188a7d5053dd4b57ac77a",
+    "raw_bytes": 3232,
+    "archive": "nullable-error-green.log.gz",
+    "archive_sha256": "ba08617352f5fcf22680c34781b7991c789326376f083321b1840e14ef701327"
+  },
+  "exit-receipt.stderr": {
+    "raw_sha256": "dc2c71f214de01d6141f5da3285c372a225be8b76131727d5c993dba05fe7491",
+    "raw_bytes": 90,
+    "archive": "exit-receipt.stderr.gz",
+    "archive_sha256": "4ad53b49749a95a5e78e1c00f066b2cd34b4f2515d0b281df9a5ff08972bd988"
+  },
+  "posthoc.stderr": {
+    "raw_sha256": "e2b17322f8c7f679ebe6087d537cc2f185d0137dae74427d285b4f339672c754",
+    "raw_bytes": 929,
+    "archive": "posthoc.stderr.gz",
+    "archive_sha256": "dcc29567f41e35ea205ace29eee93195526f3f2dc7d577b627d6cd1c0513d1a0"
+  },
+  "docs-3bf9acd3.log": {
+    "raw_sha256": "683419c0a287cd340b14c73d70a184f56993bfa79097abd067c8b8b36a9c253d",
+    "raw_bytes": 541,
+    "archive": "docs-3bf9acd3.log.gz",
+    "archive_sha256": "5ad654c2e04374daf227d8449abb3dd2bf20801936a1adfc9dbbbcc4a13542de"
+  }
+}

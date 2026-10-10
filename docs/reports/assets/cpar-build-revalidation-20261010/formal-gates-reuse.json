@@ -1,0 +1,25 @@
+{
+  "status": "PASS; product gate reuse only",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "clean_full": {
+    "passed": 45,
+    "failed": 0,
+    "raw_sha256": "b7d08637a9f6d86b1ad2eaf7c07b96709fe0d2f273ecac31ab56c7fde40d97d0",
+    "gzip_sha256": "8dc0f90ed33315aef9abc6068056ea408f78f0a87f6f0e25196591191efc2cfa",
+    "prior_report": "../../cpar-build-live-20261010.md"
+  },
+  "rust": {
+    "passed": 1501,
+    "failed": 0,
+    "ignored": 12
+  },
+  "build_protocol_targeted": {
+    "passed": 19
+  },
+  "current_product_diff": "none; acceptance Python/evidence only",
+  "new_acceptance_gate": "nullable-test-receipt.json",
+  "remote_ci": "NOT_RUN",
+  "signed_release_artifact": "NOT_RUN",
+  "official_release": "NOT_RUN",
+  "production_deployment": "NOT_RUN"
+}

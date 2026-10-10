@@ -1,0 +1,299 @@
+{
+  "observed_at_utc": "2026-10-10T14:44:04.188860+00:00",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "manifest_sha256": "20ef11961ca40d4dd659ae278c1e7ee629f9f70319f4a4b006d2d8685a5c9777",
+  "process_pid_before_stop": 2212026,
+  "process_start": "656883401",
+  "main_pid_after_stop": 0,
+  "networked_inference_in_this_finalizer": 0,
+  "new_pin_intents": 1,
+  "new_basic_intents": 1,
+  "new_catalog_intents": 0,
+  "management_get_requests": 1,
+  "first_response": {
+    "http_status": 200,
+    "status": "completed",
+    "error_field_present": true,
+    "error_field_is_null": true,
+    "incomplete_details_is_null": true,
+    "response_evidence_id": "042e00d33f348cc5c0f233efaa86415f48748d692b55ea9f75cfd590e8b88b8e",
+    "output_types": [
+      "reasoning",
+      "message"
+    ],
+    "attribution": {
+      "request_evidence_id": "57ff10b799233dbdc22df0cf7b0f3ad623ef425d42a7fc7dea4d3ea9007141db",
+      "attempt_evidence_ids": [
+        "aea2ef79998f1bf456b9eb30611ff3535771a44760954915e057fd882f7b67d9"
+      ],
+      "attempt_count": 1,
+      "ledger_rows": 1,
+      "usage_rows": 1
+    },
+    "native_usage": {
+      "native": {
+        "input_tokens": 227,
+        "output_tokens": 136,
+        "total_tokens": 363,
+        "cache_read_input_tokens": null,
+        "cache_creation_input_tokens": null,
+        "cached_tokens": 128,
+        "reasoning_tokens": 135
+      },
+      "source": {
+        "input_tokens": 227,
+        "output_tokens": 136,
+        "reasoning_tokens": 135,
+        "cache_read_tokens": null,
+        "cache_creation_tokens": null,
+        "cached_tokens": 128,
+        "provenance": "measured",
+        "input_accounting": "inclusive"
+      }
+    },
+    "exact_execution_and_usage_lineage": "PASS",
+    "protocol": "openai_responses",
+    "stream": false
+  },
+  "posthoc_collector_sha256": "8b9922c2d0176bf4250a3a50ad76aaf5152312bd308f9a62f952abef82e7469c",
+  "actual_execution_target": {
+    "channel": "grok.build",
+    "endpoint_id": "cpar-build-endpoint",
+    "route_id": "cpar-build-route",
+    "route_candidate_id": "cpar-build-candidate",
+    "upstream_model": "grok-4.5",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "credential_revision": 134,
+    "config_version_id": "cpar-build-config-20261010",
+    "config_revision": 9,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": {
+      "source": "not_applicable"
+    },
+    "protocol": "responses",
+    "mode": "json",
+    "public_model": "grok-4.5",
+    "response_model": "grok-4.5"
+  },
+  "pin": {
+    "outcome": "succeeded",
+    "upstream_sent": true,
+    "response_started": true,
+    "attempt_count": 1,
+    "stage": "http_status",
+    "protocol": "openai_responses",
+    "mode": "json"
+  },
+  "pin_raw_sha256": "833cf4e02aa4e86bb58f14f3f0f002399421ad472cf6d75746eca768029a0028",
+  "original_execution_failure": {
+    "status": "FAIL",
+    "category": "response_error"
+  },
+  "original_formal_basic_status": "NOT_RUN",
+  "basic_batch_status": "FAIL; stopped after the first of 54 requests; original oracle response_error",
+  "temporary_ports_listening": [],
+  "network_audit_sha256": "78dc83f113534a0c1fc109adc57d048740b1c6646233925e29445e1335881086",
+  "network_audit_events": [
+    "dns_build_allowed",
+    "connect_build_allowed",
+    "dns_build_allowed"
+  ],
+  "post_stop_flat_seconds": 5,
+  "temporary_instance_stopped": true,
+  "historical_file_hashes": {
+    "private/phase2/responses-json/pin-private.json": "0ffee5b580c6c95b33a0c3248c22808fd4d53ac6c6ab0cc17eca4529b16602d8",
+    "private/batch-budget.json": "546a4ce97863b8cfd5cf4af8e5a472ce8470f7596e174678fa96c441afc22eed",
+    "private/batch-budget-v2.json": "f8d44ed3ffca33aed68750faf6acd1ca723b0dc8abb4706935d1f245dffa9031",
+    "private/gateway.log": "c57474969157e7d332ae42f538d1d1cf1d5c907e073a2ac0c4283a06cae35493",
+    "audit/candidate-egress.jsonl": "9a5bb5a1ae6072cfa3fbc49fcf7d8a9c8755e5b185b3be9d85e50c3370361b41"
+  },
+  "production_after": {
+    "MainPID": "499070",
+    "NRestarts": "0",
+    "ExecMainStartTimestampMonotonic": "5514090365162",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+    "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+    "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+    "caddyfile_sha256": "bfede78bae3c2bb4d120bcbd08924c0ba564fa3a1a02d8edda37a9004f9b945e"
+  },
+  "production_active_configuration": [
+    {
+      "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+      "revision": "rev-1",
+      "status": "active"
+    }
+  ],
+  "durable_event_counts": {
+    "attempt": 1,
+    "request": 1,
+    "request_finished": 1,
+    "usage": 1
+  },
+  "basic_attempt_count": 1,
+  "basic_outcomes": [
+    "succeeded"
+  ],
+  "basic_retry_decisions": [
+    "completed"
+  ],
+  "billing": [
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    }
+  ],
+  "account_native_revision_after": 133,
+  "worker_claim_after": null,
+  "management_resource_audit_count": 15,
+  "source_account_still_matches": true,
+  "new_pin_actual_sends": 1,
+  "new_basic_actual_sends": 1,
+  "provider_http_receive_count": "UNKNOWN; no independent upstream receive counter",
+  "permission_corrections": [
+    {
+      "path": "private/revalidation-20261010/presend-inspection-private.json",
+      "before": "0o644",
+      "after": "0o600",
+      "parent_was_0700": true,
+      "content_sha256": "d3648b9efd920af435ee36e66b6cc3730be933480134caf32b265a6f5c76f041"
+    }
+  ],
+  "private_evidence_files": {
+    "private/revalidation-20261010/artifact-manifest.json": {
+      "sha256": "20ef11961ca40d4dd659ae278c1e7ee629f9f70319f4a4b006d2d8685a5c9777",
+      "mode": "0o600",
+      "bytes": 543
+    },
+    "private/revalidation-20261010/cpar_new_build_acceptance.py": {
+      "sha256": "a46a2880e9614048411a25f594b0532c582e0a2ba29ab32d090068d269b53683",
+      "mode": "0o600",
+      "bytes": 99902
+    },
+    "private/revalidation-20261010/gateway-build-metadata.json": {
+      "sha256": "a1e47a1ad7c132e223d5692bdee95b613d3f6465107c38867b9c58b9506c4895",
+      "mode": "0o600",
+      "bytes": 261
+    },
+    "private/revalidation-20261010/cpar-batch-c-live.py": {
+      "sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "mode": "0o600",
+      "bytes": 11958
+    },
+    "private/revalidation-20261010/remote-basics.py": {
+      "sha256": "e9caee3a8040fa6d266a5b794aef247fe2a032705e6467e689e2bc25d198887f",
+      "mode": "0o600",
+      "bytes": 6177
+    },
+    "private/revalidation-20261010/authorization.json": {
+      "sha256": "a3477b2ed09192bdcc56a0a834f9829c0e773a91a1b8a059c0af646dbfa93674",
+      "mode": "0o600",
+      "bytes": 1330
+    },
+    "private/revalidation-20261010/gateway.log": {
+      "sha256": "12d2604299023fb51dd1ff9a6989a2a0647e8dcea3ac96910661de6358b21ece",
+      "mode": "0o600",
+      "bytes": 4280
+    },
+    "private/revalidation-20261010/start-receipt.json": {
+      "sha256": "4e1b505b718b6b683e973f1a3f39f20de4b9161d84a6d2172605da02e2c53c2f",
+      "mode": "0o600",
+      "bytes": 3205
+    },
+    "private/revalidation-20261010/budget.json": {
+      "sha256": "1012d33cbb39a37ce42afaeea514a8d2b6195412c3e1cb97e6ae3ef48a820200",
+      "mode": "0o600",
+      "bytes": 609
+    },
+    "private/revalidation-20261010/remote-pin.py": {
+      "sha256": "16f6ee915d3131ca4db7824aa611dbda3f0c61444f0a5cd66f6c0285554e2080",
+      "mode": "0o600",
+      "bytes": 11184
+    },
+    "private/revalidation-20261010/presend-inspection-private.json": {
+      "sha256": "d3648b9efd920af435ee36e66b6cc3730be933480134caf32b265a6f5c76f041",
+      "mode": "0o600",
+      "bytes": 20502
+    },
+    "private/revalidation-20261010/launch.json": {
+      "sha256": "67a1ae7a12dbd6d94e5be6a2fd4eae3bbf769be6d1c0764ed24e05e6a9496385",
+      "mode": "0o600",
+      "bytes": 2054
+    },
+    "private/revalidation-20261010/__pycache__/cpar_new_build_acceptance.cpython-312.pyc": {
+      "sha256": "ef137cb4a4fa016e081811c5050533e2284361f0998fafe24d54f400f88a024b",
+      "mode": "0o600",
+      "bytes": 142883
+    },
+    "private/revalidation-20261010/__pycache__/cpar-batch-c-live.cpython-312.pyc": {
+      "sha256": "3045f01d8f76637c0d321e51d41802cc30c900956ba16af1f3a52c411b94759d",
+      "mode": "0o600",
+      "bytes": 18717
+    },
+    "private/revalidation-20261010/responses-json/inspection-0-private.json": {
+      "sha256": "0577fbd75157359361716edb19febb5a498c2d76c190e5a853972cb1c9d4ff58",
+      "mode": "0o600",
+      "bytes": 20623
+    },
+    "private/revalidation-20261010/responses-json/runtime.json": {
+      "sha256": "1a922e1452b0a6f81ece72473d588fa599e98b464d2568680e16d593cf11e021",
+      "mode": "0o600",
+      "bytes": 20623
+    },
+    "private/revalidation-20261010/responses-json/wire-partial.json": {
+      "sha256": "6b0c2cb98e2884242338542543d3633f0584d138a80f8b341fe4087c2bc6681d",
+      "mode": "0o600",
+      "bytes": 15085
+    },
+    "private/revalidation-20261010/responses-json/posthoc-collector-private.json": {
+      "sha256": "8b9922c2d0176bf4250a3a50ad76aaf5152312bd308f9a62f952abef82e7469c",
+      "mode": "0o600",
+      "bytes": 3124
+    },
+    "private/revalidation-20261010/responses-json/pin-private.json": {
+      "sha256": "631434c65395dd0749195b7039c999856ef1df959346dc5e47e580d8d017216b",
+      "mode": "0o600",
+      "bytes": 1457
+    },
+    "private/revalidation-20261010/responses-json/inspection-1-private.json": {
+      "sha256": "1a922e1452b0a6f81ece72473d588fa599e98b464d2568680e16d593cf11e021",
+      "mode": "0o600",
+      "bytes": 20623
+    },
+    "private/revalidation-20261010/responses-json/basic-receipt.json": {
+      "sha256": "afea140eaf09479ddbaa0d04b4efb9c7852303d8d63e997c1011a83ef539a01f",
+      "mode": "0o600",
+      "bytes": 7623
+    },
+    "private/revalidation-20261010/responses-json/basic-summary.json": {
+      "sha256": "79a84844de539aad5519c6ec00b9e4db46d8d31e7ec5a7d5a5dc3817c129980f",
+      "mode": "0o600",
+      "bytes": 7995
+    },
+    "private/revalidation-20261010/responses-json/wire-final.json": {
+      "sha256": "809fa3577d88808e300b1bb314913f833cb6635308caf96e7b0b2c97d2f6e796",
+      "mode": "0o600",
+      "bytes": 15170
+    },
+    "private/revalidation-20261010/responses-json/summary.json": {
+      "sha256": "38628c6dc2a0439da6f6439bdc88a5bab8567c6a3bf2ce021adb106963368451",
+      "mode": "0o600",
+      "bytes": 2795
+    },
+    "private/revalidation-20261010/responses-json/pin-response.raw": {
+      "sha256": "833cf4e02aa4e86bb58f14f3f0f002399421ad472cf6d75746eca768029a0028",
+      "mode": "0o600",
+      "bytes": 1195
+    },
+    "private/revalidation-20261010/responses-json/frozen-plan.json": {
+      "sha256": "276ea77ac997b641bd40ec1b6341948a39fd3a70c47a967ad95d7c39623c22ee",
+      "mode": "0o600",
+      "bytes": 2593
+    }
+  },
+  "status": "PASS; exit and posthoc attribution only; acceptance remains incomplete"
+}

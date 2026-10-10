@@ -116,7 +116,7 @@ def sse_events(raw):
 
 
 def observe(protocol, value):
-    require(isinstance(value, dict) and "error" not in value, "response_error")
+    require(isinstance(value, dict) and (value.get("error") is None if protocol == "responses" else "error" not in value), "response_error")
     require(isinstance(value.get("id"), str) and bool(value["id"]), "missing_response_identity")
     require(isinstance(value.get("model"), str) and bool(value["model"]), "missing_response_model")
     if protocol == "chat":
@@ -918,7 +918,7 @@ def audit_bundle(bundle):
             receipt["checks"].append({"extension": extension, "case": case, "declared": declared, "applicable": declared and protocol_applicable, **result})
     applicable = [row["status"] for row in receipt["checks"] if row.get("applicable", True)]
     receipt["status"] = next((status for status in ("FAIL", "BLOCKED", "NOT_RUN") if status in applicable), "PASS")
-    receipt["basic_status"] = next((status for status in ("FAIL", "BLOCKED", "NOT_RUN") if any(row["case"] in ("text_multi_turn", "single_tool", "two_tool_cycles") and row["status"] == status for row in receipt["checks"])), "PASS")
+    receipt["basic_status"] = next((status for status in ("FAIL", "BLOCKED", "NOT_RUN") if any(row["case"] in ("execution", "text_multi_turn", "single_tool", "two_tool_cycles") and row["status"] == status for row in receipt["checks"])), "PASS")
     return receipt
 
 

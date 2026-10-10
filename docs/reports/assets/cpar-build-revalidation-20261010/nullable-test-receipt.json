@@ -1,0 +1,18 @@
+{
+  "scope_base_sha": "3bf9acd3ad28093cba4d789f996e3ba1bcdab630",
+  "formal_source_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+  "tests_sha256": "95e26bfcb2737acacc03715d0bde7d7c393b69c9cfb6e6001ecc33c2445a9a54",
+  "red": {
+    "test_count": 38,
+    "subtest_failures": 4,
+    "status": "FAIL"
+  },
+  "green": {
+    "test_count": 38,
+    "status": "PASS",
+    "runtime": "macOS python3 actual execution"
+  },
+  "real_inference_after_failure": 0,
+  "full_rust_rerun": "NOT_RUN; Rust/UI product source unchanged",
+  "scope_review_file": "review.md"
+}

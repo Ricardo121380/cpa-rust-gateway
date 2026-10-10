@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "basic_sent": 1,
+  "basic_required": 54,
+  "complete_scenarios": 0,
+  "required_scenarios": 18,
+  "complete_combinations": 0,
+  "required_combinations": 6,
+  "batch_status": "FAIL",
+  "stop_reason": "formal_oracle_response_error_on_nullable_error",
+  "original_case_text_multi_turn_status": "NOT_RUN; execution_stopped; executed_turn_count=1",
+  "current_first_turn_response_boundary": "PASS; posthoc received material only",
+  "matrix": [
+    {
+      "protocol": "chat",
+      "mode": "json",
+      "pin_status": "NOT_RUN",
+      "text_multi_turn": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 3
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 4
+      },
+      "combination_status": "BLOCKED",
+      "remaining_reason": "batch_stop; no new authorization for any further real sends"
+    },
+    {
+      "protocol": "chat",
+      "mode": "sse",
+      "pin_status": "NOT_RUN",
+      "text_multi_turn": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 3
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 4
+      },
+      "combination_status": "BLOCKED",
+      "remaining_reason": "batch_stop; no new authorization for any further real sends"
+    },
+    {
+      "protocol": "messages",
+      "mode": "json",
+      "pin_status": "NOT_RUN",
+      "text_multi_turn": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 3
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 4
+      },
+      "combination_status": "BLOCKED",
+      "remaining_reason": "batch_stop; no new authorization for any further real sends"
+    },
+    {
+      "protocol": "messages",
+      "mode": "sse",
+      "pin_status": "NOT_RUN",
+      "text_multi_turn": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 3
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 4
+      },
+      "combination_status": "BLOCKED",
+      "remaining_reason": "batch_stop; no new authorization for any further real sends"
+    },
+    {
+      "protocol": "responses",
+      "mode": "json",
+      "pin_status": "PASS",
+      "text_multi_turn": {
+        "status": "FAIL",
+        "sent": 1,
+        "required": 3
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 4
+      },
+      "combination_status": "FAIL",
+      "remaining_reason": "batch_stop; no new authorization for any further real sends"
+    },
+    {
+      "protocol": "responses",
+      "mode": "sse",
+      "pin_status": "NOT_RUN",
+      "text_multi_turn": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 3
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "sent": 0,
+        "required": 4
+      },
+      "combination_status": "BLOCKED",
+      "remaining_reason": "batch_stop; no new authorization for any further real sends"
+    }
+  ]
+}
