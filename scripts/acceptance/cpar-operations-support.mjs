@@ -76,6 +76,7 @@ export async function operationsHarness(options){
       await page.fill('input[autocomplete="new-password"] >> nth=0',password);
       await page.fill('input[autocomplete="new-password"] >> nth=1',password);
       // Dismiss the observed macOS password suggestion before submitting.
+      await page.press('input[autocomplete="new-password"] >> nth=1',"Tab");
       await page.keyboard.press("Escape");
       await page.click('loc=role:button[name="保存并重新登录"]');
       await page.waitForSelector('input[name="username"]');

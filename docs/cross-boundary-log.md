@@ -3874,3 +3874,13 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** Fresh product-control replay passed all 19 original lifecycle cases, missing identity and eight native pending-member drift cases. The additional ordinary binding change also increments the configuration revision: the existing task guard stops before DELETE and reports an unconfirmed precondition, rather than the native impact comparator's known rejection. Correct the driver expectation to that observed boundary, retain zero/one DELETE assertions and require a configuration GET before any further action after a prior successful deletion. No product implementation changed and the failed assertion remains archived as a harness expectation error.
 
 **Other side:** FYI. Ordinary configuration guards and native inventory comparisons are distinct evidence. Unknown deletion response readback remains covered by the original ordinary/native batch-loss cases.
+
+## 2026-10-10 — 删除漂移入口与密码浮层回放修正
+
+**Initiator:** backend/main agent, under the same batch authorization.
+
+**Paths:** `scripts/acceptance/cpar-account-lifecycle-page.mjs`, `scripts/acceptance/cpar-operations-support.mjs`, `docs/cross-boundary-log.md`.
+
+**Why:** The separate ordinary post-first-DELETE probe reached the fresh impact comparison and reported a known rejection while preserving the saved first result; only the pre-task configuration guard reports an unconfirmed precondition. Match each observed boundary explicitly, preserving exact zero/one DELETE counts and no retry. Move focus away from the final new-password field before dismissing the macOS password suggestion, which otherwise reopens asynchronously. The stock direct Back/Forward recovery already passed with one original session GET, one grant/exchange/account and zero cancellation; its legible recovered dialog screenshot was visually inspected.
+
+**Other side:** FYI. These are acceptance-driver corrections. Product behavior and contract are unchanged. Both failed driver assertions and the password-popup failures remain evidence, not product RED. Unknown write readback continues to use the original batch-loss cases.

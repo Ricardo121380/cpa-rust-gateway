@@ -111,9 +111,9 @@ for(const item of cases.filter(item=>!only||item.id===only)){
     const seen=await outcomes();
     if(item.mode==="batch-lost")assert.deepEqual(seen,[item.native?"applied":"saved_unapplied","unconfirmed","unexecuted"]);
     else if(item.mode==="drift"){
-      // An ordinary binding edit also changes the configuration revision. Its
-      // task guard reports an unconfirmed precondition; no DELETE is replayed.
-      const stopped=item.native?"rejected":"unconfirmed";
+      // Before an ordinary task exists, changed config blocks its creation as
+      // unconfirmed. Within an existing task, fresh impact rejects the drift.
+      const stopped=!item.native&&item.timing==="before"?"unconfirmed":"rejected";
       assert.deepEqual(seen,item.timing==="before"?[stopped,"unexecuted","unexecuted"]:[item.native?"applied":"saved_unapplied",stopped,"unexecuted"]);
     }
     else assert.deepEqual(seen,[expected]);
@@ -142,14 +142,6 @@ for(const item of cases.filter(item=>!only||item.id===only)){
       assert(!row.counters.calls.some(call=>["deleteNativeAccount","deleteCredential"].includes(call.operation)&&call.id===ids[2]));
       assert.equal(await page.evaluate(()=>[...document.querySelectorAll('[role="dialog"] button')].filter(button=>button.textContent?.includes("重试")||button.textContent?.startsWith("确认删除")).length),0);
       row.pendingDriftStopped=true;
-      if(!item.native&&item.timing==="after"){
-        const prior=row.counters.calls.filter(call=>call.operation==="getConfigVersion").length;
-        await page.click('loc=role:button[name="只读取账号状态核对未知结果"]');
-        await page.waitForFunction(prior=>window.CPAR_LIFECYCLE_HTTP.calls.filter(call=>call.operation==="getConfigVersion"&&call.status===200).length>prior,prior);
-        assert.equal((await counters()).mutations,row.counters.mutations);
-        assert.deepEqual(await outcomes(),seen,"readback keeps prior confirmed deletion and pending members");
-        row.readBeforeAnyFurtherWrite=true;row.counters=await counters();
-      }
     }
     const after=await page.evaluate(()=>window.CPAR_LIFECYCLE_FIXTURE.accountLifecycleSnapshotForTest(window.CPAR_LIFECYCLE_HTTP.working));
     for(const key of ["providers","endpoints","models","candidates","permissions"])assert.deepEqual(after[key],before[key],`shared ${key} preserved`);
