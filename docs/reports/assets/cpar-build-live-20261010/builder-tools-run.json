@@ -1,0 +1,23 @@
+{
+  "started_at": "2026-10-10T09:46:12.748551+00:00",
+  "ended_at": "2026-10-10T09:47:55.593215+00:00",
+  "exit_code": 0,
+  "command": [
+    "docker",
+    "--context",
+    "colima-cpar-acceptance-20261010",
+    "build",
+    "--platform",
+    "linux/arm64",
+    "--target",
+    "toolchain",
+    "--progress",
+    "plain",
+    "--tag",
+    "cpar-acceptance-tools:20261010",
+    "output/cpar-build-live-20261010/builder-tools-context"
+  ],
+  "recipe_sha256": "26ea39d65b1f893aac9ce7a6e11f745a6a02e409d6c732bac9adc746803c2441",
+  "log_sha256": "5a1df7c87fc54791f9d8b558d98205e717232c842dc938acdd7c4e7e1f2f2ab3",
+  "default_context_not_activated": true
+}

@@ -1,0 +1,84 @@
+{
+  "result": "PASS",
+  "scope": "stock process / public HTTP / synthetic TLS loopback",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "mode": "disabled",
+      "result": "OBSERVED",
+      "checks": [],
+      "source_sha": "a3dc0c235f87b50685da72d0009d131d8e1118b5",
+      "binary_sha256": "1be2e32dcd12cdc7d2b409e9b2a3e639e7ba128f0d0209664a88da789b5ffd83",
+      "initial_pid": 20995,
+      "outside_loopback_denied": true,
+      "actual_serve_arguments": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+        "/usr/bin/env",
+        "DYLD_INSERT_LIBRARIES=/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-uc0s6rks/device-loopback.dylib",
+        "CPAR_DEVICE_LOOPBACK_PORT=50465",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
+        "serve",
+        "--state-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-uc0s6rks/state",
+        "--credential-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-uc0s6rks/credentials",
+        "--data-listen",
+        "127.0.0.1:50467",
+        "--management-listen",
+        "127.0.0.1:50466",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "seed_counts": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "pin_before_catalog": {
+        "http_status": 200,
+        "error_code": null,
+        "outcome": "succeeded",
+        "attempt_count": 1,
+        "upstream_sent": true,
+        "receiver_counts": {
+          "oauth_refresh": 0,
+          "oauth_events": 3,
+          "catalog": 0,
+          "inference": 1
+        }
+      },
+      "pin_after_catalog": {
+        "http_status": 200,
+        "error_code": null,
+        "outcome": "succeeded",
+        "attempt_count": 1,
+        "upstream_sent": true,
+        "receiver_counts": {
+          "oauth_refresh": 0,
+          "oauth_events": 3,
+          "catalog": 1,
+          "inference": 2
+        }
+      },
+      "public_inference_control": {
+        "http_status": 200,
+        "error_code": null,
+        "body_type": "dict",
+        "receiver_counts": {
+          "oauth_refresh": 0,
+          "oauth_events": 3,
+          "catalog": 1,
+          "inference": 3
+        }
+      },
+      "controller_exit_code": 0
+    }
+  ],
+  "driver_sha256": "e5809d541f0c85ccc421d8d4aac8370029b34b0814b22c335887903ef461d779",
+  "evidence_layer": "working-tree proof, source equality after commit verified",
+  "product_source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "fixture_sha256": "5ff57f72be4e907e2d376a79fc23384c58e44d17bc2319a32a8c1b63d3d06f55"
+}

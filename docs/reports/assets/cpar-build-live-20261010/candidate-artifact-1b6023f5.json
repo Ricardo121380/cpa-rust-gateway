@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T11:50:45.877494+00:00",
+  "product_source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "source_head_with_guard_fix": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_file": "1b6023f5/gateway-aarch64-unknown-linux-gnu",
+  "binary_bytes": 19500176,
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "elf_machine": 183,
+  "target": "aarch64-unknown-linux-gnu",
+  "embedded_revisions": [
+    "1b6023f52f4c00ea6d8296524d306c141e4edae7"
+  ],
+  "image_id": "sha256:436d5811a29917a624dd155d49501f6edb19d2ab62a1dcd308555923dea4b8e7",
+  "image_architecture": "arm64",
+  "toolchain_versions": [
+    "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "v25.8.0"
+  ],
+  "manifest_file_sha256": "20ef11961ca40d4dd659ae278c1e7ee629f9f70319f4a4b006d2d8685a5c9777",
+  "manifest_canonical_sha256": "ffaea62e61fa3c974d2e4a212556249ac2db10963657db9d078eb7e151de7d14",
+  "guard_source_commit": "a3dc0c235f87b50685da72d0009d131d8e1118b5",
+  "guard_source_sha256": "a15ba0d4eb1d198be3b762226b1560bdc06653b8f4b3bdd6e9f6c1b32107e75b",
+  "guard_sha256": "91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06",
+  "guard_bytes": 70904,
+  "guard_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/egress-guard-tcp.so",
+  "artifact_scope": "temporary local native ARM64 binary and build metadata; not a signed P12 release bundle",
+  "build_metadata_command": [
+    "ruby",
+    "scripts/p12-release-artifact.rb",
+    "build-metadata",
+    "--revision",
+    "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "--rust-toolchain",
+    "1.97.1",
+    "--target",
+    "aarch64-unknown-linux-gnu",
+    "--version",
+    "0.1.0",
+    "--output",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/artifact-1b6023f5/gateway-build-metadata.json"
+  ],
+  "guard_unchanged": true,
+  "repair_basis": "observed official stable CLI version drift; HTTP426 root cause remains NOT_PROVEN",
+  "runtime_started": false,
+  "real_provider_requests": 0
+}

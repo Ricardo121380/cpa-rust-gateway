@@ -1,0 +1,9 @@
+{
+  "raw_sha256": "84e2e715a6d70382ce0b8f8da92c837f746d3840c88122fbb58cebb625667632",
+  "raw_bytes": 697,
+  "archive": "background-process-working.raw.log.gz",
+  "archive_sha256": "3b7b62ca84c42dc0459cc15ba72bd01680a468db2d35f0ad9516c00b04d52588",
+  "archive_lossless": true,
+  "execution_receipt": "background-process-working-run.json",
+  "case_receipt": "background-process-working.json"
+}

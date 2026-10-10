@@ -1,0 +1,9 @@
+{
+  "combination": "responses-json",
+  "script_sha256": "69bf7d4377341b36f0888941aad6e1800120eb3a5eabcb59cec294df6fb21b44",
+  "started_at_utc": "2026-10-10T11:32:09.730203+00:00",
+  "finished_at_utc": "2026-10-10T11:32:13.977658+00:00",
+  "exit_code": 0,
+  "stdout_sha256": "22bb0ef1a469d677a98d5ca4b4ff317609fbc8582fc8a3296ff430ddd47a5ca7",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "source_baseline_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "scope": "working-tree minimum version/profile repair; full existing P6-03 synthetic oracle",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--package",
+    "provider-grok",
+    "--test",
+    "p6_03_build_responses"
+  ],
+  "started_at_utc": "2026-10-10T11:43:21.004839+00:00",
+  "finished_at_utc": "2026-10-10T11:43:26.558960+00:00",
+  "exit_code": 0,
+  "log_sha256": "ec754acc41c87765103923619a2613422a94e93ea75513e04beeabc8b6030763",
+  "real_provider_requests": 0
+}

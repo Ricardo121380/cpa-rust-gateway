@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "files": [
+    {
+      "status": "PASS",
+      "file": "bin/f346a03f/gateway-aarch64-unknown-linux-gnu",
+      "sha256": "3f56f63b129a7d78725783ae037add87be69127014f880d0c4e76f40be64134f",
+      "bytes": 19500176,
+      "mode": "0o700"
+    },
+    {
+      "status": "PASS",
+      "file": "private/build-metadata-f346a03f.json",
+      "sha256": "177fc1fcdde90a990e7524a12e9b6194fc10b8346e2c20019616dd3c32f36e41",
+      "bytes": 261,
+      "mode": "0o600"
+    },
+    {
+      "status": "PASS",
+      "file": "private/artifact-manifest-f346a03f.json",
+      "sha256": "2d88ed3a0510f8b16ce5be481822a8c1289fc09f91f2f07e91dda0a228ffcc36",
+      "bytes": 543,
+      "mode": "0o600"
+    },
+    {
+      "status": "PASS",
+      "file": "private/candidate-artifact-f346a03f.json",
+      "sha256": "19a373efa5f2a9c0d2d0f691e0605f621a3a593291a35d8d7ead0c6795de0bca",
+      "bytes": 2019,
+      "mode": "0o600"
+    }
+  ],
+  "existing_candidate_files_preserved": true,
+  "production_files_changed": false
+}

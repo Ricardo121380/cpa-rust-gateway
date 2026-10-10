@@ -1,0 +1,34 @@
+{
+  "endpoint": {
+    "error_type": "HTTPError"
+  },
+  "upstream": {
+    "id": "cpar-build-provider",
+    "name": "Isolated native Build",
+    "kind": "grok-build-native",
+    "enabled": true,
+    "tags": [],
+    "egress_policy_id": "cpar-build-fixed"
+  },
+  "route": {
+    "id": "cpar-build-route",
+    "public_model_id": "cpar-build-model",
+    "policy": "smooth_weighted_round_robin",
+    "max_attempts": 1,
+    "bootstrap_timeout_ms": 30000
+  },
+  "candidates": {
+    "error_type": "HTTPError"
+  },
+  "model": {
+    "id": "cpar-build-model",
+    "model_name": "grok-4.5",
+    "status": "active",
+    "display_name": "Authorized representative Build model",
+    "capabilities": {}
+  },
+  "channel_pin_action_counts": {
+    "channel_pin_requested": 1,
+    "channel_pin_started": 1
+  }
+}

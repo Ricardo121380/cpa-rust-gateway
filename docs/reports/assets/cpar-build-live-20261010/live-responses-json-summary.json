@@ -1,0 +1,15 @@
+{
+  "combination": "responses-json",
+  "observed_at_utc": "2026-10-10T11:32:13.643500+00:00",
+  "pin_http_status": 200,
+  "pin_outcome": "failed",
+  "pin_attempt_count": 1,
+  "pin_upstream_sent": true,
+  "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+  "source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "guard_sha256": "91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06",
+  "historical_presend_rejections": 1,
+  "basic_sent_requests": 0,
+  "status": "BLOCKED",
+  "category": "pin_not_successful"
+}

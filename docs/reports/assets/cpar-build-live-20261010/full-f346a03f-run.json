@@ -1,0 +1,22 @@
+{
+  "source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "command": [
+    "bash",
+    "scripts/check.sh",
+    "full"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/full-f346a03f-source",
+  "started_at": "2026-10-10T11:13:54.129064+00:00",
+  "cargo_build_jobs": 2,
+  "release_environment": "unset; repository default development",
+  "ended_at": "2026-10-10T11:20:44.135053+00:00",
+  "exit_code": 0,
+  "worktree_clean_after": true,
+  "log_sha256": "4adf7708f9ed755a7dced98b394105b05c0ca1d3c8e84ee2b3d4311fab2cefd8",
+  "gates_passed": 45,
+  "rust_passed": 1501,
+  "rust_failed": 0,
+  "rust_ignored": 12,
+  "archive_lossless": true,
+  "archive_sha256": "754cdd1226e8bd96de42b07f8e0f0ffb05832cd422378318aac7bc8e175d5073"
+}

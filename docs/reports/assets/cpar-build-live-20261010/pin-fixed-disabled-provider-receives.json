@@ -1,0 +1,29 @@
+[
+  {
+    "method": "POST",
+    "path": "/v1/responses",
+    "protocol": "grok-build-native",
+    "ordinal": 1,
+    "model": "grok-model",
+    "stream": false,
+    "has_tool_output": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/responses",
+    "protocol": "grok-build-native",
+    "ordinal": 2,
+    "model": "grok-model",
+    "stream": false,
+    "has_tool_output": false
+  },
+  {
+    "method": "POST",
+    "path": "/v1/responses",
+    "protocol": "grok-build-native",
+    "ordinal": 3,
+    "model": "grok-model",
+    "stream": true,
+    "has_tool_output": false
+  }
+]

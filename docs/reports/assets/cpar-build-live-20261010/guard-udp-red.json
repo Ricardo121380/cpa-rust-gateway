@@ -1,0 +1,18 @@
+{
+  "udp_443_admitted": true,
+  "expected_denied": false,
+  "datagrams_sent": 0,
+  "provider_http_requests": 0,
+  "oauth_http_requests": 0,
+  "status": "RED",
+  "observed_at_utc": "2026-10-10T10:25:11.295553+00:00",
+  "guard_sha256": "04d6021bbc525b77a758cbba73c3d017d9dc726e4dec0a0acc7e11fc6ea150dd",
+  "audit_events": [
+    {
+      "event": "dns_build_allowed"
+    },
+    {
+      "event": "connect_build_allowed"
+    }
+  ]
+}

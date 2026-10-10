@@ -1,0 +1,7 @@
+{
+  "error_code": "invalid_management_request",
+  "error_message": "Management request is invalid",
+  "configuration_id": "cpar-build-config-20261010",
+  "configuration_etag": "\"rev-9\"",
+  "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+}

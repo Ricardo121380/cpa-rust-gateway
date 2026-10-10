@@ -1,0 +1,22 @@
+{
+  "status": "EXPECTED_DRIFT_REPRODUCED",
+  "source_baseline_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "scope": "unchanged product, existing profile oracle updated to official stable1.0.50",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--package",
+    "provider-grok",
+    "--test",
+    "p6_03_build_responses",
+    "build_request_uses_the_current_cli_profile_and_exact_admitted_target",
+    "--",
+    "--exact"
+  ],
+  "started_at_utc": "2026-10-10T11:42:30.160305+00:00",
+  "finished_at_utc": "2026-10-10T11:42:38.720064+00:00",
+  "exit_code": 101,
+  "log_sha256": "a71a0ab56e80dfd8b7281da08e04af6f1f6a92132f36f7af73fe1dba28b3cfe4",
+  "real_provider_requests": 0
+}

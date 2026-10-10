@@ -1,0 +1,9 @@
+{
+  "raw_sha256": "df8161cbb0b78053c9dc16f87d76be377ccb620b8d910ade0a5aaaef3c797e68",
+  "raw_bytes": 1402,
+  "archive": "background-process-ordered-clocks.raw.log.gz",
+  "archive_sha256": "522d925b807e953741442760081b7a26f785e22c124bfeceef0f1d9b088b79fe",
+  "archive_lossless": true,
+  "execution_receipt": "background-process-ordered-clocks-run.json",
+  "case_receipt": "background-process-ordered-clocks.json"
+}

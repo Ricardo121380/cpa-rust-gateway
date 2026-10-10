@@ -1,0 +1,51 @@
+{
+  "account_id_shape": {
+    "length": 37,
+    "ascii": true,
+    "allowed_chars_ascii_identifier": true,
+    "evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+  },
+  "account_metadata": {
+    "revision": 133,
+    "enabled": 1,
+    "auth_status": "active",
+    "provider": "build"
+  },
+  "action_tables": [
+    {
+      "table": "management_audit_events",
+      "columns": [
+        "id",
+        "action",
+        "actor",
+        "occurred_at_ms",
+        "config_version_id",
+        "replaced_config_version_id"
+      ]
+    },
+    {
+      "table": "management_resource_audit_events",
+      "columns": [
+        "id",
+        "action",
+        "actor",
+        "occurred_at_ms",
+        "config_version_id",
+        "resource_kind",
+        "resource_id"
+      ]
+    },
+    {
+      "table": "stored_response_compactions",
+      "columns": [
+        "client_key_id",
+        "compact_id",
+        "created_at_ms",
+        "expires_at_ms",
+        "payload_version",
+        "key_version",
+        "ciphertext"
+      ]
+    }
+  ]
+}

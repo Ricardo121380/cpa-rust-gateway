@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T11:15:09.871609+00:00",
+  "product_source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "source_head_with_guard_fix": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "binary_file": "f346a03f/gateway-aarch64-unknown-linux-gnu",
+  "binary_bytes": 19500176,
+  "binary_sha256": "3f56f63b129a7d78725783ae037add87be69127014f880d0c4e76f40be64134f",
+  "elf_machine": 183,
+  "target": "aarch64-unknown-linux-gnu",
+  "embedded_revisions": [
+    "f346a03f912b150006a288c38087550bb3d04cb0"
+  ],
+  "image_id": "sha256:a75e34ff5d923191b1d05bf323ba1e6883c6d4e0361cd4be615ca4627a297926",
+  "image_architecture": "arm64",
+  "toolchain_versions": [
+    "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "v25.8.0"
+  ],
+  "manifest_file_sha256": "2d88ed3a0510f8b16ce5be481822a8c1289fc09f91f2f07e91dda0a228ffcc36",
+  "manifest_canonical_sha256": "3741ac58e8ee2bdbdb5331fe0ec6107446c00db978431ec3d9e6e469a2228ae4",
+  "guard_source_commit": "a3dc0c235f87b50685da72d0009d131d8e1118b5",
+  "guard_source_sha256": "a15ba0d4eb1d198be3b762226b1560bdc06653b8f4b3bdd6e9f6c1b32107e75b",
+  "guard_sha256": "91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06",
+  "guard_bytes": 70904,
+  "guard_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/egress-guard-tcp.so",
+  "artifact_scope": "temporary local native ARM64 binary and build metadata; not a signed P12 release bundle",
+  "build_metadata_command": [
+    "ruby",
+    "scripts/p12-release-artifact.rb",
+    "build-metadata",
+    "--revision",
+    "f346a03f912b150006a288c38087550bb3d04cb0",
+    "--rust-toolchain",
+    "1.97.1",
+    "--target",
+    "aarch64-unknown-linux-gnu",
+    "--version",
+    "0.1.0",
+    "--output",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/artifact-f346a03f/gateway-build-metadata.json"
+  ],
+  "repair_basis": "native Channel Pin reads scheduler snapshot; initial Pin was proved before-send rejection",
+  "guard_unchanged": true
+}

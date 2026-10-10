@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T10:26:29.174800+00:00",
+  "guard_source_commit": "a3dc0c235f87b50685da72d0009d131d8e1118b5",
+  "guard_source_sha256": "a15ba0d4eb1d198be3b762226b1560bdc06653b8f4b3bdd6e9f6c1b32107e75b",
+  "guard_sha256": "91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06",
+  "guard_bytes": 70904,
+  "guard_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/egress-guard-tcp.so",
+  "compile_command": [
+    "cc",
+    "-fPIC",
+    "-shared",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-o",
+    "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/egress-guard-tcp.so",
+    "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/egress-guard-tcp.c",
+    "-ldl",
+    "-lpthread"
+  ],
+  "controls": {
+    "loopback_connect": true,
+    "oauth_dns_denied": true,
+    "other_dns_denied": true,
+    "unresolved_remote_tcp_denied": true,
+    "build_udp_443_denied": true,
+    "build_dns_resolved": true,
+    "provider_http_requests": 0,
+    "oauth_http_requests": 0,
+    "udp_datagrams_sent": 0
+  },
+  "audit_events": [
+    {
+      "event": "dns_oauth_denied"
+    },
+    {
+      "event": "dns_other_denied"
+    },
+    {
+      "event": "connect_other_denied"
+    },
+    {
+      "event": "dns_build_allowed"
+    },
+    {
+      "event": "connect_other_denied"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "status": "RETAINED_HELPER_FAILURES",
+  "no_additional_provider_requests": true,
+  "failures": [
+    {
+      "step": "first closed Pin diagnostic projection",
+      "error": "sqlite3.OperationalError: no such column: event_kind",
+      "repair": "read PRAGMA table_info and use event_type",
+      "production_or_provider_mutation": false
+    },
+    {
+      "step": "initial native source comparator scope",
+      "receipts": [
+        "native-source-unfiltered-f346a03f-failure.json",
+        "native-source-incomplete-exclusions-f346a03f-failure.json"
+      ],
+      "repair": "apply actual .dockerignore exclusions; compare all 4916 admitted tracked files",
+      "product_defect": false
+    },
+    {
+      "step": "first post-profile native source inspection",
+      "error": "Node image default entrypoint interpreted python3 as /src/python3; module not found",
+      "repair": "explicit /bin/sh entrypoint, stdin null-delimited sha256sum --zero, network none",
+      "provider_requests": 0,
+      "product_defect": false
+    }
+  ]
+}

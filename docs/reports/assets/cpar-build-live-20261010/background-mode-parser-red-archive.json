@@ -1,0 +1,8 @@
+{
+  "raw_sha256": "c9bb9ea7d7c96042aa4b63f529728dfb54bd83a29ee6eeee820af89f2ff346b6",
+  "raw_bytes": 2017,
+  "archive": "background-mode-parser-red.raw.log.gz",
+  "archive_sha256": "a7de20aadf7be77bf5c2da117e38d365b3b13841ce4a528e3b6070119eff14f0",
+  "archive_lossless": true,
+  "execution_receipt": "background-mode-parser-red-receipt.json"
+}

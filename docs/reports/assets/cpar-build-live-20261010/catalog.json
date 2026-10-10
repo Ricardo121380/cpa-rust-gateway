@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T10:47:24.156235+00:00",
+  "http_status": 200,
+  "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+  "source_sha": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "binary_sha256": "2bbf6a93420d5df13daf01c07dbbc25ac6f860b55a23fb87a97f22eb73a7c350",
+  "pid": 1977876,
+  "catalog_intents": 1,
+  "inference_intents": 0,
+  "oauth_requests": 0,
+  "quota_requests": 0,
+  "cost_policy": "UNLIMITED_USER_EXPLICIT",
+  "manifest_matches": true,
+  "manifest_sha256": "15b8b92b0a3c6b666d39b00ca65ebf685bd0357c6517e228fbfe4d90f5f031fa",
+  "saved_model_count": 4,
+  "allowed_models_present": [
+    "grok-4.5",
+    "grok-4.6",
+    "grok-4.7"
+  ],
+  "selected_model": "grok-4.5",
+  "egress_event_counts": {
+    "connect_build_allowed": 1,
+    "dns_build_allowed": 1
+  },
+  "egress_events_are_not_http_receive_counts": true
+}

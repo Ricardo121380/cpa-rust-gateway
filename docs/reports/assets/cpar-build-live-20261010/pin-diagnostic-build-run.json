@@ -1,0 +1,10 @@
+{
+  "started_at": "2026-10-10T11:05:56.563613+00:00",
+  "ended_at": "2026-10-10T11:06:24.480234+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "diagnostic_only": true,
+  "source_base": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "same_lockfile_dependency_reuse": true,
+  "binary_sha256": "c88d6b376b8a15b24f9a4e74c0c6a68d21e469a7ecd86fbd2eba8d9c7533fdc8"
+}

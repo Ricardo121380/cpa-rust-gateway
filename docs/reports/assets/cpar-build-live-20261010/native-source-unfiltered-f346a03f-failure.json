@@ -1,0 +1,10 @@
+{
+  "status": "FAIL",
+  "source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "tracked_files_checked": 5121,
+  "native_source_tree_equals_exact_commit": false,
+  "local_tracked_tree_clean": true,
+  "source_hash_manifest_sha256": "cf199ef35437f0f9a3731d8439b16abfdb7579f00a95908889dba3f3fd3e802c",
+  "network": "none",
+  "observed_at_utc": "2026-10-10T11:15:42.897322+00:00"
+}

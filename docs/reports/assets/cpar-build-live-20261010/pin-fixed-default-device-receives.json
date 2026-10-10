@@ -1,0 +1,61 @@
+{
+  "events": [
+    {
+      "host": "auth.x.ai",
+      "path": "/oauth2/device/code",
+      "channel": "grok.build",
+      "content_type": "application/x-www-form-urlencoded",
+      "field_names": [
+        "client_id",
+        "scope"
+      ]
+    },
+    {
+      "host": "auth.x.ai",
+      "path": "/oauth2/token",
+      "channel": "grok.build",
+      "content_type": "application/x-www-form-urlencoded",
+      "field_names": [
+        "client_id",
+        "device_code",
+        "grant_type"
+      ]
+    },
+    {
+      "host": "auth.x.ai",
+      "path": "/oauth2/userinfo",
+      "method": "GET"
+    },
+    {
+      "host": "auth.x.ai",
+      "path": "/oauth2/token",
+      "channel": "grok.build",
+      "content_type": "application/x-www-form-urlencoded",
+      "field_names": [
+        "client_id",
+        "grant_type",
+        "refresh_token"
+      ]
+    },
+    {
+      "host": "auth.x.ai",
+      "path": "/oauth2/token",
+      "channel": "grok.build",
+      "content_type": "application/x-www-form-urlencoded",
+      "field_names": [
+        "client_id",
+        "grant_type",
+        "refresh_token"
+      ]
+    }
+  ],
+  "refresh_requests": 2,
+  "sessions": [
+    {
+      "ordinal": 1,
+      "channel": "grok.build",
+      "mode": "success",
+      "token_requests": 1
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T09:51:32.969646+00:00",
+  "exit_code": 0,
+  "stderr": "",
+  "source_sha256": "696be172f8105c5fe150feceb13c78a066fa9520b15fc7e0bc88d4a6cbd1e7c8",
+  "guard_sha256": "04d6021bbc525b77a758cbba73c3d017d9dc726e4dec0a0acc7e11fc6ea150dd",
+  "controls": {
+    "loopback_connect": true,
+    "oauth_dns_denied": true,
+    "other_dns_denied": true,
+    "unresolved_remote_socket_denied": true,
+    "build_dns_resolved": true,
+    "provider_http_requests": 0,
+    "oauth_http_requests": 0
+  },
+  "audit_events": [
+    {
+      "event": "dns_oauth_denied"
+    },
+    {
+      "event": "dns_other_denied"
+    },
+    {
+      "event": "connect_other_denied"
+    },
+    {
+      "event": "dns_build_allowed"
+    }
+  ]
+}

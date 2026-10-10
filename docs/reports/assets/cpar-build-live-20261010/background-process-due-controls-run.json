@@ -1,0 +1,14 @@
+{
+  "started_at": "2026-10-10T09:45:34.521857+00:00",
+  "ended_at": "2026-10-10T09:45:43.999767+00:00",
+  "exit_code": 1,
+  "command": [
+    "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "scripts/acceptance/cpar-background-provider-process.py",
+    "output/cpar-build-live-20261010/background-process-due-controls"
+  ],
+  "source_head": "82a1f69861300456cca7df779ee07949d043c84b",
+  "binary_sha256": "4ab76bfeb6fc9f9374680113b613cec4cd943cd23e22f790c60209456d9d3707",
+  "driver_sha256": "47292ae9a63b5655cafc3c25eb01213ddc9e806bbc0ba6c43b1d859dd4d4b68c",
+  "log_sha256": "d1c3425eb8543e0b05b32e51d76119f403e6b38d5ad31f84dcc482609dc6fbd7"
+}

@@ -1,0 +1,24 @@
+{
+  "source_sha": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "baseline": "82a1f69861300456cca7df779ee07949d043c84b",
+  "full_pass_source": "fb96f23c832a8fef2a91b70edd5769d622185ce0",
+  "full_reuse_basis": "only synthetic receipt writer changed; apps/crates/Cargo/web/deploy diff empty",
+  "owned_paths": [
+    "apps/gateway/src/deployment.rs",
+    "apps/gateway/src/main.rs",
+    "scripts/acceptance/README.md",
+    "scripts/acceptance/cpar_seo_ui_http.py",
+    "scripts/acceptance/cpar-background-provider-process.py",
+    "scripts/acceptance/cpar-build-egress-guard.c"
+  ],
+  "sha256": {
+    "apps/gateway/src/deployment.rs": "a6bd8202a43ee064b98bd37d6442ae8c9f6ef76e75f06ad152ce066530785264",
+    "apps/gateway/src/main.rs": "8102975bb7d986509de933a2c8f47c2df38c08c84d4296178d81f90fe4445266",
+    "scripts/acceptance/README.md": "877bf4a9ea4c0fe145a5bb63f060da28a31a629f123cf703d49b64a0d6b5a5c5",
+    "scripts/acceptance/cpar_seo_ui_http.py": "567137dc31c533e36b32a1961336580d846ca2304160beb12cca8ba570560abf",
+    "scripts/acceptance/cpar-background-provider-process.py": "72ec9feb727650b525a2221c229f7a5675a42419ca0377291117172791b4835d",
+    "scripts/acceptance/cpar-build-egress-guard.c": "696be172f8105c5fe150feceb13c78a066fa9520b15fc7e0bc88d4a6cbd1e7c8"
+  },
+  "source_archive_sha256": "400f4889a70839119a808142ccb4780ea164bc3af3ec5a59ae5e2695efa42ccc",
+  "agentes_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+}

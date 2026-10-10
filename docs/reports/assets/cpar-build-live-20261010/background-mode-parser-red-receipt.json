@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "cargo",
+    "test",
+    "--locked",
+    "--package",
+    "gateway",
+    "serve_parser_accepts_only_explicit_background_provider_task_modes",
+    "--",
+    "--nocapture"
+  ],
+  "started_at_utc": "2026-10-10T09:25:52.497676+00:00",
+  "finished_at_utc": "2026-10-10T09:26:16.858065+00:00",
+  "exit_code": 101,
+  "source_head": "82a1f69861300456cca7df779ee07949d043c84b",
+  "source_dirty": true,
+  "deployment_file_sha256": "a9b62551eb1a0e410f11571a101754cefa13620d746bc957aea4518011b37a9b",
+  "raw_log": "output/cpar-build-live-20261010/background-mode-parser-red.log",
+  "raw_log_sha256": "c9bb9ea7d7c96042aa4b63f529728dfb54bd83a29ee6eeee820af89f2ff346b6",
+  "real_provider_calls": 0
+}

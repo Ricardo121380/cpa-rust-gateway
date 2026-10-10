@@ -1,0 +1,9 @@
+{
+  "raw_sha256": "d1c3425eb8543e0b05b32e51d76119f403e6b38d5ad31f84dcc482609dc6fbd7",
+  "raw_bytes": 503,
+  "archive": "background-process-due-controls.raw.log.gz",
+  "archive_sha256": "0970147860c4050f5fc5ebca608ce07b740f933c37dcaeb0b4f3fa34df920676",
+  "archive_lossless": true,
+  "execution_receipt": "background-process-due-controls-run.json",
+  "case_receipt": "background-process-due-controls.json"
+}

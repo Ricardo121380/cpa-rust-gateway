@@ -1,0 +1,74 @@
+{
+  "result": "FAIL",
+  "scope": "stock process / public HTTP / synthetic TLS loopback",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "mode": "default",
+      "result": "FAIL",
+      "checks": [],
+      "source_sha": "82a1f69861300456cca7df779ee07949d043c84b",
+      "binary_sha256": "4ab76bfeb6fc9f9374680113b613cec4cd943cd23e22f790c60209456d9d3707",
+      "initial_pid": 85340,
+      "outside_loopback_denied": true,
+      "actual_serve_arguments": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+        "/usr/bin/env",
+        "DYLD_INSERT_LIBRARIES=/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-pkyy24sz/device-loopback.dylib",
+        "CPAR_DEVICE_LOOPBACK_PORT=54158",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
+        "serve",
+        "--state-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-pkyy24sz/state",
+        "--credential-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-pkyy24sz/credentials",
+        "--data-listen",
+        "127.0.0.1:54160",
+        "--management-listen",
+        "127.0.0.1:54159"
+      ],
+      "seed_counts": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "after_first_publication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 1,
+        "inference": 0
+      },
+      "restarted_pid": 85381,
+      "after_startup": {
+        "oauth_refresh": 1,
+        "oauth_events": 4,
+        "catalog": 1,
+        "inference": 0
+      },
+      "startup_account": {
+        "revision": 1,
+        "refresh_due_at_ms": 1791628941975,
+        "claim": null
+      },
+      "after_republication": {
+        "oauth_refresh": 1,
+        "oauth_events": 4,
+        "catalog": 2,
+        "inference": 0
+      },
+      "observed_worker_interval_seconds": 65.0363065,
+      "after_worker_interval": {
+        "oauth_refresh": 2,
+        "oauth_events": 5,
+        "catalog": 2,
+        "inference": 0
+      },
+      "error": "HTTP Error 502: Bad Gateway",
+      "controller_exit_code": 0
+    }
+  ],
+  "driver_sha256": "901e851c2aae63266ab714bdecdf3d3a713114599ff12329818812365f58795d"
+}

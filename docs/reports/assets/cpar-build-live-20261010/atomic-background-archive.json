@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "source_sha": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "real_provider_requests": 0,
+  "files": {
+    "atomic-background.log": "13e6abadc955f6dd1fa8c123b3ab6872fdfd43b32180924cdf8e07a9af2d93ce",
+    "atomic-background-run.json": "b1a9c558e9c76866f74b0f946af7a6ca618aed5e96bcdef6d81dedb5c6ccb015",
+    "atomic-background.json": "5bf066624eb76b0d41a57365cce1f6fae5f7e87036a5e09c0589b7cb5f711a84",
+    "atomic-default-provider-receives.json": "f6fd430d1325c572fb6ed25bb767ae0987401b27767927851d1f54bdd0bd7caf",
+    "atomic-default-device-receives.json": "b0700af85461e14e8ad2d3e15cd8792cfc1211c1c4f53982cf9a5368880f8836",
+    "atomic-default-network-sandbox.json": "0b0531c756109082b7ea09ac71871f1de81a16a4bad1d4fead7cb894b9f1917d",
+    "atomic-disabled-provider-receives.json": "1591e1507a720f33cf7db475039834ad41092c7ae9bb0118806117f7bc2865b3",
+    "atomic-disabled-device-receives.json": "0939132d31895e225490b416cfecc6d4c2f6fdea8d27cbfac675f80003ef9f8a",
+    "atomic-disabled-network-sandbox.json": "0b0531c756109082b7ea09ac71871f1de81a16a4bad1d4fead7cb894b9f1917d"
+  }
+}

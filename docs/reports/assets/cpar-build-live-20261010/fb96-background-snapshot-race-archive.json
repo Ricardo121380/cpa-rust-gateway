@@ -1,0 +1,10 @@
+{
+  "failure_class": "HARNESS_SNAPSHOT_WRITE_RACE",
+  "product_inference_result": "default PASS; disabled background observed zero before JSON read error",
+  "files": {
+    "fb96-background-snapshot-race.log": "6bbd2d911660123f0a1cb9623c8d855139d0bb84d23e74a2015e143d88c192c5",
+    "fb96-background-snapshot-race-run.json": "1e10593922f1c32ec81dc215641ce98082a079c9564c81d43c180a265d37548a",
+    "fb96-background-snapshot-race.json": "39c31eeda338e435e5ce90a164c1304a112803745529b421e93c537d7d3933dd"
+  },
+  "real_provider_requests": 0
+}

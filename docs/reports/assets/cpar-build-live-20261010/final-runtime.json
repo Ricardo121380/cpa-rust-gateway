@@ -1,0 +1,140 @@
+{
+  "cleanup_status": "PASS",
+  "real_acceptance_status": "BLOCKED",
+  "observed_at_utc": "2026-10-10T11:35:19.149238+00:00",
+  "candidate_service": "cpar-build-acceptance-20261010.service",
+  "candidate_pid_before_stop": 2031518,
+  "candidate_pid_after_stop": 0,
+  "candidate_ports_absent": true,
+  "product_source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "binary_sha256": "3f56f63b129a7d78725783ae037add87be69127014f880d0c4e76f40be64134f",
+  "guard_sha256": "91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06",
+  "production_before": {
+    "MainPID": "499070",
+    "NRestarts": "0",
+    "ExecMainStartTimestampMonotonic": "5514090365162",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+    "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+    "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+    "caddyfile_sha256": "bfede78bae3c2bb4d120bcbd08924c0ba564fa3a1a02d8edda37a9004f9b945e"
+  },
+  "production_after": {
+    "MainPID": "499070",
+    "NRestarts": "0",
+    "ExecMainStartTimestampMonotonic": "5514090365162",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+    "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+    "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+    "caddyfile_sha256": "bfede78bae3c2bb4d120bcbd08924c0ba564fa3a1a02d8edda37a9004f9b945e"
+  },
+  "production_active_configuration": {
+    "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+    "revision": "rev-1",
+    "status": "active"
+  },
+  "candidate_active_configuration": {
+    "id": "cpar-build-config-20261010",
+    "revision": "rev-9",
+    "status": "active"
+  },
+  "pin": {
+    "outcome": "failed",
+    "attempt_count": 1,
+    "upstream_sent": true,
+    "response_started": false,
+    "stage": "http_transport",
+    "observed_at_ms": 1791631933328,
+    "runtime_build": "f346a03f912b150006a288c38087550bb3d04cb0:1.97.1:development",
+    "credential_revision": 133,
+    "runtime_credential_revision": 134,
+    "requested_model": "grok-4.5",
+    "protocol": "openai_responses",
+    "mode": "json",
+    "request_evidence_id": "9562edcb5c3db9cdf4636f6960e60dc6dfeb596072375c423d879bd8ff6ba8cd",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+    "execution": {
+      "attempt_evidence_id": "094603584279e46121530f075d9ec044fb9f0058d9e96db75fef92199631ccb7",
+      "route_candidate_id": "cpar-build-candidate",
+      "upstream_model": "grok-4.5",
+      "identity": {
+        "capabilities": {
+          "compact": true,
+          "continuation": true,
+          "parallel": false,
+          "reasoning": true,
+          "stored": true,
+          "websocket": true
+        },
+        "channel": "grok.build",
+        "config_revision": 9,
+        "config_version_id": "cpar-build-config-20261010",
+        "credential_revision": 134,
+        "egress": {
+          "kind": "direct"
+        }
+      }
+    }
+  },
+  "closed_provider_rejections": [
+    {
+      "event": "grok_build_http_rejection",
+      "request_evidence_id": "9562edcb5c3db9cdf4636f6960e60dc6dfeb596072375c423d879bd8ff6ba8cd",
+      "upstream_status": 426,
+      "body_kind": "object",
+      "signal": "Unrecognized"
+    }
+  ],
+  "private_pin_sha256": "0ffee5b580c6c95b33a0c3248c22808fd4d53ac6c6ab0cc17eca4529b16602d8",
+  "private_log_sha256": "558d5e63e2f5659198574a894d7c7b29331711051066695b8630c595e9bb24d4",
+  "catalog_get_requests": 1,
+  "provider_pin_admission_intents": 1,
+  "protected_pin_attempts": 1,
+  "basic_inference_requests": 0,
+  "historical_management_presend_rejections": 1,
+  "historical_provider_inference_requests": 0,
+  "remaining_combinations_not_run": [
+    "responses-sse",
+    "chat-json",
+    "chat-sse",
+    "messages-json",
+    "messages-sse"
+  ],
+  "budget_stopped": true,
+  "old_budget_preserved_sha256": "546a4ce97863b8cfd5cf4af8e5a472ce8470f7596e174678fa96c441afc22eed",
+  "repaired_budget_sha256": "f8d44ed3ffca33aed68750faf6acd1ca723b0dc8abb4706935d1f245dffa9031",
+  "egress_audit_counts": {
+    "dns_build_allowed": 2,
+    "connect_build_allowed": 2
+  },
+  "egress_audit_sha256": "9a5bb5a1ae6072cfa3fbc49fcf7d8a9c8755e5b185b3be9d85e50c3370361b41",
+  "server_http_receive_count_claim": false,
+  "retries": 0,
+  "fallbacks": 0,
+  "extensions": 0,
+  "reruns": 0,
+  "oauth": 0,
+  "automatic_catalog": 0,
+  "quota_queries": 0,
+  "gateway_event_counts": {},
+  "channel_pin_resource_actions": {
+    "channel_pin_requested": 2,
+    "channel_pin_started": 2
+  },
+  "basic_usage_and_ledger_qualification": "NOT_RUN",
+  "native_account_state_unchanged": true,
+  "private_material_retained": true,
+  "private_material_mode_check": "PASS",
+  "production_writes_by_task": 0,
+  "billing_amount": {
+    "status": "NOT_PROVEN",
+    "cost_policy": "UNLIMITED_USER_EXPLICIT",
+    "amount_claimed": null
+  }
+}

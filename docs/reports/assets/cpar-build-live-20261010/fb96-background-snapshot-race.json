@@ -1,0 +1,147 @@
+{
+  "result": "FAIL",
+  "scope": "stock process / public HTTP / synthetic TLS loopback",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "mode": "default",
+      "result": "PASS",
+      "checks": [
+        "startup refresh mode",
+        "publication catalog mode",
+        "republication subscription mode",
+        "actual one-minute worker mode",
+        "explicit public inference retained",
+        "owned restart and OS deny"
+      ],
+      "source_sha": "fb96f23c832a8fef2a91b70edd5769d622185ce0",
+      "binary_sha256": "874e3770523954162866682102774aeecb59af997f4ee9451998d108c92ee715",
+      "initial_pid": 6519,
+      "outside_loopback_denied": true,
+      "actual_serve_arguments": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+        "/usr/bin/env",
+        "DYLD_INSERT_LIBRARIES=/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-691t23ez/device-loopback.dylib",
+        "CPAR_DEVICE_LOOPBACK_PORT=58321",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
+        "serve",
+        "--state-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-691t23ez/state",
+        "--credential-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-691t23ez/credentials",
+        "--data-listen",
+        "127.0.0.1:58323",
+        "--management-listen",
+        "127.0.0.1:58322"
+      ],
+      "seed_counts": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "after_first_publication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 1,
+        "inference": 0
+      },
+      "restarted_pid": 6588,
+      "after_startup": {
+        "oauth_refresh": 1,
+        "oauth_events": 4,
+        "catalog": 1,
+        "inference": 0
+      },
+      "startup_account": {
+        "revision": 1,
+        "refresh_due_at_ms": 1791630290226,
+        "claim": null
+      },
+      "after_republication": {
+        "oauth_refresh": 1,
+        "oauth_events": 4,
+        "catalog": 2,
+        "inference": 0
+      },
+      "observed_worker_interval_seconds": 65.045211959,
+      "after_worker_interval": {
+        "oauth_refresh": 2,
+        "oauth_events": 5,
+        "catalog": 2,
+        "inference": 0
+      },
+      "after_explicit_inference": {
+        "oauth_refresh": 2,
+        "oauth_events": 5,
+        "catalog": 2,
+        "inference": 1
+      },
+      "controller_exit_code": 0
+    },
+    {
+      "mode": "disabled",
+      "result": "FAIL",
+      "checks": [],
+      "source_sha": "fb96f23c832a8fef2a91b70edd5769d622185ce0",
+      "binary_sha256": "874e3770523954162866682102774aeecb59af997f4ee9451998d108c92ee715",
+      "initial_pid": 6811,
+      "outside_loopback_denied": true,
+      "actual_serve_arguments": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+        "/usr/bin/env",
+        "DYLD_INSERT_LIBRARIES=/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-7fafzzkv/device-loopback.dylib",
+        "CPAR_DEVICE_LOOPBACK_PORT=58491",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
+        "serve",
+        "--state-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-7fafzzkv/state",
+        "--credential-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-7fafzzkv/credentials",
+        "--data-listen",
+        "127.0.0.1:58493",
+        "--management-listen",
+        "127.0.0.1:58492",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "seed_counts": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "after_first_publication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "restarted_pid": 6828,
+      "after_startup": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "startup_account": {
+        "revision": 0,
+        "refresh_due_at_ms": 0,
+        "claim": null
+      },
+      "after_republication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "error": "Expecting value: line 1 column 1 (char 0)",
+      "controller_exit_code": 0
+    }
+  ],
+  "driver_sha256": "72ec9feb727650b525a2221c229f7a5675a42419ca0377291117172791b4835d"
+}

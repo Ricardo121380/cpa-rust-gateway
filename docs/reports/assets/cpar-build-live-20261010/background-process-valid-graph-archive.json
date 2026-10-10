@@ -1,0 +1,9 @@
+{
+  "raw_sha256": "cc9e9d935f8dada9290d0eb054f4ce510f5c8b68cbe8cedb85729e0c27033845",
+  "raw_bytes": 930,
+  "archive": "background-process-valid-graph.raw.log.gz",
+  "archive_sha256": "1782b59a59b403047c7064ea076320d63ca8fb580ff43aae0411a523101aa71c",
+  "archive_lossless": true,
+  "execution_receipt": "background-process-valid-graph-run.json",
+  "case_receipt": "background-process-valid-graph.json"
+}

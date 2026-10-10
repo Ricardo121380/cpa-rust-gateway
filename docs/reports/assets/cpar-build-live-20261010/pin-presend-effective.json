@@ -1,0 +1,67 @@
+{
+  "endpoints": [
+    {
+      "id": "cpar-build-endpoint",
+      "upstream_id": "cpar-build-provider",
+      "enabled": true,
+      "adapter_id": "grok.build.responses",
+      "api_format": "openai/responses"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "cpar-build-candidate",
+      "route_id": "cpar-build-route",
+      "endpoint_id": "cpar-build-endpoint",
+      "upstream_model": "grok-4.5",
+      "credential_scope": "all_active",
+      "transform_mode": "canonical_bridge",
+      "enabled": true,
+      "capability_override": {
+        "allow_unlisted_model": true
+      }
+    }
+  ],
+  "effective": {
+    "observed_at_ms": 1791630173263,
+    "items": [
+      {
+        "id": "grok-4.5",
+        "name": null,
+        "route_id": "cpar-build-route",
+        "sources": [
+          {
+            "capability_evidence": {
+              "source": "serving_snapshot",
+              "config_version_id": "cpar-build-config-20261010",
+              "config_revision": 9,
+              "capabilities": {
+                "reasoning": true,
+                "parallel": false,
+                "stored": true,
+                "continuation": true,
+                "compact": true,
+                "websocket": true
+              }
+            },
+            "candidate_id": "cpar-build-candidate",
+            "endpoint_id": "cpar-build-endpoint",
+            "upstream_id": "cpar-build-provider",
+            "api_format": "openai/responses",
+            "catalog_admission": "fresh",
+            "catalog_evidence": [
+              {
+                "version": 1,
+                "observed_at_ms": 1791629244152,
+                "stale_at_ms": 1791650844152,
+                "expires_at_ms": 1791888444152,
+                "catalog_eligible": true,
+                "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

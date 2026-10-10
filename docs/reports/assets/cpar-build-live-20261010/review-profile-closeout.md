@@ -1,0 +1,9 @@
+# Grok Build profile successor review
+
+Reviewed increment: `f346a03f912b150006a288c38087550bb3d04cb0..1b6023f52f4c00ea6d8296524d306c141e4edae7`.
+
+The independent Standards review was read-only and covered exactly four paths: the Build request constants, their existing request-construction test, the BC-PROVIDER-003 contract, and the public source receipt. It returned **Standards PASS**, hard findings 0 (P1–P4 all 0), and smell findings 0. It verified that the change is limited to the version header and matching User-Agent, preserves the fixed platform and all other headers, adds no dependency or strategy, and stays within backend ownership. The test continues to exercise the actual outbound request builder and exact egress handoff.
+
+The Spec assessment is **PASS for this bounded increment**. The official stable pointer and installer fallback both read `1.0.50`; the pinned official sampler source documents the version header as a proxy version-gating input and the versioned shell User-Agent. The repository now sends the two versions as one pair and preserves the existing endpoint, token-auth, client identifier/mode, authenticate-response header, model override, correlation headers, egress admission, and retry policy. Public source version `1.0.45`, shipping version injection, and the missing stable-binary-to-source mapping are recorded separately; the pointer is not treated as a binary hash.
+
+This review does not establish that the real HTTP426 was caused by version gating or that the successor fixes it. The real run used f346a03f and stopped after one failed Pin with basic inference 0; no real request was replayed with 1.0.50. The existing RED (old version oracle) and GREEN (19-case synthetic P6-03 oracle) remain separate evidence. Full 45/45 and ARM64 candidate preparation are local artifact evidence, not Provider, signed release, remote CI, or production acceptance.

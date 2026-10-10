@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T10:38:05.209817+00:00",
+  "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+  "source_pid": 499070,
+  "source_schema": 31,
+  "candidate_schema": 34,
+  "source_native_revision": 133,
+  "copied_native_revision": 133,
+  "source_enabled": true,
+  "source_auth_status": "active",
+  "source_expiry_observation_ms": 1791647802393,
+  "source_worker_claim": null,
+  "copied_accounts": 1,
+  "matching_key_versions": [
+    1
+  ],
+  "related_row_counts": {
+    "grok_account_reauth_state": 0,
+    "native_account_identity_observations": 0,
+    "grok_account_entitlements": 1,
+    "grok_account_quota_windows": 0
+  },
+  "account_fields_preserved_except_owned_import_batch": true,
+  "candidate_event_history_rows": 0,
+  "candidate_ledger_history_rows": 0,
+  "source_writes": 0,
+  "provider_requests": 0,
+  "oauth_requests": 0
+}

@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T10:31:42.860107+00:00",
+  "host": "new-vps",
+  "files": [
+    {
+      "path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/gateway-aarch64-unknown-linux-gnu",
+      "bytes": 19500176,
+      "sha256": "2bbf6a93420d5df13daf01c07dbbc25ac6f860b55a23fb87a97f22eb73a7c350",
+      "mode": "0o700"
+    },
+    {
+      "path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/gateway-build-metadata.json",
+      "bytes": 261,
+      "sha256": "a505a8cad5c85ad3353c1f862880737eb746ad37b1dcd07811edcb081ee70162",
+      "mode": "0o600"
+    },
+    {
+      "path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/artifact-manifest.json",
+      "bytes": 543,
+      "sha256": "0eacde44c0d90163a6729e55ca35505742be111fdd0593787da59a34cd70ca5e",
+      "mode": "0o600"
+    },
+    {
+      "path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/candidate-artifact.json",
+      "bytes": 1994,
+      "sha256": "84f71c418c72d0a374fd503a47992f3d0450690ec31a0751d4cc3032aa2a0d94",
+      "mode": "0o600"
+    },
+    {
+      "path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/cpar_new_build_acceptance.py",
+      "bytes": 99306,
+      "sha256": "fbb5df7bc4fa105eef805b9c6c566349f2ac0425ae8cec23a21b57c4b42b5a0f",
+      "mode": "0o600"
+    },
+    {
+      "path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/cpar-batch-c-live.py",
+      "bytes": 11958,
+      "sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "mode": "0o600"
+    },
+    {
+      "path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/bootstrap.py",
+      "bytes": 5939,
+      "sha256": "1227f954664c8251e1b90c5a4585c8e10d6031cb84d3bf08027084fabeabe1ca",
+      "mode": "0o600"
+    }
+  ],
+  "private_account_copies": 0,
+  "provider_requests": 0
+}

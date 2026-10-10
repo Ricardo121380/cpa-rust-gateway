@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "cargo",
+    "test",
+    "--locked",
+    "--package",
+    "gateway",
+    "deployment::tests",
+    "--",
+    "--nocapture"
+  ],
+  "started_at_utc": "2026-10-10T09:27:33.825937+00:00",
+  "finished_at_utc": "2026-10-10T09:27:47.697060+00:00",
+  "exit_code": 0,
+  "source_head": "82a1f69861300456cca7df779ee07949d043c84b",
+  "source_dirty": true,
+  "deployment_file_sha256": "ecf219156df2a45dc012fb620064c996cec9892f5ee5aa72366a0cf7f67998ba",
+  "raw_log": "output/cpar-build-live-20261010/background-mode-parser-green.log",
+  "raw_log_sha256": "cb0a85c18d7339358fad064b54a4ef16b23604651678159b76bd8d7b40041e33",
+  "real_provider_calls": 0
+}

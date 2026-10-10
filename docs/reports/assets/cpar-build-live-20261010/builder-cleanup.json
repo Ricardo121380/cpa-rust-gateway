@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "started_at_utc": "2026-10-10T11:35:50.254324+00:00",
+  "finished_at_utc": "2026-10-10T11:35:56.241716+00:00",
+  "profile": "cpar-acceptance-20261010",
+  "stop_exit_code": 0,
+  "status_exit_code": 1,
+  "active_docker_context_before": "default",
+  "active_docker_context_after": "default",
+  "profile_stopped": true,
+  "other_profiles_mutated": false,
+  "images_and_private_material_retained": true
+}

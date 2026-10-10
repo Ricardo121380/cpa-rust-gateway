@@ -1,0 +1,9 @@
+{
+  "raw_sha256": "9722a3c6f28e8e5694f64c90877c464ad00a9d2263b1beed3ce27e6e581a09c2",
+  "raw_bytes": 927,
+  "archive": "background-process-corrected.raw.log.gz",
+  "archive_sha256": "d584c351bd0d57d68486d17a959543074faac62fd5d5b9e2fa708190588fdadc",
+  "archive_lossless": true,
+  "execution_receipt": "background-process-corrected-run.json",
+  "case_receipt": "background-process-corrected.json"
+}

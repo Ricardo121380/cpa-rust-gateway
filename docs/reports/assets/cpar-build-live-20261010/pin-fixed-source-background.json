@@ -1,0 +1,226 @@
+{
+  "result": "PASS",
+  "scope": "stock process / public HTTP / synthetic TLS loopback",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "mode": "default",
+      "result": "PASS",
+      "checks": [
+        "startup refresh mode",
+        "publication catalog mode",
+        "republication subscription mode",
+        "actual one-minute worker mode",
+        "explicit public inference retained",
+        "owned restart and OS deny",
+        "native serving-snapshot Pin JSON/SSE",
+        "Pin rejection receiver counts stay zero"
+      ],
+      "source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+      "binary_sha256": "1b5e54f9d5b3aa6181654fcb6b752024882a376598efb8c4d593d22e1d4c2141",
+      "initial_pid": 35832,
+      "outside_loopback_denied": true,
+      "actual_serve_arguments": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+        "/usr/bin/env",
+        "DYLD_INSERT_LIBRARIES=/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-0hr5lhey/device-loopback.dylib",
+        "CPAR_DEVICE_LOOPBACK_PORT=52606",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/gateway-f346a03f-debug",
+        "serve",
+        "--state-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-0hr5lhey/state",
+        "--credential-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-0hr5lhey/credentials",
+        "--data-listen",
+        "127.0.0.1:52608",
+        "--management-listen",
+        "127.0.0.1:52607"
+      ],
+      "seed_counts": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "after_first_publication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 1,
+        "inference": 0
+      },
+      "restarted_pid": 35843,
+      "after_startup": {
+        "oauth_refresh": 1,
+        "oauth_events": 4,
+        "catalog": 1,
+        "inference": 0
+      },
+      "startup_account": {
+        "revision": 1,
+        "refresh_due_at_ms": 1791634409411,
+        "claim": null
+      },
+      "after_republication": {
+        "oauth_refresh": 1,
+        "oauth_events": 4,
+        "catalog": 2,
+        "inference": 0
+      },
+      "observed_worker_interval_seconds": 65.086319792,
+      "after_worker_interval": {
+        "oauth_refresh": 2,
+        "oauth_events": 5,
+        "catalog": 2,
+        "inference": 0
+      },
+      "after_explicit_inference": {
+        "oauth_refresh": 2,
+        "oauth_events": 5,
+        "catalog": 2,
+        "inference": 1
+      },
+      "pin_rejections": {
+        "missing_key": 403,
+        "changed_revision": 409,
+        "missing_model": 400,
+        "extra_receiver_requests": 0
+      },
+      "pin_results": [
+        {
+          "mode": "json",
+          "outcome": "succeeded",
+          "attempt_count": 1,
+          "upstream_sent": true,
+          "actual_receiver_delta": 1
+        },
+        {
+          "mode": "sse",
+          "outcome": "succeeded",
+          "attempt_count": 1,
+          "upstream_sent": true,
+          "actual_receiver_delta": 1
+        }
+      ],
+      "after_explicit_pin": {
+        "oauth_refresh": 2,
+        "oauth_events": 5,
+        "catalog": 2,
+        "inference": 3
+      },
+      "controller_exit_code": 0
+    },
+    {
+      "mode": "disabled",
+      "result": "PASS",
+      "checks": [
+        "startup refresh mode",
+        "publication catalog mode",
+        "republication subscription mode",
+        "actual one-minute worker mode",
+        "explicit public inference retained",
+        "owned restart and OS deny",
+        "native serving-snapshot Pin JSON/SSE",
+        "Pin rejection receiver counts stay zero"
+      ],
+      "source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+      "binary_sha256": "1b5e54f9d5b3aa6181654fcb6b752024882a376598efb8c4d593d22e1d4c2141",
+      "initial_pid": 36139,
+      "outside_loopback_denied": true,
+      "actual_serve_arguments": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+        "/usr/bin/env",
+        "DYLD_INSERT_LIBRARIES=/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-mhqy9pjf/device-loopback.dylib",
+        "CPAR_DEVICE_LOOPBACK_PORT=52972",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/gateway-f346a03f-debug",
+        "serve",
+        "--state-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-mhqy9pjf/state",
+        "--credential-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-mhqy9pjf/credentials",
+        "--data-listen",
+        "127.0.0.1:52974",
+        "--management-listen",
+        "127.0.0.1:52973",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "seed_counts": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "after_first_publication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "restarted_pid": 36157,
+      "after_startup": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "startup_account": {
+        "revision": 0,
+        "refresh_due_at_ms": 0,
+        "claim": null
+      },
+      "after_republication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "observed_worker_interval_seconds": 65.16385700000001,
+      "after_worker_interval": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "after_explicit_inference": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 1
+      },
+      "pin_rejections": {
+        "missing_key": 403,
+        "changed_revision": 409,
+        "missing_model": 400,
+        "extra_receiver_requests": 0
+      },
+      "pin_results": [
+        {
+          "mode": "json",
+          "outcome": "succeeded",
+          "attempt_count": 1,
+          "upstream_sent": true,
+          "actual_receiver_delta": 1
+        },
+        {
+          "mode": "sse",
+          "outcome": "succeeded",
+          "attempt_count": 1,
+          "upstream_sent": true,
+          "actual_receiver_delta": 1
+        }
+      ],
+      "after_explicit_pin": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 3
+      },
+      "controller_exit_code": 0
+    }
+  ],
+  "driver_sha256": "7a7b3bdd021ea39e423aacca886470b2329b5623643887d4f1ab1687644c5c52"
+}

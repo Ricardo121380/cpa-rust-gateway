@@ -1,0 +1,33 @@
+{
+  "source_sha": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "started_at": "2026-10-10T10:16:20.984737+00:00",
+  "ended_at": "2026-10-10T10:21:28.920913+00:00",
+  "exit_code": 0,
+  "command": [
+    "docker",
+    "--context",
+    "colima-cpar-acceptance-20261010",
+    "build",
+    "--platform",
+    "linux/arm64",
+    "--target",
+    "builder",
+    "--progress",
+    "plain",
+    "--build-arg",
+    "CPAR_REVISION=98febf057f37bd784e81e9a2563adb36aef8ebbf",
+    "--build-arg",
+    "CPAR_RUST_TOOLCHAIN=1.97.1",
+    "--file",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/Builder.Dockerfile",
+    "--tag",
+    "cpar-build-candidate:98febf05",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/arm64-98febf05-context"
+  ],
+  "toolchain_image_id": "sha256:fe875bd6fd62d68eb129870fc700b7e4a40770ca09f01654c88c56adb61e01b8",
+  "recipe_sha256": "0252b28463f198cda600131cb2076c87299eee7a60b441ce51a4e751bb0f9663",
+  "source_archive_sha256": "400f4889a70839119a808142ccb4780ea164bc3af3ec5a59ae5e2695efa42ccc",
+  "log_sha256": "be2be9e06ebdb7fea29ba559346b99a8cf8c1e7322eed7ae7e666c74d03a153f",
+  "platform": "linux/arm64",
+  "cargo_build_jobs": 2
+}

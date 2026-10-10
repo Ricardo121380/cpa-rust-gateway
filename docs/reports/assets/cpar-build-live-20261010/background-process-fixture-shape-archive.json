@@ -1,0 +1,9 @@
+{
+  "raw_sha256": "13e6abadc955f6dd1fa8c123b3ab6872fdfd43b32180924cdf8e07a9af2d93ce",
+  "raw_bytes": 257,
+  "archive": "background-process-fixture-shape.raw.log.gz",
+  "archive_sha256": "8f4a0374752d463c492fe6ddc2a8056af249afaff8ad234cf4b8804ab6d3516c",
+  "archive_lossless": true,
+  "execution_receipt": "background-process-fixture-shape-run.json",
+  "case_receipt": "background-process-fixture-shape.json"
+}

@@ -1,0 +1,35 @@
+{
+  "observed_at_utc": "2026-10-10T09:23:45.131851+00:00",
+  "user_reply": "批准创建并运行临时隔离实例",
+  "approved_source_baseline": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "prior_accepted_scope": "Build, all existing Build accounts individually, models4.5/4.6/4.7, existing new-vps, no monetary ceiling",
+  "prior_cost_evidence_sha256": "e5b414ef84fcd1916ac804f67859da024eb9cb18ecaade23c189cc8957e19a8e",
+  "candidate_host": "new-vps",
+  "candidate_service": "cpar-build-acceptance-20261010.service",
+  "candidate_root": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010",
+  "mode": "0700",
+  "listeners": [
+    "127.0.0.1:19180",
+    "127.0.0.1:19181"
+  ],
+  "approved_operations": [
+    "build/upload Linux ARM64 candidate",
+    "create isolated protected unit/root",
+    "take minimum one-account private copy at a time",
+    "start/run/stop only the candidate"
+  ],
+  "requirements": [
+    "block OAuth/refresh/automatic catalog and audit requests before inference",
+    "freeze actual artifact and exact execution binding",
+    "current one-eligible snapshot <=60 inference and <=1 catalog GET; no retries/fallback/extensions/reruns",
+    "leave production unit/current/config/Caddy unchanged"
+  ],
+  "not_inferred": [
+    "production cutover/restart",
+    "reauthorization",
+    "push",
+    "release",
+    "other-channel account use"
+  ],
+  "necessary_local_repair": "Original request authorizes minimal local repairs; serve has no exposed background-task gate in inspected source. Candidate will bind the actual derived source commit after adding and verifying a minimal explicit background gate, never claim unchanged c1b artifact."
+}

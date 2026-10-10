@@ -1,0 +1,71 @@
+{
+  "pin_keys": {
+    "attempt_count": "int",
+    "channel_id": "str",
+    "client_key_id": "str",
+    "config_revision": "int",
+    "config_version_id": "str",
+    "connection_revision": "int",
+    "credential_id": "str",
+    "credential_revision": "int",
+    "execution": "dict",
+    "mode": "str",
+    "observed_at_ms": "int",
+    "outcome": "str",
+    "permission_basis": "str",
+    "protocol": "str",
+    "provider_id": "str",
+    "request_id": "str",
+    "requested_model": "str",
+    "response_started": "bool",
+    "route_id": "str",
+    "runtime_build": "str",
+    "runtime_credential_revision": "int",
+    "server_instance": "str",
+    "stage": "str",
+    "upstream_sent": "bool"
+  },
+  "diagnostic_shapes": {
+    "execution": {
+      "attempt_id": "str",
+      "identity": "dict",
+      "route_candidate_id": "str",
+      "upstream_model": "str"
+    }
+  },
+  "budget": {
+    "catalog_intents": 1,
+    "pin_intents": 1,
+    "basic_intents": 0,
+    "stopped": true,
+    "historical_management_presend_rejections": 1,
+    "historical_provider_inference_requests": 0
+  },
+  "outcome": "failed",
+  "attempt_count": 1,
+  "upstream_sent": true,
+  "response_started": false,
+  "stage": "http_transport",
+  "observed_at_ms": 1791631933328,
+  "requested_model": "grok-4.5",
+  "protocol": "openai_responses",
+  "mode": "json",
+  "event_log_columns": [
+    "event_ordinal",
+    "event_type",
+    "event_id",
+    "request_id",
+    "occurred_at_ms",
+    "payload_json"
+  ],
+  "event_count": 0,
+  "pin_actions": {
+    "channel_pin_requested": 2,
+    "channel_pin_started": 2
+  },
+  "audit_events": {
+    "dns_build_allowed": 2,
+    "connect_build_allowed": 2
+  },
+  "observed_at_utc": "2026-10-10T11:33:14.972886+00:00"
+}

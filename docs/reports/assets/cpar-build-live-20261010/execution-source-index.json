@@ -1,0 +1,27 @@
+[
+  {
+    "path": "tools/remote-repair-runtime.py",
+    "sha256": "b785a73bdddbdd541f036cf7e8bec87661faf83d50c6c11cdac8800402dbb685",
+    "scope": "owned execution source; runtime secrets are read only inside authorized protected environment"
+  },
+  {
+    "path": "tools/remote-one-combination-v2.py",
+    "sha256": "69bf7d4377341b36f0888941aad6e1800120eb3a5eabcb59cec294df6fb21b44",
+    "scope": "owned execution source; runtime secrets are read only inside authorized protected environment"
+  },
+  {
+    "path": "tools/remote-finalize.py",
+    "sha256": "398d1229f68d0c7fcddd892ea3be888eb11d7727754bbf1131c6f05d09cc38e9",
+    "scope": "owned execution source; runtime secrets are read only inside authorized protected environment"
+  },
+  {
+    "path": "tools/package-profile-candidate.py",
+    "sha256": "5551bbd72ef63ce347dd0fb4fd184a051528612bb7ed2b155a8b5f0306a17e03",
+    "scope": "owned execution source; runtime secrets are read only inside authorized protected environment"
+  },
+  {
+    "path": "tools/ProfileBuilder.Dockerfile",
+    "sha256": "2edf99e52c4b3d1913e0de2b1e4053fc226fad9669be171e2fdac47b504736f6",
+    "scope": "owned execution source; runtime secrets are read only inside authorized protected environment"
+  }
+]

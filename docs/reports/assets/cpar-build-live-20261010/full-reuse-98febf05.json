@@ -1,0 +1,13 @@
+{
+  "source_sha": "fb96f23c832a8fef2a91b70edd5769d622185ce0",
+  "reused_by": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "status": "PASS",
+  "full_gates": 45,
+  "rust_passed": 1501,
+  "rust_failed": 0,
+  "rust_ignored": 12,
+  "reuse_basis": "git diff fb96f23c..98febf05 -- apps crates Cargo.toml Cargo.lock web deploy is empty; only acceptance synthetic receipt writer changes",
+  "full_receipt_sha256": "502e36dc18b56b3ad32d68a77881acd7deaac7bf8b3afdf4aa84623edd6bbe06",
+  "dedicated_atomic_snapshot_process_replay": "PASS",
+  "process_receipt_sha256": "b1a9c558e9c76866f74b0f946af7a6ca618aed5e96bcdef6d81dedb5c6ccb015"
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "source": "pin-diagnostic-build.log",
+    "archive": "pin-diagnostic-build.raw.log.gz",
+    "raw_sha256": "8bb536a1b1a6fee60b3234f940e83359d35be0ee24ab67cddb5cb6567722e174",
+    "lossless": true
+  },
+  {
+    "source": "arm64-f346a03f-build.log",
+    "archive": "arm64-f346a03f-build.raw.log.gz",
+    "raw_sha256": "f01860448a5760c68781c9d31fa766eb3a7670a8e9ab4dcadcbce86a65d8dd6f",
+    "lossless": true
+  }
+]

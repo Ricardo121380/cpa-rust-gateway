@@ -1,0 +1,15 @@
+[
+  {
+    "method": "GET",
+    "path": "/v1/models"
+  },
+  {
+    "method": "POST",
+    "path": "/v1/responses",
+    "protocol": "grok-build-native",
+    "ordinal": 1,
+    "model": "grok-model",
+    "stream": false,
+    "has_tool_output": false
+  }
+]

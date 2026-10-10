@@ -1,0 +1,61 @@
+{
+  "result": "FAIL",
+  "scope": "stock process / public HTTP / synthetic TLS loopback",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "mode": "default",
+      "result": "FAIL",
+      "checks": [],
+      "source_sha": "82a1f69861300456cca7df779ee07949d043c84b",
+      "binary_sha256": "4ab76bfeb6fc9f9374680113b613cec4cd943cd23e22f790c60209456d9d3707",
+      "initial_pid": 84493,
+      "outside_loopback_denied": true,
+      "actual_serve_arguments": [
+        "/usr/bin/sandbox-exec",
+        "-p",
+        "(version 1) (allow default) (deny network-outbound) (allow network-outbound (remote ip \"localhost:*\"))",
+        "/usr/bin/env",
+        "DYLD_INSERT_LIBRARIES=/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-drgap0iy/device-loopback.dylib",
+        "CPAR_DEVICE_LOOPBACK_PORT=53707",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway",
+        "serve",
+        "--state-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-drgap0iy/state",
+        "--credential-dir",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-seo-ui-drgap0iy/credentials",
+        "--data-listen",
+        "127.0.0.1:53709",
+        "--management-listen",
+        "127.0.0.1:53708"
+      ],
+      "seed_counts": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 0,
+        "inference": 0
+      },
+      "after_first_publication": {
+        "oauth_refresh": 0,
+        "oauth_events": 3,
+        "catalog": 1,
+        "inference": 0
+      },
+      "restarted_pid": 84511,
+      "after_startup": {
+        "oauth_refresh": 1,
+        "oauth_events": 4,
+        "catalog": 1,
+        "inference": 0
+      },
+      "startup_account": {
+        "revision": 1,
+        "refresh_due_at_ms": 1791628560868,
+        "claim": null
+      },
+      "error": "('POST', '/admin/config-versions/background-republished/validate', 503, 'management_lifecycle_unavailable')",
+      "controller_exit_code": 0
+    }
+  ],
+  "driver_sha256": "ed6a650d9f07e5464d6a27ee2648ef2b0720b1c2011f6fdce31a4c4b9d6a68aa"
+}

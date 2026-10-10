@@ -1,0 +1,15 @@
+{
+  "started_at": "2026-10-10T10:10:46.741909+00:00",
+  "ended_at": "2026-10-10T10:12:43.065192+00:00",
+  "exit_code": 1,
+  "command": [
+    "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "scripts/acceptance/cpar-background-provider-process.py",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/fixed-source-background"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/full-final-source",
+  "source_sha": "fb96f23c832a8fef2a91b70edd5769d622185ce0",
+  "source_clean_after": true,
+  "binary_sha256": "874e3770523954162866682102774aeecb59af997f4ee9451998d108c92ee715",
+  "log_sha256": "6bbd2d911660123f0a1cb9623c8d855139d0bb84d23e74a2015e143d88c192c5"
+}

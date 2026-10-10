@@ -1,0 +1,38 @@
+{
+  "source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "base_source_sha": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "exact_tracked_tree_delta": [
+    "apps/gateway/src/runtime.rs",
+    "scripts/acceptance/cpar-background-provider-process.py",
+    "scripts/acceptance/cpar-build-egress-guard.c",
+    "scripts/acceptance/cpar_seo_ui_http.py"
+  ],
+  "base_image_id": "sha256:17a50e345b4db133d1493dda2469891b924bea5d7143669680339e0b93699802",
+  "recipe_sha256": "ab49a1fde39b5501dbbf06b27c886d6a19c6ff9c4440d97dc6148354c65bca44",
+  "command": [
+    "docker",
+    "--context",
+    "colima-cpar-acceptance-20261010",
+    "build",
+    "--platform",
+    "linux/arm64",
+    "--target",
+    "builder",
+    "--progress",
+    "plain",
+    "--build-arg",
+    "CPAR_REVISION=f346a03f912b150006a288c38087550bb3d04cb0",
+    "--file",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/PinBuilder.Dockerfile",
+    "--tag",
+    "cpar-build-candidate:f346a03f",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/arm64-f346a03f-patch"
+  ],
+  "started_at": "2026-10-10T11:13:20.397887+00:00",
+  "scope": "native ARM64 repair build; base tracked source plus full exact delta",
+  "frontend_source_and_lockfile_equal": true,
+  "ended_at": "2026-10-10T11:14:18.216926+00:00",
+  "exit_code": 0,
+  "status": "PASS",
+  "log_sha256": "f01860448a5760c68781c9d31fa766eb3a7670a8e9ab4dcadcbce86a65d8dd6f"
+}

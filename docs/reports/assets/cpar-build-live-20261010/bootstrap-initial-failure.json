@@ -1,0 +1,27 @@
+{
+  "status": "FAIL",
+  "failure_class": "TEMPORARY_UNIT_PARENT_TRAVERSAL_PERMISSION",
+  "diagnostic": {
+    "unit": "MainPID=0\nResult=exit-code\nExecMainCode=1\nExecMainStatus=1\nActiveState=failed\nSubState=failed\nFragmentPath=/run/systemd/transient/cpar-build-acceptance-20261010.service\n",
+    "empty_candidate_startup_log": "ERROR: ld.so: object '/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/egress-guard-tcp.so' from LD_PRELOAD cannot be preloaded (cannot open shared object file): ignored.\ngateway: state directory is unavailable\n",
+    "journal": "Oct 10 10:32:12 instance-20260726-2136 systemd[1]: Started cpar-build-acceptance-20261010.service - /var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/gateway-aarch64-unknown-linux-gnu serve --state-dir /var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/state --credential-dir /var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/credentials --data-listen 127.0.0.1:19180 --management-listen 127.0.0.1:19181 --background-provider-tasks disabled.\nOct 10 10:32:12 instance-20260726-2136 systemd[1]: cpar-build-acceptance-20261010.service: Main process exited, code=exited, status=1/FAILURE\nOct 10 10:32:12 instance-20260726-2136 systemd[1]: cpar-build-acceptance-20261010.service: Failed with result 'exit-code'.\n",
+    "production_pid": "499070"
+  },
+  "run": {
+    "command": [
+      "ssh",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "ConnectTimeout=8",
+      "new-vps",
+      "sudo -n python3 /var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/bootstrap.py"
+    ],
+    "started_at": "2026-10-10T10:32:09.162299+00:00",
+    "ended_at": "2026-10-10T10:32:42.883194+00:00",
+    "exit_code": 1
+  },
+  "account_copies": 0,
+  "provider_requests": 0,
+  "oauth_requests": 0
+}

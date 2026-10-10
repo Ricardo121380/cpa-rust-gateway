@@ -1,0 +1,39 @@
+{
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "base_source_sha": "f346a03f912b150006a288c38087550bb3d04cb0",
+  "exact_tracked_tree_delta": [
+    "crates/provider-grok/src/build_responses.rs",
+    "crates/provider-grok/tests/p6_03_build_responses.rs",
+    "docs/contracts/BC-PROVIDER-003-grok-build-responses-boundary.md",
+    "docs/reports/assets/cpar-build-live-20261010/public-profile-source.json"
+  ],
+  "base_image_id": "sha256:a75e34ff5d923191b1d05bf323ba1e6883c6d4e0361cd4be615ca4627a297926",
+  "recipe_sha256": "2edf99e52c4b3d1913e0de2b1e4053fc226fad9669be171e2fdac47b504736f6",
+  "command": [
+    "docker",
+    "--context",
+    "colima-cpar-acceptance-20261010",
+    "build",
+    "--platform",
+    "linux/arm64",
+    "--target",
+    "builder",
+    "--progress",
+    "plain",
+    "--build-arg",
+    "CPAR_REVISION=1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "--file",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/ProfileBuilder.Dockerfile",
+    "--tag",
+    "cpar-build-candidate:1b6023f5",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-live-20261010/arm64-1b6023f5-patch"
+  ],
+  "started_at": "2026-10-10T11:44:55.259104+00:00",
+  "ended_at": "2026-10-10T11:46:29.764067+00:00",
+  "exit_code": 0,
+  "status": "PASS",
+  "log_sha256": "7ad7c54ac27d6bc07a7a9c880c5974b17680b260463e5b2e88d3588412b694f9",
+  "runtime_started": false,
+  "provider_requests": 0,
+  "scope": "native ARM64 version-profile candidate only; no real request replay"
+}

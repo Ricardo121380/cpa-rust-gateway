@@ -1,0 +1,19 @@
+{
+  "source_base": "98febf057f37bd784e81e9a2563adb36aef8ebbf",
+  "diagnostic_only": true,
+  "labels": [
+    "PIN_DIAGNOSTIC_BRANCH_1",
+    "PIN_DIAGNOSTIC_BRANCH_2",
+    "PIN_DIAGNOSTIC_BRANCH_3",
+    "PIN_DIAGNOSTIC_BRANCH_4",
+    "PIN_DIAGNOSTIC_BRANCH_5",
+    "PIN_DIAGNOSTIC_BRANCH_6",
+    "PIN_DIAGNOSTIC_BRANCH_7",
+    "PIN_DIAGNOSTIC_BRANCH_8",
+    "PIN_DIAGNOSTIC_BRANCH_9",
+    "PIN_DIAGNOSTIC_BRANCH_10"
+  ],
+  "old_block_sha256": "13a5155b2aec354534fc4e2859b1962b00410c02fd8acbaa40dd60a6ba4d36f4",
+  "instrumented_runtime_sha256": "6921f9acd6404fbfa1ab0a847ed463f63e7a5519c583cbdb3d4c5c3b55678d24",
+  "original_binary_sha256": "874e3770523954162866682102774aeecb59af997f4ee9451998d108c92ee715"
+}
