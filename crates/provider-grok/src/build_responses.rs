@@ -46,7 +46,8 @@ pub const GROK_BUILD_TOKEN_AUTH_VALUE: &str = "xai-grok-cli";
 /// Header that carries the frozen Grok CLI client version.
 pub const GROK_BUILD_CLIENT_VERSION_HEADER: &str = "x-grok-client-version";
 /// Frozen Grok CLI client version used for the Build profile.
-pub const GROK_BUILD_CLIENT_VERSION: &str = "0.2.111";
+/// Observed official stable pointer on 2026-10-10; provenance is in BC-PROVIDER-003.
+pub const GROK_BUILD_CLIENT_VERSION: &str = "1.0.50";
 /// Header that identifies the current Grok CLI shell client.
 pub const GROK_BUILD_CLIENT_IDENTIFIER_HEADER: &str = "x-grok-client-identifier";
 /// Fixed current Grok CLI shell client identifier.
@@ -68,7 +69,7 @@ pub const GROK_BUILD_TRACEPARENT_HEADER: &str = "traceparent";
 /// Header that makes the selected upstream Build model explicit to the CLI proxy.
 pub const GROK_BUILD_MODEL_OVERRIDE_HEADER: &str = "x-grok-model-override";
 /// Fixed evidence-supported Grok CLI workspace user agent for the Build profile.
-pub const GROK_BUILD_USER_AGENT: &str = "grok-shell/0.2.111 (linux; x86_64)";
+pub const GROK_BUILD_USER_AGENT: &str = "grok-shell/1.0.50 (linux; x86_64)";
 /// Maximum JSON body accepted for one non-streaming Build response.
 pub const MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES: usize = 1024 * 1024;
 /// Maximum retained bytes for one upstream HTTP error body.

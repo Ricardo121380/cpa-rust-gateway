@@ -1,0 +1,39 @@
+{
+  "status": "PASS_PUBLIC_SOURCE",
+  "observed_at_utc": "2026-10-10T11:42:09.766939+00:00",
+  "official_source_revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "official_source_version": "1.0.45",
+  "observed_stable_version": "1.0.50",
+  "stable_release_date": "2026-10-06",
+  "stable_release_date_url": "https://x.ai/changelog/build",
+  "sources": {
+    "stable": {
+      "url": "https://x.ai/cli/stable",
+      "http_status": 200,
+      "bytes": 6,
+      "sha256": "4203404f364657bf59100c6fc7b9bc5ecba99deb4cf66e47601a9ace77f242a7"
+    },
+    "stable-fallback": {
+      "url": "https://storage.googleapis.com/grok-build-public-artifacts/cli/stable",
+      "http_status": 200,
+      "bytes": 6,
+      "sha256": "4203404f364657bf59100c6fc7b9bc5ecba99deb4cf66e47601a9ace77f242a7"
+    },
+    "client.rs": {
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs",
+      "http_status": 200,
+      "bytes": 143544,
+      "sha256": "5b9ff7c6fbbb7eddbda9877539e66d6a8214e508201da7a7d0e60d6f3ab650ab"
+    },
+    "version.rs": {
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-version/src/lib.rs",
+      "http_status": 200,
+      "bytes": 3720,
+      "sha256": "e48e64f30b2ba8061d0c68bc7140849f27f287a2ee40c3261d29ea4c8862ce06"
+    }
+  },
+  "shipped_binary_downloaded_or_executed": false,
+  "official_stable_source_mapping": "NOT_PROVEN",
+  "http426_root_cause": "NOT_PROVEN",
+  "chosen_scope": "pair version header and UA version; retain existing fixed profile platform and all other fields"
+}

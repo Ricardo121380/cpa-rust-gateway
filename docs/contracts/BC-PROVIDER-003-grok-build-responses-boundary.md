@@ -47,6 +47,27 @@
 | Completion | Every `response.output_item.done` item must itself be `completed`, and a completed response's final output-item identities must exactly equal the completed declared-item set. Final Usage is emitted at most once before Canonical `ResponseEnd`. A failed response is Canonical terminal error, not success. |
 | HTTP errors | A non-2xx body yields only HTTP status plus `None`, `FreeUsageExhausted`, `InvalidGrant`, `InvalidToken`, or `Unrecognized`. P6-07 alone decides state mutation/remediation. |
 
+## 2026-10-10 version-profile successor
+
+The fixed version header and User-Agent version now both use `1.0.50`, observed in the
+[official stable pointer](https://x.ai/cli/stable) and its installer-declared
+[official fallback](https://storage.googleapis.com/grok-build-public-artifacts/cli/stable).
+The [official changelog](https://x.ai/changelog/build) dates that release to 2026-10-06.
+[Source hashes and observation](../reports/assets/cpar-build-live-20261010/public-profile-source.json)
+retain the exact public inputs; the pointer hash is not an official binary hash.
+
+The pinned [official sampler source](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs#L560)
+documents proxy version gating and the versioned shell User-Agent. Its public source version
+is 1.0.45; the [version module](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-version/src/lib.rs#L11)
+separately takes the shipping version from the release pipeline. Exact stable-binary-to-source
+mapping remains unproven. This update preserves the existing fixed `linux; x86_64` profile,
+other headers, request semantics, egress, credential checks, and retry policy.
+
+One real isolated Pin on the preceding `0.2.111` profile returned a safe HTTP426 rejection.
+Version gating is a possible cause, not an established diagnosis. This local version-drift
+repair does not claim to resolve HTTP426 or establish real inference acceptance; no real
+request was replayed to validate it.
+
 ## Explicitly deferred behavior
 
 This contract does not create a production HTTP client, perform retry/failover, refresh a

@@ -213,6 +213,7 @@ fn assert_current_profile(
         outbound.header(GROK_BUILD_CLIENT_VERSION_HEADER),
         Some(GROK_BUILD_CLIENT_VERSION)
     );
+    assert_eq!(GROK_BUILD_CLIENT_VERSION, "1.0.50");
     assert_eq!(
         outbound.header(GROK_BUILD_CLIENT_IDENTIFIER_HEADER),
         Some(GROK_BUILD_CLIENT_IDENTIFIER)
@@ -230,7 +231,7 @@ fn assert_current_profile(
         Some("grok-build-upstream")
     );
     assert_eq!(outbound.header("accept-encoding"), Some("identity"));
-    assert_eq!(GROK_BUILD_USER_AGENT, "grok-shell/0.2.111 (linux; x86_64)");
+    assert_eq!(GROK_BUILD_USER_AGENT, "grok-shell/1.0.50 (linux; x86_64)");
     assert_eq!(outbound.header("user-agent"), Some(GROK_BUILD_USER_AGENT));
     assert_eq!(outbound.header("connection"), None);
 
