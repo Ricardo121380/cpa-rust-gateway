@@ -1,0 +1,49 @@
+{
+  "argv": [
+    "ssh",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=8",
+    "new-vps",
+    "sudo -n python3 -"
+  ],
+  "script_sha256": "1f198904f0b59921ade07b72f2c78cb2b9e88f48195684c8e9e9e0760d3ecac7",
+  "started_at_utc": "2026-10-10T08:44:42.207217+00:00",
+  "finished_at_utc": "2026-10-10T08:44:46.007028+00:00",
+  "exit_code": 0,
+  "scope": "Read-only process paths and proposed isolated-task port/unit/path availability. No artifact transfer, directory creation, account export, service operation, or inference.",
+  "observation": {
+    "production_service": "cpa-rust-gateway.service",
+    "production": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running",
+      "LoadState": "loaded"
+    },
+    "production_paths": {
+      "--state-dir": "/var/lib/cpa-rust-gateway",
+      "--credential-dir": "/run/credentials/cpa-rust-gateway.service",
+      "--data-listen": "127.0.0.1:18180",
+      "--management-listen": "127.0.0.1:18181"
+    },
+    "candidate_service": "cpar-build-acceptance-20261010.service",
+    "candidate_unit_load_state": "not-found",
+    "proposed_candidate_root": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010",
+    "candidate_root_exists": false,
+    "candidate_loopback_ports_currently_listening": {
+      "19180": false,
+      "19181": false
+    },
+    "compiler_tools": {
+      "cargo": null,
+      "rustc": null,
+      "cc": "/usr/bin/cc",
+      "python3": "/usr/bin/python3"
+    },
+    "machine": "aarch64",
+    "writes": 0,
+    "inference_requests": 0
+  }
+}

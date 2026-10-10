@@ -1,0 +1,18 @@
+{
+  "source_head": "d4accdd8afc1c69159f3d710adc49af3d9826a9e",
+  "source_dirty": true,
+  "driver_file_sha256": "e43213c3438f7e7ec3f049a39ad36d3590a3994d9165962e3e1d5e25377ba554",
+  "oracle_file_sha256": "67d6dbe3d4abc6e5d09d9dab6d3d6de7679e70f6cf746a17bcb1393986ca58aa",
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/test-cpar-new-build-acceptance.py",
+    "FormalOracle.test_unlimited_cost_requires_explicit_reviewed_authorization"
+  ],
+  "started_at_utc": "2026-10-10T08:38:45.562418+00:00",
+  "finished_at_utc": "2026-10-10T08:38:45.724449+00:00",
+  "exit_code": 1,
+  "log": "output/cpar-build-acceptance-20261010/unlimited-cost-red.log",
+  "log_sha256": "7afb25219e9355662c18e47f67b11c7710d0e8ef42fa57ed9f8bf2c90f023ef1",
+  "classification": "Acceptance executor cannot represent explicit unlimited-cost authorization; product Rust/UI unchanged."
+}

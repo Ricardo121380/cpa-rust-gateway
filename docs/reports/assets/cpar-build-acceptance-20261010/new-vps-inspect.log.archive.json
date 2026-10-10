@@ -1,0 +1,8 @@
+{
+  "raw_archive": "new-vps-inspect.log.gz",
+  "raw_sha256": "4c750bd562d0ad91a6529844e81c0056cc791f66a476669f8fab33ac92508f35",
+  "reading_copy": "new-vps-inspect.log",
+  "reading_copy_sha256": "4c750bd562d0ad91a6529844e81c0056cc791f66a476669f8fab33ac92508f35",
+  "transformation": "Line-end whitespace removed only in reading copy; raw bytes retained in gzip.",
+  "recorded_at_utc": "2026-10-10T08:44:11.696673+00:00"
+}

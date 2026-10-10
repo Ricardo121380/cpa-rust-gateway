@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "basic_scenario_version": 3,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "target": {
+    "channel": "grok.build",
+    "endpoint_id": null,
+    "route_id": null,
+    "route_candidate_id": null,
+    "upstream_model": "grok-4.5",
+    "public_model": "preacc-build-grok-4.5",
+    "response_model": "grok-4.5",
+    "credential_evidence_id": null,
+    "credential_revision": null,
+    "config_version_id": null,
+    "config_revision": null,
+    "egress_evidence_id": null,
+    "egress_revision": null,
+    "protocol": "responses",
+    "mode": "sse",
+    "parameters": {
+      "max_output_tokens": 128
+    },
+    "capabilities": {
+      "reasoning": null,
+      "parallel": null,
+      "stored": null,
+      "continuation": null,
+      "compact": null,
+      "websocket": null
+    },
+    "declaration_observed_at_utc": null,
+    "declaration_evidence": null
+  },
+  "collector": null,
+  "authorization": {
+    "status": "PENDING_RUNTIME_BINDING",
+    "basis": "user_explicit",
+    "binding_sha256": null,
+    "max_inference_requests": 9,
+    "max_attempts": 1,
+    "allow_fallback": false,
+    "currency": "USD",
+    "budget_limit": null,
+    "cost_bound": {
+      "status": "NOT_PROVEN",
+      "evidence_sha256": null,
+      "per_request_upper": null,
+      "covers": []
+    },
+    "cost_policy": "UNLIMITED_USER_EXPLICIT",
+    "cost_authorization_evidence_sha256": "e5b414ef84fcd1916ac804f67859da024eb9cb18ecaade23c189cc8957e19a8e"
+  },
+  "boundaries": {},
+  "extensions": {},
+  "observation_dir": null,
+  "preparation": {
+    "status": "AUTHORIZED_SCOPE_TARGET_UNBOUND",
+    "environment": {
+      "source_host": "new-vps",
+      "source_service": "cpa-rust-gateway.service",
+      "candidate_host": "new-vps",
+      "candidate_service": null,
+      "candidate_state_directory": null,
+      "candidate_start_authorized": false
+    },
+    "base_url": null,
+    "account_scope": "each existing native Build account, one isolated account per execution",
+    "output_limit_semantics": "Protocol controls remain; cost proof is unknown and not required for explicitly unlimited spending.",
+    "provider_capabilities_do_not_replace_serving_snapshot": true
+  }
+}

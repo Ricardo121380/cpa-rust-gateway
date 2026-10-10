@@ -107,7 +107,8 @@ execution and stop after any first contradiction.
 private plan: `status=APPROVED`, `basis=user_explicit`, and `binding_sha256`
 computed by `execution_binding(plan, runtime, base_url)`. It binds the source,
 process/artifact, target/parameters, URL and 3/2/4 scenarios. The approved
-`max_inference_requests` must be 9, `max_attempts=1`, `allow_fallback=false`,
+`max_inference_requests` must be 9, `max_attempts=1`, `allow_fallback=false`.
+For the default `cost_policy=BOUNDED` (also used when the field is absent), use
 `currency=USD`, with a positive `budget_limit`. A `cost_bound` must have
 `status=PROVEN`, a reviewed material `evidence_sha256`, and `per_request_upper`
 whose nine-request total fits the budget; `covers` must include input, visible
@@ -116,9 +117,19 @@ output, reasoning output, function/tool output, cache and request fees (the
 `cache`, `request_fees`). These entries record an
 operator-reviewed proof and explicit user authorization; the script cannot
 certify a protocol contract by itself. Unknown native cap units or incomplete
-billing coverage stay blocked. The template deliberately supplies no approval
-or cost proof. A rerun requires a new budget decision; there is no automatic
-retry or multi-combination dispatch.
+billing coverage stay blocked under this bounded policy.
+
+When the user explicitly authorizes spending without a monetary ceiling, set
+`cost_policy=UNLIMITED_USER_EXPLICIT`, `budget_limit=null`, and
+`cost_authorization_evidence_sha256` to the SHA-256 of the retained, reviewed
+user instruction. This is a distinct cost authorization, not a cost proof;
+`cost_bound.status` may remain `NOT_PROVEN`. A missing ceiling alone never
+selects it. The same approved status, user basis, exact execution binding,
+nine-request limit, single eligible account, single candidate, no fallback and
+per-turn evidence/stop rules still apply. A conflicting numeric limit or
+unknown policy blocks. The template supplies no approval or cost proof. A rerun
+requires an explicit new request decision; there is no automatic retry or
+multi-combination dispatch.
 
 One combination sends nine basic requests: three text turns, one tool call
 plus result/final answer (two turns), and an initial text turn followed by two

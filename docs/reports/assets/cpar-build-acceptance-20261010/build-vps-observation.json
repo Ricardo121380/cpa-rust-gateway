@@ -1,0 +1,125 @@
+{
+  "observed_at_utc": "2026-10-10T08:40:08.670932+00:00",
+  "runtime": {
+    "method": "proc_executable",
+    "instance": "instance-20260726-2136",
+    "pid": 499070,
+    "process_start": "551409035",
+    "artifact_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "source_sha": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "artifact_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "stable_process": true
+  },
+  "inventory_command_result": "PASS",
+  "account_count": 3,
+  "accounts": [
+    {
+      "account_evidence_id": "fc78df8341bd92916ca24d94d4a56b1cbf7a57b3ea7aac01b357b4b2619529b2",
+      "saved_auth_status": "active",
+      "saved_enabled": true,
+      "native_revision": 0,
+      "runtime_auth_status": "expired",
+      "runtime_status": "expired",
+      "expires_at_ms": 1785955613000,
+      "actual_lease_revision": null,
+      "status": "BLOCKED",
+      "category": "account_expired_or_reauth_required",
+      "upstream_sent": false,
+      "inference_requests": 0
+    },
+    {
+      "account_evidence_id": "50d8e3f4fc8660dd44617997ed19618a71916320ee53aa832f35d89aff7327ae",
+      "saved_auth_status": "reauth_required",
+      "saved_enabled": true,
+      "native_revision": 98,
+      "runtime_auth_status": "expired",
+      "runtime_status": "expired",
+      "expires_at_ms": 1790409765697,
+      "actual_lease_revision": null,
+      "status": "BLOCKED",
+      "category": "account_expired_or_reauth_required",
+      "upstream_sent": false,
+      "inference_requests": 0
+    },
+    {
+      "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+      "saved_auth_status": "active",
+      "saved_enabled": true,
+      "native_revision": 132,
+      "runtime_auth_status": "active",
+      "runtime_status": "available",
+      "expires_at_ms": 1791626622392,
+      "actual_lease_revision": null,
+      "status": "BLOCKED",
+      "category": "deployed_native_pin_and_execution_evidence_unsupported",
+      "upstream_sent": false,
+      "inference_requests": 0
+    }
+  ],
+  "configuration": {
+    "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+    "status": "active",
+    "revision": "rev-1"
+  },
+  "configuration_stable": true,
+  "endpoint": {
+    "id": "p12-12-production-grok-build-endpoint",
+    "upstream_id": "p12-12-production-grok-build-upstream",
+    "adapter_id": "grok.build.responses",
+    "api_format": "openai/responses",
+    "base_url": "https://cli-chat-proxy.grok.com/v1",
+    "inference_path": "/responses",
+    "enabled": true
+  },
+  "route": {
+    "id": "p12-12-production-grok-build-route",
+    "public_model_id": "p12-12-production-grok-build-model",
+    "max_attempts": 1,
+    "bootstrap_timeout_ms": 15000
+  },
+  "candidate": {
+    "id": "p12-12-production-grok-build-candidate",
+    "route_id": "p12-12-production-grok-build-route",
+    "endpoint_id": "p12-12-production-grok-build-endpoint",
+    "upstream_model": "grok-4.5",
+    "enabled": true,
+    "capability_override": {
+      "allow_unlisted_model": true
+    },
+    "credential_scope": "all_active",
+    "transform_mode": "canonical_bridge"
+  },
+  "ordinary_binding_items": [],
+  "capability_observations": [
+    {
+      "source": null,
+      "config_version_id": null,
+      "config_revision": null,
+      "capabilities": null,
+      "client_key_evidence_id": "7b7960db5735b8850100838480b35002ca5e8953467bb04c740ce1a7f5d90127",
+      "projection_id": "40803b1b31669d4e42db372be1c94881a8260ed891efa0d9be10756d4051b371",
+      "observed_at_utc": "2026-10-10T08:40:08.655000+00:00",
+      "route_id": "p12-12-production-grok-build-route",
+      "route_candidate_id": "p12-12-production-grok-build-candidate",
+      "endpoint_id": "p12-12-production-grok-build-endpoint",
+      "upstream_model": "grok-4.5"
+    },
+    {
+      "source": null,
+      "config_version_id": null,
+      "config_revision": null,
+      "capabilities": null,
+      "client_key_evidence_id": "402652a6ab96549b9a236b83f5a0da2c12a1dff28ed0d8d87209f8a041cbe684",
+      "projection_id": "01841038f3a8e5d102f5731c4f1770d5960c731b608513d967d306837f6407c0",
+      "observed_at_utc": "2026-10-10T08:40:08.655000+00:00",
+      "route_id": "p12-12-production-grok-build-route",
+      "route_candidate_id": "p12-12-production-grok-build-candidate",
+      "endpoint_id": "p12-12-production-grok-build-endpoint",
+      "upstream_model": "grok-4.5"
+    }
+  ],
+  "full_local_receipt": "output/cpar-build-acceptance-20261010/new-vps-inspect.json",
+  "full_local_receipt_sha256": "05955812d7fb5902a4304d2aae1003b2d74b4d4c5f25f54c904b279f5331b2ba",
+  "real_provider_requests_by_this_task": 0,
+  "source_level_blocker": "b0cf36e3 management_resources.rs:5996-6029 requires ordinary credential and binding; existing native Build accounts have no ordinary binding. Do not create a binding as an acceptance shortcut."
+}

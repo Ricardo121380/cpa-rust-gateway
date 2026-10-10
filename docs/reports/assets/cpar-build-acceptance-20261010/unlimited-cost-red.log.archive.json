@@ -1,0 +1,8 @@
+{
+  "raw_archive": "unlimited-cost-red.log.gz",
+  "raw_sha256": "7afb25219e9355662c18e47f67b11c7710d0e8ef42fa57ed9f8bf2c90f023ef1",
+  "reading_copy": "unlimited-cost-red.log",
+  "reading_copy_sha256": "7afb25219e9355662c18e47f67b11c7710d0e8ef42fa57ed9f8bf2c90f023ef1",
+  "transformation": "Line-end whitespace removed only in reading copy; raw bytes retained in gzip.",
+  "recorded_at_utc": "2026-10-10T08:44:11.696673+00:00"
+}

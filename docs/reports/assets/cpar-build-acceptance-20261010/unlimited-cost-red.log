@@ -1,0 +1,18 @@
+test_unlimited_cost_requires_explicit_reviewed_authorization (__main__.FormalOracle) ... ERROR
+
+======================================================================
+ERROR: test_unlimited_cost_requires_explicit_reviewed_authorization (__main__.FormalOracle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-new-build-acceptance.py", line 302, in test_unlimited_cost_requires_explicit_reviewed_authorization
+    oracle.verify_execution_policy(plan, observed, base)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar_new_build_acceptance.py", line 517, in verify_execution_policy
+    available(bound.get("status") == "PROVEN" and re.fullmatch("[0-9a-f]{64}", bound.get("evidence_sha256", "")) is not None, "live_cost_bound_unproven")
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar_new_build_acceptance.py", line 54, in available
+    raise Blocked(category)
+oracle.Blocked: live_cost_bound_unproven
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (errors=1)

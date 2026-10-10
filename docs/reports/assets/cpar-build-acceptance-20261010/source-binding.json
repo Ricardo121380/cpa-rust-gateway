@@ -1,0 +1,13 @@
+{
+  "source_head": "d4accdd8afc1c69159f3d710adc49af3d9826a9e",
+  "source_dirty": true,
+  "files_sha256": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "fbb5df7bc4fa105eef805b9c6c566349f2ac0425ae8cec23a21b57c4b42b5a0f",
+    "scripts/test-cpar-new-build-acceptance.py": "e43213c3438f7e7ec3f049a39ad36d3590a3994d9165962e3e1d5e25377ba554",
+    "scripts/acceptance/cpar-new-build-acceptance.md": "c42d3883e10d1ade7d327ce0b06fc624755aa98ea0f2d32e656f84c5af0f48a1",
+    "docs/reports/cpar-first-grok-authorization-20261010.md": "9f43181710a4092aff257677ec6a5c518c860838585f34499d357933ebdd56f4",
+    "docs/reports/cpar-build-acceptance-authorization-20261010.md": "37212b06c2989b34e21242b17447555136cc7b27046deba6908b3067c1bfa9ff"
+  },
+  "product_changes": [],
+  "real_provider_calls": 0
+}

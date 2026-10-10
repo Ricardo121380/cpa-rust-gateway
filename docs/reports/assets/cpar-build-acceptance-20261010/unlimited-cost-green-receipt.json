@@ -1,0 +1,17 @@
+{
+  "source_head": "d4accdd8afc1c69159f3d710adc49af3d9826a9e",
+  "source_dirty": true,
+  "driver_file_sha256": "e43213c3438f7e7ec3f049a39ad36d3590a3994d9165962e3e1d5e25377ba554",
+  "oracle_file_sha256": "fbb5df7bc4fa105eef805b9c6c566349f2ac0425ae8cec23a21b57c4b42b5a0f",
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/test-cpar-new-build-acceptance.py"
+  ],
+  "started_at_utc": "2026-10-10T08:39:35.792522+00:00",
+  "finished_at_utc": "2026-10-10T08:39:39.885421+00:00",
+  "exit_code": 0,
+  "log": "output/cpar-build-acceptance-20261010/unlimited-cost-green.log",
+  "log_sha256": "799f39650be5a0380f58838b40e9161a67636ad0372ade214cf8c89373433de4",
+  "real_provider_calls": 0
+}

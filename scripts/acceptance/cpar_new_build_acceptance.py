@@ -513,6 +513,13 @@ def verify_execution_policy(plan, runtime, base_url):
     available(approval.get("status") == "APPROVED" and approval.get("basis") == "user_explicit", "live_authorization_required")
     require(approval.get("binding_sha256") == execution_binding(plan, runtime, base_url), "live_authorization_binding_changed")
     require(type(approval.get("max_inference_requests")) is int and approval["max_inference_requests"] == sum(count for _, count in BASIC_SCENARIOS) and approval.get("max_attempts") == 1 and approval.get("allow_fallback") is False, "live_request_limit_unconfirmed")
+    cost_policy = approval.get("cost_policy", "BOUNDED")
+    require(cost_policy in ("BOUNDED", "UNLIMITED_USER_EXPLICIT"), "live_cost_policy_unknown")
+    if cost_policy == "UNLIMITED_USER_EXPLICIT":
+        evidence = approval.get("cost_authorization_evidence_sha256")
+        available(isinstance(evidence, str) and re.fullmatch("[0-9a-f]{64}", evidence) is not None, "live_unlimited_cost_authorization_required")
+        require(approval.get("budget_limit") is None, "live_unlimited_budget_conflict")
+        return
     bound = approval.get("cost_bound") or {}
     available(bound.get("status") == "PROVEN" and re.fullmatch("[0-9a-f]{64}", bound.get("evidence_sha256", "")) is not None, "live_cost_bound_unproven")
     require(approval.get("currency") == "USD" and set(bound.get("covers", [])) == {"input", "visible_output", "reasoning_output", "tool_output", "cache", "request_fees"}, "live_cost_coverage_incomplete")

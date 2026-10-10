@@ -1,5 +1,7 @@
 # 首批 Grok 真实验收授权清单（2026-10-10）
 
+后续用户已指定 **Build、现有账号逐一试用、费用不设金额上限，并指定既有生产VPS**；新的授权、现场核对和运行阻断见 [Build后继清单](cpar-build-acceptance-authorization-20261010.md)。下文保留原候选提案和当时未授权事实，USD1.00／Official主批不再是当前选择，原JSON和执行回执不改写。
+
 状态：**PREPARED / BLOCKED_FOR_LIVE_EXECUTION**。用户已确认 Grok 4.5／4.6／4.7 均可用于准备；没有确认 Official／Build／Console 入口、环境、账号范围、真实请求或费用。当前真实 Provider 请求为 0。此文件是可审核的具体候选批次，不是实际可用账号声明或请求授权。
 
 ## 候选范围及实际输入

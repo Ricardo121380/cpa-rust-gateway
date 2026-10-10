@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "scripts/acceptance/cpar-batch-c-live.py",
+    "--new-build",
+    "inspect",
+    "--host",
+    "new-vps",
+    "--service",
+    "cpa-rust-gateway.service",
+    "--sudo",
+    "--out",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-acceptance-20261010/new-vps-inspect.json"
+  ],
+  "source_head": "d4accdd8afc1c69159f3d710adc49af3d9826a9e",
+  "inspector_sha256": "fbb5df7bc4fa105eef805b9c6c566349f2ac0425ae8cec23a21b57c4b42b5a0f",
+  "started_at_utc": "2026-10-10T08:40:04.968810+00:00",
+  "finished_at_utc": "2026-10-10T08:40:09.452742+00:00",
+  "exit_code": 0,
+  "log": "output/cpar-build-acceptance-20261010/new-vps-inspect.log",
+  "log_sha256": "4c750bd562d0ad91a6529844e81c0056cc791f66a476669f8fab33ac92508f35",
+  "receipt": "output/cpar-build-acceptance-20261010/new-vps-inspect.json",
+  "receipt_sha256": "05955812d7fb5902a4304d2aae1003b2d74b4d4c5f25f54c904b279f5331b2ba",
+  "scope": "User-selected existing production VPS; GET-only inspection; no account values/configuration/service mutations/Provider calls."
+}

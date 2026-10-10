@@ -1,0 +1,38 @@
+{
+  "recorded_at_utc": "2026-10-10T08:44:11.696673+00:00",
+  "user_messages": [
+    {
+      "text": "grok渠道的grok4.5/4.6/4.7都可以",
+      "scope": "allowed representative models"
+    },
+    {
+      "text": "是build，哪个账号我不确定，你可以每个账号都试试，额度不设限制",
+      "scope": "Build only; each existing account may be tried; no monetary ceiling"
+    },
+    {
+      "text": "之前生产部署的vps不是有吗",
+      "scope": "existing new-vps CPAR selected as account/runtime source"
+    }
+  ],
+  "accepted": {
+    "channel": "grok.build",
+    "models": [
+      "grok-4.5",
+      "grok-4.6",
+      "grok-4.7"
+    ],
+    "accounts": "existing Build accounts in user-selected new-vps CPAR; preserve eligibility and disabled/reauth intent",
+    "cost_policy": "UNLIMITED_USER_EXPLICIT",
+    "budget_limit": null,
+    "no_automatic_retry_or_fallback": true
+  },
+  "not_inferred": [
+    "production service stop/restart",
+    "production current/unit/config/binding changes",
+    "reauthorization",
+    "new candidate runtime deployment/start on VPS",
+    "push/release/shared-service takeover"
+  ],
+  "original_request": "../cpar-preacceptance-20261010/request.txt",
+  "runtime_binding": "Pending actual supported runtime/artifact and per-account lease/declaration. Approval evidence is not a runtime attestation."
+}

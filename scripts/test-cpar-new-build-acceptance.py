@@ -294,6 +294,18 @@ class FormalOracle(unittest.TestCase):
         inventory["native_pools"]["items"][0]["credential_revision"] = 4
         with self.assertRaises(ValueError):oracle.verify_execution_policy(plan, observed, base)
 
+    def test_unlimited_cost_requires_explicit_reviewed_authorization(self):
+        observed, plan, base = runtime(), {"layer": "LIVE_NEW_BUILD", "source_sha": SOURCE_SHA, "target": target()}, "http://127.0.0.1:1"
+        approval = reviewed_authorization(plan, observed, base)
+        plan["authorization"] = approval
+        approval.update(cost_policy="UNLIMITED_USER_EXPLICIT", cost_authorization_evidence_sha256="6" * 64, budget_limit=None, cost_bound={"status": "NOT_PROVEN"})
+        oracle.verify_execution_policy(plan, observed, base)
+        for mutation in ({"cost_policy": "BOUNDED"}, {"cost_policy": "UNKNOWN"}, {"cost_authorization_evidence_sha256": None}, {"budget_limit": 1}, {"basis": None}, {"binding_sha256": "7" * 64}, {"max_inference_requests": 10}, {"allow_fallback": True}):
+            with self.subTest(mutation=mutation):
+                invalid = copy.deepcopy(plan)
+                invalid["authorization"].update(mutation)
+                with self.assertRaises(ValueError):oracle.verify_execution_policy(invalid, observed, base)
+
     def test_target_and_revision_fail_closed(self):
         for field in oracle.TARGET_FIELDS:
             value = bundle()
@@ -628,6 +640,17 @@ class FormalOracle(unittest.TestCase):
                         self.assertEqual(oracle.audit_bundle(result)["basic_status"], "PASS")
                         if os.environ.get("CPAR_TEST_RECEIPT_DIR"):
                             oracle.write_receipt(Path(os.environ["CPAR_TEST_RECEIPT_DIR"]) / (protocol + "-" + mode + ".json"), oracle.audit_bundle(result))
+                        live = copy.deepcopy(plan)
+                        live["layer"] = "LIVE_NEW_BUILD"
+                        live_runtime = runtime()
+                        live_runtime.update(manifest_sha256="3" * 64, manifest_matches=True)
+                        base = "http://127.0.0.1:" + str(server.server_port)
+                        live["authorization"] = reviewed_authorization(live, live_runtime, base)
+                        live["authorization"].update(cost_policy="UNLIMITED_USER_EXPLICIT", cost_authorization_evidence_sha256="6" * 64, budget_limit=None, cost_bound={"status": "NOT_PROVEN"})
+                        observed.clear()
+                        unlimited = oracle.run_basic(live, live_runtime, "synthetic-key", base)
+                        self.assertEqual(len(observed), 9)
+                        self.assertEqual(oracle.audit_bundle(unlimited)["basic_status"], "PASS")
                         for kind, status in (("wrong_target", "FAIL"), ("missing_revision", "BLOCKED"), ("http_error", "FAIL"), ("wrong_model", "FAIL"), ("wrong_runtime", "FAIL"), ("missing_runtime", "BLOCKED"), ("missing_capabilities", "BLOCKED"), ("wrong_capabilities", "FAIL")):
                             with self.subTest(fault=kind):
                                 fault[0] = kind
@@ -636,7 +659,7 @@ class FormalOracle(unittest.TestCase):
                                 self.assertEqual(len(observed) - before, 1, kind)
                                 self.assertEqual(oracle.audit_bundle(rejected)["status"], status, rejected.get("execution_failure"))
                         fault[0] = None
-                        for kind in ("retry", "fallback", "unknown_candidate", "second_account", "missing_inventory", "incomplete", "configuration_changed", "live_approval_missing", "cost_unknown", "cost_tool_output_missing", "budget_insufficient", "approval_binding_changed"):
+                        for kind in ("retry", "fallback", "unknown_candidate", "second_account", "missing_inventory", "incomplete", "configuration_changed", "live_approval_missing", "cost_unknown", "cost_tool_output_missing", "budget_insufficient", "approval_binding_changed", "cost_policy_unknown", "cost_unlimited_evidence_missing", "cost_unlimited_budget_conflict"):
                             with self.subTest(preflight=kind):
                                 current_runtime, guarded = runtime(), copy.deepcopy(plan)
                                 inventory = current_runtime["acceptance_inventory"]["inventory"]
@@ -656,6 +679,11 @@ class FormalOracle(unittest.TestCase):
                                     if kind == "cost_tool_output_missing":guarded["authorization"]["cost_bound"]["covers"].remove("tool_output")
                                     if kind == "budget_insufficient":guarded["authorization"]["budget_limit"] = .01
                                     if kind == "approval_binding_changed":guarded["authorization"]["binding_sha256"] = "5" * 64
+                                    if kind == "cost_policy_unknown":guarded["authorization"]["cost_policy"] = "UNKNOWN"
+                                    if kind.startswith("cost_unlimited_"):
+                                        guarded["authorization"].update(cost_policy="UNLIMITED_USER_EXPLICIT", cost_authorization_evidence_sha256="6" * 64, budget_limit=None, cost_bound={"status": "NOT_PROVEN"})
+                                        if kind == "cost_unlimited_evidence_missing":guarded["authorization"].pop("cost_authorization_evidence_sha256")
+                                        if kind == "cost_unlimited_budget_conflict":guarded["authorization"]["budget_limit"] = 1
                                 before = len(observed)
                                 rejected = oracle.run_basic(guarded, current_runtime, "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
                                 self.assertEqual(len(observed), before, kind)

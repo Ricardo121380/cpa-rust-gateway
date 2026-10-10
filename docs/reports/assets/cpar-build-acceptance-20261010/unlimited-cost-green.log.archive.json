@@ -1,0 +1,8 @@
+{
+  "raw_archive": "unlimited-cost-green.log.gz",
+  "raw_sha256": "799f39650be5a0380f58838b40e9161a67636ad0372ade214cf8c89373433de4",
+  "reading_copy": "unlimited-cost-green.log",
+  "reading_copy_sha256": "799f39650be5a0380f58838b40e9161a67636ad0372ade214cf8c89373433de4",
+  "transformation": "Line-end whitespace removed only in reading copy; raw bytes retained in gzip.",
+  "recorded_at_utc": "2026-10-10T08:44:11.696673+00:00"
+}
