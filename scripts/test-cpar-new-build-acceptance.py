@@ -273,6 +273,15 @@ class FormalOracle(unittest.TestCase):
         self.assertEqual(receipt["basic_scenario_version"], 2)
         self.assertEqual(receipt["sent_requests"], 7)
 
+    def test_stale_observation_cannot_erase_sent_requests(self):
+        for version, sent in ((2, 7), (3, 9)):
+            value = bundle(version=version)
+            value["runtime"]["observed_at_utc"] = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=11)).isoformat()
+            receipt = oracle.audit_bundle(value)
+            self.assertEqual(receipt["status"], "BLOCKED")
+            self.assertEqual(receipt["preflight"]["category"], "runtime_observation_stale")
+            self.assertEqual(receipt["sent_requests"], sent)
+
     def test_reviewed_live_policy_and_native_pool_admission(self):
         observed, plan, base = runtime(), {"layer": "LIVE_NEW_BUILD", "source_sha": SOURCE_SHA, "target": target()}, "http://127.0.0.1:1"
         plan["authorization"] = reviewed_authorization(plan, observed, base)
