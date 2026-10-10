@@ -300,6 +300,7 @@ pub(crate) fn check_catalog(
     }
 }
 
+#[allow(clippy::too_many_lines)] // Keep listener admission and required worker shutdown in one assembly path.
 async fn run_servers(
     command: ServeCommand,
     application: ApplicationState,
