@@ -1,0 +1,172 @@
+{
+  "result": "PASS_LOCAL_DIRECTED_AND_CLEAN_GATES",
+  "original_base": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+  "completion_baseline": "c1e8ab66c01e172016d2551989598353fe723809",
+  "code_and_driver_source": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+  "gates": {
+    "Full": {
+      "result": "PASS",
+      "steps": 45,
+      "rust_passed": 1499,
+      "rust_failed": 0,
+      "rust_ignored": 12,
+      "raw_sha256": "da2f48f1b7de4cb5eda65f79f928845d2a7e5044a47c31817bcc7ef8913aa5db",
+      "receipt": {
+        "label": "final-completion-clean-full",
+        "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-36079c1f",
+        "argv": [
+          "./scripts/check.sh",
+          "full"
+        ],
+        "utc_start": "2026-10-10T02:37:19.966790+00:00",
+        "source_before": {
+          "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+          "status": []
+        },
+        "environment": {
+          "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+          "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-36079c1f.md"
+        },
+        "exit_code": 0,
+        "utc_end": "2026-10-10T02:42:43.146901+00:00",
+        "elapsed_seconds": 323.150072917,
+        "source_after": {
+          "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+          "status": []
+        },
+        "log_sha256": "da2f48f1b7de4cb5eda65f79f928845d2a7e5044a47c31817bcc7ef8913aa5db",
+        "log_bytes": 298633
+      }
+    },
+    "frontend": {
+      "files": 70,
+      "passed": 513,
+      "failed": 0,
+      "receipt": {
+        "label": "final-clean-frontend-all",
+        "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+        "argv": [
+          "npm",
+          "--prefix",
+          "web/prism",
+          "test"
+        ],
+        "utc_start": "2026-10-10T02:43:17.600175+00:00",
+        "source_before": {
+          "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+          "status": []
+        },
+        "environment": {},
+        "exit_code": 0,
+        "utc_end": "2026-10-10T02:43:22.012014+00:00",
+        "elapsed_seconds": 4.380226416,
+        "source_after": {
+          "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+          "status": []
+        },
+        "log_sha256": "9d9d21fb7e3ecfe48d010143e032e79c963c9126450d60eb45e803d5befe8fd4",
+        "log_bytes": 4716
+      }
+    },
+    "types": {
+      "label": "final-clean-types",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "type-check"
+      ],
+      "utc_start": "2026-10-10T02:43:17.600181+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:43:24.717898+00:00",
+      "elapsed_seconds": 7.086091459,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "log_bytes": 48
+    },
+    "double_build": "PASS in Full Management SPA"
+  },
+  "browser": {
+    "space_id": 39,
+    "permission": "explicit user approval",
+    "lifecycle_fixture_product_controls": {
+      "result": "PASS",
+      "cases": 30,
+      "source": "36079c1fad666c2bbb9c15bd8f8a59518c970b42"
+    },
+    "direct_navigation_embedded": {
+      "result": "PASS",
+      "source": "d05d4418947dee1573cb88e935eff2cf48796208",
+      "original_session_GETs": 1,
+      "grants": 1,
+      "exchanges": 1,
+      "accounts": 1,
+      "cancels": 0
+    },
+    "close_navigation_embedded": {
+      "result": "PASS",
+      "source": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+      "original_session_GETs": 1,
+      "grants": 1,
+      "exchanges": 1,
+      "accounts": 1,
+      "cancels": 0
+    },
+    "screenshots": "recovered identity/runtime, native deletion preview, confirmed partial outcome visually inspected",
+    "foreign_actor_GET": 404,
+    "foreign_actor_poll_cancel": 503,
+    "unauthenticated_GET": 404
+  },
+  "backend_and_contract_delta_from_previous_batch_gate": "apps/crates/authority/contracts unchanged from 3b3896be; new frontend/task driver only",
+  "review": {
+    "Standards": "NOT_RUN_CURRENT_FINAL",
+    "Spec": "NOT_RUN_CURRENT_FINAL"
+  },
+  "github": {
+    "current_counts": {
+      "closed": 25,
+      "open": 23
+    },
+    "remaining_scoped_closures_pending_final_review": [
+      16,
+      17,
+      20,
+      22,
+      23,
+      24,
+      25,
+      26,
+      55,
+      56
+    ],
+    "parents_remain_open": [
+      9,
+      57
+    ],
+    "writes_authorized": true
+  },
+  "AGENTS_sha256_preserved": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "real_provider_calls": 0,
+  "push": false,
+  "remote_CI": "NOT_RUN",
+  "release_artifact": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN",
+  "freeze_new_candidate": "NOT_MET",
+  "remaining_release_scope": [
+    "Grok Web native multi-turn",
+    "Kiro native output hard cap",
+    "complete historical data upgrade and rollback",
+    "current real channel combinations"
+  ]
+}

@@ -1,0 +1,5 @@
+
+> prism-admin@0.0.1 check
+> node scripts/check.mjs
+
+check-prism-spa: OK

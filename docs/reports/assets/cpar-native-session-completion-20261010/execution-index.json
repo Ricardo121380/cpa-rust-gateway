@@ -1,0 +1,1135 @@
+{
+  "scope": "2026-10-10 authorized completion; original raw executions are immutable, failures retained",
+  "entries": [
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-npm-ci-20261010T021638436958Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-npm-ci-20261010T021638436958Z/raw.log",
+      "archived_receipt": "baseline-npm-ci-20261010T021638436958Z-receipt.json",
+      "archived_log": "baseline-npm-ci-20261010T021638436958Z-raw.log",
+      "label": "baseline-npm-ci",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "ci",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "utc_start": "2026-10-10T02:16:38.437255+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:16:39.472647+00:00",
+      "elapsed_seconds": 0.9957723749999999,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "log_sha256": "68f0bf1ffd54778ac3086b74314cb4d9cc58aa7fc70957b8bf4472714d0b91e2",
+      "log_bytes": 29
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-stock-build-20261010T021655698361Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-stock-build-20261010T021655698361Z/raw.log",
+      "archived_receipt": "baseline-stock-build-20261010T021655698361Z-receipt.json",
+      "archived_log": "baseline-stock-build-20261010T021655698361Z-raw.log",
+      "label": "baseline-stock-build",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--package",
+        "gateway"
+      ],
+      "utc_start": "2026-10-10T02:16:55.698823+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:17:25.049020+00:00",
+      "elapsed_seconds": 29.314275875,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "log_sha256": "f6897bfb2f38f35b7ca27f3cd7fe8b0fe63c27d60615f5de549390a7280644ed",
+      "log_bytes": 4737
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-green-server-process-20261010T023719966170Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-green-server-process-20261010T023719966170Z/raw.log",
+      "archived_receipt": "close-green-server-process-20261010T023719966170Z-receipt.json",
+      "archived_log": "close-green-server-process-20261010T023719966170Z-raw.log",
+      "label": "close-green-server-process",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "python3",
+        "scripts/acceptance/cpar_seo_ui_http.py",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-green-server"
+      ],
+      "utc_start": "2026-10-10T02:37:19.966781+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {
+        "CPAR_UI_OPERATIONS": "1",
+        "CPAR_GATEWAY_BINARY": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/gateway-36079c1f"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:40:15.318854+00:00",
+      "elapsed_seconds": 175.323692958,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "db118058a662b87ade24535eebab86b2d22571a87665b125d86ece1febb6cf36",
+      "log_bytes": 270
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-navigation-green-20261010T023737568593Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-navigation-green-20261010T023737568593Z/raw.log",
+      "archived_receipt": "close-navigation-green-20261010T023737568593Z-receipt.json",
+      "archived_log": "close-navigation-green-20261010T023737568593Z-raw.log",
+      "label": "close-navigation-green",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\":39,\"descriptor\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-green-server/descriptor.json\",\"out\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-navigation-green.json\",\"login\":true,\"firstLogin\":true,\"navigation\":\"close\"},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f/scripts/acceptance/cpar-grok-device-actual-ui.mjs\");"
+      ],
+      "utc_start": "2026-10-10T02:37:37.568872+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:37:47.285892+00:00",
+      "elapsed_seconds": 9.689014875,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "602de4e0fc67e1cf0b83af7284859b7092631d75cf2591be7fd4bd853e663bc0",
+      "log_bytes": 9679
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-clean-full-20261010T022807783827Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-clean-full-20261010T022807783827Z/raw.log",
+      "archived_receipt": "completion-clean-full-20261010T022807783827Z-receipt.json",
+      "archived_log": "completion-clean-full-20261010T022807783827Z-raw.log",
+      "label": "completion-clean-full",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-d05d4418",
+      "argv": [
+        "./scripts/check.sh",
+        "full"
+      ],
+      "utc_start": "2026-10-10T02:28:07.784074+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+        "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-d05d4418.md"
+      },
+      "exit_code": 1,
+      "utc_end": "2026-10-10T02:28:50.194127+00:00",
+      "elapsed_seconds": 42.363686417,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "5a5e3a16a69fd057562b94bb2e37a5bdfd31e006dbc9a56910cccab88c7d19b1",
+      "log_bytes": 7652
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-clean-full-ready-20261010T023022953001Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-clean-full-ready-20261010T023022953001Z/raw.log",
+      "archived_receipt": "completion-clean-full-ready-20261010T023022953001Z-receipt.json",
+      "archived_log": "completion-clean-full-ready-20261010T023022953001Z-raw.log",
+      "label": "completion-clean-full-ready",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-d05d4418",
+      "argv": [
+        "./scripts/check.sh",
+        "full"
+      ],
+      "utc_start": "2026-10-10T02:30:22.953269+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+        "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-d05d4418-retry.md"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:35:41.151859+00:00",
+      "elapsed_seconds": 318.177507834,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "eff424262dc26c7a8183489200e631d3718ef488628443d5ff8ee5b0c3965fcf",
+      "log_bytes": 298642
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-code-npm-ci-20261010T022747189330Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-code-npm-ci-20261010T022747189330Z/raw.log",
+      "archived_receipt": "completion-code-npm-ci-20261010T022747189330Z-receipt.json",
+      "archived_log": "completion-code-npm-ci-20261010T022747189330Z-raw.log",
+      "label": "completion-code-npm-ci",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "ci",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "utc_start": "2026-10-10T02:27:47.190006+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:27:48.124875+00:00",
+      "elapsed_seconds": 0.905194542,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "2961485d1f43ea9f8993df18a44a2ee45493d60cd533d8a9c207e5d90fc9157f",
+      "log_bytes": 29
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-fixture-dev-server-20261010T022808942056Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-fixture-dev-server-20261010T022808942056Z/raw.log",
+      "archived_receipt": "completion-fixture-dev-server-20261010T022808942056Z-receipt.json",
+      "archived_log": "completion-fixture-dev-server-20261010T022808942056Z-raw.log",
+      "label": "completion-fixture-dev-server",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "56218",
+        "--strictPort"
+      ],
+      "utc_start": "2026-10-10T02:28:08.942393+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": -15,
+      "utc_end": "2026-10-10T02:29:11.452796+00:00",
+      "elapsed_seconds": 62.476846542,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "ae1aa7aba781075f55c9622bbcb28ce6f9c0025ff9e24f4bc3a38123d992b738",
+      "log_bytes": 150
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-fixture-enabled-server-20261010T022911552463Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-fixture-enabled-server-20261010T022911552463Z/raw.log",
+      "archived_receipt": "completion-fixture-enabled-server-20261010T022911552463Z-receipt.json",
+      "archived_log": "completion-fixture-enabled-server-20261010T022911552463Z-raw.log",
+      "label": "completion-fixture-enabled-server",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "env",
+        "VITE_PRISM_FIXTURES=1",
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "56218",
+        "--strictPort"
+      ],
+      "utc_start": "2026-10-10T02:29:11.552714+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": -15,
+      "utc_end": "2026-10-10T02:36:04.310792+00:00",
+      "elapsed_seconds": 412.740290875,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "a19be61fed15aa4c2bfe29fd8deeb6e8d3d53b75a46d233d0379f4a260a4687e",
+      "log_bytes": 148
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-full-spa-prerequisite-20261010T022955071872Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-full-spa-prerequisite-20261010T022955071872Z/raw.log",
+      "archived_receipt": "completion-full-spa-prerequisite-20261010T022955071872Z-receipt.json",
+      "archived_log": "completion-full-spa-prerequisite-20261010T022955071872Z-raw.log",
+      "label": "completion-full-spa-prerequisite",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-d05d4418",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "build"
+      ],
+      "utc_start": "2026-10-10T02:29:55.073382+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:30:10.449923+00:00",
+      "elapsed_seconds": 15.31311425,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "73a4f4dcd154381a33770df788c6c4a853c41392761a71118dcde0b3281474dd",
+      "log_bytes": 766
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-lifecycle-enabled-page-20261010T022927216842Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-lifecycle-enabled-page-20261010T022927216842Z/raw.log",
+      "archived_receipt": "completion-lifecycle-enabled-page-20261010T022927216842Z-receipt.json",
+      "archived_log": "completion-lifecycle-enabled-page-20261010T022927216842Z-raw.log",
+      "label": "completion-lifecycle-enabled-page",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_LIFECYCLE={\"spaceId\":39,\"origin\":\"http://127.0.0.1:56218\",\"outputDir\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/lifecycle-page-complete\",\"commit\":\"d05d4418947dee1573cb88e935eff2cf48796208\"};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418/scripts/acceptance/cpar-account-lifecycle-page.mjs\");const p=(await taskSpace(39)).page('p1');console.log(await p.snapshot());"
+      ],
+      "utc_start": "2026-10-10T02:29:27.217108+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-10T02:30:17.756754+00:00",
+      "elapsed_seconds": 50.506038917,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "f971ad50d0217f4892219e23d017bdf45224de55ba53c83b88f72a1341fd4710",
+      "log_bytes": 3328
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-lifecycle-page-20261010T022834078308Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-lifecycle-page-20261010T022834078308Z/raw.log",
+      "archived_receipt": "completion-lifecycle-page-20261010T022834078308Z-receipt.json",
+      "archived_log": "completion-lifecycle-page-20261010T022834078308Z-raw.log",
+      "label": "completion-lifecycle-page",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_LIFECYCLE={\"spaceId\":39,\"origin\":\"http://127.0.0.1:56218\",\"outputDir\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/lifecycle-page\",\"commit\":\"d05d4418947dee1573cb88e935eff2cf48796208\"};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418/scripts/acceptance/cpar-account-lifecycle-page.mjs\");const p=(await taskSpace(39)).page('p1');console.log(await p.snapshot());"
+      ],
+      "utc_start": "2026-10-10T02:28:34.078573+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-10T02:28:47.395687+00:00",
+      "elapsed_seconds": 13.283386333,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "3ec3b684733de2ba84d7bbcb2d6e16a7de68d71de50b253042b9a0dd73641d8e",
+      "log_bytes": 203
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-stock-build-20261010T022807783850Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/completion-stock-build-20261010T022807783850Z/raw.log",
+      "archived_receipt": "completion-stock-build-20261010T022807783850Z-receipt.json",
+      "archived_log": "completion-stock-build-20261010T022807783850Z-raw.log",
+      "label": "completion-stock-build",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--package",
+        "gateway"
+      ],
+      "utc_start": "2026-10-10T02:28:07.784107+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:28:37.624875+00:00",
+      "elapsed_seconds": 29.794529,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "9a67964da33d769888a437ebd9311eb6f6c6b1b262829c2334b90ddc80138f69",
+      "log_bytes": 4557
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-green-server-process-20261010T022928400343Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-green-server-process-20261010T022928400343Z/raw.log",
+      "archived_receipt": "direct-green-server-process-20261010T022928400343Z-receipt.json",
+      "archived_log": "direct-green-server-process-20261010T022928400343Z-raw.log",
+      "label": "direct-green-server-process",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "python3",
+        "scripts/acceptance/cpar_seo_ui_http.py",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-green-server"
+      ],
+      "utc_start": "2026-10-10T02:29:28.400712+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {
+        "CPAR_UI_OPERATIONS": "1",
+        "CPAR_GATEWAY_BINARY": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/gateway-d05d4418"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:34:33.644780+00:00",
+      "elapsed_seconds": 305.199911375,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "49d918b85b4672b209c080af777a4ec7e01ab30e0583d0555fbbd4dc50c6a608",
+      "log_bytes": 271
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-green-20261010T023350326713Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-green-20261010T023350326713Z/raw.log",
+      "archived_receipt": "direct-navigation-behavior-green-20261010T023350326713Z-receipt.json",
+      "archived_log": "direct-navigation-behavior-green-20261010T023350326713Z-raw.log",
+      "label": "direct-navigation-behavior-green",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\":39,\"descriptor\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-green-server/descriptor.json\",\"out\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-green.json\",\"login\":true,\"firstLogin\":false,\"navigation\":\"direct\"},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418/scripts/acceptance/cpar-grok-device-actual-ui.mjs\");"
+      ],
+      "utc_start": "2026-10-10T02:33:50.327068+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:33:57.830311+00:00",
+      "elapsed_seconds": 7.468773333,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "43777208c4a9f287e96902d904281c5197beb2e0821c3b792f41a39018d6862d",
+      "log_bytes": 7758
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-red-20261010T022313786870Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-red-20261010T022313786870Z/raw.log",
+      "archived_receipt": "direct-navigation-behavior-red-20261010T022313786870Z-receipt.json",
+      "archived_log": "direct-navigation-behavior-red-20261010T022313786870Z-raw.log",
+      "label": "direct-navigation-behavior-red",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\":39,\"descriptor\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server/descriptor.json\",\"out\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-red.json\",\"login\":true,\"firstLogin\":false},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-direct-route-probe.mjs\");"
+      ],
+      "utc_start": "2026-10-10T02:23:13.787118+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-10T02:23:20.846007+00:00",
+      "elapsed_seconds": 7.030442874999999,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "log_sha256": "8e6c2ca710b7e900eab0c9b5e395200fcb55e7279d865a9b8a92cac97926489d",
+      "log_bytes": 4266
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-green-20261010T023232072572Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-green-20261010T023232072572Z/raw.log",
+      "archived_receipt": "direct-navigation-green-20261010T023232072572Z-receipt.json",
+      "archived_log": "direct-navigation-green-20261010T023232072572Z-raw.log",
+      "label": "direct-navigation-green",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\":39,\"descriptor\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-green-server/descriptor.json\",\"out\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-green.json\",\"login\":true,\"firstLogin\":true,\"navigation\":\"direct\"},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418/scripts/acceptance/cpar-grok-device-actual-ui.mjs\");"
+      ],
+      "utc_start": "2026-10-10T02:32:32.073467+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-10T02:32:37.147066+00:00",
+      "elapsed_seconds": 5.017890375,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "9a9dd1a7a53c15a5a1f741a608d8c5c27287e99bb897a670fddb08d8d60766c2",
+      "log_bytes": 431
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-red-20261010T022220290246Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-red-20261010T022220290246Z/raw.log",
+      "archived_receipt": "direct-navigation-red-20261010T022220290246Z-receipt.json",
+      "archived_log": "direct-navigation-red-20261010T022220290246Z-raw.log",
+      "label": "direct-navigation-red",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\":39,\"descriptor\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server/descriptor.json\",\"out\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-red.json\",\"login\":true,\"firstLogin\":true},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-direct-route-probe.mjs\");"
+      ],
+      "utc_start": "2026-10-10T02:22:20.290513+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-10T02:22:25.244969+00:00",
+      "elapsed_seconds": 4.929127291,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "log_sha256": "9a9dd1a7a53c15a5a1f741a608d8c5c27287e99bb897a670fddb08d8d60766c2",
+      "log_bytes": 431
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server-process-20261010T022210733538Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server-process-20261010T022210733538Z/raw.log",
+      "archived_receipt": "direct-red-server-process-20261010T022210733538Z-receipt.json",
+      "archived_log": "direct-red-server-process-20261010T022210733538Z-raw.log",
+      "label": "direct-red-server-process",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+      "argv": [
+        "python3",
+        "scripts/acceptance/cpar_seo_ui_http.py",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server"
+      ],
+      "utc_start": "2026-10-10T02:22:10.734502+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "environment": {
+        "CPAR_UI_OPERATIONS": "1",
+        "CPAR_GATEWAY_BINARY": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/gateway"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:24:11.285177+00:00",
+      "elapsed_seconds": 120.515446,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "log_sha256": "6cf63f14d6146bd994c0528ae5b788c2304f08490e0de9b6af61b6b05ed0c76e",
+      "log_bytes": 269
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-frontend-all-20261010T024317599678Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-frontend-all-20261010T024317599678Z/raw.log",
+      "archived_receipt": "final-clean-frontend-all-20261010T024317599678Z-receipt.json",
+      "archived_log": "final-clean-frontend-all-20261010T024317599678Z-raw.log",
+      "label": "final-clean-frontend-all",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "test"
+      ],
+      "utc_start": "2026-10-10T02:43:17.600175+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:43:22.012014+00:00",
+      "elapsed_seconds": 4.380226416,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "9d9d21fb7e3ecfe48d010143e032e79c963c9126450d60eb45e803d5befe8fd4",
+      "log_bytes": 4716
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-types-20261010T024317599679Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-clean-types-20261010T024317599679Z/raw.log",
+      "archived_receipt": "final-clean-types-20261010T024317599679Z-receipt.json",
+      "archived_log": "final-clean-types-20261010T024317599679Z-raw.log",
+      "label": "final-clean-types",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "type-check"
+      ],
+      "utc_start": "2026-10-10T02:43:17.600181+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:43:24.717898+00:00",
+      "elapsed_seconds": 7.086091459,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "log_bytes": 48
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-completion-clean-full-20261010T023719966253Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-completion-clean-full-20261010T023719966253Z/raw.log",
+      "archived_receipt": "final-completion-clean-full-20261010T023719966253Z-receipt.json",
+      "archived_log": "final-completion-clean-full-20261010T023719966253Z-raw.log",
+      "label": "final-completion-clean-full",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-36079c1f",
+      "argv": [
+        "./scripts/check.sh",
+        "full"
+      ],
+      "utc_start": "2026-10-10T02:37:19.966790+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+        "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-36079c1f.md"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:42:43.146901+00:00",
+      "elapsed_seconds": 323.150072917,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "da2f48f1b7de4cb5eda65f79f928845d2a7e5044a47c31817bcc7ef8913aa5db",
+      "log_bytes": 298633
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-fixture-enabled-server-20261010T023616574256Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-fixture-enabled-server-20261010T023616574256Z/raw.log",
+      "archived_receipt": "final-fixture-enabled-server-20261010T023616574256Z-receipt.json",
+      "archived_log": "final-fixture-enabled-server-20261010T023616574256Z-raw.log",
+      "label": "final-fixture-enabled-server",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "env",
+        "VITE_PRISM_FIXTURES=1",
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "56218",
+        "--strictPort"
+      ],
+      "utc_start": "2026-10-10T02:36:16.574587+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": -15,
+      "utc_end": "2026-10-10T02:42:17.125867+00:00",
+      "elapsed_seconds": 360.517446958,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "6394deca742d8409c4717be4a68100e2235d4a0a58d094a3a7d07c94c5ce4e08",
+      "log_bytes": 150
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-full-source-npm-ci-20261010T023604352964Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-full-source-npm-ci-20261010T023604352964Z/raw.log",
+      "archived_receipt": "final-full-source-npm-ci-20261010T023604352964Z-receipt.json",
+      "archived_log": "final-full-source-npm-ci-20261010T023604352964Z-raw.log",
+      "label": "final-full-source-npm-ci",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-36079c1f",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "ci",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "utc_start": "2026-10-10T02:36:04.353506+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:36:05.541617+00:00",
+      "elapsed_seconds": 0.939068875,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "9fa0a2b2291617aaf2c6fd437ee8fcd72a4e2fc7b9da1e34951765b31ecbcc5a",
+      "log_bytes": 29
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-full-spa-prerequisite-20261010T023616574267Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-full-spa-prerequisite-20261010T023616574267Z/raw.log",
+      "archived_receipt": "final-full-spa-prerequisite-20261010T023616574267Z-receipt.json",
+      "archived_log": "final-full-spa-prerequisite-20261010T023616574267Z-raw.log",
+      "label": "final-full-spa-prerequisite",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-36079c1f",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "build"
+      ],
+      "utc_start": "2026-10-10T02:36:16.574598+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:36:32.568728+00:00",
+      "elapsed_seconds": 15.960621667000002,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "6aad6fd39d67933881321a4296155e22253eea2f088035220a9341c0f9223d5d",
+      "log_bytes": 766
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-lifecycle-page-20261010T023625197885Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-lifecycle-page-20261010T023625197885Z/raw.log",
+      "archived_receipt": "final-lifecycle-page-20261010T023625197885Z-receipt.json",
+      "archived_log": "final-lifecycle-page-20261010T023625197885Z-raw.log",
+      "label": "final-lifecycle-page",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_LIFECYCLE={\"spaceId\":39,\"origin\":\"http://127.0.0.1:56218\",\"outputDir\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-lifecycle-page\",\"commit\":\"36079c1fad666c2bbb9c15bd8f8a59518c970b42\"};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f/scripts/acceptance/cpar-account-lifecycle-page.mjs\");const p=(await taskSpace(39)).page('p1');console.log(await p.snapshot());"
+      ],
+      "utc_start": "2026-10-10T02:36:25.199188+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:37:19.091749+00:00",
+      "elapsed_seconds": 53.844511292,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "5faaeef3075ff4109b7eff86dd879da53ba21f6d8929b0eba0f42b79a449babd",
+      "log_bytes": 12165
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-source-npm-ci-20261010T023604352964Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-source-npm-ci-20261010T023604352964Z/raw.log",
+      "archived_receipt": "final-source-npm-ci-20261010T023604352964Z-receipt.json",
+      "archived_log": "final-source-npm-ci-20261010T023604352964Z-raw.log",
+      "label": "final-source-npm-ci",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "ci",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "utc_start": "2026-10-10T02:36:04.353450+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:36:05.542473+00:00",
+      "elapsed_seconds": 0.9410293750000001,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "e202e6643e4a7b49e2b40a9b92d71283499401cfeeee87fd8cde09bb83ddd571",
+      "log_bytes": 29
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-stock-build-20261010T023616574268Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-stock-build-20261010T023616574268Z/raw.log",
+      "archived_receipt": "final-stock-build-20261010T023616574268Z-receipt.json",
+      "archived_log": "final-stock-build-20261010T023616574268Z-raw.log",
+      "label": "final-stock-build",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--package",
+        "gateway"
+      ],
+      "utc_start": "2026-10-10T02:36:16.574555+00:00",
+      "source_before": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+      },
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:36:50.338073+00:00",
+      "elapsed_seconds": 33.730256041000004,
+      "source_after": {
+        "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+        "status": []
+      },
+      "log_sha256": "9b007859340671420b64cb2427e5bb0840d89e9c46bd017cee4e7ea1996effe1",
+      "log_bytes": 4557
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/github-completion-baseline-20261010T021638436949Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/github-completion-baseline-20261010T021638436949Z/raw.log",
+      "archived_receipt": "github-completion-baseline-20261010T021638436949Z-receipt.json",
+      "archived_log": "github-completion-baseline-20261010T021638436949Z-raw.log",
+      "label": "github-completion-baseline",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "python3",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/fetch_github_snapshot.py",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/github-baseline"
+      ],
+      "utc_start": "2026-10-10T02:16:38.437204+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:16:53.965931+00:00",
+      "elapsed_seconds": 15.48865675,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md"
+        ]
+      },
+      "log_sha256": "66e0220de81199a635277fe9731dc6378c9d32068991a0310908e51e4e8331a7",
+      "log_bytes": 5565
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/ordinary-binding-after-probe-20261010T023431675712Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/ordinary-binding-after-probe-20261010T023431675712Z/raw.log",
+      "archived_receipt": "ordinary-binding-after-probe-20261010T023431675712Z-receipt.json",
+      "archived_log": "ordinary-binding-after-probe-20261010T023431675712Z-raw.log",
+      "label": "ordinary-binding-after-probe",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "globalThis.CPAR_LIFECYCLE={\"spaceId\":39,\"origin\":\"http://127.0.0.1:56218\",\"outputDir\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/ordinary-binding-after-probe\",\"commit\":\"d05d4418947dee1573cb88e935eff2cf48796208\",\"only\":\"ordinary-remove-binding-after\"};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar-account-lifecycle-page.mjs\");const p=(await taskSpace(39)).page('p1');console.log(await p.snapshot());"
+      ],
+      "utc_start": "2026-10-10T02:34:31.676251+00:00",
+      "source_before": {
+        "head": "caf88b1e4d71b67f4862f625d1711b4cb4a56bdc",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-operations-support.mjs"
+        ]
+      },
+      "environment": {},
+      "exit_code": 1,
+      "utc_end": "2026-10-10T02:34:33.567991+00:00",
+      "elapsed_seconds": 1.859051708,
+      "source_after": {
+        "head": "caf88b1e4d71b67f4862f625d1711b4cb4a56bdc",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-operations-support.mjs"
+        ]
+      },
+      "log_sha256": "0a02800c395becc9fb58e6de7c099d7b6af245e8df68ea174014cc3da95b6fac",
+      "log_bytes": 355
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recover-green-login-popup-20261010T023328810375Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recover-green-login-popup-20261010T023328810375Z/raw.log",
+      "archived_receipt": "recover-green-login-popup-20261010T023328810375Z-receipt.json",
+      "archived_log": "recover-green-login-popup-20261010T023328810375Z-raw.log",
+      "label": "recover-green-login-popup",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "const t=await taskSpace(39),p=t.page('p1');console.log(await p.snapshot());await p.keyboard.press('Escape');await p.click('loc=role:button[name=\"保存并重新登录\"]');await p.waitForSelector('input[name=\"username\"]');const fs=await import('node:fs/promises');const d=JSON.parse(await fs.readFile(\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-green-server/descriptor.json\",'utf8'));await p.fill('input[name=\"password\"]',(await fs.readFile(d.password_file,'utf8')).trim());await p.click('loc=role:button[name=\"登录\"]');await p.waitForSelector('main.canvas');console.log(await p.snapshot());"
+      ],
+      "utc_start": "2026-10-10T02:33:28.810910+00:00",
+      "source_before": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:33:30.294050+00:00",
+      "elapsed_seconds": 1.455118166,
+      "source_after": {
+        "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+        "status": []
+      },
+      "log_sha256": "8022edd85c53fdcd3f89da9334f14603d11258f76b125318cd354e573a3fbedb",
+      "log_bytes": 5416
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recover-initial-login-popup-20261010T022248205374Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recover-initial-login-popup-20261010T022248205374Z/raw.log",
+      "archived_receipt": "recover-initial-login-popup-20261010T022248205374Z-receipt.json",
+      "archived_log": "recover-initial-login-popup-20261010T022248205374Z-raw.log",
+      "label": "recover-initial-login-popup",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+      "argv": [
+        "ego-browser",
+        "nodejs",
+        "-e",
+        "const t=await taskSpace(39),p=t.page('p1');await p.keyboard.press('Escape');await p.click('loc=role:button[name=\"保存并重新登录\"]');await p.waitForSelector('input[name=\"username\"]');const fs=await import('node:fs/promises');const d=JSON.parse(await fs.readFile(\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server/descriptor.json\",'utf8'));await p.fill('input[name=\"password\"]',(await fs.readFile(d.password_file,'utf8')).trim());await p.click('loc=role:button[name=\"登录\"]');await p.waitForSelector('main.canvas');console.log(await p.snapshot());"
+      ],
+      "utc_start": "2026-10-10T02:22:48.205754+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:22:50.182994+00:00",
+      "elapsed_seconds": 1.9456035839999999,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": []
+      },
+      "log_sha256": "b218077c0b9e7bfe870cde2fb58e90c7b2c064280fd0cbe6a640128be134e737",
+      "log_bytes": 3978
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recovery-completion-front-check-20261010T022619803188Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recovery-completion-front-check-20261010T022619803188Z/raw.log",
+      "archived_receipt": "recovery-completion-front-check-20261010T022619803188Z-receipt.json",
+      "archived_log": "recovery-completion-front-check-20261010T022619803188Z-raw.log",
+      "label": "recovery-completion-front-check",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "check"
+      ],
+      "utc_start": "2026-10-10T02:26:19.803433+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+          " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+          " M scripts/acceptance/cpar-operations-support.mjs",
+          " M web/prism/src/dev/fixtures.ts",
+          " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:26:20.158098+00:00",
+      "elapsed_seconds": 0.322795667,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+          " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+          " M scripts/acceptance/cpar-operations-support.mjs",
+          " M web/prism/src/dev/fixtures.ts",
+          " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+        ]
+      },
+      "log_sha256": "f87d9c18af429459bcf88b959da5df4ce587cbae77c08ccea3e738d209fae03d",
+      "log_bytes": 73
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recovery-completion-front-tests-20261010T022643050357Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recovery-completion-front-tests-20261010T022643050357Z/raw.log",
+      "archived_receipt": "recovery-completion-front-tests-20261010T022643050357Z-receipt.json",
+      "archived_log": "recovery-completion-front-tests-20261010T022643050357Z-raw.log",
+      "label": "recovery-completion-front-tests",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "test",
+        "--",
+        "src/features/accounts/deviceRecoveryStore.test.ts",
+        "src/features/accounts/nativeDeletionImpact.test.ts",
+        "src/features/accounts/accountActionModel.test.ts"
+      ],
+      "utc_start": "2026-10-10T02:26:43.050618+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+          " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+          " M scripts/acceptance/cpar-operations-support.mjs",
+          " M web/prism/src/dev/fixtures.ts",
+          " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:26:44.283072+00:00",
+      "elapsed_seconds": 1.195292417,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+          " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+          " M scripts/acceptance/cpar-operations-support.mjs",
+          " M web/prism/src/dev/fixtures.ts",
+          " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+        ]
+      },
+      "log_sha256": "a98603a34272e6dc4099280c2670243808799f5b937d5d7353170e81a40468ae",
+      "log_bytes": 669
+    },
+    {
+      "original_receipt": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recovery-completion-type-check-20261010T022643051073Z/receipt.json",
+      "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/recovery-completion-type-check-20261010T022643051073Z/raw.log",
+      "archived_receipt": "recovery-completion-type-check-20261010T022643051073Z-receipt.json",
+      "archived_log": "recovery-completion-type-check-20261010T022643051073Z-raw.log",
+      "label": "recovery-completion-type-check",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "argv": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "run",
+        "type-check"
+      ],
+      "utc_start": "2026-10-10T02:26:43.051305+00:00",
+      "source_before": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+          " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+          " M scripts/acceptance/cpar-operations-support.mjs",
+          " M web/prism/src/dev/fixtures.ts",
+          " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+        ]
+      },
+      "environment": {},
+      "exit_code": 0,
+      "utc_end": "2026-10-10T02:26:49.685627+00:00",
+      "elapsed_seconds": 6.597528042,
+      "source_after": {
+        "head": "c1e8ab66c01e172016d2551989598353fe723809",
+        "status": [
+          " M AGENTS.md",
+          " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+          " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+          " M scripts/acceptance/cpar-operations-support.mjs",
+          " M web/prism/src/dev/fixtures.ts",
+          " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+        ]
+      },
+      "log_sha256": "18348b35990e63c1dba71b458c39c447fafc7e75546e07fd43f31b3d607a479f",
+      "log_bytes": 48
+    }
+  ]
+}

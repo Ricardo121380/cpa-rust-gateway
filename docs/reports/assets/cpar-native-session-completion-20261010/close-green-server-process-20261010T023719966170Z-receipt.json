@@ -1,0 +1,27 @@
+{
+  "label": "close-green-server-process",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+  "argv": [
+    "python3",
+    "scripts/acceptance/cpar_seo_ui_http.py",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/close-green-server"
+  ],
+  "utc_start": "2026-10-10T02:37:19.966781+00:00",
+  "source_before": {
+    "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+    "status": []
+  },
+  "environment": {
+    "CPAR_UI_OPERATIONS": "1",
+    "CPAR_GATEWAY_BINARY": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/gateway-36079c1f"
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-10T02:40:15.318854+00:00",
+  "elapsed_seconds": 175.323692958,
+  "source_after": {
+    "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+    "status": []
+  },
+  "log_sha256": "db118058a662b87ade24535eebab86b2d22571a87665b125d86ece1febb6cf36",
+  "log_bytes": 270
+}

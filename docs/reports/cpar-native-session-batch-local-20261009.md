@@ -5,7 +5,27 @@
 真实 Provider 调用为 0；真实账号、生产数据、push、远端发布、部署均未执行。
 用户修改的 AGENTS.md 与初始 diff 字节相同；其余原有未跟踪文件保留。
 
-## 源码与证据绑定
+## 本批补验当前状态（2026-10-10，许可已获准）
+
+用户已明确批准新建 EgoLite 空间；本批统一使用 space39。原 space37 的许可前状态仅是历史记录。
+实际 Build 授权已持久化后丢成功响应，clean c1e8ab66 的直接 Back/Forward 丢失恢复入口，形成有意义行为 RED。
+最小修复在轮询失败布局 effect 中先登记既有非秘密 handle，先于允许路由卸载。clean d05d4418 的同一路径实际 GREEN；clean 36079c1f 的显式关闭/离开/返回也实际 PASS。
+两条路径各自仅 GET 原 session 一次，账号ID/revision对应独立SQLite，grant/exchange/account各1，cancel0；外国actor GET404、poll/cancel503，未登录GET404。恢复沿用原actor、TTL与当前管理会话，无跨进程承诺。
+清晰恢复截图已目视核对，保存、身份与运行应用分别显示，不能用此前过渡帧代替可读性证据。
+
+clean 36079c1fad666c2bbb9c15bd8f8a59518c970b42 的生命周期页面30项PASS：原19项、缺失身份1项、native revision/认证/启停/存在漂移×首项前及首项成功后8项、普通绑定变化2项。
+最新普通/native删除正文显示实际身份、服务、接口协议/主机和exact模型名称，内部ID保留DOM/API引用。
+native首项前漂移DELETE0，首项成功后漂移DELETE1，已确认结果保留，待处理成员停止；普通配置前置变化与任务内影响拒绝分开记录。普通/native批次丢响应先回读，未重放未知删除。
+
+[补验证据说明](assets/cpar-native-session-completion-20261010/README.md)、[唯一执行索引](assets/cpar-native-session-completion-20261010/execution-index.json)、[补验manifest](assets/cpar-native-session-completion-20261010/manifest.json)保留失败与各自来源；原目录139份执行回执继续作为此前历史证据。
+
+当前最终代码/驱动源码为36079c1f，实际嵌入构建及页面回放均来自clean checkout。最终36079c1f的clean Full45步PASS，Rust1499通过/0失败/12忽略；另行前端70文件/513测试、类型检查PASS，Full内Management SPA双构建PASS。原始Full SHA256为`da2f48f1b7de4cb5eda65f79f928845d2a7e5044a47c31817bcc7ef8913aa5db`。后续仅整理文档与GitHub回执。
+[补验门槛绑定](assets/cpar-native-session-completion-20261010/attestation.json)和[正式45步](assets/cpar-native-session-completion-20261010/full-36079c1f-steps.md)保留clean source与计数。最新两轴独立评审尚待终态；GitHub目前仍为25 CLOSED/23 OPEN，#16/#22/#23/#56与六张未解除前置的依赖票将仅在门槛、评审及实时前置满足后关闭。
+#14/#36/#37/#38已关闭且保留有据AC；父#9与#57及后续#39–#50继续OPEN。真实Provider为0，源码未push，冻结新发布候选仍未满足后续条件。
+
+以下各节记录许可前阶段与其原始出处，未动态执行或等待许可的表述仅适用于当时，以上当前补验已接续处理。
+
+## 此前阶段的源码与证据绑定
 
 初次行为代码提交为 `eab0f044ee2c6679db4943772a6bf9d789d213fb`；归档格式修正提交 `2bbd48b9dbd487d8ffb0b02cf11edb3b69dab29b` 与它的 apps/crates/web/scripts、权威契约及行为契约 diff 为空。原生展示/交接修正为 `3b4f78c86b0fad2d048c3e09df46f2ab964d60a3`；普通名称修正为 `509ec0f4988bbc76c03ea5037f0241b4270c6c1b`；批次比较修正及当前干净门槛绑定 `3b3896be34809f5b81f075d0500f23a2bc3020b2`。定向证据同时保留初始工作树记录和最终干净 checkout 回放，不能互换源码归属。
 [原始定向索引](assets/cpar-native-session-batch-20261009/directed-evidence-index.json)记录命令、时间、退出码、源码及日志 hash。

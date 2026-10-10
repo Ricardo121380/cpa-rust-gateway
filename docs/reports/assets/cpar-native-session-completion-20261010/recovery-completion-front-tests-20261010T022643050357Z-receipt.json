@@ -1,0 +1,43 @@
+{
+  "label": "recovery-completion-front-tests",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "test",
+    "--",
+    "src/features/accounts/deviceRecoveryStore.test.ts",
+    "src/features/accounts/nativeDeletionImpact.test.ts",
+    "src/features/accounts/accountActionModel.test.ts"
+  ],
+  "utc_start": "2026-10-10T02:26:43.050618+00:00",
+  "source_before": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": [
+      " M AGENTS.md",
+      " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+      " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M web/prism/src/dev/fixtures.ts",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T02:26:44.283072+00:00",
+  "elapsed_seconds": 1.195292417,
+  "source_after": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": [
+      " M AGENTS.md",
+      " M scripts/acceptance/cpar-account-lifecycle-page.mjs",
+      " M scripts/acceptance/cpar-grok-device-actual-ui.mjs",
+      " M scripts/acceptance/cpar-operations-support.mjs",
+      " M web/prism/src/dev/fixtures.ts",
+      " M web/prism/src/features/accounts/GrokDeviceWizard.tsx"
+    ]
+  },
+  "log_sha256": "a98603a34272e6dc4099280c2670243808799f5b937d5d7353170e81a40468ae",
+  "log_bytes": 669
+}

@@ -1,0 +1,117 @@
+[p1 "Prism · Gateway Management" | space "CPAR 账号验收收口 · 2026-10-10"(39): 1 managed, 0 untracked — p1* "Prism · Gateway Management"]
+root
+  svg_root
+  container
+    container
+      container
+        text "运行"
+        text "/"
+      text "仪表盘"
+    button "搜索工作区" [ref=10, loc=css:button[aria-label="搜索工作区"]]
+      svg_root
+      text "搜索工作区"
+      text "⌘ K"
+    button "切换深浅外观" [ref=11, loc=css:button[aria-label="切换深浅外观"]]
+      svg_root
+  container
+    svg_root
+    container
+      svg_root
+      container
+        text "Prism"
+        text "CPAR CONSOLE"
+    container
+      text "我的网关"
+      text "Prism 管理控制台"
+    container
+      text "运行"
+      anchor [ref=12, loc=href:/admin-ui/#/, url=http://127.0.0.1:55977/admin-ui/#/]
+        svg_root
+        text "仪表盘"
+      anchor [ref=13, loc=href:/admin-ui/#/monitoring, url=http://127.0.0.1:55977/admin-ui/#/monitoring]
+        svg_root
+        text "请求日志"
+      anchor [ref=14, url=http://127.0.0.1:55977/admin-ui/#/usage]
+        svg_root
+        text "用量与费用"
+    container
+      text "资源"
+      anchor [ref=15, loc=href:/admin-ui/#/oauth, url=http://127.0.0.1:55977/admin-ui/#/oauth]
+        svg_root
+        text "OAuth 授权"
+      anchor [ref=16, url=http://127.0.0.1:55977/admin-ui/#/accounts]
+        svg_root
+        text "账号管理"
+      anchor [ref=17, url=http://127.0.0.1:55977/admin-ui/#/upstreams]
+        svg_root
+        text "AI 提供商"
+      anchor [ref=18, url=http://127.0.0.1:55977/admin-ui/#/models]
+        svg_root
+        text "模型管理"
+      anchor [ref=19, url=http://127.0.0.1:55977/admin-ui/#/access]
+        svg_root
+        text "API 密钥"
+    anchor [ref=20, loc=href:/admin-ui/#/settings, url=http://127.0.0.1:55977/admin-ui/#/settings]
+      svg_root
+      text "设置"
+    container
+      text "A"
+      container
+        text "admin"
+        text "管理会话"
+  container "仪表盘" [ref=21]
+    container
+      container
+        container
+          container
+            paragraph
+              text "YOUR GATEWAY, AT A GLANCE"
+            heading
+              text "运行概览"
+            paragraph
+              text "请求、账号与费用，汇集于同一工作台。"
+          container
+            group "请求时间范围"
+              svg_root
+              button [ref=22]
+                text "24 小时"
+              button [ref=23]
+                text "7 天"
+              button [ref=24]
+                text "30 天"
+              button "刷新请求概览" [ref=25, loc=css:button[aria-label="刷新请求概览"]]
+                text "刷新"
+            paragraph
+              text "截至"
+              text "10:22"
+        status
+          text "正在读取…"
+        status
+          text "读取请求统计…"
+      container
+        container
+          container
+            heading
+              text "提供商与账号"
+            anchor [ref=26, url=http://127.0.0.1:55977/admin-ui/#/accounts]
+              text "管理账号 →"
+          paragraph
+            text "当前配置"
+            text "凭据与独立渠道账号；以下为授权数量，非运行可用数。"
+          status
+            text "读取中…"
+          status
+            text "读取中…"
+        container
+          heading
+            text "费用完整性"
+          paragraph
+            text "与请求概览使用同一时间范围；账本可能稍后完成处理。"
+          paragraph
+            text "读取中…"
+          anchor [ref=27, loc=href:/admin-ui/#/monitoring?tab=ledger&from_ms=1791512570151&to_ms=1791598970151, url=http://127.0.0.1:55977/admin-ui/#/monitoring?tab=ledger&from_ms=1791512570151&to_ms=1791598970151]
+            text "查看费用与计价详情 →"
+      container [ref=28]
+        text "资源与处理状态"
+      status
+        text "正在读取…"

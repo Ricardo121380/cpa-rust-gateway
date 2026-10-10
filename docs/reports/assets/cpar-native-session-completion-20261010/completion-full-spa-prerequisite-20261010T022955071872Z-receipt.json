@@ -1,0 +1,26 @@
+{
+  "label": "completion-full-spa-prerequisite",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/full-source-d05d4418",
+  "argv": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "run",
+    "build"
+  ],
+  "utc_start": "2026-10-10T02:29:55.073382+00:00",
+  "source_before": {
+    "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T02:30:10.449923+00:00",
+  "elapsed_seconds": 15.31311425,
+  "source_after": {
+    "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+    "status": []
+  },
+  "log_sha256": "73a4f4dcd154381a33770df788c6c4a853c41392761a71118dcde0b3281474dd",
+  "log_bytes": 766
+}

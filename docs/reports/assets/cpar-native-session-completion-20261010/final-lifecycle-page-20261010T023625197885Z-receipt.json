@@ -1,0 +1,25 @@
+{
+  "label": "final-lifecycle-page",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_LIFECYCLE={\"spaceId\":39,\"origin\":\"http://127.0.0.1:56218\",\"outputDir\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/final-lifecycle-page\",\"commit\":\"36079c1fad666c2bbb9c15bd8f8a59518c970b42\"};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-36079c1f/scripts/acceptance/cpar-account-lifecycle-page.mjs\");const p=(await taskSpace(39)).page('p1');console.log(await p.snapshot());"
+  ],
+  "utc_start": "2026-10-10T02:36:25.199188+00:00",
+  "source_before": {
+    "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T02:37:19.091749+00:00",
+  "elapsed_seconds": 53.844511292,
+  "source_after": {
+    "head": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+    "status": []
+  },
+  "log_sha256": "5faaeef3075ff4109b7eff86dd879da53ba21f6d8929b0eba0f42b79a449babd",
+  "log_bytes": 12165
+}

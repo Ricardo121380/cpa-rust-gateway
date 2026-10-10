@@ -1,0 +1,25 @@
+{
+  "label": "direct-navigation-behavior-green",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\":39,\"descriptor\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-green-server/descriptor.json\",\"out\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-green.json\",\"login\":true,\"firstLogin\":false,\"navigation\":\"direct\"},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418/scripts/acceptance/cpar-grok-device-actual-ui.mjs\");"
+  ],
+  "utc_start": "2026-10-10T02:33:50.327068+00:00",
+  "source_before": {
+    "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T02:33:57.830311+00:00",
+  "elapsed_seconds": 7.468773333,
+  "source_after": {
+    "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+    "status": []
+  },
+  "log_sha256": "43777208c4a9f287e96902d904281c5197beb2e0821c3b792f41a39018d6862d",
+  "log_bytes": 7758
+}

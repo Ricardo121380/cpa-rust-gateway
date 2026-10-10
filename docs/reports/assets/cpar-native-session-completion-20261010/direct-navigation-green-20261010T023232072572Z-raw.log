@@ -1,0 +1,7 @@
+ElementResolutionError: page.click timed out after 3000ms: Locator loc=role:button[name="保存并重新登录"] matched 1 elements, but none can receive input; <div> intercepts pointer events
+    at #retryElementAction (file:////[eval1]:18884:27)
+    at async file:////[eval1]:18968:29
+    at async file:////[eval1]:16691:28
+{"scenario":"grok-build-commit-loss-recovery","result":"FAIL"}
+
+ego's nodejs process exited with code 1.

@@ -1,0 +1,343 @@
+{
+  "results": [
+    {
+      "scenario": "grok-build-real-page-commit-before-response-loss",
+      "result": "OBSERVED",
+      "sessionId": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+      "saved": [
+        [
+          "grok-ddaf5d9693572f66b1fd45969b103825",
+          "build",
+          0,
+          1,
+          "active"
+        ]
+      ],
+      "loss": {
+        "records": [
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+              "state": "pending",
+              "expires_at_ms": 1791599115649,
+              "retry_at_ms": 1791599000649,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations/bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA/poll",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+              "state": "pending",
+              "expires_at_ms": 1791599115649,
+              "retry_at_ms": 1791599000649,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          }
+        ],
+        "text": "OAuth 授权选择渠道完成官方登录，成功后自动登记账号。已有账号的重新授权从账号行发起。账号管理Codex / ChatGPT官方登录授权授权 Codex / ChatGPTClaude官方登录授权授权 ClaudeKimi Coding官方登录授权授权 Kimi CodingGrok Build官方登录授权授权 Grok BuildKiro官方登录授权授权 Kiro授权文件在账号管理导入；API Key 在 AI 提供商配置。此页不会检查模型、续期或发起推理。",
+        "dialogText": "添加 Grok 授权账号在 Grok 官方页面输入设备验证码；保存后会读取授权身份。×Grok Build · 设备授权连接 Grok 账号获取验证码 → 官方确认 → 自动保存授权结果待确认先读取原任务结果；不会重复授权交换、创建账号或取消可能已完成的授权。原会话超过有效期、管理会话结束或进程重启后可能无法确认。核对授权结果Failed to fetch关闭并标记结果未确认"
+      },
+      "transport": {
+        "events": [
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/device/code",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "scope"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/token",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "device_code",
+              "grant_type"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/userinfo",
+            "method": "GET"
+          }
+        ],
+        "refresh_requests": 0,
+        "sessions": [
+          {
+            "ordinal": 1,
+            "channel": "grok.build",
+            "mode": "success",
+            "token_requests": 1
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "direct-browser-back-forward-after-unknown",
+      "result": "OBSERVED",
+      "sessionId": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+      "saved": [
+        [
+          "grok-ddaf5d9693572f66b1fd45969b103825",
+          "build",
+          0,
+          1,
+          "active"
+        ]
+      ],
+      "returned": {
+        "records": [
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+              "state": "pending",
+              "expires_at_ms": 1791599115649,
+              "retry_at_ms": 1791599000649,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations/bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA/poll",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+              "state": "pending",
+              "expires_at_ms": 1791599115649,
+              "retry_at_ms": 1791599000649,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          }
+        ],
+        "text": "OAuth 授权选择渠道完成官方登录，成功后自动登记账号。已有账号的重新授权从账号行发起。账号管理Codex / ChatGPT官方登录授权授权 Codex / ChatGPTClaude官方登录授权授权 ClaudeKimi Coding官方登录授权授权 Kimi CodingGrok Build官方登录授权授权 Grok BuildKiro官方登录授权授权 Kiro授权文件在账号管理导入；API Key 在 AI 提供商配置。此页不会检查模型、续期或发起推理。",
+        "dialogText": ""
+      }
+    },
+    {
+      "scenario": "grok-build-commit-loss-recovery",
+      "result": "FAIL",
+      "error": "AssertionError [ERR_ASSERTION]: Original recovery handle was lost after direct browser Back/Forward without explicit close",
+      "sessionId": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+      "saved": [
+        [
+          "grok-ddaf5d9693572f66b1fd45969b103825",
+          "build",
+          0,
+          1,
+          "active"
+        ]
+      ],
+      "facts": {
+        "records": [
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+              "state": "pending",
+              "expires_at_ms": 1791599115649,
+              "retry_at_ms": 1791599000649,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/admin/native-account-authorizations/bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA/poll",
+            "config": null,
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": true,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "session_id": "bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+              "state": "pending",
+              "expires_at_ms": 1791599115649,
+              "retry_at_ms": 1791599000649,
+              "identity": null,
+              "identity_state": "pending",
+              "runtime_applied": null,
+              "account_id": null,
+              "credential_revision": null
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/admin/accounts/inventory",
+            "config": "ui-baseline",
+            "ifMatch": null,
+            "authenticated": true,
+            "csrf": false,
+            "sameOrigin": true,
+            "body": {},
+            "status": 200,
+            "response": {
+              "category_totals": {
+                "grok": 1
+              },
+              "config_version": "ui-baseline",
+              "items": [
+                {
+                  "category": "grok",
+                  "id": "grok-ddaf5d9693572f66b1fd45969b103825",
+                  "identity": {
+                    "email": "build.member@example.test",
+                    "phone": null,
+                    "username": null
+                  },
+                  "managed": null,
+                  "name": "build.member@example.test",
+                  "native": true,
+                  "native_account": {
+                    "adapter_models": null,
+                    "auth_status": "active",
+                    "enabled": true,
+                    "id": "grok-ddaf5d9693572f66b1fd45969b103825",
+                    "identity": {
+                      "email": "build.member@example.test",
+                      "phone": null,
+                      "username": null
+                    },
+                    "import_batch_id": "grok-authorization-bcSL5i9fgvSunZNNlfmWFZzl_H3KUIIzm70tV2my-TA",
+                    "provider": "grok_build",
+                    "revision": 0
+                  },
+                  "operations": [
+                    "details",
+                    "enable",
+                    "disable",
+                    "remove",
+                    "models",
+                    "reauthorize"
+                  ],
+                  "plan": null,
+                  "plan_source": null,
+                  "provider": "Grok Build",
+                  "status": "enabled"
+                }
+              ],
+              "next_cursor": null,
+              "plan_totals": {},
+              "revision": "rev-4",
+              "total": 1,
+              "unobserved_plan_total": 1
+            }
+          }
+        ],
+        "text": "OAuth 授权选择渠道完成官方登录，成功后自动登记账号。已有账号的重新授权从账号行发起。账号管理Codex / ChatGPT官方登录授权授权 Codex / ChatGPTClaude官方登录授权授权 ClaudeKimi Coding官方登录授权授权 Kimi CodingGrok Build官方登录授权授权 Grok BuildKiro官方登录授权授权 Kiro授权文件在账号管理导入；API Key 在 AI 提供商配置。此页不会检查模型、续期或发起推理。",
+        "dialogText": ""
+      },
+      "transport": {
+        "events": [
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/device/code",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "scope"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/token",
+            "channel": "grok.build",
+            "content_type": "application/x-www-form-urlencoded",
+            "field_names": [
+              "client_id",
+              "device_code",
+              "grant_type"
+            ]
+          },
+          {
+            "host": "auth.x.ai",
+            "path": "/oauth2/userinfo",
+            "method": "GET"
+          }
+        ],
+        "refresh_requests": 0,
+        "sessions": [
+          {
+            "ordinal": 1,
+            "channel": "grok.build",
+            "mode": "success",
+            "token_requests": 1
+          }
+        ]
+      }
+    }
+  ],
+  "environment": "stock serve /admin-ui/, synthetic loopback only",
+  "sourceSha": "c1e8ab66c01e172016d2551989598353fe723809",
+  "binarySha256": "d02e7e09381ea0b3dd9e9b5550af3c0c81ed37ee2cf4bc8205970c9ce4533417",
+  "origin": "http://127.0.0.1:55977",
+  "spaceId": 39,
+  "timeUtc": "2026-10-10T02:23:20.833Z"
+}

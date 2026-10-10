@@ -1,0 +1,32 @@
+{
+  "label": "completion-fixture-dev-server",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/source-d05d4418",
+  "argv": [
+    "npm",
+    "--prefix",
+    "web/prism",
+    "run",
+    "dev",
+    "--",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "56218",
+    "--strictPort"
+  ],
+  "utc_start": "2026-10-10T02:28:08.942393+00:00",
+  "source_before": {
+    "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": -15,
+  "utc_end": "2026-10-10T02:29:11.452796+00:00",
+  "elapsed_seconds": 62.476846542,
+  "source_after": {
+    "head": "d05d4418947dee1573cb88e935eff2cf48796208",
+    "status": []
+  },
+  "log_sha256": "ae1aa7aba781075f55c9622bbcb28ce6f9c0025ff9e24f4bc3a38123d992b738",
+  "log_bytes": 150
+}

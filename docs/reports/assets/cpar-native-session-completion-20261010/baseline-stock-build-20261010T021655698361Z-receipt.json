@@ -1,0 +1,28 @@
+{
+  "label": "baseline-stock-build",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+  "argv": [
+    "cargo",
+    "build",
+    "--locked",
+    "--package",
+    "gateway"
+  ],
+  "utc_start": "2026-10-10T02:16:55.698823+00:00",
+  "source_before": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": []
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+  },
+  "exit_code": 0,
+  "utc_end": "2026-10-10T02:17:25.049020+00:00",
+  "elapsed_seconds": 29.314275875,
+  "source_after": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": []
+  },
+  "log_sha256": "f6897bfb2f38f35b7ca27f3cd7fe8b0fe63c27d60615f5de549390a7280644ed",
+  "log_bytes": 4737
+}

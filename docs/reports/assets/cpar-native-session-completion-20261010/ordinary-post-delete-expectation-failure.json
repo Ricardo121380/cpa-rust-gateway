@@ -1,0 +1,41 @@
+{
+  "commit": "d05d4418947dee1573cb88e935eff2cf48796208",
+  "spaceId": 39,
+  "result": "FAIL",
+  "cases": [
+    {
+      "native": false,
+      "action": "remove",
+      "mode": "drift",
+      "change": "binding",
+      "timing": "after",
+      "id": "ordinary-remove-binding-after",
+      "result": "FAIL",
+      "environment": "development-fixture-product-controls",
+      "commit": "d05d4418947dee1573cb88e935eff2cf48796208",
+      "spaceId": 39,
+      "previewReferences": [
+        "cred-relay-key",
+        "relay-a",
+        "ep-relay-a-responses",
+        "rt-minimax",
+        "key-cli",
+        "key-dead",
+        "cred-relay-spare",
+        "relay-a",
+        "ep-relay-a-responses",
+        "rt-minimax",
+        "key-cli",
+        "key-dead",
+        "cred-relay-third",
+        "relay-a",
+        "ep-relay-a-responses",
+        "rt-minimax",
+        "key-cli",
+        "key-dead"
+      ],
+      "preview": "删除 3 份授权删除所选授权：普通账号的专属绑定随之移除；原生账号的共享连接保留。历史请求与账本保留，上游账号不会注销。×未提供账号身份 · revision 2Fixture API · 移除 1 个账号连接和 0 个出口绑定。保留共享接口 Responses · relay-a.example.test；删除本批次后承接账号无；新请求将无法使用这个账号池保留路由：minimax-m3 · 路由。保留客户端 Key：默认组、默认组。未提供账号身份 · revision 1Fixture API · 移除 1 个账号连接和 0 个出口绑定。保留共享接口 Responses · relay-a.example.test；删除本批次后承接账号无；新请求将无法使用这个账号池保留路由：minimax-m3 · 路由。保留客户端 Key：默认组、默认组。未提供账号身份 · revision 0Fixture API · 移除 1 个账号连接和 0 个出口绑定。保留共享接口 Responses · relay-a.example.test；删除本批次后承接账号无；新请求将无法使用这个账号池保留路由：minimax-m3 · 路由。保留客户端 Key：默认组、默认组。历史请求、账本和历史配置保留。本地删除不会注销上游账号，也不会撤销上游授权；历史版本恢复这些账号需要再次确认。已核对删除对象、移除的绑定与保留的共享资源已选择3 份授权0 项已处理未提供账号身份API待处理未提供账号身份API待处理未提供账号身份API待处理取消确认删除",
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    'saved_unapplied',\n+   'rejected',\n-   'unconfirmed',\n    'unexecuted'\n  ]\n"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "label": "ordinary-binding-after-probe",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_LIFECYCLE={\"spaceId\":39,\"origin\":\"http://127.0.0.1:56218\",\"outputDir\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/ordinary-binding-after-probe\",\"commit\":\"d05d4418947dee1573cb88e935eff2cf48796208\",\"only\":\"ordinary-remove-binding-after\"};await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar-account-lifecycle-page.mjs\");const p=(await taskSpace(39)).page('p1');console.log(await p.snapshot());"
+  ],
+  "utc_start": "2026-10-10T02:34:31.676251+00:00",
+  "source_before": {
+    "head": "caf88b1e4d71b67f4862f625d1711b4cb4a56bdc",
+    "status": [
+      " M AGENTS.md",
+      " M scripts/acceptance/cpar-operations-support.mjs"
+    ]
+  },
+  "environment": {},
+  "exit_code": 1,
+  "utc_end": "2026-10-10T02:34:33.567991+00:00",
+  "elapsed_seconds": 1.859051708,
+  "source_after": {
+    "head": "caf88b1e4d71b67f4862f625d1711b4cb4a56bdc",
+    "status": [
+      " M AGENTS.md",
+      " M scripts/acceptance/cpar-operations-support.mjs"
+    ]
+  },
+  "log_sha256": "0a02800c395becc9fb58e6de7c099d7b6af245e8df68ea174014cc3da95b6fac",
+  "log_bytes": 355
+}

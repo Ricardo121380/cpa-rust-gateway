@@ -1,0 +1,25 @@
+{
+  "label": "recover-initial-login-popup",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "const t=await taskSpace(39),p=t.page('p1');await p.keyboard.press('Escape');await p.click('loc=role:button[name=\"\u4fdd\u5b58\u5e76\u91cd\u65b0\u767b\u5f55\"]');await p.waitForSelector('input[name=\"username\"]');const fs=await import('node:fs/promises');const d=JSON.parse(await fs.readFile(\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server/descriptor.json\",'utf8'));await p.fill('input[name=\"password\"]',(await fs.readFile(d.password_file,'utf8')).trim());await p.click('loc=role:button[name=\"\u767b\u5f55\"]');await p.waitForSelector('main.canvas');console.log(await p.snapshot());"
+  ],
+  "utc_start": "2026-10-10T02:22:48.205754+00:00",
+  "source_before": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T02:22:50.182994+00:00",
+  "elapsed_seconds": 1.9456035839999999,
+  "source_after": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": []
+  },
+  "log_sha256": "b218077c0b9e7bfe870cde2fb58e90c7b2c064280fd0cbe6a640128be134e737",
+  "log_bytes": 3978
+}

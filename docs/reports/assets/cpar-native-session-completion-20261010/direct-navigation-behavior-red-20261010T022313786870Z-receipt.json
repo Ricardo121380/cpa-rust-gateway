@@ -1,0 +1,25 @@
+{
+  "label": "direct-navigation-behavior-red",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/baseline-source-c1e8ab66",
+  "argv": [
+    "ego-browser",
+    "nodejs",
+    "-e",
+    "globalThis.CPAR_OPERATIONS=Object.assign({\"spaceId\":39,\"descriptor\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-red-server/descriptor.json\",\"out\":\"/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/direct-navigation-behavior-red.json\",\"login\":true,\"firstLogin\":false},{taskSpace}); await import(\"file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/review-direct-route-probe.mjs\");"
+  ],
+  "utc_start": "2026-10-10T02:23:13.787118+00:00",
+  "source_before": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": []
+  },
+  "environment": {},
+  "exit_code": 1,
+  "utc_end": "2026-10-10T02:23:20.846007+00:00",
+  "elapsed_seconds": 7.030442874999999,
+  "source_after": {
+    "head": "c1e8ab66c01e172016d2551989598353fe723809",
+    "status": []
+  },
+  "log_sha256": "8e6c2ca710b7e900eab0c9b5e395200fcb55e7279d865a9b8a92cac97926489d",
+  "log_bytes": 4266
+}

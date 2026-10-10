@@ -1,0 +1,5 @@
+Error: page.waitForSelector timed out after 10000ms: main.canvas
+    at waitForSelectorInPage (file:////[eval1]:16159:11)
+    at async file:////[eval1]:16691:28
+
+ego's nodejs process exited with code 1.

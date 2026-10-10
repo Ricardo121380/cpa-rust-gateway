@@ -1,0 +1,19 @@
+{
+  "continuation_base": "c1e8ab66c01e172016d2551989598353fe723809",
+  "original_base": "85a168da39e79b49c58e83767bdc2bbce0b8a00a",
+  "utc": "2026-10-10T02:15:55.670902+00:00",
+  "local_time": "2026-10-10T10:15:55.670902+08:00",
+  "space_id": 39,
+  "replacement_space_explicitly_authorized": true,
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_diff_sha256": "dcf02654c3005e364aa0ebb3b1cc34aacc2ba793d8ad070666184f91d84be25f",
+  "tracked_status": [
+    " M AGENTS.md"
+  ],
+  "scope": "#16 direct navigation and #23 current names/selected sibling drift; preserve original implementation, review, local gates and GitHub synchronization scope",
+  "real_provider_calls": 0,
+  "push": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN"
+}

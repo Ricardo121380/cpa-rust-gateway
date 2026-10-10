@@ -1,0 +1,13 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'saved_unapplied',
++   'rejected',
+-   'unconfirmed',
+    'unexecuted'
+  ]
+
+    at file:///Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/acceptance/cpar-account-lifecycle-page.mjs:117:14
+
+ego's nodejs process exited with code 1.

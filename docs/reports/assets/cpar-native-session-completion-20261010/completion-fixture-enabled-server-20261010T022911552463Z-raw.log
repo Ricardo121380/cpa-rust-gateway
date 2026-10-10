@@ -1,0 +1,8 @@
+
+> prism-admin@0.0.1 dev
+> vite --host 127.0.0.1 --port 56218 --strictPort
+
+
+  VITE v7.3.6  ready in 81 ms
+
+  ➜  Local:   http://127.0.0.1:56218/

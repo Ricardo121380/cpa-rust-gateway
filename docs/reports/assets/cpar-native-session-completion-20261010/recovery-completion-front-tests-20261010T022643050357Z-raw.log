@@ -1,0 +1,15 @@
+
+> prism-admin@0.0.1 test
+> vitest run src/features/accounts/deviceRecoveryStore.test.ts src/features/accounts/nativeDeletionImpact.test.ts src/features/accounts/accountActionModel.test.ts
+
+
+ RUN  v3.2.7 /Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/web/prism
+
+ ✓ src/features/accounts/accountActionModel.test.ts (3 tests) 5ms
+ ✓ src/features/accounts/nativeDeletionImpact.test.ts (15 tests) 6ms
+ ✓ src/features/accounts/deviceRecoveryStore.test.ts (3 tests) 5ms
+
+ Test Files  3 passed (3)
+      Tests  21 passed (21)
+   Start at  10:26:43
+   Duration  467ms (transform 120ms, setup 0ms, collect 143ms, tests 16ms, environment 1ms, prepare 273ms)
