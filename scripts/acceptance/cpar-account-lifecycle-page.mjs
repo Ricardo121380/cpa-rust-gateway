@@ -19,7 +19,12 @@ const cases=[
   [true,"disable","lost"],[true,"remove","applied"],
   [true,"remove","unapplied"],[true,"remove","rejected"],
   [true,"remove","batch-lost"],
+  [true,"disable","no-identity"],
 ].map(([native,action,mode])=>({native,action,mode,id:`${native?"native":"ordinary"}-${action}-${mode}`}));
+for(const change of ["revision","enabled","auth","missing"])for(const timing of ["before","after"]){
+  cases.push({native:true,action:"remove",mode:"drift",change,timing,id:`native-remove-${change}-${timing}`});
+}
+for(const timing of ["before","after"])cases.push({native:false,action:"remove",mode:"drift",change:"binding",timing,id:`ordinary-remove-binding-${timing}`});
 const text=()=>page.evaluate(()=>document.querySelector('[role="dialog"]')?.textContent??"");
 const outcomes=()=>page.evaluate(()=>[...document.querySelectorAll('[aria-label="账号操作结果"] [data-outcome]')].map(row=>row.dataset.outcome));
 const shot=async name=>page.screenshot({path:`${outputDir}/${name}.png`});
@@ -33,11 +38,17 @@ for(const item of cases.filter(item=>!only||item.id===only)){
     await page.evaluate(async item=>{
       const resource=pattern=>performance.getEntriesByType("resource").map(row=>row.name).find(url=>pattern.test(url));
       const fixture=await import(resource(/\/src\/dev\/fixtures\.ts\?t=/u)??"/src/dev/fixtures.ts");
-      fixture.prepareAccountLifecycleForTest(item.native,item.action!=="enable");
+      fixture.prepareAccountLifecycleForTest(item.native,item.action!=="enable",item.mode==="no-identity");
       window.CPAR_LIFECYCLE_FIXTURE=fixture;
       const {ManagementApi}=await import(resource(/\/src\/generated\/management-client\.ts\?t=/u)??"/src/generated/management-client.ts");
       const original=ManagementApi.prototype.request;
       window.CPAR_LIFECYCLE_HTTP={calls:[],mode:item.mode,mutations:0,working:undefined,applyLost:false};
+      window.CPAR_LIFECYCLE_DRIFT=()=>{
+        const state=window.CPAR_LIFECYCLE_HTTP;
+        const before=fixture.accountLifecycleSnapshotForTest(state.working);
+        fixture.changePendingDeletionAccountForTest(item.native,item.native?"native-lifecycle-c":"cred-relay-third",item.change,state.working);
+        state.drift={before,after:fixture.accountLifecycleSnapshotForTest(state.working),change:item.change,timing:item.timing};
+      };
       const mutation=item.native?(item.action==="remove"?"deleteNativeAccount":"updateNativeAccount"):(item.action==="remove"?"deleteCredential":"updateCredentialStatus");
       if(item.mode==="unapplied")fixture.failNextNativeRuntimeApplyForTest();
       ManagementApi.prototype.request=async function(operation,request){
@@ -46,6 +57,7 @@ for(const item of cases.filter(item=>!only||item.id===only)){
         if(operation===mutation){state.mutations+=1;state.working=entry.version;if(state.mode==="rejected")return new Response(JSON.stringify({error:{code:"management_invalid_input",message:"controlled lifecycle rejection"}}),{status:400,headers:{"Content-Type":"application/json"}});}
         if(operation==="publishConfigVersion"&&state.mode==="publish-failed")return new Response(JSON.stringify({error:{code:"management_runtime_unavailable",message:"controlled publication failure"}}),{status:503,headers:{"Content-Type":"application/json"}});
         const response=await original.call(this,operation,request);entry.status=response.status;
+        if(item.mode==="drift"&&item.timing==="after"&&operation===mutation&&response.ok&&state.mutations===1)window.CPAR_LIFECYCLE_DRIFT();
         if(operation===mutation&&response.ok&&(state.mode==="lost"||(state.mode==="batch-lost"&&state.mutations===2)))throw new TypeError("controlled response lost after durable fixture mutation");
         if(operation==="applyRuntimeConfiguration"&&state.applyLost&&response.ok)throw new TypeError("controlled runtime apply response lost");
         return response;
@@ -62,10 +74,14 @@ for(const item of cases.filter(item=>!only||item.id===only)){
     },item);
     const ids=item.native?["native-lifecycle-a","native-lifecycle-b","native-lifecycle-c"]:["cred-relay-key","cred-relay-spare","cred-relay-third"];
     await page.waitForSelector(`tr[data-account-key="${ids[0]}"]`);
+    if(item.mode==="no-identity"){
+      const label=await page.evaluate(id=>document.querySelector(`tr[data-account-key="${id}"]`)?.textContent,ids[0]);
+      assert(label.includes("未提供账号身份"));assert(!label.includes(ids[0]),"import marker must not replace a missing identity");row.identityFallback=label;
+    }
     await snapshot(`${item.id}-before`);
     const before=await page.evaluate(async()=>{const {useVersionStore}=await import("/src/features/config-versions/versionStore.ts");return window.CPAR_LIFECYCLE_FIXTURE.accountLifecycleSnapshotForTest(useVersionStore.getState().context.configVersionId);});
     await page.click('loc=role:button[name="批量管理"]');
-    const selected=item.mode==="batch-lost"?ids:[ids[0]];
+    const selected=["batch-lost","drift"].includes(item.mode)?ids:[ids[0]];
     for(const id of selected)await page.click(`loc=css:tr[data-account-key="${id}"] input[type="checkbox"]`);
     const label={enable:"启用",disable:"停用",remove:"删除"}[item.action];
     await page.click(`loc=css:[aria-label="批量账号操作"] button:has-text("${label}")`);
@@ -86,13 +102,16 @@ for(const item of cases.filter(item=>!only||item.id===only)){
       assert.equal(await page.evaluate(label=>[...document.querySelectorAll('[role="dialog"] button')].find(button=>button.textContent===`确认${label}`)?.disabled,label),true);
       await page.click('loc=css:[aria-label="删除影响预览"] input[type="checkbox"]');
     }
+    if(item.mode==="drift"&&item.timing==="before")await page.evaluate(()=>window.CPAR_LIFECYCLE_DRIFT());
     if(item.action==="enable")assert.match(await text(),/调度|授权|许可/u);
     await page.click(`loc=role:button[name="确认${label}"]`);
     await page.waitForFunction(()=>[...document.querySelectorAll('[aria-label="账号操作结果"] [data-outcome]')].every(row=>row.dataset.outcome!=="pending"));
     await page.waitForSelector('loc=role:button[name="完成"]');
     const expected=item.mode==="draft"?"saved_draft":item.mode==="publish-failed"||item.mode==="unapplied"?"saved_unapplied":item.mode==="rejected"?"rejected":item.mode==="lost"?"unconfirmed":"applied";
     const seen=await outcomes();
-    if(item.mode==="batch-lost")assert.deepEqual(seen,[item.native?"applied":"saved_unapplied","unconfirmed","unexecuted"]);else assert.deepEqual(seen,[expected]);
+    if(item.mode==="batch-lost")assert.deepEqual(seen,[item.native?"applied":"saved_unapplied","unconfirmed","unexecuted"]);
+    else if(item.mode==="drift")assert.deepEqual(seen,item.timing==="before"?["rejected","unexecuted","unexecuted"]:[item.native?"applied":"saved_unapplied","rejected","unexecuted"]);
+    else assert.deepEqual(seen,[expected]);
     row.initialOutcomes=seen;
     const counters=()=>page.evaluate(()=>structuredClone(window.CPAR_LIFECYCLE_HTTP));
     if(["lost","batch-lost"].includes(item.mode)){
@@ -113,11 +132,21 @@ for(const item of cases.filter(item=>!only||item.id===only)){
       await page.evaluate(()=>window.CPAR_LIFECYCLE_HTTP.applyLost=false);await page.click('loc=role:button[name="应用运行配置"]');await page.waitForFunction(()=>[...document.querySelectorAll('[data-outcome]')].some(row=>row.dataset.outcome==="applied"));row.runtimeReadBeforeExplicitApply=true;
     }
     row.counters=await counters();
+    if(item.mode==="drift"){
+      assert.equal(row.counters.mutations,item.timing==="before"?0:1,"pending drift must stop before the next DELETE");
+      assert(!row.counters.calls.some(call=>["deleteNativeAccount","deleteCredential"].includes(call.operation)&&call.id===ids[2]));
+      assert.equal(await page.evaluate(()=>[...document.querySelectorAll('[role="dialog"] button')].filter(button=>button.textContent?.includes("重试")||button.textContent?.startsWith("确认删除")).length),0);
+      row.pendingDriftStopped=true;
+    }
     const after=await page.evaluate(()=>window.CPAR_LIFECYCLE_FIXTURE.accountLifecycleSnapshotForTest(window.CPAR_LIFECYCLE_HTTP.working));
     for(const key of ["providers","endpoints","models","candidates","permissions"])assert.deepEqual(after[key],before[key],`shared ${key} preserved`);
     const accountRows=item.native?after.native:after.accounts;
     if(item.mode!=="rejected"){
-      if(item.action==="remove"){assert(!accountRows.some(account=>account.id===ids[0]));assert(accountRows.some(account=>account.id===ids[2]));}
+      if(item.action==="remove"){
+        assert.equal(accountRows.some(account=>account.id===ids[0]),item.mode==="drift"&&item.timing==="before");
+        assert.equal(accountRows.some(account=>account.id===ids[2]),!(item.mode==="drift"&&item.change==="missing"));
+        if(item.mode==="drift")assert(accountRows.some(account=>account.id===ids[1]),"remaining pending member must not be deleted");
+      }
       else assert.equal(item.native?accountRows.find(account=>account.id===ids[0]).enabled:accountRows.find(account=>account.id===ids[0]).status!=="disabled",item.action==="enable");
     }else assert.deepEqual(accountRows,item.native?before.native:before.accounts);
     row.savedMetadata=after;row.result="PASS";await snapshot(`${item.id}-result`);await shot(`${item.id}-result`);

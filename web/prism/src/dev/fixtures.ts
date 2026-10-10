@@ -903,7 +903,7 @@ export function prepareSharedDeletionForTest():void {
 }
 
 /** Exact shared resources and three redacted accounts for lifecycle UI acceptance. */
-export function prepareAccountLifecycleForTest(native:boolean,enabled:boolean):void {
+export function prepareAccountLifecycleForTest(native:boolean,enabled:boolean,missingIdentity=false):void {
   prepareSharedDeletionForTest();
   const version=state.versions.find(row=>row.status==="active")!;
   state.credentials.get(version.id)!.push({id:"cred-relay-third",upstream_id:"relay-a",kind:"bearer",status:"active",revision:0,secret_present:true});
@@ -912,8 +912,27 @@ export function prepareAccountLifecycleForTest(native:boolean,enabled:boolean):v
   if(native){
     prepareNativeConnectionMatchesForTest(2);
     state.routeCandidates.set(version.id,(state.endpoints.get(version.id)??[]).map((endpoint,index)=>({id:`native-lifecycle-candidate-${index}`,route_id:"rt-minimax",endpoint_id:endpoint.id,upstream_model:"grok-lifecycle-model",credential_scope:"all_active",transform_mode:"passthrough",enabled:true,priority:index,weight:1,capability_override:{}})));
-    nativeFixtureAccounts.splice(0,nativeFixtureAccounts.length,...["a","b","c"].map((suffix,index)=>({id:`native-lifecycle-${suffix}`,provider:"grok_build",auth_status:"active",enabled,revision:index,import_batch_id:`native-lifecycle-${suffix}`,identity:{email:`${suffix}@example.test`,phone:null,username:null}})));
+    nativeFixtureAccounts.splice(0,nativeFixtureAccounts.length,...["a","b","c"].map((suffix,index)=>({id:`native-lifecycle-${suffix}`,provider:"grok_build",auth_status:"active",enabled,revision:index,import_batch_id:`native-lifecycle-${suffix}`,identity:{email:missingIdentity&&index===0?null:`${suffix}@example.test`,phone:null,username:null}})));
     nativeFixtureGeneration+=1;
+  }
+}
+
+/** Simulates a concurrent inventory change after the deletion preview was confirmed. */
+export function changePendingDeletionAccountForTest(native:boolean,id:string,change:"revision"|"enabled"|"auth"|"missing"|"binding",versionId?:string):void {
+  if(native){
+    const row=nativeFixtureAccounts.find(account=>account.id===id);
+    if(!row)throw new Error("pending native fixture account unavailable");
+    if(change==="revision")row.revision+=1;
+    else if(change==="enabled")row.enabled=!row.enabled;
+    else if(change==="auth")row.auth_status="reauth_required";
+    else if(change==="missing")nativeFixtureAccounts.splice(nativeFixtureAccounts.indexOf(row),1);
+    else throw new Error("unsupported native fixture change");
+    nativeFixtureGeneration+=1;
+  }else{
+    const version=versionId?state.versions.find(row=>row.id===versionId):state.versions.find(row=>row.status==="active");
+    if(!version||change!=="binding")throw new Error("ordinary deletion fixture version unavailable");
+    state.bindings.set(version.id,(state.bindings.get(version.id)??[]).filter(row=>row.credential_id!==id));
+    version.revision+=1;
   }
 }
 

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { ProviderDialog } from "../upstreams/ProviderDialog";
 import { useVersionStore } from "../config-versions/versionStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { call } from "../../api/client";
 import { asAppError } from "../../api/errors";
 import type {AccountIdentity} from "./presentation";
@@ -27,7 +27,12 @@ export function GrokDeviceWizard({name,target,onClose,onComplete,recovery}:Reado
     queryFn:()=>call<View>("pollNativeAccountAuthorization",{path:{session_id:session!.session_id}}),
     refetchInterval:(q)=>q.state.status==="error" ? false : q.state.data && q.state.data.state!=="pending" ? false : Math.max(1000,(q.state.data?.retry_at_ms ?? session?.retry_at_ms ?? Date.now()+5000)-Date.now()),
   });
-  useEffect(()=>{if(poll.isError)setUnresolved(true);},[poll.isError]);
+  useLayoutEffect(()=>{
+    if(poll.isError&&session){
+      useDeviceRecoveryStore.getState().retainNative({sessionId:session.session_id,name,target});
+      setUnresolved(true);
+    }
+  },[poll.isError,session,name,target]);
   const start=useMutation({mutationFn:()=>call<View>("startNativeAccountAuthorization",{body:{...(name?{name}:{}),...(target?{target}:{})}}),onSuccess:setSession});
   const cancel=useMutation({mutationFn:()=>call<View>("cancelNativeAccountAuthorization",{path:{session_id:session!.session_id}}),onSuccess:(value)=>client.setQueryData(key,value)});
   const view=poll.data??session;

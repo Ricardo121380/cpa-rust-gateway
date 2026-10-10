@@ -13,7 +13,9 @@ await writeFile(`${dirname(options.descriptor)}/device-control.json`,JSON.string
 let saved,sessionId;
 try{
   if(options.login)await h.login(options.firstLogin??false);
-  await page.goto(`${d.origin}/admin-ui/#/oauth`);await clear();
+  await page.goto(`${d.origin}/admin-ui/#/accounts`);await page.waitForSelector("main.canvas");
+  await page.evaluate(()=>{location.hash="#/oauth";});
+  await page.waitForSelector('loc=role:button[name="授权 Grok Build"]');await clear();
   console.log(await page.snapshot());
   await page.click('loc=role:button[name="授权 Grok Build"]');
   await page.cdp("Fetch.enable",{patterns:[{urlPattern:"*/native-account-authorizations/*/poll",requestStage:"Response"}]});
@@ -39,9 +41,18 @@ try{
   const loss=await facts(),transport=await deviceFacts({ordinal:1,requests:1});
   await record({scenario:"grok-build-real-page-commit-before-response-loss",result:"OBSERVED",sessionId,saved,loss,transport});
   assert(loss.dialogText.includes("授权结果待确认"),"Saved Grok grant is displayed as pending without an unknown-result recovery path");
-  await page.click('loc=role:button[name="关闭并标记结果未确认"]');
-  await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));
-  await page.click('loc=css:#main-navigation a[href="#/accounts"]');
+  if(options.navigation==="direct"){
+    await page.evaluate(()=>history.back());await page.waitForURL("**/#/accounts");
+    await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));
+    await page.evaluate(()=>history.forward());await page.waitForURL("**/#/oauth");
+    const returned=await facts();
+    await record({scenario:"direct-browser-back-forward-after-unknown",result:"OBSERVED",sessionId,saved,returned});
+    assert(returned.text.includes("返回 Grok Build 授权任务"),"Original recovery handle was lost after direct browser Back/Forward without explicit close");
+  }else{
+    await page.click('loc=role:button[name="关闭并标记结果未确认"]');
+    await page.waitForFunction(()=>!document.querySelector('[role="dialog"]'));
+    await page.click('loc=css:#main-navigation a[href="#/accounts"]');
+  }
   await page.click('loc=role:button[name="返回 Grok Build 授权任务"]');
   await page.click('loc=role:button[name="核对授权结果"]');
   await page.waitForFunction(()=>document.querySelector('[role="dialog"]')?.textContent.includes("授权已保存"));
@@ -61,8 +72,14 @@ try{
   await h.api("DELETE",`/admin/native-account-authorizations/${sessionId}`,undefined,503);
   const denied=await fetch(`${d.origin}/admin/native-account-authorizations/${sessionId}`);assert.equal(denied.status,404);
   assert.deepEqual(database(),saved);assert.equal((await deviceFacts({ordinal:1,requests:1})).sessions[0].token_requests,1);
+  await page.waitForFunction(()=>{
+    const dialog=document.querySelector('[role="dialog"]');
+    if(!dialog)return false;
+    const rect=dialog.getBoundingClientRect();
+    return Number(getComputedStyle(dialog).opacity)>=.99&&rect.left>=0&&rect.right<=innerWidth;
+  });
   const screenshot=await page.screenshot({path:options.out.replace(/\.json$/u,"-recovered.png")});
-  await record({scenario:"grok-build-commit-loss-close-leave-return-read-original",result:"PASS",saved,recovered,transport:after,screenshot,foreignActorRead:404,foreignActorPollCancel:503,unauthenticatedRead:404});
+  await record({scenario:`grok-build-commit-loss-${options.navigation==="direct"?"direct-back-forward":"close-leave-return"}-read-original`,result:"PASS",saved,recovered,transport:after,screenshot,foreignActorRead:404,foreignActorPollCancel:503,unauthenticatedRead:404});
   await page.click('loc=role:button[name="关闭"]');
   console.log(await page.snapshot());
 }catch(error){

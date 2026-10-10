@@ -3848,3 +3848,19 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** The third Spec review found that every selected account was excluded from fresh impact comparison, including members not yet deleted. Four real comparer calls with the production selection reproduced revision, enabled, auth and disappearance drift incorrectly returning equal. The existing comparers now take captured targets and per-item outcomes, admit disappearance only after a successful DELETE result, keep ordinary/native namespaces separate and reject reappearance. No backend contract or storage change.
 
 **Other side:** FYI. Local comparison RED and 15-case GREEN are distinct from public HTTP and browser acceptance. The latest deletion page replay remains NOT_RUN pending the already requested replacement EgoLite space; direct-navigation recovery remains a separate unimplemented inference. Unknown writes are not replayed and prior confirmed results remain visible.
+
+## 2026-10-10 — 原生未知授权在直接导航前保留原任务
+
+**Initiator:** backend/main agent, under the explicit batch implementation authorization and the approved replacement EgoLite space 39.
+
+**Paths:**
+- `web/prism/src/features/accounts/GrokDeviceWizard.tsx`
+- `web/prism/src/dev/fixtures.ts`
+- `web/prism/DESIGN.md`
+- `scripts/acceptance/cpar-grok-device-actual-ui.mjs`
+- `scripts/acceptance/cpar-account-lifecycle-page.mjs`
+- `scripts/acceptance/cpar-operations-support.mjs`
+
+**Why:** The clean `c1e8ab66` stock embedded page reproduced a durable Grok Build grant followed by a discarded success response. Browser Back/Forward lost the original recovery handle, with one device grant and one token exchange. Register the existing non-secret handle in the failure layout effect before navigation can unmount the wizard. Extend the same actual-page driver to cover direct navigation as well as explicit close, and wait for a visible dialog before screenshots. Extend fixture product-control acceptance with pending native revision/auth/enabled/disappearance drift, ordinary binding disappearance, prior confirmed results and missing identity. Dismiss the observed macOS password suggestion during synthetic initial login.
+
+**Other side:** FYI. No backend schema, contract or provider workflow change. The recovery store still follows the original actor/TTL, clears on management-session changes, and retains no device code, URL, token or receipt. Frontend contract check, type check and the affected recovery/outcome/impact tests passed before this commit; actual-page GREEN and final clean Full/reviews are recorded in the batch report after execution. The initial password popup failure is harness evidence, separate from the subsequent behavioral RED.
