@@ -94,6 +94,13 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     return status;
 }
 
+static int is_tcp_socket(int fd) {
+    int type = 0, protocol = 0;
+    socklen_t type_length = sizeof(type), protocol_length = sizeof(protocol);
+    return !getsockopt(fd, SOL_SOCKET, SO_TYPE, &type, &type_length) && type == SOCK_STREAM &&
+           !getsockopt(fd, SOL_SOCKET, SO_PROTOCOL, &protocol, &protocol_length) && protocol == IPPROTO_TCP;
+}
+
 int connect(int fd, const struct sockaddr *address, socklen_t length) {
     pthread_once(&initialized, initialize);
     if (!original_connect) { errno = EACCES; return -1; }
@@ -109,9 +116,9 @@ int connect(int fd, const struct sockaddr *address, socklen_t length) {
         if (!memcmp(bytes, loopback, 16)) return original_connect(fd, address, length);
         port = ntohs(((const struct sockaddr_in6 *)address)->sin6_port);
     }
-    int admitted = 0;
+    int admitted = 0, tcp = bytes && is_tcp_socket(fd);
     pthread_mutex_lock(&address_lock);
-    for (size_t index = 0; bytes && port == 443 && index < allowed_count; index++) {
+    for (size_t index = 0; tcp && port == 443 && index < allowed_count; index++) {
         if (allowed[index].family == address->sa_family && !memcmp(allowed[index].address, bytes, size)) {
             admitted = 1;
             break;
