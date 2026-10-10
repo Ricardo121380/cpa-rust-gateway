@@ -3864,3 +3864,13 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** The clean `c1e8ab66` stock embedded page reproduced a durable Grok Build grant followed by a discarded success response. Browser Back/Forward lost the original recovery handle, with one device grant and one token exchange. Register the existing non-secret handle in the failure layout effect before navigation can unmount the wizard. Extend the same actual-page driver to cover direct navigation as well as explicit close, and wait for a visible dialog before screenshots. Extend fixture product-control acceptance with pending native revision/auth/enabled/disappearance drift, ordinary binding disappearance, prior confirmed results and missing identity. Dismiss the observed macOS password suggestion during synthetic initial login.
 
 **Other side:** FYI. No backend schema, contract or provider workflow change. The recovery store still follows the original actor/TTL, clears on management-session changes, and retains no device code, URL, token or receipt. Frontend contract check, type check and the affected recovery/outcome/impact tests passed before this commit; actual-page GREEN and final clean Full/reviews are recorded in the batch report after execution. The initial password popup failure is harness evidence, separate from the subsequent behavioral RED.
+
+## 2026-10-10 — 普通绑定漂移验收区分配置前置核对
+
+**Initiator:** backend/main agent, under the same batch authorization.
+
+**Paths:** `scripts/acceptance/cpar-account-lifecycle-page.mjs`, `docs/cross-boundary-log.md`.
+
+**Why:** Fresh product-control replay passed all 19 original lifecycle cases, missing identity and eight native pending-member drift cases. The additional ordinary binding change also increments the configuration revision: the existing task guard stops before DELETE and reports an unconfirmed precondition, rather than the native impact comparator's known rejection. Correct the driver expectation to that observed boundary, retain zero/one DELETE assertions and require a configuration GET before any further action after a prior successful deletion. No product implementation changed and the failed assertion remains archived as a harness expectation error.
+
+**Other side:** FYI. Ordinary configuration guards and native inventory comparisons are distinct evidence. Unknown deletion response readback remains covered by the original ordinary/native batch-loss cases.
