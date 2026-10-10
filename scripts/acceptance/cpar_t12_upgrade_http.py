@@ -157,10 +157,10 @@ else: raise AssertionError("non-loopback was not denied")
             "AND json_extract(payload_json,'$.usage.response_id')=?", (context["calls"][-1]["response_id"],)).fetchone()[0])
         for index in (1, 2):
             unknown = json.loads(json.dumps(payload))
-            unknown["usage"]["attempt_id"] = None
+            unknown["usage"].pop("attempt_id", None)
             unknown["usage"]["response_id"] = "t12-legacy-unknown-" + str(index)
             database.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES('usage',?,?,?)",
-                (unknown["usage"]["response_id"], unknown["usage"]["request_id"], json.dumps(unknown)))
+                (unknown["usage"]["response_id"], unknown["usage"]["request_id"], json.dumps(unknown, ensure_ascii=False, separators=(",", ":"))))
         database.commit()
         database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     baseline = snapshot()
@@ -259,6 +259,10 @@ else: raise AssertionError("non-loopback was not denied")
     with sqlite3.connect(database_path) as database:
         check("t12_processed_unknown_history_still_has_no_fabricated_ledger", database.execute(
             "SELECT count(*) FROM billing_ledger_entries WHERE response_id LIKE 't12-legacy-unknown-%'").fetchone() == (0,))
+        check("t12_well_formed_unknown_history_quarantines_lineage_not_format", database.execute(
+            "SELECT count(*) FROM billing_materializer_failures f JOIN gateway_event_log e ON e.event_ordinal=f.event_ordinal "
+            "WHERE e.event_type='usage' AND json_extract(e.payload_json,'$.usage.response_id') LIKE 't12-legacy-unknown-%' "
+            "AND f.reason='invalid_lineage' AND f.resolved_at_ms IS NULL").fetchone() == (2,))
     for response in [*old_responses, current_response, new_response]:
         readable(response)
     with sqlite3.connect(database_path) as database:

@@ -378,7 +378,11 @@ impl SqliteEventStore {
                     {
                         return Err(StoreError::InvalidPersistedGatewayEvent);
                     }
-                    if payload != record.payload_json {
+                    if !payload_matches_current_or_legacy_usage(
+                        event,
+                        &record.payload_json,
+                        &payload,
+                    )? {
                         return Err(StoreError::ConflictingGatewayEventReplay);
                     }
                     continue;
@@ -919,7 +923,7 @@ fn decode_stored_event(
         || (expected.event_id != event_id && !legacy_usage_id)
         || expected.request_id != request_id
         || expected.occurred_at_ms != occurred_at_ms
-        || expected.payload_json != payload_json
+        || !payload_matches_current_or_legacy_usage(&event, &expected.payload_json, payload_json)?
     {
         return Err(StoreError::InvalidPersistedGatewayEvent);
     }
@@ -936,6 +940,68 @@ fn decode_stored_event(
         occurred_at_ms,
         event,
     })
+}
+
+// ADR-0100 defaults missing pre-evidence metadata to Unknown. Preserve the exact
+// old canonical bytes on read/replay; no generic JSON normalization or rewrite.
+fn payload_matches_current_or_legacy_usage(
+    event: &GatewayEvent,
+    current: &str,
+    stored: &str,
+) -> StoreResult<bool> {
+    #[derive(serde::Serialize)]
+    #[allow(clippy::struct_field_names)] // Exact frozen pre-evidence Usage field names.
+    struct LegacySummary {
+        input_tokens: Option<u64>,
+        output_tokens: Option<u64>,
+        reasoning_tokens: Option<u64>,
+        cache_read_tokens: Option<u64>,
+        cache_creation_tokens: Option<u64>,
+        cached_tokens: Option<u64>,
+    }
+    #[derive(serde::Serialize)]
+    struct LegacyUsage<'a> {
+        request_id: &'a RequestId,
+        response_id: &'a gateway_core::ResponseId,
+        usage: LegacySummary,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        attempt_id: Option<&'a gateway_core::AttemptId>,
+    }
+    #[derive(serde::Serialize)]
+    struct LegacyEvent<'a> {
+        usage: LegacyUsage<'a>,
+    }
+    if current == stored {
+        return Ok(true);
+    }
+    let GatewayEvent::Usage(event) = event else {
+        return Ok(false);
+    };
+    let summary = event.usage();
+    if summary.provenance != gateway_core::UsageProvenance::Unknown
+        || summary.input_accounting != gateway_core::InputTokenAccounting::Unknown
+    {
+        return Ok(false);
+    }
+    let legacy = LegacyEvent {
+        usage: LegacyUsage {
+            request_id: event.request_id(),
+            response_id: event.response_id(),
+            usage: LegacySummary {
+                input_tokens: summary.input_tokens,
+                output_tokens: summary.output_tokens,
+                reasoning_tokens: summary.reasoning_tokens,
+                cache_read_tokens: summary.cache_read_tokens,
+                cache_creation_tokens: summary.cache_creation_tokens,
+                cached_tokens: summary.cached_tokens,
+            },
+            attempt_id: event.attempt_id(),
+        },
+    };
+    Ok(
+        serde_json::to_string(&legacy).map_err(|_| StoreError::InvalidPersistedGatewayEvent)?
+            == stored,
+    )
 }
 
 /// Validated bounded configuration for [`AsyncSqliteEventWriter`].
@@ -2156,6 +2222,71 @@ mod tests {
         store.quick_check()?;
         drop(store);
         fs::remove_file(database_path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn pre_evidence_usage_bytes_read_and_replay_without_rewriting_or_enrichment() -> TestResult {
+        let mut store = SqliteEventStore::open_in_memory()?;
+        let event = usage_event("legacy-request", "legacy-response", 3)?;
+        let canonical = serde_json::to_string(&event)?;
+        let legacy = canonical.replace(
+            "\"provenance\":\"unknown\",\"input_accounting\":\"unknown\",",
+            "",
+        );
+        assert_ne!(legacy, canonical);
+        store.connection.execute(
+            "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage','legacy-response','legacy-request',?1)",
+            [&legacy],
+        )?;
+        let rows = store.list_events()?;
+        assert_eq!(rows[0].event(), &event);
+        assert_eq!(rows[0].event_id(), "legacy-response");
+        assert!(
+            store
+                .materialization_event(rows[0].ordinal())?
+                .is_some_and(|row| row.event.is_some())
+        );
+        assert_eq!(store.append_batch(std::slice::from_ref(&event))?, 0);
+        assert_eq!(
+            store.connection.query_row(
+                "SELECT payload_json FROM gateway_event_log",
+                [],
+                |row| row.get::<_, String>(0)
+            )?,
+            legacy
+        );
+        assert!(matches!(
+            store.append_batch(&[usage_event("legacy-request", "legacy-response", 4)?]),
+            Err(crate::StoreError::ConflictingGatewayEventReplay)
+        ));
+        let GatewayEvent::Usage(usage) = event else {
+            return Err("usage fixture".into());
+        };
+        let enriched = GatewayEvent::Usage(usage.with_attempt_id(
+            gateway_core::AttemptId::from_request_sequence(
+                &RequestId::try_new("legacy-request")?,
+                1,
+            ),
+        ));
+        assert!(matches!(
+            store.append_batch(&[enriched]),
+            Err(crate::StoreError::ConflictingGatewayEventReplay)
+        ));
+        for damaged in [
+            format!(" {legacy}"),
+            legacy.replace("\"input_tokens\":3", "\"unreviewed\":0,\"input_tokens\":3"),
+        ] {
+            let damaged_store = SqliteEventStore::open_in_memory()?;
+            damaged_store.connection.execute(
+                "INSERT INTO gateway_event_log(event_type,event_id,request_id,payload_json) VALUES ('usage','legacy-response','legacy-request',?1)",
+                [&damaged],
+            )?;
+            assert!(matches!(
+                damaged_store.list_events(),
+                Err(crate::StoreError::InvalidPersistedGatewayEvent)
+            ));
+        }
         Ok(())
     }
 

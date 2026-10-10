@@ -41,6 +41,12 @@ replay a no-op. A matching key with different payload fails the full transaction
 or replaces the prior durable event. On read, the payload is decoded into `GatewayEvent` and its
 derived type/id/correlation/time must match the indexed columns or the row fails closed.
 
+The pre-evidence canonical Usage encoding, which omits both provenance and input accounting,
+remains readable with both fields Unknown as specified by ADR-0100. Exact replay accepts that
+historical encoding without rewriting its bytes or source-event identity. Changed counters,
+added Attempt ownership, unknown fields and noncanonical formatting remain rejected; no generic
+JSON normalization or guessed metadata is allowed.
+
 For B-04, separate explicit Attempts of one Request may each persist a final snapshot, even
 with the same upstream ResponseId. A changed payload for one Attempt conflicts. A missing legacy
 AttemptId remains missing; replay cannot enrich or arbitrarily assign ownership. Old readers
@@ -120,6 +126,7 @@ Each such event increments `diagnostics_not_persisted`; it is not included in
 - `failed_attempt_usage_stays_separate_from_a_usable_fallback`
 - `explicit_attempt_usage_counts_one_request_and_two_observations`
 - `legacy_request_usage_identity_keeps_exact_ownership_without_enrichment`
+- `pre_evidence_usage_bytes_read_and_replay_without_rewriting_or_enrichment`
 - `partial_usage_conflict_cannot_invalidate_another_explicit_attempt`
 - `cargo test --locked -p gateway-core -p gateway-observability -p gateway-store`
 - `cargo clippy --locked -p gateway-core -p gateway-observability -p gateway-store --all-targets --all-features -- -D warnings`
