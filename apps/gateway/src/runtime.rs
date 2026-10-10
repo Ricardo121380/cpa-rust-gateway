@@ -1396,11 +1396,12 @@ impl P12RoutedResponsesExecutor {
             expected_credential_revision: request.credential_revision(),
             ..P13ChannelPinObservation::default()
         });
-        let route = self
-            .scheduler
+        // Native capacity and same-version Catalog publications live in the serving scheduler.
+        // Read the route and its permission graph from that one immutable serving snapshot.
+        let snapshot = self.scheduler.snapshot();
+        let route = snapshot
             .route(request.route_id())
             .ok_or(ManagementChannelPinError::InvalidTarget)?;
-        let snapshot = self.registry.load();
         let Some(public_model) = snapshot
             .resolve_public_model(request.requested_model())
             .filter(|model| model.route_id() == request.route_id())

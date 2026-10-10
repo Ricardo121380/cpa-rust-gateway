@@ -207,8 +207,33 @@ def exercise(mode):
             assert response.status == 200 and json.loads(response.read())["status"] == "completed"
         wait_for(lambda: counts()["inference"] == 1)
         case["after_explicit_inference"] = counts()
+        pin = {"provider_id": "background-build", "channel_id": "background-endpoint",
+               "route_id": "background-route", "credential_id": saved["account_id"],
+               "credential_revision": account()["revision"], "requested_model": "grok-model",
+               "protocol": "openai_responses", "mode": "json", "client_key_id": "background-owner"}
+        before_rejections = counts()
+        for change, expected in [({"client_key_id": "missing-key"}, 403),
+                                 ({"credential_revision": pin["credential_revision"] + 1}, 409),
+                                 ({"requested_model": "missing-model"}, 400)]:
+            api("POST", "/admin/operations/channel-pin", {**pin, **change}, expected)
+        time.sleep(.5)
+        assert counts() == before_rejections
+        case["pin_rejections"] = {"missing_key": 403, "changed_revision": 409,
+                                  "missing_model": 400, "extra_receiver_requests": 0}
+        case["pin_results"] = []
+        for pin_mode in ["json", "sse"]:
+            before_pin = counts()["inference"]
+            receipt = api("POST", "/admin/operations/channel-pin", {**pin, "mode": pin_mode})
+            assert receipt["outcome"] == "succeeded" and receipt["attempt_count"] == 1
+            assert receipt["upstream_sent"] is True
+            wait_for(lambda: counts()["inference"] == before_pin + 1)
+            case["pin_results"].append({"mode": pin_mode, "outcome": receipt["outcome"],
+                                        "attempt_count": 1, "upstream_sent": True,
+                                        "actual_receiver_delta": 1})
+        case["after_explicit_pin"] = counts()
         case["checks"] = ["startup refresh mode", "publication catalog mode", "republication subscription mode",
-                          "actual one-minute worker mode", "explicit public inference retained", "owned restart and OS deny"]
+                          "actual one-minute worker mode", "explicit public inference retained", "owned restart and OS deny",
+                          "native serving-snapshot Pin JSON/SSE", "Pin rejection receiver counts stay zero"]
         case["result"] = "PASS"
         print(json.dumps({"mode": mode, "result": "PASS", "receiver_counts": counts()}), flush=True)
     except Exception as error:

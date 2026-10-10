@@ -99,6 +99,8 @@ class Provider(BaseHTTPRequestHandler):
                 ordinal=1+sum(row.get("protocol")=="grok-build-native" for row in receives)
                 receives.append({"method":"POST","path":self.path,"protocol":"grok-build-native","ordinal":ordinal,"model":body.get("model"),"stream":bool(body.get("stream")),"has_tool_output":has_tool_output})
             response={"id":f"e05-native-{ordinal}","object":"response","status":"completed","model":body["model"],"output":[{"id":"e05-reason","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":"controlled reasoning"}],"encrypted_content":"controlled-native-cipher"},{"id":"e05-tool","type":"function_call","status":"completed","call_id":"e05-tool-call","name":"local_tool","arguments":"{}"}],"usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}}
+            if not body.get("tools") and not body.get("reasoning"):
+                response["output"]=[{"id":f"e05-message-{ordinal}","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"OK","annotations":[]}]}]
             if has_tool_output:
                 response["output"][-1]={"id":f"e05-message-{ordinal}","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"controlled tool round complete","annotations":[]}]}
             if not body.get("stream"):return self.reply(200,response)
