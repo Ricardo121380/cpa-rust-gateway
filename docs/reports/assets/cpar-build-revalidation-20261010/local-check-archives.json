@@ -1,0 +1,40 @@
+{
+  "archives": [
+    {
+      "file": "revision-red.log.gz",
+      "raw_sha256": "afbe7d92ceaad1ed12198c32a0146e7f0e4dcf041caebc6a42d0ef27cbffff43",
+      "archive_sha256": "81311db884099c599d0fc5f02dbe639bcdde3225431f0bb2b88c07a6b42dc5e1",
+      "raw_bytes": 1279
+    },
+    {
+      "file": "revision-green.log.gz",
+      "raw_sha256": "cad8ef46232227cf9163531bc3ef147f047ec1b93c7658296a3de41caec06d10",
+      "archive_sha256": "f19ccadb5e4209fe74c75fa6e1ed020826a489b7c2c26b18695c0296767644df",
+      "raw_bytes": 2962
+    },
+    {
+      "file": "revision-float-red.log.gz",
+      "raw_sha256": "4f4f0e65ab32e037b014bcbe1aba97fd01ef74b45cce2e5243908cd64f37a9a4",
+      "archive_sha256": "3032ad2facb3314b8afacdb8605cb0c778b621fe9f65c3993431d47a4a50fb37",
+      "raw_bytes": 805
+    },
+    {
+      "file": "review-fixes-green.log.gz",
+      "raw_sha256": "4f167492774ef3f767744ae703fbf8fe66b08fcd01a713647b279330201f7d2f",
+      "archive_sha256": "46b580ff38ba993a9162db73a89d1d4510816ef334d8cce6f68377d58f213011",
+      "raw_bytes": 2962
+    },
+    {
+      "file": "docs-precommit.log.gz",
+      "raw_sha256": "683419c0a287cd340b14c73d70a184f56993bfa79097abd067c8b8b36a9c253d",
+      "archive_sha256": "5ad654c2e04374daf227d8449abb3dd2bf20801936a1adfc9dbbbcc4a13542de",
+      "raw_bytes": 541
+    }
+  ],
+  "review_fix_green": {
+    "tests": 35,
+    "passed": true,
+    "provider_requests": 0
+  },
+  "formal_tool_sha256": "d43f35ec43fbd1972e4f3120b66c7046252d5b7b98ce82ee21123a892b10e48b"
+}

@@ -196,6 +196,18 @@ class FormalOracle(unittest.TestCase):
         self.assertEqual(frozen["target"]["egress_revision"], {"source": "not_applicable"})
         self.assertEqual(frozen["target"]["declaration_evidence"]["source"], "serving_snapshot")
         self.assertIsNone(plan["target"]["credential_revision"])
+        live = {"layer": "LIVE_NEW_BUILD", "source_sha": SOURCE_SHA, "target": copy.deepcopy(original)}
+        observed = runtime()
+        observed.update(manifest_sha256="8" * 64, manifest_matches=True)
+        base = "http://127.0.0.1:1"
+        live["authorization"] = reviewed_authorization(live, observed, base)
+        fresh_time = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=1)).isoformat()
+        observed["capability_observations"][0]["observed_at_utc"] = fresh_time
+        refreshed = oracle.freeze_from_pin(live, observed, pin)
+        with self.assertRaisesRegex(ValueError, "live_authorization_binding_changed"):
+            oracle.verify_execution_policy(refreshed, observed, base)
+        refreshed["authorization"]["binding_sha256"] = oracle.execution_binding(refreshed, observed, base)
+        oracle.verify_execution_policy(refreshed, observed, base)
         for mutation in ("legacy", "unknown_revision", "wrong_access", "wrong_configuration", "wrong_capabilities", "wrong_egress"):
             changed = copy.deepcopy(pin)
             actual = changed["execution"]["identity"]
@@ -312,7 +324,7 @@ class FormalOracle(unittest.TestCase):
         active = observed["acceptance_inventory"]["active_configuration"]
         active["revision"] = "rev-4"
         oracle.verify_execution_policy(plan, observed, base)
-        for revision in ("rev-5", '"rev-4"', "rev-04", "4", None):
+        for revision in ("rev-5", '"rev-4"', "rev-04", "4", 4.0, None):
             active["revision"] = revision
             with self.subTest(revision=revision), self.assertRaisesRegex(ValueError, "execution_configuration_changed"):
                 oracle.verify_execution_policy(plan, observed, base)

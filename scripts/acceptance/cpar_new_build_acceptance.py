@@ -483,7 +483,9 @@ def verify_execution_policy(plan, runtime, base_url):
     # with the loaded revision already frozen from serving evidence; never use this
     # tag as the source of an execution or credential lease revision.
     revision = target["config_revision"]
-    require(active.get("id") == target["config_version_id"] and active.get("revision") in (revision, "rev-" + str(revision)), "execution_configuration_changed")
+    require(active.get("id") == target["config_version_id"] and (
+        type(active.get("revision")) is int and active["revision"] == revision
+        or active.get("revision") == "rev-" + str(revision)), "execution_configuration_changed")
     observed = datetime.datetime.fromisoformat(observation["inventory_observed_at_utc"])
     available(observed.tzinfo is not None and -30 <= (datetime.datetime.now(datetime.timezone.utc) - observed).total_seconds() <= 600, "execution_inventory_stale")
     inventory = observation.get("inventory", {})

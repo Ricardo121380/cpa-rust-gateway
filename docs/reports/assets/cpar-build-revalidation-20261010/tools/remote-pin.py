@@ -31,8 +31,8 @@ assert budget['new_pin_intents'] < 6 and budget['new_pin_intents'] + budget['new
 private = epoch / name
 private.mkdir(mode=0o700)
 start = json.loads((epoch / 'start-receipt.json').read_text())
-tool = base / 'private/cpar_new_build_acceptance.py'
-assert hashlib.sha256(tool.read_bytes()).hexdigest() == '9e0fc293a7bebf7ffdd44d3bfc1065cd68f708a51a65e7b13ed60e0efcb19679'
+tool = epoch / 'cpar_new_build_acceptance.py'
+assert hashlib.sha256(tool.read_bytes()).hexdigest() == 'd43f35ec43fbd1972e4f3120b66c7046252d5b7b98ce82ee21123a892b10e48b'
 spec = importlib.util.spec_from_file_location('formal', tool)
 formal = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(formal)
@@ -143,6 +143,9 @@ try:
     assert summary['management_pin_http_status'] == 200 and pin.get('outcome') == 'succeeded'
     observed = inspect()
     frozen = formal.freeze_from_pin(plan, observed['runtime'], pin)
+    # Freeze rechecks every identity and the scoped declaration. Its fresh observation
+    # time is part of the binding, so bind this exact reviewed target before admission.
+    frozen['authorization']['binding_sha256'] = formal.execution_binding(frozen, observed['runtime'], 'http://127.0.0.1:19180/v1')
     formal.verify_execution_policy(frozen, observed['runtime'], 'http://127.0.0.1:19180/v1')
     (private / 'frozen-plan.json').write_text(json.dumps(frozen, indent=2) + '\n')
     (private / 'runtime.json').write_text(json.dumps(observed, indent=2) + '\n')
