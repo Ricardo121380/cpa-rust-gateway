@@ -77,6 +77,8 @@ Store新测试PASS1，既有legacy相关回归PASS6；修复后的工作区T12 P
 
 五票已有进度评论更新已逐次独立回读PASS；#57正文只有AC02从未勾改为已勾，其余正文／AC／评论ID和数量／OPEN状态／原生依赖保持。#39/#49完成后，第一次同步在读取#50依赖时遇EOF，尚未写#50；新只读快照确认已应用与未应用状态，再只处理#50/#57/#9，没有重复重放已完成写入。最终全量五票回读与48票数量复核PASS，仍35 CLOSED／13 OPEN。见[GitHub机器核对](assets/cpar-channel-delivery-20261010/github-sync-summary.json)、[后置执行索引](assets/cpar-channel-delivery-20261010/closeout-execution-index.json)以及以下唯一评论：[#39](https://github.com/Ricardo121380/cpa-rust-gateway/issues/39#issuecomment-6081202309)、[#49](https://github.com/Ricardo121380/cpa-rust-gateway/issues/49#issuecomment-6081219176)、[#50](https://github.com/Ricardo121380/cpa-rust-gateway/issues/50#issuecomment-6081221061)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。文档静态门槛在终态提交的干净检出上执行，代码／Full来源仍是c1b，报告不触发再次Full。
 
+收口提交 `58375ba0aeb555dcbe6975cadd23c472a7499216` 的干净隔离docs门槛 **7/7 PASS**，执行前后status均为空；文档链接、契约引用、plan/canary/Caddy、全部tracked敏感值及whitespace检查通过。原36组执行索引保持被审字节，后置6组单独归档，总42组均校验解压log／receipt／hash，含GitHub EOF失败；最终静态核验PASS。见[门槛／核验摘要](assets/cpar-channel-delivery-20261010/delivery-static-summary.json)与[docs步骤](assets/cpar-channel-delivery-20261010/docs-check.md)。之后只追加终态与回执归档，没有新的产品代码、契约或驱动改变。用户保存[最终核对](assets/cpar-channel-delivery-20261010/preservation-final.json)通过。
+
 真实Provider=0；新浏览器行为验收NOT_RUN（UI无改动，已有EgoLite按原来源复用）；remote CI、候选发布制品、push、发布、部署、共享服务重启及生产均NOT_RUN。所有核心票保持OPEN；候选冻结条件尚未达到。
 
 ## 剩余项与最小下一步

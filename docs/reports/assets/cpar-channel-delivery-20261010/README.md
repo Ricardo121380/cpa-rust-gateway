@@ -12,6 +12,7 @@
 - [一手来源索引](primary-source-index.json)：公开冻结原始文件版本、URL及实算hash；不提交下载的完整第三方源码。
 - [用户材料保存核对](preservation-check.json)：AGENTS原SHA，以及5817个原未跟踪条目的lstat元数据，未触碰原符号链接目标。
 - [GitHub回读摘要](github-sync-summary.json)、[后置执行索引](closeout-execution-index.json)：五票唯一评论维护、只勾#57 AC02、正文/状态/依赖保持；原EOF失败和恢复读取按真实退出码归档。
+- [终态静态核验](delivery-static-summary.json)与[docs步骤](docs-check.md)：58375ba0干净检出的7步docs门槛，以及归档总42组日志核验；最终回执附加不重绑定行为／评审来源。
 
 机器静态核验命令：`python3 docs/reports/assets/cpar-channel-delivery-20261010/validate_archive.py`。它同时验证原36组日志、后置回读日志、矩阵历史hash、两轴归属、GitHub正文及原评论前缀，解压日志另做敏感值检测。原执行索引保持被审字节不变，后置索引单独绑定其hash。
 

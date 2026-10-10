@@ -1,0 +1,36 @@
+{
+  "recorded_at_utc": "2026-10-10T06:33:28.803661+00:00",
+  "code_source": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "review_head": "85f43c2f28ee0a9bbaea3916abaec302b2cedcac",
+  "document_gate_source": "58375ba0aeb555dcbe6975cadd23c472a7499216",
+  "document_gate": {
+    "status": "PASS_LOCAL",
+    "steps": 7,
+    "clean_before_and_after": true,
+    "utc_start": "2026-10-10T06:31:38.335957+00:00",
+    "utc_end": "2026-10-10T06:32:34.134345+00:00",
+    "raw_sha256": "a6a9aef3b07b4cebb82ae7fa8d9043dcd77af635ccb155b0d64dcf915782ceda",
+    "receipt_ref": "closeout-receipts/20261010T063138335795Z-final-docs.json",
+    "step_report_ref": "docs-check.md"
+  },
+  "archive_static_check": {
+    "status": "PASS",
+    "result": {
+      "status": "PASS",
+      "execution_entries": 42,
+      "decompressed_archive_secret_scan": "PASS",
+      "base_rows": 198,
+      "extension_rows": 49,
+      "historical_bytes_unchanged": true,
+      "github_targets": 5,
+      "real_provider_calls": 0
+    },
+    "validator_sha256": "dcd107170f5c4de7ede5dd7bbaa95ee9661154c9c4e453c50fb551f3a8b2409e"
+  },
+  "post_gate_scope": "Receipt and terminal report archival only; behavior/contract/driver source unchanged; no Full rerun",
+  "real_provider_calls": 0,
+  "remote_ci": "NOT_RUN",
+  "artifact": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "production": "NOT_RUN"
+}
