@@ -1,0 +1,33 @@
+{
+  "schema": "cpar-build-review-v1",
+  "status": "FAIL",
+  "head": "cb68ac162f2880ada49e52a03798389f62e0cdc0",
+  "base": "2d66f892a0e507becbf9d2bd1f0142a64d16fd4a",
+  "paths": 52,
+  "standards": {
+    "status": "FAIL",
+    "finding_count": 1,
+    "findings": [
+      {
+        "priority": "P2",
+        "path": "scripts/acceptance/cpar_build_extensions.py",
+        "line": 370,
+        "category": "terminal_returns_before_buffered_extra_output_capture"
+      }
+    ]
+  },
+  "spec": {
+    "status": "FAIL",
+    "finding_count": 1,
+    "findings": [
+      {
+        "priority": "P2",
+        "path": "scripts/acceptance/cpar_build_extensions.py",
+        "line": 265,
+        "category": "handshake_audit_ignores_raw_bytes"
+      }
+    ]
+  },
+  "previous_findings_closed": 4,
+  "real_provider_requests": 0
+}

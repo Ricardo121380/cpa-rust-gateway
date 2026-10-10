@@ -933,6 +933,7 @@ class FormalOracle(unittest.TestCase):
 
     def test_extension_ordered_roots_and_full_controls(self):
         current_target, observed = target(), runtime()
+        current_target["capabilities"]["continuation"] = True
         captures = []
         for number in (1, 2):
             value = response();value["id"] = "resp_" + str(number)
@@ -947,7 +948,7 @@ class FormalOracle(unittest.TestCase):
         original = {"extension_bundle_version": 1, "layer": "LOCAL_SIMULATED", "case": "exact_continuation", "source_sha": SOURCE_SHA, "runtime": observed, "target": current_target, "samples": captures,
                     "verified_sample": final, "counts": {"inference_intents": 2}, "result": {"status": "PASS", "stopped": True}}
         self.assertEqual(extensions.audit_extension_bundle(original)["status"], "PASS")
-        for mutation in ("missing_root", "uncaptured_parent", "extra_control", "unrelated_final", "missing_wire"):
+        for mutation in ("missing_root", "uncaptured_parent", "extra_control", "unrelated_final", "missing_wire", "wrong_root_case"):
             changed = copy.deepcopy(original)
             if mutation == "missing_root":
                 changed["samples"].pop(0);changed["counts"]["inference_intents"] = 1
@@ -964,8 +965,10 @@ class FormalOracle(unittest.TestCase):
             elif mutation == "unrelated_final":
                 changed["verified_sample"]["request"]["input"] = "uncaptured_input"
                 changed["verified_sample"]["request_binding_sha256"] = extensions.request_binding(changed["verified_sample"])
-            else:
+            elif mutation == "missing_wire":
                 changed["samples"][0].pop("wire_bytes_b64")
+            else:
+                changed["samples"][0]["case"] = "store_read"
             self.assertIn(extensions.audit_extension_bundle(changed)["status"], ("FAIL", "BLOCKED"), mutation)
 
     def test_extension_http_failures_preserve_sent_request_and_partial_wire(self):
@@ -1028,6 +1031,58 @@ class FormalOracle(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "ws_turn_closed"):
                 ws.turn({"model": "local-model", "input": "OK", "stream": True}, on_progress=lambda metadata, raw: captures.append(raw))
             self.assertEqual(captures[-1], b'\x81\x10{"type":')
+        finally:
+            ws.close();server.shutdown();server.server_close();thread.join(2)
+
+    def test_extension_origin_audit_requires_complete_actual_handshake(self):
+        current_target, observed = target("responses", "sse"), runtime()
+        current_target["capabilities"]["websocket"] = True
+        nonce, body = base64.b64encode(b"n" * 16).decode(), b'{"error":"origin"}'
+        raw = b"HTTP/1.1 403 Forbidden\r\nContent-Length: " + str(len(body)).encode() + b"\r\n\r\n" + body
+        request = {"model": "local-model", "input": "OK", "stream": True, **current_target["parameters"]}
+        sample = {"extension_sample_version": 1, "case": "ws_handshake_rejection", "layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": current_target, "runtime": observed, "frozen_runtime": observed,
+                  "request": request, "http_status": 403, "handshake_status": 403, "authenticated": True, "operation": "responses_ws_upgrade", "boundary_before": 0, "boundary_after": 0, "evidence": {"upstream_send_count": 0},
+                  "ws_nonce": nonce, "ws_origin": "https://example.invalid", "ws_path": "/v1/responses", "ws_request": {"method": "GET", "path": "/v1/responses", "origin": "https://example.invalid", "nonce": nonce, "version": "13", "upgrade": "websocket", "connection": "Upgrade"}, "wire_bytes_b64": base64.b64encode(raw).decode()}
+        sample["request_binding_sha256"] = extensions.request_binding(sample)
+        original = {"extension_bundle_version": 1, "layer": "LOCAL_SIMULATED", "case": sample["case"], "source_sha": SOURCE_SHA, "runtime": observed, "target": current_target, "samples": [sample], "verified_sample": copy.deepcopy(sample), "counts": {"inference_intents": 0}, "result": {"status": "PASS", "stopped": True}}
+        self.assertEqual(extensions.audit_extension_bundle(original)["status"], "PASS")
+        for mutation in ("missing", "wrong_status", "partial_body", "wrong_origin"):
+            changed = copy.deepcopy(original)
+            for row in (changed["samples"][0], changed["verified_sample"]):
+                if mutation == "missing":row.pop("wire_bytes_b64")
+                elif mutation == "wrong_status":row["wire_bytes_b64"] = base64.b64encode(raw.replace(b"403 Forbidden", b"101 Switching Protocols")).decode()
+                elif mutation == "partial_body":row["wire_bytes_b64"] = base64.b64encode(raw[:-1]).decode()
+                else:row["ws_request"]["origin"] = "https://different.invalid"
+            self.assertIn(extensions.audit_extension_bundle(changed)["status"], ("FAIL", "BLOCKED"), mutation)
+
+    def test_extension_websocket_completed_then_output_fails_before_next_turn(self):
+        captures, creates = [], []
+        class Handler(socketserver.BaseRequestHandler):
+            def handle(self):
+                headers = bytearray()
+                while not headers.endswith(b"\r\n\r\n"):headers.extend(self.request.recv(1))
+                nonce = next(line.split(": ", 1)[1] for line in headers.decode().split("\r\n") if line.startswith("Sec-WebSocket-Key:"))
+                accept = base64.b64encode(hashlib.sha1((nonce + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+                self.request.sendall(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + accept + "\r\n\r\n").encode())
+                creates.append(self.request.recv(4096))
+                frames = wire_events("responses", response()) + [{"type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": "LATE"}]
+                raw = bytearray()
+                for value in frames:
+                    part = json.dumps(value).encode()
+                    raw.extend(b"\x81" + (bytes([len(part)]) if len(part) < 126 else b"\x7e" + struct.pack("!H", len(part))) + part)
+                self.request.sendall(raw)
+                self.request.settimeout(.5)
+                self.request.recv(4096)
+        server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True);thread.start()
+        ws = extensions.WebSocket("http://127.0.0.1:" + str(server.server_address[1]), "synthetic-key")
+        try:
+            with self.assertRaisesRegex(ValueError, "duplicate_or_late_terminal"):
+                ws.turn({"model": "local-model", "input": "OK", "stream": True}, on_progress=lambda metadata, raw: captures.append((metadata, raw)))
+            late = next(metadata["wire"] for metadata, _ in reversed(captures) if "wire" in metadata)
+            self.assertIn('"LATE"', late)
+            with self.assertRaises(ValueError):oracle.decode_stream("responses", late.encode())
+            self.assertEqual(len(creates), 1)
         finally:
             ws.close();server.shutdown();server.server_close();thread.join(2)
 

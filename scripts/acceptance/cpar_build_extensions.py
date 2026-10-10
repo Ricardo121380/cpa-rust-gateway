@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import select
 import shlex
 import socket
 import sqlite3
@@ -40,6 +41,37 @@ REQUEST_LIMITS = {
     "compact_roundtrip": 3, "compact_foreign_owner": 1,
     "ws_multiturn": 2, "ws_handshake_rejection": 0,
 }
+WS_TERMINAL_OBSERVATION_MS = 100
+
+
+def handshake_headers(raw):
+    head, separator, body = raw.partition(b"\r\n\r\n")
+    oracle.require(bool(separator) and len(head) <= 16384, "ws_handshake_bounds")
+    lines = head.decode("ascii").split("\r\n")
+    oracle.require(re.fullmatch(r"HTTP/1\.[01] [1-5][0-9]{2}(?: .*)?", lines[0]) is not None, "ws_handshake_status_invalid")
+    fields = {}
+    for line in lines[1:]:
+        name, value = line.split(":", 1)
+        oracle.require(name.lower() not in fields, "duplicate_ws_header")
+        fields[name.lower()] = value.strip()
+    return int(lines[0].split()[1]), fields, body
+
+
+def verify_handshake(sample, status):
+    oracle.available(isinstance(sample.get("wire_bytes_b64"), str) and isinstance(sample.get("ws_request"), dict), "ws_handshake_capture_missing")
+    actual, fields, body = handshake_headers(base64.b64decode(sample["wire_bytes_b64"], validate=True))
+    oracle.require(actual == status == sample.get("handshake_status") == sample.get("http_status"), "ws_handshake_status_changed")
+    request = sample["ws_request"]
+    oracle.require(request == {"method": "GET", "path": sample.get("ws_path"), "origin": sample.get("ws_origin"),
+                               "nonce": sample.get("ws_nonce"), "version": "13", "upgrade": "websocket", "connection": "Upgrade"} and
+                   isinstance(request["path"], str) and request["path"].endswith("/responses") and len(base64.b64decode(request["nonce"], validate=True)) == 16, "ws_handshake_request_changed")
+    if status == 101:
+        expected = base64.b64encode(hashlib.sha1((request["nonce"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+        oracle.require(not body and fields.get("sec-websocket-accept") == sample.get("ws_accept") == expected and
+                       fields.get("upgrade", "").lower() == "websocket" and "upgrade" in fields.get("connection", "").lower().split(", "), "ws_handshake_unconfirmed")
+    else:
+        oracle.require(request["origin"] == "https://example.invalid" and "transfer-encoding" not in fields and
+                       fields.get("content-length", "").isdigit() and int(fields["content-length"]) == len(body) <= oracle.MAX_BODY, "ws_handshake_body_incomplete")
 
 
 def collect_local(state_dir, response_id, runtime):
@@ -106,6 +138,7 @@ def verify_capture(sample, target):
     if "ws_frame" not in sample:
         oracle.require(raw.decode() == sample["wire"], "extension_response_wire_changed")
     else:
+        oracle.available(sample.get("terminal_observation_closed") is True and sample.get("terminal_observation_ms") == WS_TERMINAL_OBSERVATION_MS, "ws_terminal_observation_open")
         offset, frames = 0, []
         while offset < len(raw):
             oracle.require(offset + 2 <= len(raw), "ws_capture_incomplete")
@@ -151,6 +184,8 @@ def verify_sample(sample, target):
     oracle.require(request.get("model") == target["public_model"], "extension_request_model_changed")
     verify_controls(request, target)
     case = sample["case"]
+    if case == "ws_handshake_rejection":
+        verify_handshake(sample, 403)
     if case in {"visible_reasoning", "reasoning_history"}:
         key = "reasoning_effort" if target["protocol"] == "chat" else "reasoning"
         oracle.available(key in target["parameters"], "explicit_reasoning_control_required")
@@ -200,6 +235,7 @@ def verify_sequence(bundle, values):
         oracle.require(all(actual.get(key) == captured.get(key) for key in keys), "extension_sample_not_captured")
     if case == "ws_handshake_rejection":
         oracle.require(sample == captures[0], "extension_sample_not_captured")
+        verify_handshake(sample, 403)
         return
     ids = [value["id"] for value in values]
     oracle.require(len(set(ids)) == len(ids) and len({row["evidence"]["request_id"] for row in captures}) == len(captures), "extension_capture_identity_reused")
@@ -228,6 +264,7 @@ def verify_sequence(bundle, values):
         else:
             oracle.require(captures[1]["request"].get("previous_response_id") == ids[0], "continuation_parent_not_captured")
         if case == "ws_multiturn":
+            verify_handshake(bundle["handshake"], 101)
             oracle.require(all(sample.get(key) == bundle.get("handshake", {}).get(key) for key in ("handshake_status", "ws_nonce", "ws_accept")), "ws_handshake_not_captured")
             oracle.require(len(sample["ws_turns"]) == len(captures), "ws_capture_sequence_changed")
             for actual, captured in zip(sample["ws_turns"], captures):
@@ -250,6 +287,7 @@ def audit_extension_bundle(bundle):
         oracle.require(result.get("status") == "PASS" and result.get("stopped") is True, "extension_execution_not_passed")
         oracle.verify_runtime(bundle["runtime"], bundle["source_sha"], bundle["layer"])
         oracle.verify_target(bundle["target"])
+        oracle.available(bundle["target"]["capabilities"][CASE_CAPABILITY[case]], "extension_not_declared")
         sample = bundle.get("verified_sample", {})
         oracle.require(isinstance(sample, dict), "extension_sample_version_required")
         oracle.available(sample.get("extension_sample_version") == 1, "extension_sample_version_required")
@@ -264,7 +302,7 @@ def audit_extension_bundle(bundle):
         for capture in captures:
             if bundle["case"] == "ws_handshake_rejection":
                 continue
-            oracle.require(capture.get("frozen_runtime") == bundle["runtime"] and capture.get("source_sha") == bundle["source_sha"], "wrong_extension_target")
+            oracle.require(capture.get("case") == case and capture.get("frozen_runtime") == bundle["runtime"] and capture.get("source_sha") == bundle["source_sha"], "wrong_extension_target")
             values.append(verify_capture(capture, bundle["target"]))
         verify_sequence(bundle, values)
         oracle.extension_check(CASE_CAPABILITY[bundle["case"]], bundle["case"], sample, bundle["target"])
@@ -290,7 +328,8 @@ class WebSocket:
             if origin is not None:
                 headers.append("Origin: " + origin)
             if on_progress is not None:
-                on_progress({"ws_nonce": self.nonce, "ws_origin": origin}, b"")
+                on_progress({"ws_nonce": self.nonce, "ws_origin": origin, "ws_path": path,
+                             "ws_request": {"method": "GET", "path": path, "origin": origin, "nonce": self.nonce, "version": "13", "upgrade": "websocket", "connection": "Upgrade"}}, b"")
             self.socket.sendall(("\r\n".join(headers) + "\r\n\r\n").encode())
             raw = bytearray()
             deadline = time.monotonic() + timeout
@@ -302,21 +341,26 @@ class WebSocket:
                 raw.extend(part)
                 if on_progress is not None:
                     on_progress({}, bytes(raw))
-            lines = raw.decode("ascii").split("\r\n")
-            self.status = int(lines[0].split()[1])
-            fields = {}
-            for line in lines[1:]:
-                if not line:
-                    continue
-                name, value = line.split(":", 1)
-                oracle.require(name.lower() not in fields, "duplicate_ws_header")
-                fields[name.lower()] = value.strip()
+            self.status, fields, _ = handshake_headers(bytes(raw))
             self.accept = fields.get("sec-websocket-accept")
             if on_progress is not None:
                 on_progress({"http_status": self.status, "handshake_status": self.status, "ws_accept": self.accept}, bytes(raw))
             if self.status == 101:
                 expected = base64.b64encode(hashlib.sha1((self.nonce + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
                 oracle.require(self.accept == expected and fields.get("upgrade", "").lower() == "websocket" and "upgrade" in fields.get("connection", "").lower().split(", "), "ws_handshake_unconfirmed")
+            else:
+                oracle.require("transfer-encoding" not in fields and fields.get("content-length", "").isdigit(), "ws_handshake_body_unframed")
+                size = int(fields["content-length"])
+                oracle.require(size <= oracle.MAX_BODY, "ws_handshake_bounds")
+                remaining_body = size
+                while remaining_body:
+                    remaining = deadline - time.monotonic()
+                    oracle.require(remaining > 0, "ws_handshake_bounds")
+                    self.socket.settimeout(remaining)
+                    part = self.socket.recv(min(65536, remaining_body))
+                    oracle.require(bool(part), "ws_handshake_closed")
+                    raw.extend(part);remaining_body -= len(part)
+                    if on_progress is not None:on_progress({}, bytes(raw))
         except Exception:
             self.socket.close()
             raise
@@ -330,7 +374,7 @@ class WebSocket:
 
     def turn(self, request, on_progress=None):
         self.send({**request, "type": "response.create"})
-        frames, total, received = [], 0, bytearray()
+        frames, total, received, terminal_until = [], 0, bytearray(), None
         deadline = time.monotonic() + self.timeout
         def exact(size):
             result = bytearray()
@@ -346,6 +390,12 @@ class WebSocket:
                     on_progress({}, bytes(received))
             return bytes(result)
         for _ in range(4096):
+            if terminal_until is not None:
+                pending = isinstance(self.socket, ssl.SSLSocket) and self.socket.pending() > 0
+                if not pending and not select.select([self.socket], [], [], max(0, terminal_until - time.monotonic()))[0]:
+                    if on_progress is not None:
+                        on_progress({"terminal_observation_closed": True, "terminal_observation_ms": WS_TERMINAL_OBSERVATION_MS}, bytes(received))
+                    return "".join("data: " + json.dumps(frame, ensure_ascii=False) + "\n\n" for frame in frames)
             header = exact(2)
             oracle.require(header[0] & 0x80 and not header[0] & 0x70 and not header[1] & 0x80, "unsupported_ws_frame")
             size = header[1] & 0x7f
@@ -367,8 +417,9 @@ class WebSocket:
             frames.append(value)
             if on_progress is not None:
                 on_progress({"wire": "".join("data: " + json.dumps(frame, ensure_ascii=False) + "\n\n" for frame in frames)}, bytes(received))
+            oracle.require(terminal_until is None, "duplicate_or_late_terminal")
             if value.get("type") in ("response.completed", "response.failed", "response.incomplete", "error"):
-                return "".join("data: " + json.dumps(frame, ensure_ascii=False) + "\n\n" for frame in frames)
+                terminal_until = time.monotonic() + WS_TERMINAL_OBSERVATION_MS / 1000
         raise ValueError("ws_frame_count")
 
     def close(self):

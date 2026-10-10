@@ -299,6 +299,13 @@ summary is a separate JSON request with the product's fixed 2048 output control;
 its Attempt/Usage/ledger and the subsequent full-item consumption are collected
 independently. WebSocket uses actual RFC6455 upgrade/nonce/accept, bounded frames,
 one socket, and separate exact attribution for both response.create frames.
+After each terminal the client observes the same socket for 100 milliseconds,
+drains already buffered frames, and rejects any extra application output before
+another create or close. This is a bounded local observation, not a promise
+about output at unbounded future times. Its closure is required by sample audit.
+Handshake rejection captures the complete framed HTTP body as well as headers;
+the audit derives status, nonce, Origin and body length from the saved bytes.
+Missing/truncated bytes or a recorded101 paired with a claimed403 fail.
 
 | Case | Implemented local execution | Maximum inference intents per invocation |
 | --- | --- | ---: |

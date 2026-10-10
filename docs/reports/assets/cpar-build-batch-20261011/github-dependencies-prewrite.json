@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "scope": "fresh paginated blocked_by read; no dependency writes",
+  "issues": [
+    {
+      "issue": 47,
+      "blocked_by_count": 8,
+      "open_blockers": [],
+      "snapshot_sha256": "25b1e4f7e5c830f1aecc3124406e875885533728fe62acfbc2a96f418cf4262d"
+    },
+    {
+      "issue": 57,
+      "blocked_by_count": 23,
+      "open_blockers": [
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "snapshot_sha256": "a7c8aa23ea88a821b02d171796ead165ad55dbacd646d95f10a60096e3b2d6eb"
+    },
+    {
+      "issue": 9,
+      "blocked_by_count": 0,
+      "open_blockers": [],
+      "snapshot_sha256": "cf1cbb66a638b4860a516671fb74850e6ccf787fe6c4c8d29e9c04efe880bd05"
+    }
+  ]
+}

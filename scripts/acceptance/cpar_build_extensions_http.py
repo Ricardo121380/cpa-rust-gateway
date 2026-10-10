@@ -7,6 +7,8 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import socketserver
+import struct
 import subprocess
 import sys
 import time
@@ -265,9 +267,47 @@ def verify(context):
                     raw = response["wire"].encode()
                     self.send_response(response["http_status"]);self.send_header("Content-Type", "text/plain" if transport_fault == "content_type" else "application/json")
                     self.send_header("Content-Length", str(len(raw)));self.end_headers();self.wfile.write(raw)
-            proxy = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+            if transport_fault == "ws_late":
+                class SocketHandler(socketserver.BaseRequestHandler):
+                    def handle(self):
+                        upstream = None
+                        def exact(size):
+                            raw = bytearray()
+                            while len(raw) < size:
+                                part = self.request.recv(size - len(raw));assert part
+                                raw.extend(part)
+                            return bytes(raw)
+                        try:
+                            self.request.settimeout(10)
+                            headers = bytearray()
+                            while not headers.endswith(b"\r\n\r\n"):headers.extend(exact(1))
+                            nonce = next(line.split(": ", 1)[1] for line in headers.decode().split("\r\n") if line.startswith("Sec-WebSocket-Key:"))
+                            accept = base64.b64encode(hashlib.sha1((nonce + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+                            self.request.sendall(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + accept + "\r\n\r\n").encode())
+                            head = exact(2);size = head[1] & 0x7f
+                            if size == 126:size = struct.unpack("!H", exact(2))[0]
+                            elif size == 127:size = struct.unpack("!Q", exact(8))[0]
+                            mask, payload = exact(4), exact(size)
+                            body = json.loads(bytes(value ^ mask[index % 4] for index, value in enumerate(payload)))
+                            assert body.pop("type") == "response.create"
+                            upstream = extensions.WebSocket(upstream_url, context["issued_key"])
+                            wire = upstream.turn(body)
+                            frames = [*oracle.sse_events(wire.encode()), {"type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": "LATE"}]
+                            forwarded.append("".join("data: " + json.dumps(frame, ensure_ascii=False) + "\n\n" for frame in frames))
+                            raw = bytearray()
+                            for frame in frames:
+                                part = json.dumps(frame, ensure_ascii=False).encode()
+                                raw.extend(b"\x81" + (bytes([len(part)]) if len(part) < 126 else b"\x7e" + struct.pack("!H", len(part))) + part)
+                            self.request.sendall(raw)
+                            close = exact(2)
+                            check("extension_ws_late_output_no_next_create", close[0] & 0xf == 8)
+                        finally:
+                            if upstream is not None:upstream.close()
+                proxy = socketserver.ThreadingTCPServer(("127.0.0.1", 0), SocketHandler)
+            else:
+                proxy = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
             thread = threading.Thread(target=proxy.serve_forever, daemon=True);thread.start()
-            base_url = "http://127.0.0.1:" + str(proxy.server_port) + "/v1"
+            base_url = "http://127.0.0.1:" + str(proxy.server_address[1]) + "/v1"
         try:
             result = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "run-extension",
                                 "--plan", str(plan_file), "--runtime", str(runtime_file), "--base-url", base_url,
@@ -298,14 +338,28 @@ def verify(context):
         bundle_path = private / (label + "-bundle.json")
         if transport_fault:
             captured = json.loads(bundle_path.read_text())
-            check("extension_cli_failed_transport_raw_retained_" + label, len(captured["samples"]) == 1 and captured["samples"][0]["wire"] == forwarded[0] and base64.b64decode(captured["samples"][0]["wire_bytes_b64"]).decode() == forwarded[0])
+            check("extension_cli_failed_transport_raw_retained_" + label, len(captured["samples"]) == 1 and captured["samples"][0]["wire"] == forwarded[0] and
+                  (bool(base64.b64decode(captured["samples"][0]["wire_bytes_b64"])) if transport_fault == "ws_late" else base64.b64decode(captured["samples"][0]["wire_bytes_b64"]).decode() == forwarded[0]))
         if expected_status == "PASS":
             audit_path = public / (label + "-audit.json")
             audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(bundle_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
             (private / (label + "-audit.log")).write_text(audit.stdout + audit.stderr)
             check("extension_official_cli_audit_" + label, audit.returncode == 0 and json.loads(audit_path.read_text())["status"] == "PASS")
             actual_bundle = json.loads(bundle_path.read_text())
-            if case != "ws_handshake_rejection":
+            if case == "ws_handshake_rejection":
+                for mutation in ("missing_handshake", "wrong_handshake_status", "partial_handshake_body", "wrong_handshake_origin"):
+                    changed = copy.deepcopy(actual_bundle)
+                    for row in (changed["samples"][0], changed["verified_sample"]):
+                        if mutation == "missing_handshake":row.pop("wire_bytes_b64")
+                        elif mutation == "wrong_handshake_origin":row["ws_request"]["origin"] = "https://different.invalid"
+                        else:
+                            raw = base64.b64decode(row["wire_bytes_b64"])
+                            row["wire_bytes_b64"] = base64.b64encode(raw[:-1] if mutation == "partial_handshake_body" else raw.replace(b"403 Forbidden", b"101 Switching Protocols")).decode()
+                    mutation_path, audit_path = private / (label + "-" + mutation + ".json"), public / (label + "-" + mutation + "-audit.json")
+                    mutation_path.write_text(json.dumps(changed) + "\n")
+                    audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(mutation_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
+                    check("extension_official_cli_rejects_" + mutation, audit.returncode != 0 and json.loads(audit_path.read_text())["status"] in ("FAIL", "BLOCKED"))
+            else:
                 for mutation in ("missing_capture", "missing_capture_adjusted_count", "unfrozen_control", "unrelated_final", "wrong_root_owner", "wrong_root_terminal"):
                     changed = copy.deepcopy(actual_bundle)
                     if mutation.startswith("missing_capture"):
@@ -373,6 +427,7 @@ def verify(context):
     run("reasoning_history", actual_key=context["sibling_key"], expected_status="FAIL", expected_sends=1)
     for fault in ("content_type", "post_process"):
         run("exact_continuation", expected_status="FAIL", expected_sends=1, transport_fault=fault)
+    run("ws_multiturn", mode="sse", expected_status="FAIL", expected_sends=1, transport_fault="ws_late")
     run("ws_multiturn", mode="sse", changes=lambda plan: plan["extension"].update(prompt="truncated-round"), expected_status="FAIL", expected_sends=1)
     context["restart"]()
     run("reasoning_history", changes=lambda plan: plan["extension"].update(prompt="always-fail"), expected_status="FAIL", expected_sends=1)

@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "passed": 47,
+  "failed": 0,
+  "command": "python3 scripts/test-cpar-new-build-acceptance.py",
+  "scope": "formal oracle, extension audit, bounded WebSocket terminal observation and complete handshake capture",
+  "log_sha256": "cb7be0dc5db9478dfc71660470014a2e4043c22d3653b627d38b8bb22fe3c0d5",
+  "formal_tool_sha256": "0754c4181653e53b5c93053d53b320062a0f14cdd9d3ece8d1fe966ccb2612bc",
+  "extension_tool_sha256": "fc40e247d995083c65d8b5bac43bdb81588041a97e1a6329f18637ae4eff3445",
+  "test_sha256": "f5df23e78465b61afa7aba45f31a342ae918d07b03bd72d7638bdd94ee57153c",
+  "real_provider_requests": 0
+}

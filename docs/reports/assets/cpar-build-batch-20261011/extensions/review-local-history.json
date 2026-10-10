@@ -14,6 +14,14 @@
       "status": "PASS",
       "receipt_sha256": "bf493379039456ffc98ffe98fba2b3c6c9698670a4d23b5c3478a2f430a22a99",
       "preserved": true
+    },
+    {
+      "epoch": "extensions-local-18",
+      "status": "PASS",
+      "receipt_sha256": "f0524e7ae5811e68907e3c7f42fb61c7e044ac2ceed7c820c91c693ae5c12a09",
+      "qualified_directed_checks": 293,
+      "unit_tests": 47,
+      "preserved": true
     }
   ]
 }
