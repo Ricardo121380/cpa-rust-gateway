@@ -1,0 +1,24 @@
+{
+  "combination": "responses-json",
+  "status": "PASS",
+  "category": null,
+  "new_pin_intent": 1,
+  "management_pin_http_status": 200,
+  "pin_outcome": "succeeded",
+  "pin_attempt_count": 1,
+  "pin_upstream_sent": true,
+  "pin_stage": "http_status",
+  "pin_response_started": true,
+  "private_pin_sha256": "d96091a023b292146184167974f8b4e65754ff4b58dd631e6439d82b5fb297f1",
+  "observed_at_utc": "2026-10-10T17:14:02.060494+00:00",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "presend_runtime": {
+    "pid": 2390292,
+    "process_start": "657900734",
+    "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+    "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "manifest_sha256": "ffaea62e61fa3c974d2e4a212556249ac2db10963657db9d078eb7e151de7d14"
+  },
+  "management_get_requests": 44
+}

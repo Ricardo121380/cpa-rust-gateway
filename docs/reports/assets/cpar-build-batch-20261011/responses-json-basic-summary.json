@@ -1,0 +1,16 @@
+{
+  "combination": "responses-json",
+  "status": "PASS",
+  "category": null,
+  "basic_intents": 9,
+  "observed_response_count": 9,
+  "formal_audit_status": "NOT_RUN",
+  "execution_failure": null,
+  "observed_at_utc": "2026-10-10T17:15:08.805682+00:00",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "formal_tool_sha256": "b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a",
+  "private_wire_sha256": "a84fe6d8da13fd28bc9b18b19ac29e17e88ff72f85d458bc5d72021afddab0d4",
+  "new_pin_intents_total": 1,
+  "new_basic_intents_total": 9
+}

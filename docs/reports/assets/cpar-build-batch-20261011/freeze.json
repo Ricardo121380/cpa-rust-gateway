@@ -1,0 +1,36 @@
+{
+  "baseline_head": "2d66f892a0e507becbf9d2bd1f0142a64d16fd4a",
+  "implementation_commit": "c046ba2d97304f9c694b5d05e6efae9182df08a4",
+  "product_source": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "authorization_sha256": "c979508e082696b2178677f0179ab0fc73e5c01f24b467f3e0befb04ef7480bf",
+  "files": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": {
+      "sha256": "b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a",
+      "bytes": 100676
+    },
+    "scripts/acceptance/cpar-batch-c-live.py": {
+      "sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "bytes": 11958
+    },
+    "scripts/test-cpar-new-build-acceptance.py": {
+      "sha256": "49d2f2caac3f46396c3bbfab388940e1f7ea4ffa016d467144909e69b2272f4c",
+      "bytes": 64770
+    },
+    "scripts/acceptance/cpar-build-egress-guard.c": {
+      "sha256": "a15ba0d4eb1d198be3b762226b1560bdc06653b8f4b3bdd6e9f6c1b32107e75b",
+      "bytes": 5942
+    },
+    "scripts/acceptance/cpar-new-build-acceptance.md": {
+      "sha256": "1fc6dd2234370b2af050249d4e8faa8c0278908da348f12565400226d764db71",
+      "bytes": 17096
+    }
+  },
+  "wrapper_files": {
+    "docs/reports/assets/cpar-build-batch-20261011/tools/remote-start.py": "20e704a3357b8bf6157dee6847cd311dd1bf529142d00b8cf20f8e662b350cc0",
+    "docs/reports/assets/cpar-build-batch-20261011/tools/remote-pin.py": "d49b2fb33c8e396a619faf62c9f5d6dfd961678227d892bbe3c9d24dafb37bce",
+    "docs/reports/assets/cpar-build-batch-20261011/tools/remote-exit.py": "e08bd1084d63bf0d5e46e82eaa0e431791f1b9a50993d3c1a2057f4d134a8a6a",
+    "docs/reports/assets/cpar-build-batch-20261011/tools/remote-readiness.py": "c12ae8236af8ebc53bb6902704a2ccfb209fc510da07d3914820596b60d3a712",
+    "docs/reports/assets/cpar-build-batch-20261011/tools/remote-basics.py": "0753a5cbdf80652c2644cef7eac32f375e5582bdbc93e574f13444a8637bef5e",
+    "docs/reports/assets/cpar-build-batch-20261011/tools/remote-prepare.py": "a946293ec5964f04ff7d6b45ab07b8f493608c89ba8cfe20f068f536a344203a"
+  }
+}

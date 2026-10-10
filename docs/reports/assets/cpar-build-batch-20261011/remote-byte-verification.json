@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "files": {
+    "cpar_new_build_acceptance.py": {
+      "sha256": "b33e551ef018df71a4bb0d3e301249b75eaf603d46590b20529e649ee1ff9d8a",
+      "bytes": 100676
+    },
+    "cpar-batch-c-live.py": {
+      "sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "bytes": 11958
+    },
+    "remote-start.py": {
+      "sha256": "20e704a3357b8bf6157dee6847cd311dd1bf529142d00b8cf20f8e662b350cc0",
+      "bytes": 11652
+    },
+    "remote-pin.py": {
+      "sha256": "d49b2fb33c8e396a619faf62c9f5d6dfd961678227d892bbe3c9d24dafb37bce",
+      "bytes": 11441
+    },
+    "remote-exit.py": {
+      "sha256": "e08bd1084d63bf0d5e46e82eaa0e431791f1b9a50993d3c1a2057f4d134a8a6a",
+      "bytes": 6682
+    },
+    "remote-readiness.py": {
+      "sha256": "c12ae8236af8ebc53bb6902704a2ccfb209fc510da07d3914820596b60d3a712",
+      "bytes": 5281
+    },
+    "remote-basics.py": {
+      "sha256": "0753a5cbdf80652c2644cef7eac32f375e5582bdbc93e574f13444a8637bef5e",
+      "bytes": 6314
+    },
+    "remote-prepare.py": {
+      "sha256": "a946293ec5964f04ff7d6b45ab07b8f493608c89ba8cfe20f068f536a344203a",
+      "bytes": 11484
+    },
+    "user-authorization.json": {
+      "sha256": "c979508e082696b2178677f0179ab0fc73e5c01f24b467f3e0befb04ef7480bf",
+      "bytes": 1418
+    }
+  },
+  "provider_calls": 0
+}

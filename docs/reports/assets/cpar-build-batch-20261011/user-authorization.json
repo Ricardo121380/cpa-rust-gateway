@@ -1,0 +1,36 @@
+{
+  "basis": "user_explicit",
+  "task": "#47 Grok Build 六组合基础真实验收＋扩展验收工具本地实现，并同步 #47／#57／#9",
+  "received_client_date": "2026-10-11",
+  "authorized_excerpt": "本提示词明确批准一个新的基础验收批次：Grok Build，同一已授权账号及既有材料来源；grok-4.5，既有new-vps；费用不设金额上限；专用临时隔离实例的必要准备、材料副本、上传、启动和停止；最多6次逐协议／模式Pin；最多54次基础请求；最多新增60次推理；保留历史累计9次，新的历史累计上限为69次。",
+  "objects": {
+    "service": "cpar-build-acceptance-20261010.service",
+    "protection_root": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010",
+    "ports": [
+      19180,
+      19181
+    ],
+    "new_epoch": "six-combinations-20261011"
+  },
+  "failure_rule": "真实发送后出现失败、未知结果或证据矛盾，停止后续真实请求；修复后不在本批再次真实重跑。剩余额度不能自动续用。",
+  "zero_new": [
+    "catalog",
+    "quota",
+    "oauth",
+    "refresh",
+    "reauthorization",
+    "extensions",
+    "fault_probe",
+    "retry",
+    "fallback"
+  ],
+  "limits": {
+    "pins": 6,
+    "basics": 54,
+    "new_inferences": 60,
+    "historical": 9,
+    "cumulative": 69
+  },
+  "production_changes_push_release": false,
+  "local_extensions_authorized": true
+}

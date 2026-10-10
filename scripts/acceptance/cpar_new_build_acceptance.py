@@ -321,7 +321,18 @@ def decode_responses(events):
                 require(key not in parts and part_index == sum(k[0:2] == (index, field) for k in parts), "reopened_or_misordered_part")
                 parts[key] = copy.deepcopy(event["part"])
             elif kind.endswith(".done"):
-                require(key in parts and key not in closed_parts and event["part"] == parts[key], "changed_part_snapshot")
+                require(key in parts and key not in closed_parts, "changed_part_snapshot")
+                final_part = event["part"]
+                expected = copy.deepcopy(parts[key])
+                # Native output starts with type/text only. Its reviewed completed
+                # representation can add empty annotations and absent logprobs.
+                # Keep those exact fields for the item/terminal snapshot checks.
+                if expected.get("type") == "output_text" and isinstance(final_part, dict):
+                    for field, empty_values in (("annotations", ([],)), ("logprobs", ([], None))):
+                        if field not in expected and field in final_part and final_part[field] in empty_values:
+                            expected[field] = copy.deepcopy(final_part[field])
+                require(final_part == expected, "changed_part_snapshot")
+                parts[key] = copy.deepcopy(final_part)
                 closed_parts.add(key)
             else:
                 raise ValueError("unreviewed_stream_event")

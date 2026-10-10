@@ -735,7 +735,18 @@ class FormalOracle(unittest.TestCase):
                             if fault[0] == "wrong_runtime":current_runtime["artifact_sha"] = "2" * 40
                             if fault[0] == "missing_runtime":current_runtime = None
                             Path(directory, oracle.opaque(value["id"]) + ".json").write_text(json.dumps({**lineage, "runtime": current_runtime}))
-                            raw = wire(protocol, value, mode).encode()
+                            if fault[0] == "sparse_empty_metadata":
+                                for item in value["output"]:
+                                    for part in item.get("content", []):
+                                        part.update(annotations=[], logprobs=[])
+                                events = wire_events(protocol, value)
+                                for event in events:
+                                    if event["type"] == "response.content_part.added":
+                                        event["part"].pop("annotations", None)
+                                        event["part"].pop("logprobs", None)
+                                raw = ("".join("data: " + json.dumps(event) + "\n\n" for event in events)).encode()
+                            else:
+                                raw = wire(protocol, value, mode).encode()
                             self.send_response(503 if fault[0] == "http_error" else 200)
                             self.send_header("Content-Type", "text/event-stream" if mode == "sse" else "application/json")
                             self.send_header("Content-Length", str(len(raw)))
@@ -748,6 +759,13 @@ class FormalOracle(unittest.TestCase):
                         result = oracle.run_basic(plan, runtime(), "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
                         self.assertEqual(len(observed), 9)
                         self.assertEqual(oracle.audit_bundle(result)["basic_status"], "PASS")
+                        if protocol == "responses" and mode == "sse":
+                            fault[0] = "sparse_empty_metadata"
+                            observed.clear()
+                            enriched = oracle.run_basic(plan, runtime(), "synthetic-key", "http://127.0.0.1:" + str(server.server_port))
+                            self.assertEqual(len(observed), 9)
+                            self.assertEqual(oracle.audit_bundle(enriched)["basic_status"], "PASS")
+                            fault[0] = None
                         if os.environ.get("CPAR_TEST_RECEIPT_DIR"):
                             oracle.write_receipt(Path(os.environ["CPAR_TEST_RECEIPT_DIR"]) / (protocol + "-" + mode + ".json"), oracle.audit_bundle(result))
                         live = copy.deepcopy(plan)
@@ -806,6 +824,28 @@ class FormalOracle(unittest.TestCase):
                                 self.assertIn(oracle.audit_bundle(rejected)["status"], ("FAIL", "BLOCKED"))
                     finally:
                         server.shutdown();server.server_close();thread.join(2)
+
+    def test_responses_sparse_empty_metadata_preserves_strict_snapshots(self):
+        for logprobs in ([], None):
+            value = response("responses")
+            value["output"][0]["content"][0].update(logprobs=logprobs)
+            events = wire_events("responses", value)
+            for event in events:
+                if event["type"] == "response.content_part.added":
+                    event["part"].pop("annotations")
+                    event["part"].pop("logprobs")
+            self.assertEqual(oracle.decode_responses(events), value)
+            for field, replacement in (("annotations", [{"type": "url_citation"}]), ("logprobs", [{}]), ("text", "CHANGED"), ("extra", [])):
+                changed = copy.deepcopy(events)
+                next(event for event in changed if event["type"] == "response.content_part.done")["part"][field] = replacement
+                with self.subTest(field=field), self.assertRaisesRegex(ValueError, "changed_part_snapshot"):
+                    oracle.decode_responses(changed)
+            changed = copy.deepcopy(events)
+            done = next(event for event in changed if event["type"] == "response.output_item.done")
+            done["item"] = copy.deepcopy(done["item"])
+            done["item"]["content"][0].pop("logprobs")
+            with self.assertRaisesRegex(ValueError, "changed_part_snapshot"):
+                oracle.decode_responses(changed)
 
     def test_http_absolute_deadline_and_redirect_no_retry(self):
         observed = []

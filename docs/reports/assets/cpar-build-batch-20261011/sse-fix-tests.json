@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "tests": 39,
+  "exit_code": 0,
+  "command": "python3 scripts/test-cpar-new-build-acceptance.py",
+  "observed_at_utc": "2026-10-10T17:22:48.956455+00:00",
+  "source_sha256": "9b186dc0140292c3767b2b6064b45f67841dabca7ab9d0ef9f200079b69e8802",
+  "tests_sha256": "31ef133a90f5c5bbd82d3712833dd3463a22306ae52ac21cc9cb4826ad87588a",
+  "log_sha256": "3d8a14f700dcf2a9777e2a4ce2d2cdfa3867c3938c198cf8d79146b3d8634b0b",
+  "public_http_sparse_metadata_roundtrip": true,
+  "real_provider_calls": 0
+}

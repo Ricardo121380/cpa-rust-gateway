@@ -1,0 +1,36 @@
+{
+  "status": "PASS; post-stop attribution only",
+  "layer": "POST_STOP_READ_ONLY_ATTRIBUTION",
+  "observed_at_utc": "2026-10-10T17:23:56.160947+00:00",
+  "original_wire_sha256": "9cec568ffa651e370f2b7bb640cd81cb6f69894742df2a8bd849897adaeef8e5",
+  "private_attribution_sha256": "fed78b9daf55a67510a83ca3e66afcc84a791f358ce7a3f5476c17b50ad2bc70",
+  "terminal_snapshot_status": "completed",
+  "request_outcome": "succeeded",
+  "response_evidence_id": "cb266fc94714dcc39b6224561b6d67c86f8bc16604a2986aec3da8aa1ddab536",
+  "attribution": {
+    "request_evidence_id": "9e119e38bddc4916b980967507f2c4228af42456bda806b014ad79f04ed12014",
+    "attempt_evidence_ids": [
+      "c3790d3c1c7895f93595864e9b9c0517c4b863b4cec4b577aa24266261fd88ff"
+    ],
+    "attempt_count": 1,
+    "ledger_rows": 1,
+    "usage_rows": 1
+  },
+  "native_usage_source": {
+    "input_tokens": 224,
+    "output_tokens": 150,
+    "reasoning_tokens": 149,
+    "cache_read_tokens": null,
+    "cache_creation_tokens": null,
+    "cached_tokens": 128,
+    "provenance": "measured",
+    "input_accounting": "inclusive"
+  },
+  "exact_usage_and_ledger_lineage": true,
+  "original_execution_failure_preserved": {
+    "status": "FAIL",
+    "category": "changed_part_snapshot"
+  },
+  "new_provider_calls": 0,
+  "runtime_attestation": "NOT_RUN; process already stopped"
+}

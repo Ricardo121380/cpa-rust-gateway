@@ -1,0 +1,18 @@
+{
+  "status": "PASS; offline decoding only",
+  "layer": "OFFLINE_CAPTURED_WIRE",
+  "original_execution_status": "FAIL",
+  "original_execution_category": "changed_part_snapshot",
+  "original_bundle_sha256": "9cec568ffa651e370f2b7bb640cd81cb6f69894742df2a8bd849897adaeef8e5",
+  "source_tool_sha256": "9b186dc0140292c3767b2b6064b45f67841dabca7ab9d0ef9f200079b69e8802",
+  "completed_snapshots": 1,
+  "runtime_attestation": "NOT_RUN; already stopped",
+  "new_real_requests": 0,
+  "terminal_matches_original_wire": true,
+  "red_regression": {
+    "exit_code": 1,
+    "tests": 1,
+    "category": "changed_part_snapshot"
+  },
+  "observed_at_utc": "2026-10-10T17:29:26.141436+00:00"
+}
