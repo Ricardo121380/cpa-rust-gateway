@@ -1,0 +1,20 @@
+{
+  "name": "docs-clean-after-raw-log-archive-fix",
+  "argv": [
+    "scripts/check.sh",
+    "docs"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/final-source",
+  "source_sha": "27bcd60e73e6b2193b9b358a4fd07a19f16efe0c",
+  "source_dirty_before": false,
+  "source_dirty_after": false,
+  "started_at_utc": "2026-10-10T07:55:41.279042+00:00",
+  "finished_at_utc": "2026-10-10T07:56:39.341654+00:00",
+  "exit_code": 0,
+  "raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/docs-27bcd60e.log",
+  "raw_log_sha256": "c26097dced3981f86672912a54152f656186815082fd2b133cd36fe024ce75a0",
+  "report": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-preacceptance-20261010/docs-27bcd60e.md",
+  "report_sha256": "c79e60059f802204a3064125dbbd8abfc277cb763d45ba2b8b976850eb0a06b4",
+  "replaces_no_prior_result": true,
+  "prior_failure": "docs-663-failed.log"
+}

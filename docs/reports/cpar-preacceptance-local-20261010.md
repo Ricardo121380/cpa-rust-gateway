@@ -77,7 +77,7 @@ Kiro K01–K05覆盖native字段／范围／单位、reasoning计数、cap-hit�
 | --- | --- |
 | 当前stock页面 | PASS_PUBLIC_MANAGEMENT_HTTP_AND_BROWSER_LOCAL；13 assertions，6 identity GET、15 quota POST（最终页面观察时）、inference0；最终停止后的raw接收数量另保留 |
 | 正式oracle定向 | 首次GREEN为PASS_LOCAL_SIMULATED；32 tests；六protocol/mode各9次，共54个positive loopback receives；8种first-response故障×6=48次各只发1；11种pre-send阻断×6=66项 actual receive0；[run receipt](assets/cpar-preacceptance-20261010/formal-green-final-run.json) 与6个 [组合回执](assets/cpar-preacceptance-20261010/formal/responses-json.json)。后置费用tool_output缺失增加第12类pre-send负例，按修订后不可变来源另记录，不能覆盖原GREEN |
-| 静态／文档 | 后置不可变commit的定向语法／docs门槛及hash核对记录在终态资产；不把未运行项写成PASS |
+| 静态／文档 | af81干净来源的Node／Python／C语法检查PASS；后续只有正式Python计数修复，663全oracle另PASS。27bcd60e干净来源docs 7/7 PASS，1022文档链接／167 contract references通过；[运行回执](assets/cpar-preacceptance-20261010/docs-27bcd60e-receipt.json)；[原log](assets/cpar-preacceptance-20261010/docs-27bcd60e.log)。此前663 docs FAIL原记录保留 |
 | 产品Full | PASS_LOCAL_REUSED，仅产品／未变门槛范围：c1b干净Full45/45，Rust1500/0/12；[历史摘要](assets/cpar-channel-delivery-20261010/verification-summary.json)。本批变动formal oracle另重跑，旧Full不能冒称测试了新driver |
 | 前端／T12／E-05 | 未改相关源码；沿用明确已有70文件513测试、T12 71、strict same-grant例外及#26/#55来源；不重新全站验收 |
 | Standards／当前diff Spec | 0258→3f初审、3f→af81补审、af81→663补审分别归档。最终Standards PASS（hard0）；Spec PASS（hard0），af81原P2已独立确认resolved，原失败未删除。初审重复fixture低优先级建议由af81移入共享helper解决 |
@@ -91,6 +91,10 @@ Kiro K01–K05覆盖native字段／范围／单位、reasoning计数、cap-hit�
 
 最终executor代码66330dc6在独立干净worktree通过33 tests：六protocol/mode正向54个实际loopback接收，8种first-response故障×6各仅1次，12种发送前拒绝×6均接收0；旧v2和新v3过期观察仍保留已发送7／9次。见 [不可变执行回执](assets/cpar-preacceptance-20261010/verification-663-with-docs-failure.json) 和 [原oracle log](assets/cpar-preacceptance-20261010/final-clean-oracle.log)。同次docs前六项PASS、原RED日志行尾空格使第七项FAIL，原结果保留，修正归档后另验不覆盖失败。
 
-GitHub随后只维护#16／#39／#49／#50／#57／#9既有进度评论；独立GET读回成功后记录终态，正文／已勾AC02／state／评论数量及原生依赖均需核对。保存核对已确认25,704条基线metadata与AGENTS字节SHA未变，见 [核对回执](assets/cpar-preacceptance-20261010/preservation-before-closeout.json)；提交范围与GitHub终态另补机器证据。
+GitHub已维护#16／#39／#49／#50／#57／#9六条既有进度评论，逐条PATCH后通过独立GET读回。所有原评论字节作为前缀保留，正文／已勾AC02／state／labels／assignees／评论数量及原生依赖不变；48实施票仍35 CLOSED／13 OPEN。#16 CLOSED，#39／#49／#50／#57／#9 OPEN，#50的#39前置仍OPEN。见 [同步和读回终态](assets/cpar-preacceptance-20261010/github-sync/summary.json)；本轮未新增重复评论，未给未push的源码创建虚假远端链接。
+
+本地提交依次为 `3f4c0a6cbb25e5d04bf86a0a1242a3ad1f84e054`（页面驱动与正式入口／草案）、`af81d91108d4dd06dcfc38a6dac1adf3731fac10`（tool output费用覆盖及冻结边界）、`66330dc613dae49622f4f62ff6ec7c729f270d62`（过期观察保留历史发送数）、`e3429c7c4b81b61dc50135c84be3b000e2ab94d3`／`27bcd60e73e6b2193b9b358a4fd07a19f16efe0c`（原失败、独立review与干净执行归档）。后续收口提交仅含报告／同步回执／索引，不改变已审验收代码。提交只涉及本批7个脚本／模板路径及3份报告和专用资产目录，不含用户AGENTS或其他旧dirty／untracked；未push。
+
+保存核对已确认25,704条基线metadata与AGENTS字节SHA未变，见 [核对回执](assets/cpar-preacceptance-20261010/preservation-before-closeout.json)。原58项execution-index的hash仍可解析核对（原RED log从gzip解压）；新增收口资产另建索引，不覆盖原索引。公开xAI材料均按7份原始下载hash在本机核对，未把文档声称当作账号实际能力。12份未配置草案在27bcd60e干净来源再次预检均BLOCKED/runtime_unconfirmed、sent_requests=0，见 [最终无推理预检](assets/cpar-preacceptance-20261010/draft-preflight-final-summary.json)。
 
 下一步无需真实授权即可审阅上述本地证据与具体取证／首批清单；真实执行必须等待入口、隔离host、单账号范围、逐动作次数和货币上限的明确输入／批准，以及完整费用proof。不得以模型选择代替这些授权。

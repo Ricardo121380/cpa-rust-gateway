@@ -1,0 +1,70 @@
+{
+  "observed_at_utc": "2026-10-10T07:59:31.578762+00:00",
+  "result": "PASS",
+  "baseline_head": "0258bcfd3378572fd009c6b8978cbaf5983c3b75",
+  "source_head_before_final_report_commit": "27bcd60e73e6b2193b9b358a4fd07a19f16efe0c",
+  "local_commits": [
+    {
+      "sha": "3f4c0a6cbb25e5d04bf86a0a1242a3ad1f84e054",
+      "subject": "test(cpar): close Web and Console page evidence and prepare Grok acceptance"
+    },
+    {
+      "sha": "af81d91108d4dd06dcfc38a6dac1adf3731fac10",
+      "subject": "fix(acceptance): require tool output cost coverage before live sends"
+    },
+    {
+      "sha": "66330dc613dae49622f4f62ff6ec7c729f270d62",
+      "subject": "fix(acceptance): preserve historical sends when preflight evidence is stale"
+    },
+    {
+      "sha": "e3429c7c4b81b61dc50135c84be3b000e2ab94d3",
+      "subject": "test(acceptance): archive independent closure reviews and immutable receipts"
+    },
+    {
+      "sha": "27bcd60e73e6b2193b9b358a4fd07a19f16efe0c",
+      "subject": "docs(acceptance): retain raw-check reading logs despite artifact ignore"
+    }
+  ],
+  "committed_paths_count": 140,
+  "owned_source_paths": [
+    "scripts/acceptance/cpar_seo_ui_http.py",
+    "scripts/acceptance/cpar-device-loopback.c",
+    "scripts/acceptance/cpar-web-console-actual-ui.mjs",
+    "scripts/acceptance/cpar_new_build_acceptance.py",
+    "scripts/test-cpar-new-build-acceptance.py",
+    "scripts/acceptance/cpar-new-build-acceptance.md",
+    "scripts/acceptance/fixtures/cpar-new-build-plan.json"
+  ],
+  "product_changes": [],
+  "executor_changes_after_clean_663": [],
+  "preserved_paths_checked": 25704,
+  "preserved_metadata_differences": [],
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "preservation_check_scope": "lstat size/mtime_ns/mode; AGENTS byte hash; ignored nested artifacts excluded",
+  "original_execution_index_resolved": 58,
+  "public_source_hashes_verified": 7,
+  "owned_service_pid_observation": [
+    {
+      "pid": 98154,
+      "current_state": "not_running"
+    },
+    {
+      "pid": 98716,
+      "current_state": "not_running"
+    },
+    {
+      "pid": 99150,
+      "current_state": "not_running"
+    },
+    {
+      "pid": 99768,
+      "current_state": "not_running"
+    }
+  ],
+  "ego_space": 41,
+  "ego_task_finished": true,
+  "real_provider_calls": 0,
+  "push": false,
+  "remote_ci_release_deploy_production": "NOT_RUN",
+  "final_report_commit_scope": "Only owned reports/assets; record resulting SHA in final output and local output attestation."
+}
