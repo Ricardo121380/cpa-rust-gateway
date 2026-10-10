@@ -566,6 +566,9 @@ def freeze_from_pin(plan, runtime, pin):
     available(pin.get("client_key_id") is not None, "pin_client_scope_unknown")
     matches = [row for row in runtime.get("capability_observations", []) if row.get("client_key_evidence_id") == opaque(pin["client_key_id"]) and all(row.get(key) == target[key] for key in ("route_id", "route_candidate_id", "endpoint_id", "upstream_model"))]
     available(len(matches) == 1, "pin_capability_source_unknown")
+    previous = target.get("declaration_evidence")
+    if isinstance(previous, dict):
+        require(all(matches[0].get(key) == value for key, value in previous.items() if key != "observed_at_utc"), "pin_declaration_changed")
     target["declaration_evidence"] = copy.deepcopy(matches[0])
     target["declaration_observed_at_utc"] = matches[0].get("observed_at_utc")
     verify_target(target)

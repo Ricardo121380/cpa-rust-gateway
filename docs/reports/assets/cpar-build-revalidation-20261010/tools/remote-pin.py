@@ -32,7 +32,7 @@ private = epoch / name
 private.mkdir(mode=0o700)
 start = json.loads((epoch / 'start-receipt.json').read_text())
 tool = epoch / 'cpar_new_build_acceptance.py'
-assert hashlib.sha256(tool.read_bytes()).hexdigest() == 'd43f35ec43fbd1972e4f3120b66c7046252d5b7b98ce82ee21123a892b10e48b'
+assert hashlib.sha256(tool.read_bytes()).hexdigest() == 'a46a2880e9614048411a25f594b0532c582e0a2ba29ab32d090068d269b53683'
 spec = importlib.util.spec_from_file_location('formal', tool)
 formal = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(formal)

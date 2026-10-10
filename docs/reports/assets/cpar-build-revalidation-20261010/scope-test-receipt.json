@@ -1,0 +1,24 @@
+{
+  "red": {
+    "exit_code": 1,
+    "failed_subcases": 2
+  },
+  "green": {
+    "exit_code": 0,
+    "tests": 35,
+    "provider_requests": 0
+  },
+  "archives": [
+    {
+      "file": "scope-red.log.gz",
+      "raw_sha256": "c3f75abee30d5d248949be3afafa46793f102a8071c70fc48de4611ab41e6603",
+      "archive_sha256": "a2166e5f6461d1e43ad5eb4e5399ad9dd243c9b23d273f519a3dcf1d431fc30f"
+    },
+    {
+      "file": "scope-green.log.gz",
+      "raw_sha256": "78aba1bf6afa1d661a6cb4fcd90a3c3b4da79791141adcd0fece1c00aef6e967",
+      "archive_sha256": "e26cd3252871e029be83f481d2d881c921f1a67797883676baf07a56e56924d4"
+    }
+  ],
+  "formal_tool_sha256": "a46a2880e9614048411a25f594b0532c582e0a2ba29ab32d090068d269b53683"
+}

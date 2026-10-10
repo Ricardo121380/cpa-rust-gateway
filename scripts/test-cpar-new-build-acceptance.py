@@ -208,6 +208,14 @@ class FormalOracle(unittest.TestCase):
             oracle.verify_execution_policy(refreshed, observed, base)
         refreshed["authorization"]["binding_sha256"] = oracle.execution_binding(refreshed, observed, base)
         oracle.verify_execution_policy(refreshed, observed, base)
+        for field in ("projection_id", "client_key_evidence_id"):
+            changed_runtime, changed_pin = copy.deepcopy(observed), copy.deepcopy(pin)
+            changed_runtime["capability_observations"][0][field] = "9" * 64
+            if field == "client_key_evidence_id":
+                changed_pin["client_key_id"] = "unrelated-client"
+                changed_runtime["capability_observations"][0][field] = oracle.opaque("unrelated-client")
+            with self.subTest(changed_scope=field), self.assertRaisesRegex(ValueError, "pin_declaration_changed"):
+                oracle.freeze_from_pin(live, changed_runtime, changed_pin)
         for mutation in ("legacy", "unknown_revision", "wrong_access", "wrong_configuration", "wrong_capabilities", "wrong_egress"):
             changed = copy.deepcopy(pin)
             actual = changed["execution"]["identity"]
