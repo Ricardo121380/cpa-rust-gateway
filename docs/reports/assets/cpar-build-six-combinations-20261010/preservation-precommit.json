@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:19:33.416862+00:00",
+  "baseline_paths": 41377,
+  "unchanged_unrelated_paths_checked": 41374,
+  "comparison": "lstat mode/size/mtime_ns; AGENTS full SHA256",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "baseline_sha256": "f93e8440ee5a813f886ad3a2870f668c3bea17b7c13bec462a8fe37973fa3a11",
+  "unrelated_changed_paths": [],
+  "owned_existing_paths": [
+    "scripts/acceptance/cpar-new-build-acceptance.md",
+    "scripts/acceptance/cpar_new_build_acceptance.py",
+    "scripts/test-cpar-new-build-acceptance.py"
+  ]
+}

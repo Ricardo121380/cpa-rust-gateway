@@ -632,26 +632,24 @@ def verify_usage_lineage(native, evidence):
         require(row.get("usage") == source, "ledger_usage_changed")
 
 
-def conversation_step(protocol, request, answer, calls, result_token):
+def conversation_step(protocol, request, answer, calls, next_instruction):
     if calls:
         result = legacy.followup(protocol, request, answer, calls)
+        # Keep the deterministic lookup result and the user's next instruction distinct.
         if protocol == "responses":
-            for item in result["input"][-len(calls):]:
-                item["output"] = result_token
+            result["input"].append({"role": "user", "content": next_instruction})
         elif protocol == "chat":
-            for item in result["messages"][-len(calls):]:
-                item["content"] = result_token
+            result["messages"].append({"role": "user", "content": next_instruction})
         else:
-            for item in result["messages"][-1]["content"]:
-                item["content"] = result_token
+            result["messages"][-1]["content"].append({"type": "text", "text": next_instruction})
         return result
     result = copy.deepcopy(request)
     if protocol == "responses":
         history = [{"role": "user", "content": request["input"]}] if isinstance(request["input"], str) else request["input"]
-        result["input"] = [*history, *answer["output"], {"role": "user", "content": result_token}]
+        result["input"] = [*history, *answer["output"], {"role": "user", "content": next_instruction}]
     else:
         assistant = answer["choices"][0]["message"] if protocol == "chat" else {"role": "assistant", "content": answer["content"]}
-        result["messages"].extend([assistant, {"role": "user", "content": result_token}])
+        result["messages"].extend([assistant, {"role": "user", "content": next_instruction}])
     return result
 
 
@@ -1265,7 +1263,7 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
             sample["sent_at_utc"] = now()
             samples.append(sample)
             if index == count - 1:
-                sample["expected_text"] = token
+                sample["expected_text"] = token if scenario == "text_multi_turn" else token + ":1"
             if progress:
                 progress(bundle)
             answer, calls, usage = basic_answer(target, sample, scenario, index, count, seen)
@@ -1285,7 +1283,7 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
             verify_attempts(target, sample["evidence"], answer["id"])
             verify_usage_lineage(usage, sample["evidence"])
             if index < count - 1:
-                next_token = "Repeat the remembered token exactly." if scenario == "text_multi_turn" else "Call lookup with value 1 again." if index < count - 2 else "Return exactly " + token
+                next_token = "Repeat the remembered token exactly." if scenario == "text_multi_turn" else "Call lookup with value 1 again." if index < count - 2 else "Return exactly " + token + ": followed by the lookup result, with no other text."
                 sample["next_token"] = next_token
                 request = conversation_step(protocol, request, answer, calls, next_token)
                 if scenario != "text_multi_turn":

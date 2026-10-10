@@ -1,0 +1,67 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:13:30.557892+00:00",
+  "product_source": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "product_pathspec": [
+    "apps",
+    "crates",
+    "web",
+    "Cargo.toml",
+    "Cargo.lock",
+    "Dockerfile",
+    "scripts/build-management-spa.sh",
+    "scripts/check.sh"
+  ],
+  "product_diff_paths": [],
+  "formal_tests": {
+    "passed": 38,
+    "failed": 0,
+    "ignored": 0
+  },
+  "red": {
+    "real_provider_requests": 0,
+    "test": "FormalOracle.test_real_http_runner_and_current_receipts",
+    "test_count": 1,
+    "failed_subtests": 6,
+    "old_formal_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48"
+  },
+  "green": {
+    "real_provider_requests": 0,
+    "public_loopback_modes": 6,
+    "basic_requests_per_mode": 9,
+    "wrong_tool_result_stops_at_request": 5,
+    "full_gate_reuse": {
+      "Full": {
+        "passed": 45,
+        "source": "docs/reports/cpar-build-revalidation-20261010.md"
+      },
+      "Rust": {
+        "passed": 1501,
+        "failed": 0,
+        "ignored": 12,
+        "source": "docs/reports/cpar-build-revalidation-20261010.md"
+      },
+      "Build_directed": {
+        "passed": 19,
+        "source": "docs/reports/cpar-build-revalidation-20261010.md"
+      }
+    }
+  },
+  "tested_file_sha256": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "3dee3525132871d4049a3d8b05c5481eb902425380babcdaa4e5a4a656d7c4fa",
+    "scripts/acceptance/cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+    "scripts/test-cpar-new-build-acceptance.py": "468cc3daa3465e53db4ae2337419e0fafc9c785b3de2c33cf6a1df6bae9b4ec9"
+  },
+  "logs": {
+    "tool-contract-red.log": {
+      "raw_sha256": "fc4d0208e411719054537bfa6d2a628ab114c5914642b1181b9c2b92771a0e17",
+      "gzip_path": "docs/reports/assets/cpar-build-six-combinations-20261010/tool-contract-red.log.gz",
+      "gzip_sha256": "0e7e9af052bb1b032bf817b6068b215ca0c968904c7738ab2af923b62e1c824c"
+    },
+    "tool-contract-green.log": {
+      "raw_sha256": "7acd35cbf42a14cb6eb4f36231e362adb82bc97ba620685f2ee70b8cce31c0c3",
+      "gzip_path": "docs/reports/assets/cpar-build-six-combinations-20261010/tool-contract-green.log.gz",
+      "gzip_sha256": "2ef41ef23a726c2a2e04457c7c3e83e69b3c4577ea21eab46e602aecc3d1539a"
+    }
+  }
+}

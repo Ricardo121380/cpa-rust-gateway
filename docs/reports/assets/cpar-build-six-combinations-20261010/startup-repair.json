@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "startup_red_retained_sha256": {
+    "gateway.log": "759a1b47fdc4389ff43329fe2798fe5bc8e70e28ce18720ca8abf41d4dc917fd",
+    "start-failure.json": "9fe16ed084f5792ac561f23ca7f9c03e5d68a4164cdd297ef9328089fb1f0999",
+    "remote-start.py": "0ed5c0f81e4fbe6770bc4583a89e9e6597ffeff74ed6e9d13c5f756817e07afe",
+    "remote-prepare.py": "c19dd7f53df361a06f461a5756308eeb05a90a175097750bd2163fa9b38565b2"
+  },
+  "copied_required_file_names": [
+    "management-csrf",
+    "backup-key",
+    "client-key-pepper",
+    "grok-build-cache-key"
+  ],
+  "secret_values_emitted": false,
+  "provider_inference": 0,
+  "network_audit_events": 0,
+  "event_counts_unchanged": true,
+  "new_start_script_sha256": "ec778b23caf89c5ebe173046994bb43c61e7417c7f0095d587babbb3152302d7"
+}

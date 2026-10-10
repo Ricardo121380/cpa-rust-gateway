@@ -1,0 +1,314 @@
+{
+  "status": "PASS; exit and count reconciliation",
+  "observed_at_utc": "2026-10-10T16:07:49.642511+00:00",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "process_pid_before_stop": 2318163,
+  "main_pid_after_stop": 0,
+  "temporary_ports_listening": [],
+  "post_stop_flat_seconds": 5,
+  "network_audit_sha256": "9a37630e38ae2c7de6147d7c9bf90295b56073de1d8c860e76d40424870b229a",
+  "network_audit_events": [
+    "dns_build_allowed",
+    "connect_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed"
+  ],
+  "new_pin_intents": 1,
+  "new_basic_intents": 5,
+  "new_pin_actual_sends": 1,
+  "new_basic_attempts": 5,
+  "new_event_counts": {
+    "attempt": 5,
+    "request": 5,
+    "request_finished": 5,
+    "usage": 5
+  },
+  "inherited_event_counts": {
+    "attempt": 1,
+    "request": 1,
+    "request_finished": 1,
+    "usage": 1
+  },
+  "new_ledger_rows": 5,
+  "all_attempt_outcomes_including_inherited": [
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded"
+  ],
+  "all_attempt_retry_decisions_including_inherited": [
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed"
+  ],
+  "billing_including_inherited": [
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    }
+  ],
+  "budget": {
+    "schema_version": 4,
+    "historical_provider_pin_requests": 2,
+    "historical_basic_requests": 1,
+    "historical_inference_requests": 3,
+    "historical_catalog_requests": 1,
+    "new_pin_intents": 1,
+    "new_basic_intents": 5,
+    "new_catalog_intents": 0,
+    "new_inference_limit": 60,
+    "cumulative_inference_limit": 63,
+    "initial_responses_json_pin_passed": true,
+    "stopped": true,
+    "combinations": {
+      "responses-json": {
+        "pin_status": "PASS",
+        "basic_status": "FAIL"
+      }
+    },
+    "oauth_refresh_reauthorization": 0,
+    "quota_queries": 0,
+    "extensions": 0,
+    "retries": 0,
+    "fallbacks": 0,
+    "reruns_after_failure": 0,
+    "authorization": "new six-combination batch; every Pin and basic request counts; failure/unknown stops all"
+  },
+  "account_native_revision": 134,
+  "worker_claim": null,
+  "production_after": {
+    "MainPID": "499070",
+    "NRestarts": "0",
+    "ExecMainStartTimestampMonotonic": "5514090365162",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+    "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+    "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+    "caddyfile_sha256": "bfede78bae3c2bb4d120bcbd08924c0ba564fa3a1a02d8edda37a9004f9b945e"
+  },
+  "production_active_configuration": [
+    {
+      "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+      "revision": "rev-1",
+      "status": "active"
+    }
+  ],
+  "historical_file_hashes_preserved": true,
+  "private_files": {
+    "private/six-combinations-20261010/artifact-manifest.json": {
+      "sha256": "20ef11961ca40d4dd659ae278c1e7ee629f9f70319f4a4b006d2d8685a5c9777",
+      "bytes": 543,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/cpar_new_build_acceptance.py": {
+      "sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+      "bytes": 99976,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/gateway-build-metadata.json": {
+      "sha256": "a1e47a1ad7c132e223d5692bdee95b613d3f6465107c38867b9c58b9506c4895",
+      "bytes": 261,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/remote-start-v1.py": {
+      "sha256": "0ed5c0f81e4fbe6770bc4583a89e9e6597ffeff74ed6e9d13c5f756817e07afe",
+      "bytes": 11589,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/cpar-batch-c-live.py": {
+      "sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "bytes": 11958,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/remote-basics.py": {
+      "sha256": "af4fc7a087f50191122bbe844c389c77cf90a5e42cd3e4123e73ae2f40624562",
+      "bytes": 6314,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/start-failure.json": {
+      "sha256": "9fe16ed084f5792ac561f23ca7f9c03e5d68a4164cdd297ef9328089fb1f0999",
+      "bytes": 207,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/startup-repair.json": {
+      "sha256": "0dc82546682eb5dea85a6bd075f7301b61f484c749b090c224e96fd85c396043",
+      "bytes": 780,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/execution.lock": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/authorization.json": {
+      "sha256": "cf845a684375eac4e304aec19e557e6001eba1f6958583280a6ec8d280890a3f",
+      "bytes": 1181,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/gateway.log": {
+      "sha256": "759a1b47fdc4389ff43329fe2798fe5bc8e70e28ce18720ca8abf41d4dc917fd",
+      "bytes": 63,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/gateway-v2.log": {
+      "sha256": "0fd8f85cb09bf2a03819ea83f1d2f1d1af4a8176884f3e46dd746ad63b4de3ed",
+      "bytes": 13855,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/start-receipt.json": {
+      "sha256": "c883b9ef6cfa160f77f43cea63815f6465c657c04d6729a9ed7827ad3740ab60",
+      "bytes": 7830,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/budget.json": {
+      "sha256": "ffc1c1de290e90e44a2d6c2236404dcc16c8a07fe9883c713cf2cb6a91fb2461",
+      "bytes": 747,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/remote-start.py": {
+      "sha256": "ec778b23caf89c5ebe173046994bb43c61e7417c7f0095d587babbb3152302d7",
+      "bytes": 11598,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/remote-prepare.py": {
+      "sha256": "c19dd7f53df361a06f461a5756308eeb05a90a175097750bd2163fa9b38565b2",
+      "bytes": 10833,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/posthoc-receipt.json": {
+      "sha256": "2ca9705634911bd492fd4a52b3bdc9487d047a5111acb5e53b02dc8af3568955",
+      "bytes": 4356,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/remote-pin.py": {
+      "sha256": "ede184a9fd69ae38f8d316a55c2ddc61a59894b9cbda355565f5568b3c905c48",
+      "bytes": 11339,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/launch-v2.json": {
+      "sha256": "794a98628c50e1e474eb888e3076776d72306666570409573c785755d61e50ba",
+      "bytes": 2174,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/prepare-receipt.json": {
+      "sha256": "f4e2fbd77a140db858e4902df88aa980ffa66435971a66b6f388ee564dcdf97b",
+      "bytes": 7246,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/launch.json": {
+      "sha256": "3894da0d1ba634154c9bb7c7f39be43b5db48eee785b10879448df8575904f9f",
+      "bytes": 2168,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/__pycache__/cpar_new_build_acceptance.cpython-312.pyc": {
+      "sha256": "3dca4e6fb55dfecf9d87d2e37560fb86d7b0b163ed860a20299c51342ef44f91",
+      "bytes": 142978,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/__pycache__/cpar-batch-c-live.cpython-312.pyc": {
+      "sha256": "2d2327d0a6c9bea7b66571b4bd61ffde1a6f723b0ada89d1f9f5ce697508bd08",
+      "bytes": 18721,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/inspection-0-private.json": {
+      "sha256": "d21efd5d0b20d7ea8b8e8965637ee3066392746cdbd76c7f7958e1a4fd9b183b",
+      "bytes": 20623,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/runtime.json": {
+      "sha256": "f3e79029f61c1a269fcb4a4cba0046bd7208f47db7597995708a171055cfe129",
+      "bytes": 20623,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/wire-partial.json": {
+      "sha256": "951a9f28f406e499ec9ccbf09b7d8e3bfbb60a4264a4f2a6334b63e37167fe2c",
+      "bytes": 43209,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/pin-private.json": {
+      "sha256": "1013c52b3e11ea16ebf067b54fd0bb81dda99a9634e2c9510122d4b8a7230e21",
+      "bytes": 1457,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/inspection-1-private.json": {
+      "sha256": "f3e79029f61c1a269fcb4a4cba0046bd7208f47db7597995708a171055cfe129",
+      "bytes": 20623,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/basic-receipt.json": {
+      "sha256": "c64c2247446fa93df75b88d0b457a316ef3093624ef3247cf87b31cc30ae3799",
+      "bytes": 14916,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/basic-summary.json": {
+      "sha256": "04ea519bb1ea9e45c897279740990fbf5f5bf22a8d9f67ca30dabfd1bb6e19e1",
+      "bytes": 15300,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/wire-final.json": {
+      "sha256": "c1d53a924e9c786a474f0b2839009e9148f8648c2eddcc406fad1807abdff94b",
+      "bytes": 43306,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/summary.json": {
+      "sha256": "accab36e50533b42323a2c8cb376ff9c12e463c34c283b14f9281c3cd7a0a396",
+      "bytes": 2795,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/pin-response.raw": {
+      "sha256": "fc719270c99d7df6ee5c300f84186af87e0ed2b7086774daa172db78f26a2298",
+      "bytes": 1195,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/frozen-plan.json": {
+      "sha256": "6cfa309f344da5e38033fcebf12d9d198e6784367cbf5f5e75b13eda5dd49e4c",
+      "bytes": 2593,
+      "mode": "0600"
+    },
+    "private/six-combinations-20261010/responses-json/fifth-collector-private.json": {
+      "sha256": "25bc00e07bc3e11dc3d83267123b1c3ec4802396d0bcf4f55a4497f6d66501a6",
+      "bytes": 3808,
+      "mode": "0600"
+    }
+  },
+  "provider_http_receive_count": "UNKNOWN; independent Provider receive counter unavailable",
+  "new_provider_calls_in_exit": 0,
+  "management_get_intents_in_exit": 1
+}

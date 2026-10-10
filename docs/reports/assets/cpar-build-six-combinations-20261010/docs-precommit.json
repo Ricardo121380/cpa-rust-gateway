@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T16:20:42.092082+00:00",
+  "command": "CHECK_REPORT_PATH=output/cpar-build-six-combinations-20261010/docs-precommit.md scripts/check.sh docs",
+  "gate_count": 7,
+  "scope": "precommit worktree and staged files; tracked-whitespace check uses original HEAD; staged diff checked separately",
+  "steps": [
+    "Document links",
+    "Contract tests",
+    "Plan state",
+    "Canary thresholds",
+    "Caddy split",
+    "Tracked secret scan",
+    "Git whitespace"
+  ],
+  "log_sha256": "06b8de123c83e9332a692f743c988473718f15e6cff8b460e78d3d71e1e0a492",
+  "product_tests_rerun": false
+}

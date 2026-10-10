@@ -1,0 +1,469 @@
+{
+  "combination": "responses-json",
+  "status": "FAIL",
+  "basic_intents": 5,
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "formal_tool_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+  "formal_audit_status": "FAIL",
+  "observed_response_count": 5,
+  "checks": [
+    {
+      "case": "execution",
+      "status": "FAIL",
+      "category": "history_or_result_not_used"
+    },
+    {
+      "case": "text_multi_turn",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "50564f87ab1d25860104cc677fab4cb9bb788c0d42b170b970c7b4a94e22782e",
+          "native_usage": {
+            "native": {
+              "input_tokens": 227,
+              "output_tokens": 110,
+              "total_tokens": 337,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 109
+            },
+            "source": {
+              "input_tokens": 227,
+              "output_tokens": 110,
+              "reasoning_tokens": 109,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2318163,
+            "process_start": "657486820",
+            "observed_at_utc": "2026-10-10T16:05:15.640521+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "1204c3cb4bbc79508bb3c02255606c5f7c8d3c37f102b8b3170da02fdf3d624c",
+          "attempt_evidence_ids": [
+            "0c41b4d90796bcfdb3cca64626c0838860890ffa8d5589dcf3c085fa3ec5a84b"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "fbaef324e76827c141e670b6dc66a2031e386ea7b91deef3978f9edc1661b3e4",
+          "native_usage": {
+            "native": {
+              "input_tokens": 242,
+              "output_tokens": 108,
+              "total_tokens": 350,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 92
+            },
+            "source": {
+              "input_tokens": 242,
+              "output_tokens": 108,
+              "reasoning_tokens": 92,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2318163,
+            "process_start": "657486820",
+            "observed_at_utc": "2026-10-10T16:05:20.295223+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "267ef08bc832e00620f5ff3e3126c51eebae0140ddbbc689914dd0b5429503fb",
+          "attempt_evidence_ids": [
+            "9fa466116f80bc618949c65e035f553df233a96c7a68ef3fbc091a964bd66638"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 3,
+          "response_evidence_id": "4dceb0f6b8c3d2d5de142a1556e82273b0a45f6a2e68afc5bab99731d8a245f7",
+          "native_usage": {
+            "native": {
+              "input_tokens": 272,
+              "output_tokens": 177,
+              "total_tokens": 449,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 161
+            },
+            "source": {
+              "input_tokens": 272,
+              "output_tokens": 177,
+              "reasoning_tokens": 161,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2318163,
+            "process_start": "657486820",
+            "observed_at_utc": "2026-10-10T16:05:26.122734+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "1b4a541007f546ecda8d78e7396129b727b2099e6be012cd6b661051ac8114d8",
+          "attempt_evidence_ids": [
+            "ec1b1ea6d94a83aa821ea1d78ade2eaae25500f7bb5fe6ca5d79d47860304b08"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "single_tool",
+      "status": "FAIL",
+      "category": "history_or_result_not_used",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "e911afe815ebdf9407b5dbc7a5327a6516ee3dfbc067caca1eb8c02b76184043",
+          "native_usage": {
+            "native": {
+              "input_tokens": 303,
+              "output_tokens": 157,
+              "total_tokens": 460,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 148
+            },
+            "source": {
+              "input_tokens": 303,
+              "output_tokens": 157,
+              "reasoning_tokens": 148,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2318163,
+            "process_start": "657486820",
+            "observed_at_utc": "2026-10-10T16:05:31.616718+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "f69bdc01dccfac064c48f1061ff88bc584c1f9ade3173b31377b94b83bf6f8d3",
+          "attempt_evidence_ids": [
+            "c36dcdd2eef9ca999045b7d0bdfbd7c34938b760aa8337ac108b1efed56d91bd"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "two_tool_cycles",
+      "status": "NOT_RUN",
+      "category": "samples_unavailable"
+    },
+    {
+      "case": "cancel_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_before_send",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "error",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "no_retry_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "retry_before_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "truncation",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "compact_foreign_owner",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "compact_lineage_rejection",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "compact_roundtrip",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "continuation",
+      "case": "exact_continuation",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "continuation",
+      "case": "lineage_rejection",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "parallel",
+      "case": "declaration",
+      "declared": false,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "reasoning",
+      "case": "reasoning_history",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "reasoning",
+      "case": "visible_reasoning",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "deleted_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "expired_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "foreign_owner",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "persistence_failure",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "restart_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "store_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_cancel",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_failed_root",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_handshake_rejection",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_multiturn",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    }
+  ],
+  "execution_failure": {
+    "status": "FAIL",
+    "category": "history_or_result_not_used"
+  },
+  "target": {
+    "channel": "grok.build",
+    "endpoint_id": "cpar-build-endpoint",
+    "route_id": "cpar-build-route",
+    "route_candidate_id": "cpar-build-candidate",
+    "upstream_model": "grok-4.5",
+    "public_model": "grok-4.5",
+    "response_model": "grok-4.5",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "credential_revision": 135,
+    "config_version_id": "cpar-build-config-20261010",
+    "config_revision": 9,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": {
+      "source": "not_applicable"
+    },
+    "protocol": "responses",
+    "mode": "json",
+    "parameters": {
+      "max_output_tokens": 4096
+    },
+    "capabilities": {
+      "compact": true,
+      "continuation": true,
+      "parallel": false,
+      "reasoning": true,
+      "stored": true,
+      "websocket": true
+    },
+    "declaration_evidence": {
+      "source": "serving_snapshot",
+      "config_version_id": "cpar-build-config-20261010",
+      "config_revision": 9,
+      "capabilities": {
+        "reasoning": true,
+        "parallel": false,
+        "stored": true,
+        "continuation": true,
+        "compact": true,
+        "websocket": true
+      },
+      "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+      "projection_id": "76b46919f61a1174ea8bab32a9ba08174812e6d068e97c80f0eb9b6070802e25",
+      "observed_at_utc": "2026-10-10T16:04:41.156000+00:00",
+      "route_id": "cpar-build-route",
+      "route_candidate_id": "cpar-build-candidate",
+      "endpoint_id": "cpar-build-endpoint",
+      "upstream_model": "grok-4.5"
+    },
+    "declaration_observed_at_utc": "2026-10-10T16:04:41.156000+00:00"
+  },
+  "private_wire_sha256": "c1d53a924e9c786a474f0b2839009e9148f8648c2eddcc406fad1807abdff94b",
+  "collector": "unchanged formal REMOTE_READ/REMOTE_COLLECT; local authorized-host subprocess; one 2s billing settling delay",
+  "observed_at_utc": "2026-10-10T16:05:41.402463+00:00",
+  "new_pin_intents_total": 1,
+  "new_basic_intents_total": 5
+}

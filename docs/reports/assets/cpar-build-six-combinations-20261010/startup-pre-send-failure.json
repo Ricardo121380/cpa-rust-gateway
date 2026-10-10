@@ -1,0 +1,58 @@
+{
+  "unit": "MainPID=0\nResult=exit-code\nLoadState=loaded\nActiveState=failed\n",
+  "log_sha256": "759a1b47fdc4389ff43329fe2798fe5bc8e70e28ce18720ca8abf41d4dc917fd",
+  "log_bytes": 63,
+  "log_structured": [
+    {
+      "known_terms": [
+        "credential"
+      ]
+    }
+  ],
+  "audit_bytes": 0,
+  "credential_filenames": [
+    "grok-build-cache-key",
+    "management-csrf",
+    "management-key",
+    "master-key",
+    "backup-key",
+    "client-key-pepper"
+  ],
+  "state_filenames": [
+    "control.sqlite3-wal",
+    "admin-auth.sqlite3",
+    "control.sqlite3-shm",
+    "backups",
+    "control.sqlite3"
+  ],
+  "new_state_filenames": [
+    "control.sqlite3-wal",
+    "control.sqlite3-shm",
+    "backups",
+    "control.sqlite3"
+  ],
+  "budget": {
+    "schema_version": 4,
+    "historical_provider_pin_requests": 2,
+    "historical_basic_requests": 1,
+    "historical_inference_requests": 3,
+    "historical_catalog_requests": 1,
+    "new_pin_intents": 0,
+    "new_basic_intents": 0,
+    "new_catalog_intents": 0,
+    "new_inference_limit": 60,
+    "cumulative_inference_limit": 63,
+    "initial_responses_json_pin_passed": false,
+    "stopped": false,
+    "combinations": {},
+    "oauth_refresh_reauthorization": 0,
+    "quota_queries": 0,
+    "extensions": 0,
+    "retries": 0,
+    "fallbacks": 0,
+    "reruns_after_failure": 0,
+    "authorization": "new six-combination batch; every Pin and basic request counts; failure/unknown stops all"
+  },
+  "log_known_error": "gateway: credential is unavailable or invalid: management-csrf",
+  "provider_calls_in_diagnostic": 0
+}

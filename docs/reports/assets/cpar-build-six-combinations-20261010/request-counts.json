@@ -1,0 +1,89 @@
+{
+  "observed_at_utc": "2026-10-10T16:07:49.642511+00:00",
+  "historical_inference_requests": 3,
+  "new_pin_intents": 1,
+  "new_basic_intents": 5,
+  "new_pin_observed_upstream_sent": 1,
+  "new_basic_attempts": 5,
+  "new_inference_requests": 6,
+  "cumulative_inference_requests": 9,
+  "new_inference_limit": 60,
+  "cumulative_inference_limit": 63,
+  "stopped": true,
+  "new_catalog_requests": 0,
+  "historical_catalog_requests": 1,
+  "new_quota_oauth_refresh_reauthorization_extensions_fault_probes": 0,
+  "new_retry_fallback_postfailure_rerun": 0,
+  "new_event_counts": {
+    "attempt": 5,
+    "request": 5,
+    "request_finished": 5,
+    "usage": 5
+  },
+  "new_ledger_rows": 5,
+  "inherited_counts_excluded": {
+    "attempt": 1,
+    "request": 1,
+    "request_finished": 1,
+    "usage": 1
+  },
+  "known_management_get_intents": {
+    "startup": 6,
+    "pin_before_and_after": 44,
+    "exit": 1,
+    "known_sum": 51,
+    "full_total": "UNKNOWN"
+  },
+  "provider_independent_http_receive_count": "UNKNOWN",
+  "money": "UNKNOWN; unpriced/null ledger; unlimited authorization only this basic batch",
+  "protocols": {
+    "responses-json": {
+      "pin": "PASS",
+      "basic": "FAIL",
+      "text_multi_turn": {
+        "sent": 3,
+        "required": 3,
+        "status": "PASS"
+      },
+      "single_tool": {
+        "sent": 2,
+        "required": 2,
+        "status": "FAIL"
+      },
+      "two_tool_cycles": {
+        "sent": 0,
+        "required": 4,
+        "status": "NOT_RUN"
+      }
+    },
+    "responses-sse": {
+      "pin": "NOT_RUN",
+      "basic": "BLOCKED",
+      "sent": 0
+    },
+    "chat-json": {
+      "pin": "NOT_RUN",
+      "basic": "BLOCKED",
+      "sent": 0
+    },
+    "chat-sse": {
+      "pin": "NOT_RUN",
+      "basic": "BLOCKED",
+      "sent": 0
+    },
+    "messages-json": {
+      "pin": "NOT_RUN",
+      "basic": "BLOCKED",
+      "sent": 0
+    },
+    "messages-sse": {
+      "pin": "NOT_RUN",
+      "basic": "BLOCKED",
+      "sent": 0
+    }
+  },
+  "completed_scenarios": 1,
+  "planned_scenarios": 18,
+  "completed_combinations": 0,
+  "planned_combinations": 6
+}

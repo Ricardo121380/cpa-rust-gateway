@@ -1,0 +1,203 @@
+{
+  "observed_at_utc": "2026-10-10T16:20:20.944723+00:00",
+  "snapshot_note": "issue/comment raw reads 2026-10-10T15:56Z; full native dependency reads completed in this receipt window",
+  "issues": {
+    "47": {
+      "number": 47,
+      "title": "CPAR-38：grok.build 渠道差异与逐组合验收",
+      "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "dependencies": {
+        "blocked_by": [
+          {
+            "number": 16,
+            "state": "closed"
+          },
+          {
+            "number": 27,
+            "state": "closed"
+          },
+          {
+            "number": 29,
+            "state": "closed"
+          },
+          {
+            "number": 30,
+            "state": "closed"
+          },
+          {
+            "number": 31,
+            "state": "closed"
+          },
+          {
+            "number": 32,
+            "state": "closed"
+          },
+          {
+            "number": 33,
+            "state": "closed"
+          },
+          {
+            "number": 34,
+            "state": "closed"
+          }
+        ],
+        "blocking": [
+          {
+            "number": 57,
+            "state": "open"
+          }
+        ]
+      },
+      "comments": [
+        {
+          "id": "IC_kwDOUGxUj88AAAABanf7Cg",
+          "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+          "body_sha256": "7de5488b63555f2d3bd3526301edec8ea62111d52554071923c8e6db9ab99703",
+          "body_bytes": 12447
+        }
+      ]
+    },
+    "57": {
+      "number": 57,
+      "title": "CPAR-48：分批交付证据与全范围收口",
+      "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "dependencies": {
+        "blocked_by": [
+          {
+            "number": 12,
+            "state": "closed"
+          },
+          {
+            "number": 17,
+            "state": "closed"
+          },
+          {
+            "number": 21,
+            "state": "closed"
+          },
+          {
+            "number": 25,
+            "state": "closed"
+          },
+          {
+            "number": 26,
+            "state": "closed"
+          },
+          {
+            "number": 37,
+            "state": "closed"
+          },
+          {
+            "number": 38,
+            "state": "closed"
+          },
+          {
+            "number": 40,
+            "state": "open"
+          },
+          {
+            "number": 41,
+            "state": "open"
+          },
+          {
+            "number": 42,
+            "state": "open"
+          },
+          {
+            "number": 43,
+            "state": "open"
+          },
+          {
+            "number": 44,
+            "state": "open"
+          },
+          {
+            "number": 45,
+            "state": "open"
+          },
+          {
+            "number": 46,
+            "state": "open"
+          },
+          {
+            "number": 47,
+            "state": "open"
+          },
+          {
+            "number": 48,
+            "state": "open"
+          },
+          {
+            "number": 49,
+            "state": "open"
+          },
+          {
+            "number": 50,
+            "state": "open"
+          },
+          {
+            "number": 52,
+            "state": "closed"
+          },
+          {
+            "number": 53,
+            "state": "closed"
+          },
+          {
+            "number": 54,
+            "state": "closed"
+          },
+          {
+            "number": 55,
+            "state": "closed"
+          },
+          {
+            "number": 56,
+            "state": "closed"
+          }
+        ],
+        "blocking": []
+      },
+      "comments": [
+        {
+          "id": "IC_kwDOUGxUj88AAAABanhFZg",
+          "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+          "body_sha256": "06c3cce92a83bd0af66bb15619af03892087d01bb2913d08669c53f4f4250e97",
+          "body_bytes": 20822
+        }
+      ]
+    },
+    "9": {
+      "number": 9,
+      "title": "实施规格：CPAR 现有渠道可靠性与管理体验收敛",
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "state": "OPEN",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "dependencies": {
+        "blocked_by": [],
+        "blocking": []
+      },
+      "comments": [
+        {
+          "id": "IC_kwDOUGxUj88AAAABanhKIg",
+          "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+          "body_sha256": "2f481d67487a53c76f1f378cbc0819316f7589b04b2606adcf02206ed10293ef",
+          "body_bytes": 19129
+        }
+      ]
+    }
+  }
+}

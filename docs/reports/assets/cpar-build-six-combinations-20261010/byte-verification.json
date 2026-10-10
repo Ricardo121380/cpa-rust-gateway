@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-10T15:56:58.729538+00:00",
+  "head": "27f8349fff2e98e8d10700ae78c856f27503d52c",
+  "formal_sha256": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+  "hashes": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "2107227d545acb898ea6b036bdcef6ec5fc030e266b880d63f876b62746a9f48",
+    "scripts/acceptance/cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+    "scripts/test-cpar-new-build-acceptance.py": "95e26bfcb2737acacc03715d0bde7d7c393b69c9cfb6e6001ecc33c2445a9a54"
+  },
+  "all_three_match_fixed_68158c01_bytes": true,
+  "product_source": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "product_diff_paths": [],
+  "gate_reuse": "Full45/45 Rust1501/0/12 Build19; nullable oracle38/38 from exact fixed bytes"
+}

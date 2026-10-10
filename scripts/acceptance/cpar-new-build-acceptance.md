@@ -141,7 +141,10 @@ plus result/final answer (two turns), and an initial text turn followed by two
 consecutive tool cycles and a final answer (four turns). Chat, Messages and
 Responses each support JSON and SSE. Actual IDs,
 names, complete arguments, full ordered history and fresh second-cycle IDs are
-checked. Final text must reproduce the remembered/tool-result token. Native
+checked. Text history must reproduce the remembered token. Tool results retain
+the deterministic executor value `"1"`; a separate user instruction requests
+the random acceptance marker followed by that result, and final text must match
+`ACCEPT:<random>:1` exactly. Instructions never replace tool outputs. Native
 Usage is retained; the gateway's eight-field `cpar_usage`, durable Usage and
 ledger must agree without inventing zeroes. Frames, item/block lifecycle,
 matching delta/done snapshots, exact success terminal and no output after it are

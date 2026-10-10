@@ -1,0 +1,123 @@
+{
+  "status": "PASS; read-only fifth-response attribution and diagnostic",
+  "observed_at_utc": "2026-10-10T16:07:09.857654+00:00",
+  "original_execution_failure": {
+    "status": "FAIL",
+    "category": "history_or_result_not_used"
+  },
+  "http_status": 200,
+  "response_status": "completed",
+  "error_is_null": true,
+  "incomplete_is_null": true,
+  "actual_target": {
+    "channel": "grok.build",
+    "endpoint_id": "cpar-build-endpoint",
+    "route_id": "cpar-build-route",
+    "route_candidate_id": "cpar-build-candidate",
+    "upstream_model": "grok-4.5",
+    "public_model": "grok-4.5",
+    "response_model": "grok-4.5",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "credential_revision": 135,
+    "config_version_id": "cpar-build-config-20261010",
+    "config_revision": 9,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": {
+      "source": "not_applicable"
+    },
+    "protocol": "responses",
+    "mode": "json",
+    "parameters": {
+      "max_output_tokens": 4096
+    },
+    "capabilities": {
+      "compact": true,
+      "continuation": true,
+      "parallel": false,
+      "reasoning": true,
+      "stored": true,
+      "websocket": true
+    },
+    "declaration_evidence": {
+      "source": "serving_snapshot",
+      "config_version_id": "cpar-build-config-20261010",
+      "config_revision": 9,
+      "capabilities": {
+        "reasoning": true,
+        "parallel": false,
+        "stored": true,
+        "continuation": true,
+        "compact": true,
+        "websocket": true
+      },
+      "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+      "projection_id": "76b46919f61a1174ea8bab32a9ba08174812e6d068e97c80f0eb9b6070802e25",
+      "observed_at_utc": "2026-10-10T16:04:41.156000+00:00",
+      "route_id": "cpar-build-route",
+      "route_candidate_id": "cpar-build-candidate",
+      "endpoint_id": "cpar-build-endpoint",
+      "upstream_model": "grok-4.5"
+    },
+    "declaration_observed_at_utc": "2026-10-10T16:04:41.156000+00:00"
+  },
+  "attribution": {
+    "request_evidence_id": "c8adeae1820c1c600442cfe77f2a7910bfbdd138374b3475b7c76a0bc9ea3a2d",
+    "attempt_evidence_ids": [
+      "8ad0806b7f27aab8465b53012fbce5fbd34da15d5e130789ff7c4047c3073720"
+    ],
+    "attempt_count": 1,
+    "ledger_rows": 1,
+    "usage_rows": 1
+  },
+  "native_usage": {
+    "native": {
+      "input_tokens": 346,
+      "output_tokens": 614,
+      "total_tokens": 960,
+      "cache_read_input_tokens": null,
+      "cache_creation_input_tokens": null,
+      "cached_tokens": 256,
+      "reasoning_tokens": 602
+    },
+    "source": {
+      "input_tokens": 346,
+      "output_tokens": 614,
+      "reasoning_tokens": 602,
+      "cache_read_tokens": null,
+      "cache_creation_tokens": null,
+      "cached_tokens": 256,
+      "provenance": "measured",
+      "input_accounting": "inclusive"
+    }
+  },
+  "posthoc_runtime": {
+    "method": "proc_executable",
+    "instance": "instance-20260726-2136",
+    "pid": 2318163,
+    "process_start": "657486820",
+    "observed_at_utc": "2026-10-10T16:07:09.815087+00:00",
+    "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+    "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "executable": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/1b6023f5/gateway-aarch64-unknown-linux-gnu",
+    "stable_process": true
+  },
+  "completed_text_bytes": 58,
+  "completed_text_sha256": "62df74a2730ca21eff67ee9abf757ad5dc26b5e7fc7e777848c0cce926e7eea3",
+  "expected_token_present": false,
+  "final_tool_calls": 0,
+  "first_tool_name": "lookup",
+  "first_tool_arguments": {
+    "value": 1
+  },
+  "native_assistant_items_retained": true,
+  "call_id_matched": true,
+  "result_equals_expected_token": false,
+  "result_equals_documented_lookup_value": false,
+  "initial_prompt_requests_exact_result_replay": false,
+  "followup_has_user_replay_instruction": false,
+  "history_shape_check": "PASS",
+  "provider_inference_in_this_script": 0,
+  "private_wire_sha256": "c1d53a924e9c786a474f0b2839009e9148f8648c2eddcc406fad1807abdff94b",
+  "private_fifth_collection_sha256": "5b61082510c93766b6340911374adc04dde17370f2a3ff0629a2bdff88447dab"
+}

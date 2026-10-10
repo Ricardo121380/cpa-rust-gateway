@@ -1,0 +1,41 @@
+{
+  "basis": "user_explicit_current_prompt",
+  "observed_at_utc": "2026-10-10T15:59:11.019403+00:00",
+  "host": "new-vps",
+  "service": "cpar-build-acceptance-20261010.service",
+  "root": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010",
+  "epoch": "private/six-combinations-20261010",
+  "listeners": [
+    "127.0.0.1:19180",
+    "127.0.0.1:19181"
+  ],
+  "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+  "model": "grok-4.5",
+  "new_pin_limit": 6,
+  "new_basic_limit": 54,
+  "new_inference_limit": 60,
+  "historical_inference_requests": 3,
+  "cumulative_inference_limit": 63,
+  "historical_catalog_requests": 1,
+  "new_catalog_requests": 0,
+  "oauth_refresh_reauthorization": 0,
+  "quota_queries": 0,
+  "extensions": 0,
+  "failure_reruns": 0,
+  "retry": 0,
+  "fallback": 0,
+  "cost_policy": "UNLIMITED_USER_EXPLICIT",
+  "production_writes": 0,
+  "push": false,
+  "official_release": false,
+  "ordering": [
+    "responses-json",
+    "responses-sse",
+    "chat-json",
+    "chat-sse",
+    "messages-json",
+    "messages-sse"
+  ],
+  "single_account_source_refresh_copy_permitted": true,
+  "old_session_E05_policy_unchanged": true
+}

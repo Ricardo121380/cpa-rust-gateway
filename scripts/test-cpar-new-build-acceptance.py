@@ -124,6 +124,7 @@ def bundle(protocol="responses", mode="json", version=3):
     result = {"basic_scenario_version": version, "layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "runtime": runtime(), "target": current_target, "scenarios": {}}
     for scenario, count in oracle.BASIC_SCENARIOS if version == 3 else oracle.HISTORICAL_BASIC_SCENARIOS:
         request = oracle.make_request(current_target, scenario, "ACCEPT:synthetic")
+        expected_text = "ACCEPT:synthetic" + (":1" if version == 3 and scenario != "text_multi_turn" else "")
         samples = []
         for number in range(count):
             tools = scenario != "text_multi_turn" and number < count - 1 and not (version == 3 and scenario == "two_tool_cycles" and number == 0)
@@ -137,7 +138,7 @@ def bundle(protocol="responses", mode="json", version=3):
                 else:
                     value["content"][0]["id"] += str(number)
             else:
-                text = "READY" if number < count - 1 else "ACCEPT:synthetic"
+                text = "READY" if number < count - 1 else expected_text
                 if protocol == "responses":value["output"][0]["content"][0]["text"] = text
                 elif protocol == "chat":value["choices"][0]["message"]["content"] = text
                 else:value["content"][0]["text"] = text
@@ -145,9 +146,9 @@ def bundle(protocol="responses", mode="json", version=3):
             sample = {"http_status": 200, "request": copy.deepcopy(request), "wire": wire(protocol, value, mode), "evidence": lineage, "runtime": runtime()}
             samples.append(sample)
             if number == count - 1:
-                sample["expected_text"] = "ACCEPT:synthetic"
+                sample["expected_text"] = expected_text
             else:
-                sample["next_token"] = "Return exactly ACCEPT:synthetic"
+                sample["next_token"] = "Return exactly ACCEPT:synthetic" if version != 3 else "Repeat the remembered token exactly." if scenario == "text_multi_turn" else "Call lookup with value 1 again." if number < count - 2 else "Return exactly ACCEPT:synthetic: followed by the lookup result, with no other text."
                 _, calls = oracle.observe(protocol, value)
                 request = oracle.conversation_step(protocol, request, value, calls, sample["next_token"])
         result["scenarios"][scenario] = samples
@@ -679,6 +680,19 @@ class FormalOracle(unittest.TestCase):
                             observed.append(request)
                             choice = request.get("tool_choice")
                             tools = choice == "required" or choice == {"type": "any"}
+                            history = request.get("input" if protocol == "responses" else "messages", [])
+                            if not isinstance(history, list):history = []
+                            if protocol == "responses":
+                                tool_outputs = [item["output"] for item in history if item.get("type") == "function_call_output"]
+                            elif protocol == "chat":
+                                tool_outputs = [item["content"] for item in history if item.get("role") == "tool"]
+                            else:
+                                tool_outputs = [block["content"] for item in history for block in item.get("content", []) if isinstance(block, dict) and block.get("type") == "tool_result"]
+                            user_content = history[-1].get("content", "") if history and history[-1].get("role") == "user" else ""
+                            instruction = "".join(block.get("text", "") for block in user_content if isinstance(block, dict) and block.get("type") == "text") if isinstance(user_content, list) else user_content
+                            import re
+                            replay = re.fullmatch(r"Return exactly (ACCEPT:[0-9a-f]+): followed by the lookup result, with no other text\.", instruction)
+                            valid_tool_history = not tool_outputs or (all(output == "1" for output in tool_outputs) and (instruction == "Call lookup with value 1 again." if tools else replay is not None))
                             value = response(protocol, tools)
                             value["id"] = "loopback-response-" + str(len(observed))
                             if tools:
@@ -687,9 +701,9 @@ class FormalOracle(unittest.TestCase):
                                 else:value["content"][0]["id"] = "call-" + str(len(observed))
                             else:
                                 content = json.dumps(request)
-                                import re
                                 tokens = re.findall("ACCEPT:[0-9a-f]+", content)
-                                text = tokens[-1] if len(observed) not in (1,) else "READY"
+                                text = (replay[1] + ":" + ("2" if fault[0] == "wrong_tool_result" else tool_outputs[-1])) if replay and tool_outputs else (tokens[-1] if tokens and len(observed) != 1 else "READY")
+                                if not valid_tool_history:text = "BROKEN_TOOL_RESULT_OR_INSTRUCTION"
                                 if protocol == "responses":value["output"][0]["content"][0]["text"] = text
                                 elif protocol == "chat":value["choices"][0]["message"]["content"] = text
                                 else:value["content"][0]["text"] = text
@@ -729,6 +743,12 @@ class FormalOracle(unittest.TestCase):
                         unlimited = oracle.run_basic(live, live_runtime, "synthetic-key", base)
                         self.assertEqual(len(observed), 9)
                         self.assertEqual(oracle.audit_bundle(unlimited)["basic_status"], "PASS")
+                        fault[0] = "wrong_tool_result"
+                        observed.clear()
+                        rejected = oracle.run_basic(plan, runtime(), "synthetic-key", base)
+                        self.assertEqual(len(observed), 5)
+                        self.assertEqual(rejected["execution_failure"], {"status": "FAIL", "category": "history_or_result_not_used"})
+                        self.assertEqual(oracle.audit_bundle(rejected)["status"], "FAIL")
                         for kind, status in (("wrong_target", "FAIL"), ("missing_revision", "BLOCKED"), ("http_error", "FAIL"), ("wrong_model", "FAIL"), ("wrong_runtime", "FAIL"), ("missing_runtime", "BLOCKED"), ("missing_capabilities", "BLOCKED"), ("wrong_capabilities", "FAIL")):
                             with self.subTest(fault=kind):
                                 fault[0] = kind
