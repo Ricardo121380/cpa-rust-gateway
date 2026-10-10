@@ -1,0 +1,29 @@
+{
+  "label": "github-final-code-query",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "argv": [
+    "python3",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/check_remote_code.py",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/completion-20261010T021555670902Z/github-final-code-not-uploaded.json",
+    "36079c1fad666c2bbb9c15bd8f8a59518c970b42"
+  ],
+  "utc_start": "2026-10-10T03:15:46.430787+00:00",
+  "source_before": {
+    "head": "27c64b53bb5bdf8781974ac1b5bc119e889bbb5b",
+    "status": [
+      " M AGENTS.md"
+    ]
+  },
+  "environment": {},
+  "exit_code": 0,
+  "utc_end": "2026-10-10T03:15:47.700821+00:00",
+  "elapsed_seconds": 1.1701389580000001,
+  "source_after": {
+    "head": "27c64b53bb5bdf8781974ac1b5bc119e889bbb5b",
+    "status": [
+      " M AGENTS.md"
+    ]
+  },
+  "log_sha256": "f031e7ae17a486a3ceaddd380dc7556724e3c795d0d50a4fb2517f21f8fc49cd",
+  "log_bytes": 561
+}

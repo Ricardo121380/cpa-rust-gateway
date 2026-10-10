@@ -12,3 +12,9 @@
 初始登录被macOS密码浮层拦截、未启用fixture的登录失败、普通binding验收分类预期错误和Full新目录缺失SPA文件的失败均保留；它们是harness/前置条件失败，不作为产品行为RED。Full准备按正式SPA构建补齐，保持原门槛。
 
 原目录的HTTP12、OAuth fixture18、shared fixture14、两类真DELETE及在途证据、非空历史保留、E-05真实生产worker/持久化/公共处理/重启、compact/WS410、#56本家族6项分别按原source保留。此补验没有产生真实Provider、远端CI、发布、部署或生产证据。
+
+最终本地门槛绑定clean36079c1f；[attestation](attestation.json)记录Full45/Rust1499/前端513/types/doublebuild。
+
+[两轴评审](review-final.md)保留独立Standards PASS/hard0/heuristic1与Spec独立覆盖PARTIAL/hard0；[主代理静态复用补核](final-reuse-verification.json)另记PASS，不冒称独立覆盖或动态重跑。
+
+[GitHub最终绑定](github-final-attestation.json)与[独立读回](github-final-readback-summary.json)证明16原评论更新、两正文有据AC、十票新增关闭，48票35CLOSED/13OPEN；父9/57正文与原生依赖保留。源码未push，真实Provider0，冻结新候选NOT_MET。

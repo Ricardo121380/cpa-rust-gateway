@@ -129,15 +129,24 @@
   },
   "backend_and_contract_delta_from_previous_batch_gate": "apps/crates/authority/contracts unchanged from 3b3896be; new frontend/task driver only",
   "review": {
-    "Standards": "NOT_RUN_CURRENT_FINAL",
-    "Spec": "NOT_RUN_CURRENT_FINAL"
+    "reviewed_head": "27c64b53bb5bdf8781974ac1b5bc119e889bbb5b",
+    "Standards": "PASS",
+    "standards_hard": 0,
+    "standards_heuristic": 1,
+    "Spec": "PARTIAL_INDEPENDENT_COVERAGE",
+    "spec_hard_findings": 0,
+    "main_static_reuse_verification": "PASS",
+    "main_scoped_ac_acceptance": "PASS_LOCAL",
+    "independent_spec_coverage_not_upgraded": true,
+    "report": "review-final.md"
   },
   "github": {
+    "result": "PASS_GITHUB_WRITE_AND_INDEPENDENT_READBACK",
     "current_counts": {
-      "closed": 25,
-      "open": 23
+      "closed": 35,
+      "open": 13
     },
-    "remaining_scoped_closures_pending_final_review": [
+    "newly_closed": [
       16,
       17,
       20,
@@ -149,11 +158,44 @@
       55,
       56
     ],
+    "previously_closed_scoped": [
+      14,
+      36,
+      37,
+      38
+    ],
+    "updated_existing_comments": [
+      16,
+      17,
+      20,
+      22,
+      23,
+      24,
+      25,
+      26,
+      55,
+      56,
+      14,
+      36,
+      37,
+      38,
+      57,
+      9
+    ],
+    "body_ac_updates": [
+      16,
+      23
+    ],
+    "mutation_count": 28,
     "parents_remain_open": [
       9,
       57
     ],
-    "writes_authorized": true
+    "parent_bodies_preserved": true,
+    "native_dependency_ids_preserved": true,
+    "no_duplicate_comments": true,
+    "writes_authorized": true,
+    "attestation": "github-final-attestation.json"
   },
   "AGENTS_sha256_preserved": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
   "real_provider_calls": 0,

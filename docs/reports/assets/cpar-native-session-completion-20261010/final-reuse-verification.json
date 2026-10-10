@@ -1,0 +1,42 @@
+{
+  "result": "PASS_STATIC_REUSE_VERIFICATION",
+  "utc": "2026-10-10T03:14:48.854297+00:00",
+  "review_head": "27c64b53bb5bdf8781974ac1b5bc119e889bbb5b",
+  "code_source": "36079c1fad666c2bbb9c15bd8f8a59518c970b42",
+  "no_dynamic_rerun": true,
+  "maintenance": {
+    "source": "d1ee7702937a87777cc53e3d0de392d1e2528b84",
+    "scene_checks": 6,
+    "hashes": {
+      "browser-maintenance.txt": "5ca7e3aad36a9eee5e30135df32e88d00f9fbaed8f74d25df8fbe93939016cac",
+      "maintenance.json": "3d8959ab781c918406675a4868f7e0d174b0164cc61839b3530bacc94b94ded4"
+    },
+    "system_component_diff_empty": true,
+    "exact_driver_scene_equal": true
+  },
+  "pin": {
+    "receipt_source": "eab0f044ee2c6679db4943772a6bf9d789d213fb",
+    "original_raw_log": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-native-session-batch-20261009-211528/final-a-pin-explicit-success-20261009T154502973849Z/raw.log",
+    "raw_sha256": "43b7f4f532977cf16ec52123f7a041dc243944adf39c035448e64a3c9fb0baf8",
+    "raw_pass": true,
+    "related_paths_diff_empty": [
+      "web/prism/src/features/accounts/callEvidence.ts",
+      "web/prism/src/features/accounts/callEvidence.test.ts",
+      "scripts/acceptance/cpar-batch-a.mjs",
+      "scripts/acceptance/cpar-batch-a-http.py",
+      "crates/gateway-router/src/credential_scheduler.rs",
+      "crates/gateway-router/src/attempt_orchestrator.rs"
+    ],
+    "execute_channel_pin_production_function_equal": true,
+    "qualification_named_tests_in_final_clean_full": [
+      "pinned_selection_rejects_expired_credential_without_lease",
+      "pinned_selection_fails_closed_for_health_quota_and_capacity",
+      "pinned_selection_requires_exact_provider_channel_and_credential",
+      "pinned_once_invokes_exact_binding_once_and_closes_retry"
+    ],
+    "full_raw_sha256": "da2f48f1b7de4cb5eda65f79f928845d2a7e5044a47c31817bcc7ef8913aa5db",
+    "call_evidence_tests_in_final_frontend": 3,
+    "frontend_raw_sha256": "9d9d21fb7e3ecfe48d010143e032e79c963c9126450d60eb45e803d5befe8fd4"
+  },
+  "scope_interpretation": "Issue26 requires evidence time and credential/config/path invalidation, not an arbitrary evidence TTL. Credential expiry remains an execution qualification checked by exact selection."
+}
