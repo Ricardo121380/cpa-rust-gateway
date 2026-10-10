@@ -24,7 +24,7 @@
 | 导入真实响应丢失 | PASS | PASS | CDP只丢已经真实201的response，先确认SQLite提交。页面结果未确认；点击核对仅GET `/admin/native-account-imports/{batch_id}`，channel/account/saved精确匹配原写入，无重复POST |
 | 应用真实响应丢失 | PASS | PASS | 丢真实200 apply response；apply按钮禁用，先GET `/admin/system`；服务可接收请求不冒充先前write已确认，页面仍说明结果未确认 |
 | 关闭与重载 | PASS | PASS | 完成关闭dialog；重载按真实会话规则重新登录；native库快照保留，无ordinary/binding增长；实际目录继续显示Grok授权 |
-| 隐式推理 | 0 | 0 | 受控上游身份GET共6；页面最终快照额度POST15次单列；任何其他native POST均记为unexpected inference并拒绝。推理receiver=0，Request/Attempt/Usage/ledger事件表为空 |
+| 隐式推理 | 0 | 0 | 受控上游身份GET共6；页面最终快照额度POST15次，服务停止后合计18次，分别单列；任何其他native POST均记为unexpected inference并拒绝。推理receiver=0，Request/Attempt/Usage/ledger事件表为空 |
 
 授权保存、runtime应用、推理成功是三种不同事实：导入201的runtime_applied不等于推理成功；丢失apply时只保留未知；native账号已保存也不等于已配置推理接口。页面原有“配置待核对；这不代表真实调用已验证”和“授权保存与接口接入是独立步骤”可见。截图辅助可读性：[Web回读与未知应用](assets/cpar-preacceptance-20261010/page/web-console-final-web-loss.png)、[Console保存](assets/cpar-preacceptance-20261010/page/web-console-final-console-success.png)，行为判定来自管理HTTP／持久化／接收断言。
 
@@ -54,6 +54,8 @@ stock固定 `grok.com` identity策略拒绝loopback DNS；测试interpose提供�
 
 live还需用户明确批准、exact process/artifact/source/target/URL/场景绑定、9次请求及USD预算、包含input／visible／reasoning／cache／request fees的完整费用上界证明。proof由操作者审核真实材料，脚本检查字段／绑定／算式，不能替上游认证协议语义或替用户批准。
 
+上述门槛核对的是命令开始时的冻结观察，不是原子调度隔离或每次发送前的新快照。逐轮actual归属在响应后核验；真实执行必须保持专用实例冻结、不并发修改配置／账号。否则第一处漂移可能已经发生一次付费请求，不能声称所有运行中漂移都由脚本事前阻止。费用proof还必须单列function/tool output覆盖，因为官方visible-only字段同样不限制这部分。
+
 已核实用户可选模型为4.5／4.6／4.7；建议主批Official + 4.7，Build作可选第二渠道。当前实际账号／host／目录／capabilities全部UNKNOWN；[授权清单](cpar-first-grok-authorization-20261010.md) 包含12份保护性JSON草案，每渠道一个模型、6组合，基本54次，缺Pin时另6次，目录最多1次，额度／OAuth／重试／扩展／故障／重跑0。本批实际真实请求0。
 
 公开资料新增一个实质性计费限制：官方 [Responses Markdown](https://docs.x.ai/developers/rest-api-reference/inference/responses.md) 的max_output_tokens只限制visible output，排除reasoning/function calls。128不能证明总费用上限。主批USD1.00是建议待批准总额，费用proof仍NOT_PROVEN；第一Pin之前停止。Official API价不能套给Build／Console套餐，已冻结来源hash及实际UTC。
@@ -73,7 +75,7 @@ Kiro K01–K05覆盖native字段／范围／单位、reasoning计数、cap-hit�
 | 范围 | 结果及证据 |
 | --- | --- |
 | 当前stock页面 | PASS_PUBLIC_MANAGEMENT_HTTP_AND_BROWSER_LOCAL；13 assertions，6 identity GET、15 quota POST（最终页面观察时）、inference0；最终停止后的raw接收数量另保留 |
-| 正式oracle定向 | PASS_LOCAL_SIMULATED；32 tests；六protocol/mode各9次，共54个positive loopback receives；8种first-response故障×6=48次各只发1；11种pre-send阻断×6=66项 actual receive0；[run receipt](assets/cpar-preacceptance-20261010/formal-green-final-run.json) 与6个 [组合回执](assets/cpar-preacceptance-20261010/formal/responses-json.json) |
+| 正式oracle定向 | 首次GREEN为PASS_LOCAL_SIMULATED；32 tests；六protocol/mode各9次，共54个positive loopback receives；8种first-response故障×6=48次各只发1；11种pre-send阻断×6=66项 actual receive0；[run receipt](assets/cpar-preacceptance-20261010/formal-green-final-run.json) 与6个 [组合回执](assets/cpar-preacceptance-20261010/formal/responses-json.json)。后置费用tool_output缺失增加第12类pre-send负例，按修订后不可变来源另记录，不能覆盖原GREEN |
 | 静态／文档 | 后置不可变commit的定向语法／docs门槛及hash核对记录在终态资产；不把未运行项写成PASS |
 | 产品Full | PASS_LOCAL_REUSED，仅产品／未变门槛范围：c1b干净Full45/45，Rust1500/0/12；[历史摘要](assets/cpar-channel-delivery-20261010/verification-summary.json)。本批变动formal oracle另重跑，旧Full不能冒称测试了新driver |
 | 前端／T12／E-05 | 未改相关源码；沿用明确已有70文件513测试、T12 71、strict same-grant例外及#26/#55来源；不重新全站验收 |

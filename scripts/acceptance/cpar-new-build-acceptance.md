@@ -111,7 +111,9 @@ process/artifact, target/parameters, URL and 3/2/4 scenarios. The approved
 `currency=USD`, with a positive `budget_limit`. A `cost_bound` must have
 `status=PROVEN`, a reviewed material `evidence_sha256`, and `per_request_upper`
 whose nine-request total fits the budget; `covers` must include input, visible
-output, reasoning output, cache and request fees. These entries record an
+output, reasoning output, function/tool output, cache and request fees (the
+`covers` values are `input`, `visible_output`, `reasoning_output`, `tool_output`,
+`cache`, `request_fees`). These entries record an
 operator-reviewed proof and explicit user authorization; the script cannot
 certify a protocol contract by itself. Unknown native cap units or incomplete
 billing coverage stay blocked. The template deliberately supplies no approval

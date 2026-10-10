@@ -154,6 +154,10 @@ def bundle(protocol="responses", mode="json", version=3):
     return result
 
 
+def reviewed_authorization(plan, observed, base):
+    return {"status": "APPROVED", "basis": "user_explicit", "binding_sha256": oracle.execution_binding(plan, observed, base), "max_inference_requests": 9, "max_attempts": 1, "allow_fallback": False, "currency": "USD", "budget_limit": 1, "cost_bound": {"status": "PROVEN", "evidence_sha256": "4" * 64, "covers": ["input", "visible_output", "reasoning_output", "tool_output", "cache", "request_fees"], "per_request_upper": .01}}
+
+
 class LegacyDefects(unittest.TestCase):
     def test_duplicate_success_terminal_is_rejected(self):
         event = {"type": "response.completed", "response": response()}
@@ -271,7 +275,7 @@ class FormalOracle(unittest.TestCase):
 
     def test_reviewed_live_policy_and_native_pool_admission(self):
         observed, plan, base = runtime(), {"layer": "LIVE_NEW_BUILD", "source_sha": SOURCE_SHA, "target": target()}, "http://127.0.0.1:1"
-        plan["authorization"] = {"status": "APPROVED", "basis": "user_explicit", "binding_sha256": oracle.execution_binding(plan, observed, base), "max_inference_requests": 9, "max_attempts": 1, "allow_fallback": False, "currency": "USD", "budget_limit": 1, "cost_bound": {"status": "PROVEN", "evidence_sha256": "4" * 64, "covers": ["input", "visible_output", "reasoning_output", "cache", "request_fees"], "per_request_upper": .01}}
+        plan["authorization"] = reviewed_authorization(plan, observed, base)
         oracle.verify_execution_policy(plan, observed, base)
         with self.assertRaises(ValueError):oracle.verify_execution_policy(plan, observed, base + "/changed")
         inventory = observed["acceptance_inventory"]["inventory"]
@@ -623,7 +627,7 @@ class FormalOracle(unittest.TestCase):
                                 self.assertEqual(len(observed) - before, 1, kind)
                                 self.assertEqual(oracle.audit_bundle(rejected)["status"], status, rejected.get("execution_failure"))
                         fault[0] = None
-                        for kind in ("retry", "fallback", "unknown_candidate", "second_account", "missing_inventory", "incomplete", "configuration_changed", "live_approval_missing", "cost_unknown", "budget_insufficient", "approval_binding_changed"):
+                        for kind in ("retry", "fallback", "unknown_candidate", "second_account", "missing_inventory", "incomplete", "configuration_changed", "live_approval_missing", "cost_unknown", "cost_tool_output_missing", "budget_insufficient", "approval_binding_changed"):
                             with self.subTest(preflight=kind):
                                 current_runtime, guarded = runtime(), copy.deepcopy(plan)
                                 inventory = current_runtime["acceptance_inventory"]["inventory"]
@@ -637,9 +641,10 @@ class FormalOracle(unittest.TestCase):
                                 if kind.startswith(("live_", "cost_", "budget_", "approval_")):
                                     guarded["layer"] = "LIVE_NEW_BUILD"
                                     current_runtime.update(manifest_sha256="3" * 64, manifest_matches=True)
-                                    guarded["authorization"] = {"status": "APPROVED", "basis": "user_explicit", "binding_sha256": oracle.execution_binding(guarded, current_runtime, "http://127.0.0.1:" + str(server.server_port)), "max_inference_requests": 9, "max_attempts": 1, "allow_fallback": False, "currency": "USD", "budget_limit": 1, "cost_bound": {"status": "PROVEN", "evidence_sha256": "4" * 64, "covers": ["input", "visible_output", "reasoning_output", "cache", "request_fees"], "per_request_upper": .01}}
+                                    guarded["authorization"] = reviewed_authorization(guarded, current_runtime, "http://127.0.0.1:" + str(server.server_port))
                                     if kind == "live_approval_missing":guarded.pop("authorization")
                                     if kind == "cost_unknown":guarded["authorization"]["cost_bound"]["status"] = "NOT_PROVEN"
+                                    if kind == "cost_tool_output_missing":guarded["authorization"]["cost_bound"]["covers"].remove("tool_output")
                                     if kind == "budget_insufficient":guarded["authorization"]["budget_limit"] = .01
                                     if kind == "approval_binding_changed":guarded["authorization"]["binding_sha256"] = "5" * 64
                                 before = len(observed)

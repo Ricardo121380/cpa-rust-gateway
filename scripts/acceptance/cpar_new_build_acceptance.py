@@ -515,7 +515,7 @@ def verify_execution_policy(plan, runtime, base_url):
     require(type(approval.get("max_inference_requests")) is int and approval["max_inference_requests"] == sum(count for _, count in BASIC_SCENARIOS) and approval.get("max_attempts") == 1 and approval.get("allow_fallback") is False, "live_request_limit_unconfirmed")
     bound = approval.get("cost_bound") or {}
     available(bound.get("status") == "PROVEN" and re.fullmatch("[0-9a-f]{64}", bound.get("evidence_sha256", "")) is not None, "live_cost_bound_unproven")
-    require(approval.get("currency") == "USD" and set(bound.get("covers", [])) == {"input", "visible_output", "reasoning_output", "cache", "request_fees"}, "live_cost_coverage_incomplete")
+    require(approval.get("currency") == "USD" and set(bound.get("covers", [])) == {"input", "visible_output", "reasoning_output", "tool_output", "cache", "request_fees"}, "live_cost_coverage_incomplete")
     budget, upper = approval.get("budget_limit"), bound.get("per_request_upper")
     require(type(budget) in (int, float) and type(upper) in (int, float) and 0 < upper * approval["max_inference_requests"] <= budget < float("inf"), "live_budget_insufficient")
 
@@ -854,6 +854,7 @@ def audit_bundle(bundle):
     require(layer in ("LOCAL_SIMULATED", "LIVE_NEW_BUILD", "PRODUCTION"), "invalid_evidence_layer")
     target = bundle.get("target", {})
     receipt = {"schema_version": 2, "layer": layer, "source_sha": public_identity("source_sha", bundle.get("source_sha")), "observed_at_utc": now(), "runtime": {key: public_identity(key, bundle.get("runtime", {}).get(key)) for key in RUNTIME_FIELDS}, "target": {key: public_identity(key, target.get(key)) for key in (*TARGET_FIELDS, "protocol", "mode", "public_model", "response_model")}, "parameters_sha256": digest(target.get("parameters")), "capabilities": {key: target["capabilities"][key] if isinstance(target["capabilities"].get(key), bool) else None for key in EXTENSIONS} if isinstance(target.get("capabilities"), dict) else None, "declaration_observed_at_utc": public_identity("observed_at_utc", target.get("declaration_observed_at_utc")), "value_free": True, "checks": [], "evidence_paths": [path for path in bundle.get("evidence_paths", []) if isinstance(path, str) and re.fullmatch(r"[A-Za-z0-9_./-]{1,256}", path) and not path.startswith("/") and ".." not in path]}
+    receipt["sent_requests"] = 0
     preflight = verdict(lambda: (verify_runtime(bundle.get("runtime", {}), bundle.get("source_sha"), layer), verify_target(target)))
     receipt["preflight"] = preflight
     if preflight["status"] != "PASS":

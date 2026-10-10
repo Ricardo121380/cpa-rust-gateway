@@ -1,0 +1,93 @@
+{
+  "entries": [
+    {
+      "argv": [
+        "ego-browser",
+        "nodejs"
+      ],
+      "script": "scripts/acceptance/cpar-web-console-actual-ui.mjs",
+      "options": {
+        "spaceId": 41,
+        "descriptor": "output/cpar-preacceptance-20261010/ui-service/descriptor.json",
+        "out": "output/cpar-preacceptance-20261010/web-console-first.json",
+        "login": true,
+        "firstLogin": true
+      },
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "started_at_utc": null,
+      "last_receipt_time_utc": "2026-10-10T07:10:21.186Z",
+      "exit_code": 1,
+      "source_binding_ref": null,
+      "historical_driver_hashes": "UNKNOWN",
+      "raw_receipt": "page/web-console-first.json",
+      "category": "DRIVER_OR_FIXTURE_FAILURE_NOT_PRODUCT_RED"
+    },
+    {
+      "argv": [
+        "ego-browser",
+        "nodejs"
+      ],
+      "script": "scripts/acceptance/cpar-web-console-actual-ui.mjs",
+      "options": {
+        "spaceId": 41,
+        "descriptor": "output/cpar-preacceptance-20261010/ui-service-02/descriptor.json",
+        "out": "output/cpar-preacceptance-20261010/web-console-second.json",
+        "login": true,
+        "firstLogin": true
+      },
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "started_at_utc": null,
+      "last_receipt_time_utc": "2026-10-10T07:12:07.225Z",
+      "exit_code": 1,
+      "source_binding_ref": null,
+      "historical_driver_hashes": "UNKNOWN",
+      "raw_receipt": "page/web-console-second.json",
+      "category": "DRIVER_OR_FIXTURE_FAILURE_NOT_PRODUCT_RED"
+    },
+    {
+      "argv": [
+        "ego-browser",
+        "nodejs"
+      ],
+      "script": "scripts/acceptance/cpar-web-console-actual-ui.mjs",
+      "options": {
+        "spaceId": 41,
+        "descriptor": "output/cpar-preacceptance-20261010/ui-service-03/descriptor.json",
+        "out": "output/cpar-preacceptance-20261010/web-console-third.json",
+        "login": true,
+        "firstLogin": true
+      },
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "started_at_utc": null,
+      "last_receipt_time_utc": "2026-10-10T07:15:56.375Z",
+      "exit_code": 1,
+      "source_binding_ref": null,
+      "historical_driver_hashes": "UNKNOWN",
+      "raw_receipt": "page/web-console-third.json",
+      "category": "DRIVER_OR_FIXTURE_FAILURE_NOT_PRODUCT_RED"
+    },
+    {
+      "argv": [
+        "ego-browser",
+        "nodejs"
+      ],
+      "script": "scripts/acceptance/cpar-web-console-actual-ui.mjs",
+      "options": {
+        "spaceId": 41,
+        "descriptor": "output/cpar-preacceptance-20261010/ui-service-04/descriptor.json",
+        "out": "output/cpar-preacceptance-20261010/web-console-final.json",
+        "login": true,
+        "firstLogin": true
+      },
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "started_at_utc": null,
+      "last_receipt_time_utc": "2026-10-10T07:17:38.716Z",
+      "exit_code": 0,
+      "source_binding_ref": "source-binding.json",
+      "historical_driver_hashes": "source-binding.json#/driver_files_sha256",
+      "raw_receipt": "page/web-console-final.json",
+      "category": "PASS_LOCAL_BROWSER"
+    }
+  ],
+  "clock_limit": "Invocation start was not captured. Actual receipt last-write UTC retained; no archive time substituted."
+}
