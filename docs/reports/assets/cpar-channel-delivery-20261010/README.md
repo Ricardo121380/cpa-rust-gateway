@@ -7,11 +7,15 @@
 - [最终T12](clean-t12/receipt.json)及[具体状态比较](clean-t12/t12.json)：最终干净驱动，非空集合、两份binary哈希、旧读者、key版本、coherent restore和实际接收断言。
 - [Full步骤报告](full-check.md)：最终代码上的45步结果；Rust测试总数由execution-index的final-full-network-retry原log统计。前一次611来源Full、错误release环境Full及最终源码网络失败Full分别保留在full-check-611949b6.md、full-check-failed-release-revision.md及full-check-failed-network.md，不用于最终产品修复的成功门槛。
 - [独立历史Spec补审](review-historical-supplement.md)：184份原回执的定位与覆盖边界；旧来源／时间保留。
+- [最终两轴原文](review-final.md)及[机器终态](review-final.json)：Standards与当前切片Spec分别PASS，历史完整覆盖PARTIAL；评审head85f、行为source c1b和后置attestation严格区分。
 - [后继台账](issue57-successor.json)：198基础行、49扩展未知声明行和所有故事／F／T／AC pointer；没有真实执行行。
 - [一手来源索引](primary-source-index.json)：公开冻结原始文件版本、URL及实算hash；不提交下载的完整第三方源码。
 - [用户材料保存核对](preservation-check.json)：AGENTS原SHA，以及5817个原未跟踪条目的lstat元数据，未触碰原符号链接目标。
+- [GitHub回读摘要](github-sync-summary.json)、[后置执行索引](closeout-execution-index.json)：五票唯一评论维护、只勾#57 AC02、正文/状态/依赖保持；原EOF失败和恢复读取按真实退出码归档。
 
-复現环境为macOS arm64、既有Rust/Node/OpenSSL和sandbox-exec。先在两个独立干净检出分别构建历史binary：schema32 `24142a9008e58fbc87d0b5791bbb166b45234850`，schema34/pre-Attempt-Usage `08812db2373583b8a725b80071efe75b69f9d7ae`。按原receipt执行npm ci和cargo build，复制各binary到私有测试目录。历史target不能与当前target共用；不改变依赖锁。
+机器静态核验命令：`python3 docs/reports/assets/cpar-channel-delivery-20261010/validate_archive.py`。它同时验证原36组日志、后置回读日志、矩阵历史hash、两轴归属、GitHub正文及原评论前缀，解压日志另做敏感值检测。原执行索引保持被审字节不变，后置索引单独绑定其hash。
+
+复现环境为macOS arm64、既有Rust/Node/OpenSSL和sandbox-exec。先在两个独立干净检出分别构建历史binary：schema32 `24142a9008e58fbc87d0b5791bbb166b45234850`，schema34/pre-Attempt-Usage `08812db2373583b8a725b80071efe75b69f9d7ae`。按原receipt执行npm ci和cargo build，复制各binary到私有测试目录。历史target不能与当前target共用；不改变依赖锁。
 
 在c1b干净检出中，Full使用默认development编译身份，当前普通binary随后绑定同一完整源码SHA：
 

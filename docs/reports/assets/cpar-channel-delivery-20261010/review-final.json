@@ -1,0 +1,33 @@
+{
+  "observed_at_utc": "2026-10-10T06:26:07.554481+00:00",
+  "base": "d3d2e3c5bf0d9521f3fb0d830344b34053f62155",
+  "review_head": "85f43c2f28ee0a9bbaea3916abaec302b2cedcac",
+  "behavior_source": "c1b304d02e61fe1c75653a32fba920093462add6",
+  "attestation_role": "Added after fixed review; does not claim self-review",
+  "standards": {
+    "agent": "/root/final_standards_review",
+    "terminal": "complete",
+    "status": "PASS",
+    "hard_count": 0,
+    "heuristic_count": 1,
+    "heuristic_disposition": "Nonblocking duplicated restore steps retained; avoid unrelated general abstraction"
+  },
+  "spec": {
+    "agent": "/root/final_spec_review",
+    "terminal": "complete",
+    "current_slice": "PASS",
+    "hard_count": 0,
+    "historical_complete_coverage": "PARTIAL",
+    "historical_hard_count": 0,
+    "AC02": "PASS_LOCAL_BOUNDED_MAY_CHECK"
+  },
+  "ref": "review-final.md",
+  "sha256": "175e1618c238fd3a0cd632a8425eb13545567cbbff5f4a512d7f516febbb293f",
+  "remaining_scope": [
+    "Kiro native cap",
+    "Grok Web native continuation and Messages cap",
+    "Dedicated historical Web/Console page receipts",
+    "186 real combinations and actual 49 extension declaration freeze",
+    "remote CI/release artifact/deployment/production"
+  ]
+}

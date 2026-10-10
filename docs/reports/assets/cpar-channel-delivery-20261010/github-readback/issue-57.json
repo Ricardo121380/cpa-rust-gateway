@@ -1,0 +1,160 @@
+{
+  "source_snapshot_sha256": "5cbdf49da5286ea371069f664e24cb97f4cf1afe38cfd0bcbdf6bd926efe7e27",
+  "issue": {
+    "id": 5631519603,
+    "number": 57,
+    "title": "CPAR-48：分批交付证据与全范围收口",
+    "state": "open",
+    "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\n核对全部承诺、现有数据兼容和全站基础体验，形成各批可审查的交付证据；未完成组合继续保持未完成。\n\n实施编号 CPAR-48；实施批次：收口。覆盖用户故事 82, 83, 84, 85, 86, 87, 88；验收场景 T12, T13, T14, T15。\n\n## Acceptance criteria\n\n- [ ] 核对 88 条用户故事、F01–F08、T01–T15、11 渠道三协议及每项实际声明扩展的最终证据，没有静默遗漏或新增例外。\n- [x] 受影响既有账号、停用意图、权限、连接、自定义路由、Usage、账本与历史兼容；必要迁移有验证和回退说明。\n- [ ] 每个已交付批次分别保留审查、相关本地／EgoLite／真实证据及不可变提交上的正式 Fast／Full 等 Phase 门槛。门槛随批次执行，不拖到本票才首次检查。\n- [x] 存在已知语义损失、权限越界、错误写入／删除、假终态或缺必需真实证据时，不把相关范围宣称完成。\n- [x] 缺账号、环境、授权或预算保留 BLOCKED；已通过组合可独立安排交付，但整体关闭需全部承诺满足或用户明确调整范围。\n- [ ] 准备各批发布候选、影响和回退依据；实际部署只在具体授权后执行，未部署明确 NOT_RUN，不把门槛通过称已上线。\n- [x] 交付实施结果与剩余项清单，不以本票擅自修改规格范围或关闭父规格。\n- [x] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#12](https://github.com/Ricardo121380/cpa-rust-gateway/issues/12)：提供商、账号与 OAuth 入口分工。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#17](https://github.com/Ricardo121380/cpa-rust-gateway/issues/17)：重复与批量导入逐项核对和恢复。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#21](https://github.com/Ricardo121380/cpa-rust-gateway/issues/21)：正常续期与失效分类保留停用意图。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#25](https://github.com/Ricardo121380/cpa-rust-gateway/issues/25)：高级解除隔离只表示允许再次尝试。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#26](https://github.com/Ricardo121380/cpa-rust-gateway/issues/26)：显式调用测试与证据失效。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#37](https://github.com/Ricardo121380/cpa-rust-gateway/issues/37)：Responses 压缩保持所有权与精确账号。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#38](https://github.com/Ricardo121380/cpa-rust-gateway/issues/38)：Responses WebSocket 生命周期与续接。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#40](https://github.com/Ricardo121380/cpa-rust-gateway/issues/40)：openai-compatible 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#41](https://github.com/Ricardo121380/cpa-rust-gateway/issues/41)：anthropic-compatible 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#42](https://github.com/Ricardo121380/cpa-rust-gateway/issues/42)：codex 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#43](https://github.com/Ricardo121380/cpa-rust-gateway/issues/43)：claude 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#44](https://github.com/Ricardo121380/cpa-rust-gateway/issues/44)：grok.official 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#45](https://github.com/Ricardo121380/cpa-rust-gateway/issues/45)：kimi-coding 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#46](https://github.com/Ricardo121380/cpa-rust-gateway/issues/46)：kimi-api 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47)：grok.build 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#48](https://github.com/Ricardo121380/cpa-rust-gateway/issues/48)：grok.console 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#49](https://github.com/Ricardo121380/cpa-rust-gateway/issues/49)：grok.web 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#50](https://github.com/Ricardo121380/cpa-rust-gateway/issues/50)：kiro 渠道差异与逐组合验收。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#52](https://github.com/Ricardo121380/cpa-rust-gateway/issues/52)：概览、请求与失败页面基础体验。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#53](https://github.com/Ricardo121380/cpa-rust-gateway/issues/53)：用量／计费页面与不完整历史反馈。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#54](https://github.com/Ricardo121380/cpa-rust-gateway/issues/54)：模型目录、路由与访问控制基础体验。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#55](https://github.com/Ricardo121380/cpa-rust-gateway/issues/55)：运行诊断与出口策略基础体验。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n- [#56](https://github.com/Ricardo121380/cpa-rust-gateway/issues/56)：配置版本、审计备份与设置基础体验。原因：本票只收口已经完成的行为与证据；该项属于尚未被其他前置覆盖的末端交付。\n",
+    "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57",
+    "updated_at": "2026-10-10T06:29:01Z"
+  },
+  "comments": [
+    {
+      "id": 6081234278,
+      "body": "<!-- codex-cpar-ticket-sync-20261009-85a168da-57 -->\n\n## 工程实施与验收收口 · 2026-10-10\n\n本批必要实现/有界定向证据及本地正式门槛通过，六主票和八依赖按自身AC与实时前置完成本地收口；48实施票35 CLOSED/13 OPEN，39–50和本票继续OPEN。88 stories/F01–F08/T01–T15/全渠道实际扩展声明、完整旧数据升级回退、发布制品/真实组合未全验收。冻结新候选条件未满足，不能用本批局部结果关闭57或父9。\n\n最终代码/验收驱动36079c1fad666c2bbb9c15bd8f8a59518c970b42；clean隔离Full45 PASS，Rust1499/0失败/12忽略，前端70文件513测试、types及Full内Management SPA双构建PASS。独立reviewHEAD27c64b53：Standards PASS(hard0/heuristic1)；Spec独立覆盖PARTIAL、已查hard0，最后精确出处由主代理静态复用补核PASS，不冒称独立全范围PASS或动态重跑。两处必需页面缺口已有独立核实。旧HTTP/fixture/native facade/stock进程证据按各自source保留。\n\n报告：docs/reports/cpar-native-session-batch-local-20261009.md；补验/最终评审/回执：docs/reports/assets/cpar-native-session-completion-20261010/{README.md,review-final.md,attestation.json,execution-index.json,final-reuse-verification.json}。原目录证据不可改写。本批未push，GitHub对36079c1f查询422未找到SHA，不提供未上传提交链接。真实Provider0；远端CI/发布制品/部署/生产NOT_RUN。\n\n后续范围保持：Grok Web原生多轮、Kiro native输出硬上限、完整既有数据兼容及回退、当前真实渠道组合；独立评审完整覆盖仍PARTIAL。不增加例外，冻结新发布候选NOT_MET。\n\n\n---\n\n### 2026-10-10 渠道软件缺口收敛与交付前置补齐（本批终态）\n\n本批行为／验收源码 `c1b304d02e61fe1c75653a32fba920093462add6`；T12 驱动首提交 `611949b6faef9788d04b3283cc4c7ad45c6dcf38`；实现证据提交 `85f43c2f28ee0a9bbaea3916abaec302b2cedcac`。均为本地提交，尚未 push，不提供对应 GitHub commit/blob 链接。固定独立评审范围 d3d2e3c5…85f43c2f：Standards PASS（hard0、非阻断 heuristic1），当前实施切片 Spec PASS（hard0）；历史完整 Spec 覆盖仍 PARTIAL（已查 hard0）。\n\n最终干净 c1b Full 45/45 PASS，Rust 1500通过／0失败／12忽略，类型检查、双构建、Clippy、依赖／安全门槛通过。前端70文件／513测试在clean611通过；web/prism的611→c1b差异为空，按原来源复用。原始失败与receipt全部保留。相关实现、契约、驱动和本地证据已归档，没有新增页面行为。\n\nT12 PASS_LOCAL_BOUNDED：实际历史schema32二进制24142a90创建18个非空集合，经公共HTTP构造账号/native显示身份、ordinary/native disabled意图、连接、绑定、自定义路由、Client Key权限、Usage/ledger/audit/stored Responses；当前升级32→34按原列逐行hash不变。最终clean c1b驱动71检查通过，真实loopback TLS接收5、fallback0；macOS进程拒绝non-loopback。\n\n发现并修复真实兼容RED：旧Usage缺少新增证据字段，被当前Store重序列化误判InvalidPersistedGatewayEvent。只接受已知冻结旧编码且两证据均unknown；原payload/ID不变、幂等重放0新增、不补Attempt/归属。新Store测试1、legacy相关回归6通过，合法未知历史由生产worker标invalid_lineage，不补造账本。实现既有ADR0100，BC-OBS-002澄清边界，未改schema/OpenAPI/UI。\n\n旧schema32明确拒绝schema34；旧schema34汇总200不等于安全回退，真实旧billing worker消费新Attempt Usage时拒绝invalid_event。保留key1、新写key2，四个旧/新根及owner/foreign权限可读；旧配置rollback无review409，明确review后成功且disabled不变。保留post-state，再完整恢复pre-state并由旧binary读回，随后恢复post-state及精确两代keys。binary-only rollback UNSAFE；coherent restore PASS_LOCAL_BOUNDED。恢复pre状态期间后续写入不在活动DB，必须保留post状态，不能拼接不同时点DB/密钥。私有合成快照留本机，DB/credentials/master-key没有入仓或GitHub。\n\n独立Spec确认在用户限定样本内，AC02兼容条款可以勾选；只勾该条，生产／所有历史版本不外推。T12和AC02后继状态PASS_LOCAL_BOUNDED；#57整体仍PARTIAL/OPEN。历史独立Spec完成184回执来源、#26精确Pin与#55global admission；旧Web/Console各自页面回执未定位，覆盖PARTIAL、已查hard0，不机械重开闭票。\n\n原198矩阵字节/hash/source/time保留；当前后继198行区分audit与execution(null)，186真实适用行BLOCKED、12工具NA、24软件阻断行，49项actual_declared=null仍未知。88故事/F01–08/T01–15/AC01–10均保留历史pointer。E05当前APPROVED_PASS_LOCAL_REUSED，仅同授权Build正常刷新；原待决值仅历史，不是当前阻断。下一轮计划明确3/2/4轮场景、精确冻结、558次基础推理（9渠道486）及条件输出上界；实际账号/授权/货币预算仍未确定，本轮真实请求0。\n\n本地归档：docs/reports/cpar-channel-delivery-local-20261010.md；cpar-channel-native-semantics-20261010.md；cpar-next-real-acceptance-plan-20261010.md；docs/reports/assets/cpar-channel-delivery-20261010/（source-binding、execution-index、clean-t12、verification-summary、issue57-successor、review-final及历史Spec映射）。源码未上传，这些是本机路径而非可用GitHub blob。\n\n真实Provider=0；新增页面行为验收NOT_RUN，既有EgoLite按原来源复用。remote CI／候选发布制品／push／发布／部署／共享服务重启／生产均NOT_RUN。冻结候选NOT_MET；未使用真实账号材料或生产数据库。\n",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "updated_at": "2026-10-10T06:29:01Z"
+    }
+  ],
+  "blocked_by": [
+    {
+      "id": 5631328914,
+      "number": 12,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/12"
+    },
+    {
+      "id": 5631339239,
+      "number": 17,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/17"
+    },
+    {
+      "id": 5631347684,
+      "number": 21,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/21"
+    },
+    {
+      "id": 5631356096,
+      "number": 25,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/25"
+    },
+    {
+      "id": 5631358441,
+      "number": 26,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/26"
+    },
+    {
+      "id": 5631386213,
+      "number": 37,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/37"
+    },
+    {
+      "id": 5631388515,
+      "number": 38,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/38"
+    },
+    {
+      "id": 5631395778,
+      "number": 40,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/40"
+    },
+    {
+      "id": 5631402450,
+      "number": 41,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/41"
+    },
+    {
+      "id": 5631408970,
+      "number": 42,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/42"
+    },
+    {
+      "id": 5631415759,
+      "number": 43,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/43"
+    },
+    {
+      "id": 5631422686,
+      "number": 44,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/44"
+    },
+    {
+      "id": 5631429622,
+      "number": 45,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/45"
+    },
+    {
+      "id": 5631436822,
+      "number": 46,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/46"
+    },
+    {
+      "id": 5631444349,
+      "number": 47,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47"
+    },
+    {
+      "id": 5631451729,
+      "number": 48,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/48"
+    },
+    {
+      "id": 5631458604,
+      "number": 49,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/49"
+    },
+    {
+      "id": 5631464240,
+      "number": 50,
+      "state": "open",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/50"
+    },
+    {
+      "id": 5631493317,
+      "number": 52,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/52"
+    },
+    {
+      "id": 5631495525,
+      "number": 53,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/53"
+    },
+    {
+      "id": 5631498436,
+      "number": 54,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/54"
+    },
+    {
+      "id": 5631513961,
+      "number": 55,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/55"
+    },
+    {
+      "id": 5631516660,
+      "number": 56,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/56"
+    }
+  ]
+}

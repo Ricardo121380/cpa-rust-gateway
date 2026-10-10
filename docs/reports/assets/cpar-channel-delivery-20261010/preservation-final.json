@@ -1,0 +1,7 @@
+{
+  "observed_at_utc": "2026-10-10T06:31:14.813950+00:00",
+  "method": "lstat original path/size/mtime_ns/mode; AGENTS SHA256",
+  "original_untracked_entries_checked": 5817,
+  "changes": [],
+  "agents_sha256_unchanged": true
+}

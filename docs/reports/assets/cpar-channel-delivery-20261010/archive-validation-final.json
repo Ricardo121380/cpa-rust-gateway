@@ -1,0 +1,23 @@
+{
+  "utc": "2026-10-10T06:31:15.048065+00:00",
+  "exit_code": 0,
+  "argv": [
+    "python3",
+    "docs/reports/assets/cpar-channel-delivery-20261010/validate_archive.py"
+  ],
+  "head": "85f43c2f28ee0a9bbaea3916abaec302b2cedcac",
+  "role": "post-review document and remote evidence validation; not a code gate rerun",
+  "validator_sha256": "dcd107170f5c4de7ede5dd7bbaa95ee9661154c9c4e453c50fb551f3a8b2409e",
+  "execution_index_sha256": "9b001439e8d05f3132ed21501935d55d14d5dcf2379f8d17373305d56c7d4410",
+  "closeout_index_sha256": "b5eab754af026ef6ea420034b37ec5d82d68d5f89e0f67e52a7adc4954d52c9d",
+  "result": {
+    "status": "PASS",
+    "execution_entries": 40,
+    "decompressed_archive_secret_scan": "PASS",
+    "base_rows": 198,
+    "extension_rows": 49,
+    "historical_bytes_unchanged": true,
+    "github_targets": 5,
+    "real_provider_calls": 0
+  }
+}

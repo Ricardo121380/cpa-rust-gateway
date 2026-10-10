@@ -1,0 +1,40 @@
+{
+  "source_snapshot_sha256": "148aaf55bb7458799f66bd21f60a073420729e17e1a58be0e4706b7dc54043da",
+  "issue": {
+    "id": 5631392260,
+    "number": 39,
+    "title": "CPAR-30：Kiro 跨协议运行装配与参数转换",
+    "state": "open",
+    "body": "## Parent\n\n[实施规格 #9：CPAR 现有渠道可靠性与管理体验收敛](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)\n\n## What to build\n\nKiro 从三个公共协议实际进入运行执行，装配不再提前拒绝已允许的转换，参数与工具／思考保持等价。\n\n实施编号 CPAR-30；实施批次：C。覆盖用户故事 54, 55, 56, 57, 58, 59, 61, 62, 64；验收场景 T08, T09。\n\n## Acceptance criteria\n\n- [x] 修正运行装配只接受 Canonical 与执行层可接受 CanonicalBridge 的不一致，不只修改声明或跳过检查。\n- [ ] 从公共 Chat／Messages／Responses 进入真实应用装配后，对受控 Kiro 上游完成流／非流文本和工具多轮。\n- [ ] Kiro 特有参数、地区、凭据种类、profile ARN 和 IDE／CLI 策略保持其实际边界，不把通用 budget 映射直接当成可执行 effort。\n- [x] 可等价思考传递和不能表示的参数拒绝分别验证，不删除思考内容或改变必过线来获得成功。\n- [x] 失败归属与事件流边界回归；这只证明本地装配，真实 Kiro 组合仍由渠道验收票记录。\n- [x] 记录受影响行为的高层本地验证、必要的 EgoLite 产品验收与审查证据；静态存在、fixture、真实渠道和生产结论分开，结果使用 PASS／FAIL／NOT_RUN／BLOCKED。\n- [ ] 保留账号／渠道／权限及数据边界；涉及权威管理契约时单向同步生成客户端，遵守既有前后端归属与跨边界记录；必要 ADR 与相关陈旧测试入口随本切片修正。\n- [ ] 在实际 checkout 上复核范围，完成适用 Task／Phase 门槛；本票不自动授权真实账号、收费请求、服务变更或部署，具体外部操作以已明确目标和范围为准。\n\n## Blocked by\n\n- [#27](https://github.com/Ricardo121380/cpa-rust-gateway/issues/27)：三协议文本多轮与严格请求准入。原因：需要当前三协议及转换模式的准入契约。\n- [#29](https://github.com/Ricardo121380/cpa-rust-gateway/issues/29)：流式工具与并行控制保持完整。原因：跨协议流式工具采用已明确的表示与控制。\n- [#30](https://github.com/Ricardo121380/cpa-rust-gateway/issues/30)：思考语义与 Chat 准入一致。原因：Kiro 的 Chat 路径依赖思考表示与 Chat 准入一致性修复。\n",
+    "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/39",
+    "updated_at": "2026-10-10T06:27:30Z"
+  },
+  "comments": [
+    {
+      "id": 6081202309,
+      "body": "<!-- codex-cpar-ticket-sync-20261009-85a168da-39 -->\n\n## 工程验收同步 · 2026-10-09\n\n**BLOCKED：本地局部行为可保留，整票渠道／软件承诺尚未满足，保持 OPEN。**\n\nKiro Canonical/CanonicalBridge 装配与 source-protocol 投影、租约前 builder 校验、定性 effort/数值 budget 区分及失败后事件源封闭已有局部通过证据。\n\n**剩余项／交付边界：** Messages 必填输出上限仍缺可证明的 native hard-cap 映射，现有正例仅 uncapped Chat/Responses；其他材料/地区完整闭环亦未覆盖。严格拒绝正确不能视为对应能力实现完成。\n\n**证据定位（仓库相对路径）：**\n\n- `apps/gateway/src/runtime.rs:3541`\n- `crates/provider-kiro/src/conversation_request.rs:306`\n- `docs/adr/ADR-0052-kiro-semantic-tool-thinking-mapping.md:45`\n\n当前本地 HEAD 为 `85a168da39e79b49c58e83767bdc2bbce0b8a00a`。本次只复核已归档执行、源码及评审绑定，没有重跑测试或浏览器。最近一次 clean Full 源码为 `029332c5351c562d2dd3e5ef86c1faa84f5baab6`：45/45，Rust 1493 passed / 0 failed / 12 ignored；前端497项通过。本批评审 Standards=PASS、整体 Spec=PARTIAL（明确存在其他政策/验收门槛），不冒称全项目 Spec PASS。历史场景保留各自原 SHA、时间及合成/实际页面来源。\n\n本次只同步工单，未 push；当前HEAD尚未存在于GitHub。下列仓库相对路径指本地已核对材料，故不提供无法打开的GitHub blob链接。本地完成不代表真实Provider、当前源码远端CI、部署或生产通过。\n\n\n---\n\n### 2026-10-10 渠道软件缺口收敛与交付前置补齐（本批终态）\n\n本批行为／验收源码 `c1b304d02e61fe1c75653a32fba920093462add6`；T12 驱动首提交 `611949b6faef9788d04b3283cc4c7ad45c6dcf38`；实现证据提交 `85f43c2f28ee0a9bbaea3916abaec302b2cedcac`。均为本地提交，尚未 push，不提供对应 GitHub commit/blob 链接。固定独立评审范围 d3d2e3c5…85f43c2f：Standards PASS（hard0、非阻断 heuristic1），当前实施切片 Spec PASS（hard0）；历史完整 Spec 覆盖仍 PARTIAL（已查 hard0）。\n\n最终干净 c1b Full 45/45 PASS，Rust 1500通过／0失败／12忽略，类型检查、双构建、Clippy、依赖／安全门槛通过。前端70文件／513测试在clean611通过；web/prism的611→c1b差异为空，按原来源复用。原始失败与receipt全部保留。相关实现、契约、驱动和本地证据已归档，没有新增页面行为。\n\nKiro：复核公共handler→production factory/builder→EventStream及冻结AWS IDE/Q CLI定义；未证明当前Kiro IDE/CLI hard cap的原生字段、合法范围、单位、reasoning/可见输出计数、命中终态及当前凭据/地区/profile适用性。旧Q SDK不能外推闭源Kiro CLI；这是缺少特定证据，不是上游永久不支持的结论。\n\n本轮定向1 test PASS_HANDLER_AND_FIXTURE：Social IDE eu-west-1 / CLI us-east-1、JSON/SSE的uncapped Chat/Responses工具多轮，受控transport实际接收32；16项cap输入在Attempt／transport前拒绝，新增接收0。原执行source为d3工作区，native相关代码到c1b无diff，最终Full另覆盖c1b。合法Messages必填max_tokens仍不能等价执行，三协议闭环和24历史cap行保留BLOCKED。未删除参数、提示词预算、近似effort或下游截断；AC未新增勾选，#39保持OPEN。最小下一步是当前原生input/event定义或另行授权抓包，充分后建立公共RED再实现映射。\n\n本地归档：docs/reports/cpar-channel-delivery-local-20261010.md；cpar-channel-native-semantics-20261010.md；cpar-next-real-acceptance-plan-20261010.md；docs/reports/assets/cpar-channel-delivery-20261010/（source-binding、execution-index、clean-t12、verification-summary、issue57-successor、review-final及历史Spec映射）。源码未上传，这些是本机路径而非可用GitHub blob。\n\n真实Provider=0；新增页面行为验收NOT_RUN，既有EgoLite按原来源复用。remote CI／候选发布制品／push／发布／部署／共享服务重启／生产均NOT_RUN。冻结候选NOT_MET；未使用真实账号材料或生产数据库。\n",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/39#issuecomment-6081202309",
+      "updated_at": "2026-10-10T06:27:30Z"
+    }
+  ],
+  "blocked_by": [
+    {
+      "id": 5631366152,
+      "number": 27,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/27"
+    },
+    {
+      "id": 5631369676,
+      "number": 29,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/29"
+    },
+    {
+      "id": 5631372136,
+      "number": 30,
+      "state": "closed",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/30"
+    }
+  ]
+}

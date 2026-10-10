@@ -65,7 +65,7 @@ Store新测试PASS1，既有legacy相关回归PASS6；修复后的工作区T12 P
 
 ## 后继台账与真实验收计划
 
-[当前后继台账](assets/cpar-channel-delivery-20261010/issue57-successor.json)保留原矩阵path/hash及历史24 cap/12 metadata行；198新行明确audit_source与execution_source(null)不同。88故事、F01–F08、T01–T15和AC01–10都有历史pointer及本批局部增量；T12为PASS_LOCAL_BOUNDED，不自动关闭整个#57。186适用真实行仍BLOCKED，12个Web工具行NOT_APPLICABLE_ACCEPTED；49项actual_declared=null保持未知，不等于未声明。
+[当前后继台账](assets/cpar-channel-delivery-20261010/issue57-successor.json)保留原矩阵path/hash及历史24 cap/12 metadata行；198新行明确audit_source与execution_source(null)不同。88故事、F01–F08、T01–T15和AC01–10都有历史pointer及本批局部增量；T12及AC02为PASS_LOCAL_BOUNDED，不自动关闭整个#57。186适用真实行仍BLOCKED，12个Web工具行NOT_APPLICABLE_ACCEPTED；49项actual_declared=null保持未知，不等于未声明。
 
 [下一轮真实验收计划](cpar-next-real-acceptance-plan-20261010.md)列出组合、3/2/4轮场景、账号/模型/配置/路由/egress/实际声明冻结、证据格式、授权与预算。9渠道162行可独立准备；本轮不发真实请求。558次推理和64单位候选上限只是满足原生计数/单Attempt条件后的估算；价格、实际limit及货币授权仍null，扩展和授权查询另计。
 
@@ -73,7 +73,9 @@ Store新测试PASS1，既有legacy相关回归PASS6；修复后的工作区T12 P
 
 最终clean T12已在c1b干净检出及精确源码编译binary上PASS71，实际loopback上游接收5、fallback0。最终干净Full **45/45 PASS**，Rust **1500通过／0失败／12忽略**，包含类型检查、双构建、Clippy及正式安全／依赖门槛；原网络失败与单步恢复另行保留。frontend70文件/513 tests在clean611上PASS且web/prism的611→c1b差异为空，可静态复用。详情见[机器验证摘要](assets/cpar-channel-delivery-20261010/verification-summary.json)及完整执行索引。
 
-本报告的实现证据提交先固定评审输入；最终两轴与GitHub5票同步待执行，终态回填后只做文档静态门槛，不因报告再次重跑Full。
+实现证据提交 `85f43c2f28ee0a9bbaea3916abaec302b2cedcac` 固定两轴评审输入，范围d3…85f。独立[两轴原文](assets/cpar-channel-delivery-20261010/review-final.md)及[机器终态](assets/cpar-channel-delivery-20261010/review-final.json)：Standards PASS／hard0／heuristic1（非阻断重复恢复步骤）；当前切片Spec PASS／hard0；历史完整覆盖PARTIAL／已查hard0。没有把后置评审归档称为其自身已被固定diff审查。Spec确认用户限定T12范围满足AC02，台账同步PASS_LOCAL_BOUNDED，GitHub仅勾该条。
+
+五票已有进度评论更新已逐次独立回读PASS；#57正文只有AC02从未勾改为已勾，其余正文／AC／评论ID和数量／OPEN状态／原生依赖保持。#39/#49完成后，第一次同步在读取#50依赖时遇EOF，尚未写#50；新只读快照确认已应用与未应用状态，再只处理#50/#57/#9，没有重复重放已完成写入。最终全量五票回读与48票数量复核PASS，仍35 CLOSED／13 OPEN。见[GitHub机器核对](assets/cpar-channel-delivery-20261010/github-sync-summary.json)、[后置执行索引](assets/cpar-channel-delivery-20261010/closeout-execution-index.json)以及以下唯一评论：[#39](https://github.com/Ricardo121380/cpa-rust-gateway/issues/39#issuecomment-6081202309)、[#49](https://github.com/Ricardo121380/cpa-rust-gateway/issues/49#issuecomment-6081219176)、[#50](https://github.com/Ricardo121380/cpa-rust-gateway/issues/50#issuecomment-6081221061)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。文档静态门槛在终态提交的干净检出上执行，代码／Full来源仍是c1b，报告不触发再次Full。
 
 真实Provider=0；新浏览器行为验收NOT_RUN（UI无改动，已有EgoLite按原来源复用）；remote CI、候选发布制品、push、发布、部署、共享服务重启及生产均NOT_RUN。所有核心票保持OPEN；候选冻结条件尚未达到。
 

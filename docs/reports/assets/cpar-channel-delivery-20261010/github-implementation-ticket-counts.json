@@ -1,0 +1,201 @@
+{
+  "observed_at_utc": "2026-10-10T06:30:02.733852+00:00",
+  "counts": {
+    "OPEN": 13,
+    "CLOSED": 35
+  },
+  "issues": [
+    {
+      "number": 57,
+      "state": "OPEN"
+    },
+    {
+      "number": 56,
+      "state": "CLOSED"
+    },
+    {
+      "number": 55,
+      "state": "CLOSED"
+    },
+    {
+      "number": 54,
+      "state": "CLOSED"
+    },
+    {
+      "number": 53,
+      "state": "CLOSED"
+    },
+    {
+      "number": 52,
+      "state": "CLOSED"
+    },
+    {
+      "number": 51,
+      "state": "CLOSED"
+    },
+    {
+      "number": 50,
+      "state": "OPEN"
+    },
+    {
+      "number": 49,
+      "state": "OPEN"
+    },
+    {
+      "number": 48,
+      "state": "OPEN"
+    },
+    {
+      "number": 47,
+      "state": "OPEN"
+    },
+    {
+      "number": 46,
+      "state": "OPEN"
+    },
+    {
+      "number": 45,
+      "state": "OPEN"
+    },
+    {
+      "number": 44,
+      "state": "OPEN"
+    },
+    {
+      "number": 43,
+      "state": "OPEN"
+    },
+    {
+      "number": 42,
+      "state": "OPEN"
+    },
+    {
+      "number": 41,
+      "state": "OPEN"
+    },
+    {
+      "number": 40,
+      "state": "OPEN"
+    },
+    {
+      "number": 39,
+      "state": "OPEN"
+    },
+    {
+      "number": 38,
+      "state": "CLOSED"
+    },
+    {
+      "number": 37,
+      "state": "CLOSED"
+    },
+    {
+      "number": 36,
+      "state": "CLOSED"
+    },
+    {
+      "number": 35,
+      "state": "CLOSED"
+    },
+    {
+      "number": 34,
+      "state": "CLOSED"
+    },
+    {
+      "number": 33,
+      "state": "CLOSED"
+    },
+    {
+      "number": 32,
+      "state": "CLOSED"
+    },
+    {
+      "number": 31,
+      "state": "CLOSED"
+    },
+    {
+      "number": 30,
+      "state": "CLOSED"
+    },
+    {
+      "number": 29,
+      "state": "CLOSED"
+    },
+    {
+      "number": 28,
+      "state": "CLOSED"
+    },
+    {
+      "number": 27,
+      "state": "CLOSED"
+    },
+    {
+      "number": 26,
+      "state": "CLOSED"
+    },
+    {
+      "number": 25,
+      "state": "CLOSED"
+    },
+    {
+      "number": 24,
+      "state": "CLOSED"
+    },
+    {
+      "number": 23,
+      "state": "CLOSED"
+    },
+    {
+      "number": 22,
+      "state": "CLOSED"
+    },
+    {
+      "number": 21,
+      "state": "CLOSED"
+    },
+    {
+      "number": 20,
+      "state": "CLOSED"
+    },
+    {
+      "number": 19,
+      "state": "CLOSED"
+    },
+    {
+      "number": 18,
+      "state": "CLOSED"
+    },
+    {
+      "number": 17,
+      "state": "CLOSED"
+    },
+    {
+      "number": 16,
+      "state": "CLOSED"
+    },
+    {
+      "number": 15,
+      "state": "CLOSED"
+    },
+    {
+      "number": 14,
+      "state": "CLOSED"
+    },
+    {
+      "number": 13,
+      "state": "CLOSED"
+    },
+    {
+      "number": 12,
+      "state": "CLOSED"
+    },
+    {
+      "number": 11,
+      "state": "CLOSED"
+    },
+    {
+      "number": 10,
+      "state": "CLOSED"
+    }
+  ]
+}

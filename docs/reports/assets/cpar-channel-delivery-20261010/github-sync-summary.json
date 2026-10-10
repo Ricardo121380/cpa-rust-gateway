@@ -1,0 +1,292 @@
+{
+  "observed_at_utc": "2026-10-10T06:30:39.295183+00:00",
+  "status": "PASS",
+  "targets": [
+    {
+      "issue": 39,
+      "state": "OPEN",
+      "readback": "PASS",
+      "changed_ac_ordinals": [],
+      "body_sha256": "c633fa90d266cdeb83f97529b5b5fd35f190a33a863984e69e2c178da2995ffd",
+      "comment_id": 6081202309,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/39#issuecomment-6081202309",
+      "comment_sha256": "c569d1bafe47644c096d249a21b7687a89b591050530da8ad5e059d85c24746a",
+      "old_comment_preserved_as_exact_prefix": true,
+      "comment_count": 1,
+      "native_dependency_ids_preserved": true,
+      "native_dependencies": [
+        {
+          "id": 5631366152,
+          "number": 27,
+          "state": "closed"
+        },
+        {
+          "id": 5631369676,
+          "number": 29,
+          "state": "closed"
+        },
+        {
+          "id": 5631372136,
+          "number": 30,
+          "state": "closed"
+        }
+      ],
+      "before_ref": "github-before-sync/issue-39.json",
+      "after_ref": "github-readback/issue-39.json"
+    },
+    {
+      "issue": 49,
+      "state": "OPEN",
+      "readback": "PASS",
+      "changed_ac_ordinals": [],
+      "body_sha256": "22aef8a69ee76f803e8cc25ca7d9bdd0a7a016a6943f7805d8d4272895852cbd",
+      "comment_id": 6081219176,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/49#issuecomment-6081219176",
+      "comment_sha256": "4aa57b13501d9790b2d627f5bb51383433a766936a4b096111331a4a2a9ee20c",
+      "old_comment_preserved_as_exact_prefix": true,
+      "comment_count": 1,
+      "native_dependency_ids_preserved": true,
+      "native_dependencies": [
+        {
+          "id": 5631336964,
+          "number": 16,
+          "state": "closed"
+        },
+        {
+          "id": 5631366152,
+          "number": 27,
+          "state": "closed"
+        },
+        {
+          "id": 5631373786,
+          "number": 31,
+          "state": "closed"
+        },
+        {
+          "id": 5631375409,
+          "number": 32,
+          "state": "closed"
+        },
+        {
+          "id": 5631376962,
+          "number": 33,
+          "state": "closed"
+        },
+        {
+          "id": 5631378668,
+          "number": 34,
+          "state": "closed"
+        }
+      ],
+      "before_ref": "github-before-sync/issue-49.json",
+      "after_ref": "github-readback/issue-49.json"
+    },
+    {
+      "issue": 50,
+      "state": "OPEN",
+      "readback": "PASS",
+      "changed_ac_ordinals": [],
+      "body_sha256": "806390899b2117ef309ccbbcb99354882ced7a26be1e1172f6520c161de8ab1a",
+      "comment_id": 6081221061,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/50#issuecomment-6081221061",
+      "comment_sha256": "d23e58219c1921667406731a1542c9765ad86a9e31c4248ea030aea7ca63856d",
+      "old_comment_preserved_as_exact_prefix": true,
+      "comment_count": 1,
+      "native_dependency_ids_preserved": true,
+      "native_dependencies": [
+        {
+          "id": 5631334837,
+          "number": 15,
+          "state": "closed"
+        },
+        {
+          "id": 5631392260,
+          "number": 39,
+          "state": "open"
+        },
+        {
+          "id": 5631373786,
+          "number": 31,
+          "state": "closed"
+        },
+        {
+          "id": 5631375409,
+          "number": 32,
+          "state": "closed"
+        },
+        {
+          "id": 5631376962,
+          "number": 33,
+          "state": "closed"
+        },
+        {
+          "id": 5631378668,
+          "number": 34,
+          "state": "closed"
+        }
+      ],
+      "before_ref": "github-before-sync/issue-50.json",
+      "after_ref": "github-readback/issue-50.json"
+    },
+    {
+      "issue": 57,
+      "state": "OPEN",
+      "readback": "PASS",
+      "changed_ac_ordinals": [
+        2
+      ],
+      "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "comment_id": 6081234278,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "comment_sha256": "cfa224fa64b04d01d932670837d865d360dd87a036a0ba3c9975ed1111e8aeb2",
+      "old_comment_preserved_as_exact_prefix": true,
+      "comment_count": 1,
+      "native_dependency_ids_preserved": true,
+      "native_dependencies": [
+        {
+          "id": 5631328914,
+          "number": 12,
+          "state": "closed"
+        },
+        {
+          "id": 5631339239,
+          "number": 17,
+          "state": "closed"
+        },
+        {
+          "id": 5631347684,
+          "number": 21,
+          "state": "closed"
+        },
+        {
+          "id": 5631356096,
+          "number": 25,
+          "state": "closed"
+        },
+        {
+          "id": 5631358441,
+          "number": 26,
+          "state": "closed"
+        },
+        {
+          "id": 5631386213,
+          "number": 37,
+          "state": "closed"
+        },
+        {
+          "id": 5631388515,
+          "number": 38,
+          "state": "closed"
+        },
+        {
+          "id": 5631395778,
+          "number": 40,
+          "state": "open"
+        },
+        {
+          "id": 5631402450,
+          "number": 41,
+          "state": "open"
+        },
+        {
+          "id": 5631408970,
+          "number": 42,
+          "state": "open"
+        },
+        {
+          "id": 5631415759,
+          "number": 43,
+          "state": "open"
+        },
+        {
+          "id": 5631422686,
+          "number": 44,
+          "state": "open"
+        },
+        {
+          "id": 5631429622,
+          "number": 45,
+          "state": "open"
+        },
+        {
+          "id": 5631436822,
+          "number": 46,
+          "state": "open"
+        },
+        {
+          "id": 5631444349,
+          "number": 47,
+          "state": "open"
+        },
+        {
+          "id": 5631451729,
+          "number": 48,
+          "state": "open"
+        },
+        {
+          "id": 5631458604,
+          "number": 49,
+          "state": "open"
+        },
+        {
+          "id": 5631464240,
+          "number": 50,
+          "state": "open"
+        },
+        {
+          "id": 5631493317,
+          "number": 52,
+          "state": "closed"
+        },
+        {
+          "id": 5631495525,
+          "number": 53,
+          "state": "closed"
+        },
+        {
+          "id": 5631498436,
+          "number": 54,
+          "state": "closed"
+        },
+        {
+          "id": 5631513961,
+          "number": 55,
+          "state": "closed"
+        },
+        {
+          "id": 5631516660,
+          "number": 56,
+          "state": "closed"
+        }
+      ],
+      "before_ref": "github-before-sync/issue-57.json",
+      "after_ref": "github-readback/issue-57.json"
+    },
+    {
+      "issue": 9,
+      "state": "OPEN",
+      "readback": "PASS",
+      "changed_ac_ordinals": [],
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "comment_id": 6081235490,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "comment_sha256": "6215914f238352210952fe143ae1125542c6f7ce460adb4914c74187caaa3728",
+      "old_comment_preserved_as_exact_prefix": true,
+      "comment_count": 1,
+      "native_dependency_ids_preserved": true,
+      "native_dependencies": [],
+      "before_ref": "github-before-sync/issue-9.json",
+      "after_ref": "github-readback/issue-9.json"
+    }
+  ],
+  "issue57_AC02": "PASS_LOCAL_BOUNDED_CHECKED",
+  "parent9_body_preserved": true,
+  "implementation_ticket_counts": {
+    "OPEN": 13,
+    "CLOSED": 35
+  },
+  "new_comments": 0,
+  "state_changes": 0,
+  "dependency_changes": 0,
+  "retry_boundary": "First run completed and independently read back #39/#49; EOF while reading #50 before mutation. Fresh recovery read verified applied/unapplied states; resumed only #50/#57/#9. No duplicate mutation replay."
+}
