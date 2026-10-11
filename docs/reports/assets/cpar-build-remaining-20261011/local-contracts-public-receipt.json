@@ -1323,7 +1323,7 @@
     "BLOCKED": 10,
     "FAIL": 7
   },
-  "synthetic_upstream_receives": 36,
+  "synthetic_upstream_receives": 44,
   "real_provider_requests": 0,
   "log_sha256": "b659de645076393f673f81a683ecdfc44c562c761f9bd26254cd935e72111d79"
 }
