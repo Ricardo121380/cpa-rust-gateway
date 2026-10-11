@@ -400,8 +400,16 @@ async fn ordinary_native_families_use_the_public_factory_and_preserve_identity()
                     .configure(gateway_http_actix::configure),
             )
             .await;
+            let mut expected_limits = Vec::new();
             for (uri, rounds) in super::grok::tool_conversations(streaming)? {
                 for (round, body) in rounds.into_iter().enumerate() {
+                    expected_limits.push(if format == "openai/responses" {
+                        "max_output_tokens"
+                    } else if format == "openai/chat-completions" && uri != "/v1/chat/completions" {
+                        "max_completion_tokens"
+                    } else {
+                        "max_tokens"
+                    });
                     let response = test::call_service(
                         &app,
                         test::TestRequest::post()
@@ -457,15 +465,18 @@ async fn ordinary_native_families_use_the_public_factory_and_preserve_identity()
             drop(events);
             let requests = peer.requests.lock().map_err(|_| "requests")?;
             assert_eq!(requests.len(), 12);
-            for request in requests.iter() {
+            assert_eq!(requests.len(), expected_limits.len());
+            for (request, limit) in requests.iter().zip(expected_limits) {
                 assert_eq!(request.url, format!("{base}{path}"));
                 assert_eq!(request.body["model"], "upstream-c");
-                let limit = if format == "openai/responses" {
-                    "max_output_tokens"
-                } else {
-                    "max_tokens"
-                };
                 assert_eq!(request.body[limit], 19);
+                assert_eq!(
+                    ["max_tokens", "max_completion_tokens", "max_output_tokens"]
+                        .into_iter()
+                        .filter(|name| request.body.get(*name).is_some())
+                        .count(),
+                    1,
+                );
                 if base.contains("chatgpt.com") {
                     assert_eq!(
                         request

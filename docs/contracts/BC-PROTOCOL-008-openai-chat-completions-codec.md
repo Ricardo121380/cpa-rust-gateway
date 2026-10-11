@@ -34,9 +34,7 @@ boundaries; P12-08C-D own outbound Chat and cross-protocol admission.
   `openai.chat.*` raw-extension namespaces. Retention is not execution: later route/adapter admission
   must preserve them losslessly or reject the request before network I/O.
 
-## Response and stream invariants
-
-### Output-limit request controls (CPAR-38, 2026-10-11)
+## Output-limit request controls (CPAR-38, 2026-10-11)
 
 The codec retains `max_completion_tokens` and legacy `max_tokens` with their original
 `openai.chat.*` names. Router admission owns validation and projection in every mode,
@@ -51,6 +49,8 @@ does not authorize silently treating a retained null as absent. Endpoint/model l
 remain independent; the u64 bound is a representation bound, not provider capacity.
 
 See [BC-ROUTER-004](BC-ROUTER-004-protocol-transform-admission.md) for bridge rules.
+
+## Response and stream invariants
 
 - Exactly one choice is emitted. Text and ordered function Tool calls retain their Canonical order,
   opaque response ID, public model label, and stop reason. Reasoning and generic raw extensions are

@@ -480,6 +480,35 @@ class FormalOracle(unittest.TestCase):
             self.assertEqual(sent, [], kind)
             self.assertEqual(oracle.audit_bundle(result)["status"], status, kind)
 
+    def test_local_basic_collector_cannot_qualify_live_execution(self):
+        for layer in ("LIVE_NEW_BUILD", "PRODUCTION"):
+            plan = {"layer": layer, "target": target(), "collector": {"local_state_dir": "/synthetic"}}
+            with self.assertRaisesRegex(ValueError, "local_collector_requires_simulation"):
+                oracle.verify_execution_policy(plan, runtime(), "http://127.0.0.1:1")
+
+    def test_local_basic_process_drift_stops_before_send_or_next_turn(self):
+        observed = runtime()
+        plan = {"layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": target(),
+                "collector": {"local_state_dir": "/synthetic", "binary": "/synthetic"}}
+        for after_send in (False, True):
+            effects = [observed, ValueError("local_process_identity_changed")] if after_send else [ValueError("local_process_identity_changed")]
+            with patch.object(extensions, "observe_local_process", side_effect=effects), \
+                 patch.object(oracle, "http_call", return_value={"http_status": 200, "wire": json.dumps(response())}) as send:
+                result = oracle.run_basic(plan, observed, "synthetic", "http://127.0.0.1:1")
+            self.assertEqual(send.call_count, int(after_send))
+            self.assertEqual(result["execution_failure"]["category"], "local_process_identity_changed")
+            self.assertEqual(sum(map(len, result["scenarios"].values())), int(after_send))
+
+    def test_private_basic_bundle_retains_capture_with_restricted_permissions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.json"
+            path.write_text("old")
+            path.chmod(0o644)
+            value = {"scenarios": {"text_multi_turn": [{"request": {"max_completion_tokens": 4096}, "wire": "synthetic"}]}}
+            oracle.write_private_bundle(path, value)
+            self.assertEqual(json.loads(path.read_text()), value)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
     def test_protocol_applicability_keeps_gateway_declaration(self):
         changed = bundle("chat")
         changed["target"]["capabilities"]["stored"] = True

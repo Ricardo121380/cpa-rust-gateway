@@ -1,0 +1,35 @@
+{
+  "base": "af7480b2da3edffc324d9a42d81f7d0990f50358",
+  "branch": "codex/prism-v4-delivery",
+  "old_product_source": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "initial_dirty_paths": 37255,
+  "baseline_inventory_sha256": "95d876ddf9f370608e17aa3512e8e0b48342092b1c7a880bcf29e964f54b9f32",
+  "issues": [
+    {
+      "number": 47,
+      "state": "OPEN",
+      "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "comment_sha256": "85da23dd65139f3c49e12fe362755a36670777bd0c2254265f4721dc83b3158e"
+    },
+    {
+      "number": 57,
+      "state": "OPEN",
+      "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "comment_sha256": "12a95b09b0bcba85a0a2d2ca9655474746cb9faaff9a5d9e96792a22c0cffc0c"
+    },
+    {
+      "number": 9,
+      "state": "OPEN",
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "comment_sha256": "ea9bb996e0baa4b39b91bb491b31e792e4247b002262fa784b02d4113e0851b1"
+    }
+  ],
+  "original_product_files_equal": {
+    "crates/protocol-openai-chat/src/lib.rs": true,
+    "crates/gateway-router/src/protocol_transform.rs": true,
+    "apps/gateway/src/runtime.rs": true
+  }
+}

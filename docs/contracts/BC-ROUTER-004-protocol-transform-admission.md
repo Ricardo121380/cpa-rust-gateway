@@ -61,9 +61,7 @@ extension; it does not alter the rejection rules of the original three modes.
 7. An `Approved` result is admission evidence only. It does not promise that a later HTTP,
    Provider, response, health, circuit, or retry operation succeeds.
 
-## Corresponding tests
-
-### Output-limit projection (CPAR-38, 2026-10-11)
+## Output-limit projection (CPAR-38, 2026-10-11)
 
 - `openai.chat.max_completion_tokens` and `openai.responses.max_output_tokens` both
   bound total generated output, including reasoning. Map the value exactly in either
@@ -89,6 +87,12 @@ defines the modern field and deprecates the legacy field; [OpenAI token-counting
 explicitly describes the total-output semantics of both modern OpenAI fields. These
 sources establish the modern equivalence, not provider execution or precedence for two
 simultaneous controls. Collision rejection follows ADR-0100's strict fidelity policy.
+
+## Corresponding tests
+
+- `chat_output_limits_preserve_native_spelling_and_bridge_total_budget`
+- `chat_output_limits_reject_invalid_values_and_every_collision_in_all_modes`
+- `build_chat_completion_limit_reaches_native_transport_and_collisions_do_not`
 
 The CPAR B-01 repair restores the native Responses history fidelity already required by
 [ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md) and

@@ -492,6 +492,8 @@ def execution_binding(plan, runtime, base_url):
 def verify_execution_policy(plan, runtime, base_url):
     """Admission before the first send; post-send Attempt checks cannot prevent fallback."""
     target = plan["target"]
+    if (plan.get("collector") or {}).get("local_state_dir"):
+        require(plan["layer"] == "LOCAL_SIMULATED", "local_collector_requires_simulation")
     observation = runtime.get("acceptance_inventory")
     available(isinstance(observation, dict), "execution_inventory_unavailable")
     available(observation.get("configuration_stable") is True, "execution_configuration_unstable")
@@ -1326,6 +1328,9 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
         bundle["scenarios"][scenario] = samples
         seen = set()
         for index in range(count):
+            if (plan.get("collector") or {}).get("local_state_dir"):
+                from cpar_build_extensions import observe_local_process
+                observe_local_process(plan["collector"], runtime)
             sample = http_call(base_url, key, protocol, request)
             sample["request"] = copy.deepcopy(request)
             sample["sent_at_utc"] = now()
@@ -1339,7 +1344,17 @@ def execute_basic(plan, runtime, key, base_url, bundle, progress):
             # event/ledger collector. It is independent of public success; no inferred account.
             if plan.get("collector"):
                 config = plan["collector"]
-                observed = collect_attempt(config["host"], config.get("service", "cpa-rust-gateway.service"), answer["id"], config.get("sudo", False))
+                if config.get("local_state_dir"):
+                    from cpar_build_extensions import collect_local, observe_local_process
+                    deadline = time.monotonic() + 5
+                    while True:
+                        observed = collect_local(config["local_state_dir"], answer["id"], observe_local_process(config, runtime))
+                        if observed["evidence"].get("ledger") and observed["evidence"].get("request_outcome") is not None:
+                            break
+                        available(time.monotonic() < deadline, "local_collection_deadline")
+                        time.sleep(.05)
+                else:
+                    observed = collect_attempt(config["host"], config.get("service", "cpa-rust-gateway.service"), answer["id"], config.get("sudo", False))
                 sample["evidence"] = observed["evidence"]
             else:
                 path = Path(plan["observation_dir"]) / (opaque(answer["id"]) + ".json")
@@ -1388,6 +1403,7 @@ def main(argv=None):
     run.add_argument("--client-key-env", default="CPAR_ACCEPTANCE_CLIENT_KEY")
     run.add_argument("--execute", action="store_true")
     run.add_argument("--out", type=Path, required=True)
+    run.add_argument("--private-out", type=Path, help="Mode-0600 complete request/wire/attribution bundle")
     extension = commands.add_parser("run-extension", help="Execute and sample a frozen local extension at the public HTTP/SSE/WebSocket boundary; no live authorization is inherited")
     for name in ("plan", "runtime", "private-out", "out"):
         extension.add_argument("--" + name, type=Path, required=True)
@@ -1435,10 +1451,15 @@ def main(argv=None):
             key = os.environ.get(args.client_key_env)
             available(bool(key), "client_authentication_unavailable")
             def progress(bundle):
+                if args.private_out:
+                    write_private_bundle(args.private_out, bundle)
                 pending = audit_bundle(bundle)
                 pending.update(status="NOT_RUN", category="execution_in_progress")
                 write_receipt(args.out, pending)
-            receipt = audit_bundle(run_basic(plan, runtime, key, args.base_url, progress))
+            bundle = run_basic(plan, runtime, key, args.base_url, progress)
+            if args.private_out:
+                write_private_bundle(args.private_out, bundle)
+            receipt = audit_bundle(bundle)
     except (ValueError, KeyError, TypeError, IndexError, OSError, subprocess.SubprocessError) as error:
         result = verdict(lambda: (_ for _ in ()).throw(error)) if isinstance(error, (ValueError, KeyError, TypeError, IndexError)) else {"status": "BLOCKED", "category": "environment_or_transport_unavailable"}
         receipt.update(result)
@@ -1447,6 +1468,15 @@ def main(argv=None):
     write_receipt(args.out, receipt)
     print(json.dumps({key: receipt.get(key) for key in ("status", "basic_status", "layer", "category")}), flush=True)
     return 0 if receipt["status"] == "PASS" else 2 if receipt["status"] in ("BLOCKED", "NOT_RUN") else 1
+
+
+def write_private_bundle(path, bundle):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w") as output:
+        os.fchmod(output.fileno(), 0o600)
+        json.dump(bundle, output, indent=2)
+        output.write("\n")
 
 
 if __name__ == "__main__":

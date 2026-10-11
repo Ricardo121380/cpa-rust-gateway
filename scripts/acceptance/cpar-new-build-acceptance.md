@@ -247,6 +247,30 @@ read-only inventory and historical collection are separate observation layers.
 
 ## Execute and sample local extensions
 
+For basic `run`, an owned `LOCAL_SIMULATED` plan can also use
+`collector.local_state_dir` and `collector.binary`. This executes the same exact
+SQLite/source-event collector, observes the process before and after each inference,
+and waits at most five seconds for its durable terminal/ledger without resending.
+This collector cannot qualify `LIVE_NEW_BUILD` or `PRODUCTION`. Optional
+`--private-out` retains the complete returned basic request/wire/attribution bundle
+with mode0600, including unsuccessful audit results. Transport failures before a
+complete HTTP return retain the existing basic runner's capture limitations;
+the remote wrappers and extension incremental-capture rules remain distinct.
+
+The output-limit regression reuses the Batch B process fixture and this formal entry:
+
+```sh
+CPAR_EXTENSIONS_ONLY=1 CPAR_OUTPUT_LIMITS_ONLY=1 \
+  python3 scripts/acceptance/cpar-batch-b-http.py /absolute/path/to/new-owned-output
+```
+
+It requires a binary with an exact embedded source revision, validates actual
+loopback receives for positive/negative parameters, and executes six 3/2/4 basic
+combinations through a compatible Responses upstream. Chat keeps
+`max_completion_tokens=4096`; all modes retain actual declaration and source Usage.
+Native Build assembly is tested separately in Rust. Basic PASS with formal NOT_RUN
+does not qualify absent extensions, real providers, or a successor binary.
+
 The same formal entry now has `run-extension`. This version executes only
 `LOCAL_SIMULATED`; `LIVE_NEW_BUILD` and `PRODUCTION` return
 `BLOCKED/extensions_live_execution_not_authorized` before I/O. Basic-run

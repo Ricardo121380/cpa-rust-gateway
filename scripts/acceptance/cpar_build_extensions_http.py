@@ -175,6 +175,40 @@ def local_drills(context, observe, private, positive_samples):
     return {"status": "PASS", "executor_qualification": "NOT_IMPLEMENTED; separate synthetic product drills only", "captures_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "cases": records}
 
 
+def observe_runtime(context, source, instance):
+    """Read the owned process and current serving declaration for local executors."""
+    api, binary = context["api"], context["binary"]
+    before = [row for row in api("GET", "/admin/config-versions") if row["status"] == "active"]
+    projection = api("GET", "/admin/models/effective?client_key_id=local-key&limit=200")
+    declarations = []
+    for model in projection["items"]:
+        for candidate in model["sources"]:
+            evidence = candidate["capability_evidence"]
+            declarations.append({**evidence, "client_key_evidence_id": oracle.opaque("local-key"), "projection_id": projection["projection_id"],
+                                 "observed_at_utc": datetime.datetime.fromtimestamp(projection["observed_at_ms"] / 1000, datetime.timezone.utc).isoformat(),
+                                 "route_id": model["route_id"], "route_candidate_id": candidate["candidate_id"], "endpoint_id": candidate["endpoint_id"], "upstream_model": model["id"]})
+    pools = context["all_items"]("/admin/operations/account-pools?limit=100")
+    for row in pools:
+        row["account_id"] = oracle.opaque(row["account_id"])
+    inventory = {
+        "routes": api("GET", "/admin/routes"),
+        "candidates": context["all_items"]("/admin/route-candidates?limit=200"),
+        "account_pools": pools,
+        "native_pools": context["all_items"]("/admin/operations/provider-account-pools?limit=100"),
+    }
+    for row in inventory["native_pools"]:
+        row["account_id"] = oracle.opaque(row["account_id"])
+    inventory = {key: {"items": value.get("items", []) if isinstance(value, dict) else value, "complete": True, "error": None} for key, value in inventory.items()}
+    after = [row for row in api("GET", "/admin/config-versions") if row["status"] == "active"]
+    process_start = subprocess.check_output(["ps", "-p", str(context["gateway"].pid), "-o", "lstart="], text=True).strip() + ":" + str(context["gateway"].pid)
+    runtime = {"method": "local_subprocess", "instance": instance, "pid": context["gateway"].pid,
+               "process_start": process_start, "observed_at_utc": oracle.now(), "stable_process": context["gateway"].poll() is None,
+               "artifact_sha": source, "source_sha": source, "artifact_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+               "capability_observations": declarations,
+               "acceptance_inventory": {"configuration_stable": before == after, "active_configuration": {key: before[0][key] for key in ("id", "revision")}, "inventory_observed_at_utc": oracle.now(), "inventory": inventory}}
+    return runtime
+
+
 def verify(context):
     api, check = context["api"], context["check"]
     private = context["root"] / "extensions"
@@ -189,35 +223,7 @@ def verify(context):
     check("extension_os_denies_non_loopback_network", True)
 
     def observe():
-        before = [row for row in api("GET", "/admin/config-versions") if row["status"] == "active"]
-        projection = api("GET", "/admin/models/effective?client_key_id=local-key&limit=200")
-        declarations = []
-        for model in projection["items"]:
-            for candidate in model["sources"]:
-                evidence = candidate["capability_evidence"]
-                declarations.append({**evidence, "client_key_evidence_id": oracle.opaque("local-key"), "projection_id": projection["projection_id"],
-                                     "observed_at_utc": datetime.datetime.fromtimestamp(projection["observed_at_ms"] / 1000, datetime.timezone.utc).isoformat(),
-                                     "route_id": model["route_id"], "route_candidate_id": candidate["candidate_id"], "endpoint_id": candidate["endpoint_id"], "upstream_model": model["id"]})
-        pools = context["all_items"]("/admin/operations/account-pools?limit=100")
-        for row in pools:
-            row["account_id"] = oracle.opaque(row["account_id"])
-        inventory = {
-            "routes": api("GET", "/admin/routes"),
-            "candidates": context["all_items"]("/admin/route-candidates?limit=200"),
-            "account_pools": pools,
-            "native_pools": context["all_items"]("/admin/operations/provider-account-pools?limit=100"),
-        }
-        for row in inventory["native_pools"]:
-            row["account_id"] = oracle.opaque(row["account_id"])
-        inventory = {key: {"items": value.get("items", []) if isinstance(value, dict) else value, "complete": True, "error": None} for key, value in inventory.items()}
-        after = [row for row in api("GET", "/admin/config-versions") if row["status"] == "active"]
-        process_start = subprocess.check_output(["ps", "-p", str(context["gateway"].pid), "-o", "lstart="], text=True).strip() + ":" + str(context["gateway"].pid)
-        runtime = {"method": "local_subprocess", "instance": "owned-local-extension-fixture", "pid": context["gateway"].pid,
-                   "process_start": process_start, "observed_at_utc": oracle.now(), "stable_process": context["gateway"].poll() is None,
-                   "artifact_sha": source, "source_sha": source, "artifact_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
-                   "capability_observations": declarations,
-                   "acceptance_inventory": {"configuration_stable": before == after, "active_configuration": {key: before[0][key] for key in ("id", "revision")}, "inventory_observed_at_utc": oracle.now(), "inventory": inventory}}
-        return runtime
+        return observe_runtime(context, source, "owned-local-extension-fixture")
 
     def frozen(protocol, mode):
         key = protocol + "-" + mode

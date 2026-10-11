@@ -1,0 +1,26 @@
+{
+  "layer": "LOCAL_SIMULATED",
+  "request": {
+    "model": "model-responses",
+    "messages": [
+      {
+        "role": "user",
+        "content": "synthetic output limit"
+      }
+    ],
+    "max_completion_tokens": 4096,
+    "stream": false
+  },
+  "http_status": 200,
+  "response_sha256": "de0c4b3e8c18f68b95b36a38e8555291542c70f4cedb7f41e3094d82dbf65cee",
+  "response_bytes": 576,
+  "wire_request_id_present": false,
+  "events": {
+    "request": 1,
+    "request_finished": 1,
+    "attempt": 1,
+    "usage": 1
+  },
+  "upstream_receives": 1,
+  "real_provider_requests": 0
+}

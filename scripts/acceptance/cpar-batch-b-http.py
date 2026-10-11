@@ -29,6 +29,7 @@ import cpar_master_key_http
 import cpar_seo_isolation_http
 import cpar_t12_upgrade_http
 import cpar_build_extensions_http
+import cpar_output_limits_http
 
 os.umask(0o077)
 repo = pathlib.Path.cwd()
@@ -134,6 +135,9 @@ class Provider(BaseHTTPRequestHandler):
         if scenario == "invalid-args":
             arguments[0] = '{"value":'
         answer = "synthetic summary" if compact else "synthetic answer"
+        tool_name = "echo"
+        if os.environ.get("CPAR_OUTPUT_LIMITS_ONLY") == "1":
+            tools, ids, arguments, answer, tool_name = cpar_output_limits_http.provider_answer(body)
         thought = "synthetic visible thought"
         signature = "synthetic-signature"
         citation = {"type": "page_location", "cited_text": "synthetic source", "document_index": 0, "document_title": "source", "start_page_number": 1, "end_page_number": 2}
@@ -147,7 +151,7 @@ class Provider(BaseHTTPRequestHandler):
             if reasoning:
                 message["reasoning_content"] = thought
             if tools:
-                message["tool_calls"] = [{"id": identity, "type": "function", "function": {"name": "echo", "arguments": arg}} for identity, arg in zip(ids, arguments)]
+                message["tool_calls"] = [{"id": identity, "type": "function", "function": {"name": tool_name, "arguments": arg}} for identity, arg in zip(ids, arguments)]
             response = {"id": response_id, "object": "chat.completion", "model": body["model"], "created": 1, "choices": [{"index": 0, "message": message, "finish_reason": "tool_calls" if tools else "stop"}], "usage": usage}
         elif protocol == "messages":
             usage = {"input_tokens": 7, "output_tokens": 10, "cache_read_input_tokens": 3, "cache_creation_input_tokens": 2}
@@ -155,7 +159,7 @@ class Provider(BaseHTTPRequestHandler):
             if reasoning:
                 content.append({"type": "thinking", "thinking": thought, "signature": signature})
             if tools:
-                content.extend({"type": "tool_use", "id": identity, "name": "echo", "input": json.loads(arg) if scenario != "invalid-args" else []} for identity, arg in zip(ids, arguments))
+                content.extend({"type": "tool_use", "id": identity, "name": tool_name, "input": json.loads(arg) if scenario != "invalid-args" else []} for identity, arg in zip(ids, arguments))
             else:
                 content.append({"type": "text", "text": answer, **({"citations": [citation]} if scenario == "citation-round" else {})})
             response = {"id": response_id, "type": "message", "role": "assistant", "model": body["model"], "content": content, "stop_reason": "tool_use" if tools else "end_turn", "stop_sequence": None, "usage": usage}
@@ -165,7 +169,7 @@ class Provider(BaseHTTPRequestHandler):
             if reasoning or scenario == "private-reasoning":
                 output.append({"id": "rs_local", "type": "reasoning", "status": "completed", "summary": [{"type": "summary_text", "text": thought}], "content": [], **({"encrypted_content": "unowned-private-ciphertext"} if scenario == "private-reasoning" else {})})
             if tools:
-                output.extend({"id": "fc_local_" + str(index), "type": "function_call", "status": "completed", "call_id": identity, "name": "echo", "arguments": arg} for index, (identity, arg) in enumerate(zip(ids, arguments)))
+                output.extend({"id": "fc_local_" + str(index), "type": "function_call", "status": "completed", "call_id": identity, "name": tool_name, "arguments": arg} for index, (identity, arg) in enumerate(zip(ids, arguments)))
             else:
                 output.append({"id": "msg_local", "type": "message", "role": "assistant", "status": "completed", "content": [{"type": "output_text", "text": answer, "annotations": [annotation] if scenario == "citation-round" else []}]})
             response = {"id": response_id, "object": "response", "status": "completed", "model": body["model"], "output": output, "usage": usage}
@@ -195,7 +199,7 @@ class Provider(BaseHTTPRequestHandler):
                 chat_frame({"reasoning_content": thought})
             if tools:
                 for index, identity in enumerate(ids):
-                    chat_frame({"tool_calls": [{"index": index, "id": identity, "type": "function", "function": {"name": "echo", "arguments": ""}}]})
+                    chat_frame({"tool_calls": [{"index": index, "id": identity, "type": "function", "function": {"name": tool_name, "arguments": ""}}]})
                 for offset in range(max(map(len, arguments))):
                     for index, arg in enumerate(arguments):
                         if offset < len(arg):
@@ -222,7 +226,7 @@ class Provider(BaseHTTPRequestHandler):
         elif protocol == "messages":
             frame("message_start", message={**response, "content": [], "stop_reason": None, "usage": {**usage, "output_tokens": 0}})
             for index, block in enumerate(content):
-                empty = {"type": "tool_use", "id": block["id"], "name": "echo", "input": {}} if block["type"] == "tool_use" else {"type": block["type"], "thinking" if block["type"] == "thinking" else "text": ""}
+                empty = {"type": "tool_use", "id": block["id"], "name": tool_name, "input": {}} if block["type"] == "tool_use" else {"type": block["type"], "thinking" if block["type"] == "thinking" else "text": ""}
                 frame("content_block_start", index=index, content_block=empty)
                 if block["type"] == "thinking":
                     frame("content_block_delta", index=index, delta={"type": "thinking_delta", "thinking": thought})
@@ -650,6 +654,11 @@ try:
     api("POST", "/admin/billing/catalogs", {"catalog_version_id": "local-prices", "effective_at_ms": 0, "source": "operator", "entries": entries}, expected=201)
     publish()
     check("publication_has_no_inference_side_effect", not calls)
+    if os.environ.get("CPAR_OUTPUT_LIMITS_ONLY") == "1":
+        cpar_output_limits_http.verify(globals())
+        passed = True
+        print(json.dumps({"status": "PASS", "checks": len(checks), "scope": "output limits; actual local gateway"}))
+        sys.exit(0)
     if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1":
         cpar_build_extensions_http.verify(globals())
         passed = True

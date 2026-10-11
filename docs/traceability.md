@@ -248,3 +248,8 @@ CPAR C 执行证据与 ARM64 候选：#9、#39–#50、#57 对应
 | L 上游聚合 | P2-P5；Provider-aware 管理扩展进入 P13 |
 
 具体 Task 开始时在本文件新增或更新一行；若无法映射到权威来源，必须先创建 Change Request。
+
+CPAR-38 / #47 的 Chat 输出上限修复对应 [ADR-0104](adr/ADR-0104-chat-output-limit-projection.md)、
+[BC-PROTOCOL-008](contracts/BC-PROTOCOL-008-openai-chat-completions-codec.md) 与
+[BC-ROUTER-004](contracts/BC-ROUTER-004-protocol-transform-admission.md)。公共入口合成预演、原生装配、
+候选及真实 Provider 分层记录；本条不关闭 #47、#57 或父规格 #9。
