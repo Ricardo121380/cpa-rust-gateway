@@ -142,12 +142,17 @@ try:
     time.sleep(2)
     with sqlite3.connect('file:'+str(epoch/'state/control.sqlite3')+'?mode=ro',uri=True) as db:
         db.row_factory=sqlite3.Row
+        db.execute('BEGIN')
         selected=[]
+        attempt_payloads={}
         for event in db.execute('SELECT event_type,event_id,payload_json FROM gateway_event_log WHERE request_id=? ORDER BY event_ordinal',(result['request_id'],)):
             value=json.loads(event['payload_json'])
             data=next((child for child in value.values() if isinstance(child,dict)),{})
             if data.get('request_id')==result['request_id']:
                 selected.append((event['event_type'],event['event_id'],data))
+                if event['event_type']=='attempt':
+                    assert event['event_id']==data['attempt_id']
+                    attempt_payloads[data['attempt_id']]=event['payload_json']
         requests=[data for kind,event_id,data in selected if kind=='request']
         attempts=[data for kind,event_id,data in selected if kind=='attempt']
         terminals=[data for kind,event_id,data in selected if kind=='request_finished']
@@ -157,10 +162,15 @@ try:
         assert requests[0]['requested_model']=='grok-4.5'
         attempt=attempts[0]
         assert formal.opaque(attempt['credential_id'])==start['account_evidence_id']
+        sidecar=db.execute('SELECT request_id,attempt_payload_sha256,evidence_json FROM gateway_attempt_execution WHERE attempt_id=?',
+                           (attempt['attempt_id'],)).fetchone()
+        execution=diagnostic.verify_execution_identity(formal,plan['target'],result['request_id'],requests[0],attempt,
+                                                       attempt_payloads[attempt['attempt_id']],sidecar)
         ledger=[dict(value) for value in db.execute('SELECT source_event_id,request_id,response_id,cost_microunits,account_id,model,input_tokens,output_tokens,reasoning_tokens,cache_read_tokens,cache_creation_tokens,cached_tokens,usage_evidence_json FROM billing_ledger_entries WHERE request_id=?',(result['request_id'],))]
         source_usage=diagnostic.verify_usage_lineage(native,result['request_id'],attempt,usages,ledger)
         summary.update(attempt_id=attempt['attempt_id'],attempt_outcome=attempt['outcome'],retry_decision=attempt['retry_decision'],
                        request_outcome=terminals[0]['outcome'],request_attempt_exact_match=True,
+                       validated_execution=execution,
                        usage_rows=len(usages),ledger_rows=len(ledger),usage_sources=[value['usage'] for event_id,value in usages],
                        validated_native_usage=source_usage,ledger_source_event_exact_match=True,
                        ledger_cost_observations=[value['cost_microunits'] for value in ledger])

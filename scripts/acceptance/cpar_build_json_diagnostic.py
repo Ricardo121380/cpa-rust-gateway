@@ -143,6 +143,36 @@ def verify_usage_lineage(native, request_id, attempt, usages, ledger):
     return expected
 
 
+def verify_execution_identity(formal, target, request_id, request, attempt, payload, sidecar):
+    """This direct Build epoch requires the actual lease sidecar, bound to its Attempt bytes."""
+    require(request["request_id"] == attempt["request_id"] == request_id
+            and formal.opaque(request.get("client_key_id")) == target["declaration_evidence"]["client_key_evidence_id"]
+            and request.get("protocol") == "openai_chat_completions" and request.get("streaming") is False
+            and request.get("requested_model") == request.get("public_model") == "grok-4.5",
+            "diagnostic_request_identity_mismatch")
+    require(type(attempt.get("attempt_number")) is int and attempt["attempt_number"] == 1
+            and all(attempt.get(field) == target[field] for field in
+                    ("route_id", "route_candidate_id", "endpoint_id", "upstream_model"))
+            and formal.opaque(attempt.get("credential_id")) == target["credential_evidence_id"],
+            "diagnostic_attempt_identity_mismatch")
+    require(sidecar is not None and sidecar[0] == request_id
+            and sidecar[1] == hashlib.sha256(payload.encode()).hexdigest(),
+            "diagnostic_execution_binding_mismatch")
+    require(target["channel"] == "grok.build" and target["egress_evidence_id"] == formal.opaque("direct")
+            and target["egress_revision"] == {"source": "not_applicable"}, "diagnostic_execution_egress_mismatch")
+    # Match the store's canonical serde representation, including key order, exact
+    # fields and types. This also rejects duplicates, unknown keys and absent facts.
+    expected = {field: target[field] for field in
+                ("channel", "credential_revision", "config_version_id", "config_revision")}
+    expected["egress"] = {"kind": "direct"}
+    expected["capabilities"] = {field: target["capabilities"][field] for field in
+                                ("reasoning", "parallel", "stored", "continuation", "compact", "websocket")}
+    require(sidecar[2] == json.dumps(expected, separators=(",", ":"), ensure_ascii=False),
+            "diagnostic_execution_identity_mismatch")
+    return {"execution_evidence_sha256": hashlib.sha256(sidecar[2].encode()).hexdigest(),
+            "actual_lease_credential_revision": expected["credential_revision"]}
+
+
 def binding(plan, runtime, base_url):
     material = {"kind": "chat_json_502_diagnostic", "epoch": plan["epoch"],
                 "source_sha": plan["source_sha"], "public_request_sha256": plan["public_request_sha256"],

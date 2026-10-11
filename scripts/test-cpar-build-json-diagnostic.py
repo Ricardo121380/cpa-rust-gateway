@@ -64,29 +64,51 @@ class DiagnosticTests(unittest.TestCase):
         self.assertIs(receipt['temporary_service_stopped'],True)
         self.assertEqual(receipt['owned_process_stop_status'],'STOPPED_VERIFIED')
 
-    def collect_usage(self, *, persisted_input=1, source_event='usage-1'):
+    def collect_usage(self, *, persisted_input=1, source_event='usage-1', client_key='client',
+                      candidate='candidate', sidecar=True, execution_change=None, payload_hash=None):
         source=ast.parse((self.tools/'remote-chat.py').read_text())
         attempt=next(node for node in source.body if isinstance(node,ast.Try))
         collection=next(node for node in attempt.body if isinstance(node,ast.With))
         with sqlite3.connect(':memory:') as db:
             db.executescript('CREATE TABLE gateway_event_log(event_ordinal INTEGER,event_type TEXT,event_id TEXT,request_id TEXT,payload_json TEXT);'
+                             'CREATE TABLE gateway_attempt_execution(attempt_id TEXT,request_id TEXT,attempt_payload_sha256 TEXT,evidence_json TEXT);'
                              'CREATE TABLE billing_ledger_entries(source_event_id TEXT,request_id TEXT,response_id TEXT,cost_microunits INTEGER,'
                              'input_tokens INTEGER,output_tokens INTEGER,reasoning_tokens INTEGER,cache_read_tokens INTEGER,cache_creation_tokens INTEGER,cached_tokens INTEGER,'
                              'usage_evidence_json TEXT,account_id TEXT,model TEXT);')
             usage={'provenance':'measured','input_accounting':'inclusive','input_tokens':persisted_input,'output_tokens':None,
                    'reasoning_tokens':None,'cache_read_tokens':None,'cache_creation_tokens':None,'cached_tokens':None}
-            rows=[('request',{'request_id':'r','protocol':'openai_chat_completions','streaming':False,'requested_model':'grok-4.5'}),
-                  ('attempt',{'request_id':'r','attempt_id':'a','credential_id':'account','outcome':'succeeded','retry_decision':'completed'}),
+            capabilities={'reasoning':True,'parallel':False,'stored':True,'continuation':True,'compact':True,'websocket':True}
+            target={'channel':'grok.build','endpoint_id':'endpoint','route_id':'route','route_candidate_id':'candidate',
+                    'upstream_model':'grok-4.5','credential_evidence_id':'account','credential_revision':138,
+                    'config_version_id':'config','config_revision':9,'egress_evidence_id':'direct',
+                    'egress_revision':{'source':'not_applicable'},'capabilities':capabilities,
+                    'declaration_evidence':{'client_key_evidence_id':'client'}}
+            execution={'channel':'grok.build','credential_revision':138,'config_version_id':'config','config_revision':9,
+                       'egress':{'kind':'direct'},'capabilities':capabilities}
+            execution.update(execution_change or {})
+            rows=[('request',{'request_id':'r','client_key_id':client_key,'protocol':'openai_chat_completions',
+                              'streaming':False,'requested_model':'grok-4.5','public_model':'grok-4.5'}),
+                  ('attempt',{'request_id':'r','attempt_id':'a','attempt_number':1,'endpoint_id':'endpoint','route_id':'route',
+                              'route_candidate_id':candidate,'upstream_model':'grok-4.5','credential_id':'account',
+                              'outcome':'succeeded','retry_decision':'completed'}),
                   ('request_finished',{'request_id':'r','outcome':'failed'}),
                   ('usage',{'request_id':'r','attempt_id':'a','response_id':'response','usage':usage})]
             for ordinal,(kind,data) in enumerate(rows,1):
-                db.execute('INSERT INTO gateway_event_log VALUES(?,?,?,?,?)',(ordinal,kind,'usage-1' if kind=='usage' else kind,'r',json.dumps({kind:data})))
+                payload=json.dumps({kind:data})
+                db.execute('INSERT INTO gateway_event_log VALUES(?,?,?,?,?)',
+                           (ordinal,kind,'usage-1' if kind=='usage' else 'a' if kind=='attempt' else kind,'r',payload))
+                if kind=='attempt' and sidecar:
+                    db.execute('INSERT INTO gateway_attempt_execution VALUES(?,?,?,?)',
+                               ('a','r',payload_hash or hashlib.sha256(payload.encode()).hexdigest(),
+                                json.dumps(execution,separators=(',',':'))))
             db.execute('INSERT INTO billing_ledger_entries VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
                        (source_event,'r','response',None,persisted_input,None,None,None,None,None,json.dumps({'provenance':'measured','input_accounting':'inclusive'}),'account','grok-4.5'))
+            db.commit()
             class Formal:
                 opaque=staticmethod(lambda value:value)
             namespace={'db':db,'sqlite3':sqlite3,'json':json,'result':{'request_id':'r'},'start':{'account_evidence_id':'account'},
-                       'native':{'id':'response','usage':{'input_tokens':1}},'formal':Formal,'diagnostic':diagnostic,'summary':{}}
+                       'native':{'id':'response','usage':{'input_tokens':1}},'formal':Formal,'diagnostic':diagnostic,
+                       'plan':{'target':target},'summary':{}}
             exec(compile(ast.fix_missing_locations(ast.Module(body=collection.body,type_ignores=[])),'chat-lineage','exec'),namespace)
             return namespace['summary']
 
@@ -101,6 +123,21 @@ class DiagnosticTests(unittest.TestCase):
         self.assertIsNone(summary['validated_native_usage']['output_tokens'])
         self.assertIsNone(summary['validated_native_usage']['cache_creation_tokens'])
         self.assertTrue(summary['ledger_source_event_exact_match'])
+
+    def test_real_collection_rejects_wrong_client_candidate_or_missing_execution(self):
+        for options in ({'client_key':'wrong'},{'candidate':'wrong'},{'sidecar':False}):
+            with self.subTest(options=options), self.assertRaises((ValueError,AssertionError)):
+                self.collect_usage(**options)
+
+    def test_real_collection_rejects_wrong_actual_lease_configuration_egress_or_binding(self):
+        for options in ({'execution_change':{'credential_revision':137}},
+                        {'execution_change':{'config_version_id':'wrong'}},
+                        {'execution_change':{'config_revision':8}},
+                        {'execution_change':{'egress':{'kind':'unknown'}}},
+                        {'execution_change':{'capabilities':{'reasoning':False}}},
+                        {'payload_hash':'0'*64}):
+            with self.subTest(options=options), self.assertRaises((ValueError,AssertionError)):
+                self.collect_usage(**options)
 
     def test_absent_native_usage_stays_unknown_and_invalid_counters_are_rejected(self):
         for value in ({}, {'usage':None}, {'usage':{}}, {'usage':{'total_tokens':999}}):
