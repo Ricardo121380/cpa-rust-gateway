@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "steps": 7,
+  "exit_code": 0,
+  "command": [
+    "bash",
+    "scripts/check.sh",
+    "docs"
+  ],
+  "check_report_path_environment": "/tmp/cpar-output-limit-20261011/docs-closeout.md",
+  "product_source": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "reviewed_implementation_head": "fe73140d64f7ed36afdfa86900d8546286e9ed09",
+  "reviewed_files_unchanged": 23,
+  "post_review_commits_docs_only": true,
+  "report_sha256": "5e16b13b8ed4c2eee74f651b2339e40381f9716b3021656b06578cdfef87e1de",
+  "log_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/docs-closeout.log",
+  "log_sha256": "cce28b9e30c1dccfd449a02ffabf1bc94b04f125fe08b83325fb181c8129bee7",
+  "github_sync_sha256": "517ff31062f1d8de6df091eb54a188797bcc92135994fde306f011c943155832",
+  "initial_dirty_files_preserved": 37255,
+  "candidate_status": "BLOCKED: existing offline ARM64 builder lacks Ruby",
+  "real_provider_requests": 0,
+  "pushes": 0,
+  "uploads": 0,
+  "remote_starts": 0,
+  "deployments": 0
+}

@@ -136,4 +136,6 @@ Chat codec 原本已经保留 `openai.chat.max_completion_tokens`。修复位于
 
 ## 7. GitHub 同步
 
-本轮仅向既有 [#47进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)追加脱敏结果，保留旧正文作为完整前缀，不改 issue body／AC／title／labels／assignees／依赖／OPEN 状态。写后使用独立 GET 逐项比对，回执单独归档。代码和报告只在本地提交，未 push。
+本轮已更新既有 [#47进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9进度评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。写后通过独立 GET 及完整分页依赖读回 **PASS**，见 [GitHub同步回执](assets/cpar-output-limit-20261011/github-sync.json)。三份提交正文与读回 SHA256 一致，旧评论作为完整前缀保留；每票仍1条评论。issue body／AC／title／labels／assignees／milestone及OPEN状态不变；依赖身份集合不变：#47 blocked_by8／blocking1，#57 23／0，#9 0／0。
+
+报告及主要证据提交为 `d263a000176bc48c32eef6147c31d25eb0beef18`，GitHub摘要明确标记未push。[文档交付7/7](assets/cpar-output-limit-20261011/docs-check.json)和新增同步回执后的 [收口docs 7/7](assets/cpar-output-limit-20261011/docs-closeout.json)均通过，实际日志保留；收口只追加同步和验证回执，不改变产品、工具或既有审查范围。三票保留候选BLOCKED／整体PARTIAL，本轮到此不启动真实续测。

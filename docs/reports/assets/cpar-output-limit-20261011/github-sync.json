@@ -1,0 +1,91 @@
+{
+  "status": "PASS",
+  "readback_at_utc": "2026-10-11T06:56:23.539359+00:00",
+  "method": "PATCH existing comments, then separate read-only GET and paginated dependency readback",
+  "report_commit": "d263a000176bc48c32eef6147c31d25eb0beef18",
+  "implementation_head": "fe73140d64f7ed36afdfa86900d8546286e9ed09",
+  "push_performed": false,
+  "issues": [
+    {
+      "number": 47,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "comment_id": 6081215242,
+      "status": "PASS",
+      "independent_get_after_write": true,
+      "body_sha256": "f4f956cb6cf4da51e3adaecafd8053db6e0a9e37907971b17b172460e3bacc1e",
+      "old_comment_body_sha256": "85da23dd65139f3c49e12fe362755a36670777bd0c2254265f4721dc83b3158e",
+      "old_body_complete_prefix_preserved": true,
+      "issue_body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "original_ac_title_labels_assignees_milestone_unchanged": true,
+      "state": "open",
+      "comment_count": 1,
+      "dependencies": {
+        "blocked_by": {
+          "count": 8,
+          "identity_set_sha256": "3e1cb560726eee4404d529a7cdd11e98fada4bdb25571c7cb3ff1eba5deaf531",
+          "unchanged": true
+        },
+        "blocking": {
+          "count": 1,
+          "identity_set_sha256": "b2083e784ae3bd2c02bcaef4b7533d5d45c10abfee87e9853538389a14090d38",
+          "unchanged": true
+        }
+      },
+      "updated_at": "2026-10-11T06:55:42Z"
+    },
+    {
+      "number": 57,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "comment_id": 6081234278,
+      "status": "PASS",
+      "independent_get_after_write": true,
+      "body_sha256": "095833d86210952ae814ff28ba58720aa23083cacacf497e4da962a87e9536bb",
+      "old_comment_body_sha256": "12a95b09b0bcba85a0a2d2ca9655474746cb9faaff9a5d9e96792a22c0cffc0c",
+      "old_body_complete_prefix_preserved": true,
+      "issue_body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "original_ac_title_labels_assignees_milestone_unchanged": true,
+      "state": "open",
+      "comment_count": 1,
+      "dependencies": {
+        "blocked_by": {
+          "count": 23,
+          "identity_set_sha256": "45762e733d8f9f54601a20b50da42ce7aa09388055fb5a5cc6953eb1650da857",
+          "unchanged": true
+        },
+        "blocking": {
+          "count": 0,
+          "identity_set_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unchanged": true
+        }
+      },
+      "updated_at": "2026-10-11T06:55:45Z"
+    },
+    {
+      "number": 9,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "comment_id": 6081235490,
+      "status": "PASS",
+      "independent_get_after_write": true,
+      "body_sha256": "92869e3e19bd2a15418f618dd13b4d2b97a41c6e5e3dfb4435d90a4e08f6f1b1",
+      "old_comment_body_sha256": "ea9bb996e0baa4b39b91bb491b31e792e4247b002262fa784b02d4113e0851b1",
+      "old_body_complete_prefix_preserved": true,
+      "issue_body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "original_ac_title_labels_assignees_milestone_unchanged": true,
+      "state": "open",
+      "comment_count": 1,
+      "dependencies": {
+        "blocked_by": {
+          "count": 0,
+          "identity_set_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unchanged": true
+        },
+        "blocking": {
+          "count": 0,
+          "identity_set_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "unchanged": true
+        }
+      },
+      "updated_at": "2026-10-11T06:55:48Z"
+    }
+  ]
+}

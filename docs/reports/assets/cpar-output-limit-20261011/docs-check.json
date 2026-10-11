@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "steps": [
+    "Document links",
+    "Contract tests",
+    "Plan state",
+    "Canary thresholds",
+    "Caddy split",
+    "Tracked secret scan",
+    "Git whitespace"
+  ],
+  "step_count": 7,
+  "exit_code": 0,
+  "implementation_head": "fe73140d64f7ed36afdfa86900d8546286e9ed09",
+  "log_sha256": "cce28b9e30c1dccfd449a02ffabf1bc94b04f125fe08b83325fb181c8129bee7",
+  "report_output": "actual stdout log; CHECK_REPORT_PATH was unset",
+  "docs_evidence_commit": "d263a000176bc48c32eef6147c31d25eb0beef18"
+}
