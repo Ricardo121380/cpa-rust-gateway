@@ -101,10 +101,48 @@ launch[launch.index('--setenv=LD_PRELOAD=' + str(guard)):launch.index('--setenv=
     '--setenv=CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION=' + source_sha,
 ]
 (epoch / 'launch-v2.json').write_text(json.dumps({'command': launch}, indent=2) + '\n')
+def temporary_ports():
+    return [int(row.split()[1].rsplit(':', 1)[1], 16)
+            for family in ['tcp', 'tcp6']
+            for row in pathlib.Path('/proc/net', family).read_text().splitlines()[1:]
+            if row.split()[3] == '0A' and int(row.split()[1].rsplit(':', 1)[1], 16) in [19180, 19181]]
+
+
+def process_exists(pid):
+    return pathlib.Path('/proc', str(pid)).exists()
+
+
+def read_owned_identity():
+    pid = int(subprocess.check_output(['systemctl', 'show', unit, '--value', '--property=MainPID']))
+    if pid == 0:
+        return None
+    proc = pathlib.Path('/proc', str(pid))
+    args = (proc / 'cmdline').read_bytes().decode().rstrip('\0').split('\0')
+    assert args[0] == str(binary) and args[args.index('--state-dir') + 1] == str(epoch / 'state')
+    assert digest(proc / 'exe') == binary_hash
+    return {'pid': pid, 'process_start': (proc / 'stat').read_text().rsplit(')', 1)[1].split()[19],
+            'binary_sha256': binary_hash, 'state_dir': str(epoch / 'state')}
+
+
+def shutdown_owned_start(identity):
+    observed = read_owned_identity()
+    if observed is not None:
+        assert observed == identity
+        subprocess.run(['systemctl', 'stop', unit], check=True)
+    assert read_owned_identity() is None and not process_exists(identity['pid']) and not temporary_ports()
+    return {'temporary_service_stopped': True, 'owned_process_stop_status': 'STOPPED_VERIFIED'}
+
+
 started = False
+launch_requested = False
+startup_identity = None
 try:
+    launch_requested = True
     subprocess.run(launch, check=True, capture_output=True)
     started = True
+    startup_identity = read_owned_identity()
+    assert startup_identity is not None
+    (epoch / 'startup-process-binding.json').write_text(json.dumps(startup_identity, indent=2) + '\n')
     deadline = time.monotonic() + 30
     while True:
         try:
@@ -186,10 +224,19 @@ try:
     public['historical_inventory_sha256'] = hashlib.sha256(json.dumps(historical, sort_keys=True).encode()).hexdigest()
     print(json.dumps(public))
 except BaseException as error:
-    if started:
-        subprocess.run(['systemctl', 'stop', unit], check=True)
+    cleanup = {'temporary_service_stopped': None, 'owned_process_stop_status': 'NOT_STARTED'}
+    try:
+        if launch_requested and startup_identity is None:
+            startup_identity = read_owned_identity()
+        if startup_identity is not None:
+            cleanup = shutdown_owned_start(startup_identity)
+        elif launch_requested:
+            cleanup['owned_process_stop_status'] = 'NO_OWNED_PROCESS_OBSERVED'
+    except Exception as cleanup_error:
+        cleanup = {'temporary_service_stopped': None, 'owned_process_stop_status': 'IDENTITY_OR_EXIT_UNKNOWN',
+                   'cleanup_exception_type': type(cleanup_error).__name__}
     receipt = {'status': 'BLOCKED', 'category': 'startup_precondition_failed', 'exception_type': type(error).__name__,
-               'provider_inference_requests': 0, 'catalog_requests': 0, 'temporary_service_stopped': True}
+               'provider_inference_requests': 0, 'catalog_requests': 0, **cleanup}
     (epoch / 'start-failure-v2.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt))
     raise

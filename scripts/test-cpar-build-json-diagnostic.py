@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """No Provider calls: diagnostic limits, latch, crash/replay and exact synthetic semantics."""
 import copy
+import ast
 import importlib.util
 import json
 import hashlib
 import io
 from pathlib import Path
 import subprocess
+import sqlite3
 import sys
 import tarfile
 import tempfile
@@ -18,6 +20,95 @@ spec.loader.exec_module(diagnostic)
 
 
 class DiagnosticTests(unittest.TestCase):
+    tools = Path(__file__).parent.parent/'docs/reports/assets/cpar-build-json-502-20261011/tools'
+
+    def startup_failure(self, started, changed_identity=False):
+        source=ast.parse((self.tools/'remote-start.py').read_text())
+        handler=next(node for node in source.body if isinstance(node,ast.Try)).handlers[0]
+        calls=[]
+        identity={'pid':11,'process_start':'100','binary_sha256':'a'*64,'state_dir':'owned'}
+        state={'identity':dict(identity,pid=22) if changed_identity else (identity if started else None)}
+        class Commands:
+            @staticmethod
+            def run(args,**options):
+                calls.append(args)
+                state['identity']=None
+        namespace={'subprocess':Commands,'json':json,'unit':'owned.service','started':started,'launch_requested':started,
+                   'startup_identity':identity if started else None,
+                   'read_owned_identity':lambda:state['identity'],
+                   'temporary_ports':lambda:[],'process_exists':lambda pid:False}
+        with tempfile.TemporaryDirectory() as root:
+            namespace['epoch']=Path(root)
+            functions=[node for node in source.body if isinstance(node,ast.FunctionDef) and node.name=='shutdown_owned_start']
+            exec(compile(ast.fix_missing_locations(ast.Module(body=functions,type_ignores=[])),'startup-cleanup','exec'),namespace)
+            failure=ast.Try(body=[ast.Raise(exc=ast.Call(func=ast.Name(id='RuntimeError',ctx=ast.Load()),args=[],keywords=[]))],
+                            handlers=[handler],orelse=[],finalbody=[])
+            with self.assertRaises(RuntimeError):
+                exec(compile(ast.fix_missing_locations(ast.Module(body=[failure],type_ignores=[])),'startup-failure','exec'),namespace)
+            receipt=json.loads((Path(root)/'start-failure-v2.json').read_text())
+        return calls,receipt
+
+    def test_startup_cleanup_never_stops_changed_identity(self):
+        calls,receipt=self.startup_failure(True,changed_identity=True)
+        self.assertEqual(calls,[])
+        self.assertIsNot(receipt['temporary_service_stopped'],True)
+
+    def test_startup_without_owned_process_never_claims_a_verified_stop(self):
+        calls,receipt=self.startup_failure(False)
+        self.assertEqual(calls,[])
+        self.assertIsNot(receipt['temporary_service_stopped'],True)
+
+    def test_startup_cleanup_stops_only_the_bound_process_and_verifies_exit(self):
+        calls,receipt=self.startup_failure(True)
+        self.assertEqual(calls,[['systemctl','stop','owned.service']])
+        self.assertIs(receipt['temporary_service_stopped'],True)
+        self.assertEqual(receipt['owned_process_stop_status'],'STOPPED_VERIFIED')
+
+    def collect_usage(self, *, persisted_input=1, source_event='usage-1'):
+        source=ast.parse((self.tools/'remote-chat.py').read_text())
+        attempt=next(node for node in source.body if isinstance(node,ast.Try))
+        collection=next(node for node in attempt.body if isinstance(node,ast.With))
+        with sqlite3.connect(':memory:') as db:
+            db.executescript('CREATE TABLE gateway_event_log(event_ordinal INTEGER,event_type TEXT,event_id TEXT,request_id TEXT,payload_json TEXT);'
+                             'CREATE TABLE billing_ledger_entries(source_event_id TEXT,request_id TEXT,response_id TEXT,cost_microunits INTEGER,'
+                             'input_tokens INTEGER,output_tokens INTEGER,reasoning_tokens INTEGER,cache_read_tokens INTEGER,cache_creation_tokens INTEGER,cached_tokens INTEGER,'
+                             'usage_evidence_json TEXT,account_id TEXT,model TEXT);')
+            usage={'provenance':'measured','input_accounting':'inclusive','input_tokens':persisted_input,'output_tokens':None,
+                   'reasoning_tokens':None,'cache_read_tokens':None,'cache_creation_tokens':None,'cached_tokens':None}
+            rows=[('request',{'request_id':'r','protocol':'openai_chat_completions','streaming':False,'requested_model':'grok-4.5'}),
+                  ('attempt',{'request_id':'r','attempt_id':'a','credential_id':'account','outcome':'succeeded','retry_decision':'completed'}),
+                  ('request_finished',{'request_id':'r','outcome':'failed'}),
+                  ('usage',{'request_id':'r','attempt_id':'a','response_id':'response','usage':usage})]
+            for ordinal,(kind,data) in enumerate(rows,1):
+                db.execute('INSERT INTO gateway_event_log VALUES(?,?,?,?,?)',(ordinal,kind,'usage-1' if kind=='usage' else kind,'r',json.dumps({kind:data})))
+            db.execute('INSERT INTO billing_ledger_entries VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                       (source_event,'r','response',None,persisted_input,None,None,None,None,None,json.dumps({'provenance':'measured','input_accounting':'inclusive'}),'account','grok-4.5'))
+            class Formal:
+                opaque=staticmethod(lambda value:value)
+            namespace={'db':db,'sqlite3':sqlite3,'json':json,'result':{'request_id':'r'},'start':{'account_evidence_id':'account'},
+                       'native':{'id':'response','usage':{'input_tokens':1}},'formal':Formal,'diagnostic':diagnostic,'summary':{}}
+            exec(compile(ast.fix_missing_locations(ast.Module(body=collection.body,type_ignores=[])),'chat-lineage','exec'),namespace)
+            return namespace['summary']
+
+    def test_real_collection_rejects_changed_native_usage_and_wrong_ledger_source(self):
+        for options in ({'persisted_input':999},{'source_event':'unrelated'}):
+            with self.assertRaises((ValueError,AssertionError)):
+                self.collect_usage(**options)
+
+    def test_real_collection_accepts_exact_nullable_counters_and_event_source(self):
+        summary=self.collect_usage()
+        self.assertEqual(summary['validated_native_usage']['input_tokens'],1)
+        self.assertIsNone(summary['validated_native_usage']['output_tokens'])
+        self.assertIsNone(summary['validated_native_usage']['cache_creation_tokens'])
+        self.assertTrue(summary['ledger_source_event_exact_match'])
+
+    def test_absent_native_usage_stays_unknown_and_invalid_counters_are_rejected(self):
+        for value in ({}, {'usage':None}, {'usage':{}}, {'usage':{'total_tokens':999}}):
+            self.assertIsNone(diagnostic.native_usage_summary(value))
+        for value in (True,-1,1.5,'1',18446744073709551616):
+            with self.assertRaises(ValueError):
+                diagnostic.native_usage_summary({'usage':{'input_tokens':value}})
+
     def test_one_pin_one_chat_and_permanent_stop(self):
         budget=diagnostic.new_budget()
         diagnostic.reserve_pin(budget)

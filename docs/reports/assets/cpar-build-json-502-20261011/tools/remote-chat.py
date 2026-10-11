@@ -143,27 +143,26 @@ try:
     with sqlite3.connect('file:'+str(epoch/'state/control.sqlite3')+'?mode=ro',uri=True) as db:
         db.row_factory=sqlite3.Row
         selected=[]
-        for event in db.execute('SELECT event_type,payload_json FROM gateway_event_log ORDER BY id LIMIT 64'):
+        for event in db.execute('SELECT event_type,event_id,payload_json FROM gateway_event_log WHERE request_id=? ORDER BY event_ordinal',(result['request_id'],)):
             value=json.loads(event['payload_json'])
             data=next((child for child in value.values() if isinstance(child,dict)),{})
             if data.get('request_id')==result['request_id']:
-                selected.append((event['event_type'],data))
-        requests=[data for kind,data in selected if kind=='request']
-        attempts=[data for kind,data in selected if kind=='attempt']
-        terminals=[data for kind,data in selected if kind=='request_finished']
-        usages=[data for kind,data in selected if kind=='usage']
+                selected.append((event['event_type'],event['event_id'],data))
+        requests=[data for kind,event_id,data in selected if kind=='request']
+        attempts=[data for kind,event_id,data in selected if kind=='attempt']
+        terminals=[data for kind,event_id,data in selected if kind=='request_finished']
+        usages=[(event_id,data) for kind,event_id,data in selected if kind=='usage']
         assert len(requests)==len(attempts)==len(terminals)==1
         assert requests[0]['protocol']=='openai_chat_completions' and requests[0]['streaming'] is False
         assert requests[0]['requested_model']=='grok-4.5'
         attempt=attempts[0]
         assert formal.opaque(attempt['credential_id'])==start['account_evidence_id']
-        assert all(value['attempt_id']==attempt['attempt_id'] and value['response_id']==native['id'] for value in usages)
-        ledger=[dict(value) for value in db.execute('SELECT source_event_id,request_id,response_id,cost_microunits FROM billing_ledger_entries WHERE request_id=?',(result['request_id'],))]
-        assert len(ledger)==len(usages)<=1
-        assert all(value['response_id']==native['id'] for value in ledger)
+        ledger=[dict(value) for value in db.execute('SELECT source_event_id,request_id,response_id,cost_microunits,account_id,model,input_tokens,output_tokens,reasoning_tokens,cache_read_tokens,cache_creation_tokens,cached_tokens,usage_evidence_json FROM billing_ledger_entries WHERE request_id=?',(result['request_id'],))]
+        source_usage=diagnostic.verify_usage_lineage(native,result['request_id'],attempt,usages,ledger)
         summary.update(attempt_id=attempt['attempt_id'],attempt_outcome=attempt['outcome'],retry_decision=attempt['retry_decision'],
                        request_outcome=terminals[0]['outcome'],request_attempt_exact_match=True,
-                       usage_rows=len(usages),ledger_rows=len(ledger),usage_sources=[value['usage'] for value in usages],
+                       usage_rows=len(usages),ledger_rows=len(ledger),usage_sources=[value['usage'] for event_id,value in usages],
+                       validated_native_usage=source_usage,ledger_source_event_exact_match=True,
                        ledger_cost_observations=[value['cost_microunits'] for value in ledger])
     if result['http_status']==502 and error.get('code')=='UpstreamProtocolError':
         diagnostic.finish_chat(budget,'REPRODUCED')

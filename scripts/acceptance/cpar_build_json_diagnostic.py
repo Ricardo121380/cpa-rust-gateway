@@ -97,6 +97,52 @@ def validate_request(body):
             "diagnostic_request_not_original_synthetic_case")
 
 
+def native_usage_summary(native):
+    """Mirror Build's four source counters; absence never becomes zero."""
+    value = native.get("usage")
+    if value is None:
+        return None
+    require(isinstance(value, dict), "diagnostic_native_usage_shape")
+    def counter(object, name):
+        count = object.get(name)
+        require(count is None or type(count) is int and 0 <= count <= 18446744073709551615,
+                "diagnostic_native_usage_counter")
+        return count
+    def details(name):
+        object = value.get(name)
+        require(object is None or isinstance(object, dict), "diagnostic_native_usage_details")
+        return object or {}
+    summary = {"provenance": "measured", "input_accounting": "inclusive",
+               "input_tokens": counter(value, "input_tokens"), "output_tokens": counter(value, "output_tokens"),
+               "reasoning_tokens": counter(details("output_tokens_details"), "reasoning_tokens"),
+               "cached_tokens": counter(details("input_tokens_details"), "cached_tokens"),
+               "cache_read_tokens": None, "cache_creation_tokens": None}
+    return summary if any(summary[name] is not None for name in summary if name.endswith("tokens")) else None
+
+
+def verify_usage_lineage(native, request_id, attempt, usages, ledger):
+    """Check decoded source, exact event identity and all nullable ledger counters."""
+    if attempt["outcome"] != "succeeded" or attempt["retry_decision"] != "completed":
+        require(not usages and not ledger, "diagnostic_usage_decode_unconfirmed")
+        return None
+    expected = native_usage_summary(native)
+    require(len(usages) == len(ledger) == int(expected is not None), "diagnostic_usage_count_mismatch")
+    if expected is None:
+        return None
+    event_id, usage = usages[0]
+    entry = ledger[0]
+    require(usage["request_id"] == request_id and usage["attempt_id"] == attempt["attempt_id"]
+            and usage["response_id"] == native["id"] and usage["usage"] == expected,
+            "diagnostic_usage_source_or_identity_mismatch")
+    require(entry["source_event_id"] == event_id and entry["request_id"] == request_id
+            and entry["response_id"] == native["id"] and entry["account_id"] == attempt["credential_id"]
+            and entry["model"] == "grok-4.5", "diagnostic_ledger_source_or_identity_mismatch")
+    require(all(entry[name] == value for name, value in expected.items() if name.endswith("tokens"))
+            and json.loads(entry["usage_evidence_json"]) == {name: expected[name] for name in ("provenance", "input_accounting")},
+            "diagnostic_ledger_usage_mismatch")
+    return expected
+
+
 def binding(plan, runtime, base_url):
     material = {"kind": "chat_json_502_diagnostic", "epoch": plan["epoch"],
                 "source_sha": plan["source_sha"], "public_request_sha256": plan["public_request_sha256"],
