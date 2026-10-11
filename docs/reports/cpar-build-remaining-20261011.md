@@ -91,4 +91,8 @@ Chat JSON [新Pin](assets/cpar-build-remaining-20261011/chat-json-pin.json)PASS�
 | 正式部署／生产验收 | NOT_RUN；只读保持核对PASS不等于部署或生产通过 |
 | 项目整体／#47/#57/#9 | PARTIAL／OPEN；未缩减能力声明、AC或依赖关系 |
 
-GitHub只更新#47、#57、#9的既有进度评论，保留其历史正文及工单body／title／labels／assignees／依赖和OPEN状态。当前同步与独立读回状态见 [GitHub回执](assets/cpar-build-remaining-20261011/github-sync.json)；完成后另作证据文档提交。本轮到报告、必要检查、本地提交与授权GitHub同步完成即停止，无push、发布、生产部署或扩展真实批次。
+GitHub已更新#47、#57、#9的既有进度评论，主代理及独立只读探子均当前读回 **complete PASS**，见 [GitHub回执](assets/cpar-build-remaining-20261011/github-sync.json)。提交body SHA256与两次读回一致、历史body完整前缀保留，每票仍1条评论；原body／AC／title／labels／assignees及OPEN状态不变。完整分页依赖身份集合不变：#47 blocked_by8／blocking1，#57 23／0，#9 0／0。评论分别为 [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。
+
+报告及真实证据本地提交为 `aae3b393dccd4d96bf56b566013d0807c877bc9b`，未push；GitHub读回与最终门槛另归档为文档证据提交。[交付docs 7/7](assets/cpar-build-remaining-20261011/docs-delivery-check.json)已PASS，最终记录见 [收口docs门槛](assets/cpar-build-remaining-20261011/docs-closeout-check.json)。本批真实证据的独立 [最终一致性复核](assets/cpar-build-remaining-20261011/real-evidence-final-review.json)为complete PASS，仅覆盖回执一致性；未把真实FAIL或整体PARTIAL改为PASS。修改后的报告只补GitHub读回及文档门槛，前一份22文件冻结保留原hash。
+
+本批交付闭环完成，真实基础批次仍FAIL，#47/#57/#9继续OPEN/PARTIAL；到此停止。无push、发布、生产部署或扩展真实批次。

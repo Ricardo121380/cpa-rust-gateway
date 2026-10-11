@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "mode": "docs",
+  "passed": 7,
+  "failed": 0,
+  "started_at_utc": "2026-10-11T03:11:24Z",
+  "completed_at_utc": "2026-10-11T03:12:29Z",
+  "report_sha256": "cd249c5d68656bea70bdfa31c45464306baaae4c704515454f4409fbaab4efbd",
+  "log_sha256": "278323822df128c6b8d9c64dea8d18c6b4da2e8a5a740dc2c7b6827257d1792b",
+  "steps": [
+    "Document links",
+    "Contract tests",
+    "Plan state",
+    "Canary thresholds",
+    "Caddy split",
+    "Tracked secret scan",
+    "Git whitespace"
+  ],
+  "scope": "final delivery report and independent GitHub readback",
+  "reviewed_code_head": "dbfb977ac24e825a43c73f6317576a8604b8bd86",
+  "code_changes_after_dual_pass": 0,
+  "github_independent_status": "PASS"
+}

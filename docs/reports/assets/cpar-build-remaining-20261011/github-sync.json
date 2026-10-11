@@ -1,6 +1,121 @@
 {
-  "status": "PENDING",
+  "status": "PASS",
   "repository": "Ricardo121380/cpa-rust-gateway",
-  "scope": "append sanitized batch result to existing progress comments #47/#57/#9; preserve history, issue metadata and dependencies; keep OPEN",
-  "remote_mutations_completed": 0
+  "scope": "append-only existing progress comments",
+  "report_commit": "aae3b393dccd4d96bf56b566013d0807c877bc9b",
+  "comments": [
+    {
+      "issue": 47,
+      "comment_id": 6081215242,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "prefix_preserved": true,
+      "before_body_sha256": "d31e9cadbcba2524bc065defe06f0f2106c6075b3622c7a8c959d56fdd824421",
+      "submitted_body_sha256": "85da23dd65139f3c49e12fe362755a36670777bd0c2254265f4721dc83b3158e",
+      "root_readback_body_sha256": "85da23dd65139f3c49e12fe362755a36670777bd0c2254265f4721dc83b3158e",
+      "updated_at": "2026-10-11T03:07:56Z",
+      "mutation_returncode": 0,
+      "report_commit": "aae3b393dccd4d96bf56b566013d0807c877bc9b"
+    },
+    {
+      "issue": 57,
+      "comment_id": 6081234278,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "prefix_preserved": true,
+      "before_body_sha256": "e857c787aa78559f72aadf03c5ac249180b311fda9c44f4040232b4d1c5eb576",
+      "submitted_body_sha256": "12a95b09b0bcba85a0a2d2ca9655474746cb9faaff9a5d9e96792a22c0cffc0c",
+      "root_readback_body_sha256": "12a95b09b0bcba85a0a2d2ca9655474746cb9faaff9a5d9e96792a22c0cffc0c",
+      "updated_at": "2026-10-11T03:08:01Z",
+      "mutation_returncode": 0,
+      "report_commit": "aae3b393dccd4d96bf56b566013d0807c877bc9b"
+    },
+    {
+      "issue": 9,
+      "comment_id": 6081235490,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "prefix_preserved": true,
+      "before_body_sha256": "71bf0fddebce8140abbaf99648ba8f63d86e6a02e59553e66b985774d565dd9e",
+      "submitted_body_sha256": "ea9bb996e0baa4b39b91bb491b31e792e4247b002262fa784b02d4113e0851b1",
+      "root_readback_body_sha256": "ea9bb996e0baa4b39b91bb491b31e792e4247b002262fa784b02d4113e0851b1",
+      "updated_at": "2026-10-11T03:08:05Z",
+      "mutation_returncode": 0,
+      "report_commit": "aae3b393dccd4d96bf56b566013d0807c877bc9b"
+    }
+  ],
+  "issues": [
+    {
+      "issue": 47,
+      "state": "OPEN",
+      "issue_metadata_preserved": true,
+      "metadata_sha256": "dc404d5bba6120d29f9d1a480a0da1860ff314cd8cd1ea70a3e3c15815ac91e3",
+      "issue_body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "dependency_identity_sha256": "41ceaf126b79a3c51103161c2e5a255116e749391aaf274d12246e8004179590",
+      "dependency_counts": {
+        "blocked_by": 8,
+        "blocking": 1
+      },
+      "comment_count": 1
+    },
+    {
+      "issue": 57,
+      "state": "OPEN",
+      "issue_metadata_preserved": true,
+      "metadata_sha256": "ad1d368e1717b93223875351a59a4eb66dde3b8da65758d7ed50a5725cbade70",
+      "issue_body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "dependency_identity_sha256": "d15f279ab7aa0a1b825b01e024eeed949a9c5b7fd38dff66e4948be0fa10de89",
+      "dependency_counts": {
+        "blocked_by": 23,
+        "blocking": 0
+      },
+      "comment_count": 1
+    },
+    {
+      "issue": 9,
+      "state": "OPEN",
+      "issue_metadata_preserved": true,
+      "metadata_sha256": "5048f65aa8dc30392ceb421c78775a5bebddeae6e2cd290a306eb65358fe4226",
+      "issue_body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "dependency_identity_sha256": "8ceeee0ece61f439d83b92143e920ec987f752494f2705170566c243a8c7b7a4",
+      "dependency_counts": {
+        "blocked_by": 0,
+        "blocking": 0
+      },
+      "comment_count": 1
+    }
+  ],
+  "remote_mutations_completed": 3,
+  "closed_issues": 0,
+  "push": false,
+  "independent_readback": {
+    "status": "PASS",
+    "completion": "complete",
+    "agent": "/root/github_batch_readback",
+    "scope": "current gh read of three existing comments, issue metadata and all paginated dependency identities",
+    "body_sha256": {
+      "47": "85da23dd65139f3c49e12fe362755a36670777bd0c2254265f4721dc83b3158e",
+      "57": "12a95b09b0bcba85a0a2d2ca9655474746cb9faaff9a5d9e96792a22c0cffc0c",
+      "9": "ea9bb996e0baa4b39b91bb491b31e792e4247b002262fa784b02d4113e0851b1"
+    },
+    "prefix_preserved": true,
+    "states": [
+      "OPEN",
+      "OPEN",
+      "OPEN"
+    ],
+    "each_comment_count": 1,
+    "dependency_counts": {
+      "47": {
+        "blocked_by": 8,
+        "blocking": 1
+      },
+      "57": {
+        "blocked_by": 23,
+        "blocking": 0
+      },
+      "9": {
+        "blocked_by": 0,
+        "blocking": 0
+      }
+    },
+    "runtime_revalidation": false
+  }
 }
