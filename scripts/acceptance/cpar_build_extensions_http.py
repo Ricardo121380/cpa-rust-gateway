@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 import socketserver
 import struct
@@ -175,6 +176,13 @@ def local_drills(context, observe, private, positive_samples):
     return {"status": "PASS", "executor_qualification": "NOT_IMPLEMENTED; separate synthetic product drills only", "captures_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "cases": records}
 
 
+def embedded_source(binary):
+    revisions = set(match.decode() for match in re.findall(
+        rb"gateway-release-revision=([0-9a-f]{40})(?![0-9a-f])", binary.read_bytes()))
+    oracle.require(len(revisions) == 1, "exact_embedded_source_required")
+    return revisions.pop()
+
+
 def observe_runtime(context, source, instance):
     """Read the owned process and current serving declaration for local executors."""
     api, binary = context["api"], context["binary"]
@@ -216,7 +224,7 @@ def verify(context):
     public = context["out"] / "extensions"
     public.mkdir(mode=0o700)
     binary = context["binary"]
-    source = "1b6023f52f4c00ea6d8296524d306c141e4edae7"
+    source = embedded_source(binary)
     plans, receipts, actual_receives = {}, [], []
     probe = 'import socket\ntry: socket.create_connection(("192.0.2.1",443),timeout=.5)\nexcept PermissionError as error: assert error.errno == 1\nelse: raise AssertionError("non-loopback was not denied")\n'
     subprocess.run(context["cpar_t12_upgrade_http"].sandbox_command([sys.executable, "-c", probe]), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

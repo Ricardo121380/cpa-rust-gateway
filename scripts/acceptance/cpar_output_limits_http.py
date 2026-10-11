@@ -121,9 +121,7 @@ def boundaries(context):
 
 
 def basic_matrix(context):
-    revisions = set(match.decode() for match in re.findall(rb"gateway-release-revision=([0-9a-f]{40})", context["binary"].read_bytes()))
-    assert len(revisions) == 1, "exact embedded source required"
-    source = revisions.pop()
+    source = fixture.embedded_source(context["binary"])
     private = context["root"] / "basic"
     private.mkdir(mode=0o700)
     public = context["out"] / "basic"

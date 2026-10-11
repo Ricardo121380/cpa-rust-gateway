@@ -34,6 +34,7 @@ oracle = legacy if os.environ.get("CPAR_TEST_LEGACY") else load("oracle", "cpar_
 SOURCE_SHA = "2e43ea4bccd7c1253df7d5ceddfbc3f4e4bc61fb"
 sys.path.insert(0, str(Path(__file__).parent / "acceptance"))
 import cpar_build_extensions as extensions
+import cpar_build_extensions_http as fixture
 
 
 def response(protocol="responses", tools=False):
@@ -485,6 +486,18 @@ class FormalOracle(unittest.TestCase):
             plan = {"layer": layer, "target": target(), "collector": {"local_state_dir": "/synthetic"}}
             with self.assertRaisesRegex(ValueError, "local_collector_requires_simulation"):
                 oracle.verify_execution_policy(plan, runtime(), "http://127.0.0.1:1")
+
+    def test_local_fixture_source_requires_one_exact_embedded_revision(self):
+        marker = b"gateway-release-revision="
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "gateway"
+            binary.write_bytes(marker + SOURCE_SHA.encode() + b"\0" + marker + SOURCE_SHA.encode())
+            self.assertEqual(fixture.embedded_source(binary), SOURCE_SHA)
+            for data in (b"", marker + SOURCE_SHA[:8].encode(), marker + SOURCE_SHA.encode() + b"f",
+                         marker + SOURCE_SHA.encode() + b"\0" + marker + b"f" * 40):
+                binary.write_bytes(data)
+                with self.subTest(data=data), self.assertRaisesRegex(ValueError, "exact_embedded_source_required"):
+                    fixture.embedded_source(binary)
 
     def test_local_basic_process_drift_stops_before_send_or_next_turn(self):
         observed = runtime()

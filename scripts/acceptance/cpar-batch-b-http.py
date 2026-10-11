@@ -1152,5 +1152,7 @@ finally:
     provider.shutdown()
     fallback_provider.shutdown()
     log.close()
-    receipt = {"status": "PASS" if passed else "FAIL", "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "checks": checks, "provider_calls": [{key: call[key] for key in ["account", "connection", "protocol", "scenario", "stream", "has_result", "compact"]} for call in calls], "all_upstream_receives": all_receives, "private_state": str(root), "scope": "local_synthetic_only"}
+    checkout_head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    source = cpar_build_extensions_http.embedded_source(binary) if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1" else checkout_head
+    receipt = {"status": "PASS" if passed else "FAIL", "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "source_sha": source, "checkout_head": checkout_head, "checks": checks, "provider_calls": [{key: call[key] for key in ["account", "connection", "protocol", "scenario", "stream", "has_result", "compact"]} for call in calls], "all_upstream_receives": all_receives, "private_state": str(root), "scope": "local_synthetic_only"}
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
