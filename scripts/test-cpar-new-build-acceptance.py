@@ -1055,6 +1055,66 @@ class FormalOracle(unittest.TestCase):
                 else:row["ws_request"]["origin"] = "https://different.invalid"
             self.assertIn(extensions.audit_extension_bundle(changed)["status"], ("FAIL", "BLOCKED"), mutation)
 
+    def test_extension_successful_handshake_requires_absent_origin(self):
+        nonce = base64.b64encode(b"n" * 16).decode()
+        accept = base64.b64encode(hashlib.sha1((nonce + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+        raw = ("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + accept + "\r\n\r\n").encode()
+        sample = {"ws_nonce": nonce, "ws_accept": accept, "ws_origin": None, "ws_path": "/v1/responses", "http_status": 101, "handshake_status": 101,
+                  "ws_request": {"method": "GET", "path": "/v1/responses", "origin": None, "nonce": nonce, "version": "13", "upgrade": "websocket", "connection": "Upgrade"}, "wire_bytes_b64": base64.b64encode(raw).decode()}
+        extensions.verify_handshake(sample, 101)
+        sample["ws_origin"] = sample["ws_request"]["origin"] = "https://example.invalid"
+        with self.assertRaisesRegex(ValueError, "ws_handshake_unconfirmed"):
+            extensions.verify_handshake(sample, 101)
+
+    def test_extension_resource_audit_uses_captured_operations(self):
+        current_target, observed = target(), runtime()
+        current_target["capabilities"]["stored"] = current_target["capabilities"]["compact"] = True
+        owner, foreign = current_target["declaration_evidence"]["client_key_evidence_id"], oracle.opaque("foreign-client")
+        value = response();lineage = evidence(current_target, value)
+        request = {"model": "local-model", "stream": False, "max_output_tokens": 128, "input": "OK", "store": True}
+        raw = json.dumps(value)
+        def operation(method, path, body, identity, status, wire):
+            return {"method": method, "path": path, "request": body, "client_evidence_id": identity, "runtime": observed, "http_status": status, "wire": wire,
+                    "request_wire_b64": base64.b64encode(json.dumps(body).encode() if body is not None else b"").decode(),
+                    "wire_bytes_b64": base64.b64encode(wire.encode()).decode(), "boundary_before": 1, "boundary_after": 1}
+        for case in ("store_read", "foreign_owner", "deleted_read", "compact_foreign_owner"):
+            root = {"extension_sample_version": 1, "case": case, "layer": "LOCAL_SIMULATED", "source_sha": SOURCE_SHA, "target": current_target,
+                    "runtime": observed, "frozen_runtime": observed, "request": request, "expected_text": "OK", "operation": "response_create", "http_status": 200,
+                    "request_wire_b64": base64.b64encode(json.dumps(request).encode()).decode(), "wire": raw, "wire_bytes_b64": base64.b64encode(raw.encode()).decode(), "evidence": lineage}
+            root["request_binding_sha256"] = extensions.request_binding(root)
+            final = copy.deepcopy(root)
+            final.update(root_sample=copy.deepcopy(root), read_wire=raw, read_http_status=200, read_response_id=value["id"])
+            path = "/responses/" + value["id"]
+            operations = [operation("GET", path, None, owner, 200, raw)]
+            if case in ("foreign_owner", "compact_foreign_owner"):
+                operations.append(operation("GET", "/models", None, foreign, 200, json.dumps({"data": [{"id": "local-model"}]})))
+                final.update(owner_read_http_status=200, owner_read_wire=raw, owner_client_evidence_id=owner, actual_client_evidence_id=foreign,
+                             foreign_auth_status=200, foreign_visible_model="local-model")
+            elif case == "deleted_read":
+                operations.append(operation("DELETE", path, None, owner, 200, json.dumps({"id": value["id"], "object": "response.deleted", "deleted": True})))
+                final.update(delete_http_status=200, deleted_response_id=value["id"])
+            if case != "store_read":
+                compact_request = {"model": "local-model", "previous_response_id": value["id"], "stream": False}
+                operations.append(operation("POST" if case == "compact_foreign_owner" else "GET", "/responses/compact" if case == "compact_foreign_owner" else path,
+                                            compact_request if case == "compact_foreign_owner" else None, owner if case == "deleted_read" else foreign, 404, '{"error":{"type":"not_found"}}'))
+                final.update(http_status=404, operation="responses_compact" if case == "compact_foreign_owner" else "stored_read", authenticated=True,
+                             boundary_before=1, boundary_after=1, evidence={"upstream_send_count": 0})
+                if case == "compact_foreign_owner":final["compact_request"] = compact_request
+            original = {"extension_bundle_version": 1, "layer": "LOCAL_SIMULATED", "case": case, "source_sha": SOURCE_SHA, "runtime": observed, "target": current_target,
+                        "samples": [root], "verified_sample": final, "resource_operations": operations, "counts": {"inference_intents": 1}, "result": {"status": "PASS", "stopped": True}}
+            self.assertEqual(extensions.audit_extension_bundle(original)["status"], "PASS", case)
+            for mutation in ("missing", "status", "wire", "path", "request", "identity", "runtime", "send_count"):
+                changed = copy.deepcopy(original)
+                if mutation == "missing":changed.pop("resource_operations")
+                elif mutation == "status":changed["resource_operations"][-1]["http_status"] = 404 if case == "store_read" else 200
+                elif mutation == "wire":changed["resource_operations"][-1]["wire_bytes_b64"] = base64.b64encode(b"{}").decode()
+                elif mutation == "path":changed["resource_operations"][-1]["path"] = "/responses/unrelated-root"
+                elif mutation == "request":changed["resource_operations"][-1]["request"] = {"unfrozen": True}
+                elif mutation == "identity":changed["resource_operations"][-1]["client_evidence_id"] = oracle.opaque("unrelated-client")
+                elif mutation == "runtime":changed["resource_operations"][-1]["runtime"]["pid"] += 1
+                else:changed["resource_operations"][-1]["boundary_after"] += 1
+                self.assertIn(extensions.audit_extension_bundle(changed)["status"], ("FAIL", "BLOCKED"), (case, mutation))
+
     def test_extension_websocket_completed_then_output_fails_before_next_turn(self):
         captures, creates = [], []
         class Handler(socketserver.BaseRequestHandler):

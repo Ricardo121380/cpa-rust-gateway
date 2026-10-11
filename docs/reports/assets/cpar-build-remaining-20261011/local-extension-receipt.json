@@ -1,0 +1,690 @@
+{
+  "status": "PASS",
+  "layer": "LOCAL_SIMULATED",
+  "real_provider_requests": 0,
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "07247ed69d4ee433abd964ae95c2de41130a087109ae03b1c5a477fa899c0413",
+  "formal_tool_sha256": "0754c4181653e53b5c93053d53b320062a0f14cdd9d3ece8d1fe966ccb2612bc",
+  "extension_tool_sha256": "aedc68b6f0a093ba2fdf892ae306c54449fc3bec73bc1f5861eae0450fdcf1f1",
+  "cli_runs": 36,
+  "implemented_cases": [
+    "compact_foreign_owner",
+    "compact_roundtrip",
+    "deleted_read",
+    "exact_continuation",
+    "foreign_owner",
+    "reasoning_history",
+    "store_read",
+    "visible_reasoning",
+    "ws_handshake_rejection",
+    "ws_multiturn"
+  ],
+  "not_implemented_cases": [
+    "compact_lineage_rejection",
+    "expired_read",
+    "lineage_rejection",
+    "persistence_failure",
+    "restart_read",
+    "ws_cancel",
+    "ws_failed_root"
+  ],
+  "results": [
+    {
+      "case": "visible_reasoning",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "67125742b7a905feef1c6873bb255dbfbb1d4b081711a16d4b963c45bdad85ee"
+    },
+    {
+      "case": "reasoning_history",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 2,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "cf45266a09654b7f27dbb5f50871e61e0bd93e8360f440f483d13717fddad61a"
+    },
+    {
+      "case": "visible_reasoning",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "6296d98e11c41cca9e5cb116fed3720c958a2ef0d4932ec6f21e22cce45ee3b2"
+    },
+    {
+      "case": "reasoning_history",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 2,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "9fba900a1024b616dc708e21782371daa81653ca20b4d453a467c78bea0e7140"
+    },
+    {
+      "case": "visible_reasoning",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "5205d181ec35d3a9e10e91ff865b9c7eea5cb52d05a934eea8c1ea4b52f47ad9"
+    },
+    {
+      "case": "reasoning_history",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 2,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "180bd0dce48472f679e3acd0cc87c5f52d75b2c88d16777906d947a25298105a"
+    },
+    {
+      "case": "visible_reasoning",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "78956bf82ca1b29c22f2c455f5b2d1c01824c0b0bb280a7d6cf5ba19bd798ea7"
+    },
+    {
+      "case": "reasoning_history",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 2,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "b6b57d379205a5dfb393c7b28afcf7c9ee40d2da17e75b67d8f5661963977d22"
+    },
+    {
+      "case": "store_read",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "132ff29bbb3d307f566313d218e9f3bea2bee14f36d43c6e9e341b94cfea8db1"
+    },
+    {
+      "case": "exact_continuation",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 2,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "2069f5c8ca8b02f606bfc242ead294cd4c879b7e1c2683ab5df126de0713be56"
+    },
+    {
+      "case": "compact_roundtrip",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 3,
+      "http_intents": 3,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "4bce4a0efd92c540e688bf22f152ded6b8fc92a7772f3d513a4d3a2e3d28cd0e"
+    },
+    {
+      "case": "store_read",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "ea2d5897d6a478d367078e47acec98816893463fcb6439c01179ac7cb168b4de"
+    },
+    {
+      "case": "exact_continuation",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 2,
+      "http_intents": 2,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "efdbd943f6776e093a4cd78f74b0478d6ce3a17b1d86a0c6e4a2a4ea4577a826"
+    },
+    {
+      "case": "compact_roundtrip",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 3,
+      "http_intents": 3,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "c450e7d03ca39c467ff74db1c5b369fa9d03d7ae3615f83e34d68a1e1edf56e4"
+    },
+    {
+      "case": "foreign_owner",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 4,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "338738d6aa16c5bff175b7e465095f2801927d2356c8ddb184bbf5137dddc8d1"
+    },
+    {
+      "case": "deleted_read",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 4,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "f0eda5e72955a1555d10674fe999303ff849c8d1ab45b0245097f3e1f1b0b077"
+    },
+    {
+      "case": "compact_foreign_owner",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 1,
+      "http_intents": 4,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "07c80d1957e2d86c6d4177b65117a533f914f72aea028d9a18392a9f9efe6e49"
+    },
+    {
+      "case": "ws_multiturn",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 2,
+      "http_intents": 1,
+      "ws_frame_intents": 2,
+      "private_bundle_sha256": "5724c01af7846abac7cf9a91097ed7ca2ad506d8e9a9e1c482715c9ed850311b"
+    },
+    {
+      "case": "ws_handshake_rejection",
+      "status": "PASS",
+      "category": "verified",
+      "inference_intents": 0,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "da7222972d3e84192227125c982ed0561bf5cf88acf2cab948dca2034db1acc9"
+    },
+    {
+      "case": "compact_lineage_rejection",
+      "status": "BLOCKED",
+      "category": "extension_executor_not_implemented",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "expired_read",
+      "status": "BLOCKED",
+      "category": "extension_executor_not_implemented",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "lineage_rejection",
+      "status": "BLOCKED",
+      "category": "extension_executor_not_implemented",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "persistence_failure",
+      "status": "BLOCKED",
+      "category": "extension_executor_not_implemented",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "restart_read",
+      "status": "BLOCKED",
+      "category": "extension_executor_not_implemented",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "ws_cancel",
+      "status": "BLOCKED",
+      "category": "extension_executor_not_implemented",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "ws_failed_root",
+      "status": "BLOCKED",
+      "category": "extension_executor_not_implemented",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "reasoning_history",
+      "status": "BLOCKED",
+      "category": "messages_thinking_build_effort_no_lossless_mapping",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "reasoning_history",
+      "status": "BLOCKED",
+      "category": "extensions_live_execution_not_authorized",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "reasoning_history",
+      "status": "BLOCKED",
+      "category": "exact_attempt_collector_required",
+      "inference_intents": 0,
+      "http_intents": 0,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": null
+    },
+    {
+      "case": "reasoning_history",
+      "status": "FAIL",
+      "category": "history_or_result_not_used",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "ff7dcf054ae31cff1cf2d87fc912fd9931570f1867570b0d2186a32249a0afc5"
+    },
+    {
+      "case": "reasoning_history",
+      "status": "FAIL",
+      "category": "wrong_execution_client",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "9406eef412acaef7dca7f86c8b10ed4749b2ad189fc28fb3467818e52a2e6dea"
+    },
+    {
+      "case": "exact_continuation",
+      "status": "FAIL",
+      "category": "wrong_content_type",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "a100846be48ee2f750d223619890fd78c03aa1801d979a6a541a386fe19f42a8"
+    },
+    {
+      "case": "exact_continuation",
+      "status": "FAIL",
+      "category": "extension_transport_or_collector_failure",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "a5a61655e190b1370db3dfff8429adc99d99c0e3c03e867905491a5723c1d824"
+    },
+    {
+      "case": "ws_multiturn",
+      "status": "FAIL",
+      "category": "duplicate_or_late_terminal",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 1,
+      "private_bundle_sha256": "a9430586cb820d1eaff1e1c2eb531d6fe64eb7f3096be7f61e36e000514466dc"
+    },
+    {
+      "case": "ws_multiturn",
+      "status": "FAIL",
+      "category": "response_error",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 1,
+      "private_bundle_sha256": "20ec27a8192f98c47a97808d344aaed52c4bca7590b4461eb37c9aa8a5bd357a"
+    },
+    {
+      "case": "reasoning_history",
+      "status": "FAIL",
+      "category": "extension_http_failure",
+      "inference_intents": 1,
+      "http_intents": 1,
+      "ws_frame_intents": 0,
+      "private_bundle_sha256": "601b762892130233a26e6f2216cbac9752f98ea3894e0f6528ccb19339a0a250"
+    }
+  ],
+  "independent_fixture_receives": [
+    {
+      "case": "visible_reasoning",
+      "protocol": "chat",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "chat",
+      "mode": "json",
+      "http_receive_count": 2,
+      "intent_count": 2
+    },
+    {
+      "case": "visible_reasoning",
+      "protocol": "chat",
+      "mode": "sse",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "chat",
+      "mode": "sse",
+      "http_receive_count": 2,
+      "intent_count": 2
+    },
+    {
+      "case": "visible_reasoning",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 2,
+      "intent_count": 2
+    },
+    {
+      "case": "visible_reasoning",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 2,
+      "intent_count": 2
+    },
+    {
+      "case": "store_read",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "exact_continuation",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 2,
+      "intent_count": 2
+    },
+    {
+      "case": "compact_roundtrip",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 3,
+      "intent_count": 3
+    },
+    {
+      "case": "store_read",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "exact_continuation",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 2,
+      "intent_count": 2
+    },
+    {
+      "case": "compact_roundtrip",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 3,
+      "intent_count": 3
+    },
+    {
+      "case": "foreign_owner",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "deleted_read",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "compact_foreign_owner",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "ws_multiturn",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 2,
+      "intent_count": 2
+    },
+    {
+      "case": "ws_handshake_rejection",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "compact_lineage_rejection",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "expired_read",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "lineage_rejection",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "persistence_failure",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "restart_read",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "ws_cancel",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "ws_failed_root",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "messages",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 0,
+      "intent_count": 0
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "exact_continuation",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "exact_continuation",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "ws_multiturn",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "ws_multiturn",
+      "protocol": "responses",
+      "mode": "sse",
+      "http_receive_count": 1,
+      "intent_count": 1
+    },
+    {
+      "case": "reasoning_history",
+      "protocol": "responses",
+      "mode": "json",
+      "http_receive_count": 1,
+      "intent_count": 1
+    }
+  ],
+  "private_state_evidence_id": "bfca820f3efb732f19604b170ec83e471a13e89530296ff4a29c723c9e20dbff",
+  "local_drills": {
+    "status": "PASS",
+    "executor_qualification": "NOT_IMPLEMENTED; separate synthetic product drills only",
+    "captures_sha256": "b7f04a2ebe8482866370d7e566c212f9db40f424cb9eafae392a96e1a7390937",
+    "cases": [
+      {
+        "case": "restart_read",
+        "status": "PASS",
+        "scope": "LOCAL_DRILL_ONLY",
+        "http_receive_count": 0,
+        "attempt_delta": 0,
+        "binary_unchanged": true,
+        "process_changed": true
+      },
+      {
+        "case": "expired_read",
+        "status": "PASS",
+        "scope": "LOCAL_DRILL_ONLY",
+        "http_receive_count": 0,
+        "attempt_delta": 0,
+        "fixed_ttl_days": 30,
+        "synthetic_expiry_only": true,
+        "real_30_day_expiry": "BLOCKED; authentic aged root required"
+      },
+      {
+        "case": "persistence_failure",
+        "status": "PASS",
+        "scope": "LOCAL_DRILL_ONLY",
+        "http_receive_count": 1,
+        "attempt_delta": 1,
+        "failed_terminal": true,
+        "stored_read_status": 404,
+        "usage_records": 1,
+        "ledger_rows": 1
+      },
+      {
+        "case": "ws_cancel",
+        "status": "PASS",
+        "scope": "LOCAL_DRILL_ONLY",
+        "http_receive_count": 1,
+        "attempt_delta": 1,
+        "semantic_output": true,
+        "upstream_socket_eof": true,
+        "stored_read_status": 404,
+        "ledger_rows": 1
+      },
+      {
+        "case": "ws_failed_root",
+        "status": "PASS",
+        "scope": "LOCAL_DRILL_ONLY",
+        "http_receive_count": 1,
+        "attempt_delta": 1,
+        "failed_terminal": true,
+        "continuation_frames": 1,
+        "stored_read_status": 404
+      },
+      {
+        "case": "lineage_rejection",
+        "status": "PASS",
+        "scope": "LOCAL_DRILL_ONLY",
+        "http_receive_count": 0,
+        "attempt_delta": 0,
+        "disabled_original_account": true
+      },
+      {
+        "case": "compact_lineage_rejection",
+        "status": "PASS",
+        "scope": "LOCAL_DRILL_ONLY",
+        "http_receive_count": 0,
+        "attempt_delta": 0,
+        "disabled_original_account": true,
+        "summary_and_consume_rejected": true
+      }
+    ]
+  },
+  "candidate_proof": "source-matched local debug build, not a release artifact",
+  "observed_at_utc": "2026-10-11T02:08:59.955981+00:00",
+  "parallel_false_build_qualification": "BLOCKED; generic fixture declares parallel true; native Build remains false and unchanged"
+}

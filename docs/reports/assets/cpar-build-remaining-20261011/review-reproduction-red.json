@@ -1,0 +1,27 @@
+{
+  "schema": "cpar-review-reproduction-v1",
+  "status": "FAIL_CONFIRMED",
+  "head": "9a9dc029c42ee7fd3b476cb6d290052a88fbfb74",
+  "real_provider_requests": 0,
+  "observations": [
+    {
+      "case": "resource_actual_200_claimed_404",
+      "exit_code": 0,
+      "status": "PASS",
+      "category": "verified",
+      "scope": "SYNTHETIC_FORMAL_CLI_REPRODUCTION"
+    },
+    {
+      "case": "resource_capture_deleted",
+      "exit_code": 0,
+      "status": "PASS",
+      "category": "verified",
+      "scope": "SYNTHETIC_FORMAL_CLI_REPRODUCTION"
+    },
+    {
+      "case": "success_101_with_origin",
+      "status": "PASS",
+      "scope": "SYNTHETIC_HANDSHAKE_BOUNDARY_REPRODUCTION"
+    }
+  ]
+}

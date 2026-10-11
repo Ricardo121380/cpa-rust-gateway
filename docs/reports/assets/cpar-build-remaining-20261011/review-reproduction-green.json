@@ -1,0 +1,19 @@
+{
+  "status": "PASS; original false-PASS samples now rejected",
+  "scope": "SYNTHETIC_FORMAL_CLI",
+  "observations": [
+    {
+      "case": "resource_actual_200_claimed_404",
+      "exit_code": 1,
+      "status": "FAIL",
+      "category": "extension_resource_sequence_changed"
+    },
+    {
+      "case": "resource_capture_deleted",
+      "exit_code": 2,
+      "status": "BLOCKED",
+      "category": "extension_resource_capture_missing"
+    }
+  ],
+  "real_provider_requests": 0
+}

@@ -346,6 +346,27 @@ def verify(context):
             (private / (label + "-audit.log")).write_text(audit.stdout + audit.stderr)
             check("extension_official_cli_audit_" + label, audit.returncode == 0 and json.loads(audit_path.read_text())["status"] == "PASS")
             actual_bundle = json.loads(bundle_path.read_text())
+            if case in ("store_read", "foreign_owner", "deleted_read", "compact_foreign_owner", "ws_multiturn"):
+                mutations = ("successful_origin",) if case == "ws_multiturn" else ("missing_resource", "resource_status", "resource_wire", "resource_path", "resource_request")
+                for mutation in mutations:
+                    changed = copy.deepcopy(actual_bundle)
+                    if mutation == "successful_origin":
+                        changed["handshake"]["ws_origin"] = "https://example.invalid"
+                        changed["handshake"]["ws_request"]["origin"] = "https://example.invalid"
+                    elif mutation == "missing_resource":
+                        changed.pop("resource_operations")
+                    elif mutation == "resource_status":
+                        changed["resource_operations"][-1]["http_status"] = 200 if case != "store_read" else 404
+                    elif mutation == "resource_wire":
+                        changed["resource_operations"][-1]["wire_bytes_b64"] = base64.b64encode(b"{}").decode()
+                    elif mutation == "resource_path":
+                        changed["resource_operations"][-1]["path"] = "/responses/unrelated-root"
+                    else:
+                        changed["resource_operations"][-1]["request"] = {"unfrozen": True}
+                    mutation_path, audit_path = private / (label + "-" + mutation + ".json"), public / (label + "-" + mutation + "-audit.json")
+                    mutation_path.write_text(json.dumps(changed) + "\n")
+                    audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(mutation_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
+                    check("extension_official_cli_rejects_" + label + "_" + mutation, audit.returncode != 0 and json.loads(audit_path.read_text())["status"] in ("FAIL", "BLOCKED"))
             if case == "ws_handshake_rejection":
                 for mutation in ("missing_handshake", "wrong_handshake_status", "partial_handshake_body", "wrong_handshake_origin"):
                     changed = copy.deepcopy(actual_bundle)

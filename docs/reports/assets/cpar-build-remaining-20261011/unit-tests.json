@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "passed": 49,
+  "failed": 0,
+  "command": "python3 scripts/test-cpar-new-build-acceptance.py",
+  "scope": "formal oracle plus captured resource operations and successful handshake Origin",
+  "log_sha256": "d674354e52dcc4ee2154e2eea95423c2df2bf3a6ccc07a55f9aae5a3c82541c1",
+  "files": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "0754c4181653e53b5c93053d53b320062a0f14cdd9d3ece8d1fe966ccb2612bc",
+    "scripts/acceptance/cpar_build_extensions.py": "aedc68b6f0a093ba2fdf892ae306c54449fc3bec73bc1f5861eae0450fdcf1f1",
+    "scripts/test-cpar-new-build-acceptance.py": "3970a169919681d7f74ddbe4d9fea4831e4498cad0f3277c3a81d283e8dd4906"
+  },
+  "real_provider_requests": 0
+}

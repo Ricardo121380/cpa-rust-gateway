@@ -336,6 +336,11 @@ missing raw bytes, altered frame/body bytes, unrelated parents and reduced-count
 bundles fail. Public receipts project only enum layers/cases and bounded integer
 counts, including rejection paths. Historical extension samples remain readable
 in their original audit scope; they are not generated-executor qualification.
+Resource read, delete, foreign authentication and rejection conclusions are derived
+from their ordered raw captures, exact root/path/request, Client Key evidence,
+per-operation runtime and zero-send observations. Missing captures or disagreement
+with the final sample fail admission. A successful WebSocket upgrade requires an
+absent Origin in both captured request projections.
 
 The directed regression uses the existing Batch B fixture and formal CLI:
 

@@ -67,7 +67,7 @@ def verify_handshake(sample, status):
                    isinstance(request["path"], str) and request["path"].endswith("/responses") and len(base64.b64decode(request["nonce"], validate=True)) == 16, "ws_handshake_request_changed")
     if status == 101:
         expected = base64.b64encode(hashlib.sha1((request["nonce"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
-        oracle.require(not body and fields.get("sec-websocket-accept") == sample.get("ws_accept") == expected and
+        oracle.require(request["origin"] is None and not body and fields.get("sec-websocket-accept") == sample.get("ws_accept") == expected and
                        fields.get("upgrade", "").lower() == "websocket" and "upgrade" in fields.get("connection", "").lower().split(", "), "ws_handshake_unconfirmed")
     else:
         oracle.require(request["origin"] == "https://example.invalid" and "transfer-encoding" not in fields and
@@ -226,6 +226,56 @@ def verify_sample(sample, target):
         oracle.require(sample["boundary_before"] == sample["boundary_after"], "rejected_extension_sent_upstream")
 
 
+def verify_resource_operations(bundle, root):
+    """Derive resource conclusions from the ordered captures for this exact root."""
+    sample, target, case = bundle["verified_sample"], bundle["target"], bundle["case"]
+    rows = bundle.get("resource_operations")
+    oracle.available(isinstance(rows, list), "extension_resource_capture_missing")
+    oracle.require(len(rows) == (1 if case == "store_read" else 3), "extension_resource_sequence_changed")
+    owner = target["declaration_evidence"]["client_key_evidence_id"]
+    foreign = sample.get("actual_client_evidence_id")
+    path = "/responses/" + urllib.parse.quote(root["id"], safe="")
+    expected = [("GET", path, None, owner)]
+    if case in ("foreign_owner", "compact_foreign_owner"):
+        oracle.require(sample.get("owner_client_evidence_id") == owner and isinstance(foreign, str) and
+                       re.fullmatch("[0-9a-f]{64}", foreign) is not None and foreign != owner, "extension_owner_unknown")
+        expected.append(("GET", "/models", None, foreign))
+    elif case == "deleted_read":
+        expected.append(("DELETE", path, None, owner))
+    if case == "compact_foreign_owner":
+        expected.append(("POST", "/responses/compact", {"model": target["public_model"], "previous_response_id": root["id"], "stream": False}, foreign))
+    elif case != "store_read":
+        expected.append(("GET", path, None, foreign if case == "foreign_owner" else owner))
+    for row, (method, resource, request, identity) in zip(rows, expected):
+        oracle.require(isinstance(row, dict) and (row.get("method"), row.get("path"), row.get("request"), row.get("client_evidence_id")) ==
+                       (method, resource, request, identity), "extension_resource_sequence_changed")
+        oracle.verify_turn_runtime(row.get("runtime"), bundle["runtime"], bundle["source_sha"], bundle["layer"])
+        oracle.available(isinstance(row.get("wire_bytes_b64"), str) and isinstance(row.get("request_wire_b64"), str), "extension_resource_capture_missing")
+        raw = base64.b64decode(row["wire_bytes_b64"], validate=True)
+        sent = base64.b64decode(row["request_wire_b64"], validate=True)
+        oracle.require(raw.decode() == row.get("wire") and (not sent if request is None else oracle.load_json(sent.decode()) == request), "extension_resource_wire_changed")
+        oracle.available(oracle.integer(row.get("boundary_before")) and oracle.integer(row.get("boundary_after")), "boundary_observation_unavailable")
+        oracle.require(row["boundary_before"] == row["boundary_after"], "rejected_extension_sent_upstream")
+    read = rows[0]
+    oracle.require(read.get("http_status") == sample.get("read_http_status") == 200 and
+                   read["wire"] == sample.get("read_wire") and oracle.load_json(read["wire"]) == root, "extension_resource_unconfirmed")
+    if case in ("foreign_owner", "compact_foreign_owner"):
+        authentication = rows[1]
+        oracle.require(read["http_status"] == sample.get("owner_read_http_status") and read["wire"] == sample.get("owner_read_wire") and
+                       authentication.get("http_status") == sample.get("foreign_auth_status") == 200 and
+                       any(model.get("id") == target["public_model"] for model in oracle.load_json(authentication["wire"]).get("data", [])), "extension_authentication_unconfirmed")
+    elif case == "deleted_read":
+        deletion = rows[1]
+        oracle.require(deletion.get("http_status") == sample.get("delete_http_status") and deletion["http_status"] in (200, 204), "deletion_not_observed")
+        oracle.require(not deletion["wire"] if deletion["http_status"] == 204 else
+                       oracle.load_json(deletion["wire"]) == {"id": root["id"], "object": "response.deleted", "deleted": True}, "deletion_not_observed")
+    if case != "store_read":
+        denied = rows[-1]
+        oracle.require(denied.get("http_status") == sample.get("http_status") == 404 and
+                       denied["boundary_before"] == sample.get("boundary_before") and denied["boundary_after"] == sample.get("boundary_after"), "extension_rejection_missing")
+        oracle.require(isinstance(oracle.load_json(denied["wire"]).get("error"), dict), "extension_rejection_missing")
+
+
 def verify_sequence(bundle, values):
     """A passed execution has exactly the reviewed roots and ordered operations."""
     captures, sample, case, target = bundle["samples"], bundle["verified_sample"], bundle["case"], bundle["target"]
@@ -249,6 +299,7 @@ def verify_sequence(bundle, values):
     if negative or case == "store_read":
         oracle.require(sample.get("root_sample") == captures[0], "extension_root_not_captured")
         oracle.require(oracle.load_json(sample["read_wire"]) == values[0], "extension_resource_unconfirmed")
+        verify_resource_operations(bundle, values[0])
     if case == "reasoning_history":
         oracle.require(sample.get("previous_request") == captures[0]["request"] and oracle.load_json(sample["previous_wire"]) == values[0], "extension_history_root_not_captured")
         oracle.extension_check("reasoning", "visible_reasoning", {**captures[0], "case": "visible_reasoning"}, target)
@@ -544,10 +595,14 @@ def run_extension(plan, runtime, key, base_url, private_out, *, foreign_key=None
             save()
             return sample, value
         def exchange(path, body=None, *, method="GET", actual_key=key):
-            result = {"method": method, "path": path, "request": copy.deepcopy(body)}
+            result = {"method": method, "path": path, "request": copy.deepcopy(body),
+                      "client_evidence_id": target["declaration_evidence"]["client_key_evidence_id"] if actual_key == key else specification["foreign_client_evidence_id"],
+                      "request_wire_b64": base64.b64encode(json.dumps(body, separators=(",", ":")).encode() if body is not None else b"").decode(),
+                      "boundary_before": attempt_count(collector["local_state_dir"])}
             bundle.setdefault("resource_operations", []).append(result)
-            intent({"operation": method.lower() + "_" + ("compact" if path.endswith("/compact") else "resource"), **result})
+            result["runtime"] = intent({"operation": method.lower() + "_" + ("compact" if path.endswith("/compact") else "resource"), **result})
             result.update(oracle.http_exchange(base_url, actual_key, path, body, method=method, on_progress=progress(result)))
+            result.update(runtime=observe_local_process(collector, runtime), boundary_after=attempt_count(collector["local_state_dir"]))
             save()
             return result
         request = {"model": target["public_model"], "stream": target["mode"] == "sse", **copy.deepcopy(target["parameters"])}
