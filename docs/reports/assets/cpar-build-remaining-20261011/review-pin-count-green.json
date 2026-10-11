@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "layer": "LOCAL_SIMULATED",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "case": "unknown",
+      "status": "PASS",
+      "actual_sends": null,
+      "known_sends_lower_bound": 0,
+      "complete": false
+    },
+    {
+      "case": "zero_proven",
+      "status": "PASS",
+      "actual_sends": 0,
+      "known_sends_lower_bound": 0,
+      "complete": true
+    },
+    {
+      "case": "one_proven",
+      "status": "PASS",
+      "actual_sends": 1,
+      "known_sends_lower_bound": 1,
+      "complete": true
+    },
+    {
+      "case": "missing_second",
+      "status": "PASS",
+      "actual_sends": null,
+      "known_sends_lower_bound": 1,
+      "complete": false
+    }
+  ],
+  "exit_tool_sha256": "ee839170c92b8822bb6e625fef0f9445f6ca1f502067cd86f7c02682f031d852"
+}

@@ -76,6 +76,7 @@ with sqlite3.connect('file:' + str(epoch / 'state/control.sqlite3') + '?mode=ro'
 pins = [json.loads(path.read_text()) for path in epoch.glob('*/pin-private.json')]
 pin_send_accounting_complete = len(pins) == budget['new_pin_intents'] and all((pin.get('attempt_count') == 1 and pin.get('upstream_sent') is True) or (pin.get('attempt_count') == 0 and pin.get('upstream_sent') is False) for pin in pins)
 pin_known_sends = sum(pin.get('attempt_count') == 1 and pin.get('upstream_sent') is True for pin in pins)
+pin_actual_sends = pin_known_sends if pin_send_accounting_complete else None
 files = {}
 for path in epoch.rglob('*'):
     assert not path.is_symlink()
@@ -84,14 +85,16 @@ for path in epoch.rglob('*'):
     elif path.is_file():
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
         files[str(path.relative_to(base))] = {'sha256': digest(path), 'bytes': path.stat().st_size, 'mode': '0600'}
-receipt = {'status': 'PASS; exit and count reconciliation',
+receipt = {'status': 'PASS; resource exit and count reconciliation' if pin_send_accounting_complete else 'PARTIAL; resource exit PASS; Pin count UNKNOWN',
+           'resource_exit_status': 'PASS', 'count_reconciliation_status': 'PASS' if pin_send_accounting_complete else 'UNKNOWN',
            'observed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
            'source_sha': start['source_sha'], 'binary_sha256': start['binary_sha256'],
            'process_pid_before_stop': pid, 'main_pid_after_stop': 0,
            'temporary_ports_listening': [], 'post_stop_flat_seconds': 5,
            'network_audit_sha256': audit_hash, 'network_audit_events': network_events,
            'new_pin_intents': budget['new_pin_intents'], 'new_basic_intents': budget['new_basic_intents'],
-           'new_pin_actual_sends': pin_known_sends, 'pin_send_accounting_complete': pin_send_accounting_complete, 'new_basic_attempts': delta.get('attempt', 0),
+           'new_pin_actual_sends': pin_actual_sends, 'new_pin_confirmed_sends_lower_bound': pin_known_sends,
+           'pin_send_accounting_complete': pin_send_accounting_complete, 'new_basic_attempts': delta.get('attempt', 0),
            'new_event_counts': delta, 'inherited_event_counts': prepare['inherited_event_counts'],
            'new_ledger_rows': ledger_count - prepare['inherited_ledger_count'],
            'all_attempt_outcomes_including_inherited': [row.get('outcome') for row in attempts],

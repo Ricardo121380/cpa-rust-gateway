@@ -1,0 +1,12 @@
+{
+  "status": "defect reproduced",
+  "layer": "LOCAL_SIMULATED",
+  "real_provider_requests": 0,
+  "review_head": "1758c70f4de768c7c15a949513b4378440adfd03",
+  "case": "pin_response_lost",
+  "pin_intents": 1,
+  "pins_received": 0,
+  "pin_send_accounting_complete": false,
+  "incorrect_actual_sends_projection": 0,
+  "required_actual_sends": "UNKNOWN"
+}

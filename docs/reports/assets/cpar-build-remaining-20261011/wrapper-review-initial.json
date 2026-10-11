@@ -1,0 +1,26 @@
+{
+  "head": "1758c70f4de768c7c15a949513b4378440adfd03",
+  "original_base": "2d66f892a0e507becbf9d2bd1f0142a64d16fd4a",
+  "full_paths": 104,
+  "standards": {
+    "status": "PASS",
+    "completion": "complete",
+    "hard_findings": 0,
+    "nonblocking_heuristics": 1,
+    "heuristic": "Duplicated Code: atomic save_budget in standalone Pin/basic scripts",
+    "resolution": "retain independent standalone scripts; no style refactor"
+  },
+  "spec": {
+    "status": "FAIL",
+    "completion": "complete",
+    "findings": [
+      {
+        "priority": "P2",
+        "path": "tools/remote-exit.py",
+        "line": 87,
+        "category": "unknown_pin_send_count_projected_as_zero"
+      }
+    ]
+  },
+  "real_provider_requests": 0
+}
