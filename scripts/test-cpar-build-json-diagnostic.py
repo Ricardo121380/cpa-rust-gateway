@@ -9,6 +9,7 @@ import io
 from pathlib import Path
 import subprocess
 import sqlite3
+import shlex
 import sys
 import tarfile
 import tempfile
@@ -21,6 +22,63 @@ spec.loader.exec_module(diagnostic)
 
 class DiagnosticTests(unittest.TestCase):
     tools = Path(__file__).parent.parent/'docs/reports/assets/cpar-build-json-502-20261011/tools'
+
+    def test_actual_startup_injects_environment_without_changing_guard_or_audit(self):
+        source=ast.parse((self.tools/'remote-start.py').read_text())
+        injection=next(node for node in source.body if isinstance(node,ast.Assign) and
+                       (any(isinstance(target,ast.Subscript) and isinstance(target.value,ast.Name)
+                            and target.value.id=='launch' for target in node.targets) or
+                        isinstance(node.value,ast.Call) and isinstance(node.value.func,ast.Attribute)
+                        and node.value.func.attr=='with_diagnostic_environment'))
+        epoch=Path('/protected/epoch');binary=Path('/protected/bin/gateway');guard=Path('/protected/bin/guard.so')
+        audit=Path('/protected/audit/epoch.jsonl')
+        environment='--property=Environment=LD_PRELOAD='+str(guard)+' CPAR_BUILD_EGRESS_AUDIT='+str(audit)
+        original=['systemd-run','--unit=owned.service','--property=NoNewPrivileges=yes',environment,
+                  str(binary),'serve','--state-dir',str(epoch/'state'),'--background-provider-tasks','disabled']
+        namespace={'launch':list(original),'binary':binary,'guard':guard,'audit':audit,'epoch':epoch,
+                   'prepare':{'selected_request_sha256':'a'*64},'source_sha':'b'*40,'diagnostic':diagnostic}
+        try:
+            exec(compile(ast.fix_missing_locations(ast.Module(body=[injection],type_ignores=[])),'actual-startup-env','exec'),namespace)
+        except ValueError as error:
+            self.fail('approved Environment property rejected: '+type(error).__name__)
+        result=namespace['launch']
+        self.assertEqual(result[:3],original[:3])
+        self.assertEqual(result[4:],original[4:])
+        entries=shlex.split(result[3].removeprefix('--property=Environment='))
+        self.assertEqual(entries[:2],['LD_PRELOAD='+str(guard),'CPAR_BUILD_EGRESS_AUDIT='+str(audit)])
+        self.assertEqual(entries[2:],['CPAR_BUILD_DIAGNOSTIC_DIR='+str(epoch/'native-capture'),
+                                      'CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256='+'a'*64,
+                                      'CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION='+'b'*40])
+
+    def test_launch_injection_rejects_missing_duplicate_or_changed_environment(self):
+        valid=['systemd-run','--property=Environment=LD_PRELOAD=/guard CPAR_BUILD_EGRESS_AUDIT=/audit',
+               '/gateway','serve']
+        for launch in ([valid[0],*valid[2:]], [*valid[:2],valid[1],*valid[2:]],
+                       [valid[0],valid[1].replace('/guard','/other'),*valid[2:]],
+                       [valid[0],valid[1]+' CPAR_BUILD_DIAGNOSTIC_DIR=/old',*valid[2:]]):
+            before=list(launch)
+            with self.assertRaises(ValueError):
+                diagnostic.with_diagnostic_environment(launch,'/gateway','/guard','/audit','/capture','a'*64,'b'*40)
+            self.assertEqual(launch,before)
+        result=diagnostic.with_diagnostic_environment(valid,'/gateway','/guard','/audit','/capture','a'*64,'b'*40)
+        self.assertEqual(valid[1],'--property=Environment=LD_PRELOAD=/guard CPAR_BUILD_EGRESS_AUDIT=/audit')
+        self.assertEqual(len(result),len(valid))
+
+    def test_actual_startup_rejects_terminated_epoch_before_launch(self):
+        source=ast.parse((self.tools/'remote-start.py').read_text())
+        guards=[node for node in source.body if isinstance(node,ast.Assert) and
+                any(isinstance(value,ast.Subscript) and isinstance(value.value,ast.Name)
+                    and value.value.id=='budget' and isinstance(value.slice,ast.Constant)
+                    and value.slice.value=='stopped' for value in ast.walk(node))]
+        self.assertEqual(len(guards),1,'missing pre-launch stopped-epoch guard')
+        launch=next(node for node in source.body if isinstance(node,ast.Try))
+        self.assertLess(guards[0].lineno,launch.lineno)
+        check=compile(ast.fix_missing_locations(ast.Module(body=guards,type_ignores=[])),'actual-startup-budget','exec')
+        budget=diagnostic.new_budget()
+        exec(check,{'budget':budget})
+        budget['stopped']=True
+        with self.assertRaises(AssertionError):
+            exec(check,{'budget':budget})
 
     def startup_failure(self, started, changed_identity=False):
         source=ast.parse((self.tools/'remote-start.py').read_text())

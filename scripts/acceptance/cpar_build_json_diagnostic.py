@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 
 
 def require(condition, category):
@@ -95,6 +96,29 @@ def validate_request(body):
             and set(messages[0]) == {"role", "content"} and messages[0]["role"] == "user"
             and re.fullmatch(r"Remember ACCEPT:[0-9a-f]{24}\. Reply READY\.", messages[0]["content"] or ""),
             "diagnostic_request_not_original_synthetic_case")
+
+
+def with_diagnostic_environment(launch, binary, guard, audit, directory, request_sha, source_sha):
+    """Append only selected-capture facts to the approved systemd Environment property."""
+    require(launch[0] == "systemd-run" and launch.count(str(binary)) == 1,
+            "diagnostic_launch_changed")
+    prefix = "--property=Environment="
+    indexes = [index for index, value in enumerate(launch) if value.startswith(prefix)]
+    require(len(indexes) == 1 and indexes[0] < launch.index(str(binary)),
+            "diagnostic_launch_environment_changed")
+    index = indexes[0]
+    require(shlex.split(launch[index][len(prefix):]) ==
+            ["LD_PRELOAD=" + str(guard), "CPAR_BUILD_EGRESS_AUDIT=" + str(audit)],
+            "diagnostic_launch_guard_or_audit_changed")
+    require(re.fullmatch(r"/[A-Za-z0-9_./-]+", str(directory)) is not None
+            and re.fullmatch(r"[0-9a-f]{64}", request_sha) is not None
+            and re.fullmatch(r"[0-9a-f]{40}", source_sha) is not None,
+            "diagnostic_launch_selection_changed")
+    result = list(launch)
+    result[index] += (" CPAR_BUILD_DIAGNOSTIC_DIR=" + str(directory)
+                      + " CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256=" + request_sha
+                      + " CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION=" + source_sha)
+    return result
 
 
 def native_usage_summary(native):

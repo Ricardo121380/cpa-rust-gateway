@@ -95,11 +95,14 @@ assert not audit.exists() and not log.exists()
 launch = [str(binary) if value == old_binary else value.replace(str(base / 'private/gateway.log'), str(log)).replace(str(base / 'audit/candidate-egress.jsonl'), str(audit)) for value in launch]
 launch = [value.replace(str(base / 'state'), str(epoch / 'state')).replace(str(base / 'credentials'), str(epoch / 'credentials')) for value in launch]
 launch += json.loads((base / 'private/copy-runtime-options.json').read_text())
-launch[launch.index('--setenv=LD_PRELOAD=' + str(guard)):launch.index('--setenv=LD_PRELOAD=' + str(guard))] = [
-    '--setenv=CPAR_BUILD_DIAGNOSTIC_DIR=' + str(epoch / 'native-capture'),
-    '--setenv=CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256=' + prepare['selected_request_sha256'],
-    '--setenv=CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION=' + source_sha,
-]
+sys.path.insert(0, str(epoch))
+assert digest(epoch / 'cpar_build_json_diagnostic.py') == freeze['files']['cpar_build_json_diagnostic.py']
+import cpar_build_json_diagnostic as diagnostic
+budget = json.loads((epoch / 'budget.json').read_text())
+diagnostic.validate_budget(budget)
+assert not budget['stopped'] and budget['new_pin_intents'] == budget['new_basic_intents'] == 0
+launch = diagnostic.with_diagnostic_environment(launch, binary, guard, audit, epoch / 'native-capture',
+                                                prepare['selected_request_sha256'], source_sha)
 (epoch / 'launch-v2.json').write_text(json.dumps({'command': launch}, indent=2) + '\n')
 def temporary_ports():
     return [int(row.split()[1].rsplit(':', 1)[1], 16)
