@@ -1,0 +1,622 @@
+{
+  "schema_version": 2,
+  "layer": "LOCAL_SIMULATED",
+  "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "observed_at_utc": "2026-10-11T06:43:54.238241+00:00",
+  "runtime": {
+    "method": "local_subprocess",
+    "instance": "owned-output-limit-fixture",
+    "pid": 14996,
+    "process_start": null,
+    "observed_at_utc": "2026-10-11T06:43:45.259012+00:00",
+    "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+    "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+    "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+    "stable_process": true,
+    "manifest_sha256": null,
+    "manifest_matches": null
+  },
+  "target": {
+    "channel": "openai-compatible",
+    "endpoint_id": "endpoint-responses",
+    "route_id": "route-responses",
+    "route_candidate_id": "candidate-responses",
+    "upstream_model": "model-responses",
+    "credential_evidence_id": "1bdc8e197654cbd3d4ff3ef946c3402c7b2f1737f8564672956007504f26c8f9",
+    "credential_revision": 0,
+    "config_version_id": "local-b",
+    "config_revision": 46,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": {
+      "source": "not_applicable"
+    },
+    "protocol": "messages",
+    "mode": "sse",
+    "public_model": "model-responses",
+    "response_model": "model-responses"
+  },
+  "parameters_sha256": "38572e8d86bfeac3626bb4e70734a711fcca10144e85573584aaa374adfd91f5",
+  "capabilities": {
+    "stored": true,
+    "continuation": true,
+    "reasoning": true,
+    "parallel": true,
+    "websocket": true,
+    "compact": true
+  },
+  "declaration_observed_at_utc": "2026-10-11T06:43:45.252000+00:00",
+  "value_free": true,
+  "checks": [
+    {
+      "case": "text_multi_turn",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "db3412b5d6b0767c612aaf8056eaaacdc6b8781344b0a53361973d3f695d5599",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:46.156431+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "d649d58924bd9d0e47b4301ab05592943d8ce7f0837aed3f92f940a06c1ad4a2",
+          "attempt_evidence_ids": [
+            "cf040180d8c7053743a4816e9854eef16c2b383f8c23ce520f37601c2b7d2c0e"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "91ec7a037e493c7d8f5d841bea7f9e5829796877de2e3b8c901dc5c0a29729aa",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:47.116758+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "de3c92a956b8b97be01a09db64560ba69a60e444acea8c56d0ccfd3b121c8f32",
+          "attempt_evidence_ids": [
+            "661de6839f4e30e9e3a043f6cd17e88c76b1be82a7852ad33d27ba2833c1d6f3"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 3,
+          "response_evidence_id": "a5e1a4606dbaef6d78b5078924562518016a1bdf915885676a82194c561737dc",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:48.066413+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "34a62b601b4d75d3aab2504dad8e657d4ee689d50ae65a1bb4a27da9d859dfd4",
+          "attempt_evidence_ids": [
+            "26f1777deaaef31a8dc7f4290681b0a80c6041ce57d1617e66228352d45198d5"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "single_tool",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "1c3c7c9b7c01e88bfaf8a20fc439a1f07bc2a34a4645886b7d68806ff02fd5f4",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:49.142410+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "b2c650598b51a1255e9b035963fac51d95530d10298c557126622c0a61193117",
+          "attempt_evidence_ids": [
+            "97e7f046223fdae4d03b4e853789bfbfa55672be10b8e6cfb0741f6c7e79845f"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "2c0014c0a9919fdb87fd0983ea716c16dc3c359632ea90b49079e190397c6b48",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:50.104099+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "a827bcaedd50004ce9528d5a14cf38d893e6b8bff81d6242ecc975552efcc356",
+          "attempt_evidence_ids": [
+            "b32e525aa53d394ab6defae6b3e38573646fe5cbe304398b5ede44507910f2b2"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "two_tool_cycles",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "6c948a178dc14f1cc7198b0c894e08ec3bd38362f5c0b8464196a1d922fcf0e5",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:51.071811+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "bf974a0c4c8dcc54857d7b9d9f6098bb9e3a46c802ec2017e1ef95cf934a0947",
+          "attempt_evidence_ids": [
+            "39e35701cb6d2aaaebb421a12cab2ba16ef504cea643e345be2244cf8e229273"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "a9046486cdd6877ae1fc46a9b9c38b044fd8f31b19542d2689930cac2aee2df4",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:52.182505+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "e104c37d345fd6df33b422a657f0da2ed47784d0757e7c25f12767be2be2f4c7",
+          "attempt_evidence_ids": [
+            "faa99105a7e175ff0ca7ff8e975ae12873617927732b7f059e77e06b89db862f"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 3,
+          "response_evidence_id": "a2dab263c50433dd196013213e2cecb77bf3b38f4025bf1fc5e5699a02c3300e",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:53.195770+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "0da91b2896383309e5c49a5b308ae9ec601bbd907868ed4c34aa377024878aec",
+          "attempt_evidence_ids": [
+            "62a18f103fd411c6570804ba9b46aeda96cacdc4a5f2da4c2613544f929b3a7b"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 4,
+          "response_evidence_id": "9ddaa7ef614fc433f98f4cc08e3aac124c0fdfe7db66f85f1bfc03b3d0e50980",
+          "native_usage": {
+            "native": {
+              "input_tokens": 14,
+              "output_tokens": 10,
+              "total_tokens": null,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "source": {
+              "input_tokens": 20,
+              "output_tokens": 10,
+              "reasoning_tokens": 4,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 6,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "local_subprocess",
+            "instance": "owned-output-limit-fixture",
+            "pid": 14996,
+            "process_start": null,
+            "observed_at_utc": "2026-10-11T06:43:54.134581+00:00",
+            "artifact_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+            "artifact_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "b5a27e83a879eb0ea216b0afa3185c8f05ef737d40987eea7485b031e64c9231",
+          "attempt_evidence_ids": [
+            "d24abbaacf8c791d980c15403ef690a0e595eb813b5488cf29483e412e730302"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "cancel_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_before_send",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "error",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "no_retry_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "retry_before_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "truncation",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "continuation",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "parallel",
+      "case": "parallel_calls",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "parallel",
+      "case": "parallel_results",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "parallel",
+      "case": "serial_control",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "reasoning",
+      "case": "reasoning_history",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "reasoning",
+      "case": "visible_reasoning",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "websocket",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    }
+  ],
+  "evidence_paths": [],
+  "sent_requests": 9,
+  "preflight": {
+    "status": "PASS",
+    "category": "verified"
+  },
+  "parameters": {
+    "max_tokens": 4096
+  },
+  "basic_scenario_version": 3,
+  "status": "NOT_RUN",
+  "basic_status": "PASS",
+  "command": "cpar-batch-c-live.py --new-build audit",
+  "environment": {
+    "platform": "darwin",
+    "python": "3.9.6"
+  },
+  "tool_sha256": "4ca87111f10858118e4a721699ad44e9f5abce2775f6d9423bd9a1427858f971",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

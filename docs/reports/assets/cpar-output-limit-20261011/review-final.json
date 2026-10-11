@@ -1,0 +1,66 @@
+{
+  "base": "af7480b2da3edffc324d9a42d81f7d0990f50358",
+  "initial_head": "42a8ed3a031ca5d4b26b7b106a225a0598c36006",
+  "final_head": "fe73140d64f7ed36afdfa86900d8546286e9ed09",
+  "paths": 23,
+  "initial": {
+    "standards": {
+      "agent": "/root/output_limit_standards",
+      "completion": "complete",
+      "status": "PASS",
+      "hard_findings": 0,
+      "nonblocking_heuristics": 1
+    },
+    "spec": {
+      "agent": "/root/output_limit_spec",
+      "completion": "complete",
+      "status": "PASS",
+      "findings": 0
+    }
+  },
+  "intermediate": [
+    {
+      "agent": "/root/output_limit_final_standards",
+      "status": "BLOCKED",
+      "reason": "Auxiliary historical Git blob lookup for existing untracked issue-tracker.md failed; no new code finding.",
+      "resolved_by": "Initial-task saved hash equals current rule; /root/output_limit_standards_close."
+    },
+    {
+      "agent": "/root/output_limit_final_spec",
+      "status": "BLOCKED",
+      "static_delta": "PASS",
+      "reason": "Auxiliary digest-check Python walrus comprehension SyntaxError; no code finding.",
+      "resolved_by": "Independent ordinary-loop check of all six bundle/upstream hashes; /root/output_limit_spec_close."
+    }
+  ],
+  "final": {
+    "standards": {
+      "agent": "/root/output_limit_standards_close",
+      "completion": "complete",
+      "status": "PASS",
+      "new_hard_findings": 0,
+      "new_heuristics": 0,
+      "inherited_nonblocking_heuristics": 1,
+      "inherited_heuristic": "Duplicated test-only non-loopback egress probe; retain bounded scope, no style refactor."
+    },
+    "spec": {
+      "agent": "/root/output_limit_spec_close",
+      "completion": "complete",
+      "status": "PASS",
+      "findings": 0,
+      "bundle_digest_checks": 6,
+      "upstream_digest_checks": 6,
+      "source_binary_bindings": 6
+    }
+  },
+  "reuse": {
+    "unchanged_paths": 19,
+    "delta_paths": 4,
+    "delta_insertions": 26,
+    "delta_deletions": 5,
+    "both_freezes_match_git_blobs": true,
+    "final_freeze_matches_worktree": true,
+    "rules_match_task_start": true
+  },
+  "scope": "Independent read-only implementation review; product Full, candidate, real Provider and ticket completion are separate verdicts."
+}

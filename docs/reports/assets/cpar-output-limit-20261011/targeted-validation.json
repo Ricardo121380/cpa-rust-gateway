@@ -1,0 +1,51 @@
+{
+  "unit_final": {
+    "status": "PASS",
+    "tests": 54,
+    "tool_head": "fe73140d64f7ed36afdfa86900d8546286e9ed09"
+  },
+  "shared_regression": {
+    "status": "PASS",
+    "checks": 354,
+    "controlled_receives": 52
+  },
+  "historical_failing_runs_preserved": true,
+  "logs": [
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/acceptance-unit.log",
+      "sha256": "d401e1a175a63696c6f260db631c538afc2933144c5c779b2cf5d5dc42f51100"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/acceptance-unit-53.log",
+      "sha256": "6e57db4004bf8410aab48358ec7dd5a6542b4322f38043e79ad099a0445963bb"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/acceptance-unit-54.log",
+      "sha256": "f3cbbcfd7e943408540d86baffb6116018050189c8e1c1aee96abe57759594e8"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/native-first.log",
+      "sha256": "90c11b8c743420b511dca0b21ded2b41b93ef17f486fd35a761a115b9727cb89"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/related-regression-red.log",
+      "sha256": "978d3c3b8a516ca45e9f6191cb47692dfd93fa0836f215d69deae91611df3e14"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/related-regression-green.log",
+      "sha256": "9dc0d72562ff703e2c295125cbe0ffa7b1f4d77967d04aea55d1de82ba4c6899"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/shared-fixture-regression.log",
+      "sha256": "115f8644db3dd54b40b22fc323d8e583c14ef629bb13c70e7381a01b93694629"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/shared-fixture-green.log",
+      "sha256": "d5bde34f679f794c48aca052599431a5524054d642bfcaaad505d3f5271c9390"
+    },
+    {
+      "file": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/logs/public-bound.log",
+      "sha256": "495964775026591a2dabbb47fcbaeb9f3fc32bf118bdf2fd2c3fd2f9bd17f344"
+    }
+  ]
+}

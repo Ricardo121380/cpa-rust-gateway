@@ -1,0 +1,1165 @@
+{
+  "private_root": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/private-captures",
+  "real_secrets_copied": false,
+  "synthetic_captures_only": true,
+  "files": [
+    {
+      "run": "green-bound",
+      "file": "responses-sse-plan.json",
+      "sha256": "f27ec404537eebb2404473be013f07e367bdc7d9f8a6dae7b3ff6cc3e6dbbb7f",
+      "bytes": 2074
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-json-runtime.json",
+      "sha256": "4255378e6d3eb35031b2336bb71f24441f6e4e438450cfaf52534c5d6c69b23e",
+      "bytes": 20278
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-json-runtime.json",
+      "sha256": "93ae99c0dd63ff4e635b8d7440eb22dd49026d9f6bd3e0c5c28037c1e31bc9a9",
+      "bytes": 20278
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-json-plan.json",
+      "sha256": "ff4d04d06db54aee2792bd60752f17f746fd847f306c8ed81ebb1e27351fe823",
+      "bytes": 2067
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-sse-bundle.json",
+      "sha256": "0d2254aa1a9ec08cafd1ca5ce2901e147b14be31ab0f3db3f109e8dc82aaec5d",
+      "bytes": 312381
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-sse-upstream.json",
+      "sha256": "b7f5b6a5dfb2194414214706c2cec0834a00bc8ea37da501868027a57f783704",
+      "bytes": 13452
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-sse-pin.json",
+      "sha256": "bae4e1fc41b38b0e90d629b6c77bb1563ff9584666e6115673bbdc5cdd95f696",
+      "bytes": 1418
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-json-plan.json",
+      "sha256": "a4f142e31464fba0b0269f57dda7e6916db39e3607b9d1b12b3bae2b55ebf648",
+      "bytes": 2075
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-json-upstream.json",
+      "sha256": "cc159c6de61b4ac8644ee47c3be746a8f1f071264af23260d3a38109d4910d5a",
+      "bytes": 13470
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-json-bundle.json",
+      "sha256": "8aa167114824fff2f375b7752b279a184ee411f48a3636429ca1f91dd2fff480",
+      "bytes": 286830
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-json-pin.json",
+      "sha256": "4479fe5d61c75c3530f865e7c4e38194c52f17a9a150be1241fad80b5e318bd6",
+      "bytes": 1418
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-sse-plan.json",
+      "sha256": "7771df611151e24d8020b74dc717c26a9b049d7a8ea37bd24c63aeaf921eb4f3",
+      "bytes": 2066
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-sse-pin.json",
+      "sha256": "ec08877d467cb94fd29eb2ebf164f7479f061f8c2de0c90cb55561ffd6d9dbca",
+      "bytes": 1416
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-json-bundle.json",
+      "sha256": "4d1f586153a857136359a7e06b5718d5129f4e8ccdd54bded9f0be5a975338dc",
+      "bytes": 285686
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-sse-runtime.json",
+      "sha256": "54fe425360f6e0c7a19450176107f2796152829682c97d5dcf381b747f0aafc2",
+      "bytes": 20278
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-json-pin.json",
+      "sha256": "21c0a0257d4e6ccfab27161fa0cc1e21e7a528c76b1fa977a8150fb4cdac5f3c",
+      "bytes": 1413
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-sse-bundle.json",
+      "sha256": "d234cadf6c35c93a721fa643b1248b8e89e41bac3f0df38453edc832795e1cf9",
+      "bytes": 301521
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-sse-plan.json",
+      "sha256": "387961d46b75eaf840fa90635eacd583cf4279b9f130d31c0ead8ce6819be325",
+      "bytes": 2138
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-json-upstream.json",
+      "sha256": "c802bda64bd798d5a1ca7cf6ff62798c3128e8d9f7b7805c7bd0fda97af76345",
+      "bytes": 14292
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-sse-upstream.json",
+      "sha256": "4d98303ca3a1acb6e37581d7d4b500988b85126af8fc9688dc988dabcdae0d29",
+      "bytes": 13452
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-json-upstream.json",
+      "sha256": "b9f2a1529ee1884e9ac7a569b8276a914d918b352be0a51cb3821829e382569d",
+      "bytes": 13470
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-sse-runtime.json",
+      "sha256": "f3299f0b3530c832d62dacd3eaaa33c6e1b761aadfd18ab3f9b94426e69e02c2",
+      "bytes": 20278
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-sse-pin.json",
+      "sha256": "968b32e9a6abf5865d40631bf03680c7285b6887e68d594001399433a4db9621",
+      "bytes": 1423
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-sse-upstream.json",
+      "sha256": "515b0857991e8621fa65dff44f6c665fac94b5dda7115058171881c663bfb6ab",
+      "bytes": 14274
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-json-runtime.json",
+      "sha256": "b4a5b3b8294248f8eb93e7018b4bf68ec93c860589d27a5bb82ec8a82aad7854",
+      "bytes": 20278
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-json-bundle.json",
+      "sha256": "6113c05c021e65b8dd773c266501be95399e7b96c6c8184422e64aa5c03ff785",
+      "bytes": 287707
+    },
+    {
+      "run": "green-bound",
+      "file": "messages-sse-bundle.json",
+      "sha256": "50984e76eb219d3726d971a53803230cbb8f8e3a4ef181daad8b0423769ed424",
+      "bytes": 297775
+    },
+    {
+      "run": "green-bound",
+      "file": "responses-json-pin.json",
+      "sha256": "578efaa9bc5fdb951417fc3e6bfd61f34a9ee3e59bcd2488b92436654aa0a00f",
+      "bytes": 1411
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-json-plan.json",
+      "sha256": "0834164a68ec6a347ff7858110b31a86bca4a88b015c6223b1a1a34bdf13a785",
+      "bytes": 2074
+    },
+    {
+      "run": "green-bound",
+      "file": "chat-sse-runtime.json",
+      "sha256": "023fc62b7df2fdf5baa71564beb6e517b00ba41cb623229ca5b13aab7a973691",
+      "bytes": 20278
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "3-chat-sse-reasoning_history-plan.json",
+      "sha256": "3984c729cfa5b05ea35a2d11b4e1dbff99680fbe1350722416b651bbf50cbaa1",
+      "bytes": 2402
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "7-responses-sse-reasoning_history-plan.json",
+      "sha256": "09f17844b595d54981d0aeff8e69c3564aa5f0ba569e50b6982d86e93bed8b04",
+      "bytes": 2416
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "22-responses-json-persistence_failure-plan.json",
+      "sha256": "a47d61798b79d38fba8d2ddcb2a819548a0d5eeec84e1506a27781baa66a792e",
+      "bytes": 2360
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-plan.json",
+      "sha256": "64fe8e4b438b612565f4c4f36ba9bd7076a5364d3db2007045b56ae51696a868",
+      "bytes": 2362
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "38-responses-sse-ws_multiturn-runtime.json",
+      "sha256": "5652c317f10295b4f65044f5843158f291fbbeaef8bee078f7cbfb6f9b7ec943",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-bundle.json",
+      "sha256": "ef41ea09a0e1cb7d92b527b911b051b614c173946c56da641943dbfef5d943b8",
+      "bytes": 250134
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "38-responses-sse-ws_multiturn-plan.json",
+      "sha256": "bf091a4543bb48537d75ef912d55cc7865c00056328314464369b70efa2975bf",
+      "bytes": 2357
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "5-responses-json-reasoning_history-bundle.json",
+      "sha256": "7bc46293af942f4f4f700981a7e76e4f20ac374a56bf48b123a8d9956ebe87c1",
+      "bytes": 187033
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "0-chat-json-visible_reasoning-bundle.json",
+      "sha256": "952a2e69259fa5dd174b03be5ba7dea4a5667a2a45cdf0772debbb832d6eb89a",
+      "bytes": 126106
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "27-responses-json-reasoning_history-plan.json",
+      "sha256": "37d24e221f5ab090ad214b2c0220e585e253c89b5a122c1b9ba8e4cd40ba82fc",
+      "bytes": 2416
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-resource_wire.json",
+      "sha256": "f5bc21ac1d2231025a2fadb036fcc3bf6d329111c915487aaf07fa2da46236e9",
+      "bytes": 142414
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "12-responses-sse-exact_continuation-runtime.json",
+      "sha256": "6f9e8a999f058b12abf5c728ba8aa031882206ffd53053fe0c7479f07e7eac0c",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-wrong_handshake_status.json",
+      "sha256": "ac2b8671bf721525ff5f2c40eda97dd4632d4c104b3e9a6819d51b90dbcce660",
+      "bytes": 72891
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-runtime.json",
+      "sha256": "68f9ccbfcface98ade065f8afb78d12e246607fb7a6a71df478dc3fb97a17604",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "6-responses-sse-visible_reasoning-bundle.json",
+      "sha256": "d60b14637cba4afc223d2bb5a224e2141fb88453970ce355fde673f0ea559b8b",
+      "bytes": 143432
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-unfrozen_control.json",
+      "sha256": "ee10a10554c324ae0269cd9792c625e8827b71bd17a9dd57f8dbe3c983fa2728",
+      "bytes": 116376
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "30-responses-json-reasoning_history-plan.json",
+      "sha256": "c6c7b5b1eca902224a94682a46e040facbffef158d327b394a6bdf8c55dd61bf",
+      "bytes": 2417
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "37-responses-sse-ws_multiturn-runtime.json",
+      "sha256": "770c3b4895f7f95503d62401c4f9c4bdff2eda796014900866673cfe2201295c",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "26-messages-json-reasoning_history-plan.json",
+      "sha256": "1e822077e972d96512b3070fddddd1b2fbd0d48ae69d576639bcd619669e5641",
+      "bytes": 2406
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-plan.json",
+      "sha256": "21e0193e50c061e9d69fedd5aff094db67337620626db3945abb01e829d01c8a",
+      "bytes": 2351
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "39-responses-json-reasoning_history-bundle.json",
+      "sha256": "964af808f61ab69fdbff5161e9cf644d727eb38cb3c4a7f4fa4f93882ddd8729",
+      "bytes": 71019
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-resource_status.json",
+      "sha256": "10948866cc7a026cfd0ec8c9947658f571049abc001808932fc35b1d8009e698",
+      "bytes": 154563
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "33-responses-json-compact_roundtrip-plan.json",
+      "sha256": "9c308254c6d750ad26047ad07c94cfd91e0548cae46aab0b56cf769d66d69f1d",
+      "bytes": 2358
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-runtime.json",
+      "sha256": "1ff0a23d7daf2410fb06f6878e0585d51fe93311cb5e98be824f838b1cb5268e",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "10-responses-json-compact_roundtrip-compact_incomplete_terminal.json",
+      "sha256": "7d47b129c60128b0422a4076d4b615f6ad2d3e16682bc67294d6e32c9960527b",
+      "bytes": 160093
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-delete_empty_204.json",
+      "sha256": "5d6d5952ff32ec6f3edaf9464f61e08d1a73c23d01a5f78a7ce7fa8a803f1d5e",
+      "bytes": 154380
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "31-responses-json-exact_continuation-plan.json",
+      "sha256": "ea895c71673f1f2fe2228858abc0249f1777c505cce83af089e7c8cf9574a145",
+      "bytes": 2359
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-resource_wire.json",
+      "sha256": "14c6f61f7adcee719356b55e1139058072b785b6e5eb4ff20f79f11b213e19eb",
+      "bytes": 128088
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "5-responses-json-reasoning_history-plan.json",
+      "sha256": "c6c7b5b1eca902224a94682a46e040facbffef158d327b394a6bdf8c55dd61bf",
+      "bytes": 2417
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-partial_handshake_body.json",
+      "sha256": "227cf9e5cda30e18bbf6903e68de6ae74f2576740d84bca30661dc95c6c96ebb",
+      "bytes": 72859
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "1-chat-json-reasoning_history-plan.json",
+      "sha256": "3db029bf7edd69ab72ac7822565b8dfdfafb1ec9be30ac1b085492ea9b572027",
+      "bytes": 2338
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "31-responses-json-exact_continuation-bundle.json",
+      "sha256": "1c358ad0296d19b350aef381af836723506a582a6ae68a988c2c8bfce401a02a",
+      "bytes": 72151
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-resource_path.json",
+      "sha256": "f5059f2e3935e7c90e61b6b6bbe0f4fa910ceab9e4e844a01f88c369bc05da6c",
+      "bytes": 155953
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "27-responses-json-reasoning_history-runtime.json",
+      "sha256": "ee06952c2aefec1b29480fe45dab05ea9e3f508f1ac4f777af00db77f6bea2d0",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-resource_path.json",
+      "sha256": "3662bf0857cddd778c315c8e3c40ac89a308610a41c43d0ad668d183c2231573",
+      "bytes": 156514
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "2-chat-sse-visible_reasoning-bundle.json",
+      "sha256": "7e11d863f58322f8111b429d2e9132acc81de2b0321e8031780f800bf0d69cf3",
+      "bytes": 129954
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "10-responses-json-compact_roundtrip-bundle.json",
+      "sha256": "260d80afe1ce5dccf2ee5b54b1c516749a2844a88e7bcb76fbfe47a093055075",
+      "bytes": 250459
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "0-chat-json-visible_reasoning-runtime.json",
+      "sha256": "47d049ca309ef3da000dc0ddda3ffab2046b07b90fe1bb5bf94a897409e83618",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "31-responses-json-exact_continuation-runtime.json",
+      "sha256": "334bd30df8edd64640a0ffdc22e2c9837be1a5642d6c126e192b653601513cb5",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "36-responses-json-compact_roundtrip-runtime.json",
+      "sha256": "caa79d7d16cf5e4c610eac6a1a97e3f7978fa94cfb7ac9cf1403e14e7d1e90cb",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "21-responses-json-lineage_rejection-plan.json",
+      "sha256": "88434f3189d4373aa25cef6a7095bc0381d3a6d5462fc09c71855684417b0775",
+      "bytes": 2358
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-plan.json",
+      "sha256": "ea895c71673f1f2fe2228858abc0249f1777c505cce83af089e7c8cf9574a145",
+      "bytes": 2359
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-unrelated_final.json",
+      "sha256": "40a90d94c254a0299f4a28b677142132434130abb29fde52aed0e1b83b3cc240",
+      "bytes": 116342
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "30-responses-json-reasoning_history-runtime.json",
+      "sha256": "6b3c7021567227cfc6d20e2d00f454c599a1231c8f8076ebfbb396153145b20a",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-missing_handshake.json",
+      "sha256": "245bf163cdeb2ab7cd3257ef7953897ba83d9c1c327ac854318050cb1c004d3b",
+      "bytes": 72055
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "13-responses-sse-compact_roundtrip-compact_item_plaintext.json",
+      "sha256": "850f0629243f8bbdfe960e7a5f911e85eebe2359a5336fd770e4f6b76fd77878",
+      "bytes": 174659
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "29-responses-json-reasoning_history-bundle.json",
+      "sha256": "a1c947293cbe9a96ee4daf1ef5fc08729d6838214fb5a1bd273f9c8919cc5ed2",
+      "bytes": 76271
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-bundle.json",
+      "sha256": "0a42c8affb44e0ddb7eab3c331ed10090e79a8c5cb90e151437aa3a655c47b9a",
+      "bytes": 250773
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "23-responses-json-restart_read-plan.json",
+      "sha256": "f706247a4f4f28b61b3b69a923baa1c53bee26621651475ea30a86a43b36fa2f",
+      "bytes": 2353
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-bundle.json",
+      "sha256": "d10ca8e891c282b627d78117c670548365ceb6d5b755d76205b6b5d36e272026",
+      "bytes": 183582
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "1-chat-json-reasoning_history-bundle.json",
+      "sha256": "dcddf1956f0ed38b76795be9e1dd645a216d15ab02986b0bf7a5000f0740ebd4",
+      "bytes": 182717
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "28-responses-json-reasoning_history-runtime.json",
+      "sha256": "aca8f45a9c46f28cdc567d36b6d53bc9009eeab6ac4b2e7390f51f5da2aa0436",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "13-responses-sse-compact_roundtrip-bundle.json",
+      "sha256": "91f44faf0602cddec80bd37be68b74e0242547fa873ec7b053078d317c27bb1a",
+      "bytes": 264779
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "4-responses-json-visible_reasoning-runtime.json",
+      "sha256": "566a8f9a1bdf015fdde83f68161f2b109f8f00a7fe9771999a2aaf42f3d6afc3",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "35-responses-json-compact_roundtrip-bundle.json",
+      "sha256": "73cf612ee1e0ed819238127dcc46c652922c4e696a1289eeea99904d269514e0",
+      "bytes": 125498
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-resource_status.json",
+      "sha256": "fc3b4b549149998ba1e6802f9264eda734b00c39e15d8588015b82aa678ca7e0",
+      "bytes": 156507
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "chat-json-pin.json",
+      "sha256": "d8a3cf9a2f4307996531e80f9c4ee33f8334b613143c99b1bc96ed78087a97df",
+      "bytes": 1385
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-runtime.json",
+      "sha256": "9277ba88d590895d97501b819ed765fe49d855c9120b11855c9aa2d7094861b7",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-runtime.json",
+      "sha256": "ea8c123975a05b20aa764562284fd591853ea6cdd3c7ec2f84b7c50ca0a09ba0",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "32-responses-json-exact_continuation-bundle.json",
+      "sha256": "caf937f1e4eac5612b5b3fe64eaeead12e35e6bba878f464e33b7b5dbfee1de6",
+      "bytes": 72205
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "20-responses-json-expired_read-plan.json",
+      "sha256": "444d5a03864336afde19c451db6f047051247ea821e03ef7b39bf16d757f524a",
+      "bytes": 2353
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-resource_status.json",
+      "sha256": "7a67e3e4a46a496cd00b335427dbae959c44673b93db4566ca9d1413c3200a8b",
+      "bytes": 155960
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "25-responses-json-ws_failed_root-runtime.json",
+      "sha256": "ed9c1879991376730d7bd03a17ea5b1feb2985dfb4d8250c3dabdb1a06c42774",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-plan.json",
+      "sha256": "6d071f8b1139e71a0bbfd920911aaab4c27d530c319840e3279940551cdb4228",
+      "bytes": 2353
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "17-responses-sse-ws_multiturn-successful_origin.json",
+      "sha256": "0bbe66e6f8aba0e50a3934508e8b2a1366c50fd6ab2043d6bbc2068fa1d7d9e1",
+      "bytes": 282876
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "35-responses-json-compact_roundtrip-runtime.json",
+      "sha256": "792464fcceccaad871f59d0228de1c62fe953be37e5e69892562db974890cddd",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-resource_wire.json",
+      "sha256": "b5d1804483127ec543591e892e4fecb51303daa79257ec1f3ebdd2411fb2b4fe",
+      "bytes": 154383
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-plan.json",
+      "sha256": "f1c42bab93d4c2451cf75ddc032a92c095135d66516ed7d11a0d3c3dfd5df0ac",
+      "bytes": 2350
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "39-responses-json-reasoning_history-plan.json",
+      "sha256": "5c6a90f231298e0f3abcdd8b1a5649dec1d74a04b89971c5c7a1f07ddb690467",
+      "bytes": 2414
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-runtime.json",
+      "sha256": "05c1086b045f4454b6c94e36ed7e6bea47027428288f84737f87089f5e084e0d",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "29-responses-json-reasoning_history-runtime.json",
+      "sha256": "e4a2781bf00bc7257f4d63b95faee1112b30b159365adebe1935049dc30e869f",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "19-responses-json-compact_lineage_rejection-runtime.json",
+      "sha256": "776d05abf643ba87115a4b41c71737205d295d745a69dae03915720e82a27704",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "responses-sse-pin.json",
+      "sha256": "1b8a995cfa4be18cbc29d3237c4f21a88421ad991a16ab138a229270dc415e37",
+      "bytes": 1416
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "25-responses-json-ws_failed_root-plan.json",
+      "sha256": "a1ba8126f6790ad711c876d9e914f1577ad893a1e377a1eb9d4cf95d0c1d1477",
+      "bytes": 2355
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-wrong_root_owner.json",
+      "sha256": "fb1971919a33c144202667535fa9beb268bd017e8bb46ba7a8b1ef792eced88e",
+      "bytes": 116356
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "26-messages-json-reasoning_history-runtime.json",
+      "sha256": "b1db3e78c790cbe19b4f487dfd4e57898a51d1fe5ed8d1feb61617a375d54225",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "7-responses-sse-reasoning_history-runtime.json",
+      "sha256": "9efa7c016e41c8306db5cb66a6b504eba99fa8df747f18749e71a63afffd806f",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "23-responses-json-restart_read-runtime.json",
+      "sha256": "5cc8969206dd71356eb010e029115e5389099c256ba38052bb2e175c43f71c50",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-wrong_handshake_path.json",
+      "sha256": "ccb36c1dd99c352b38c9133317c5df6014bec9df921ffbf653a431d48693b740",
+      "bytes": 72887
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "10-responses-json-compact_roundtrip-compact_extra_output.json",
+      "sha256": "964979adf794bfe81c1dab970ac4220398afddce82927297761132b372b0a9bf",
+      "bytes": 161335
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-missing_capture_adjusted_count.json",
+      "sha256": "1a2c276fc74b2a5985f8d4c244eee3159df260420cb2f33bf498964c455ef2d6",
+      "bytes": 83789
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-resource_status.json",
+      "sha256": "3ce7480fa6363d01041bd9e06a56170a449a16e3ab936031bc03c39c4823f5ff",
+      "bytes": 128992
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "3-chat-sse-reasoning_history-runtime.json",
+      "sha256": "be3707e343d1bbe552659f1bfbba4d8274282611359a079011136f5cc4f0341d",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "34-responses-json-compact_roundtrip-runtime.json",
+      "sha256": "3fe72dc078686a6e8b6533fee95a04b7d2a1e99593ce1fb1cab4aa4d54fecd0b",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "2-chat-sse-visible_reasoning-runtime.json",
+      "sha256": "a415aabef923c9e552283969dc65d1c2f995cef935393a08da3ed62b5f282162",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "32-responses-json-exact_continuation-plan.json",
+      "sha256": "ea895c71673f1f2fe2228858abc0249f1777c505cce83af089e7c8cf9574a145",
+      "bytes": 2359
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "5-responses-json-reasoning_history-runtime.json",
+      "sha256": "bd28d79d007c039616dccbbadd8ff483adc8bf138ef27ad13ad9ed10421b913d",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "messages-json-pin.json",
+      "sha256": "66d6384f1cb08c058178f9bfa6124e3e07dd0734b71dbd12b803e13d52c25486",
+      "bytes": 1411
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "1-chat-json-reasoning_history-runtime.json",
+      "sha256": "2121e454ac4624d4d56e4dfd5c6884f7e05064db18d279c73339a764f2abc212",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-missing_capture.json",
+      "sha256": "7ac1ddf97d6d205ef1d8711da2ab497686bf285218a4ca3e975d5181af80ea6f",
+      "bytes": 83789
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "33-responses-json-compact_roundtrip-runtime.json",
+      "sha256": "2753a69cfb478d3f841b803b93e32b16b39dcf4533a93d56be123347ed4a86dd",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-resource_request.json",
+      "sha256": "d6f7e5e0712110e54a29003156635e97d0f2adef75b4e38dfa8982ee02ef35d0",
+      "bytes": 129006
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-missing_resource.json",
+      "sha256": "faff9b1a66468e68dc602f869254219c97536b501993281e1e49aad7e673ee7c",
+      "bytes": 113028
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "36-responses-json-compact_roundtrip-plan.json",
+      "sha256": "9c308254c6d750ad26047ad07c94cfd91e0548cae46aab0b56cf769d66d69f1d",
+      "bytes": 2358
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "12-responses-sse-exact_continuation-plan.json",
+      "sha256": "6eb4c7f06acd3b5c185ad4bccab3c5cb58fe21fa3f262c7a7fe330decb25f1c0",
+      "bytes": 2358
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-bundle.json",
+      "sha256": "1b0e175b1c218f51d1a097fdbdba3b9aa5b1c83b80ecebfbdd0df332cf2d5a5e",
+      "bytes": 219158
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "37-responses-sse-ws_multiturn-bundle.json",
+      "sha256": "f106f3eaf82c39c3bd4f12f2d2fc54932118fb9e36cd60fb194e921d7fe43e01",
+      "bytes": 78568
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "9-responses-json-exact_continuation-wrong_root_terminal.json",
+      "sha256": "ac7e7a5bab5829af7f104fed6412b05b797fc6a4553faad99291980cfdcea2c1",
+      "bytes": 116412
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "10-responses-json-compact_roundtrip-runtime.json",
+      "sha256": "76a3da18829d680bb1508207eaf26a457cf4a5dc8d2ed1efa0ebc4b1c8440cb8",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "39-responses-json-reasoning_history-runtime.json",
+      "sha256": "d0a91e8e533ffc1549ee029098b3a28a1d875753d8330274da50a334d1cf35ca",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "3-chat-sse-reasoning_history-bundle.json",
+      "sha256": "540b11fccf7ecffb7e6602dccd939a65aa44cb029745e96f5ecf87603d97c051",
+      "bytes": 188516
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "17-responses-sse-ws_multiturn-plan.json",
+      "sha256": "d5b592004370658ebc7c17e4959e40b1fab7b057315143d650fbcd1fdffae958",
+      "bytes": 2352
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "22-responses-json-persistence_failure-runtime.json",
+      "sha256": "b45dd96478d8d59a11b96c2ad59c48c966a56a154348955b546979af09282caa",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-missing_resource.json",
+      "sha256": "a2fbf7a90e571756bb94f00e693503ae2f3a93b74c838d023bde3263ef292dc8",
+      "bytes": 113378
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "19-responses-json-compact_lineage_rejection-plan.json",
+      "sha256": "cfbc6f6dde0730da18cb99d0559d6f9d40224fdbe0ece1b446118d038cf75135",
+      "bytes": 2366
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "6-responses-sse-visible_reasoning-plan.json",
+      "sha256": "3a679dbfc0a0108b390c7295735374896a797004976c544e59ec49abcaceca09",
+      "bytes": 2416
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "37-responses-sse-ws_multiturn-plan.json",
+      "sha256": "d5b592004370658ebc7c17e4959e40b1fab7b057315143d650fbcd1fdffae958",
+      "bytes": 2352
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "6-responses-sse-visible_reasoning-runtime.json",
+      "sha256": "29df6e01964875bc313404c9277869bc8a267baf394e1c2de193fe06e3d66456",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "13-responses-sse-compact_roundtrip-compact_response_plaintext.json",
+      "sha256": "96354f749dc8cf919187cbd7c8d913e7f8bcc83361ef96fc39a1b3a42a7aa826",
+      "bytes": 174463
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "0-chat-json-visible_reasoning-plan.json",
+      "sha256": "1d9d3d7ac13d6cce7fdbebf0625e628d60b3db688ec96a3cbbfdc111edc0b9be",
+      "bytes": 2338
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-resource_path.json",
+      "sha256": "8e63c82d91b73c0a4dae0b3f4b49c5a3aeff6e6ec6e2d38a0f8a9d85c27b276f",
+      "bytes": 154556
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-resource_request.json",
+      "sha256": "a746d5178ccc7227a77b0aab7afd9208eff1451ea08984add300380bbb717dc1",
+      "bytes": 154577
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "13-responses-sse-compact_roundtrip-plan.json",
+      "sha256": "ef133949e2080662c9e1959ed53e2578bf5a1bbcea353a6d0178d468e61b2a62",
+      "bytes": 2357
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "34-responses-json-compact_roundtrip-bundle.json",
+      "sha256": "02401ae517f48e7e4786d17fc08a118a26450e3d96066eaf2d2de249bba3a0cc",
+      "bytes": 125496
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-plan.json",
+      "sha256": "a77279436b4ec668e43642aa5e0b70877a9019ee68c5d3549beedafb4f90162d",
+      "bytes": 2354
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "28-responses-json-reasoning_history-plan.json",
+      "sha256": "c789e10b3b4fb47b9bbfc26c40be857aa20b77bcd2cfe1dd2db02f80d4cf2685",
+      "bytes": 2195
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "2-chat-sse-visible_reasoning-plan.json",
+      "sha256": "4d96cbba07de4fb72445141d51c560ff522cab19b527ed7abd23d5766627b420",
+      "bytes": 2402
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-resource_status.json",
+      "sha256": "50ccaf574f631a6579fac3e8b6cc8a4b2c2fd550cb04d7e97b856d99149d6c31",
+      "bytes": 143318
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "4-responses-json-visible_reasoning-bundle.json",
+      "sha256": "297a7f91ba3cc013f2a1debfb1a44972b53c36a2c724d1aee94ed7b68eff7ba9",
+      "bytes": 127206
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "10-responses-json-compact_roundtrip-compact_item_plaintext.json",
+      "sha256": "ae27e58111688547776e75ffb931112cdbb506f3d814969d86763731e77b5fda",
+      "bytes": 160339
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "34-responses-json-compact_roundtrip-plan.json",
+      "sha256": "9c308254c6d750ad26047ad07c94cfd91e0548cae46aab0b56cf769d66d69f1d",
+      "bytes": 2358
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "chat-sse-pin.json",
+      "sha256": "7fb29979aca06ab715bd9b770fd037e0e98cc000a5c9b6b58f438febacd3790d",
+      "bytes": 1390
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "17-responses-sse-ws_multiturn-bundle.json",
+      "sha256": "f5418b0f90cc4e41138dc7f070db9eb88307d783d74ba43ccb74d875077f79aa",
+      "bytes": 448592
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-missing_resource.json",
+      "sha256": "0014ef0ff09b218aac2faa5765bb0ce724d4ff2e357dce50bfbbb4ca3c825c8e",
+      "bytes": 128184
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "10-responses-json-compact_roundtrip-plan.json",
+      "sha256": "9c308254c6d750ad26047ad07c94cfd91e0548cae46aab0b56cf769d66d69f1d",
+      "bytes": 2358
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "32-responses-json-exact_continuation-runtime.json",
+      "sha256": "afa7a6eee9444dc2833656d0d79ab16e80eb35bcdba34227fab9286aec1a451c",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "20-responses-json-expired_read-runtime.json",
+      "sha256": "86291f50ba68bc6fa31571ca1e74c25fbd1b5794dc5d9b9cd111c8c9790eb19c",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-runtime.json",
+      "sha256": "61c283b447e2b09e6a242f3a0bc8771a91ddce58d96540b94bf6757db3a7f3a6",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "17-responses-sse-ws_multiturn-runtime.json",
+      "sha256": "7684cc7563aff37298c365d62c15cb6601593f81b0b85631555f9c688db450ac",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "10-responses-json-compact_roundtrip-compact_response_plaintext.json",
+      "sha256": "70a875562819fb91e40a81d6abc73de0123de50ed633b2f43166ab6aeb870e64",
+      "bytes": 160143
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "13-responses-sse-compact_roundtrip-runtime.json",
+      "sha256": "5450ab53d89dd2090becc9c0372f615991e635e842c6d2422aedce35fa633272",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "12-responses-sse-exact_continuation-bundle.json",
+      "sha256": "d25f08e06803097a5d4f006aaefd1a0e7a76400bc34148f5ea9a4ac87cfbacc6",
+      "bytes": 197905
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-bundle.json",
+      "sha256": "bd9ff4875c5124f19f2b9c8ff6d23e7a9883e5d491661e2be0051ba807ba4018",
+      "bytes": 248721
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-resource_request.json",
+      "sha256": "c682ee654a32c6dfd7dff00b75325719fba2345feac6c9baec41e01d84b5d099",
+      "bytes": 156431
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "36-responses-json-compact_roundtrip-bundle.json",
+      "sha256": "27e2e33df94a88d41fc075020df2709d2c59591cd45d30e773883b196911ffc1",
+      "bytes": 125462
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "21-responses-json-lineage_rejection-runtime.json",
+      "sha256": "fb64aa25133c836d093a8cbee06d6c7bcd290058237573460b63de41e1de6a97",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-bundle.json",
+      "sha256": "187a99e9a895a5aa177e39a45d2b9bc1e9d45caf3fd78290523472ba01e91cc0",
+      "bytes": 117135
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-runtime.json",
+      "sha256": "e52eba5c8b62387b82fd54dbd4706422d60631ce3f59da284654079b02053f0e",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "13-responses-sse-compact_roundtrip-compact_incomplete_terminal.json",
+      "sha256": "c16d96d4a41d5eb47c03e690d0edc97397fa0e2bf5a3a2ebdd4dccad98ac5baf",
+      "bytes": 174413
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "18-responses-sse-ws_handshake_rejection-wrong_handshake_origin.json",
+      "sha256": "33c05d02b8d442560a0883225d86fb3c7eed0f5de09c758bb1e4aac390ec9006",
+      "bytes": 72863
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-resource_request.json",
+      "sha256": "68aa000bedffeb445c9eb2bb0828c467652528cdc20cfd930ba2b533131f4dd0",
+      "bytes": 155974
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "responses-json-pin.json",
+      "sha256": "831fbb6dfd95071fc0ba3e4efe8edad00704db7c3379dd5355c54251689ce0cd",
+      "bytes": 1411
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-resource_wire.json",
+      "sha256": "6544f07339bcec268e2170be4fa500e2509114a6a5f7a1d13dbd06cabddc9d53",
+      "bytes": 156327
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "30-responses-json-reasoning_history-bundle.json",
+      "sha256": "6942ead9c3fa2b91503286d6681b4e60111ea8acd1bed3a0af87902021185553",
+      "bytes": 76278
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-bundle.json",
+      "sha256": "c4c0dfd57a29dd9f224a2adddb13badd9f640bb03c96c2cf7813990554ea9757",
+      "bytes": 204832
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "24-responses-json-ws_cancel-plan.json",
+      "sha256": "3e6285cab10ae637f7384a3e19b1df9cc47e10b7edab7d7dcbcc01dc6f1ca062",
+      "bytes": 2350
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "14-responses-json-foreign_owner-resource_wire.json",
+      "sha256": "eb2284e6e26ff49eca2f8d892f13fc6f4249c3de6a3a1c6edc4f5beb8661a7f4",
+      "bytes": 155780
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-missing_resource.json",
+      "sha256": "68c4816068d9f27bc2e3edab976009b6726847381fdee9aced2b7ecf9232a40b",
+      "bytes": 113858
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "8-responses-json-store_read-resource_path.json",
+      "sha256": "718841e2fc0e148245e7ed41508872e50fc415e3519b985e49231bc20f37737b",
+      "bytes": 128985
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "4-responses-json-visible_reasoning-plan.json",
+      "sha256": "3a7470f222b3dce74087c0cbd9a3e2984e1e47c6d019126530fe1626c78be1d6",
+      "bytes": 2417
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "13-responses-sse-compact_roundtrip-compact_extra_output.json",
+      "sha256": "21360f0d14e1f96656d4e24654b8e58dd74f3be65fe9a0fb6f32020d4ee8f02b",
+      "bytes": 175647
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-delete_numeric_true.json",
+      "sha256": "6ab10bfb72ee7534c5d9ff85937d7c62218667fe5a55e64ef863fd82f9917a1e",
+      "bytes": 154565
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "local-drills.json",
+      "sha256": "cedd2d7df4b91c0f85dba586e9d1c885e0d6d78bb9aac1c9a91f4f02aa433160",
+      "bytes": 91095
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-resource_request.json",
+      "sha256": "08424f876670119b3e3254b72aa93f0cf684793cd3f95006116adbe2463b576d",
+      "bytes": 143332
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "29-responses-json-reasoning_history-plan.json",
+      "sha256": "825a52116ffb43c55c13e8c598abe231992f69edeb0eeeecf505c2704d5679c3",
+      "bytes": 2406
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "33-responses-json-compact_roundtrip-bundle.json",
+      "sha256": "4cbd6297608f4c097f52348d29b18010841e6cefbbcd5b2649ee2076a4cc2978",
+      "bytes": 125693
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "11-responses-sse-store_read-resource_path.json",
+      "sha256": "f51c838579f61d649f21f99ca02011b5391aa8cf6a8e3e350b090c1363aba608",
+      "bytes": 143311
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "35-responses-json-compact_roundtrip-plan.json",
+      "sha256": "9c308254c6d750ad26047ad07c94cfd91e0548cae46aab0b56cf769d66d69f1d",
+      "bytes": 2358
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "16-responses-json-compact_foreign_owner-plan.json",
+      "sha256": "5aabf8e968b0ee330db4c873d320f4985d28567d617aa50396ee07e4742688b1",
+      "bytes": 2362
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "7-responses-sse-reasoning_history-bundle.json",
+      "sha256": "2189559816d3f84a9293c0ba82d8df978029e64599a7d19e40c82360c9b81c0f",
+      "bytes": 211383
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "24-responses-json-ws_cancel-runtime.json",
+      "sha256": "760a83f9a504ac6c031c0aaf4476330807594aeadcc14c8ded90336f775ed926",
+      "bytes": 20281
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "15-responses-json-deleted_read-missing_resource.json",
+      "sha256": "8aef08c7e5af433308ca031757294929f2e27da7cd3892f5755e6e8c09617878",
+      "bytes": 112041
+    },
+    {
+      "run": "shared-fixture-green",
+      "file": "38-responses-sse-ws_multiturn-bundle.json",
+      "sha256": "6cb3a563a82e16ffc260c74e4d5a911aa35e84471c73f5173d4b9addfdc702cf",
+      "bytes": 76759
+    }
+  ]
+}

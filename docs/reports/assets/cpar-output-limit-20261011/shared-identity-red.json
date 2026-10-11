@@ -1,0 +1,35 @@
+{
+  "status": "FAIL",
+  "binary_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+  "source_sha": "42a8ed3a031ca5d4b26b7b106a225a0598c36006",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_os_denies_non_loopback_network",
+      "status": "PASS"
+    }
+  ],
+  "provider_calls": [
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    }
+  ],
+  "all_upstream_receives": [
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 58586
+    }
+  ],
+  "private_state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-dz6rwwux",
+  "scope": "local_synthetic_only"
+}

@@ -1,0 +1,18 @@
+{
+  "product_source": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "last_product_behavior_commit": "beb796a1cbc59aeae43e4ef3bf4933b4357aa460",
+  "tool_head": "fe73140d64f7ed36afdfa86900d8546286e9ed09",
+  "binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-output-limit-20261011/local-macos/gateway",
+  "binary_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+  "embedded_revision": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "target": "aarch64-apple-darwin",
+  "build_log_sha256": "e7e7f8ea600e420f17b0b73ef236de444afd28c1068a31c8e7602f10ff75177b",
+  "public_checks": 190,
+  "controlled_upstream_receives": 91,
+  "shared_fixture_checks": 354,
+  "shared_fixture_receives": 52,
+  "real_provider_requests": 0,
+  "earlier_wrapper_receipt_checkout_head_was_mislabeled_source": true,
+  "earlier_raw_receipt_preserved": "public-before-identity-fix.json",
+  "rust_paths_unchanged_from_product_source_to_tool_head": true
+}

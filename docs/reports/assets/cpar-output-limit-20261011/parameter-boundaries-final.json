@@ -1,0 +1,2206 @@
+[
+  {
+    "case": "missing",
+    "target": "chat",
+    "stream": false,
+    "controls": {},
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {}
+  },
+  {
+    "case": "max_completion_tokens_one",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_completion_tokens": 1
+    }
+  },
+  {
+    "case": "max_completion_tokens_formal",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_completion_tokens": 4096
+    }
+  },
+  {
+    "case": "max_completion_tokens_u64_max",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_completion_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_completion_tokens_null",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_zero",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_negative",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_fraction",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_float",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_string",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_bool",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_array",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_object",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_overflow",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_one",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_tokens": 1
+    }
+  },
+  {
+    "case": "max_tokens_formal",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_tokens": 4096
+    }
+  },
+  {
+    "case": "max_tokens_u64_max",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_tokens_null",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_zero",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_negative",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_fraction",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_float",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_string",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_bool",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_array",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_object",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_overflow",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_4096",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_8192",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 8192
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_None",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_max_output_tokens",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_openai.responses.max_output_tokens",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "openai.responses.max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_anthropic.messages.max_tokens",
+    "target": "chat",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "anthropic.messages.max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "missing",
+    "target": "chat",
+    "stream": true,
+    "controls": {},
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {}
+  },
+  {
+    "case": "max_completion_tokens_one",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_completion_tokens": 1
+    }
+  },
+  {
+    "case": "max_completion_tokens_formal",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_completion_tokens": 4096
+    }
+  },
+  {
+    "case": "max_completion_tokens_u64_max",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_completion_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_completion_tokens_null",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_zero",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_negative",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_fraction",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_float",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_string",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_bool",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_array",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_object",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_overflow",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_one",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_tokens": 1
+    }
+  },
+  {
+    "case": "max_tokens_formal",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_tokens": 4096
+    }
+  },
+  {
+    "case": "max_tokens_u64_max",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_tokens_null",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_zero",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_negative",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_fraction",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_float",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_string",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_bool",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_array",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_object",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_overflow",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_4096",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_8192",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 8192
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_None",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_max_output_tokens",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_openai.responses.max_output_tokens",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "openai.responses.max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_anthropic.messages.max_tokens",
+    "target": "chat",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "anthropic.messages.max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "missing",
+    "target": "responses",
+    "stream": false,
+    "controls": {},
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {}
+  },
+  {
+    "case": "max_completion_tokens_one",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 1
+    }
+  },
+  {
+    "case": "max_completion_tokens_formal",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 4096
+    }
+  },
+  {
+    "case": "max_completion_tokens_u64_max",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_completion_tokens_null",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_zero",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_negative",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_fraction",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_float",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_string",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_bool",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_array",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_object",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_overflow",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_one",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 1
+    }
+  },
+  {
+    "case": "max_tokens_formal",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 4096
+    }
+  },
+  {
+    "case": "max_tokens_u64_max",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_tokens_null",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_zero",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_negative",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_fraction",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_float",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_string",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_bool",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_array",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_object",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_overflow",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_4096",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_8192",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 8192
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_None",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_max_output_tokens",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_openai.responses.max_output_tokens",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "openai.responses.max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_anthropic.messages.max_tokens",
+    "target": "responses",
+    "stream": false,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "anthropic.messages.max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "missing",
+    "target": "responses",
+    "stream": true,
+    "controls": {},
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {}
+  },
+  {
+    "case": "max_completion_tokens_one",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 1
+    }
+  },
+  {
+    "case": "max_completion_tokens_formal",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 4096
+    }
+  },
+  {
+    "case": "max_completion_tokens_u64_max",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_completion_tokens_null",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_zero",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_negative",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_fraction",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_float",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_string",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_bool",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_array",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_object",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_completion_tokens_overflow",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_one",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": 1
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 1
+    }
+  },
+  {
+    "case": "max_tokens_formal",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": 4096
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 4096
+    }
+  },
+  {
+    "case": "max_tokens_u64_max",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": 18446744073709551615
+    },
+    "http_status": 200,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 1,
+      "usage": 1
+    },
+    "upstream_receives": 1,
+    "observed_controls": {
+      "max_output_tokens": 18446744073709551615
+    }
+  },
+  {
+    "case": "max_tokens_null",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_zero",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": 0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_negative",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": -1
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_fraction",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": 1.5
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_float",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": 4096.0
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_string",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": "4096"
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_bool",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": true
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_array",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": []
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_object",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": {}
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "max_tokens_overflow",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_tokens": 18446744073709551616
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_4096",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_8192",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": 8192
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "dual_None",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_tokens": null
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_max_output_tokens",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_openai.responses.max_output_tokens",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "openai.responses.max_output_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  },
+  {
+    "case": "foreign_anthropic.messages.max_tokens",
+    "target": "responses",
+    "stream": true,
+    "controls": {
+      "max_completion_tokens": 4096,
+      "anthropic.messages.max_tokens": 4096
+    },
+    "http_status": 400,
+    "events": {
+      "request": 1,
+      "request_finished": 1,
+      "attempt": 0,
+      "usage": 0
+    },
+    "upstream_receives": 0
+  }
+]

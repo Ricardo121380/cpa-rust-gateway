@@ -1,0 +1,2047 @@
+{
+  "status": "PASS",
+  "binary_sha256": "9bd53fdad88ae60f0d9a4e729588be4e982362b276b3f1118706836f885d5d67",
+  "source_sha": "42a8ed3a031ca5d4b26b7b106a225a0598c36006",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "chat_completion_limit_public_json",
+      "status": "PASS"
+    },
+    {
+      "check": "chat_completion_limit_actual_upstream_value",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_completion_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_max_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_dual_4096",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_dual_8192",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_dual_None",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_foreign_max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_foreign_openai.responses.max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_False_foreign_anthropic.messages.max_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_completion_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_max_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_dual_4096",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_dual_8192",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_dual_None",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_foreign_max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_foreign_openai.responses.max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_chat_True_foreign_anthropic.messages.max_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_completion_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_max_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_dual_4096",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_dual_8192",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_dual_None",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_foreign_max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_foreign_openai.responses.max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_False_foreign_anthropic.messages.max_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_missing",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_completion_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_completion_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_one",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_formal",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_exact_wire_max_tokens_u64_max",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_null",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_zero",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_negative",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_fraction",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_float",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_string",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_bool",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_array",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_object",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_max_tokens_overflow",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_dual_4096",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_dual_8192",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_dual_None",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_foreign_max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_foreign_openai.responses.max_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "limit_responses_True_foreign_anthropic.messages.max_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "responses_to_chat_modern_limit_False",
+      "status": "PASS"
+    },
+    {
+      "check": "responses_to_chat_modern_limit_True",
+      "status": "PASS"
+    },
+    {
+      "check": "output_limit_os_denies_non_loopback",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_pin_chat-json",
+      "status": "PASS"
+    },
+    {
+      "check": "formal_basic_chat-json",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_actual_4096_chat-json",
+      "status": "PASS"
+    },
+    {
+      "check": "independent_formal_audit_chat-json",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_pin_chat-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "formal_basic_chat-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_actual_4096_chat-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "independent_formal_audit_chat-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_pin_messages-json",
+      "status": "PASS"
+    },
+    {
+      "check": "formal_basic_messages-json",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_actual_4096_messages-json",
+      "status": "PASS"
+    },
+    {
+      "check": "independent_formal_audit_messages-json",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_pin_messages-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "formal_basic_messages-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_actual_4096_messages-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "independent_formal_audit_messages-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_pin_responses-json",
+      "status": "PASS"
+    },
+    {
+      "check": "formal_basic_responses-json",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_actual_4096_responses-json",
+      "status": "PASS"
+    },
+    {
+      "check": "independent_formal_audit_responses-json",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_pin_responses-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "formal_basic_responses-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "basic_actual_4096_responses-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "independent_formal_audit_responses-sse",
+      "status": "PASS"
+    }
+  ],
+  "provider_calls": [
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "chat",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": false,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": false,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    },
+    {
+      "account": "a",
+      "connection": "primary",
+      "protocol": "responses",
+      "scenario": "text-round",
+      "stream": true,
+      "has_result": true,
+      "compact": false
+    }
+  ],
+  "all_upstream_receives": [
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "listener_port": 56632
+    }
+  ],
+  "private_state": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar-b-http-uxfmmn8f",
+  "scope": "local_synthetic_only"
+}

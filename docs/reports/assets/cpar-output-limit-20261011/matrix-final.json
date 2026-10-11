@@ -1,0 +1,83 @@
+[
+  {
+    "combination": "chat-json",
+    "basic_status": "PASS",
+    "formal_status": "NOT_RUN",
+    "parameters": {
+      "max_completion_tokens": 4096
+    },
+    "pin_receives": 1,
+    "basic_receives": 9,
+    "returncode": 2,
+    "bundle_sha256": "8aa167114824fff2f375b7752b279a184ee411f48a3636429ca1f91dd2fff480",
+    "upstream_sha256": "b9f2a1529ee1884e9ac7a569b8276a914d918b352be0a51cb3821829e382569d"
+  },
+  {
+    "combination": "chat-sse",
+    "basic_status": "PASS",
+    "formal_status": "NOT_RUN",
+    "parameters": {
+      "max_completion_tokens": 4096,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "pin_receives": 1,
+    "basic_receives": 9,
+    "returncode": 2,
+    "bundle_sha256": "d234cadf6c35c93a721fa643b1248b8e89e41bac3f0df38453edc832795e1cf9",
+    "upstream_sha256": "4d98303ca3a1acb6e37581d7d4b500988b85126af8fc9688dc988dabcdae0d29"
+  },
+  {
+    "combination": "messages-json",
+    "basic_status": "PASS",
+    "formal_status": "NOT_RUN",
+    "parameters": {
+      "max_tokens": 4096
+    },
+    "pin_receives": 1,
+    "basic_receives": 9,
+    "returncode": 2,
+    "bundle_sha256": "4d1f586153a857136359a7e06b5718d5129f4e8ccdd54bded9f0be5a975338dc",
+    "upstream_sha256": "cc159c6de61b4ac8644ee47c3be746a8f1f071264af23260d3a38109d4910d5a"
+  },
+  {
+    "combination": "messages-sse",
+    "basic_status": "PASS",
+    "formal_status": "NOT_RUN",
+    "parameters": {
+      "max_tokens": 4096
+    },
+    "pin_receives": 1,
+    "basic_receives": 9,
+    "returncode": 2,
+    "bundle_sha256": "50984e76eb219d3726d971a53803230cbb8f8e3a4ef181daad8b0423769ed424",
+    "upstream_sha256": "b7f5b6a5dfb2194414214706c2cec0834a00bc8ea37da501868027a57f783704"
+  },
+  {
+    "combination": "responses-json",
+    "basic_status": "PASS",
+    "formal_status": "NOT_RUN",
+    "parameters": {
+      "max_output_tokens": 4096
+    },
+    "pin_receives": 1,
+    "basic_receives": 9,
+    "returncode": 2,
+    "bundle_sha256": "6113c05c021e65b8dd773c266501be95399e7b96c6c8184422e64aa5c03ff785",
+    "upstream_sha256": "c802bda64bd798d5a1ca7cf6ff62798c3128e8d9f7b7805c7bd0fda97af76345"
+  },
+  {
+    "combination": "responses-sse",
+    "basic_status": "PASS",
+    "formal_status": "NOT_RUN",
+    "parameters": {
+      "max_output_tokens": 4096
+    },
+    "pin_receives": 1,
+    "basic_receives": 9,
+    "returncode": 2,
+    "bundle_sha256": "0d2254aa1a9ec08cafd1ca5ce2901e147b14be31ab0f3db3f109e8dc82aaec5d",
+    "upstream_sha256": "515b0857991e8621fa65dff44f6c665fac94b5dda7115058171881c663bfb6ab"
+  }
+]

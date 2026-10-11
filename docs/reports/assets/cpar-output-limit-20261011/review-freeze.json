@@ -1,0 +1,105 @@
+{
+  "base": "af7480b2da3edffc324d9a42d81f7d0990f50358",
+  "head": "42a8ed3a031ca5d4b26b7b106a225a0598c36006",
+  "product_delivery_source": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "commits": [
+    "42a8ed3a docs(build): initialize archive root for the existing release script",
+    "abd45431 test(acceptance): rehearse bounded output limits through the actual gateway",
+    "beb796a1 fix(gateway): project bounded Channel Pin from its source protocol",
+    "b1815a00 fix(router): preserve Chat completion output limits across protocol admission"
+  ],
+  "files": [
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "sha256": "9ec4e936f6633048ee5dc424695f3f5507c58b2712893a4996db8f5c0302597d"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok.rs",
+      "sha256": "887098a905c3970bd4e86ca9e68b415309f07a1469cde2af7bf924f5b0bac16d"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/http.rs",
+      "sha256": "d9b45802c58af926689a46ff43c13e9457d8849f179e5aa7b141705a95098848"
+    },
+    {
+      "path": "crates/gateway-router/src/protocol_transform.rs",
+      "sha256": "f5b19308220cf4c89c1539ce0b5298e883c8a31d9656761029550d1e730a1309"
+    },
+    {
+      "path": "docs/adr/ADR-0104-chat-output-limit-projection.md",
+      "sha256": "4fc2a4a2fc7f9fdb1458dcadd16231abbde01f6f1a03ef559c0b81159ed91bad"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "sha256": "34d5ad8de177c7e14299aa8d4d8ea57b7265c187dae2881bececef8875524431"
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-008-openai-chat-completions-codec.md",
+      "sha256": "2a518e6dfd59f77ccacb1efe7ac6e234a64b3e72b6513a6cb5e7c9e68eb0d47e"
+    },
+    {
+      "path": "docs/contracts/BC-ROUTER-004-protocol-transform-admission.md",
+      "sha256": "6c48835142629c40b8090d6682303897848ad20196c37b12ee776fac1bc2378a"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/baseline.json",
+      "sha256": "94e9102dec357b8f43d95e9ff7f64f9e30bb1b59d7fbe38ceac3f0088b128212"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/candidate.Dockerfile",
+      "sha256": "8409cc97e0b2a469a4b70ff8e70929fa95d611570072716f1844dfbb0160bce2"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/generic-pin-red.json",
+      "sha256": "cc48b95896d30a1d6a36b7ecc60daa47ba54dc21432b05ea7d554eb62f17c462"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/matrix-initial.json",
+      "sha256": "218fbfa0462860ba06a36aa94d3092142e714d98d65bd3910da67a2ff1aa3042"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/parameter-boundaries-initial.json",
+      "sha256": "cef8d94626c66b0a2534748b5dae8de926e5cf1f610f1d66bf7edfd80d07d0b2"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/public-green-initial.json",
+      "sha256": "dafad4fd01cfdb4afea602172f46cc47e70f7c49bc66e6e4b8dd28009505b92c"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/public-red.json",
+      "sha256": "6876f346a89cd4d5209eaf812439963eb6ccc28f9ed6886ca01cb3adaa47865f"
+    },
+    {
+      "path": "docs/reports/assets/cpar-output-limit-20261011/task-scope.md",
+      "sha256": "27f299c807cdf82472eb86912bfe8bc2fcb060eed9b60826cefafb4de7e07358"
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "0201a08806bcde31d23e7980231015906ee03d0a85c6feebc0d7c5d3575d76e4"
+    },
+    {
+      "path": "scripts/acceptance/cpar-batch-b-http.py",
+      "sha256": "1ddd71fc10077bbf8e12cbb6d6c5e094bb8c1fbe8d52178ecc22da2ee2fef163"
+    },
+    {
+      "path": "scripts/acceptance/cpar-new-build-acceptance.md",
+      "sha256": "2bdf2efd811d188a4fbc630d5d78b7f2a2340075c54c95079df7afdeda252695"
+    },
+    {
+      "path": "scripts/acceptance/cpar_build_extensions_http.py",
+      "sha256": "1ac87b5bfdbd3c34179154372081fe4d70cf395dc7beb65c60eb646aeb243b4e"
+    },
+    {
+      "path": "scripts/acceptance/cpar_new_build_acceptance.py",
+      "sha256": "4ca87111f10858118e4a721699ad44e9f5abce2775f6d9423bd9a1427858f971"
+    },
+    {
+      "path": "scripts/acceptance/cpar_output_limits_http.py",
+      "sha256": "82ae56e380583a7d35b7e14dd9c90e7999e829a08159d8568ccd4028b8c17f72"
+    },
+    {
+      "path": "scripts/test-cpar-new-build-acceptance.py",
+      "sha256": "7587c808494ebd80c2d169d169c8c53e32e82faaa7fb32e922e3d674be7bbfa8"
+    }
+  ]
+}
