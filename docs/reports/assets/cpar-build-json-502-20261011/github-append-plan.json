@@ -1,0 +1,41 @@
+{
+  "status": "PREPARED; no mutation in this step",
+  "scope": "append to existing progress comments only; three OPEN; no issue-body/AC/metadata/dependency write",
+  "evidence_commit": "65c1ab124ccada3773d6353cc20989e11b703723",
+  "digest_semantics": "SHA256 of exact UTF8 append/body/prefix bytes",
+  "issues": [
+    {
+      "number": 47,
+      "comment_id": 6081215242,
+      "append_file": "github-append-47.md",
+      "append_utf8_bytes": 5897,
+      "append_sha256": "a83d19f21dec1221adc2fd527a3b4f1334e8006fa88a14ec4a864079cf8554cd",
+      "expected_final_body_sha256": "b30c0364784121924fe2b3b1cb151fbd089ab1c8c6db817c74efa6e6635334db",
+      "expected_final_body_characters": 24298,
+      "historical_prefix_sha256": "b678b2bff1da11c90764312d94df4d11cd0425d5813a5308314d59c2e83f2522",
+      "historical_prefix_utf8_bytes": 34608
+    },
+    {
+      "number": 57,
+      "comment_id": 6081234278,
+      "append_file": "github-append-57.md",
+      "append_utf8_bytes": 5929,
+      "append_sha256": "f530a23c66441eb942ad13bf94805c96db8bd90d07531253090171701dd6d514",
+      "expected_final_body_sha256": "b518be523d0e5f6e6bc1de58bdeddbd435a1281d82ce704e418191b7877487bf",
+      "expected_final_body_characters": 27999,
+      "historical_prefix_sha256": "522ce5c70f3174984a4ea28ed10dccba0007aef74c968b4d6662d7fa4978afaf",
+      "historical_prefix_utf8_bytes": 41226
+    },
+    {
+      "number": 9,
+      "comment_id": 6081235490,
+      "append_file": "github-append-9.md",
+      "append_utf8_bytes": 5954,
+      "append_sha256": "032cc89e98dd1ec2045bd4c815410a46bcf3956b1686845d6ad9d4803a414147",
+      "expected_final_body_sha256": "53a13ebed15dbbbb465554fd7415d00cc03d9768d12c6f5fd6d49c37a8b97819",
+      "expected_final_body_characters": 26738,
+      "historical_prefix_sha256": "1138ddf1d382b3cf7c8383207bb92c09eaa31ee4b184a3d190eb92afb5e383d2",
+      "historical_prefix_utf8_bytes": 39136
+    }
+  ]
+}
