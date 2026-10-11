@@ -1,0 +1,8 @@
+{
+  "schema_version": "cpa-rust-gateway-build-metadata-v1",
+  "binary": "gateway-aarch64-unknown-linux-gnu",
+  "revision": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "rust_toolchain": "1.97.1",
+  "target": "aarch64-unknown-linux-gnu",
+  "version": "0.1.0"
+}

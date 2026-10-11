@@ -1,0 +1,88 @@
+{
+  "47": {
+    "state": "OPEN",
+    "title": "CPAR-38\uff1agrok.build \u6e20\u9053\u5dee\u5f02\u4e0e\u9010\u7ec4\u5408\u9a8c\u6536",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47",
+    "issue_body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+    "comments": [
+      {
+        "id": "IC_kwDOUGxUj88AAAABanf7Cg",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+        "body_sha256": "f4f956cb6cf4da51e3adaecafd8053db6e0a9e37907971b17b172460e3bacc1e"
+      }
+    ],
+    "dependencies": {
+      "blocked_by": [
+        5631336964,
+        5631366152,
+        5631369676,
+        5631372136,
+        5631373786,
+        5631375409,
+        5631376962,
+        5631378668
+      ],
+      "blocking": [
+        5631519603
+      ]
+    }
+  },
+  "57": {
+    "state": "OPEN",
+    "title": "CPAR-48\uff1a\u5206\u6279\u4ea4\u4ed8\u8bc1\u636e\u4e0e\u5168\u8303\u56f4\u6536\u53e3",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57",
+    "issue_body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+    "comments": [
+      {
+        "id": "IC_kwDOUGxUj88AAAABanhFZg",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+        "body_sha256": "095833d86210952ae814ff28ba58720aa23083cacacf497e4da962a87e9536bb"
+      }
+    ],
+    "dependencies": {
+      "blocked_by": [
+        5631328914,
+        5631339239,
+        5631347684,
+        5631356096,
+        5631358441,
+        5631386213,
+        5631388515,
+        5631395778,
+        5631402450,
+        5631408970,
+        5631415759,
+        5631422686,
+        5631429622,
+        5631436822,
+        5631444349,
+        5631451729,
+        5631458604,
+        5631464240,
+        5631493317,
+        5631495525,
+        5631498436,
+        5631513961,
+        5631516660
+      ],
+      "blocking": []
+    }
+  },
+  "9": {
+    "state": "OPEN",
+    "title": "\u5b9e\u65bd\u89c4\u683c\uff1aCPAR \u73b0\u6709\u6e20\u9053\u53ef\u9760\u6027\u4e0e\u7ba1\u7406\u4f53\u9a8c\u6536\u655b",
+    "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9",
+    "issue_body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+    "comments": [
+      {
+        "id": "IC_kwDOUGxUj88AAAABanhKIg",
+        "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+        "body_sha256": "92869e3e19bd2a15418f618dd13b4d2b97a41c6e5e3dfb4435d90a4e08f6f1b1"
+      }
+    ],
+    "dependencies": {
+      "blocked_by": [],
+      "blocking": []
+    }
+  }
+}

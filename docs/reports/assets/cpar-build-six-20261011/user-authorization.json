@@ -1,0 +1,45 @@
+{
+  "status": "APPROVED",
+  "basis": "user_explicit",
+  "authorization_date": "2026-10-11",
+  "combinations": [
+    "chat-json",
+    "chat-sse",
+    "messages-json",
+    "messages-sse",
+    "responses-json",
+    "responses-sse"
+  ],
+  "historical_budget_intents": 33,
+  "historical_gateway_pin_confirmed_sends": 32,
+  "max_new_pin_intents": 6,
+  "max_new_basic_intents": 54,
+  "max_new_budget_intents": 60,
+  "cumulative_budget_intent_limit": 93,
+  "cost_policy": "UNLIMITED_USER_EXPLICIT",
+  "budget_limit": null,
+  "inherited_cost_policy_file": "../cpar-build-batch-20261011/user-authorization.json",
+  "inherited_cost_policy_file_sha256": "c979508e082696b2178677f0179ab0fc73e5c01f24b467f3e0befb04ef7480bf",
+  "inherited_cost_policy_excerpt": "费用不设金额上限",
+  "current_user_excerpt": "沿用既有明确批准的费用政策；这不解除次数、对象和失败停止限制。不能续用旧38次余量，也不能在本批失败后重开子批次继续消费剩余次数。",
+  "first_failure_unknown_or_contradiction_stops_whole_batch": true,
+  "account": "existing same approved Grok Build account and authorization source",
+  "model": "grok-4.5",
+  "max_attempts": 1,
+  "allow_retry": false,
+  "allow_fallback": false,
+  "real_extensions_authorized": false,
+  "production_changes_authorized": false,
+  "push_authorized": false,
+  "github_existing_progress_updates": [
+    47,
+    57,
+    9
+  ],
+  "temporary_unit": "cpar-build-acceptance-20261010.service",
+  "loopback_ports": [
+    19180,
+    19181
+  ],
+  "epoch": "abd45431-six-20261011"
+}

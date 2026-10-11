@@ -1,0 +1,18 @@
+{
+  "schema_version": "cpa-rust-gateway-artifact-manifest-v1",
+  "revision": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "rust_toolchain": "1.97.1",
+  "target": "aarch64-unknown-linux-gnu",
+  "files": [
+    {
+      "name": "gateway-aarch64-unknown-linux-gnu",
+      "bytes": 19500176,
+      "sha256": "f505ed6e71b3dea47b940175d39274605d4b0721597cf2841e65ce7aa536b473"
+    },
+    {
+      "name": "gateway-build-metadata.json",
+      "bytes": 261,
+      "sha256": "ddc06a27459c6638ce0fb8e490334794081fafd88f325e2b3d10a27a71d2caf9"
+    }
+  ]
+}

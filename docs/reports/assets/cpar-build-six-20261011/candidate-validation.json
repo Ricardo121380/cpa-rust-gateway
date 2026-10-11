@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "candidate_ready": true,
+  "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "binary_sha256": "f505ed6e71b3dea47b940175d39274605d4b0721597cf2841e65ce7aa536b473",
+  "binary_bytes": 19500176,
+  "elf_class": 64,
+  "endianness": "little",
+  "elf_machine": 183,
+  "machine": "AArch64",
+  "embedded": {
+    "revision": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+    "rust-version": "1.97.1",
+    "target": "aarch64-unknown-linux-gnu"
+  },
+  "dynamic_dependencies": [
+    "libstdc++.so.6",
+    "libgcc_s.so.1",
+    "libm.so.6",
+    "libc.so.6"
+  ],
+  "runnable_help_exit": 0,
+  "normalization": "script recognized non-Mach-O and exited 0",
+  "manifest_file_sha256": "b51ea8085b87bc2d9b942e7ee57e84e4e015aa53fc4409ba7a3e8d9489b7e583",
+  "manifest_payload_sha256": "79d4425355c4aed8300c54d28aaee872cfb5d1860acf135eef9b2ba54f30537c",
+  "manifest_matches": true,
+  "scope": "isolated candidate; unsigned two-payload manifest; full P12 release package not created",
+  "build_receipt": "candidate-build-container.json",
+  "product_full_reused_source": "abd454313f6a3707d6af5a5d653b731e2e54b08b"
+}

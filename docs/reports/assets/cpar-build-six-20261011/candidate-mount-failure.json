@@ -1,0 +1,7 @@
+{
+  "exit_code": 125,
+  "container_created": false,
+  "release_started": false,
+  "cause": "Colima profile does not mount the external /Volumes source path",
+  "log_sha256": "56749c81df572c4883edd1519d9184080f6803c8675fb8f865fcfe69c7b84bdb"
+}

@@ -1,0 +1,25 @@
+{
+  "command": [
+    "docker",
+    "--context",
+    "colima-cpar-acceptance-20261010",
+    "build",
+    "--pull=false",
+    "--platform",
+    "linux/arm64",
+    "--progress=plain",
+    "-f",
+    "docs/reports/assets/cpar-build-six-20261011/dependencies.Dockerfile",
+    "-t",
+    "cpar-build-dependencies:abd45431-six-20261011",
+    "output/cpar-build-six-20261011/dependency-context"
+  ],
+  "started_at_utc": "2026-10-11T07:11:04.880429+00:00",
+  "duration_seconds": 14.82,
+  "exit_code": 0,
+  "log_sha256": "61876660e0337d7009b7030f9d524f4bc917a0afadae71327bc1080c962936e5",
+  "base_image_digest": "sha256:436d5811a29917a624dd155d49501f6edb19d2ab62a1dcd308555923dea4b8e7",
+  "source": "existing Debian official signed repositories",
+  "recipe_sha256": "7533e7ca4cd18ce2f7003c0cc70cc091b7efd198657478250f839b87f647f65e",
+  "successor_image_digest": "sha256:0fb5194f33ad4e1bc6eb9676f2dd8a16dc204dc2f4ab0747fe8fc5fbdc659250"
+}

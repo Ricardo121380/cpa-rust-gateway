@@ -1,0 +1,3 @@
+af6f0df56cc8fb5e8ee8b9431cee886b7f7cb352f21b268fface12799d0de815  /var/lib/apt/lists/deb.debian.org_debian-security_dists_bookworm-security_InRelease
+455e17b8a30d24b36b362e4b69aeb7ba298ade7fe51964c4d36867cc71a8537e  /var/lib/apt/lists/deb.debian.org_debian_dists_bookworm-updates_InRelease
+77737fa4b34f2693e982cc9ee35736816c35a7778fc2d326cc1bbf5b301fe1aa  /var/lib/apt/lists/deb.debian.org_debian_dists_bookworm_InRelease

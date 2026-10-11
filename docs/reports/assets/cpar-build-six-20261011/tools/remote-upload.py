@@ -1,0 +1,31 @@
+"""Copy only exact reviewed candidate/tools into a new owned protected directory."""
+import hashlib
+import json
+import os
+import pathlib
+import stat
+import sys
+import tarfile
+
+os.umask(0o077)
+base = pathlib.Path('/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010')
+assert json.loads((base / 'owner.json').read_text())['task'] == 'cpar-build-20261010'
+assert not base.is_symlink() and base.stat().st_uid == 0 and stat.S_IMODE(base.stat().st_mode) == 0o700
+binary_dir = base / 'bin/abd45431-six-20261011'
+assert not binary_dir.exists()
+expected = {'gateway-aarch64-unknown-linux-gnu': 'f505ed6e71b3dea47b940175d39274605d4b0721597cf2841e65ce7aa536b473', 'artifact-manifest.json': 'b51ea8085b87bc2d9b942e7ee57e84e4e015aa53fc4409ba7a3e8d9489b7e583', 'gateway-build-metadata.json': 'ddc06a27459c6638ce0fb8e490334794081fafd88f325e2b3d10a27a71d2caf9', 'cpar-batch-c-live.py': '7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f', 'cpar_new_build_acceptance.py': '4ca87111f10858118e4a721699ad44e9f5abce2775f6d9423bd9a1427858f971', 'cpar_build_extensions.py': '77e398f6dfe14dcfac179fe99a4b0fe7eeac6bcddf0db7a2fb4020c63c6e02ef', 'cpar_build_extensions_http.py': '9945f6bb5d64cd28005e943d7b010fe13c7673445e7079727fcc02b887ac7176', 'remote-start.py': '0fc5f26ad0f02bd93cf1c7b81f61af5235bd25666dd9aebfb7e7360ed1cfa35b', 'remote-pin.py': '31175a12a7b829ee2d11fe6f495d8a4a29653a8a9b49deba1230ebd41158aa7b', 'remote-exit.py': '7d3437f350b18ef87c334f1fe9d0d9885dd5f3cda6450d8514a712e39125c547', 'remote-readiness.py': 'ce90a13cbf7fce37e2ef7901bc1d3e22746751cccdc46242cc46ec12f85544ab', 'remote-basics.py': '9a063c1ac78af6135b67b9ba984af81529ddae65b16560155e50678eed42410f', 'remote-prepare.py': '4deabcbcebfac063cf8ebff9f37e7bb84632bb3ea628f9eac3a847881d152374', 'user-authorization.json': '77980e82623fa9913bd0623803f1a0f6b33857335127ad96fde5064f0ebaaa0f'}
+binary_dir.mkdir(mode=0o700)
+seen = set()
+with tarfile.open(fileobj=sys.stdin.buffer, mode='r|') as archive:
+    for member in archive:
+        assert member.isfile() and member.name in expected and member.name not in seen
+        data = archive.extractfile(member).read()
+        assert hashlib.sha256(data).hexdigest() == expected[member.name]
+        target = binary_dir / member.name
+        with target.open('xb') as output:
+            output.write(data)
+        target.chmod(0o700 if member.name.startswith('gateway-aarch64') else 0o600)
+        seen.add(member.name)
+assert seen == set(expected)
+assert all(hashlib.sha256((binary_dir / name).read_bytes()).hexdigest() == value for name, value in expected.items())
+print(json.dumps({'status': 'PASS', 'uploaded_hashes': expected, 'directory': str(binary_dir), 'unknown_paths_overwritten': 0, 'provider_requests': 0}))
