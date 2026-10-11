@@ -1,0 +1,123 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T13:26:57.203833+00:00",
+  "repository": "Ricardo121380/cpa-rust-gateway",
+  "verification_source": "independent fresh GETs after all3 PATCH operations; not mutation response echo",
+  "issues": [
+    {
+      "number": 47,
+      "state": "OPEN",
+      "comment_id": 6081215242,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "final_body_sha256": "b30c0364784121924fe2b3b1cb151fbd089ab1c8c6db817c74efa6e6635334db",
+      "final_body_utf8_bytes": 40505,
+      "historical_prefix_sha256": "b678b2bff1da11c90764312d94df4d11cd0425d5813a5308314d59c2e83f2522",
+      "historical_prefix_utf8_bytes": 34608,
+      "append_sha256": "a83d19f21dec1221adc2fd527a3b4f1334e8006fa88a14ec4a864079cf8554cd",
+      "append_utf8_bytes": 5897,
+      "exact_prefix_plus_append_match": true,
+      "issue_body_ac_unchanged": true,
+      "labels_assignees_and_other_observed_protected_metadata_unchanged": true,
+      "issue_protected_semantic_sha256_before": "b1eea982b89dbcc1bb19d9bee340bd16d8df5e35bd8adc22486f057984677eaa",
+      "issue_protected_semantic_sha256_after": "b1eea982b89dbcc1bb19d9bee340bd16d8df5e35bd8adc22486f057984677eaa",
+      "dependency_count": 8,
+      "dependencies_protected_metadata_unchanged": true,
+      "dependencies_protected_semantic_sha256_before": "cc49596ede8d6cb7913719af8dcd3c546ed7d7af8c084ffa6cbc5c57b14517a8",
+      "dependencies_protected_semantic_sha256_after": "cc49596ede8d6cb7913719af8dcd3c546ed7d7af8c084ffa6cbc5c57b14517a8",
+      "comment_updated_at": "2026-10-11T13:23:44Z",
+      "archive_file_sha256": {
+        "issue": "9884fab64aa391ccdeac64ebd54b48f0e077601ff852c59d5673a90ad99db003",
+        "comment": "3033134d6f728149bf55f6df2235521c9f547cf7cca2e092739aeb383ada0e2e"
+      },
+      "dependency_archive_file_sha256": "00067cbb236953432c8af14ba1ad564242932a2def1714e6dbe0dc0b1d4514f5"
+    },
+    {
+      "number": 57,
+      "state": "OPEN",
+      "comment_id": 6081234278,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "final_body_sha256": "b518be523d0e5f6e6bc1de58bdeddbd435a1281d82ce704e418191b7877487bf",
+      "final_body_utf8_bytes": 47155,
+      "historical_prefix_sha256": "522ce5c70f3174984a4ea28ed10dccba0007aef74c968b4d6662d7fa4978afaf",
+      "historical_prefix_utf8_bytes": 41226,
+      "append_sha256": "f530a23c66441eb942ad13bf94805c96db8bd90d07531253090171701dd6d514",
+      "append_utf8_bytes": 5929,
+      "exact_prefix_plus_append_match": true,
+      "issue_body_ac_unchanged": true,
+      "labels_assignees_and_other_observed_protected_metadata_unchanged": true,
+      "issue_protected_semantic_sha256_before": "38075e434209abae6e0f611203269631bffd01769bd358f0a41253c86d0893c0",
+      "issue_protected_semantic_sha256_after": "38075e434209abae6e0f611203269631bffd01769bd358f0a41253c86d0893c0",
+      "dependency_count": 23,
+      "dependencies_protected_metadata_unchanged": true,
+      "dependencies_protected_semantic_sha256_before": "d41a1fc58a2de6518868200e1e08641df5c21cc21a934d6b31624ed95a6e9bc0",
+      "dependencies_protected_semantic_sha256_after": "d41a1fc58a2de6518868200e1e08641df5c21cc21a934d6b31624ed95a6e9bc0",
+      "comment_updated_at": "2026-10-11T13:24:01Z",
+      "archive_file_sha256": {
+        "issue": "f4bc897ca7caae81e96e893bc968f5e77341075077c7ef1f1339431de2f3b603",
+        "comment": "b01a136e91148860ff14625bd9606a539bcab0cf0fc6602391d7364086e68810"
+      },
+      "dependency_archive_file_sha256": "4bf1a80390923e98b947cb052323da28829597e24e4fa0aff38a58de565bc097"
+    },
+    {
+      "number": 9,
+      "state": "OPEN",
+      "comment_id": 6081235490,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "final_body_sha256": "53a13ebed15dbbbb465554fd7415d00cc03d9768d12c6f5fd6d49c37a8b97819",
+      "final_body_utf8_bytes": 45090,
+      "historical_prefix_sha256": "1138ddf1d382b3cf7c8383207bb92c09eaa31ee4b184a3d190eb92afb5e383d2",
+      "historical_prefix_utf8_bytes": 39136,
+      "append_sha256": "032cc89e98dd1ec2045bd4c815410a46bcf3956b1686845d6ad9d4803a414147",
+      "append_utf8_bytes": 5954,
+      "exact_prefix_plus_append_match": true,
+      "issue_body_ac_unchanged": true,
+      "labels_assignees_and_other_observed_protected_metadata_unchanged": true,
+      "issue_protected_semantic_sha256_before": "4106a665d8a4fbc97db411ca0861758fcf59bdc0588773ba293d6ca3d44f598e",
+      "issue_protected_semantic_sha256_after": "4106a665d8a4fbc97db411ca0861758fcf59bdc0588773ba293d6ca3d44f598e",
+      "dependency_count": 0,
+      "dependencies_protected_metadata_unchanged": true,
+      "dependencies_protected_semantic_sha256_before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "dependencies_protected_semantic_sha256_after": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "comment_updated_at": "2026-10-11T13:24:17Z",
+      "archive_file_sha256": {
+        "issue": "c2529195aa76e6f10c2be1c7c88989026daea31c0d33878280b9db0a6bf4b525",
+        "comment": "b5ee1764c90fc14c3936c68aea3829b167fe40fea50ba5005c92720d0cc93bb5"
+      },
+      "dependency_archive_file_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    }
+  ],
+  "all_three_open": true,
+  "body_ac_labels_assignees_and_read_metadata_preserved": true,
+  "all_paginated_dependency_contracts_preserved": true,
+  "issue_contract_projection_fields": [
+    "number",
+    "title",
+    "body",
+    "state",
+    "state_reason",
+    "locked",
+    "active_lock_reason",
+    "issue_dependencies_summary",
+    "sub_issues_summary",
+    "type",
+    "labels(id,node_id,name,color,description)",
+    "assignees(id,login)",
+    "assignee(id,login)",
+    "milestone(id,node_id,number,title,description,state,due_on)"
+  ],
+  "semantic_digest_serialization": {
+    "encoding": "UTF-8",
+    "sort_keys": true,
+    "ensure_ascii": false,
+    "separators": [
+      ",",
+      ":"
+    ],
+    "algorithm": "SHA256"
+  },
+  "archive_digest_semantics": "SHA256 of exact archived file bytes; body/prefix/append digests are SHA256 of exact UTF8 string bytes",
+  "raw_archives": "owned local github-final-readback-raw;0700/0600; public sanitized summaries in Git",
+  "issue_body_state_label_assignee_dependency_mutations": 0,
+  "provider_inference_intents": 0,
+  "push_release_deploy_production_acceptance": "NOT_RUN"
+}

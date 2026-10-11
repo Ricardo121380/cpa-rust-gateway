@@ -17,7 +17,7 @@
 | 完整六组合基础矩阵 | NOT_RUN | 本批 0/6 完整组合，无新增基础请求 |
 | 历史通过记录 | 保留原范围 | 旧 source `1b6023f5` 的 Responses JSON/SSE 各 9/9，不迁移为当前候选通过 |
 | 远端 CI / release / deployment / production acceptance | NOT_RUN | 本地 Full 不代表这些层通过 |
-| GitHub 追加及独立读回 | PENDING_GITHUB_READBACK | 仅既有三条 progress，保留正文、AC、状态、元数据及依赖 |
+| GitHub 追加及独立读回 | PASS；三票 OPEN | 仅既有三条 progress，保留正文、AC、状态、元数据及依赖 |
 
 沿实际公共路径确认并修复的缺陷如下。Provider 的 JSON 解码在返回事件源之前完成验证，原事件源没有把已解码 Usage 向后续投影 / HTTP 失败处理转发；投影器原 `Err(_)` 抹掉具体拒绝类型；HTTP 若在建立请求身份后的执行或收集阶段失败，错误响应未统一附加同一 Request-ID。这些是源码和合成公共入口回归证明的软件缺陷，不能倒推旧真实响应具有某个字段。
 
@@ -60,7 +60,9 @@
 
 退出回执 [remote-prelaunch-exit.json](assets/cpar-build-json-502-20261011/remote-prelaunch-exit.json) 确认 `NOT_STARTED_VERIFIED`，没有冒称停了一个未启动的进程。临时 unit MainPID0 / not-found，19180/19181 无监听，无竞争 state 进程，audit 文件不存在且 5 秒继续不变，原生捕获为空；保护根 334 个已冻结文件 SHA 全保留，private 目录 / 文件为 0700/0600，无 symlink。生产 PID499070、restart0、进程开始时间、unit / binary / current / Caddy 和活动配置保持初始基线。退出只锁存本批 budget、写本批私有回执与读取管理状态，没有生产写入。后续 [remote-final-readback.json](assets/cpar-build-json-502-20261011/remote-final-readback.json) 再独立只读确认退出状态、334 个历史文件及 14 个上传载荷，包含退出回执在内的 29 个私有文件与 4 个子目录权限合格，修复后的驱动未上传。活动配置在退出时读取，最终读回复核运行身份。Colima 的 default 和 acceptance 两 profile 都已恢复 Stopped，最终 [colima-final-readback.json](assets/cpar-build-json-502-20261011/colima-final-readback.json) 与初始六项配置精确相同；旧对象与新 builder 保留。
 
-GitHub 交付仅向 #47 / #57 / #9 既有 progress 追加脱敏结果，保持历史前缀，随后独立读取评论与 issue/dependencies 元数据；正文、AC、state、labels、assignee、依赖和其余承诺不修改。本批尚未完成该操作时标 PENDING；最终读回回执存入本资产目录后才标 PASS。本地提交不 push，GitHub 评论中的本地 source / 报告位置不伪装为已发布远端代码或 CI 证据。
+交付前又一次只读复核于2026-10-11T13:19:55Z完成，见 [remote-delivery-readback.json](assets/cpar-build-json-502-20261011/remote-delivery-readback.json)：停止budget、never-started服务、无监听/竞争进程、audit不存在且5秒不新增、空原生捕获、334历史文件和14上传载荷、29私有文件/4目录权限，以及生产运行身份均仍符合退出基线；没有上传修复驱动或重启。随后 [colima-delivery-readback.json](assets/cpar-build-json-502-20261011/colima-delivery-readback.json) 确认两个profile仍Stopped、六字段与初始状态相同。
+
+GitHub 交付已向 [#47 progress](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57 progress](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9 progress](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490) 原评论追加脱敏结果。独立新GET与写入响应分开，逐字确认原历史前缀 + 已封存追加内容；正文/AC、state、labels、assignee及已读取的保护元数据、分页8/23/0条依赖精确保持，三票继续OPEN。原文及原前缀保留在0700/0600本地档案，Git中只保存本批脱敏追加与必要摘要；见 [github-write-receipt.json](assets/cpar-build-json-502-20261011/github-write-receipt.json)、[github-final-readback.json](assets/cpar-build-json-502-20261011/github-final-readback.json)。本地提交不push，GitHub所记核心冻结及退出证据提交 `65c1ab124ccada3773d6353cc20989e11b703723`、追加草案提交 `f06ee0b86713019899c4d9433bea0a2430aeea6e` 都仅在本地，未伪装为远端代码或CI证据。
 
 重新开展基础矩阵需要先解决诊断资格与旧故障的证据缺口：采用修复后的已冻结驱动和新的自有 epoch；重新核对实际 launch / 环境 / guard / 背景出口 / ports，并在产品 source 变化时重新生成候选；完成对应 Task/Phase 与独立完整 Standards/本批 Spec；发送前重新冻结账号材料、实际新进程、pool / lease、路由 / 模型、Client Key、serving declaration、出口与有效期，绝不沿用旧 Pin / lease / 会话资格。若新原生证据显示不可等价表达，先保留拒绝并对具体产品规则给出聚焦决策，不能丢字段、降低上限或关闭能力取得通过。
 

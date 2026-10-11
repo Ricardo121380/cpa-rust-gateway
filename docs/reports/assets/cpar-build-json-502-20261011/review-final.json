@@ -64,5 +64,6 @@
   "parent_spec_and_three_issue_full_scope": "NOT_COMPLETE; all three OPEN",
   "preserved_earlier_results": "all original FAIL/PARTIAL/interrupted receipts retained; no incomplete reviewer relabelled PASS",
   "initial_fail_raw_limitation": "initial runner aggregate raw was overwritten; excerpt only; final complete PASS logs retained",
-  "github_append_readback": "PENDING"
+  "github_append_readback": "PASS; three existing comment appends and independent fresh issue/comment/paginated-dependency GETs; github-final-readback.json",
+  "github_mutation_scope": "body-only PATCH to three existing comments, zero issue state/body/label/assignee/dependency mutations"
 }

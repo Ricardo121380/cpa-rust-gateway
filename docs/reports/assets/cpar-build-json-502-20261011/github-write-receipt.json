@@ -1,0 +1,61 @@
+{
+  "status": "PASS; three authorized comment-only appends and separate comment GETs; final issue/dependency readback pending",
+  "observed_at_utc": "2026-10-11T13:24:19.171589+00:00",
+  "repository": "Ricardo121380/cpa-rust-gateway",
+  "issues": [
+    {
+      "number": 47,
+      "comment_id": 6081215242,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "method": "PATCH",
+      "payload_keys": [
+        "body"
+      ],
+      "mutation_exit_code": 0,
+      "mutation_error_sha256": null,
+      "separate_comment_GET_verified": true,
+      "historical_prefix_preserved": true,
+      "body_sha256": "b30c0364784121924fe2b3b1cb151fbd089ab1c8c6db817c74efa6e6635334db",
+      "append_sha256": "a83d19f21dec1221adc2fd527a3b4f1334e8006fa88a14ec4a864079cf8554cd",
+      "patch_repeated": false,
+      "mutator_response_not_used_as_final_readback": true
+    },
+    {
+      "number": 57,
+      "comment_id": 6081234278,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "method": "PATCH",
+      "payload_keys": [
+        "body"
+      ],
+      "mutation_exit_code": 0,
+      "mutation_error_sha256": null,
+      "separate_comment_GET_verified": true,
+      "historical_prefix_preserved": true,
+      "body_sha256": "b518be523d0e5f6e6bc1de58bdeddbd435a1281d82ce704e418191b7877487bf",
+      "append_sha256": "f530a23c66441eb942ad13bf94805c96db8bd90d07531253090171701dd6d514",
+      "patch_repeated": false,
+      "mutator_response_not_used_as_final_readback": true
+    },
+    {
+      "number": 9,
+      "comment_id": 6081235490,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "method": "PATCH",
+      "payload_keys": [
+        "body"
+      ],
+      "mutation_exit_code": 0,
+      "mutation_error_sha256": null,
+      "separate_comment_GET_verified": true,
+      "historical_prefix_preserved": true,
+      "body_sha256": "53a13ebed15dbbbb465554fd7415d00cc03d9768d12c6f5fd6d49c37a8b97819",
+      "append_sha256": "032cc89e98dd1ec2045bd4c815410a46bcf3956b1686845d6ad9d4803a414147",
+      "patch_repeated": false,
+      "mutator_response_not_used_as_final_readback": true
+    }
+  ],
+  "issue_body_state_label_assignee_dependency_mutations": 0,
+  "provider_inference_intents": 0,
+  "digest_semantics": "SHA256 of exact UTF8 body/append bytes or raw stderr bytes; no response body/raw credential values in public receipt"
+}
