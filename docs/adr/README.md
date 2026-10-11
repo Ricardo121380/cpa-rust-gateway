@@ -130,3 +130,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0102 Actual Attempt identity and effective capability evidence](ADR-0102-attempt-execution-identity-and-capability-evidence.md) — `CPAR-C / #9、#39–#50、#57`（Accepted；schema 34 原子证据、实际租约/配置/出口及 scoped capability 声明；候选、部署、真实验收分别记录）
 - [ADR-0103 Validated bootstrap Usage on its exact failed Attempt](ADR-0103-failed-bootstrap-usage-attribution.md) — `release-readiness B-04 / #32、#57`（Accepted；失败启动用量、Attempt 级幂等身份与一致读模型；本地证据不授予发布验收）
 - [ADR-0104 Strict Chat output-limit projection](ADR-0104-chat-output-limit-projection.md) — `CPAR-38 / #47、#57、#9`（Accepted；现代总输出上限、原生字段保留与严格碰撞拒绝；候选与真实证据独立）
+- [ADR-0105 Source-bound observation of response projection failures](ADR-0105-projection-failure-observation.md) — `CPAR-38 / #47、#57、#9`（Accepted；安全拒绝原因、已确认 Request-ID、缓冲 Usage 与单次私有诊断；不授予全矩阵或发布资格）

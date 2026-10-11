@@ -1,4 +1,5 @@
 use super::*;
+mod projection_usage;
 use provider_grok::{
     GrokBuildResponseBody, GrokBuildResponseContentType, GrokBuildResponsesOutboundRequest,
     GrokBuildTransport, GrokBuildTransportResponse, GrokConsoleResponseBody,

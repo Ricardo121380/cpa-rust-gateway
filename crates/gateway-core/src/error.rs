@@ -4,6 +4,31 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 
+/// Closed, value-free rejection at the client-protocol response projection stage.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResponseProjectionRejection {
+    /// Structured reasoning has no equivalent target representation.
+    ReasoningUnsupported,
+    /// Retained response metadata has no reviewed target representation.
+    UnknownExtensions,
+    /// The target cannot represent the successful stop reason.
+    StopReasonUnsupported,
+    /// The target cannot retain the stop sequence.
+    StopSequenceUnsupported,
+    /// Projection violated the canonical lifecycle.
+    InvalidCanonicalLifecycle,
+    /// The response violated declared tool constraints.
+    ToolConstraintViolated,
+}
+
+impl fmt::Display for ResponseProjectionRejection {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{self:?}")
+    }
+}
+impl Error for ResponseProjectionRejection {}
+
 /// Stable internal error category used across gateway layers.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -161,6 +186,8 @@ impl fmt::Display for ErrorScope {
 pub struct GatewayError {
     code: GatewayErrorCode,
     scope: ErrorScope,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    projection_rejection: Option<ResponseProjectionRejection>,
 }
 
 impl GatewayError {
@@ -170,7 +197,27 @@ impl GatewayError {
     /// credentials, tokens, request bodies, or raw upstream responses.
     #[must_use]
     pub const fn new(code: GatewayErrorCode, scope: ErrorScope) -> Self {
-        Self { code, scope }
+        Self {
+            code,
+            scope,
+            projection_rejection: None,
+        }
+    }
+
+    /// Retains a closed rejection without admitting arbitrary diagnostic text.
+    #[must_use]
+    pub const fn response_projection(reason: ResponseProjectionRejection) -> Self {
+        Self {
+            code: GatewayErrorCode::UpstreamProtocolError,
+            scope: ErrorScope::Stream,
+            projection_rejection: Some(reason),
+        }
+    }
+
+    /// Returns the specific response-projection reason, when known.
+    #[must_use]
+    pub const fn projection_rejection(&self) -> Option<ResponseProjectionRejection> {
+        self.projection_rejection
     }
 
     /// Returns the stable error category.
@@ -188,6 +235,28 @@ impl GatewayError {
     /// Returns the fixed, secret-free diagnostic message for the error category.
     #[must_use]
     pub const fn safe_message(&self) -> &'static str {
+        if let Some(reason) = self.projection_rejection {
+            return match reason {
+                ResponseProjectionRejection::ReasoningUnsupported => {
+                    "response projection cannot represent the reasoning metadata"
+                }
+                ResponseProjectionRejection::UnknownExtensions => {
+                    "response projection cannot represent the response metadata"
+                }
+                ResponseProjectionRejection::StopReasonUnsupported => {
+                    "response projection cannot represent the stop reason"
+                }
+                ResponseProjectionRejection::StopSequenceUnsupported => {
+                    "response projection cannot represent the stop sequence"
+                }
+                ResponseProjectionRejection::InvalidCanonicalLifecycle => {
+                    "response projection rejected an invalid canonical lifecycle"
+                }
+                ResponseProjectionRejection::ToolConstraintViolated => {
+                    "response projection rejected a tool constraint violation"
+                }
+            };
+        }
         match self.code {
             GatewayErrorCode::ClientRequestError => "the client request is invalid",
             GatewayErrorCode::ClientUnauthorized => "the client is not authorized",
@@ -223,7 +292,7 @@ impl Error for GatewayError {}
 
 #[cfg(test)]
 mod tests {
-    use super::{ErrorScope, GatewayError, GatewayErrorCode};
+    use super::{ErrorScope, GatewayError, GatewayErrorCode, ResponseProjectionRejection};
 
     #[test]
     fn gateway_error_retains_an_explicit_scope() {
@@ -283,6 +352,34 @@ mod tests {
         );
         assert_eq!(decoded, error);
 
+        Ok(())
+    }
+
+    #[test]
+    fn projection_error_retains_only_closed_reason_and_stage() -> Result<(), serde_json::Error> {
+        let error =
+            GatewayError::response_projection(ResponseProjectionRejection::ReasoningUnsupported);
+        assert_eq!(error.code(), GatewayErrorCode::UpstreamProtocolError);
+        assert_eq!(error.scope(), ErrorScope::Stream);
+        assert_eq!(
+            error.projection_rejection(),
+            Some(ResponseProjectionRejection::ReasoningUnsupported)
+        );
+        assert_eq!(
+            error.safe_message(),
+            "response projection cannot represent the reasoning metadata"
+        );
+        let encoded = serde_json::to_string(&error)?;
+        assert_eq!(
+            encoded,
+            r#"{"code":"UpstreamProtocolError","scope":"stream","projection_rejection":"reasoning_unsupported"}"#
+        );
+        assert_eq!(serde_json::from_str::<GatewayError>(&encoded)?, error);
+        assert!(serde_json::from_str::<GatewayError>(r#"{"code":"UpstreamProtocolError","scope":"stream","projection_rejection":"private response content"}"#).is_err());
+        let old: GatewayError =
+            serde_json::from_str(r#"{"code":"UpstreamProtocolError","scope":"stream"}"#)?;
+        assert_eq!(old.projection_rejection(), None);
+        assert_eq!(old.safe_message(), "the upstream protocol was invalid");
         Ok(())
     }
 }

@@ -110,7 +110,9 @@ impl GrokBuildTransportResponse {
         }
     }
 
-    fn into_parts(
+    /// Separates safe header classes from the opaque body for an explicit transport decorator.
+    #[must_use]
+    pub fn into_parts(
         self,
     ) -> (
         u16,
@@ -485,6 +487,10 @@ impl BufferedEventSource {
 }
 
 impl CanonicalEventSource for BufferedEventSource {
+    fn decoded_usage(&self) -> Option<gateway_core::Usage> {
+        buffered_usage(self.events.iter())
+    }
+
     fn next_event(&mut self) -> ProviderFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move { Ok(self.events.pop_front()) })
     }
@@ -539,6 +545,10 @@ impl StreamingEventSource {
 }
 
 impl CanonicalEventSource for StreamingEventSource {
+    fn decoded_usage(&self) -> Option<gateway_core::Usage> {
+        buffered_usage(self.pending.iter())
+    }
+
     fn next_event(&mut self) -> ProviderFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         Box::pin(async move {
             if let Some(event) = self.next_pending() {
@@ -571,6 +581,18 @@ impl CanonicalEventSource for StreamingEventSource {
             }
         })
     }
+}
+
+fn buffered_usage<'a>(
+    events: impl Iterator<Item = &'a CanonicalEvent>,
+) -> Option<gateway_core::Usage> {
+    events.fold(None, |known, event| match event {
+        CanonicalEvent::UsageDelta(delta) => Some(gateway_core::Usage::merge_snapshot(
+            known.as_ref(),
+            &delta.usage,
+        )),
+        _ => known,
+    })
 }
 
 async fn read_bounded_body(

@@ -504,6 +504,7 @@ mod account_quota;
 mod batch_a_native;
 #[cfg(test)]
 mod batch_c;
+mod build_diagnostic;
 mod catalog_refresh;
 /// Production pieces that must be attached to the separate P12 listeners together.
 mod execution_identity;
@@ -2119,18 +2120,20 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             let (source, selection) = started.into_parts();
             Ok(Box::new(LeaseHoldingEventSource {
                 source: Box::new(
-                    ProjectedEventSource::new(source, client_protocol).with_tool_constraints(
-                        gateway_router::ToolExecutionConstraints::from_request(
-                            &driver.request,
-                            client_protocol,
-                        )
-                        .map_err(|_| {
-                            GatewayError::new(
-                                GatewayErrorCode::ClientRequestError,
-                                ErrorScope::Request,
+                    ProjectedEventSource::new(source, client_protocol)
+                        .with_request_id(driver.request_id.clone())
+                        .with_tool_constraints(
+                            gateway_router::ToolExecutionConstraints::from_request(
+                                &driver.request,
+                                client_protocol,
                             )
-                        })?,
-                    ),
+                            .map_err(|_| {
+                                GatewayError::new(
+                                    GatewayErrorCode::ClientRequestError,
+                                    ErrorScope::Request,
+                                )
+                            })?,
+                        ),
                 ),
                 _selection: selection,
             }) as Box<dyn ResponsesEventSource>)
@@ -4169,6 +4172,7 @@ impl EndpointAdapter {
 /// idle deadline. A non-streaming attempt is still entirely pre-first-byte for the client, so it
 /// keeps one short bounded total that a failed attempt could legally be retried against.
 struct P12TransportProfiles {
+    build_diagnostic: Option<Arc<build_diagnostic::BuildDiagnostic>>,
     #[cfg(test)]
     http: Option<Arc<batch_c::http::Peer>>,
     #[cfg(test)]
@@ -4242,6 +4246,8 @@ impl P12TransportProfiles {
             maximum_idle_connections_per_host,
         );
         Ok(Self {
+            build_diagnostic: build_diagnostic::BuildDiagnostic::from_environment()
+                .map_err(|_| RuntimeCompositionError::Unavailable)?,
             #[cfg(test)]
             http: None,
             #[cfg(test)]
@@ -4319,6 +4325,7 @@ struct LeaseHoldingEventSource {
 struct ProjectedEventSource {
     inner: Box<dyn ResponsesEventSource>,
     projector: ProtocolResponseProjector,
+    request_id: Option<RequestId>,
 }
 
 impl ProjectedEventSource {
@@ -4326,7 +4333,13 @@ impl ProjectedEventSource {
         Self {
             inner,
             projector: ProtocolResponseProjector::new(target),
+            request_id: None,
         }
+    }
+
+    fn with_request_id(mut self, request_id: RequestId) -> Self {
+        self.request_id = Some(request_id);
+        self
     }
 
     fn with_tool_constraints(
@@ -4352,7 +4365,11 @@ impl ResponsesEventSource for ProjectedEventSource {
                 match self.projector.project_event(&event) {
                     Ok(Some(projected)) => return Ok(Some(projected)),
                     Ok(None) => {}
-                    Err(_) => return Err(upstream_protocol_error()),
+                    Err(reason) => {
+                        tracing::warn!(target: "response_projection", stage = "protocol_projection", rejection = %reason,
+                            request_id = self.request_id.as_ref().map(RequestId::as_str), "response projection rejected");
+                        return Err(GatewayError::response_projection(reason));
+                    }
                 }
             }
         })
@@ -5123,6 +5140,19 @@ impl EndpointAttemptDriver {
         let transport: Arc<dyn provider_grok::GrokBuildTransport> = Arc::new(transport);
         #[cfg(test)]
         let transport = runtime.transports.build.clone().unwrap_or(transport);
+        let transport = if let Some(diagnostic) = &runtime.transports.build_diagnostic {
+            diagnostic
+                .wrap_selected(
+                    transport,
+                    &self.request_id,
+                    self.client_protocol,
+                    self.mode,
+                    self.native_payload.as_deref(),
+                )
+                .map_err(AttemptFailure::NonRetryable)?
+        } else {
+            transport
+        };
         let native_egress = self
             .native_grok_egress
             .as_ref()
@@ -6313,6 +6343,10 @@ impl P12ProviderEventSource {
 }
 
 impl ResponsesEventSource for P12ProviderEventSource {
+    fn decoded_usage(&self) -> Option<Usage> {
+        self.inner.decoded_usage()
+    }
+
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
         self.inner.next_event()
     }

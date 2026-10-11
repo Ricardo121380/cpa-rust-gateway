@@ -110,7 +110,19 @@ interval.
 - An initial event that cannot be encoded is a pre-header failure and uses the JSON error envelope
   instead.
 
+## CPAR-38 confirmed Request-ID amendment
+
+Chat, Messages and Responses JSON/SSE responses carry `x-request-id` only after the
+matching Request admission is confirmed. The value is the existing gateway identity,
+including pre-header execution/projection failures and post-header SSE errors; a
+client-provided value has no authority. Pre-admission failures do not invent an ID.
+See [ADR-0105](../adr/ADR-0105-projection-failure-observation.md).
+
 ## Corresponding tests
+
+- `grok_build_projection_rejection_has_safe_reason_and_request_id`
+- `grok_build_projection_failure_preserves_usage_and_ledger`
+- `grok_build_pre_admission_errors_never_invent_request_id`
 
 - In-process Actix HTTP E2E covers public `/healthz`, authenticated non-streaming Responses JSON,
   typed streaming SSE, Client Key rejection before decode/Provider execution, duplicate JSON-name

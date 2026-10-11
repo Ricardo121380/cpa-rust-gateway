@@ -55,7 +55,18 @@ SQLite batch writing; P4-08/P4-09 own exporters, logging, and body-sampling poli
 | Receiver dropped | `SinkClosed`/`PersistenceUnavailable`; required confirmation fails closed. |
 | Attempt driver failure | Attempt record contains only the stable safe `GatewayError` and retry decision; validated buffered Usage, if any, is confirmed on that exact failed Attempt. Either recording failure prevents output or another retry; the admitted Request remains queryable even if no reliable Attempt terminal survives. |
 
+## CPAR-38 post-decode projection failures
+
+Build may have decoded valid Usage before a client projection rejects an earlier
+native event. Forward the already buffered snapshot to the existing HTTP flush, with
+exact confirmed Attempt identity and non-additive merging. Keep unknown fields unknown
+and Request failure distinct from upstream Attempt success. Existing event-store and
+ledger deduplication apply. See [ADR-0105](../adr/ADR-0105-projection-failure-observation.md).
+
 ## Corresponding tests
+
+- `grok_build_projection_rejection_has_safe_reason_and_request_id`
+- `grok_build_projection_failure_preserves_usage_and_ledger`
 
 - `gateway-core::gateway_event::tests` verifies deterministic Attempt IDs, redacted Debug forms,
   standard Usage copying, and Required/Diagnostic priority classification.

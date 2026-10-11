@@ -1,0 +1,55 @@
+{
+  "evidence_layer": "LOCAL_SYNTHETIC",
+  "base_sha": "5a7826e806a04b3d403b1b1c0eef00a2b686ff32",
+  "fixture_is_not_old_real_response": true,
+  "red": {
+    "command": "cargo test --offline --locked -p gateway --bin gateway grok_build_projection_ -- --nocapture",
+    "exit_code": 101,
+    "failure_count": 2,
+    "failures": [
+      "missing confirmed Request-ID",
+      "validated source Usage durable rows 0 instead of 1"
+    ]
+  },
+  "focused_green": {
+    "command": "cargo test --offline --locked -p gateway --bin gateway grok_build_ -- --nocapture",
+    "exit_code": 0,
+    "tests": 5,
+    "public_protocol_mode_usage_cases": 18,
+    "projection_error_protocol_mode_cases": 4
+  },
+  "privacy_assertion_scope": "Public error frames and diagnostics; representable semantic response frames may precede later rejection. No semantic or fidelity assertion was relaxed.",
+  "standalone_policy_tests": 5,
+  "unchanged_basic_oracle_regressions": 54,
+  "core_error_test": 1,
+  "clippy_initial": {
+    "exit_code": 0,
+    "scope": "workspace all-targets all-features; before final immutable freeze"
+  },
+  "logs": {
+    "projection-red.log": {
+      "sha256": "249aa8b50ec6fab296b14fa3f97a10e8028f8f23873cbc3ab272298dfc07dd87",
+      "archive_sha256": "2072f71ad75d40e5d34044e5206a0b24fdd9eaffe6dd11fae83273bf128ee10d"
+    },
+    "build-local.log": {
+      "sha256": "91da21a9f8fafbc5cf048655d6b7147eaf03e9f6af760cb7ad90f0dcd98974fa",
+      "archive_sha256": "09309ccccb4575819480c58853dd94b4fcd8797794fe3829f9bca6b5aa3223ec"
+    },
+    "diagnostic-policy-tests.log": {
+      "sha256": "d03ce458f2a6cd2b4f27522f3aacad03ce1872c028853507c3ad02ca621bdcad",
+      "archive_sha256": "04eac9d9185120cd6136c4064609b21371c7776c9ebdedcc347c5deca82f5411"
+    },
+    "acceptance-oracle-tests.log": {
+      "sha256": "ba2f4e2f72104c1ad451e3f87dad38414aad53306bfa3db5c7bbcbabb0dbf678",
+      "archive_sha256": "d56f78d21cc17016107d9a396a54c24b5d5f4960328c31ed7cd00499a2ced61b"
+    },
+    "core-error-test.log": {
+      "sha256": "2f13fe08b5cbe6fbd9ba688b75fcdda06c1d1a563ae4b3116e723c1e517c4c66",
+      "archive_sha256": "4af586fa7e989769e2e23a8ae35657e1d5695ca61139dc3a58658c1e0afe9017"
+    },
+    "clippy-initial.log": {
+      "sha256": "31bb55df598c18a0fe9ae7324096b772578b085eee1d0dbc702300f0c5153a8e",
+      "archive_sha256": "7a88219ec811d03487c7a93abcc1e2f9afdf639f3b9d9e1640c63f2412994a92"
+    }
+  }
+}

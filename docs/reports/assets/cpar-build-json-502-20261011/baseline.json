@@ -1,0 +1,11 @@
+{
+  "branch": "codex/prism-v4-delivery",
+  "head": "5a7826e806a04b3d403b1b1c0eef00a2b686ff32",
+  "captured_at_utc": "2026-10-11T09:29:57.901776+00:00",
+  "dirty_paths": 48185,
+  "dirty_files": 48130,
+  "dirty_symlinks": 10,
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "preservation_baseline_sha256": "ddad0745bfca440d88536f423572c10f8335e064ca96e04b5035f24c630f5ffa",
+  "scope": "CPAR-38 / #47 Grok Build Chat JSON 502 diagnosis; #57/#9 remain OPEN"
+}

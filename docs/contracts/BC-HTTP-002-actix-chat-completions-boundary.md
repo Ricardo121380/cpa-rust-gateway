@@ -47,7 +47,20 @@ This contract creates no `openai/chat-completions` upstream `ApiFormat`, outboun
 cross-protocol admission claim. P12-08C-D own those boundaries; therefore P12-08B alone is not a
 four-channel or production-readiness result.
 
+## CPAR-38 failure observation amendment
+
+An admitted response exposes the same `x-request-id` as its Request/Attempt. Typed
+projection failures keep fixed, specific reason text without native values. Decoded
+buffered Usage survives later rejection with confirmed Attempt ownership; absence is
+unknown, and Attempt success does not become final Request success. SSE errors contain
+no successful terminal marker. Representable semantic data preceding a later rejection
+remains response data, and is never included in the error or diagnostic record.
+See [ADR-0105](../adr/ADR-0105-projection-failure-observation.md).
+
 ## Corresponding tests
+
+- `grok_build_projection_rejection_has_safe_reason_and_request_id`
+- `grok_build_projection_failure_preserves_usage_and_ledger`
 
 - In-process Actix E2E covers authenticated non-streaming JSON, Request/Usage observations, and
   streaming content→finish→usage→`[DONE]` ordering.

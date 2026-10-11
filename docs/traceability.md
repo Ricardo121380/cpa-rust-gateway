@@ -253,3 +253,8 @@ CPAR-38 / #47 的 Chat 输出上限修复对应 [ADR-0104](adr/ADR-0104-chat-out
 [BC-PROTOCOL-008](contracts/BC-PROTOCOL-008-openai-chat-completions-codec.md) 与
 [BC-ROUTER-004](contracts/BC-ROUTER-004-protocol-transform-admission.md)。公共入口合成预演、原生装配、
 候选及真实 Provider 分层记录；本条不关闭 #47、#57 或父规格 #9。
+
+CPAR-38 / #47 的 Chat JSON 502 诊断与失败观测修复对应
+[ADR-0105](adr/ADR-0105-projection-failure-observation.md) 及其中列出的 HTTP、Provider、
+Router 和日志契约。真实新 epoch、历史组合、完整矩阵、候选与发布资格独立记录；
+本条不关闭 #47、#57 或父规格 #9。

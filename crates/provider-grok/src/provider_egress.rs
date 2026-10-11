@@ -443,6 +443,10 @@ impl GrokNativeEgressEventSource {
 }
 
 impl CanonicalEventSource for GrokNativeEgressEventSource {
+    fn decoded_usage(&self) -> Option<gateway_core::Usage> {
+        self.inner.decoded_usage()
+    }
+
     fn next_event(
         &mut self,
     ) -> ProviderFuture<'_, Result<Option<gateway_core::CanonicalEvent>, GatewayError>> {

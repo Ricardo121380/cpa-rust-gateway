@@ -1738,7 +1738,7 @@ async fn observe_ingress_rejection(
     body: Option<&str>,
     start: (std::time::Instant, i64),
     error: &GatewayError,
-    mut response: HttpResponse,
+    response: HttpResponse,
 ) -> HttpResponse {
     let Ok(context) = state.metadata_factory.request_context() else {
         return response;
@@ -1790,7 +1790,11 @@ async fn observe_ingress_rejection(
     }
     let observer = UsageEventObserver::new(id.clone(), Arc::clone(&state.event_sink), start);
     observer.fail(error);
-    if let Ok(value) = header::HeaderValue::from_str(id.as_str()) {
+    with_request_id(response, &id)
+}
+
+fn with_request_id(mut response: HttpResponse, request_id: &RequestId) -> HttpResponse {
+    if let Ok(value) = header::HeaderValue::from_str(request_id.as_str()) {
         response
             .headers_mut()
             .insert(header::HeaderName::from_static("x-request-id"), value);
@@ -1896,65 +1900,70 @@ async fn chat_completions(
         usage_observer.fail(&error);
         return pre_header_chat_error(&error);
     }
-    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
-    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
-    let response_mode = match decoded.mode {
-        ChatResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
-        ChatResponseMode::Streaming => ResponsesResponseMode::Streaming,
-    };
-    let execution = ResponsesExecution::new_for_protocol(
-        context,
-        decoded.request,
-        gateway_router::ProtocolFormat::OpenAiChatCompletions,
-        Arc::from(body.as_bytes()),
-        route.route_id,
-        response_mode,
-        retry_gate,
-    )
-    .with_exact_upstream_model(route.exact_upstream_model)
-    .with_route_snapshot(route.snapshot);
-    let mut source = match state
-        .executor
-        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
-        .await
-    {
-        Ok(source) => source,
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_chat_error(&error);
-        }
-    };
-    let first = match source.next_event().await {
-        Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
-        Ok(Some(_) | None) => {
-            usage_observer.fail(&stream_protocol_error());
-            return pre_header_chat_error(&stream_protocol_error());
-        }
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_chat_error(&error);
-        }
-    };
-    let metadata = match state
-        .metadata_factory
-        .chat_metadata(&public_model, decoded.include_usage)
-    {
-        Ok(metadata) => metadata,
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_chat_error(&error);
-        }
-    };
+    let response = async {
+        let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+        let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+        let response_mode = match decoded.mode {
+            ChatResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+            ChatResponseMode::Streaming => ResponsesResponseMode::Streaming,
+        };
+        let execution = ResponsesExecution::new_for_protocol(
+            context,
+            decoded.request,
+            gateway_router::ProtocolFormat::OpenAiChatCompletions,
+            Arc::from(body.as_bytes()),
+            route.route_id,
+            response_mode,
+            retry_gate,
+        )
+        .with_exact_upstream_model(route.exact_upstream_model)
+        .with_route_snapshot(route.snapshot);
+        let mut source = match state
+            .executor
+            .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+            .await
+        {
+            Ok(source) => source,
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_chat_error(&error);
+            }
+        };
+        let first = match source.next_event().await {
+            Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
+            Ok(Some(_) | None) => {
+                usage_observer.fail(&stream_protocol_error());
+                return pre_header_chat_error(&stream_protocol_error());
+            }
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_chat_error(&error);
+            }
+        };
+        let metadata = match state
+            .metadata_factory
+            .chat_metadata(&public_model, decoded.include_usage)
+        {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_chat_error(&error);
+            }
+        };
 
-    match decoded.mode {
-        ChatResponseMode::NonStreaming => {
-            chat_non_streaming_response(source, first, metadata, usage_observer, sender, stream)
-                .await
-        }
-        ChatResponseMode::Streaming => {
-            chat_streaming_response(source, first, metadata, usage_observer, sender, stream).await
+        match decoded.mode {
+            ChatResponseMode::NonStreaming => {
+                chat_non_streaming_response(source, first, metadata, usage_observer, sender, stream)
+                    .await
+            }
+            ChatResponseMode::Streaming => {
+                chat_streaming_response(source, first, metadata, usage_observer, sender, stream)
+                    .await
+            }
         }
     }
+    .await;
+    with_request_id(response, &request_id)
 }
 
 #[allow(clippy::too_many_lines)] // Keep public admission, first-event, and durable-store ordering auditable.
@@ -2069,81 +2078,85 @@ async fn responses(
         usage_observer.fail(&error);
         return pre_header_error(&error);
     }
-    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
-    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
-    let PreparedResponsesExecution {
-        execution,
-        mode,
-        canonical_request_for_store,
-        lineage_recorder,
-    } = prepare_responses_execution(
-        context,
-        &decoded,
-        body,
-        route,
-        retry_gate,
-        owned_continuation,
-        false,
-    );
-    if let Err(error) = execution.request().validate_tool_history() {
-        usage_observer.fail(&error);
-        return pre_header_error(&error);
-    }
-    let mut source = match state
-        .executor
-        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
-        .await
-    {
-        Ok(source) => source,
-        Err(error) => {
+    let response = async {
+        let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+        let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+        let PreparedResponsesExecution {
+            execution,
+            mode,
+            canonical_request_for_store,
+            lineage_recorder,
+        } = prepare_responses_execution(
+            context,
+            &decoded,
+            body,
+            route,
+            retry_gate,
+            owned_continuation,
+            false,
+        );
+        if let Err(error) = execution.request().validate_tool_history() {
             usage_observer.fail(&error);
             return pre_header_error(&error);
         }
-    };
-    let first = match source.next_event().await {
-        Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
-        Ok(Some(_) | None) => {
-            usage_observer.fail(&stream_protocol_error());
-            return pre_header_error(&stream_protocol_error());
-        }
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_error(&error);
-        }
-    };
-    let metadata = match state.metadata_factory.response_metadata(&public_model) {
-        Ok(metadata) => metadata,
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_error(&error);
-        }
-    };
-    let stored_response = match prepare_stored_response_write_context(
-        &state,
-        canonical_request_for_store,
-        lineage_recorder,
-        client_key_id,
-        public_model.clone(),
-        metadata.created_at(),
-    ) {
-        Ok(context) => context,
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_stored_response_error(&error);
-        }
-    };
+        let mut source = match state
+            .executor
+            .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+            .await
+        {
+            Ok(source) => source,
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_error(&error);
+            }
+        };
+        let first = match source.next_event().await {
+            Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
+            Ok(Some(_) | None) => {
+                usage_observer.fail(&stream_protocol_error());
+                return pre_header_error(&stream_protocol_error());
+            }
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_error(&error);
+            }
+        };
+        let metadata = match state.metadata_factory.response_metadata(&public_model) {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_error(&error);
+            }
+        };
+        let stored_response = match prepare_stored_response_write_context(
+            &state,
+            canonical_request_for_store,
+            lineage_recorder,
+            client_key_id,
+            public_model.clone(),
+            metadata.created_at(),
+        ) {
+            Ok(context) => context,
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_stored_response_error(&error);
+            }
+        };
 
-    deliver_responses(
-        mode,
-        source,
-        first,
-        metadata,
-        usage_observer,
-        sender,
-        stream,
-        stored_response,
-    )
-    .await
+        deliver_responses(
+            mode,
+            source,
+            first,
+            metadata,
+            usage_observer,
+            sender,
+            stream,
+            stored_response,
+        )
+        .await
+    }
+    .await;
+    with_request_id(response, &request_id)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2592,70 +2605,81 @@ async fn messages(
         usage_observer.fail(&error);
         return pre_header_anthropic_error(&error);
     }
-    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
-    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
-    let response_mode = match decoded.mode {
-        AnthropicResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
-        AnthropicResponseMode::Streaming => ResponsesResponseMode::Streaming,
-    };
-    let execution = ResponsesExecution::new_for_protocol(
-        context,
-        decoded.request,
-        gateway_router::ProtocolFormat::AnthropicMessages,
-        Arc::from(body.as_bytes()),
-        route.route_id,
-        response_mode,
-        retry_gate,
-    )
-    .with_exact_upstream_model(route.exact_upstream_model)
-    .with_route_snapshot(route.snapshot);
-    let mut source = match state
-        .executor
-        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
-        .await
-    {
-        Ok(source) => source,
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_anthropic_error(&error);
-        }
-    };
-    let first = match source.next_event().await {
-        Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
-        Ok(Some(_) | None) => {
-            usage_observer.fail(&stream_protocol_error());
-            return pre_header_anthropic_error(&stream_protocol_error());
-        }
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_anthropic_error(&error);
-        }
-    };
-    let metadata = match AnthropicResponseMetadata::try_new(public_model) {
-        Ok(metadata) => metadata,
-        Err(error) => {
-            usage_observer.fail(&error);
-            return pre_header_anthropic_error(&error);
-        }
-    };
-
-    match decoded.mode {
-        AnthropicResponseMode::NonStreaming => {
-            anthropic_non_streaming_response(
-                source,
-                first,
-                metadata,
-                usage_observer,
-                sender,
-                stream,
-            )
+    let response = async {
+        let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+        let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+        let response_mode = match decoded.mode {
+            AnthropicResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+            AnthropicResponseMode::Streaming => ResponsesResponseMode::Streaming,
+        };
+        let execution = ResponsesExecution::new_for_protocol(
+            context,
+            decoded.request,
+            gateway_router::ProtocolFormat::AnthropicMessages,
+            Arc::from(body.as_bytes()),
+            route.route_id,
+            response_mode,
+            retry_gate,
+        )
+        .with_exact_upstream_model(route.exact_upstream_model)
+        .with_route_snapshot(route.snapshot);
+        let mut source = match state
+            .executor
+            .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
             .await
-        }
-        AnthropicResponseMode::Streaming => {
-            anthropic_streaming_response(source, first, metadata, usage_observer, sender, stream)
+        {
+            Ok(source) => source,
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_anthropic_error(&error);
+            }
+        };
+        let first = match source.next_event().await {
+            Ok(Some(event @ CanonicalEvent::ResponseStart(_))) => event,
+            Ok(Some(_) | None) => {
+                usage_observer.fail(&stream_protocol_error());
+                return pre_header_anthropic_error(&stream_protocol_error());
+            }
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_anthropic_error(&error);
+            }
+        };
+        let metadata = match AnthropicResponseMetadata::try_new(public_model) {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                usage_observer.fail(&error);
+                return pre_header_anthropic_error(&error);
+            }
+        };
+
+        match decoded.mode {
+            AnthropicResponseMode::NonStreaming => {
+                anthropic_non_streaming_response(
+                    source,
+                    first,
+                    metadata,
+                    usage_observer,
+                    sender,
+                    stream,
+                )
                 .await
+            }
+            AnthropicResponseMode::Streaming => {
+                anthropic_streaming_response(
+                    source,
+                    first,
+                    metadata,
+                    usage_observer,
+                    sender,
+                    stream,
+                )
+                .await
+            }
         }
     }
+    .await;
+    with_request_id(response, &request_id)
 }
 
 async fn count_tokens(

@@ -489,8 +489,8 @@ def execution_binding(plan, runtime, base_url):
         "base_url": base_url.rstrip("/"), "scenarios": BASIC_SCENARIOS})
 
 
-def verify_execution_policy(plan, runtime, base_url):
-    """Admission before the first send; post-send Attempt checks cannot prevent fallback."""
+def verify_execution_inventory(plan, runtime, base_url):
+    """Read-only account/candidate/retry isolation, independent of an execution budget."""
     target = plan["target"]
     if (plan.get("collector") or {}).get("local_state_dir"):
         require(plan["layer"] == "LOCAL_SIMULATED", "local_collector_requires_simulation")
@@ -533,6 +533,12 @@ def verify_execution_policy(plan, runtime, base_url):
     require(url.scheme in ("http", "https") and url.hostname and not url.username and not url.password and not url.query and not url.fragment, "invalid_acceptance_base_url")
     if plan["layer"] == "LOCAL_SIMULATED":
         require(url.hostname in ("127.0.0.1", "::1", "localhost"), "simulation_requires_loopback")
+
+
+def verify_execution_policy(plan, runtime, base_url):
+    """Admission before the first send; post-send Attempt checks cannot prevent fallback."""
+    verify_execution_inventory(plan, runtime, base_url)
+    if plan["layer"] == "LOCAL_SIMULATED":
         return
     approval = plan.get("authorization") or {}
     available(approval.get("status") == "APPROVED" and approval.get("basis") == "user_explicit", "live_authorization_required")

@@ -60,7 +60,20 @@ body values never enter emitted labels or sample keys.
   retry a durable event batch, wait for the producer, or send a Provider request.
 - P4-08 event JSON remains independent and body-free whether sampling is disabled or enabled.
 
+## CPAR-38 controlled private evidence
+
+Ordinary projection records may retain only a fixed stage, closed rejection enum and
+established gateway Request-ID, without content or native values. The source-bound
+single-request private capture in [ADR-0105](../adr/ADR-0105-projection-failure-observation.md)
+is an explicitly selected diagnostic evidence boundary, not general body sampling.
+It is off by default and never writes native content to an ordinary log/exporter.
+
 ## Corresponding tests
+
+- `grok_build_projection_rejection_has_safe_reason_and_request_id`
+- `grok_build_projection_failure_preserves_usage_and_ledger`
+- `grok_build_diagnostic_is_private_selected_and_one_shot`
+- `grok_build_diagnostic_rejects_unsafe_directory_or_source`
 
 - `gateway-observability::log_safety::tests::default_policy_retains_no_body_or_header_values`
 - `gateway-observability::log_safety::tests::explicit_json_sampling_is_bounded_and_recursively_redacts_secrets`

@@ -88,7 +88,17 @@ explicitly describes the total-output semantics of both modern OpenAI fields. Th
 sources establish the modern equivalence, not provider execution or precedence for two
 simultaneous controls. Collision rejection follows ADR-0100's strict fidelity policy.
 
+## CPAR-38 response rejection observation
+
+Projection rejection retains its existing closed reason in a core error with fixed
+stage-specific public text. The six reasons and strict equivalence rules are unchanged;
+no field or native item is deleted to obtain success. See
+[ADR-0105](../adr/ADR-0105-projection-failure-observation.md).
+
 ## Corresponding tests
+
+- `grok_build_projection_rejection_has_safe_reason_and_request_id`
+- `grok_build_projection_failure_preserves_usage_and_ledger`
 
 - `chat_output_limits_preserve_native_spelling_and_bridge_total_budget`
 - `chat_output_limits_reject_invalid_values_and_every_collision_in_all_modes`

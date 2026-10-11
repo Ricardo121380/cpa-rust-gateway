@@ -75,7 +75,26 @@ Credential, write SQLite, discover models, persist Billing/Quota windows, select
 record Response Ownership/Reasoning Replay, or change Health/Forbidden/Unauthorized state. Those
 belong to P6-02, P6-04 through P6-07, and the shared P3 transport/runtime boundaries.
 
+## CPAR-38 decoded Usage and selected diagnostic boundary
+
+`CanonicalEventSource::decoded_usage` exposes only a validated snapshot already buffered
+in this attempt, without additional reads. Build JSON/SSE sources and native/runtime
+wrappers forward it. The HTTP observer preserves known fields on a later projection
+failure using non-additive merging and existing exact-Usage idempotence. Unread or invalid
+Usage remains unavailable. No transport success or missing row establishes free usage.
+
+The opt-in private runtime transport decorator in [ADR-0105](../adr/ADR-0105-projection-failure-observation.md)
+is separate from ordinary Debug/log sampling: exact source and public request hash,
+Chat JSON only, one exclusive capture, anchored 0700/0600 private files, original body
+bound, no outbound headers or credentials, no added read/retry/refresh. Normal diagnostics
+remain value-free. Native content never enters Git, GitHub or external model input.
+
 ## Corresponding tests
+
+- `grok_build_projection_rejection_has_safe_reason_and_request_id`
+- `grok_build_projection_failure_preserves_usage_and_ledger`
+- `grok_build_diagnostic_is_private_selected_and_one_shot`
+- `grok_build_diagnostic_rejects_unsafe_directory_or_source`
 
 - `build_request_uses_the_current_cli_profile_and_exact_admitted_target`
 - `one_plain_user_text_uses_scalar_easy_input_without_losing_semantics`

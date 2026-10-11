@@ -40,4 +40,9 @@ pub trait CanonicalEventSource: Send {
     /// source must represent a failure after `ResponseStart` with terminal `StreamError`, rather
     /// than returning an error from this method.
     fn next_event(&mut self) -> ProviderFuture<'_, Result<Option<CanonicalEvent>, GatewayError>>;
+
+    /// Returns validated Usage still buffered in this attempt, without an upstream read.
+    fn decoded_usage(&self) -> Option<gateway_core::Usage> {
+        None
+    }
 }

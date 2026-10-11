@@ -10,22 +10,8 @@ use gateway_core::{CanonicalEvent, CanonicalEventState, CanonicalResponse, Respo
 
 use crate::{ProtocolFormat, ToolExecutionConstraints, ToolSelection};
 
-/// Stable, value-free reason why a Canonical response cannot be encoded for one client protocol.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ProtocolResponseRejection {
-    /// Structured reasoning metadata has no equivalent target representation.
-    ReasoningUnsupported,
-    /// An event or Usage value carries an opaque extension.
-    UnknownExtensions,
-    /// The target protocol cannot represent the supplied successful stop reason.
-    StopReasonUnsupported,
-    /// The target protocol cannot retain the supplied stop sequence.
-    StopSequenceUnsupported,
-    /// Target-specific projection unexpectedly violated the Canonical lifecycle.
-    InvalidCanonicalLifecycle,
-    /// The upstream violated a declared tool, selection, or serial-call constraint.
-    ToolConstraintViolated,
-}
+/// Stable core-owned reason retained through the public error boundary.
+pub use gateway_core::ResponseProjectionRejection as ProtocolResponseRejection;
 
 /// Stateful target projection for one streamed Canonical response.
 ///
@@ -125,14 +111,6 @@ impl fmt::Debug for ProtocolResponseProjector {
             .finish_non_exhaustive()
     }
 }
-
-impl fmt::Display for ProtocolResponseRejection {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "{self:?}")
-    }
-}
-
-impl std::error::Error for ProtocolResponseRejection {}
 
 /// Narrows one successful Canonical response to the exact target protocol vocabulary.
 ///
