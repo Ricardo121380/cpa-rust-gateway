@@ -1,0 +1,52 @@
+{
+  "base": "5a7826e806a04b3d403b1b1c0eef00a2b686ff32",
+  "target": "c23b82dbb8d0299c72cbd22253ccaa3727507770",
+  "changed_files": 105,
+  "changed_paths_sha256": "b843f22bed927f7b85d3dbc28305876253bca5e55005155988a8db255cc28a3a",
+  "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "standards": {
+    "status": "COMPLETE PASS",
+    "actionable_findings": 0,
+    "coverage": "original 68 files + 26-file full delta and 14-payload auxiliary closure + latest 23-file full delta",
+    "latest_reviewer": "standards_execution_final",
+    "latest_files": 23,
+    "latest_gzip": 8,
+    "fowler12_actionable_findings": 0
+  },
+  "spec": {
+    "status": "COMPLETE PASS",
+    "actionable_findings": 0,
+    "coverage": "11 product, 12 contracts, 6 GitHub baseline, 25 build-gate and 23 local-proof complete scopes at previous target; current 11 driver complete review + 20 evidence delta and scanner auxiliary closure",
+    "drivers_reviewer": "spec_execution_drivers",
+    "drivers_files": 11,
+    "new_evidence_reviewer": "spec_execution_evidence",
+    "new_evidence_files": 20,
+    "new_evidence_initial_status": "PARTIAL only incorrect scanner lookup after complete content coverage; no finding",
+    "auxiliary_reviewer": "spec_scanner_mechanism_gap",
+    "auxiliary_status": "COMPLETE PASS"
+  },
+  "fixed_findings": [
+    "owned process-bound startup cleanup and truthful exit",
+    "native Usage and ledger exact-source validation",
+    "Request/Attempt/Client Key/candidate/configuration/actual lease/egress sidecar validation"
+  ],
+  "reuse": {
+    "prior_complete_review_target": "576c384d02826b25b7768cd6ba66c56b503f0f35",
+    "prior_changed_files": 88,
+    "latest_delta_files": 23,
+    "coverage_union_exact": true,
+    "unchanged_product_build_paths": []
+  },
+  "task": "42/42 PASS at driver source",
+  "phase": "45/45 PASS at driver source",
+  "diagnostic_tests": "15/15 PASS",
+  "existing_oracle": "54/54 PASS",
+  "binary_scope": "unsigned isolated candidate; not P12 signed release qualification",
+  "conditional_real_diagnostic": "eligible for fresh remote identity qualification; no send yet",
+  "new_provider_calls": 0,
+  "full_six_matrix": "NOT_RUN",
+  "remote_ci_release_deployment_production_acceptance": "NOT_RUN",
+  "review_execution_limits": "independent read-only reviewers; reviewer executions limited to pure-memory checks; complete 15/54 and gates executed by primary",
+  "evidence_limit": "initial uncommitted redundant path-array JSON not separately archived; false-positive mechanism independently reconstructed from immutable paths; initial scanner FAIL and final PASS full logs preserved"
+}

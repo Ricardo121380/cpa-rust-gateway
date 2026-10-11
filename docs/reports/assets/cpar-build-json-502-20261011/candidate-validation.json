@@ -15,8 +15,9 @@
   "runnable_help_exit": 0,
   "scope": "isolated candidate; unsigned two-payload manifest; P12 release package not created",
   "initial_candidate_preserved": true,
-  "task_phase_and_reviews_status": "product and fixed driver Task42/42 Phase45/45 PASS; newest fixed-driver and evidence reviews pending; send ineligible",
+  "task_phase_and_reviews_status": "Task42/42 Phase45/45 and full independent Standards/Spec PASS; reviewed target c23b82db; fresh remote identity qualification still required",
   "freeze_sha256": "daf161acb2caaeee15e82c2018db4576ac2adc4ecbf0dc58e8524c3224a2d5af",
   "driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
-  "driver_gates": "quality-gates-38504a1e.json"
+  "driver_gates": "quality-gates-38504a1e.json",
+  "review_receipt": "review-pre-diagnostic.json"
 }
