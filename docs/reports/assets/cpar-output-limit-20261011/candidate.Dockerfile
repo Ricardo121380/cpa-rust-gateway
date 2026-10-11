@@ -9,6 +9,9 @@ ENV GATEWAY_RELEASE_REVISION=${CPAR_REVISION} \
 RUN mv /src/target /candidate-target && rm -rf /src && mkdir /src
 WORKDIR /src
 COPY . .
-RUN npm --prefix web/prism ci --offline --ignore-scripts --no-audit --no-fund \
+# build-release.sh locates the root with git; the revision is supplied above from
+# the archived commit, never inferred from this empty structural repository.
+RUN git init --quiet \
+    && npm --prefix web/prism ci --offline --ignore-scripts --no-audit --no-fund \
     && bash scripts/build-release.sh \
     && strip /candidate-target/release/gateway
