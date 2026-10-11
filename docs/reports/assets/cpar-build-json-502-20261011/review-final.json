@@ -1,0 +1,68 @@
+{
+  "base": "5a7826e806a04b3d403b1b1c0eef00a2b686ff32",
+  "target": "74de66f3ff95ec78364c01d231b9617f482d5353",
+  "whole_batch_changed_files": 141,
+  "changed_paths_sha256": "5af2d8f80b769d1704d9a23c301096913e1373638b761f4942086fcf1346f40f",
+  "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "repaired_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+  "executed_driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "standards": {
+    "status": "COMPLETE PASS",
+    "actionable_findings": 0,
+    "coverage": "original complete105 scope + complete39-file delta (5 code /16 local /18 remote) +3-file documentation delta full content and independent exact hash closure; union141",
+    "final_code_reviewer": "/root/final_standards_code",
+    "final_local_reviewer": "/root/final_standards_local",
+    "final_remote_reviewer": "/root/final_standards_remote",
+    "new_metadata_full_content_reviewer": "/root/final_standards_archive_delta",
+    "new_metadata_initial_status": "PARTIAL only optional guessed-path lookup interrupted supplemental hashes; full3 content read, no finding",
+    "supplemental_baseline_reviewer": "/root/final_standards_hash_gap",
+    "supplemental_baseline_status": "COMPLETE PASS for baseline archive hash/schema/counts; comment hash check PARTIAL from checker field mapping",
+    "exact_hash_closure_reviewer": "/root/final_standards_bound_hashes",
+    "exact_hash_closure_status": "COMPLETE PASS27/27 field-bound assertions, plus issue order; no generic digest-presence inference"
+  },
+  "spec": {
+    "status": "COMPLETE PASS",
+    "actionable_findings": 0,
+    "coverage": "original complete105 scope +5 code and16 local complete delta +18 remote content and auxiliary independent completion +3new metadata complete; union141",
+    "final_code_reviewer": "/root/final_spec_code",
+    "final_local_reviewer": "/root/final_spec_local",
+    "final_remote_content_reviewer": "/root/final_spec_remote",
+    "final_remote_initial_status": "PARTIAL; canonical digest initially compared with archive-file bytes; retained",
+    "auxiliary_closure_reviewer": "/root/final_spec_archive_gap",
+    "auxiliary_status": "COMPLETE PASS3/3 newdocs plus5/5 auxiliary scopes; all9 archive hashes,6 canonical hashes,31 dependency entries,31 upload checks,105+39-5=139 then141 exact union"
+  },
+  "source_scope_reuse": {
+    "prior_complete_review_target": "c23b82dbb8d0299c72cbd22253ccaa3727507770",
+    "last_full_delta_target": "98857ba62984405d3df469fa98b9ed8ba67eb791",
+    "prior_files": 105,
+    "last_delta_files": 39,
+    "new_docs_files": 3,
+    "union_exact": true,
+    "product_and_qualification_drivers_unchanged_since_frozen_gates": true
+  },
+  "primary_validation": {
+    "source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+    "task": "42/42 PASS",
+    "phase": "45/45 PASS",
+    "diagnostic_tests": "18/18 PASS",
+    "existing_oracle": "54/54 PASS",
+    "rust_workspace_each_gate": {
+      "passed": 1510,
+      "failed": 0,
+      "ignored": 12
+    },
+    "phase_duplicate_dependency_warnings": 14,
+    "full_raw_gzip_logs_retained": true
+  },
+  "real_diagnostic": "BLOCKED_BEFORE_LAUNCH; actual new lease/Pin not established; repaired driver not uploaded",
+  "new_inference_intents": 0,
+  "new_confirmed_sends": 0,
+  "provider_independent_receive_count": "UNKNOWN",
+  "actual_provider_cost": "UNKNOWN",
+  "full_six_matrix": "NOT_RUN",
+  "remote_ci_release_deployment_production_acceptance": "NOT_RUN",
+  "parent_spec_and_three_issue_full_scope": "NOT_COMPLETE; all three OPEN",
+  "preserved_earlier_results": "all original FAIL/PARTIAL/interrupted receipts retained; no incomplete reviewer relabelled PASS",
+  "initial_fail_raw_limitation": "initial runner aggregate raw was overwritten; excerpt only; final complete PASS logs retained",
+  "github_append_readback": "PENDING"
+}

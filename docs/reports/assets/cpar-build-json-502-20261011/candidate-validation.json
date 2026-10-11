@@ -15,7 +15,7 @@
   "runnable_help_exit": 0,
   "scope": "isolated candidate; unsigned two-payload manifest; P12 release package not created",
   "initial_candidate_preserved": true,
-  "task_phase_and_reviews_status": "prior 38504a1e/c23b82db evidence preserved; final local c23d2c35 Task/Phase PASS, final reviews pending; terminated epoch ineligible",
+  "task_phase_and_reviews_status": "final local c23d2c35 Task42/Phase45 and full independent review PASS; original385 upload retained; actual lease/Pin not established; stopped epoch ineligible",
   "freeze_sha256": "daf161acb2caaeee15e82c2018db4576ac2adc4ecbf0dc58e8524c3224a2d5af",
   "driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
   "driver_gates": "quality-gates-38504a1e.json",
@@ -23,7 +23,8 @@
   "local_repaired_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
   "executed_freeze_scope": "historical executed 38504a1e upload; not current repaired local driver",
   "real_diagnostic_status": "BLOCKED_BEFORE_LAUNCH; epoch permanently stopped; actual lease/Pin not established",
-  "local_repaired_driver_gate_review_status": "Task/Phase PASS; final independent reviews PENDING",
+  "local_repaired_driver_gate_review_status": "Task/Phase and independent complete Standards/Spec PASS; local only, terminated epoch ineligible",
   "repaired_driver_remote_execution": "NOT_RUN; no retry or new epoch",
-  "local_repaired_driver_gates": "quality-gates-c23d2c35.json"
+  "local_repaired_driver_gates": "quality-gates-c23d2c35.json",
+  "local_repaired_driver_review": "review-final.json"
 }

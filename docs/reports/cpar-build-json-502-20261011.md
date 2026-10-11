@@ -12,7 +12,7 @@
 | 新候选二进制 | LOCAL PASS | 产品 source `bf822b14a62c21cf582a7539e3635f69bd8b7677`，Linux ARM64，unsigned 两载荷 manifest |
 | 发送前驱动与审查 | COMPLETE PASS | 驱动 `38504a1eabeaacfcb548e23de7a61a545351b35b`；完整审查 target `c23b82dbb8d0299c72cbd22253ccaa3727507770` |
 | 修复后的最终驱动门槛 | Task42/42、Phase45/45 PASS | 冻结 source `c23d2c356ec0253d93e41ca94aac821ad167fcd6`，产品 / build-release 字节未变 |
-| 最终 Standards / 本批 Spec | PENDING_FINAL_REVIEW | 原完整范围与新增完整增量分区组合，未完成项不计 PASS |
+| 最终 Standards / 本批 Spec | Standards / 本批 Spec COMPLETE PASS | 原完整范围与新增完整增量分区组合，准确覆盖 141 个实际变更路径 |
 | 本批真实诊断 | BLOCKED_BEFORE_LAUNCH | 新 Pin NOT_RUN，Chat NOT_RUN；实际新进程、lease、Pin 资格未建立 |
 | 完整六组合基础矩阵 | NOT_RUN | 本批 0/6 完整组合，无新增基础请求 |
 | 历史通过记录 | 保留原范围 | 旧 source `1b6023f5` 的 Responses JSON/SSE 各 9/9，不迁移为当前候选通过 |
@@ -36,6 +36,8 @@
 初次本地 Task 失败来自 runner 错误设置 release revision，使 development 断言不成立；断言未修改。重跑时本批误覆盖了该次完整 FAIL 日志，只保留工具输出摘录，不能冒称全文保存或重建。最终完整 PASS 日志均保留；限制见 [gate-initial-diagnosis.json](assets/cpar-build-json-502-20261011/gate-initial-diagnosis.json)。此外，启动测试夹具的事务 / SQL 错误与真正行为 RED 分开保存；文件清单触发秘密扫描的前缀误报通过不可变清单 hash 消除，扫描器与原断言未放宽。
 
 发送前独立两轴完整结论见 [review-pre-diagnostic.json](assets/cpar-build-json-502-20261011/review-pre-diagnostic.json)：Standards 完整覆盖初始范围及两轮完整增量；Spec 分区覆盖 product、driver、contract、GitHub baseline、build/gates 和 local proof，再独立关闭辅助核验缺口。共 105 个实际变更路径，分区并集及复用范围核对一致。此前 P1/P2 失败、中断与 PARTIAL 记录保留，不能单独当 PASS。已经修复的驱动问题还包括：停止只绑定自有 PID/start/binary/state；native Usage 与账本 source_event_id 精确核验；实际 Client Key、候选、配置、出口、lease 与原 Attempt payload-bound sidecar 精确核验后才能标匹配。此次完整审查只证明本批变更符合批次契约，不授予父票全范围完成或生产权限。
+
+最终独立两轴结论见 [review-final.json](assets/cpar-build-json-502-20261011/review-final.json)：Standards 和本批 Spec 均 COMPLETE PASS。前轮完整105路径 + 本轮39路径有5个重叠，为139；随后3份证据文档有1个已在并集中，最终 target `74de66f3ff95ec78364c01d231b9617f482d5353` 精确覆盖141。代码5、本地证据16、远端证据18分区互斥；完整10份gzip共7110行，Task/Phase每轮Rust1510通过、0失败、12忽略，Phase14条依赖重复告警保留。新增证据的规范化JSON摘要与归档文件字节摘要现在明确分列；辅助检查的路径拼写和字段匹配错误保留PARTIAL，并由独立27项字段绑定、5项辅助范围核验闭合，未将原PARTIAL改称PASS。规则、断言与扫描器未放宽。独立 [preservation-final.json](assets/cpar-build-json-502-20261011/preservation-final.json) 在其明确记录的98857ba目标重新核验48185基线路径，0改变/缺失/错误；后续只改本批证据文档，用户AGENTS保持不暂存。
 
 候选二进制 SHA256 为 `cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e`，19,565,744 bytes，嵌入产品 source `bf822b14a62c21cf582a7539e3635f69bd8b7677` / Rust1.97.1 / aarch64 Linux。manifest SHA256 为 `655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56`。隔离构建沿用已通过的 image / offline recipe，没有重复依赖准备；旧候选及两次已完成 builder 均保留。产品源码和 build-release 到最终驱动 source 字节未变，因此后续仅驱动修复不重新构建产品，也不借用一个不同产品源码 binary 的资格。
 
