@@ -267,8 +267,8 @@ def verify_resource_operations(bundle, root):
                        any(model.get("id") == target["public_model"] for model in oracle.load_json(authentication["wire"]).get("data", [])), "extension_authentication_unconfirmed")
     elif case == "deleted_read":
         deletion = rows[1]
-        oracle.require(deletion.get("http_status") == sample.get("delete_http_status") == 200 and
-                       oracle.load_json(deletion["wire"]) == {"id": root["id"], "object": "response.deleted", "deleted": True}, "deletion_not_observed")
+        oracle.require(deletion.get("http_status") == sample.get("delete_http_status") == 200, "deletion_not_observed")
+        oracle.verify_deletion(oracle.load_json(deletion["wire"]), root["id"])
     if case != "store_read":
         denied = rows[-1]
         oracle.require(denied.get("http_status") == sample.get("http_status") == 404 and
@@ -573,6 +573,9 @@ def run_extension(plan, runtime, key, base_url, private_out, *, foreign_key=None
             save()
             oracle.require(sample["http_status"] == 200, "extension_http_failure")
             value = oracle.load_json(sample["wire"]) if compact or target["mode"] == "json" else oracle.decode_stream(protocol, sample["wire"].encode())
+            oracle.require(isinstance(value, dict) and value.get("model") == target["response_model"], "wrong_response_model")
+            if compact:
+                oracle.verify_compaction(value)
             # Billing materialization is asynchronous. Poll exact read-only records;
             # never repeat the public operation or infer identity from a time window.
             deadline = time.monotonic() + 5
@@ -667,6 +670,8 @@ def run_extension(plan, runtime, key, base_url, private_out, *, foreign_key=None
                                       foreign_auth_status=authentication["http_status"], foreign_visible_model=target["public_model"], owner_client_evidence_id=target["declaration_evidence"]["client_key_evidence_id"], actual_client_evidence_id=specification["foreign_client_evidence_id"])
                     if case == "deleted_read":
                         deletion = exchange(path, method="DELETE")
+                        oracle.require(deletion["http_status"] == 200, "deletion_not_observed")
+                        oracle.verify_deletion(oracle.load_json(deletion["wire"]), value["id"])
                         sample.update(delete_http_status=deletion["http_status"], deleted_response_id=value["id"], read_response_id=value["id"])
                     before = attempt_count(collector["local_state_dir"])
                     if case == "compact_foreign_owner":

@@ -1,0 +1,1437 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_os_denies_non_loopback_network",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_pin_chat-json",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_0-chat-json-visible_reasoning_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_0-chat-json-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_0-chat-json-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_0-chat-json-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_0-chat-json-visible_reasoning_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_0-chat-json-visible_reasoning_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_0-chat-json-visible_reasoning_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_0-chat-json-visible_reasoning_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_0-chat-json-visible_reasoning_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_0-chat-json-visible_reasoning_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_1-chat-json-reasoning_history_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_1-chat-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_1-chat-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_1-chat-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_reasoning_history_reached_actual_upstream_1-chat-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_1-chat-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_1-chat-json-reasoning_history_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_1-chat-json-reasoning_history_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_1-chat-json-reasoning_history_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_1-chat-json-reasoning_history_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_1-chat-json-reasoning_history_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_1-chat-json-reasoning_history_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_pin_chat-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_2-chat-sse-visible_reasoning_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_2-chat-sse-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_2-chat-sse-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_2-chat-sse-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_2-chat-sse-visible_reasoning_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_2-chat-sse-visible_reasoning_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_2-chat-sse-visible_reasoning_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_2-chat-sse-visible_reasoning_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_2-chat-sse-visible_reasoning_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_2-chat-sse-visible_reasoning_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_3-chat-sse-reasoning_history_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_3-chat-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_3-chat-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_3-chat-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_reasoning_history_reached_actual_upstream_3-chat-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_3-chat-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_3-chat-sse-reasoning_history_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_3-chat-sse-reasoning_history_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_3-chat-sse-reasoning_history_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_3-chat-sse-reasoning_history_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_3-chat-sse-reasoning_history_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_3-chat-sse-reasoning_history_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_pin_responses-json",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_4-responses-json-visible_reasoning_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_4-responses-json-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_4-responses-json-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_4-responses-json-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_4-responses-json-visible_reasoning_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_4-responses-json-visible_reasoning_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_4-responses-json-visible_reasoning_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_4-responses-json-visible_reasoning_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_4-responses-json-visible_reasoning_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_4-responses-json-visible_reasoning_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_5-responses-json-reasoning_history_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_5-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_5-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_5-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_reasoning_history_reached_actual_upstream_5-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_5-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_5-responses-json-reasoning_history_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_5-responses-json-reasoning_history_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_5-responses-json-reasoning_history_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_5-responses-json-reasoning_history_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_5-responses-json-reasoning_history_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_5-responses-json-reasoning_history_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_pin_responses-sse",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_6-responses-sse-visible_reasoning_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_6-responses-sse-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_6-responses-sse-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_6-responses-sse-visible_reasoning",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_6-responses-sse-visible_reasoning_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_6-responses-sse-visible_reasoning_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_6-responses-sse-visible_reasoning_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_6-responses-sse-visible_reasoning_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_6-responses-sse-visible_reasoning_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_6-responses-sse-visible_reasoning_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_7-responses-sse-reasoning_history_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_7-responses-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_7-responses-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_effort_preserved_7-responses-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_reasoning_history_reached_actual_upstream_7-responses-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_7-responses-sse-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_7-responses-sse-reasoning_history_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_7-responses-sse-reasoning_history_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_7-responses-sse-reasoning_history_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_7-responses-sse-reasoning_history_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_7-responses-sse-reasoning_history_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_7-responses-sse-reasoning_history_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_8-responses-json-store_read_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_8-responses-json-store_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_8-responses-json-store_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_8-responses-json-store_read_missing_resource",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_8-responses-json-store_read_resource_status",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_8-responses-json-store_read_resource_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_8-responses-json-store_read_resource_path",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_8-responses-json-store_read_resource_request",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_8-responses-json-store_read_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_8-responses-json-store_read_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_8-responses-json-store_read_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_8-responses-json-store_read_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_8-responses-json-store_read_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_8-responses-json-store_read_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_9-responses-json-exact_continuation_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_9-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_9-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_9-responses-json-exact_continuation_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_9-responses-json-exact_continuation_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_9-responses-json-exact_continuation_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_9-responses-json-exact_continuation_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_9-responses-json-exact_continuation_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_9-responses-json-exact_continuation_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_uncaptured_parent_9-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_10-responses-json-compact_roundtrip_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_10-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_summary_and_consume_separate_10-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_10-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_10-responses-json-compact_roundtrip_compact_extra_output",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_10-responses-json-compact_roundtrip_compact_item_plaintext",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_10-responses-json-compact_roundtrip_compact_response_plaintext",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_10-responses-json-compact_roundtrip_compact_incomplete_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_10-responses-json-compact_roundtrip_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_10-responses-json-compact_roundtrip_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_10-responses-json-compact_roundtrip_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_10-responses-json-compact_roundtrip_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_10-responses-json-compact_roundtrip_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_10-responses-json-compact_roundtrip_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_uncaptured_parent_10-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_11-responses-sse-store_read_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_11-responses-sse-store_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_11-responses-sse-store_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_11-responses-sse-store_read_missing_resource",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_11-responses-sse-store_read_resource_status",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_11-responses-sse-store_read_resource_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_11-responses-sse-store_read_resource_path",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_11-responses-sse-store_read_resource_request",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_11-responses-sse-store_read_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_11-responses-sse-store_read_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_11-responses-sse-store_read_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_11-responses-sse-store_read_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_11-responses-sse-store_read_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_11-responses-sse-store_read_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_12-responses-sse-exact_continuation_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_12-responses-sse-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_12-responses-sse-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_12-responses-sse-exact_continuation_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_12-responses-sse-exact_continuation_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_12-responses-sse-exact_continuation_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_12-responses-sse-exact_continuation_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_12-responses-sse-exact_continuation_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_12-responses-sse-exact_continuation_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_uncaptured_parent_12-responses-sse-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_13-responses-sse-compact_roundtrip_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_13-responses-sse-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_summary_and_consume_separate_13-responses-sse-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_13-responses-sse-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_13-responses-sse-compact_roundtrip_compact_extra_output",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_13-responses-sse-compact_roundtrip_compact_item_plaintext",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_13-responses-sse-compact_roundtrip_compact_response_plaintext",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_13-responses-sse-compact_roundtrip_compact_incomplete_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_13-responses-sse-compact_roundtrip_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_13-responses-sse-compact_roundtrip_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_13-responses-sse-compact_roundtrip_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_13-responses-sse-compact_roundtrip_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_13-responses-sse-compact_roundtrip_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_13-responses-sse-compact_roundtrip_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_uncaptured_parent_13-responses-sse-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_14-responses-json-foreign_owner_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_14-responses-json-foreign_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_14-responses-json-foreign_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_14-responses-json-foreign_owner_missing_resource",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_14-responses-json-foreign_owner_resource_status",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_14-responses-json-foreign_owner_resource_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_14-responses-json-foreign_owner_resource_path",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_14-responses-json-foreign_owner_resource_request",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_14-responses-json-foreign_owner_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_14-responses-json-foreign_owner_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_14-responses-json-foreign_owner_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_14-responses-json-foreign_owner_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_14-responses-json-foreign_owner_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_14-responses-json-foreign_owner_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_15-responses-json-deleted_read_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_15-responses-json-deleted_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_15-responses-json-deleted_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_15-responses-json-deleted_read_missing_resource",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_15-responses-json-deleted_read_resource_status",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_15-responses-json-deleted_read_resource_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_15-responses-json-deleted_read_resource_path",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_15-responses-json-deleted_read_resource_request",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_15-responses-json-deleted_read_delete_empty_204",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_15-responses-json-deleted_read_delete_numeric_true",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_15-responses-json-deleted_read_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_15-responses-json-deleted_read_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_15-responses-json-deleted_read_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_15-responses-json-deleted_read_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_15-responses-json-deleted_read_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_15-responses-json-deleted_read_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_16-responses-json-compact_foreign_owner_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_16-responses-json-compact_foreign_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_16-responses-json-compact_foreign_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_16-responses-json-compact_foreign_owner_missing_resource",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_16-responses-json-compact_foreign_owner_resource_status",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_16-responses-json-compact_foreign_owner_resource_wire",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_16-responses-json-compact_foreign_owner_resource_path",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_16-responses-json-compact_foreign_owner_resource_request",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_16-responses-json-compact_foreign_owner_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_16-responses-json-compact_foreign_owner_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_16-responses-json-compact_foreign_owner_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_16-responses-json-compact_foreign_owner_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_16-responses-json-compact_foreign_owner_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_16-responses-json-compact_foreign_owner_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_17-responses-sse-ws_multiturn_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_17-responses-sse-ws_multiturn",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_17-responses-sse-ws_multiturn",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_17-responses-sse-ws_multiturn_successful_origin",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_17-responses-sse-ws_multiturn_missing_capture",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_17-responses-sse-ws_multiturn_missing_capture_adjusted_count",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_17-responses-sse-ws_multiturn_unfrozen_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_17-responses-sse-ws_multiturn_unrelated_final",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_17-responses-sse-ws_multiturn_wrong_root_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_audit_17-responses-sse-ws_multiturn_wrong_root_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_bundle_uncaptured_parent_17-responses-sse-ws_multiturn",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_18-responses-sse-ws_handshake_rejection_PASS",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_intents_match_independent_fixture_receives_18-responses-sse-ws_handshake_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_audit_18-responses-sse-ws_handshake_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_missing_handshake",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_wrong_handshake_status",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_partial_handshake_body",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_wrong_handshake_origin",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_official_cli_rejects_wrong_handshake_path",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_19-responses-json-compact_lineage_rejection_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_19-responses-json-compact_lineage_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_20-responses-json-expired_read_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_20-responses-json-expired_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_21-responses-json-lineage_rejection_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_21-responses-json-lineage_rejection",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_22-responses-json-persistence_failure_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_22-responses-json-persistence_failure",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_23-responses-json-restart_read_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_23-responses-json-restart_read",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_24-responses-json-ws_cancel_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_24-responses-json-ws_cancel",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_25-responses-json-ws_failed_root_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_25-responses-json-ws_failed_root",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_pin_messages-json",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_26-messages-json-reasoning_history_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_26-messages-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_27-responses-json-reasoning_history_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_27-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_28-responses-json-reasoning_history_BLOCKED",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_28-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_29-responses-json-reasoning_history_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_29-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_30-responses-json-reasoning_history_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_30-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_31-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_31-responses-json-exact_continuation_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_31-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_failed_transport_raw_retained_31-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_32-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_32-responses-json-exact_continuation_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_32-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_failed_transport_raw_retained_32-responses-json-exact_continuation",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_33-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_33-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_33-responses-json-compact_roundtrip_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_33-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_failed_transport_raw_retained_33-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_bad_summary_stops_before_consume_33-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_34-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_34-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_34-responses-json-compact_roundtrip_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_34-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_failed_transport_raw_retained_34-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_bad_summary_stops_before_consume_34-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_35-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_35-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_35-responses-json-compact_roundtrip_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_35-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_failed_transport_raw_retained_35-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_bad_summary_stops_before_consume_35-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_36-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_prewrite_request_36-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_36-responses-json-compact_roundtrip_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_36-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_failed_transport_raw_retained_36-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_bad_summary_stops_before_consume_36-responses-json-compact_roundtrip",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_ws_late_output_no_next_create",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_37-responses-sse-ws_multiturn_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_37-responses-sse-ws_multiturn",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_failed_transport_raw_retained_37-responses-sse-ws_multiturn",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_38-responses-sse-ws_multiturn_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_38-responses-sse-ws_multiturn",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_39-responses-json-reasoning_history_FAIL",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_cli_exact_sends_39-responses-json-reasoning_history",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_json_wrong_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_json_missing_evidence",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_json_wrong_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_json_changed_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_json_wrong_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_json_missing_evidence",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_json_wrong_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_json_changed_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_json_wrong_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_json_missing_evidence",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_json_wrong_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_json_changed_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_sse_wrong_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_sse_missing_evidence",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_sse_wrong_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_store_read_sse_changed_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_sse_wrong_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_sse_missing_evidence",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_sse_wrong_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_exact_continuation_sse_changed_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_sse_wrong_owner",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_sse_missing_evidence",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_sse_wrong_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_captured_negative_compact_roundtrip_sse_changed_control",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_restart_owner_read_exact",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_fixed_30_day_policy",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_synthetic_expiry_zero_send",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_persistence_failure_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_exact_failed_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_failed_usage_source_event_durable",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_persistence_failure_not_stored",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_cancel_upstream_started",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_cancel_after_semantic_output",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_cancel_upstream_eof",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_exact_failed_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_failed_usage_source_event_durable",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_cancel_not_stored_no_retry",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_failed_ws_terminal",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_failed_ws_root_cannot_continue",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_exact_failed_attempt",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_failed_usage_source_event_durable",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_failed_ws_not_stored_no_retry",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_capacity_released_chat",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_capacity_released_responses",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_capacity_released_messages",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_lineage_root_still_owned",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_continuation_lineage_zero_send",
+      "status": "PASS"
+    },
+    {
+      "check": "extension_drill_compact_lineage_zero_send",
+      "status": "PASS"
+    }
+  ],
+  "binary_sha256": "07247ed69d4ee433abd964ae95c2de41130a087109ae03b1c5a477fa899c0413",
+  "layer": "LOCAL_SIMULATED",
+  "qualified_directed_checks": 354,
+  "checkout_at_execution": "9fcb4fcc849d5b994783983fb2d3baf6699fd0d1",
+  "product_source": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "formal_tool_sha256": "c6587ea4695fd9802742f5c83ccd6317529ad2ad2f7c0a1e5cf310ec8ec8aef4",
+  "extension_tool_sha256": "77e398f6dfe14dcfac179fe99a4b0fe7eeac6bcddf0db7a2fb4020c63c6e02ef",
+  "cli_runs": 40,
+  "cli_status_counts": {
+    "PASS": 19,
+    "BLOCKED": 10,
+    "FAIL": 11
+  },
+  "synthetic_upstream_receives": 52,
+  "real_provider_requests": 0,
+  "log_sha256": "d5bde34f679f794c48aca052599431a5524054d642bfcaaad505d3f5271c9390"
+}

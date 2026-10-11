@@ -756,12 +756,18 @@ def boundary_check(sample, target):
 
 def verify_compaction(value):
     require(isinstance(value, dict) and set(value) <= {"id", "object", "created_at", "model", "status", "error", "incomplete_details", "output", "usage"} and
+            value.get("status") == "completed" and value.get("error") is None and value.get("incomplete_details") is None and
             isinstance(value.get("output"), list) and len(value["output"]) == 1, "compact_roundtrip_incomplete")
     item = value["output"][0]
     require(isinstance(item, dict) and set(item) == {"id", "type", "created_by", "encrypted_content"} and
             item.get("type") == "compaction" and item.get("created_by") == "cpar" and
             isinstance(item.get("encrypted_content"), str) and item["encrypted_content"].startswith("cpar_compact_v1."), "compact_domain_unconfirmed")
     return item
+
+
+def verify_deletion(value, response_id):
+    require(isinstance(value, dict) and value == {"id": response_id, "object": "response.deleted", "deleted": True} and
+            value.get("deleted") is True, "deletion_not_observed")
 
 
 def extension_check(name, case, sample, target):

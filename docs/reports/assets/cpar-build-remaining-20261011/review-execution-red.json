@@ -1,0 +1,39 @@
+{
+  "layer": "LOCAL_SIMULATED",
+  "method": "formal_executor_mocked_transport_exact_collector_captured_fixture_clock",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "case": "extra_output",
+      "status": "FAIL",
+      "category": "compact_roundtrip_incomplete",
+      "transport_calls": 3,
+      "inference_intents": 3,
+      "defect_reproduced": true
+    },
+    {
+      "case": "item_plaintext",
+      "status": "FAIL",
+      "category": "compact_domain_unconfirmed",
+      "transport_calls": 3,
+      "inference_intents": 3,
+      "defect_reproduced": true
+    },
+    {
+      "case": "response_plaintext",
+      "status": "FAIL",
+      "category": "compact_roundtrip_incomplete",
+      "transport_calls": 3,
+      "inference_intents": 3,
+      "defect_reproduced": true
+    },
+    {
+      "case": "incomplete_terminal",
+      "status": "PASS",
+      "category": "verified",
+      "transport_calls": 3,
+      "inference_intents": 3,
+      "defect_reproduced": true
+    }
+  ]
+}

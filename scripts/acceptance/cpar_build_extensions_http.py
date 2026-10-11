@@ -260,8 +260,15 @@ def verify(context):
                 def do_POST(self):
                     body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                     saved = json.loads((private / (label + "-bundle.json")).read_text())
-                    check("extension_cli_prewrite_request_" + label, saved["samples"][0]["request"] == body)
-                    response = oracle.http_exchange(upstream_url, context["issued_key"], "/responses", body)
+                    check("extension_cli_prewrite_request_" + label, saved["samples"][-1]["request"] == body)
+                    response = oracle.http_exchange(upstream_url, context["issued_key"], self.path[3:], body)
+                    if transport_fault.startswith("compact_") and self.path.endswith("/compact"):
+                        value = json.loads(response["wire"])
+                        if transport_fault == "compact_extra_output":value["output"].append({"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "SYNTHETIC_PLAINTEXT_SUMMARY"}]})
+                        elif transport_fault == "compact_item_plaintext":value["output"][0]["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+                        elif transport_fault == "compact_response_plaintext":value["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+                        else:value["incomplete_details"] = {"reason": "max_output_tokens"}
+                        response["wire"] = json.dumps(value)
                     forwarded.append(response["wire"])
                     if transport_fault == "post_process":context["restart"]()
                     raw = response["wire"].encode()
@@ -338,8 +345,13 @@ def verify(context):
         bundle_path = private / (label + "-bundle.json")
         if transport_fault:
             captured = json.loads(bundle_path.read_text())
-            check("extension_cli_failed_transport_raw_retained_" + label, len(captured["samples"]) == 1 and captured["samples"][0]["wire"] == forwarded[0] and
-                  (bool(base64.b64decode(captured["samples"][0]["wire_bytes_b64"])) if transport_fault == "ws_late" else base64.b64decode(captured["samples"][0]["wire_bytes_b64"]).decode() == forwarded[0]))
+            compact_failure = transport_fault.startswith("compact_")
+            sample = captured["samples"][-1]
+            check("extension_cli_failed_transport_raw_retained_" + label, len(captured["samples"]) == (2 if compact_failure else 1) and sample["wire"] == forwarded[-1] and
+                  (bool(base64.b64decode(sample["wire_bytes_b64"])) if transport_fault == "ws_late" else base64.b64decode(sample["wire_bytes_b64"]).decode() == forwarded[-1]))
+            if compact_failure:
+                check("extension_cli_bad_summary_stops_before_consume_" + label, len(forwarded) == receipt["inference_intents"] == 2 and
+                      [row["operation"] for row in captured["operations"]] == ["response_create", "compact_summary"])
         if expected_status == "PASS":
             audit_path = public / (label + "-audit.json")
             audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(bundle_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
@@ -368,18 +380,23 @@ def verify(context):
                     audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(mutation_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
                     check("extension_official_cli_rejects_" + label + "_" + mutation, audit.returncode != 0 and json.loads(audit_path.read_text())["status"] in ("FAIL", "BLOCKED"))
             if case in ("deleted_read", "compact_roundtrip"):
-                mutations = ("delete_empty_204",) if case == "deleted_read" else ("compact_extra_output", "compact_item_plaintext", "compact_response_plaintext")
+                mutations = ("delete_empty_204", "delete_numeric_true") if case == "deleted_read" else ("compact_extra_output", "compact_item_plaintext", "compact_response_plaintext", "compact_incomplete_terminal")
                 for mutation in mutations:
                     changed = copy.deepcopy(actual_bundle)
                     if mutation == "delete_empty_204":
                         changed["resource_operations"][1].update(http_status=204, wire="", wire_bytes_b64="")
                         changed["verified_sample"]["delete_http_status"] = 204
+                    elif mutation == "delete_numeric_true":
+                        deletion = changed["resource_operations"][1]
+                        value = json.loads(deletion["wire"]);value["deleted"] = 1
+                        deletion["wire"] = json.dumps(value);deletion["wire_bytes_b64"] = base64.b64encode(deletion["wire"].encode()).decode()
                     else:
                         summary = changed["samples"][1]
                         value = json.loads(summary["wire"])
                         if mutation == "compact_extra_output":value["output"].append({"type": "message", "role": "assistant", "status": "completed", "content": [{"type": "output_text", "text": "SYNTHETIC_PLAINTEXT_SUMMARY", "annotations": []}]})
                         elif mutation == "compact_item_plaintext":value["output"][0]["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
-                        else:value["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+                        elif mutation == "compact_response_plaintext":value["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+                        else:value["incomplete_details"] = {"reason": "max_output_tokens"}
                         summary["wire"] = json.dumps(value)
                         summary["wire_bytes_b64"] = base64.b64encode(summary["wire"].encode()).decode()
                         final = changed["verified_sample"]
@@ -475,6 +492,8 @@ def verify(context):
     run("reasoning_history", actual_key=context["sibling_key"], expected_status="FAIL", expected_sends=1)
     for fault in ("content_type", "post_process"):
         run("exact_continuation", expected_status="FAIL", expected_sends=1, transport_fault=fault)
+    for fault in ("compact_extra_output", "compact_item_plaintext", "compact_response_plaintext", "compact_incomplete_terminal"):
+        run("compact_roundtrip", expected_status="FAIL", expected_sends=2, transport_fault=fault)
     run("ws_multiturn", mode="sse", expected_status="FAIL", expected_sends=1, transport_fault="ws_late")
     run("ws_multiturn", mode="sse", changes=lambda plan: plan["extension"].update(prompt="truncated-round"), expected_status="FAIL", expected_sends=1)
     context["restart"]()

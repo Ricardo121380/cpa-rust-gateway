@@ -344,6 +344,10 @@ absent Origin in both captured request projections and the exact `/v1/responses`
 route. DELETE requires HTTP 200 and the exact `response.deleted` object; an empty
 204 does not qualify. Compaction requires exactly one CPAR compaction item with
 only its canonical fields, and rejects additional output or plaintext fields.
+The `deleted` field must be JSON `true`, and compact `incomplete_details` must be
+absent or null. The executor checks these responses before sending any subsequent
+read or compact-consumption request; a rejected summary stops after two inference
+intents and retains its raw response.
 
 The directed regression uses the existing Batch B fixture and formal CLI:
 

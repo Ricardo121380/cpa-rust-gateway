@@ -1120,17 +1120,24 @@ class FormalOracle(unittest.TestCase):
                 changed["resource_operations"][1].update(http_status=204, wire="", wire_bytes_b64="")
                 changed["verified_sample"]["delete_http_status"] = 204
                 self.assertEqual(extensions.audit_extension_bundle(changed)["status"], "FAIL")
+                changed = copy.deepcopy(original)
+                deletion = json.loads(changed["resource_operations"][1]["wire"])
+                deletion["deleted"] = 1
+                changed["resource_operations"][1]["wire"] = json.dumps(deletion)
+                changed["resource_operations"][1]["wire_bytes_b64"] = base64.b64encode(json.dumps(deletion).encode()).decode()
+                self.assertEqual(extensions.audit_extension_bundle(changed)["status"], "FAIL")
 
     def test_compaction_rejects_extra_output_and_plaintext_fields(self):
         value = response()
         value["output"] = [{"id": "cmp_local", "type": "compaction", "created_by": "cpar", "encrypted_content": "cpar_compact_v1.synthetic"}]
         oracle.verify_compaction(value)
-        for mutation in ("extra_output", "item_plaintext", "response_plaintext", "empty_output"):
+        for mutation in ("extra_output", "item_plaintext", "response_plaintext", "empty_output", "incomplete_terminal"):
             changed = copy.deepcopy(value)
             if mutation == "extra_output":changed["output"].extend(response()["output"])
             elif mutation == "item_plaintext":changed["output"][0]["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
             elif mutation == "response_plaintext":changed["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
-            else:changed["output"] = []
+            elif mutation == "empty_output":changed["output"] = []
+            else:changed["incomplete_details"] = {"reason": "max_output_tokens"}
             with self.assertRaises(ValueError, msg=mutation):oracle.verify_compaction(changed)
 
     def test_extension_websocket_completed_then_output_fails_before_next_turn(self):

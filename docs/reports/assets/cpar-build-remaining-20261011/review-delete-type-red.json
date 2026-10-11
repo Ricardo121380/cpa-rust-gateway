@@ -1,0 +1,9 @@
+{
+  "layer": "LOCAL_SIMULATED",
+  "real_provider_requests": 0,
+  "case": "delete_numeric_true",
+  "method": "formal_audit_captured_fixture_clock",
+  "status": "PASS",
+  "category": "verified",
+  "defect_reproduced": true
+}

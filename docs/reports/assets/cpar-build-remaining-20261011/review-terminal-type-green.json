@@ -1,0 +1,21 @@
+{
+  "layer": "LOCAL_SIMULATED",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "case": "15-responses-json-deleted_read-delete_numeric_true",
+      "official_cli_status": "FAIL",
+      "category": "deletion_not_observed"
+    },
+    {
+      "case": "10-responses-json-compact_roundtrip-compact_incomplete_terminal",
+      "official_cli_status": "FAIL",
+      "category": "compact_roundtrip_incomplete"
+    },
+    {
+      "case": "13-responses-sse-compact_roundtrip-compact_incomplete_terminal",
+      "official_cli_status": "FAIL",
+      "category": "compact_roundtrip_incomplete"
+    }
+  ]
+}

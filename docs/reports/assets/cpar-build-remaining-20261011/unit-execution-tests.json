@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "passed": 50,
+  "failed": 0,
+  "files": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "c6587ea4695fd9802742f5c83ccd6317529ad2ad2f7c0a1e5cf310ec8ec8aef4",
+    "scripts/acceptance/cpar_build_extensions.py": "77e398f6dfe14dcfac179fe99a4b0fe7eeac6bcddf0db7a2fb4020c63c6e02ef",
+    "scripts/acceptance/cpar_build_extensions_http.py": "858038451cab176a2f01b2bebb894f803ffdcb30ede22696be40fdd3bc257f60",
+    "scripts/test-cpar-new-build-acceptance.py": "69375d4bf532742b955987a14c44b49bc1f1aedd971a044cbcdcc7dfd9fac760"
+  },
+  "log_sha256": "e61e2bb757f4d18179b2a5e9043e0e656fafc86919434e83e910d374b3b59ea8",
+  "command": "python3 scripts/test-cpar-new-build-acceptance.py",
+  "real_provider_requests": 0
+}
