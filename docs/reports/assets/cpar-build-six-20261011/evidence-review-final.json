@@ -1,0 +1,37 @@
+{
+  "completion": "complete",
+  "verdict": "PASS",
+  "findings": [],
+  "agent": "/root/six_evidence_close",
+  "scope": "Final report and frozen evidence consistency, not a new implementation review or real acceptance pass",
+  "freeze_sha256": "0b0d1e9d3c1220e720f0a81b82d8ab59dc75ef03a5a17ecfe3d4559786fcf275",
+  "frozen_files_checked": 70,
+  "drift_count": 0,
+  "missing_count": 0,
+  "coverage": [
+    "source/binary and raw/canonical manifest hashes",
+    "candidate/build and Standards/Spec scope",
+    "Pin PASS, first basic HTTP502, immediate full-batch stop",
+    "formal text scenario NOT_RUN with one failed executed request",
+    "new matrix 0/6 combinations and 0/18 scenarios; separate historical identity",
+    "33/32 historical, 2/2 new, 35/34 cumulative accounting, intent ceilings60/93 and unused58 not reusable",
+    "management GET 55 independently recounted including two prepare source_get calls",
+    "exit/production/Colima/preservation receipt consistency",
+    "three saved GitHub before/after/exact patch bodies and paginated dependencies independently compared",
+    "diagnosis retains unknown exact cause and no exact upstream replay"
+  ],
+  "limitations": [
+    "No additional Provider calls or upstream receive/cost evidence",
+    "No rebuild, full tests or duplicate implementation reviews",
+    "No fresh remote process or Colima observation by the scout",
+    "No second binary, 42766 local path or 208 remote file hash pass by the scout; those main-agent receipts checked for consistency",
+    "Private session or credential content not read"
+  ],
+  "main_agent_closure": {
+    "all_70_frozen_hashes_rechecked": true,
+    "subsequent_changes": "Only this review receipt and additive delivery/readback documentation; execution files and real evidence unchanged",
+    "real_acceptance_status": "FAIL; STOPPED",
+    "exact_root_cause": "UNKNOWN"
+  },
+  "recorded_at_utc": "2026-10-11T07:54:55.143156+00:00"
+}

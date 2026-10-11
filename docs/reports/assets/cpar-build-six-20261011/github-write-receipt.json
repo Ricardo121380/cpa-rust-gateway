@@ -1,0 +1,41 @@
+{
+  "status": "PASS; mutations acknowledged, independent readback pending",
+  "evidence_commit": "4f78f51e11c71cfd960f1a12f22c29d25118c8d4",
+  "append_sha256": "2f77dac86a154fde89cf45eb0178ad0073568fa58501fac8357e395386bf989b",
+  "issues": {
+    "47": {
+      "comment_id": 6081215242,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "updated_at": "2026-10-11T07:48:57Z",
+      "old_body_sha256": "f4f956cb6cf4da51e3adaecafd8053db6e0a9e37907971b17b172460e3bacc1e",
+      "new_body_sha256": "b678b2bff1da11c90764312d94df4d11cd0425d5813a5308314d59c2e83f2522",
+      "old_prefix_preserved": true,
+      "appended_marker_count": 1,
+      "mutation_response_matches": true,
+      "new_comment_created": false
+    },
+    "57": {
+      "comment_id": 6081234278,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "updated_at": "2026-10-11T07:49:00Z",
+      "old_body_sha256": "095833d86210952ae814ff28ba58720aa23083cacacf497e4da962a87e9536bb",
+      "new_body_sha256": "522ce5c70f3174984a4ea28ed10dccba0007aef74c968b4d6662d7fa4978afaf",
+      "old_prefix_preserved": true,
+      "appended_marker_count": 1,
+      "mutation_response_matches": true,
+      "new_comment_created": false
+    },
+    "9": {
+      "comment_id": 6081235490,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "updated_at": "2026-10-11T07:49:09Z",
+      "old_body_sha256": "92869e3e19bd2a15418f618dd13b4d2b97a41c6e5e3dfb4435d90a4e08f6f1b1",
+      "new_body_sha256": "1138ddf1d382b3cf7c8383207bb92c09eaa31ee4b184a3d190eb92afb5e383d2",
+      "old_prefix_preserved": true,
+      "appended_marker_count": 1,
+      "mutation_response_matches": true,
+      "new_comment_created": false
+    }
+  },
+  "completed_at_utc": "2026-10-11T07:49:10.176921+00:00"
+}

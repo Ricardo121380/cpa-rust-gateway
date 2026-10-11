@@ -1,0 +1,287 @@
+{
+  "head": "4f78f51e11c71cfd960f1a12f22c29d25118c8d4",
+  "created_at_utc": "2026-10-11T07:50:29.035777+00:00",
+  "scope": "Final report and owned evidence only; read-only consistency verification; no rerun of unchanged implementation reviews",
+  "files": [
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/artifact-manifest.json",
+      "sha256": "b51ea8085b87bc2d9b942e7ee57e84e4e015aa53fc4409ba7a3e8d9489b7e583"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/baseline.json",
+      "sha256": "263b6e2513ec953dd0d2e996e8fdbe3b3788088f531d38fa44e6f70012b414ef"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/batch-contract.md",
+      "sha256": "e316399a16d6a54a7816d0ede624f02b6558351fb0e43ed5e1080340b2e6bbf0"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-build-container.json",
+      "sha256": "62cd5012c94f66fdf3e7097bec842954bf9a09b3604d5740a03bb36100e4352f"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-build-container.log.gz",
+      "sha256": "13d834fa0d5349f7a20b99db0198632ffcd8ce37901f0102c2d33f4bc80919b6"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-build.json",
+      "sha256": "67de2b2d64cb5b23b2d9bb317f8644cef93d96fd013d4d18a5a27fafb9ec8c91"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-build.log.gz",
+      "sha256": "5a11af7ab1a0d4f175b6369c3d67bec37a0c608aa3fc66bd9ef73b79d23a9867"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-build.sh",
+      "sha256": "498318c8f4aec722bded30b3052ccc38918c1e8427438391072b0d40941f5f91"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-mount-failure.json",
+      "sha256": "471f13c42e70d9e61be41387752b0d4032dcc3b6090ed8b3e017dfaa7bbd618d"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-release.log.gz",
+      "sha256": "45363036fddad7709493eaee9fa1f5908b158db793171da888fba678af62b079"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate-validation.json",
+      "sha256": "88406a941459bd43e17b290ebd4280a29854e32dda556c94f815f155ef58e996"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/candidate.Dockerfile",
+      "sha256": "49237573292670b935b12796405cfa5dd347a6ec9ac77f46c29a8bdeeca495ac"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/chat-json-audit.json",
+      "sha256": "53fb9918435aaffa2ef6a447e7439bda140327f352449994a31a7840ebcd350e"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/chat-json-basic-summary.json",
+      "sha256": "76642fd3403eb70b524ad139b9a0dadda7e60dca165297c56b6c31d46fcf1080"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/chat-json-diagnosis.json",
+      "sha256": "5a84f87b906bb0019dc9d94d0b803669b0c919c43bb0540c43f43950e0a2b5d2"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/chat-json-failure-capture.json",
+      "sha256": "9cffce28225e577366301be8b728f2020e8d45e4168fc86f73f98edfa46cf905"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/chat-json-pin.json",
+      "sha256": "6c02f816f9d75aafa1a8664e89f5d8bacbe482056eea2b90138a1d3c5a466520"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/colima-exit.json",
+      "sha256": "510394264559c438f968ebc1df83e5de75c91257d0e90909ef4fde4b265f76a7"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependencies.Dockerfile",
+      "sha256": "7533e7ca4cd18ce2f7003c0cc70cc091b7efd198657478250f839b87f647f65e"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-build.json",
+      "sha256": "9bcfee36b26e17107e348d47a1cfbaf3be780fdb52864d0a43a378f61345574b"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-build.log.gz",
+      "sha256": "c0f31d44c02e6b56283cf9bb5ea9540c5dcb0b26e26cc8408d3e9a1e9d6a822e"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/deb-sha256.txt",
+      "sha256": "d7225edfb963a00bb86d13d1996a03b0727ffbb12c10626c403f707928379398"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/debian.sources",
+      "sha256": "fba4b66c95952e28af3fda06211991a51dc83d5448c2a4d262ec736b12323edb"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/inrelease-sha256.txt",
+      "sha256": "ae9ba69a52a9ad1bad8ac9541f261130c625d18f04373f89b9d5e2ef375c2d07"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/package-uris.txt",
+      "sha256": "0d3e3962546b2ac2b209cb7bbfc616576bd819ed48c6691775364fde9e1a6130"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/packages-after.tsv",
+      "sha256": "e20b8ad0f28b0c2162a5f17fe0d5d299a249504f2ebad1bd57e829486f28ed71"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/packages-before.tsv",
+      "sha256": "fa0f9b6d962c5f7f82ef9fca693fec60be0cc99a234c9f605fcd9ae1ecd36cd2"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/ruby-version.txt",
+      "sha256": "c16e3ec6f7eee42cee5144178119d8e84d34836e90778f2c6f75c2dc10ce9da5"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/dependency-provenance/stdlib.json",
+      "sha256": "bd8cd6a0d35703fb4c3f11cbaffb7bd9a06b6664a2486ab4e2d6c5da760e7e91"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/docs-check.log.gz",
+      "sha256": "def2e9b8d0826d5b13507f745ec40ee441b5fa3e32a724d4bd297f3de6b04ebc"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/docs-check.md",
+      "sha256": "6875abba5ef14bcc3a4dcf61c7a6bece1a7bd2c19ada0b5544465f4c93613e0a"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/epoch-byte-verification.json",
+      "sha256": "d8478bee237882ae94ddaf757b2e995441044f75578add880a4904b814654cd5"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/final-validation.json",
+      "sha256": "148bfb59fd27f2ca2c1f1f553f6b54faeefb350063af15310f410f79ea779d61"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/gateway-build-metadata.json",
+      "sha256": "ddc06a27459c6638ce0fb8e490334794081fafd88f325e2b3d10a27a71d2caf9"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/github-before.json",
+      "sha256": "539875eb6f73e74c0c56b443201267f3fb5ff90575bb8d0dfc35207df5b2f12c"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/github-prewrite-check.json",
+      "sha256": "c1445cb263f7f959708844878215eddb090fe7624a474ecded30351e3a78818e"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/github-readback.json",
+      "sha256": "308bbf13eb255ddebcd2b4def2eed5233a066db4d0b3d42aaef32d8ae5059778"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/github-write-receipt.json",
+      "sha256": "d604263cdf189d03f1918b9a6c0aabdaf5f97c6a0dd5bd74a65dec8110d6431e"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/local-checks.json",
+      "sha256": "eeb62a913c1d47d75451592e4c5537b1c3f115971b81d2d05aa57a15f387b941"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/native-offline-reproduction.json",
+      "sha256": "7901b38fee695dc6141259597f9eaedc863d7f315354497d746a2593456b90e3"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/native-offline-reproduction.log.gz",
+      "sha256": "b515a237ed7a631aba1d69d6f2964d3bcb6fc9bcce80892d92ede924ae5fa780"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/post-exit-readback.json",
+      "sha256": "818f7752c3b4a4070ea9e366af0879c0320422d84f3f6af5736a4baf708696b0"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/prepare-receipt.json",
+      "sha256": "d52baff47a7490d2adb4dd422fc0f92e265a51227e0a2793a96cc57ed3818c03"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/preservation.json",
+      "sha256": "662c0741404fab31822fe13d12024071884a1eb3134b000e40c1858d17ce47cb"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/prior-evidence-reuse.json",
+      "sha256": "fa8d0b3c6a6ca516229dd889742aded75cc3e745e41a3e933812979c40bd5dcf"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/private-capture-index.json",
+      "sha256": "87cd9465ee89adfc7071e07504a4e2dfa706e068349bbff06d61c86c96c45ae5"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/production-ports-after.json",
+      "sha256": "d8fe11c0bd66bbba0147c504c7a5c1ae8b824e565918ab2b24159284ee9a9efe"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/production-ports-before.json",
+      "sha256": "d8fe11c0bd66bbba0147c504c7a5c1ae8b824e565918ab2b24159284ee9a9efe"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/readiness-initial.json",
+      "sha256": "eaa138d8e8a790b9d45ed0758890ea7ad10f3dd11d2a92998a587281791dba54"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/real-batch-matrix.json",
+      "sha256": "65cac1b82ac8ec13d8c9885536ec6d70bb9d81e5a7aaff287f24610b82b7d8e7"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/real-exit-receipt.json",
+      "sha256": "b5a0907dd5e002d0a963bac3638e38104d8b3732db91ee90121bcfc410537cb3"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/remote-byte-verification.json",
+      "sha256": "aae7c4941d1e2d1ca36d26f2fd424eacb1defa6fb9aa650094308d0840e8ed9d"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/request-accounting.json",
+      "sha256": "a9284f2f41dcd1eb8c2c54a4c44ea2c1e6cceedf7359d5d88da4da48e6d018b5"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/review-final.json",
+      "sha256": "a37f01bca7171a5f9199397d3e2371784f1b8ceb8b03bf93f5a8275f73456dd1"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/review-freeze.json",
+      "sha256": "c800168459ef6144fc8a71b1b46f4e04fe577a9df26321a444c31a23c306e03d"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/review-initial.json",
+      "sha256": "c25268a84298e44d6569e69487f6b34eab230d3f0f74a57d9ca86490868b9691"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/review-standards-second.json",
+      "sha256": "56bacc10bf47e2aaf812270d41f3729ff13e466d5b4156ca011091d5209d94ed"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/start-receipt.json",
+      "sha256": "adc0de66a0f1bbaddfc86620bb296cd49653fc6795bfffd05ea4d701b032d52d"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/local-checks.py",
+      "sha256": "01d54f96731ba1dcba2dc360e109440c648795b9b46a28090e3420ea6c42f5de"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/remote-basics.py",
+      "sha256": "9a063c1ac78af6135b67b9ba984af81529ddae65b16560155e50678eed42410f"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/remote-exit.py",
+      "sha256": "7d3437f350b18ef87c334f1fe9d0d9885dd5f3cda6450d8514a712e39125c547"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/remote-pin.py",
+      "sha256": "31175a12a7b829ee2d11fe6f495d8a4a29653a8a9b49deba1230ebd41158aa7b"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/remote-prepare.py",
+      "sha256": "4deabcbcebfac063cf8ebff9f37e7bb84632bb3ea628f9eac3a847881d152374"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/remote-readiness.py",
+      "sha256": "ce90a13cbf7fce37e2ef7901bc1d3e22746751cccdc46242cc46ec12f85544ab"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/remote-start.py",
+      "sha256": "0fc5f26ad0f02bd93cf1c7b81f61af5235bd25666dd9aebfb7e7360ed1cfa35b"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/tools/remote-upload.py",
+      "sha256": "21b4d75edcc2f4806351f86e487d748e9ede63a71a0cdb3f6977f3bb800ac0d7"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/upload-files.json",
+      "sha256": "117c1cc3af125f2722cd5ccebd77f4a3a53cb1b81dd49043b01e1b76c90874f1"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/upload-receipt.json",
+      "sha256": "3857cb0141482f46891a979a958649606a6019bf90195d117a29520a18a9a12f"
+    },
+    {
+      "path": "docs/reports/assets/cpar-build-six-20261011/user-authorization.json",
+      "sha256": "77980e82623fa9913bd0623803f1a0f6b33857335127ad96fde5064f0ebaaa0f"
+    },
+    {
+      "path": "docs/reports/cpar-build-six-20261011.md",
+      "sha256": "db963aefe27e85cc5c8be79a09f8ea0b01131deef6316ec777104c8eef60c93c"
+    }
+  ]
+}

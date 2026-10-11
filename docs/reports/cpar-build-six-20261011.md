@@ -148,6 +148,8 @@ Linux ARM64 **候选构建与验证 PASS**，本批构建配方／六组合驱�
 
 [文档检查](assets/cpar-build-six-20261011/docs-check.md) **7/7 PASS**：链接、契约引用、计划状态、canary、Caddy约束、tracked secret scan及whitespace。本批报告与证据另检查 staged diff，未引入凭据文件或原始会话；[最终本地验证摘要](assets/cpar-build-six-20261011/final-validation.json)分列新检查和来源一致的复用项。
 
-GitHub同步在本报告和证据就绪后更新三个既有进度评论，保留历史前缀、原AC、元数据和依赖，不新增同内容评论、不关闭工单。同步与独立读回回执在交付时补齐。
+证据归档提交 `4f78f51e11c71cfd960f1a12f22c29d25118c8d4` 完成后，GitHub同步更新了三个既有进度评论：[主工单#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[交付收口#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[父规格#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。[写入回执](assets/cpar-build-six-20261011/github-write-receipt.json)保留精确评论摘要；[独立读回](assets/cpar-build-six-20261011/github-readback.json)重新读取完整issue、单独REST评论和全部分页依赖，三票均PASS。历史正文前缀完整保留、每票仍只有1条原评论，新标记各1次；原正文／AC、元数据、依赖均未变，三票仍OPEN。所有提交只在本地，未push。
+
+[最后一次独立证据一致性核验](assets/cpar-build-six-20261011/evidence-review-final.json) **complete PASS，findings0**：70/70冻结文件哈希、报告与核心回执、计数、停止／退出边界、保存的GitHub独立GET正文与分页依赖均一致。主代理再核对全部70个冻结哈希后只补本段及核验／交付回执；没有重跑实现审查、构建或真实请求。该核验不改变真实基础FAIL和根因未确认的结论。
 
 下一项工作先处理本次Chat JSON真实502的原生响应证据和保真桥接缺口，再重新确定后续真实基础授权。即使将来基础六组合全部通过，首项声明扩展仍是 `visible_reasoning/reasoning_history` 的真实样本，随后还有各适用协议的stored、continuation、compact、websocket及受控故障／恢复等缺口；parallel未声明，不伪造覆盖。本批在归档与GitHub同步后结束，不自动进入这些后续范围。
