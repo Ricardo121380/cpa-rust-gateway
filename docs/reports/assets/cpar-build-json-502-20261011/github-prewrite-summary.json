@@ -58,9 +58,12 @@
           "body_sha256": "1b3676dafa5ee9492ffe57db5147bdffb97bef2f378ac74949552a6015422e81"
         }
       ],
-      "raw_issue_sha256": "fdf0995e011e4bfcd1f222b0a61bf89eafd3bb317220e6f6f6b63ca486a81067",
-      "raw_dependencies_sha256": "e1bc1b5ba577c7feaf46435e0fa6e1c5297d7ae72a18fcae3d0890dfff646eee",
-      "comment_updated_at": "2026-10-11T07:48:57Z"
+      "comment_updated_at": "2026-10-11T07:48:57Z",
+      "canonical_issue_sha256": "fdf0995e011e4bfcd1f222b0a61bf89eafd3bb317220e6f6f6b63ca486a81067",
+      "canonical_dependencies_sha256": "e1bc1b5ba577c7feaf46435e0fa6e1c5297d7ae72a18fcae3d0890dfff646eee",
+      "issue_archive_file_sha256": "686f7aca32f84dea0e666a5b9b52971d7249c3336238197168c59618747ae27e",
+      "dependencies_archive_file_sha256": "00067cbb236953432c8af14ba1ad564242932a2def1714e6dbe0dc0b1d4514f5",
+      "comment_archive_file_sha256": "853e3e93f853b4ee601d0eae7a210cdc5f14611ee832382cd29e54f155f9f02c"
     },
     {
       "number": 57,
@@ -193,9 +196,12 @@
           "body_sha256": "5a98668c59a139ae912a40fe745028f2206ebe4267352e81f5a592295aa3714f"
         }
       ],
-      "raw_issue_sha256": "ff89fcc2bc95fc58928a38675f10d3e82fac7dcc5f8dee4420bd27ddcd56db62",
-      "raw_dependencies_sha256": "e8317a6dfc3673ec2b36d4a342c7ea21c459f477fe5778bd822b78f448c5b8b2",
-      "comment_updated_at": "2026-10-11T07:49:00Z"
+      "comment_updated_at": "2026-10-11T07:49:00Z",
+      "canonical_issue_sha256": "ff89fcc2bc95fc58928a38675f10d3e82fac7dcc5f8dee4420bd27ddcd56db62",
+      "canonical_dependencies_sha256": "e8317a6dfc3673ec2b36d4a342c7ea21c459f477fe5778bd822b78f448c5b8b2",
+      "issue_archive_file_sha256": "7255115fb98988ee9d47eff1d7dbb6cd3282c140f15dc4a9273239efc6bb4c49",
+      "dependencies_archive_file_sha256": "62f23a6b9c998d5dad77a5e05704861eb3cce5f5b4a6148c7ea8cc8db74e4601",
+      "comment_archive_file_sha256": "f8e072c3757aee37fd4d1552adb581fe6fe973f2c9e7af8cf1136a2bd3251acd"
     },
     {
       "number": 9,
@@ -212,10 +218,24 @@
       ],
       "assignees": [],
       "blocked_by": [],
-      "raw_issue_sha256": "c79ad0f645b6ea22252931e05fa0682bf5aa56543d49ca96aace47499be46064",
-      "raw_dependencies_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-      "comment_updated_at": "2026-10-11T07:49:09Z"
+      "comment_updated_at": "2026-10-11T07:49:09Z",
+      "canonical_issue_sha256": "c79ad0f645b6ea22252931e05fa0682bf5aa56543d49ca96aace47499be46064",
+      "canonical_dependencies_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "issue_archive_file_sha256": "9a2c216fe536520971192d605fe626d3cacc37866c883e06f5939da5962b21ae",
+      "dependencies_archive_file_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "comment_archive_file_sha256": "c81bb78a1328381a6d0636880ad60cc0e4a1424fa7e6ad4f512ab083b3df6fbf"
     }
   ],
-  "raw_snapshot_storage": "owned local 0700/0600 output; public readback summaries only in Git"
+  "raw_snapshot_storage": "owned local 0700/0600 output; public readback summaries only in Git",
+  "canonical_digest_serialization": {
+    "encoding": "UTF-8",
+    "json_sort_keys": true,
+    "json_ensure_ascii": false,
+    "json_separators": [
+      ",",
+      ":"
+    ],
+    "algorithm": "SHA256"
+  },
+  "archive_digest_algorithm": "SHA256 of exact archived file bytes; distinct from canonical JSON digest"
 }

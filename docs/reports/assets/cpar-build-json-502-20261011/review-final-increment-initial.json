@@ -1,0 +1,84 @@
+{
+  "base": "c23b82dbb8d0299c72cbd22253ccaa3727507770",
+  "target": "98857ba62984405d3df469fa98b9ed8ba67eb791",
+  "changed_files": 39,
+  "changed_paths_sha256": "ceaff1b5b1bb1aa27d7aec4e0b47237920d51fba25de6bdf206b60dcf3f1ca12",
+  "standards": {
+    "status": "COMPLETE PASS",
+    "coverage_files": 39,
+    "partitions": [
+      {
+        "reviewer": "/root/final_standards_code",
+        "files": 5,
+        "status": "COMPLETE PASS",
+        "ast": 5,
+        "pure_checks": 3
+      },
+      {
+        "reviewer": "/root/final_standards_local",
+        "files": 16,
+        "status": "COMPLETE PASS",
+        "gzip_complete": 10,
+        "decompressed_lines": 7110,
+        "raw_gzip_digests": 10,
+        "frozen_source_tracked_blobs_verified": 5731
+      },
+      {
+        "reviewer": "/root/final_standards_remote",
+        "files": 18,
+        "status": "COMPLETE PASS",
+        "json_files": 17
+      }
+    ],
+    "actionable_findings": 0
+  },
+  "spec": {
+    "status": "PARTIAL pending remote auxiliary digest interpretation and remaining checks",
+    "partitions": [
+      {
+        "reviewer": "/root/final_spec_code",
+        "files": 5,
+        "status": "COMPLETE PASS",
+        "pure_ast_checks": 12,
+        "cleanup_ast_checks": 3
+      },
+      {
+        "reviewer": "/root/final_spec_local",
+        "files": 16,
+        "status": "COMPLETE PASS",
+        "gzip_complete": 10,
+        "decompressed_lines": 7110,
+        "rust_passed": 1510,
+        "rust_failed": 0,
+        "rust_ignored": 12
+      },
+      {
+        "reviewer": "/root/final_spec_remote",
+        "files": 18,
+        "status": "PARTIAL; full content read, auxiliary assertion compared canonical digest to archive bytes",
+        "unclosed_checks": [
+          "canonical and archive file digest semantics",
+          "all three GitHub archive body/comment/metadata consistency",
+          "freeze and executed upload tar hash",
+          "gate gzip dual hashes",
+          "105-path prior coverage union"
+        ]
+      }
+    ],
+    "initial_partial_preserved": true
+  },
+  "reuse": {
+    "prior_review_target": "c23b82dbb8d0299c72cbd22253ccaa3727507770",
+    "prior_files": 105,
+    "new_delta_files": 39,
+    "whole_batch_files": 139,
+    "coverage_union_exact": true,
+    "product_bytes_unchanged_since": "bf822b14a62c21cf582a7539e3635f69bd8b7677"
+  },
+  "limitations": [
+    "no remote systemd or Provider execution by reviewers",
+    "initial aggregate FAIL raw unavailable, excerpt only",
+    "real epoch permanently stopped before launch; actual lease/Pin not established",
+    "final GitHub append/readback not yet performed"
+  ]
+}
