@@ -79,6 +79,10 @@ extension; it does not alter the rejection rules of the original three modes.
   [BC-PROTOCOL-008](BC-PROTOCOL-008-openai-chat-completions-codec.md). An absent limit
   remains absent for Chat/Responses; Messages still requires a limit. Same-protocol
   canonical and exact passthrough paths enforce the same value/collision checks.
+- A generic Channel Pin constructs its bounded Canonical control in the requested source
+  protocol namespace, then uses this same router projection. The native-provider probe
+  policy and existing Codex probe exception are unchanged. Pin is not evidence that the
+  separate public request's exact controls and history have executed.
 
 Semantic evidence checked on 2026-10-11: [OpenAI Chat create reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
 defines the modern field and deprecates the legacy field; [OpenAI token-counting guide](https://developers.openai.com/api/docs/guides/token-counting)

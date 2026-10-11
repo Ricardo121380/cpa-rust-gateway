@@ -451,7 +451,7 @@ const P12_MAX_ROUTE_ATTEMPTS: usize = 16;
 /// inbound request memory.
 const P12_MAX_TOTAL_BINDING_CONCURRENCY: i64 = 16;
 const P12_ANTHROPIC_MAX_TOKENS_EXTENSION: &str = "anthropic.messages.max_tokens";
-const P12_OPENAI_CHAT_MAX_TOKENS_EXTENSION: &str = "openai.chat.max_tokens";
+const P12_OPENAI_CHAT_MAX_COMPLETION_TOKENS_EXTENSION: &str = "openai.chat.max_completion_tokens";
 const P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION: &str = "openai.responses.max_output_tokens";
 /// The one verified, non-secret Krill/Codex compatibility header for P12's isolated endpoint.
 ///
@@ -1494,26 +1494,28 @@ impl P12RoutedResponsesExecutor {
         // one-shot diagnostic into a deterministic pre-send protocol rejection.
         let probe_limit = RawJson::from_json_string("8".to_owned())
             .map_err(|_| ManagementChannelPinError::Unavailable)?;
-        match &endpoint_runtime.adapter {
-            EndpointAdapter::OpenAiChatCompletions(_) => canonical
-                .extensions
-                .try_insert(P12_OPENAI_CHAT_MAX_TOKENS_EXTENSION, probe_limit.clone())
-                .map_err(|_| ManagementChannelPinError::Unavailable)?,
-            EndpointAdapter::OpenAiResponses(endpoint)
-                if !endpoint
-                    .url()
-                    .starts_with("https://chatgpt.com/backend-api/codex/") =>
-            {
-                canonical
-                    .extensions
-                    .try_insert(P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION, probe_limit.clone())
-                    .map_err(|_| ManagementChannelPinError::Unavailable)?;
+        let bounded_probe = match &endpoint_runtime.adapter {
+            EndpointAdapter::OpenAiChatCompletions(_) | EndpointAdapter::AnthropicMessages(_) => {
+                true
             }
-            EndpointAdapter::AnthropicMessages(_) => canonical
+            EndpointAdapter::OpenAiResponses(endpoint) => !endpoint
+                .url()
+                .starts_with("https://chatgpt.com/backend-api/codex/"),
+            _ => false,
+        };
+        if bounded_probe {
+            // This is still a source request. The router owns the later target projection.
+            let name = match client_protocol {
+                ProtocolFormat::OpenAiChatCompletions => {
+                    P12_OPENAI_CHAT_MAX_COMPLETION_TOKENS_EXTENSION
+                }
+                ProtocolFormat::OpenAiResponses => P12_OPENAI_MAX_OUTPUT_TOKENS_EXTENSION,
+                ProtocolFormat::AnthropicMessages => P12_ANTHROPIC_MAX_TOKENS_EXTENSION,
+            };
+            canonical
                 .extensions
-                .try_insert(P12_ANTHROPIC_MAX_TOKENS_EXTENSION, probe_limit)
-                .map_err(|_| ManagementChannelPinError::Unavailable)?,
-            _ => {}
+                .try_insert(name, probe_limit)
+                .map_err(|_| ManagementChannelPinError::Unavailable)?;
         }
         let mode = match request.mode() {
             ManagementChannelPinMode::Json => ResponsesResponseMode::NonStreaming,
