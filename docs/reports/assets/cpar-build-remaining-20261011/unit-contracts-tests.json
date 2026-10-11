@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "passed": 50,
+  "failed": 0,
+  "command": "python3 scripts/test-cpar-new-build-acceptance.py",
+  "scope": "formal oracle plus strict DELETE, single opaque compaction output and exact WebSocket route",
+  "log_sha256": "680cdfdbffeaf30b7e10866fc71f107e707ea4dd3095bc7bf5a049dcb9126536",
+  "files": {
+    "scripts/acceptance/cpar_new_build_acceptance.py": "9303ebcf0b956e42a35f858f3702d3866adcf2a67589a6bafb94884376b1722c",
+    "scripts/acceptance/cpar_build_extensions.py": "dadf92d702bebe7b2a9df8fececdef777982fa1dfa29d47780cb5f1b88bf0cc9",
+    "scripts/acceptance/cpar_build_extensions_http.py": "3b7a463937f2084c5732f41c7abba3f3ff1ff1f1f625e470b563785532d54c90",
+    "scripts/test-cpar-new-build-acceptance.py": "e9748b7877ea8f3dd959116d27a96cad1f85bb6c3883bcd72116cad3519f633c"
+  },
+  "real_provider_requests": 0
+}

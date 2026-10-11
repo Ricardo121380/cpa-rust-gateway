@@ -1,0 +1,28 @@
+{
+  "review_head": "be9df1619e9c04f0be224fde0d8fd641524d8f89",
+  "layer": "LOCAL_SIMULATED",
+  "real_provider_requests": 0,
+  "cases": [
+    {
+      "case": "delete_empty_204",
+      "official_cli_exit": 0,
+      "status": "PASS",
+      "category": "verified",
+      "defect_reproduced": true
+    },
+    {
+      "case": "compact_plaintext_extra_output",
+      "official_cli_exit": 0,
+      "status": "PASS",
+      "category": "verified",
+      "defect_reproduced": true
+    },
+    {
+      "case": "ws_wrong_route",
+      "official_cli_exit": 0,
+      "status": "PASS",
+      "category": "verified",
+      "defect_reproduced": true
+    }
+  ]
+}

@@ -340,7 +340,10 @@ Resource read, delete, foreign authentication and rejection conclusions are deri
 from their ordered raw captures, exact root/path/request, Client Key evidence,
 per-operation runtime and zero-send observations. Missing captures or disagreement
 with the final sample fail admission. A successful WebSocket upgrade requires an
-absent Origin in both captured request projections.
+absent Origin in both captured request projections and the exact `/v1/responses`
+route. DELETE requires HTTP 200 and the exact `response.deleted` object; an empty
+204 does not qualify. Compaction requires exactly one CPAR compaction item with
+only its canonical fields, and rejects additional output or plaintext fields.
 
 The directed regression uses the existing Batch B fixture and formal CLI:
 

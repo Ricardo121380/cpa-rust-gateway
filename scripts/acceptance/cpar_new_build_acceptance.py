@@ -754,6 +754,16 @@ def boundary_check(sample, target):
     require(evidence.get("post_terminal_send_count") == 0, "send_after_terminal")
 
 
+def verify_compaction(value):
+    require(isinstance(value, dict) and set(value) <= {"id", "object", "created_at", "model", "status", "error", "incomplete_details", "output", "usage"} and
+            isinstance(value.get("output"), list) and len(value["output"]) == 1, "compact_roundtrip_incomplete")
+    item = value["output"][0]
+    require(isinstance(item, dict) and set(item) == {"id", "type", "created_by", "encrypted_content"} and
+            item.get("type") == "compaction" and item.get("created_by") == "cpar" and
+            isinstance(item.get("encrypted_content"), str) and item["encrypted_content"].startswith("cpar_compact_v1."), "compact_domain_unconfirmed")
+    return item
+
+
 def extension_check(name, case, sample, target):
     require(case in EXTENSION_CHECKS[name] and sample.get("target") == target, "wrong_extension_target")
     if sample.get("extension_sample_version") == 1:
@@ -777,7 +787,7 @@ def extension_check(name, case, sample, target):
             if case == "compact_foreign_owner":
                 require(sample.get("compact_request", {}).get("previous_response_id") == sample["read_response_id"], "extension_resource_unconfirmed")
         if case == "deleted_read":
-            require(sample.get("delete_http_status") in (200, 204) and sample.get("deleted_response_id") == sample.get("read_response_id") and sample.get("read_response_id") is not None, "deletion_not_observed")
+            require(sample.get("delete_http_status") == 200 and sample.get("deleted_response_id") == sample.get("read_response_id") and sample.get("read_response_id") is not None, "deletion_not_observed")
         if case == "expired_read":
             require(sample.get("observed_at_ms", 0) >= sample.get("expires_at_ms", float("inf")), "expiry_not_observed")
         return
@@ -832,9 +842,8 @@ def extension_check(name, case, sample, target):
         require(sample.get("parent_target") == target and bool(text), "continuation_lineage_mismatch")
         if case == "compact_roundtrip":
             compact = load_json(sample.get("compact_wire", "null"))
-            require(sample.get("compact_http_status") == 200 and isinstance(compact, dict) and bool(compact.get("output")), "compact_roundtrip_incomplete")
-            item = compact["output"][0]
-            require(item.get("type") == "compaction" and item.get("created_by") == "cpar" and isinstance(item.get("encrypted_content"), str) and item["encrypted_content"].startswith("cpar_compact_v1."), "compact_domain_unconfirmed")
+            require(sample.get("compact_http_status") == 200, "compact_roundtrip_incomplete")
+            item = verify_compaction(compact)
             require(sample.get("compact_request", {}).get("previous_response_id") == sample["parent_response_id"] and item in sample.get("request", {}).get("input", []), "compact_roundtrip_incomplete")
         else:
             require(sample.get("request", {}).get("previous_response_id") == sample["parent_response_id"], "continuation_parent_mismatch")

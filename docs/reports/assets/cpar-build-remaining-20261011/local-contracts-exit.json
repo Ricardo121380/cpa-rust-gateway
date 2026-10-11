@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "layer": "LOCAL_SIMULATED",
+  "fixture_command_completed": true,
+  "owned_state_processes": [],
+  "private_state_evidence_id": "2bcfa42fcf53cfd66dbc5776cc673e0bcbfbabe713198f9d231b2ac776df1824",
+  "preserved_raw_fixture": true,
+  "real_provider_requests": 0
+}

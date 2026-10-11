@@ -64,7 +64,7 @@ def verify_handshake(sample, status):
     request = sample["ws_request"]
     oracle.require(request == {"method": "GET", "path": sample.get("ws_path"), "origin": sample.get("ws_origin"),
                                "nonce": sample.get("ws_nonce"), "version": "13", "upgrade": "websocket", "connection": "Upgrade"} and
-                   isinstance(request["path"], str) and request["path"].endswith("/responses") and len(base64.b64decode(request["nonce"], validate=True)) == 16, "ws_handshake_request_changed")
+                   request["path"] == "/v1/responses" and len(base64.b64decode(request["nonce"], validate=True)) == 16, "ws_handshake_request_changed")
     if status == 101:
         expected = base64.b64encode(hashlib.sha1((request["nonce"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
         oracle.require(request["origin"] is None and not body and fields.get("sec-websocket-accept") == sample.get("ws_accept") == expected and
@@ -167,6 +167,7 @@ def verify_capture(sample, target):
     oracle.require(value.get("model") == target["response_model"], "wrong_response_model")
     if summary:
         oracle.require(value.get("status") == "completed" and value.get("error") is None, "compact_summary_terminal_changed")
+        oracle.verify_compaction(value)
     else:
         oracle.observe(target["protocol"], value)
     actual_target = {**target, "mode": "json", "parameters": controls} if summary else target
@@ -266,8 +267,7 @@ def verify_resource_operations(bundle, root):
                        any(model.get("id") == target["public_model"] for model in oracle.load_json(authentication["wire"]).get("data", [])), "extension_authentication_unconfirmed")
     elif case == "deleted_read":
         deletion = rows[1]
-        oracle.require(deletion.get("http_status") == sample.get("delete_http_status") and deletion["http_status"] in (200, 204), "deletion_not_observed")
-        oracle.require(not deletion["wire"] if deletion["http_status"] == 204 else
+        oracle.require(deletion.get("http_status") == sample.get("delete_http_status") == 200 and
                        oracle.load_json(deletion["wire"]) == {"id": root["id"], "object": "response.deleted", "deleted": True}, "deletion_not_observed")
     if case != "store_read":
         denied = rows[-1]

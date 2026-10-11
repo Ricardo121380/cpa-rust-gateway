@@ -367,12 +367,39 @@ def verify(context):
                     mutation_path.write_text(json.dumps(changed) + "\n")
                     audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(mutation_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
                     check("extension_official_cli_rejects_" + label + "_" + mutation, audit.returncode != 0 and json.loads(audit_path.read_text())["status"] in ("FAIL", "BLOCKED"))
+            if case in ("deleted_read", "compact_roundtrip"):
+                mutations = ("delete_empty_204",) if case == "deleted_read" else ("compact_extra_output", "compact_item_plaintext", "compact_response_plaintext")
+                for mutation in mutations:
+                    changed = copy.deepcopy(actual_bundle)
+                    if mutation == "delete_empty_204":
+                        changed["resource_operations"][1].update(http_status=204, wire="", wire_bytes_b64="")
+                        changed["verified_sample"]["delete_http_status"] = 204
+                    else:
+                        summary = changed["samples"][1]
+                        value = json.loads(summary["wire"])
+                        if mutation == "compact_extra_output":value["output"].append({"type": "message", "role": "assistant", "status": "completed", "content": [{"type": "output_text", "text": "SYNTHETIC_PLAINTEXT_SUMMARY", "annotations": []}]})
+                        elif mutation == "compact_item_plaintext":value["output"][0]["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+                        else:value["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+                        summary["wire"] = json.dumps(value)
+                        summary["wire_bytes_b64"] = base64.b64encode(summary["wire"].encode()).decode()
+                        final = changed["verified_sample"]
+                        final["compact_wire"] = summary["wire"]
+                        final["request"]["input"] = copy.deepcopy(value["output"]) + [final["request"]["input"][-1]]
+                        changed["samples"][-1]["request"] = copy.deepcopy(final["request"])
+                        for row in (final, changed["samples"][-1]):
+                            row["request_wire_b64"] = base64.b64encode(json.dumps(row["request"]).encode()).decode()
+                            row["request_binding_sha256"] = extensions.request_binding(row)
+                    mutation_path, audit_path = private / (label + "-" + mutation + ".json"), public / (label + "-" + mutation + "-audit.json")
+                    mutation_path.write_text(json.dumps(changed) + "\n")
+                    audit = subprocess.run([sys.executable, str(context["repo"] / "scripts/acceptance/cpar-batch-c-live.py"), "--new-build", "audit", "--bundle", str(mutation_path), "--out", str(audit_path)], capture_output=True, text=True, timeout=30)
+                    check("extension_official_cli_rejects_" + label + "_" + mutation, audit.returncode != 0 and json.loads(audit_path.read_text())["status"] in ("FAIL", "BLOCKED"))
             if case == "ws_handshake_rejection":
-                for mutation in ("missing_handshake", "wrong_handshake_status", "partial_handshake_body", "wrong_handshake_origin"):
+                for mutation in ("missing_handshake", "wrong_handshake_status", "partial_handshake_body", "wrong_handshake_origin", "wrong_handshake_path"):
                     changed = copy.deepcopy(actual_bundle)
                     for row in (changed["samples"][0], changed["verified_sample"]):
                         if mutation == "missing_handshake":row.pop("wire_bytes_b64")
                         elif mutation == "wrong_handshake_origin":row["ws_request"]["origin"] = "https://different.invalid"
+                        elif mutation == "wrong_handshake_path":row["ws_path"] = row["ws_request"]["path"] = "/unrelated/responses"
                         else:
                             raw = base64.b64decode(row["wire_bytes_b64"])
                             row["wire_bytes_b64"] = base64.b64encode(raw[:-1] if mutation == "partial_handshake_body" else raw.replace(b"403 Forbidden", b"101 Switching Protocols")).decode()

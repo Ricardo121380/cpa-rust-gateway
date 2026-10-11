@@ -1046,13 +1046,14 @@ class FormalOracle(unittest.TestCase):
         sample["request_binding_sha256"] = extensions.request_binding(sample)
         original = {"extension_bundle_version": 1, "layer": "LOCAL_SIMULATED", "case": sample["case"], "source_sha": SOURCE_SHA, "runtime": observed, "target": current_target, "samples": [sample], "verified_sample": copy.deepcopy(sample), "counts": {"inference_intents": 0}, "result": {"status": "PASS", "stopped": True}}
         self.assertEqual(extensions.audit_extension_bundle(original)["status"], "PASS")
-        for mutation in ("missing", "wrong_status", "partial_body", "wrong_origin"):
+        for mutation in ("missing", "wrong_status", "partial_body", "wrong_origin", "wrong_path"):
             changed = copy.deepcopy(original)
             for row in (changed["samples"][0], changed["verified_sample"]):
                 if mutation == "missing":row.pop("wire_bytes_b64")
                 elif mutation == "wrong_status":row["wire_bytes_b64"] = base64.b64encode(raw.replace(b"403 Forbidden", b"101 Switching Protocols")).decode()
                 elif mutation == "partial_body":row["wire_bytes_b64"] = base64.b64encode(raw[:-1]).decode()
-                else:row["ws_request"]["origin"] = "https://different.invalid"
+                elif mutation == "wrong_origin":row["ws_request"]["origin"] = "https://different.invalid"
+                else:row["ws_path"] = row["ws_request"]["path"] = "/unrelated/responses"
             self.assertIn(extensions.audit_extension_bundle(changed)["status"], ("FAIL", "BLOCKED"), mutation)
 
     def test_extension_successful_handshake_requires_absent_origin(self):
@@ -1114,6 +1115,23 @@ class FormalOracle(unittest.TestCase):
                 elif mutation == "runtime":changed["resource_operations"][-1]["runtime"]["pid"] += 1
                 else:changed["resource_operations"][-1]["boundary_after"] += 1
                 self.assertIn(extensions.audit_extension_bundle(changed)["status"], ("FAIL", "BLOCKED"), (case, mutation))
+            if case == "deleted_read":
+                changed = copy.deepcopy(original)
+                changed["resource_operations"][1].update(http_status=204, wire="", wire_bytes_b64="")
+                changed["verified_sample"]["delete_http_status"] = 204
+                self.assertEqual(extensions.audit_extension_bundle(changed)["status"], "FAIL")
+
+    def test_compaction_rejects_extra_output_and_plaintext_fields(self):
+        value = response()
+        value["output"] = [{"id": "cmp_local", "type": "compaction", "created_by": "cpar", "encrypted_content": "cpar_compact_v1.synthetic"}]
+        oracle.verify_compaction(value)
+        for mutation in ("extra_output", "item_plaintext", "response_plaintext", "empty_output"):
+            changed = copy.deepcopy(value)
+            if mutation == "extra_output":changed["output"].extend(response()["output"])
+            elif mutation == "item_plaintext":changed["output"][0]["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+            elif mutation == "response_plaintext":changed["summary"] = "SYNTHETIC_PLAINTEXT_SUMMARY"
+            else:changed["output"] = []
+            with self.assertRaises(ValueError, msg=mutation):oracle.verify_compaction(changed)
 
     def test_extension_websocket_completed_then_output_fails_before_next_turn(self):
         captures, creates = [], []
