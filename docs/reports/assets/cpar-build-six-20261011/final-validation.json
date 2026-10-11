@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T07:48:12.096245+00:00",
+  "docs_checks": {
+    "passed": 7,
+    "total": 7,
+    "exit_code": 0,
+    "log_sha256": "56ed6e691c8c400845c164e9e28729ecaa303f54d55f216053c193fee37badc6",
+    "report_sha256": "6875abba5ef14bcc3a4dcf61c7a6bece1a7bd2c19ada0b5544465f4c93613e0a"
+  },
+  "driver_local_checks": "35/35 PASS; unchanged reviewed implementation",
+  "offline_native_boundary_case": "1/1 PASS; LOCAL_SIMULATED; not exact real-response replay",
+  "product_source": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "product_paths_unchanged": true,
+  "new_product_full": "NOT_RUN; existing source-bound Full45/45 reused",
+  "original_dirty_paths_preserved": 42766,
+  "remote_ci": "NOT_RUN",
+  "release": "NOT_RUN",
+  "deployment": "NOT_RUN"
+}

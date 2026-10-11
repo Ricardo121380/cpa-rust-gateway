@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T07:44:10.902271+00:00",
+  "initial_dirty_path_count": 42766,
+  "unchanged_count": 42766,
+  "symlink_count": 10,
+  "mismatches": [],
+  "initial_manifest_sha256": "bf148a6177399f2b374b7643a026d77c4d121a39990c5410b739e275566f004b",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "duration_seconds": 15.89,
+  "initial_helper_error": "First helper stopped on a symlink to a directory; no preservation result was emitted. This run compares link targets and regular-file bytes separately."
+}

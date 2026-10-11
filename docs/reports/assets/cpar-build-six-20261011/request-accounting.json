@@ -1,0 +1,68 @@
+{
+  "status": "PASS; evidence accounting, not acceptance",
+  "historical": {
+    "pin_intents": 7,
+    "basic_intents": 26,
+    "budget_intents": 33,
+    "gateway_pin_confirmed_sends": 32,
+    "catalogue_requests_separate": 1
+  },
+  "new": {
+    "pin_intents": 1,
+    "basic_intents": 1,
+    "budget_intents": 2,
+    "budget_intent_limit": 60,
+    "pin_gateway_confirmed_sends": 1,
+    "basic_gateway_confirmed_sends": 1,
+    "gateway_pin_confirmed_sends": 2,
+    "gateway_pin_send_accounting_complete": true,
+    "independent_provider_receives": null,
+    "independent_provider_receive_status": "UNKNOWN",
+    "actual_cost": null,
+    "actual_cost_status": "UNKNOWN",
+    "usage_events": 0,
+    "ledger_rows": 0
+  },
+  "cumulative": {
+    "budget_intents": 35,
+    "budget_intent_limit": 93,
+    "gateway_pin_confirmed_sends": 34,
+    "independent_provider_receive_status": "UNKNOWN",
+    "actual_cost_status": "UNKNOWN"
+  },
+  "unused_budget_intents": 58,
+  "unused_budget_reuse_authorized": false,
+  "stopped": true,
+  "request_time_correlation": "One unique sequential window; downstream error has no x-request-id. Not an exact successful wire/Usage/ledger qualification.",
+  "management_get_accounting": {
+    "readiness": 2,
+    "prepare": 2,
+    "start": 6,
+    "pin_inspection": 44,
+    "exit": 1,
+    "total": 55,
+    "basis": "Executed script receipts and exact prepare source call sites; local SQLite/proc/file readbacks add zero management HTTP.",
+    "separate_pin_post_intents": 1
+  },
+  "forbidden_or_unrun_new_operations": {
+    "upstream_catalogue_queries": 0,
+    "quota_queries": 0,
+    "oauth_refresh": 0,
+    "reauthorization": 0,
+    "retry": 0,
+    "fallback": 0,
+    "supplemental_pin": 0,
+    "post_failure_inference": 0,
+    "extensions": 0,
+    "second_client_key": 0
+  },
+  "inherited_usage_events_excluded": 1,
+  "inherited_ledger_rows_excluded": 1,
+  "receipts": [
+    "chat-json-pin.json",
+    "chat-json-basic-summary.json",
+    "chat-json-failure-capture.json",
+    "real-exit-receipt.json",
+    "post-exit-readback.json"
+  ]
+}

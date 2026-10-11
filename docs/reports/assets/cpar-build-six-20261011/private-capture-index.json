@@ -1,0 +1,32 @@
+{
+  "gateway-v2.log": {
+    "sha256": "b2b5113e38060bf634fd399a368b86c280b9a7b7b4c7546dd66a7d3acf000480",
+    "bytes": 3644,
+    "mode": "0o600"
+  },
+  "capture.tar": {
+    "sha256": "5c0ac10f79508029032eefc7f0b85a3757bcb588527398df36af57d1310544d1",
+    "bytes": 51200,
+    "mode": "0o600"
+  },
+  "chat-json/runtime.json": {
+    "sha256": "83ab4d36b185eff91977584e711c326b02a49e8e35b1d8df7f93943d1320006f",
+    "bytes": 20636,
+    "mode": "0o600"
+  },
+  "chat-json/frozen-plan.json": {
+    "sha256": "ef21ddcbc9720afbd2e615019a3257b7bf2d54774ee36d699f120fd5942a64e7",
+    "bytes": 2592,
+    "mode": "0o600"
+  },
+  "chat-json/wire-final.json": {
+    "sha256": "cbf756cfeb62cf32e18f886dcadf3b2f620a1cc82b87eb11d4f95a298e0a7fae",
+    "bytes": 14787,
+    "mode": "0o600"
+  },
+  "chat-json/http-01-private.json": {
+    "sha256": "db08c57669eb9335e65e03751fe32153c9e02c9146ac172dbaebd4f112b0c839",
+    "bytes": 835,
+    "mode": "0o600"
+  }
+}

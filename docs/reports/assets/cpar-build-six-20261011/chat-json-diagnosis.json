@@ -1,0 +1,139 @@
+{
+  "status": "PARTIAL; confirmed public failure and local rejection boundary, exact root cause unknown",
+  "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "failure": {
+    "sent_at_utc": "2026-10-11T07:32:31.708683+00:00",
+    "http_status": 502,
+    "wire_bytes": 124,
+    "wire_sha256": "dd3e643d6103a6e312a200642baca754f08f3e2b2b399356dbc7adc64063d9c9",
+    "capture_sha256": "db08c57669eb9335e65e03751fe32153c9e02c9146ac172dbaebd4f112b0c839",
+    "error_type": "gateway_error",
+    "error_code": "UpstreamProtocolError"
+  },
+  "public_reproduction_shape": {
+    "method": "POST",
+    "path": "/v1/chat/completions",
+    "model": "grok-4.5",
+    "stream": false,
+    "max_completion_tokens": 4096,
+    "messages": [
+      {
+        "role": "user",
+        "content": "REDACTED: first formal text_multi_turn synthetic prompt; exact bytes retained privately"
+      }
+    ]
+  },
+  "request_linkage": {
+    "kind": "unique sequential time-window inference, no downstream x-request-id",
+    "request_id": "p1-request-433c99cf8f57471b800505f66e1ae4f2-0",
+    "attempt_outcome": "succeeded",
+    "attempt_retry_decision": "completed",
+    "request_finished_outcome": "failed",
+    "duration_ms": 3010,
+    "new_usage_events": 0,
+    "new_ledger_rows": 0
+  },
+  "confirmed_boundary": "For the frozen nonstreaming Build path, driver.start returns after HTTP/JSON/native decoding; AttemptSucceeded does not imply downstream projection/encoding or request completion succeeded.",
+  "candidate_explanation": "Downstream response projection/collection/encoding is consistent with the observed succeeded Attempt and failed Request. Strict native reasoning/metadata rejection is one reproducible candidate.",
+  "not_proven": [
+    "The exact upstream response bytes were not captured",
+    "No evidence identifies a particular reasoning/phase/citation field in this Provider response",
+    "The local test is not a replay of this real exchange",
+    "No independent Provider receive or cost evidence"
+  ],
+  "offline_reproduction": {
+    "command": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "-p",
+      "gateway",
+      "--bin",
+      "gateway",
+      "grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "duration_seconds": 19.96,
+    "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+    "checkout_head": "5847fb224ff8f0f5ff532633c765ba08864015fd",
+    "log_sha256": "32a93336a5eb45e030f08f695a1cb58dff1904b7c99dd12ae806997c4f59559f",
+    "layer": "LOCAL_SIMULATED",
+    "real_provider_requests": 0,
+    "scope": "Existing synthetic native-metadata rejection case; not a replay of the real Provider response"
+  },
+  "code_references": [
+    {
+      "path": "crates/provider-grok/src/inference.rs",
+      "line_start": 347,
+      "line_end": 447,
+      "sha256": "e85f66e25de310b8f31c1eb21189588846d69d6ce134da5ec0342453eb8239b9",
+      "matches_product_source": true,
+      "meaning": "NonStreaming response fully decoded before returning its source"
+    },
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "line_start": 5169,
+      "line_end": 5177,
+      "sha256": "9ec4e936f6633048ee5dc424695f3f5507c58b2712893a4996db8f5c0302597d",
+      "matches_product_source": true,
+      "meaning": "Adapter execute and upstream-sent marker"
+    },
+    {
+      "path": "crates/gateway-router/src/attempt_orchestrator.rs",
+      "line_start": 838,
+      "line_end": 875,
+      "sha256": "40f52010dbee3546cd7694955010725d3995e00c5cd9f782619b26edbae11a04",
+      "matches_product_source": true,
+      "meaning": "AttemptSucceeded follows driver.start"
+    },
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "line_start": 4314,
+      "line_end": 4360,
+      "sha256": "9ec4e936f6633048ee5dc424695f3f5507c58b2712893a4996db8f5c0302597d",
+      "matches_product_source": true,
+      "meaning": "ProjectedEventSource maps projection rejection to upstream_protocol_error"
+    },
+    {
+      "path": "crates/gateway-router/src/response_transform.rs",
+      "line_start": 220,
+      "line_end": 320,
+      "sha256": "b3676be0499279df3e7224f9a154baebeaf6b600e78ebb5c0ed6d97f9968717a",
+      "matches_product_source": true,
+      "meaning": "Strict native metadata and reasoning projection boundary"
+    },
+    {
+      "path": "crates/gateway-http-actix/src/lib.rs",
+      "line_start": 2829,
+      "line_end": 2880,
+      "sha256": "f1622a19837baece2fb706412a584b8e36aba6fd1eb7edd99bf0c372f0ea8829",
+      "matches_product_source": true,
+      "meaning": "Chat non-streaming collection and encoding"
+    },
+    {
+      "path": "crates/gateway-http-actix/src/lib.rs",
+      "line_start": 3936,
+      "line_end": 3946,
+      "sha256": "f1622a19837baece2fb706412a584b8e36aba6fd1eb7edd99bf0c372f0ea8829",
+      "matches_product_source": true,
+      "meaning": "Pre-header error omits x-request-id"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok.rs",
+      "line_start": 397,
+      "line_end": 499,
+      "sha256": "887098a905c3970bd4e86ca9e68b415309f07a1469cde2af7bf924f5b0bac16d",
+      "matches_product_source": true,
+      "meaning": "Existing synthetic native metadata test"
+    }
+  ],
+  "exploration": {
+    "trace_scout": "PARTIAL; one wrong assumed provider filename, no final exact-root-cause proof",
+    "fixture_scout": "Completed read-only boundary mapping",
+    "main_agent": "Verified the cited small source regions and matching product bytes; ran one existing offline test"
+  },
+  "followup_scope": "Separately establish exact native response shape/value-free projection rejection and Usage/error-ID evidence; define lossless Chat/Messages bridging with regression coverage. No product edits or further real calls in this batch."
+}

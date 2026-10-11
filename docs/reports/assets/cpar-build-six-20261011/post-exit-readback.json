@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "main_pid": 0,
+  "old_pid_absent": true,
+  "ports_listening": [],
+  "budget": {
+    "schema_version": 5,
+    "historical_provider_pin_requests": 7,
+    "historical_basic_requests": 26,
+    "historical_inference_requests": 33,
+    "historical_gateway_pin_confirmed_sends": 32,
+    "historical_catalog_requests": 1,
+    "new_pin_intents": 1,
+    "new_basic_intents": 1,
+    "new_catalog_intents": 0,
+    "new_inference_limit": 60,
+    "cumulative_inference_limit": 93,
+    "new_pin_limit": 6,
+    "new_basic_limit": 54,
+    "historical_responses_json_basic_passed": true,
+    "stopped": true,
+    "combinations": {
+      "chat-json": {
+        "pin_status": "PASS",
+        "basic_status": "FAIL"
+      }
+    },
+    "oauth_refresh_reauthorization": 0,
+    "quota_queries": 0,
+    "extensions": 0,
+    "retries": 0,
+    "fallbacks": 0,
+    "reruns_after_failure": 0,
+    "authorization": "new successor six-combination batch; historical PASS never qualifies this source; every Pin and basic intent counts; failure/unknown stops all"
+  },
+  "poststop_audit_unchanged": true,
+  "historical_files_preserved": 208,
+  "unrun_five_directories_absent": true,
+  "private_permissions": "0700/0600",
+  "provider_calls": 0,
+  "management_http_calls": 0
+}

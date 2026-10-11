@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T07:31:21.682670+00:00",
+  "initial": [
+    {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 8589934592,
+      "disk": 42949672960
+    },
+    {
+      "name": "cpar-acceptance-20261010",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 6442450944,
+      "disk": 42949672960
+    }
+  ],
+  "final": [
+    {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 8589934592,
+      "disk": 42949672960
+    },
+    {
+      "name": "cpar-acceptance-20261010",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 6442450944,
+      "disk": 42949672960
+    }
+  ],
+  "stop_exit_code": 0,
+  "log_sha256": "c7badf79020efa308f98007283781f58d0cda581bad63c6188641c9c86ca54b5",
+  "historical_images_and_containers_preserved": true,
+  "new_completed_builder_container_preserved": true
+}

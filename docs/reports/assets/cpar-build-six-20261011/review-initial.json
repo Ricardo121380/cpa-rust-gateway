@@ -1,0 +1,44 @@
+{
+  "base": "5d7efdb0a108a2820939af9f39a568c58e611a3d",
+  "head": "5847fb224ff8f0f5ff532633c765ba08864015fd",
+  "standards": {
+    "agent": "/root/six_candidate_standards",
+    "completion": "blocked",
+    "static_status": "PASS",
+    "hard_findings": 0,
+    "nonblocking_heuristics": [
+      {
+        "name": "possible Mysterious Name",
+        "detail": "candidate-build-container.log.gz is preserved failed mount log; successful candidate-build-container.json binds candidate-release.log.gz"
+      }
+    ],
+    "verified": [
+      "38/38 freeze hashes match disk and Git",
+      "rules match",
+      "old six drivers unchanged",
+      "23 reused source hashes and prior Full/review receipts match",
+      "release complete with ELF/dependency/help evidence",
+      "manifest raw/canonical hashes match",
+      "30/30 read-only gates",
+      "public secret-pattern scan no matches"
+    ],
+    "blocker": "Auxiliary script used hashlib.file_digest, unavailable in current Python 3.9; candidate binary/archive direct digest check not completed by this scout."
+  },
+  "spec": {
+    "agent": "/root/six_candidate_spec",
+    "completion": "complete",
+    "status": "PASS",
+    "findings": 0,
+    "verified": [
+      "38/38 freeze hashes match disk and Git",
+      "14 upload entries and embedded receive map match local bytes",
+      "candidate binary SHA256/ELF/metadata verified",
+      "source archive exactly equals git archive abd45431",
+      "full release logs and manifest raw/canonical/payload hashes verified",
+      "old/new drivers assertion-preservation compared",
+      "35/35 gates replayed entirely in memory",
+      "strict revision136/lease137 and unknown-count separation confirmed",
+      "23 reused hashes/Full/review identity verified"
+    ]
+  }
+}

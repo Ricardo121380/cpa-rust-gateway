@@ -1,0 +1,23 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway",
+    "grok_native_metadata_survives_public_responses_and_rejects_lossy_bridges",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 19.96,
+  "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "checkout_head": "5847fb224ff8f0f5ff532633c765ba08864015fd",
+  "log_sha256": "32a93336a5eb45e030f08f695a1cb58dff1904b7c99dd12ae806997c4f59559f",
+  "layer": "LOCAL_SIMULATED",
+  "real_provider_requests": 0,
+  "scope": "Existing synthetic native-metadata rejection case; not a replay of the real Provider response"
+}

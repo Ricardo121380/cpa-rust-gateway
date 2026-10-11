@@ -1,0 +1,185 @@
+{
+  "source_sha": "abd454313f6a3707d6af5a5d653b731e2e54b08b",
+  "binary_sha256": "f505ed6e71b3dea47b940175d39274605d4b0721597cf2841e65ce7aa536b473",
+  "epoch": "abd45431-six-20261011",
+  "layer": "LIVE_NEW_BUILD",
+  "status": "FAIL",
+  "stopped": true,
+  "completed_basic_combinations": 0,
+  "planned_basic_combinations": 6,
+  "completed_basic_scenarios": 0,
+  "planned_basic_scenarios": 18,
+  "basic_requests_passed": 0,
+  "basic_requests_attempted": 1,
+  "rows": [
+    {
+      "combination": "chat-json",
+      "pin": "PASS",
+      "pin_intents": 1,
+      "text_multi_turn": {
+        "execution_status": "FAIL",
+        "executed_requests": 1,
+        "passed_requests": 0,
+        "planned_requests": 3,
+        "formal_check_status": "NOT_RUN",
+        "formal_category": "execution_stopped"
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 4
+      },
+      "basic_status": "FAIL",
+      "formal_status": "FAIL",
+      "extensions": "NOT_RUN"
+    },
+    {
+      "combination": "chat-sse",
+      "pin": "NOT_RUN",
+      "pin_intents": 0,
+      "text_multi_turn": {
+        "execution_status": "NOT_RUN",
+        "executed_requests": 0,
+        "passed_requests": 0,
+        "planned_requests": 3,
+        "formal_check_status": "NOT_RUN",
+        "formal_category": "not_started"
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 4
+      },
+      "basic_status": "NOT_RUN",
+      "formal_status": "NOT_RUN",
+      "extensions": "NOT_RUN"
+    },
+    {
+      "combination": "messages-json",
+      "pin": "NOT_RUN",
+      "pin_intents": 0,
+      "text_multi_turn": {
+        "execution_status": "NOT_RUN",
+        "executed_requests": 0,
+        "passed_requests": 0,
+        "planned_requests": 3,
+        "formal_check_status": "NOT_RUN",
+        "formal_category": "not_started"
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 4
+      },
+      "basic_status": "NOT_RUN",
+      "formal_status": "NOT_RUN",
+      "extensions": "NOT_RUN"
+    },
+    {
+      "combination": "messages-sse",
+      "pin": "NOT_RUN",
+      "pin_intents": 0,
+      "text_multi_turn": {
+        "execution_status": "NOT_RUN",
+        "executed_requests": 0,
+        "passed_requests": 0,
+        "planned_requests": 3,
+        "formal_check_status": "NOT_RUN",
+        "formal_category": "not_started"
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 4
+      },
+      "basic_status": "NOT_RUN",
+      "formal_status": "NOT_RUN",
+      "extensions": "NOT_RUN"
+    },
+    {
+      "combination": "responses-json",
+      "pin": "NOT_RUN",
+      "pin_intents": 0,
+      "text_multi_turn": {
+        "execution_status": "NOT_RUN",
+        "executed_requests": 0,
+        "passed_requests": 0,
+        "planned_requests": 3,
+        "formal_check_status": "NOT_RUN",
+        "formal_category": "not_started"
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 4
+      },
+      "basic_status": "NOT_RUN",
+      "formal_status": "NOT_RUN",
+      "extensions": "NOT_RUN"
+    },
+    {
+      "combination": "responses-sse",
+      "pin": "NOT_RUN",
+      "pin_intents": 0,
+      "text_multi_turn": {
+        "execution_status": "NOT_RUN",
+        "executed_requests": 0,
+        "passed_requests": 0,
+        "planned_requests": 3,
+        "formal_check_status": "NOT_RUN",
+        "formal_category": "not_started"
+      },
+      "single_tool": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 2
+      },
+      "two_tool_cycles": {
+        "status": "NOT_RUN",
+        "executed_requests": 0,
+        "planned_requests": 4
+      },
+      "basic_status": "NOT_RUN",
+      "formal_status": "NOT_RUN",
+      "extensions": "NOT_RUN"
+    }
+  ],
+  "stop_reason": "First Chat JSON basic request: HTTP 502 UpstreamProtocolError",
+  "historical_evidence": {
+    "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "responses_json_basic": "PASS 9/9",
+    "responses_sse_basic": "PASS 9/9",
+    "completed_combinations": 2,
+    "completed_scenarios": 6,
+    "qualifies_this_source": false,
+    "reports": [
+      "docs/reports/cpar-build-batch-20261011.md",
+      "docs/reports/cpar-build-remaining-20261011.md"
+    ]
+  }
+}

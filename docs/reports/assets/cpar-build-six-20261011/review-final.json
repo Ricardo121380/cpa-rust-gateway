@@ -1,0 +1,34 @@
+{
+  "base": "5d7efdb0a108a2820939af9f39a568c58e611a3d",
+  "head": "5847fb224ff8f0f5ff532633c765ba08864015fd",
+  "scope": "38 owned build and driver files; pre-live readiness only",
+  "standards": {
+    "completion": "complete",
+    "status": "PASS",
+    "hard_findings": 0,
+    "nonblocking_heuristics": 1,
+    "coverage": [
+      "/root/six_candidate_standards static review",
+      "/root/six_standards_close archive/binary/payload verification",
+      "/root/six_standards_final exact metadata and success-log digest; freeze unchanged"
+    ],
+    "retained_initial_blocks": [
+      "review-initial.json",
+      "review-standards-second.json"
+    ]
+  },
+  "spec": {
+    "completion": "complete",
+    "status": "PASS",
+    "findings": 0,
+    "agent": "/root/six_candidate_spec",
+    "checks": [
+      "38 files match Git/disk",
+      "14 upload bytes match map",
+      "candidate/archive/manifest verified",
+      "35 gates replayed in memory",
+      "old assertions retained",
+      "strict continuity and unknown send semantics"
+    ]
+  }
+}
