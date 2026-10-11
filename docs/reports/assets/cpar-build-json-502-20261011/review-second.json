@@ -1,0 +1,52 @@
+{
+  "base": "5a7826e806a04b3d403b1b1c0eef00a2b686ff32",
+  "target": "576c384d02826b25b7768cd6ba66c56b503f0f35",
+  "changed_files": 88,
+  "standards": {
+    "status": "COMPLETE PASS by complete original review and scoped delta with auxiliary gap closure",
+    "original_target": "6719276467901f7b8a92ccaef80d991c945cfb4c",
+    "delta_files": 26,
+    "delta_static_findings": 0,
+    "delta_auxiliary_status": "initial PARTIAL: incorrect scripts root lookup; independent packet gap COMPLETE PASS 14/14",
+    "actionable_findings": 0
+  },
+  "spec": {
+    "status": "COMPLETE FAIL",
+    "product": {
+      "files": 11,
+      "status": "COMPLETE PASS"
+    },
+    "drivers": {
+      "files": 11,
+      "status": "COMPLETE FAIL",
+      "priority": "P2",
+      "finding": "exact-match claim without Client Key, route candidate, configuration/egress and actual lease sidecar validation"
+    },
+    "contracts": {
+      "files": 12,
+      "status": "COMPLETE PASS"
+    },
+    "github_baseline": {
+      "files": 6,
+      "status": "COMPLETE PASS"
+    },
+    "build_gates": {
+      "files": 25,
+      "status": "COMPLETE PASS by complete file review plus auxiliary gap closure",
+      "initial_auxiliary_status": "PARTIAL: initial Colima JSONL parsed as single JSON",
+      "gap_closure": "independent JSONL and live state COMPLETE PASS"
+    },
+    "local_proof": {
+      "files": 23,
+      "status": "COMPLETE PASS"
+    }
+  },
+  "previous_driver_findings_fixed": true,
+  "new_finding_local_reproduced_and_fixed_at": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "new_driver_review": "PENDING",
+  "real_diagnostic": "NOT_RUN",
+  "full_matrix": "NOT_RUN",
+  "remote_ci_release_deploy_production": "NOT_RUN",
+  "changed_paths_sha256": "947f597e392cf9f8fff41f06a34e1827868caf5d367886bea318a330e664b2fd",
+  "changed_paths_source": "git diff --name-only base target; full inventory recoverable from immutable commits"
+}

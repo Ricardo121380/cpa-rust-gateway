@@ -1,0 +1,40 @@
+{
+  "driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "product_code_unchanged": true,
+  "verified_red": {
+    "tests": 15,
+    "subtest_failures": 9,
+    "errors": 0,
+    "provider_calls": 0
+  },
+  "initial_green_harness_error": "fixture transaction not committed before actual collection BEGIN; corrected fixture only",
+  "final_green": {
+    "diagnostic_tests": 15,
+    "passed": 15,
+    "existing_acceptance_oracle_tests": 54,
+    "passed_oracle": 54,
+    "provider_calls": 0
+  },
+  "fix": "Require Client Key, route/candidate/model, actual lease/config/capabilities/direct egress and payload-bound sidecar before exact-match claim",
+  "logs": {
+    "driver-identity-red.log": {
+      "sha256": "4924dc1c8c85c5615cc214ef71093e4a56f88cb87dcc3eaa919518c5fb630308",
+      "gzip_sha256": "1d27c56619f46d9b8ad0776149131d7f0eda34dc7e71d8240c7e164bf0559ac5"
+    },
+    "driver-identity-harness-transaction-error.log": {
+      "sha256": "f0e38ccb21f3745aedd89b76f2f811dd3472e3a67a5f73c55b5275c44dffc1b5",
+      "gzip_sha256": "acf04a1333ab785c7b717a5b1f741efe6e00cefa97848041f5ffccfd7c2c25d1"
+    },
+    "driver-identity-green.log": {
+      "sha256": "f6d991865d0c68468a739de27b2e6ae61186b5d9f831e5dd3ef846ae4f6ed93b",
+      "gzip_sha256": "f7407892e181ab9bddb2f61638138ef96ff8cc1f7394af6b07f3d54ff52a6c41"
+    },
+    "oracle-identity-green.log": {
+      "sha256": "6efbef06dc83bda9759eb0c9a17dc7813d1bc7885bd9d7185dd667e843df6f46",
+      "gzip_sha256": "7a2c268beb0cf76dc58fb163612b2fbc8b3f0ec1a7e3aae3bae95556c65c41bc"
+    }
+  },
+  "reviews": "PENDING",
+  "real_diagnostic": "NOT_RUN"
+}

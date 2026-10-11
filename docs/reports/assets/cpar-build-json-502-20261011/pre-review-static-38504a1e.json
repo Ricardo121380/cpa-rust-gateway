@@ -1,0 +1,18 @@
+{
+  "source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "docs_gate": "PASS",
+  "initial_docs_gate": "FAIL: file inventory path matched API-key-prefix detector; no credential value involved",
+  "correction": "replace redundant path array with immutable diff inventory hash; scanner and assertions unchanged",
+  "logs": {
+    "pre-review-docs-38504a1e.log": {
+      "sha256": "c63e9294d8f8ba414ea9882f7e845a456df1f5e791583e72a9764288eb5885d6",
+      "gzip_sha256": "7eb5df3b6b9cc9222b15f8d71a320fa9be29890eeae3ab6820711cc42f688bbe"
+    },
+    "pre-review-docs-38504a1e-fixed.log": {
+      "sha256": "ea7dee06c7184b2a43978649354810357e836e964e5d0d0ec7e059d705354307",
+      "gzip_sha256": "359d351ee56e3d69116b0fc10bf0089fccd8df9b48f18fd3681b84b8e73d952e"
+    }
+  },
+  "review_status": "PENDING",
+  "provider_calls": 0
+}

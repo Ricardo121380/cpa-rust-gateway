@@ -15,8 +15,8 @@
   "runnable_help_exit": 0,
   "scope": "isolated candidate; unsigned two-payload manifest; P12 release package not created",
   "initial_candidate_preserved": true,
-  "task_phase_and_reviews_status": "product and fixed driver Task42/42 Phase45/45 PASS; independent complete fixed-driver and evidence reviews pending; send ineligible",
-  "freeze_sha256": "d80477bdc2645a56b91ae815399490b0bda44699897d3732eb9b93ae27a2690a",
-  "driver_source_sha": "c4f0b0478686007dba5b75a554b6c55dc8d65eb1",
-  "driver_gates": "quality-gates-c4f0b047.json"
+  "task_phase_and_reviews_status": "product and fixed driver Task42/42 Phase45/45 PASS; newest fixed-driver and evidence reviews pending; send ineligible",
+  "freeze_sha256": "daf161acb2caaeee15e82c2018db4576ac2adc4ecbf0dc58e8524c3224a2d5af",
+  "driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "driver_gates": "quality-gates-38504a1e.json"
 }
