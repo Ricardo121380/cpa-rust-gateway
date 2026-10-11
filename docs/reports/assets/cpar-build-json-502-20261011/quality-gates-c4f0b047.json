@@ -1,0 +1,27 @@
+{
+  "source_sha": "c4f0b0478686007dba5b75a554b6c55dc8d65eb1",
+  "candidate_product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "candidate_product_blobs_unchanged": true,
+  "task": {
+    "status": "PASS",
+    "steps": 42,
+    "report": "task-fast-c4f0b047.md",
+    "log_sha256": "d7692fcd4cad17ed3db6dc5bed8c690ad06679de0e0e893f2e6ee78fe4be2c14",
+    "gzip_sha256": "114b441ddb6bcfa768efa91ab174411f16aa03ae78227975e5d14d70bae3dc05"
+  },
+  "phase": {
+    "status": "PASS",
+    "steps": 45,
+    "report": "phase-full-c4f0b047.md",
+    "log_sha256": "79cd9988e9d07031b0929d9bfc830f6b120d658778e3f9807dc6d217ed3380ba",
+    "gzip_sha256": "8dad2bed36d648b9f9cf4ef45b79271e2b89ef356f1902fd2fcd671ab3d939d0"
+  },
+  "standalone_diagnostic_policy": {
+    "status": "PASS",
+    "tests": 13,
+    "existing_oracle_tests": 54,
+    "provider_calls": 0
+  },
+  "remote_ci": "NOT_RUN",
+  "release_deployment_production_acceptance": "NOT_RUN"
+}

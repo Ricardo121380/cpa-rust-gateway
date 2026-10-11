@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "baseline_paths": 48185,
+  "files": 48130,
+  "symlinks": 10,
+  "other": 45,
+  "unchanged": 48185,
+  "changed": 0,
+  "missing": 0,
+  "errors": 0,
+  "baseline_sha256": "ddad0745bfca440d88536f423572c10f8335e064ca96e04b5035f24c630f5ffa",
+  "user_agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "reviewed_head": "6719276467901f7b8a92ccaef80d991c945cfb4c"
+}

@@ -1,0 +1,56 @@
+{
+  "driver_source_sha": "c4f0b0478686007dba5b75a554b6c55dc8d65eb1",
+  "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "product_code_unchanged": true,
+  "initial_harness_errors": {
+    "startup_test_missing_unit": true,
+    "fixture_sql_placeholder_count": true
+  },
+  "verified_red": {
+    "tests": 10,
+    "failures": 3,
+    "errors": 0,
+    "provider_calls": 0
+  },
+  "final_green": {
+    "diagnostic_tests": 13,
+    "passed": 13,
+    "existing_acceptance_oracle_tests": 54,
+    "passed_oracle": 54,
+    "provider_calls": 0
+  },
+  "oracle_initial_command_error": "wrong script filename; no test executed; corrected command passed",
+  "fixes": [
+    "bound PID/start/binary/state shutdown and truthful unknown/not-started receipt",
+    "compare native validated nullable counters with Usage and exact source_event_id with ledger",
+    "select exact Request events using actual event_ordinal column"
+  ],
+  "logs": {
+    "spec-driver-red.log": {
+      "sha256": "35941ae1b38c41fcc33da2af016aafe8914699f2bfb85f2a036dd55eb45ff6c4",
+      "gzip_sha256": "e1ae4446df74905883ad65e08521cfcd866c53367e7984d4ef7f34928ca155fd"
+    },
+    "spec-driver-red-verified.log": {
+      "sha256": "49d1e74ed4cdabb6d8a6d0dd2081bf699cfe140222f153e933bf790906ee4de8",
+      "gzip_sha256": "e45073544c6792b1803a074ec9fb81009ecf32542aae2341c0ccfcd6f95f4eca"
+    },
+    "spec-driver-green.log": {
+      "sha256": "e902845bb5095791fc5ac04bbf40294621b696a3c74c5cc79e1fba7743e204e0",
+      "gzip_sha256": "166b6678ccc256d3d2f2fd3deaba12a7aa25453edaa54c364e07abe75c4d98ae"
+    },
+    "spec-driver-green-final.log": {
+      "sha256": "17b7efe52a9f82808f7634fc4f73bad2bc0eb5562c6aad267cc41fddccef9b2b",
+      "gzip_sha256": "1a202371396a5e93ff608a710c676e48de221546023537c76891ac53024a6c36"
+    },
+    "spec-driver-oracle-final.log": {
+      "sha256": "8a8098f8ab94423f8ea3c4ea1b8282eaababa397db11ec92cb08475ec29848ae",
+      "gzip_sha256": "78c5ee7c816226564ccd1a23861a72efa271a33f06b53a35c8c112771bc120d8"
+    },
+    "spec-driver-oracle-final-verified.log": {
+      "sha256": "64664d96024f8d239f433d5c806d0abf7fa8d71a1dea8599edd9bd696fbc46ad",
+      "gzip_sha256": "72b3665c9c7ee76788ebda8ff82bfd97747dfc171f7195f508712c1d3ed7f072"
+    }
+  },
+  "review_required": true,
+  "real_diagnostic": "NOT_RUN"
+}

@@ -1,0 +1,49 @@
+{
+  "base": "5a7826e806a04b3d403b1b1c0eef00a2b686ff32",
+  "target": "6719276467901f7b8a92ccaef80d991c945cfb4c",
+  "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "standards": {
+    "status": "COMPLETE PASS",
+    "actionable_findings": 0,
+    "changed_code_driver_files": 22
+  },
+  "spec_product": {
+    "status": "COMPLETE PASS",
+    "files": 11,
+    "actionable_findings": 0
+  },
+  "spec_drivers": {
+    "status": "COMPLETE FAIL",
+    "files": 11,
+    "findings": [
+      {
+        "priority": "P1",
+        "file": "tools/remote-start.py",
+        "lines": [
+          188,
+          192
+        ],
+        "reason": "exception shutdown not bound to owned process; unverified stopped claim"
+      },
+      {
+        "priority": "P2",
+        "file": "tools/remote-chat.py",
+        "lines": [
+          146,
+          167
+        ],
+        "reason": "native Usage and ledger source event not compared"
+      }
+    ]
+  },
+  "spec_unpartitioned": {
+    "status": "INTERRUPTED",
+    "complete_verdict_available": false
+  },
+  "spec_evidence": {
+    "status": "INTERRUPTED",
+    "complete_verdict_available": false
+  },
+  "real_diagnostic": "NOT_RUN",
+  "full_matrix": "NOT_RUN"
+}
