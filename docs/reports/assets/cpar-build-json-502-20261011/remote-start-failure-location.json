@@ -1,0 +1,16 @@
+{
+  "status": "BLOCKED; diagnostic epoch terminated before qualification",
+  "remote_start_stdout_bytes": 0,
+  "traceback_locations_only": [
+    {
+      "file": "<stdin>",
+      "line": 98,
+      "function": "<module>"
+    }
+  ],
+  "exception_type_only": "ValueError",
+  "stderr_sha256": "40b630b11ab119ba6e0652d49ecc2bc8867a10fde61b291040ec8951f729cd6b",
+  "pin_status": "NOT_RUN",
+  "chat_status": "NOT_RUN",
+  "no_restart_or_retry_authorized": true
+}

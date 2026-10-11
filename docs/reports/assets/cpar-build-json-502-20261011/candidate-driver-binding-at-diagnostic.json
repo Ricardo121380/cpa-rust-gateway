@@ -1,0 +1,14 @@
+{
+  "status": "PASS; candidate product bytes unchanged; fixed driver gates and reviews pending",
+  "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "changed_product_or_build_paths": [],
+  "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+  "freeze_sha256": "daf161acb2caaeee15e82c2018db4576ac2adc4ecbf0dc58e8524c3224a2d5af",
+  "upload_tar_sha256": "98e504d482799324d5f6060771bb174fa6ade08ff7f4abbbd97cf5cd7ed7143f",
+  "payload_files": 14,
+  "old_candidates_and_uploads_preserved": true,
+  "product_rebuild_needed": false,
+  "dependency_preparation_repeated": false,
+  "provider_inference_requests": 0
+}

@@ -1,5 +1,5 @@
 {
-  "status": "PASS; candidate product bytes unchanged; fixed driver gates and reviews pending",
+  "status": "PASS historical upload bytes and final local Task/Phase; final reviews pending; diagnostic epoch stopped",
   "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
   "driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
   "changed_product_or_build_paths": [],
@@ -10,5 +10,11 @@
   "old_candidates_and_uploads_preserved": true,
   "product_rebuild_needed": false,
   "dependency_preparation_repeated": false,
-  "provider_inference_requests": 0
+  "provider_inference_requests": 0,
+  "local_repaired_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+  "executed_freeze_scope": "historical executed 38504a1e upload; not current repaired local driver",
+  "real_diagnostic_status": "BLOCKED_BEFORE_LAUNCH; epoch permanently stopped; actual lease/Pin not established",
+  "local_repaired_driver_gate_review_status": "Task/Phase PASS; final independent reviews PENDING",
+  "repaired_driver_remote_execution": "NOT_RUN; no retry or new epoch",
+  "local_repaired_driver_gates": "quality-gates-c23d2c35.json"
 }

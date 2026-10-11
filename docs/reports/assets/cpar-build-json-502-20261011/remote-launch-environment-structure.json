@@ -1,0 +1,19 @@
+{
+  "status": "READ_ONLY",
+  "environment_properties": [
+    {
+      "index": 22,
+      "property": "Environment",
+      "known_keys": [
+        "LD_PRELOAD",
+        "CPAR_BUILD_EGRESS_AUDIT"
+      ],
+      "other_key_count": 0,
+      "guard_value_matches": true,
+      "audit_value_matches": true,
+      "diagnostic_keys_already_present": false
+    }
+  ],
+  "only_direct_systemd_run": true,
+  "new_epoch_stopped": true
+}

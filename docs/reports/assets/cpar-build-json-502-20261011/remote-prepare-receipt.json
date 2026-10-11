@@ -1,0 +1,65 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T12:12:48.622210+00:00",
+  "epoch": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/chat-json-502-20261011",
+  "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+  "source_account_origin": "/var/lib/cpa-rust-gateway",
+  "source_schema": 31,
+  "candidate_schema": 34,
+  "old_native_revision": 136,
+  "initial_database_native_revision": 133,
+  "copied_native_revision": 137,
+  "expected_runtime_revision": 138,
+  "matching_key_version": 1,
+  "normal_refresh_fields_changed": [
+    "credential_ciphertext",
+    "refresh_due_at_ms",
+    "last_refresh_at_ms",
+    "revision",
+    "import_batch_id",
+    "updated_at_ms",
+    "continuation_current_revision"
+  ],
+  "identity_digest_unchanged": true,
+  "normal_refresh_range_floor": 77,
+  "normal_refresh_range_current": 138,
+  "source_last_refresh_at_ms": 1791710922657,
+  "expires_at_ms": 1791732522393,
+  "source_writes": 0,
+  "provider_calls": 0,
+  "oauth_refresh_by_this_task": 0,
+  "copied_accounts": 1,
+  "copied_source_fields_match_except_owned_import_batch": true,
+  "inherited_event_counts": {
+    "attempt": 1,
+    "request": 1,
+    "request_finished": 1,
+    "usage": 1
+  },
+  "inherited_ledger_count": 1,
+  "selected_request_sha256": "245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062",
+  "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+  "competing_task_processes": [],
+  "production_before": {
+    "MainPID": "499070",
+    "NRestarts": "0",
+    "ExecMainStartTimestampMonotonic": "5514090365162",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+    "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+    "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+    "caddyfile_sha256": "bfede78bae3c2bb4d120bcbd08924c0ba564fa3a1a02d8edda37a9004f9b945e"
+  },
+  "production_active_configuration": [
+    {
+      "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+      "revision": "rev-1",
+      "status": "active"
+    }
+  ],
+  "preserved_historical_file_count": 334,
+  "historical_inventory_sha256": "04017a149c15dc3bc5d7f9aeafeb940879663b37031ebbf0f0ab15e27e783a9e"
+}

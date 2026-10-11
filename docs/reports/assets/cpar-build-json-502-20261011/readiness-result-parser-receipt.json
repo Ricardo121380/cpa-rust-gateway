@@ -1,0 +1,10 @@
+{
+  "status": "PASS; archived remote observation verified without duplicate request",
+  "local_wrapper_initial_error": "expected bare PASS instead of reviewed descriptive status; remote checks had passed",
+  "management_get_intents": 2,
+  "provider_intents": 0,
+  "remote_retries": 0,
+  "production_matches_initial": true,
+  "actual_lease_status": "PENDING new candidate pool and fresh Pin; production null revision not lease proof",
+  "stdout_sha256": "344d5b2e2e6f002243f99af1718ea2a914c21bd3d27e22688db8f42a9900ede0"
+}

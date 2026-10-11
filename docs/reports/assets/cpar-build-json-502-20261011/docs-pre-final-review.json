@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "scope": "new owned report and evidence static validation after exact staging; code frozen at c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+  "steps": 7,
+  "report": "docs-pre-final-review.md",
+  "log_sha256": "c112c21498bcdcd1a0cdbb92a6fd02e3502de8ebdb06dcec018bfefaf4f280ef",
+  "gzip_sha256": "685ba830cb2e62ccec7ca3c99e111bb4ca3653686d4e47989564098ffa521167",
+  "product_and_acceptance_driver_changes_since_frozen_gates": false,
+  "user_agents_staged": false
+}

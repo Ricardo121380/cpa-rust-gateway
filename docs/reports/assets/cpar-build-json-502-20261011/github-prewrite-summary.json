@@ -1,0 +1,221 @@
+{
+  "status": "PASS; fresh read-only prewrite snapshot; no GitHub mutation yet",
+  "repository": "Ricardo121380/cpa-rust-gateway",
+  "issues": [
+    {
+      "number": 47,
+      "title": "CPAR-38：grok.build 渠道差异与逐组合验收",
+      "state": "OPEN",
+      "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "body_bytes": 4988,
+      "comment_id": 6081215242,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242",
+      "historical_comment_prefix_sha256": "b678b2bff1da11c90764312d94df4d11cd0425d5813a5308314d59c2e83f2522",
+      "historical_comment_prefix_bytes": 34608,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "blocked_by": [
+        {
+          "number": 16,
+          "state": "closed",
+          "body_sha256": "b35040d6af3006ce1b698348221ffd9deb5383d55d5f601d5f8334d8d7d7f2f4"
+        },
+        {
+          "number": 27,
+          "state": "closed",
+          "body_sha256": "57568a4edcf2611bdcceeab01c52392260416b855c9f4921b5c9315e47339319"
+        },
+        {
+          "number": 29,
+          "state": "closed",
+          "body_sha256": "dccfb45f52eafa53cc14973abe87caca858065897598a2048d90d89604a4eaf2"
+        },
+        {
+          "number": 30,
+          "state": "closed",
+          "body_sha256": "327dce59838570b2a3d86529fb6928f96205d480dd8856949066d581480eb54f"
+        },
+        {
+          "number": 31,
+          "state": "closed",
+          "body_sha256": "7c464d3364ae7df43c7d5a27e2eb4d74630b9149bb31dcf8e8347869c356d22e"
+        },
+        {
+          "number": 32,
+          "state": "closed",
+          "body_sha256": "93b4ef25b9ff4b3f5109a07bca380b405925d6614cfb56c6441d8f2e2b3eb8b6"
+        },
+        {
+          "number": 33,
+          "state": "closed",
+          "body_sha256": "739746fbe5a5588d80cabe4a07f2a05dd36a536690d16cdaa51a457b76634bfb"
+        },
+        {
+          "number": 34,
+          "state": "closed",
+          "body_sha256": "1b3676dafa5ee9492ffe57db5147bdffb97bef2f378ac74949552a6015422e81"
+        }
+      ],
+      "raw_issue_sha256": "fdf0995e011e4bfcd1f222b0a61bf89eafd3bb317220e6f6f6b63ca486a81067",
+      "raw_dependencies_sha256": "e1bc1b5ba577c7feaf46435e0fa6e1c5297d7ae72a18fcae3d0890dfff646eee",
+      "comment_updated_at": "2026-10-11T07:48:57Z"
+    },
+    {
+      "number": 57,
+      "title": "CPAR-48：分批交付证据与全范围收口",
+      "state": "OPEN",
+      "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "body_bytes": 7511,
+      "comment_id": 6081234278,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+      "historical_comment_prefix_sha256": "522ce5c70f3174984a4ea28ed10dccba0007aef74c968b4d6662d7fa4978afaf",
+      "historical_comment_prefix_bytes": 41226,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "blocked_by": [
+        {
+          "number": 12,
+          "state": "closed",
+          "body_sha256": "fd5e2e6d2df7a4fb425568dea424d81f5e256bad18a9476fd203ed68081b3322"
+        },
+        {
+          "number": 17,
+          "state": "closed",
+          "body_sha256": "3a9167bb0cc2936aaadfc81785ad2a7f1fc3eff18099f98324614cb8c6968ec4"
+        },
+        {
+          "number": 21,
+          "state": "closed",
+          "body_sha256": "1a682eca3699ce5a26ab7121d11c6437ad475510cabcd5528024b8d281065c70"
+        },
+        {
+          "number": 25,
+          "state": "closed",
+          "body_sha256": "3bc6edb78adf7f0c31fcae614a71575de3d9dace545e17b5f410d5d1ccd40e66"
+        },
+        {
+          "number": 26,
+          "state": "closed",
+          "body_sha256": "2eb9f5f2b5923c21a37ce912c87caef9f4183fd617f0994a554bea7c6d3710f8"
+        },
+        {
+          "number": 37,
+          "state": "closed",
+          "body_sha256": "fbb2cc736e394c66c6e78e2aed3d227b7ad20bfd709ae6c69ea44d830cec4320"
+        },
+        {
+          "number": 38,
+          "state": "closed",
+          "body_sha256": "6fa8d5494b7fedcf05c21dc74870e4a13f27efcaa1768f44259895a964e0ee7e"
+        },
+        {
+          "number": 40,
+          "state": "open",
+          "body_sha256": "569094d9bfdbafba381599235c0603ba986c9e2367b53db7afe4a659fde05e08"
+        },
+        {
+          "number": 41,
+          "state": "open",
+          "body_sha256": "12238db5c3c0b3065d1ec716b186f8b4b1c465a84b7c36444a8d82af8ad37549"
+        },
+        {
+          "number": 42,
+          "state": "open",
+          "body_sha256": "bde9095b8043df186e0e5007f9f472bd49a8c07eae9599086c8dfba96a7260a3"
+        },
+        {
+          "number": 43,
+          "state": "open",
+          "body_sha256": "52af774f9199f00e8cb597597e820452f7fba9a145f7d223c9652ce4a260e111"
+        },
+        {
+          "number": 44,
+          "state": "open",
+          "body_sha256": "c5527e92cd810b75863fa71109d29f85fd3fd1baa5549e8a0bc16d39b1eb9699"
+        },
+        {
+          "number": 45,
+          "state": "open",
+          "body_sha256": "8a65c20c60e4ea03adc34fcce56f803520741d7419f1bcc866e78e5e9a62422e"
+        },
+        {
+          "number": 46,
+          "state": "open",
+          "body_sha256": "5abe0e3b3315bb3b5c2ceaad5a3f74d851cb90e7bcb14126bd0404789fa2b6a8"
+        },
+        {
+          "number": 47,
+          "state": "open",
+          "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf"
+        },
+        {
+          "number": 48,
+          "state": "open",
+          "body_sha256": "9717e3e458049903d6f9ed5ecf376700886adeb122f807a4f871df4ac1aea96c"
+        },
+        {
+          "number": 49,
+          "state": "open",
+          "body_sha256": "22aef8a69ee76f803e8cc25ca7d9bdd0a7a016a6943f7805d8d4272895852cbd"
+        },
+        {
+          "number": 50,
+          "state": "open",
+          "body_sha256": "806390899b2117ef309ccbbcb99354882ced7a26be1e1172f6520c161de8ab1a"
+        },
+        {
+          "number": 52,
+          "state": "closed",
+          "body_sha256": "d0c9e05449eae8a1f5c113c21ab40f82c4a96383d1b94f02931068eedcb971d3"
+        },
+        {
+          "number": 53,
+          "state": "closed",
+          "body_sha256": "0954168dfa025ecca8aedbb6cedc21e812969430e8b321cc7dde80a8aa329973"
+        },
+        {
+          "number": 54,
+          "state": "closed",
+          "body_sha256": "a8491d703a2f0f05520fa2ab38ff5f3706fa048726b5b44a14dbef76b58ebb39"
+        },
+        {
+          "number": 55,
+          "state": "closed",
+          "body_sha256": "4363a32c3ca656936b433744595690bd05f0404d3f34d697c89e82c94558d201"
+        },
+        {
+          "number": 56,
+          "state": "closed",
+          "body_sha256": "5a98668c59a139ae912a40fe745028f2206ebe4267352e81f5a592295aa3714f"
+        }
+      ],
+      "raw_issue_sha256": "ff89fcc2bc95fc58928a38675f10d3e82fac7dcc5f8dee4420bd27ddcd56db62",
+      "raw_dependencies_sha256": "e8317a6dfc3673ec2b36d4a342c7ea21c459f477fe5778bd822b78f448c5b8b2",
+      "comment_updated_at": "2026-10-11T07:49:00Z"
+    },
+    {
+      "number": 9,
+      "title": "实施规格：CPAR 现有渠道可靠性与管理体验收敛",
+      "state": "OPEN",
+      "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "body_bytes": 50500,
+      "comment_id": 6081235490,
+      "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490",
+      "historical_comment_prefix_sha256": "1138ddf1d382b3cf7c8383207bb92c09eaa31ee4b184a3d190eb92afb5e383d2",
+      "historical_comment_prefix_bytes": 39136,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "assignees": [],
+      "blocked_by": [],
+      "raw_issue_sha256": "c79ad0f645b6ea22252931e05fa0682bf5aa56543d49ca96aace47499be46064",
+      "raw_dependencies_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "comment_updated_at": "2026-10-11T07:49:09Z"
+    }
+  ],
+  "raw_snapshot_storage": "owned local 0700/0600 output; public readback summaries only in Git"
+}

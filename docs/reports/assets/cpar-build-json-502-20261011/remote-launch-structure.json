@@ -1,0 +1,154 @@
+{
+  "status": "READ_ONLY",
+  "launch_argument_structure": [
+    {
+      "index": 0,
+      "class": "systemd-run"
+    },
+    {
+      "index": 1,
+      "class": "--quiet"
+    },
+    {
+      "index": 2,
+      "class": "--unit"
+    },
+    {
+      "index": 3,
+      "class": "--property"
+    },
+    {
+      "index": 4,
+      "class": "--property"
+    },
+    {
+      "index": 5,
+      "class": "--property"
+    },
+    {
+      "index": 6,
+      "class": "--property"
+    },
+    {
+      "index": 7,
+      "class": "--property"
+    },
+    {
+      "index": 8,
+      "class": "--property"
+    },
+    {
+      "index": 9,
+      "class": "--property"
+    },
+    {
+      "index": 10,
+      "class": "--property"
+    },
+    {
+      "index": 11,
+      "class": "--property"
+    },
+    {
+      "index": 12,
+      "class": "--property"
+    },
+    {
+      "index": 13,
+      "class": "--property"
+    },
+    {
+      "index": 14,
+      "class": "--property"
+    },
+    {
+      "index": 15,
+      "class": "--property"
+    },
+    {
+      "index": 16,
+      "class": "--property"
+    },
+    {
+      "index": 17,
+      "class": "--property"
+    },
+    {
+      "index": 18,
+      "class": "--property"
+    },
+    {
+      "index": 19,
+      "class": "--property"
+    },
+    {
+      "index": 20,
+      "class": "--property"
+    },
+    {
+      "index": 21,
+      "class": "--property"
+    },
+    {
+      "index": 22,
+      "class": "--property"
+    },
+    {
+      "index": 23,
+      "class": "--property"
+    },
+    {
+      "index": 24,
+      "class": "OWNED_GATEWAY_EXECUTABLE"
+    },
+    {
+      "index": 25,
+      "class": "serve"
+    },
+    {
+      "index": 26,
+      "class": "--state-dir"
+    },
+    {
+      "index": 27,
+      "class": "REDACTED_OPERAND"
+    },
+    {
+      "index": 28,
+      "class": "--credential-dir"
+    },
+    {
+      "index": 29,
+      "class": "REDACTED_OPERAND"
+    },
+    {
+      "index": 30,
+      "class": "--data-listen"
+    },
+    {
+      "index": 31,
+      "class": "REDACTED_OPERAND"
+    },
+    {
+      "index": 32,
+      "class": "--management-listen"
+    },
+    {
+      "index": 33,
+      "class": "REDACTED_OPERAND"
+    },
+    {
+      "index": 34,
+      "class": "--background-provider-tasks"
+    },
+    {
+      "index": 35,
+      "class": "REDACTED_OPERAND"
+    }
+  ],
+  "guard_env_assignment_present": false,
+  "guard_setenv_flag_present": false,
+  "recovered_launch_sha256": "af73dd3177479147adca982bfcc95de7264442845f7b5a31e134643bc998bff0",
+  "main_pid": 0,
+  "pin_intents": 0
+}

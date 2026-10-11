@@ -1,0 +1,64 @@
+{
+  "repaired_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+  "executed_driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "product_bytes_unchanged": true,
+  "confirmed_prelaunch_failure": "missing setenv anchor; approved recipe uses Environment property with matching guard and audit",
+  "first_red": {
+    "tests": 16,
+    "failures": 1,
+    "errors": 0
+  },
+  "stopped_epoch_red": {
+    "tests": 18,
+    "failures": 1,
+    "errors": 0
+  },
+  "final_green": {
+    "diagnostic_tests": 18,
+    "passed": 18,
+    "existing_oracle_tests": 54,
+    "passed_oracle": 54,
+    "provider_calls": 0
+  },
+  "fixes": [
+    "append selected diagnostic facts to existing Environment property without changing guard/audit/other argv",
+    "reject permanently stopped budget before launch"
+  ],
+  "repaired_driver_remote_execution": "NOT_RUN; no upload or retry after terminated epoch",
+  "new_pin_intents": 0,
+  "new_chat_intents": 0,
+  "local_task_phase": "42/42 Task and 45/45 Phase PASS at frozen repaired driver source",
+  "independent_complete_reviews": "PENDING",
+  "logs": {
+    "driver-launch-red.log": {
+      "sha256": "43744a27685064176656ccfc2498a1bb34cb492aa7c644bf7f5626d38291f375",
+      "gzip_sha256": "5665eaa188f59856c3b4a12002f8adba2d16a0d78bc143d709fe7c25a9401abe"
+    },
+    "driver-launch-green.log": {
+      "sha256": "df77d805680641e8a602f83e2d24aa74578a1f701299aa69725fb656f9a5c308",
+      "gzip_sha256": "3f0cdaf251e08c4dece1d96543ea1767adc39452889d3b7689f8f3d4c8845129"
+    },
+    "oracle-launch-green.log": {
+      "sha256": "ab3117d8b52db587f7c71dd6ed151eb2eaafe2fdca12f7b65a8dda89e8903f1d",
+      "gzip_sha256": "7122d7e3a79c51da70da4d63aa138655f25a686e4fa600796826aa04dc09521e"
+    },
+    "driver-launch-stopped-red.log": {
+      "sha256": "8931f4c5ae227844a10ada99bf3735e8664a3ad50c5db96a17c8999fbd50e9f2",
+      "gzip_sha256": "ca36da5e0be5b1db186ae0fde159ffaddef7042d734dfee8736c380b38aea104"
+    },
+    "driver-launch-green-final.log": {
+      "sha256": "f168332e8096172b3b45c44d25c08d1bc0154faee8a50362c3e81638ec6e2d96",
+      "gzip_sha256": "14748afb53fb8b8cd30020dc475094a217fad1051bd07952009e1d24f5a8a4b5"
+    },
+    "oracle-launch-green-final.log": {
+      "sha256": "baa52dca5016b58c45f1f624e1a7a29c22739c2311c63066397630f56f001758",
+      "gzip_sha256": "37b602e798e3675e66ae81ed9a15549e19ca5a77455ded6bd5c20dae19a50b09"
+    },
+    "driver-final-frozen.log": {
+      "sha256": "5ce714b4cdf931077e9ac5e624a8be49db723129bbf1527b826861820604d3ff",
+      "gzip_sha256": "01d35e5571849d2c496d3b4aeaa354b8085162a7c213d8b8782c7007b3cc6dc5"
+    }
+  },
+  "executed_prelaunch_exit_script_sha256": "a9ecbdc6b0e50fb278382e8fdafad85586798a836561e80e7c9481467671cf47"
+}

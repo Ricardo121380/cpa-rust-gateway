@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T12:42:41.413166+00:00",
+  "initial": [
+    {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 8589934592,
+      "disk": 42949672960
+    },
+    {
+      "name": "cpar-acceptance-20261010",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 6442450944,
+      "disk": 42949672960
+    }
+  ],
+  "final_live": [
+    {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 8589934592,
+      "disk": 42949672960
+    },
+    {
+      "name": "cpar-acceptance-20261010",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 6442450944,
+      "disk": 42949672960
+    }
+  ],
+  "changes_during_final_gates": false,
+  "no_vm_start_in_final_driver_gates": true
+}
