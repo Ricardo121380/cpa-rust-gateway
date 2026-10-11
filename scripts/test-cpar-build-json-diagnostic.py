@@ -3,7 +3,12 @@
 import copy
 import importlib.util
 import json
+import hashlib
+import io
 from pathlib import Path
+import subprocess
+import sys
+import tarfile
 import tempfile
 import unittest
 
@@ -65,6 +70,47 @@ class DiagnosticTests(unittest.TestCase):
                           ("messages",[{"role":"user","content":"arbitrary private input"}])):
             changed=copy.deepcopy(body);changed[key]=value
             with self.assertRaises(ValueError): diagnostic.validate_request(changed)
+
+    def upload(self, root, *, unexpected=False, bad_hash=False):
+        base=Path(root)/'protected';base.mkdir(mode=0o700)
+        (base/'bin').mkdir(mode=0o700)
+        (base/'owner.json').write_text(json.dumps({'task':'cpar-build-20261010'}))
+        names=['gateway-aarch64-unknown-linux-gnu','artifact-manifest.json','gateway-build-metadata.json',
+               'cpar-batch-c-live.py','cpar_new_build_acceptance.py','cpar_build_json_diagnostic.py',
+               'remote-readiness.py','remote-prepare.py','remote-start.py','remote-pin.py','remote-chat.py','remote-exit.py',
+               'user-authorization.json','historical-cost-authorization.json']
+        payloads={name:('synthetic '+name).encode() for name in names}
+        freeze={'kind':'chat_json_502_diagnostic','epoch':'chat-json-502-20261011','source_sha':'a'*40,
+                'files':{name:hashlib.sha256(data).hexdigest() for name,data in payloads.items()}}
+        raw=json.dumps(freeze).encode()
+        stream=io.BytesIO()
+        with tarfile.open(fileobj=stream,mode='w') as archive:
+            for name,data in [('freeze.json',raw),*payloads.items()]:
+                if bad_hash and name==names[0]: data=b'changed'
+                member=tarfile.TarInfo(name);member.size=len(data);archive.addfile(member,io.BytesIO(data))
+            if unexpected:
+                member=tarfile.TarInfo('../outside');member.size=1;archive.addfile(member,io.BytesIO(b'x'))
+        tool=Path(__file__).parent.parent/'docs/reports/assets/cpar-build-json-502-20261011/tools/remote-upload.py'
+        source=tool.read_text().replace('/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010',str(base))
+        # Only replace the remote owner-uid assertion; the actual stream/path/hash/mode code runs.
+        source=source.replace('base.stat().st_uid==0','base.stat().st_uid==os.getuid()')
+        result=subprocess.run([sys.executable,'-c',source,hashlib.sha256(raw).hexdigest()],input=stream.getvalue(),capture_output=True)
+        return result,base
+
+    def test_exact_upload_reads_each_member_once_and_keeps_modes(self):
+        with tempfile.TemporaryDirectory() as root:
+            result,base=self.upload(root)
+            self.assertEqual(result.returncode,0,result.stderr.decode())
+            files=list((base/'bin/chat-json-502-20261011').iterdir())
+            self.assertEqual(len(files),15)
+            self.assertTrue(all(path.stat().st_mode & 0o777==(0o700 if path.name.startswith('gateway-aarch64') else 0o600) for path in files))
+
+    def test_upload_rejects_extra_path_and_hash_mismatch(self):
+        for options in ({'unexpected':True},{'bad_hash':True}):
+            with tempfile.TemporaryDirectory() as root:
+                result,base=self.upload(root,**options)
+                self.assertNotEqual(result.returncode,0)
+                self.assertFalse((base/'bin/outside').exists())
 
 
 if __name__=="__main__":

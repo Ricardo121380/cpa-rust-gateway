@@ -19,7 +19,8 @@ allowed={'gateway-aarch64-unknown-linux-gnu','artifact-manifest.json','gateway-b
          'cpar-batch-c-live.py','cpar_new_build_acceptance.py','cpar_build_json_diagnostic.py',
          'remote-readiness.py','remote-prepare.py','remote-start.py','remote-pin.py','remote-chat.py','remote-exit.py','user-authorization.json','historical-cost-authorization.json'}
 with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as archive:
-    first=next(iter(archive))
+    members=iter(archive)
+    first=next(members)
     assert first.isfile() and first.name=='freeze.json' and first.size<=65536
     raw=archive.extractfile(first).read()
     assert hashlib.sha256(raw).hexdigest()==sys.argv[1]
@@ -31,7 +32,7 @@ with tarfile.open(fileobj=sys.stdin.buffer,mode='r|') as archive:
     directory.mkdir(mode=0o700)
     with (directory/'freeze.json').open('xb') as output: output.write(raw)
     seen=set()
-    for member in archive:
+    for member in members:
         assert member.isfile() and member.name in allowed and member.name not in seen and member.size<=134217728
         value=archive.extractfile(member).read()
         assert hashlib.sha256(value).hexdigest()==freeze['files'][member.name]
