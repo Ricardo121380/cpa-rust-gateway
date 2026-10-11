@@ -285,6 +285,97 @@ async fn grok_factories_bridge_three_protocols_and_preserve_tool_rounds() -> Tes
     Ok(())
 }
 
+#[actix_web::test]
+async fn build_chat_completion_limit_reaches_native_transport_and_collisions_do_not() -> TestResult
+{
+    let (channel, secret) = native_channels()[0];
+    for streaming in [false, true] {
+        let peer = Arc::new(Peer::default());
+        let fixture = fixture(channel, secret.as_bytes(), |endpoint| {
+            install_peer(endpoint, "grok.build.responses", &peer)
+        })?;
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(fixture.state.clone()))
+                .configure(gateway_http_actix::configure),
+        )
+        .await;
+        let (_, rounds) = tool_conversations(streaming)?
+            .into_iter()
+            .find(|(uri, _)| *uri == "/v1/chat/completions")
+            .ok_or("chat fixture")?;
+        for (round, mut body) in rounds.into_iter().enumerate() {
+            let object = body.as_object_mut().ok_or("request object")?;
+            object.remove("max_tokens");
+            object.insert("max_completion_tokens".into(), json!(4096));
+            let response = test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri("/v1/chat/completions")
+                    .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                    .set_json(body)
+                    .to_request(),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::OK);
+            let bytes = test::read_body(response).await;
+            super::public_response::assert_round("/v1/chat/completions", streaming, round, &bytes)?;
+        }
+        assert_eq!(peer.bodies.lock().map_err(|_| "bodies")?.len(), 4);
+        assert!(peer.bodies.lock().map_err(|_| "bodies")?.iter().all(
+            |body| body["max_output_tokens"] == 4096
+                && body.get("max_tokens").is_none()
+                && body.get("max_completion_tokens").is_none()
+        ));
+        let attempts_before = fixture
+            .events
+            .0
+            .lock()
+            .map_err(|_| "events")?
+            .iter()
+            .filter(|event| matches!(event, GatewayEvent::Attempt(_)))
+            .count();
+        for limits in [
+            json!({"max_completion_tokens":4096,"max_tokens":4096}),
+            json!({"max_completion_tokens":4096,"max_tokens":8192}),
+            json!({"max_completion_tokens":4096,"max_output_tokens":4096}),
+            json!({"max_completion_tokens":null}),
+            json!({"max_completion_tokens":0}),
+            json!({"max_completion_tokens":-1}),
+            json!({"max_completion_tokens":1.5}),
+            json!({"max_completion_tokens":"4096"}),
+        ] {
+            let mut body = json!({"model":"p12-test-model","messages":[{"role":"user","content":"synthetic"}],"stream":streaming});
+            body.as_object_mut()
+                .ok_or("request")?
+                .extend(limits.as_object().ok_or("limits")?.clone());
+            let response = test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri("/v1/chat/completions")
+                    .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                    .set_json(body)
+                    .to_request(),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+            assert_eq!(peer.bodies.lock().map_err(|_| "bodies")?.len(), 4);
+        }
+        assert_eq!(
+            fixture
+                .events
+                .0
+                .lock()
+                .map_err(|_| "events")?
+                .iter()
+                .filter(|event| matches!(event, GatewayEvent::Attempt(_)))
+                .count(),
+            attempts_before
+        );
+    }
+    Ok(())
+}
+
 fn public_frames(bytes: &[u8]) -> Result<Vec<Value>, Box<dyn Error>> {
     let wire = std::str::from_utf8(bytes)?;
     if !wire.ends_with("\n\n") {

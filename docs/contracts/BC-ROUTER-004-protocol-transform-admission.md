@@ -63,6 +63,29 @@ extension; it does not alter the rejection rules of the original three modes.
 
 ## Corresponding tests
 
+### Output-limit projection (CPAR-38, 2026-10-11)
+
+- `openai.chat.max_completion_tokens` and `openai.responses.max_output_tokens` both
+  bound total generated output, including reasoning. Map the value exactly in either
+  direction; Responses to Chat emits `max_completion_tokens`.
+- Native Chat retains either modern `max_completion_tokens` or legacy `max_tokens`
+  without renaming. The existing legacy positive-integer bridge to Responses/Messages
+  remains supported; this does not assert that every upstream model accepts the legacy
+  Chat spelling. There is no model-name exception or capability change.
+- A second Chat spelling, or any foreign output-limit namespace, is a collision even
+  when values are equal. Public foreign/dotted names remain unknown extensions and are
+  also rejected. No overwrite, minimum/maximum selection, field deletion or null defaulting.
+- Every retained limit uses the existing positive-u64 execution domain documented in
+  [BC-PROTOCOL-008](BC-PROTOCOL-008-openai-chat-completions-codec.md). An absent limit
+  remains absent for Chat/Responses; Messages still requires a limit. Same-protocol
+  canonical and exact passthrough paths enforce the same value/collision checks.
+
+Semantic evidence checked on 2026-10-11: [OpenAI Chat create reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
+defines the modern field and deprecates the legacy field; [OpenAI token-counting guide](https://developers.openai.com/api/docs/guides/token-counting)
+explicitly describes the total-output semantics of both modern OpenAI fields. These
+sources establish the modern equivalence, not provider execution or precedence for two
+simultaneous controls. Collision rejection follows ADR-0100's strict fidelity policy.
+
 The CPAR B-01 repair restores the native Responses history fidelity already required by
 [ADR-0100](../adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md) and
 [ADR-0101](../adr/ADR-0101-grok-native-item-metadata-fidelity.md), which supersede the early

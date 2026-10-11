@@ -36,6 +36,22 @@ boundaries; P12-08C-D own outbound Chat and cross-protocol admission.
 
 ## Response and stream invariants
 
+### Output-limit request controls (CPAR-38, 2026-10-11)
+
+The codec retains `max_completion_tokens` and legacy `max_tokens` with their original
+`openai.chat.*` names. Router admission owns validation and projection in every mode,
+including exact passthrough. Native Chat preserves the selected spelling and value.
+Providing both fields is rejected even when equal; neither takes precedence.
+
+The supported execution domain is an absent limit or one JSON unsigned integer in
+`1..=18446744073709551615`. Explicit null, zero, negative, fractional (including `4096.0`),
+string, boolean, array, object and larger numbers are rejected before credential selection.
+This retains CPAR's existing strict positive-u64 domain; official optional/null syntax
+does not authorize silently treating a retained null as absent. Endpoint/model limits
+remain independent; the u64 bound is a representation bound, not provider capacity.
+
+See [BC-ROUTER-004](BC-ROUTER-004-protocol-transform-admission.md) for bridge rules.
+
 - Exactly one choice is emitted. Text and ordered function Tool calls retain their Canonical order,
   opaque response ID, public model label, and stop reason. Reasoning and generic raw extensions are
   rejected rather than exposed as assistant text or silently discarded.

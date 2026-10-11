@@ -382,7 +382,8 @@ pub fn project_protocol_request(
     Ok(ProjectedProtocolRequest::Canonical(projected))
 }
 
-const CHAT_OUTPUT_LIMIT: &str = "openai.chat.max_tokens";
+const CHAT_OUTPUT_LIMIT: &str = "openai.chat.max_completion_tokens";
+const CHAT_LEGACY_OUTPUT_LIMIT: &str = "openai.chat.max_tokens";
 const RESPONSES_OUTPUT_LIMIT: &str = "openai.responses.max_output_tokens";
 const MESSAGES_OUTPUT_LIMIT: &str = "anthropic.messages.max_tokens";
 const CHAT_TOOL_CHOICE: &str = "openai.chat.tool_choice";
@@ -447,12 +448,11 @@ fn project_root_extensions(
     source: ProtocolFormat,
     target: ProtocolFormat,
 ) -> Result<RawExtensions, ProtocolTransformRejection> {
-    let source_output_limit = output_limit_name(source);
     let source_tool_choice = tool_choice_name(source);
     let mut output_limit = None;
     let controls = ToolExecutionConstraints::from_request(request, source)?;
     for (name, raw) in request.extensions.iter() {
-        if name == source_output_limit {
+        if is_output_limit_for(name, source) {
             if output_limit.replace(raw.clone()).is_some() {
                 return Err(ProtocolTransformRejection::OutputLimitCollision);
             }
@@ -464,7 +464,10 @@ fn project_root_extensions(
         } else {
             if matches!(
                 name,
-                CHAT_OUTPUT_LIMIT | RESPONSES_OUTPUT_LIMIT | MESSAGES_OUTPUT_LIMIT
+                CHAT_OUTPUT_LIMIT
+                    | CHAT_LEGACY_OUTPUT_LIMIT
+                    | RESPONSES_OUTPUT_LIMIT
+                    | MESSAGES_OUTPUT_LIMIT
             ) {
                 return Err(ProtocolTransformRejection::OutputLimitCollision);
             }
@@ -512,6 +515,11 @@ const fn output_limit_name(protocol: ProtocolFormat) -> &'static str {
         ProtocolFormat::OpenAiResponses => RESPONSES_OUTPUT_LIMIT,
         ProtocolFormat::AnthropicMessages => MESSAGES_OUTPUT_LIMIT,
     }
+}
+
+fn is_output_limit_for(name: &str, protocol: ProtocolFormat) -> bool {
+    name == output_limit_name(protocol)
+        || protocol == ProtocolFormat::OpenAiChatCompletions && name == CHAT_LEGACY_OUTPUT_LIMIT
 }
 
 fn validate_output_limit(raw: &RawJson) -> Result<(), ProtocolTransformRejection> {
@@ -798,8 +806,13 @@ fn validate_target_root_extensions(
 ) -> Result<(), ProtocolTransformRejection> {
     let expected_output_limit = output_limit_name(target);
     let expected_tool_choice = tool_choice_name(target);
+    let mut has_output_limit = false;
     for (name, raw) in request.extensions.iter() {
-        if name == expected_output_limit {
+        if is_output_limit_for(name, target) {
+            if has_output_limit {
+                return Err(ProtocolTransformRejection::OutputLimitCollision);
+            }
+            has_output_limit = true;
             validate_output_limit(raw)?;
         } else if name == expected_tool_choice {
             ToolExecutionConstraints::from_request(request, target)?;
@@ -825,7 +838,10 @@ fn validate_target_root_extensions(
         } else {
             if matches!(
                 name,
-                CHAT_OUTPUT_LIMIT | RESPONSES_OUTPUT_LIMIT | MESSAGES_OUTPUT_LIMIT
+                CHAT_OUTPUT_LIMIT
+                    | CHAT_LEGACY_OUTPUT_LIMIT
+                    | RESPONSES_OUTPUT_LIMIT
+                    | MESSAGES_OUTPUT_LIMIT
             ) {
                 return Err(ProtocolTransformRejection::OutputLimitCollision);
             }
@@ -2497,6 +2513,149 @@ mod tests {
                 )),
                 Err(ProtocolTransformRejection::ThinkingUnsupported)
             );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn chat_output_limits_preserve_native_spelling_and_bridge_total_budget()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let capabilities = all_capabilities()?;
+        for name in [super::CHAT_OUTPUT_LIMIT, super::CHAT_LEGACY_OUTPUT_LIMIT] {
+            for value in [1, 4096, u64::MAX] {
+                let mut source = request();
+                source
+                    .extensions
+                    .try_insert(name, RawJson::from_json_string(value.to_string())?)?;
+                for target in [
+                    ProtocolFormat::OpenAiChatCompletions,
+                    ProtocolFormat::OpenAiResponses,
+                ] {
+                    let projected = canonical_projection(project_protocol_request(input(
+                        &source,
+                        ProtocolFormat::OpenAiChatCompletions,
+                        target,
+                        SnapshotTransformMode::CanonicalBridge,
+                        NativePayloadAvailability::Unavailable,
+                        &capabilities,
+                    )))?;
+                    let expected = if target == ProtocolFormat::OpenAiChatCompletions {
+                        name
+                    } else {
+                        super::RESPONSES_OUTPUT_LIMIT
+                    };
+                    assert_eq!(
+                        projected.extensions.get(expected).map(RawJson::get),
+                        Some(value.to_string().as_str())
+                    );
+                    assert_eq!(projected.extensions.iter().count(), 1);
+                }
+            }
+        }
+        let source = with_output_limit(request(), ProtocolFormat::OpenAiResponses, 4096)?;
+        let projected = canonical_projection(project_protocol_request(input(
+            &source,
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::OpenAiChatCompletions,
+            SnapshotTransformMode::CanonicalBridge,
+            NativePayloadAvailability::Unavailable,
+            &capabilities,
+        )))?;
+        assert_eq!(
+            projected
+                .extensions
+                .get(super::CHAT_OUTPUT_LIMIT)
+                .map(RawJson::get),
+            Some("4096")
+        );
+        assert!(
+            projected
+                .extensions
+                .get(super::CHAT_LEGACY_OUTPUT_LIMIT)
+                .is_none()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn chat_output_limits_reject_invalid_values_and_every_collision_in_all_modes()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let capabilities = all_capabilities()?;
+        for (target, mode) in [
+            (
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::Passthrough,
+            ),
+            (
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::Canonical,
+            ),
+            (
+                ProtocolFormat::OpenAiChatCompletions,
+                SnapshotTransformMode::CanonicalBridge,
+            ),
+            (
+                ProtocolFormat::OpenAiResponses,
+                SnapshotTransformMode::LosslessBridge,
+            ),
+            (
+                ProtocolFormat::OpenAiResponses,
+                SnapshotTransformMode::CanonicalBridge,
+            ),
+        ] {
+            let reject = |source: &CanonicalRequest, reason| {
+                assert_rejected(
+                    analyze_protocol_transform(input(
+                        source,
+                        ProtocolFormat::OpenAiChatCompletions,
+                        target,
+                        mode,
+                        NativePayloadAvailability::Exact,
+                        &capabilities,
+                    )),
+                    reason,
+                );
+            };
+            for name in [super::CHAT_OUTPUT_LIMIT, super::CHAT_LEGACY_OUTPUT_LIMIT] {
+                for value in [
+                    "null",
+                    "0",
+                    "-1",
+                    "1.5",
+                    "4096.0",
+                    "\"4096\"",
+                    "true",
+                    "[]",
+                    "{}",
+                    "18446744073709551616",
+                ] {
+                    let mut source = request();
+                    source
+                        .extensions
+                        .try_insert(name, RawJson::from_json_string(value.to_owned())?)?;
+                    reject(&source, ProtocolTransformRejection::OutputLimitInvalid);
+                }
+                for other in [
+                    super::CHAT_OUTPUT_LIMIT,
+                    super::CHAT_LEGACY_OUTPUT_LIMIT,
+                    super::RESPONSES_OUTPUT_LIMIT,
+                    super::MESSAGES_OUTPUT_LIMIT,
+                ] {
+                    if other == name {
+                        continue;
+                    }
+                    for value in ["4096", "8192"] {
+                        let mut source = request();
+                        source
+                            .extensions
+                            .try_insert(name, RawJson::from_json_string("4096".to_owned())?)?;
+                        source
+                            .extensions
+                            .try_insert(other, RawJson::from_json_string(value.to_owned())?)?;
+                        reject(&source, ProtocolTransformRejection::OutputLimitCollision);
+                    }
+                }
+            }
         }
         Ok(())
     }
