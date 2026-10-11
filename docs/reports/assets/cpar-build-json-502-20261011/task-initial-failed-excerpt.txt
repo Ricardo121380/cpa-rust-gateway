@@ -1,0 +1,8 @@
+---- tests::development_build_embeds_a_non_secret_release_identity stdout ----
+thread 'tests::development_build_embeds_a_non_secret_release_identity' (54470914) panicked at apps/gateway/src/main.rs:574:9:
+assertion failed: RELEASE_BUILD_METADATA.contains("gateway-release-revision=development")
+failures:
+    tests::development_build_embeds_a_non_secret_release_identity
+test result: FAILED. 209 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 50.50s
+error: test failed, to rerun pass `-p gateway --bin gateway`
+check: Rust tests failed with status 101

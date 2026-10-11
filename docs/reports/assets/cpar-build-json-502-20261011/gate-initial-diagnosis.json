@@ -1,0 +1,16 @@
+{
+  "source_sha": "4523541b90d0dd0d4cbe17fcee432ac523ed3910",
+  "status": "FAIL",
+  "reason": "runner set release revision in development tests; existing development metadata assertion remains unchanged",
+  "product_change_for_gate_failure": false,
+  "gateway_rust_tests": {
+    "passed": 209,
+    "failed": 1,
+    "ignored": 1
+  },
+  "retry_environment": "unset only the three GATEWAY_RELEASE_* variables for development gates; source pinned by checkout",
+  "old_candidate_preserved": true,
+  "initial_failure_evidence": "verified tool-output excerpt; initial full aggregate log was accidentally overwritten during retry because archive step used worktree-relative paths",
+  "initial_full_aggregate_log_retained": false,
+  "prior_batches_and_real_failure_receipts_preserved": true
+}

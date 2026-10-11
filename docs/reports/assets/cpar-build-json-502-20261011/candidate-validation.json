@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+  "binary_bytes": 19565744,
+  "elf_machine": 183,
+  "embedded": {
+    "revision": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "rust-version": "1.97.1",
+    "target": "aarch64-unknown-linux-gnu"
+  },
+  "manifest_file_sha256": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+  "manifest_payload_sha256": "a16d9373318271ca98dd4037c87ed81f7b2ae1f86c049d0e20b5a44e2444d2cd",
+  "manifest_matches": true,
+  "runnable_help_exit": 0,
+  "scope": "isolated candidate; unsigned two-payload manifest; P12 release package not created",
+  "initial_candidate_preserved": true,
+  "task_phase_and_reviews_status": "Task42/42 and Phase45/45 PASS; independent reviews pending; send remains ineligible",
+  "freeze_sha256": "50c755ab23488b756913097b7939f532af16dd7df624b1ea3cf7413e33330870"
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "kind": "chat_json_502_diagnostic",
+  "epoch": "chat-json-502-20261011",
+  "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "files": {
+    "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+    "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+    "user-authorization.json": "4f1fda2c8f5aae5d253a88c549ca423b09ae6e6c33229da5baed6e9507b45050",
+    "historical-cost-authorization.json": "77980e82623fa9913bd0623803f1a0f6b33857335127ad96fde5064f0ebaaa0f",
+    "cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+    "cpar_new_build_acceptance.py": "fc15d63a82c2686582f915580f9b635ae7cc0b8cee4ac03f1fcfc706826b7854",
+    "cpar_build_json_diagnostic.py": "4e5c277ec8dd5cf71efa253a5a914eb7451ce03487ceacf790e63dbf21a3b188",
+    "remote-readiness.py": "ef3e2f063e4187101da9cb7da736ec63ac1b85ec116bca1a9afc384555055fd8",
+    "remote-prepare.py": "a222e08739be6a5e54994c52cc4c01af1fefb02db94db6fdbbbb54971f081d76",
+    "remote-start.py": "43020f8e43a082bf4b80de48a3a39e650fdf605673c8d7c11b1bac1a39596dde",
+    "remote-pin.py": "2c32e235fde0a0ada70013ed26d6fb1eb3903afda4436d6e8d3143d885f4c651",
+    "remote-chat.py": "5bdf75f32ee38aba62bd4abfd7a6b6d164da50d62231a3e6b313d70b1cbf0820",
+    "remote-exit.py": "8f4fe715e9e555de914e0c124a0de420c11e038825d4e231d4aff014ce3296af"
+  }
+}

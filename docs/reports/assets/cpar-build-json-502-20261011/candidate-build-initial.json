@@ -1,0 +1,32 @@
+{
+  "source_sha": "4523541b90d0dd0d4cbe17fcee432ac523ed3910",
+  "source_archive_sha256": "414c3808693c20396a8f66c7f2decdfa10523ee0f382f27dfa48c166be73e390",
+  "recipe_sha256": "54c262fb640119d5444e0a17590a1cc606dcaa2fe37d21364a71eaebf6ea03bb",
+  "create_command": [
+    "docker",
+    "--context",
+    "colima-cpar-acceptance-20261010",
+    "create",
+    "--pull=never",
+    "--network=none",
+    "--platform",
+    "linux/arm64",
+    "--name",
+    "cpar-json502-4523541b-20261011",
+    "--entrypoint",
+    "bash",
+    "sha256:0fb5194f33ad4e1bc6eb9676f2dd8a16dc204dc2f4ab0747fe8fc5fbdc659250",
+    "/tmp/candidate-build.sh",
+    "414c3808693c20396a8f66c7f2decdfa10523ee0f382f27dfa48c166be73e390",
+    "4523541b90d0dd0d4cbe17fcee432ac523ed3910"
+  ],
+  "started_at_utc": "2026-10-11T10:16:39.908823+00:00",
+  "duration_seconds": 137.65,
+  "exit_code": 0,
+  "container_exit_code": 0,
+  "container_id": "4850d6647672a26a5c904e186b1650a9ab1ef645f4f509b48778a5435a48752e",
+  "container_image": "sha256:0fb5194f33ad4e1bc6eb9676f2dd8a16dc204dc2f4ab0747fe8fc5fbdc659250",
+  "network_mode": "none",
+  "dependency_installation_repeated": false,
+  "log_sha256": "4acc18b983c2edc02f0b895a3b6ff7c53c11336ac0cf262f71ba158ffbdc2c05"
+}

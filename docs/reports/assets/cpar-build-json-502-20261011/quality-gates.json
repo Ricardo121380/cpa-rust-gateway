@@ -1,0 +1,24 @@
+{
+  "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "task": {
+    "status": "PASS",
+    "steps": 42,
+    "report": "task-fast.md",
+    "log_sha256": "7737f4532275f893163dd04664d95d48effca977caece2004e1421657544d6a3"
+  },
+  "phase": {
+    "status": "PASS",
+    "steps": 45,
+    "report": "phase-full.md",
+    "log_sha256": "90bfde7eaaad26c6163fa9c009b0ff323159b8a4c4462cf2fccad5e4bcf7a823",
+    "toolchain": "1.97.1",
+    "development_build_identity_expected": true
+  },
+  "standalone_diagnostic_policy": {
+    "status": "PASS",
+    "tests": 7,
+    "provider_calls": 0
+  },
+  "remote_ci": "NOT_RUN",
+  "release_deployment_production_acceptance": "NOT_RUN"
+}
