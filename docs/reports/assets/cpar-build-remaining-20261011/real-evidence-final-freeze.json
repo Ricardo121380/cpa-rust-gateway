@@ -1,0 +1,30 @@
+{
+  "head": "dbfb977ac24e825a43c73f6317576a8604b8bd86",
+  "scope": "real batch public evidence and delivery report; no code changes since dual PASS",
+  "files": {
+    "docs/reports/cpar-build-remaining-20261011.md": "0483551eac0f4020987f758552b4a05893dd59ab3f29a2665523bfac1a1c4fe7",
+    "docs/reports/assets/cpar-build-remaining-20261011/wrapper-review-final.json": "0b5b1bda9b3b2b680e673594c6c15f39e100f13424aa05babfe5265be3c2ce85",
+    "docs/reports/assets/cpar-build-remaining-20261011/wrapper-review-freeze-final.json": "f977d8d715ad471a6f7214bba38c907b528d854a89f9b8631a11cf01b0f5dd0d",
+    "docs/reports/assets/cpar-build-remaining-20261011/remote-byte-verification.json": "f125f6d97ca41e76dfdb3828448912cc1fdb2569320df6a561b67e04a36b19a3",
+    "docs/reports/assets/cpar-build-remaining-20261011/start-receipt.json": "7ddf173187f73383d980e74afc97f1643577184b43f8bcffdfc9862a7bf523ec",
+    "docs/reports/assets/cpar-build-remaining-20261011/responses-sse-pin.json": "e670631d0c601df5065bb688549d825635f31a7fb67625f628ec625fda386224",
+    "docs/reports/assets/cpar-build-remaining-20261011/responses-sse-basic-summary.json": "e2a267f3ed46cf755503b9de3d6fbb2e136b76e3150f19f9ff6a5299c29dbadb",
+    "docs/reports/assets/cpar-build-remaining-20261011/responses-sse-audit.json": "8d6ff25766ae8e58a2abeac467f3742878c6e3a7567a2ef2a754819537ca2622",
+    "docs/reports/assets/cpar-build-remaining-20261011/chat-json-pin.json": "dd94f585f23d7b2aaa784d63d473bcbe72fe214aa9ad02a2dec4821b925ff24e",
+    "docs/reports/assets/cpar-build-remaining-20261011/chat-json-basic-summary.json": "11958df8c771e46c1c04418677525893e7dc97056bb6d4ffecc282d3939e27fb",
+    "docs/reports/assets/cpar-build-remaining-20261011/chat-json-audit.json": "8d6c17e0cac1c5007bbe95d668d3ba50938c4fed945f9d36363ce4d4d148fa06",
+    "docs/reports/assets/cpar-build-remaining-20261011/chat-json-failure-capture.json": "748cbcf48f90420dcc70279f66cc53362f4470b1b8e3562236c1db8983d19df5",
+    "docs/reports/assets/cpar-build-remaining-20261011/chat-json-code-trace.json": "8ef4ae76472d0c3237da3fd690c2402d36bde5c3a5112a2f8a2d162fd2c4feae",
+    "docs/reports/assets/cpar-build-remaining-20261011/real-exit-receipt.json": "711e7b8fe4ec5c8672e52b1d3c67efc9b5534d35014539498206c94bfc1fb395",
+    "docs/reports/assets/cpar-build-remaining-20261011/production-ports-before.json": "23e9d7f705fd51d63bc4e2f5ebff63f21d92a84c6e1e02bb03711b34b9e82abd",
+    "docs/reports/assets/cpar-build-remaining-20261011/production-ports-after-and-failed-request.json": "4efc45a0c525f306bf0a6c9aa2fb50eb6184b2d7410d59fefe188ebf63aa93e0",
+    "docs/reports/assets/cpar-build-remaining-20261011/manifest-hash-reconciliation.json": "5319204493785afa984df60dfff97f1ae9eee1571cb1358d87187ff6604f368a",
+    "docs/reports/assets/cpar-build-remaining-20261011/post-exit-readback.json": "81291736e31efcf7349fbc7ef777588ddb09aa2844f732f45e0156d2e6142814",
+    "docs/reports/assets/cpar-build-remaining-20261011/real-batch-matrix.json": "4a6a42436d6bdca7e745793eb3cc7356e9d6020d44fa411abecb9a6a03ba3847",
+    "docs/reports/assets/cpar-build-remaining-20261011/management-accounting.json": "b283af5048f981a005016b108544a8d8bdcee8039f13716b5864f9da242c5710",
+    "docs/reports/assets/cpar-build-remaining-20261011/real-evidence-initial-review.json": "2c5c69e647189aa831952542591bbce8123d37b48abc47d862f24ae40baeb380",
+    "docs/reports/assets/cpar-build-remaining-20261011/workspace-preservation.json": "739abac17c1d2c01cadfec6605e52d31e71c862b9ee6bc2fcb7f235b0df72998"
+  },
+  "standards_spec_code_gate": "wrapper-review-final.json",
+  "github_status": "PENDING; outside this evidence review, separate authorized sync remains"
+}

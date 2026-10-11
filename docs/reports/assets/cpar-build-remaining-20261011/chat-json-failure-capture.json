@@ -1,0 +1,26 @@
+{
+  "http_status": 400,
+  "request_id_evidence": null,
+  "sent_at_utc": "2026-10-11T02:51:35.976790+00:00",
+  "request_fields": [
+    "max_completion_tokens",
+    "messages",
+    "model",
+    "stream"
+  ],
+  "request_parameters": {
+    "model": "grok-4.5",
+    "max_completion_tokens": 4096,
+    "stream": false
+  },
+  "raw_bytes": 117,
+  "raw_sha256": "1ef3f6138442e24586fe0fa90bec1d7da616afa1b458fb34278c9adb9d39049e",
+  "private_capture_sha256": "2601a0fc92152e39ce217774cce13f0b754cc789b0e2ac3f014cc294f15ed85f",
+  "error": {
+    "type": "gateway_error",
+    "code": "ClientRequestError",
+    "param": null,
+    "message": "the client request is invalid"
+  },
+  "wire_request_id_present": false
+}

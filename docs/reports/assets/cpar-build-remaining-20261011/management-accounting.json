@@ -1,0 +1,18 @@
+{
+  "status": "COMPLETE; bounded read-only management separately accounted",
+  "readiness_gets": 2,
+  "prepare_gets": 2,
+  "start_gets": 6,
+  "responses_sse_pin_inventory_gets": 44,
+  "chat_json_pin_inventory_gets": 44,
+  "exit_production_config_gets": 1,
+  "total_management_gets": 99,
+  "new_management_pin_posts": 2,
+  "new_catalog_queries": 0,
+  "quota_queries": 0,
+  "source_account_writes": 0,
+  "active_oauth_refresh_reauthorization": 0,
+  "basic_collector": "formal REMOTE_READ INVENTORY=False and REMOTE_COLLECT; read-only local SQLite/proc; 9 successful responses; no management HTTP GET",
+  "ssh_readonly_probes": "file hash, wire metadata, bounded SQLite event query, ports and post-exit; no Provider calls",
+  "first_readiness_permission_failure": "0 management GET; normal SSH cannot read root protected base; subsequently existing sudo -n used"
+}

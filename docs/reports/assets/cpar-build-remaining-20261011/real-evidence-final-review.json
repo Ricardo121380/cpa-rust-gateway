@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "completion": "complete",
+  "scope": "real batch public evidence and delivery report; receipt consistency only",
+  "agent": "/root/real_evidence_final",
+  "freeze": "real-evidence-final-freeze.json",
+  "verified_file_hashes": 22,
+  "closed_finding": "manifest file and canonical object hash conventions independently explained and verified",
+  "verified": [
+    "Responses SSE 3/2/4 nine rounds; exact unique Request/Attempt and one Usage/ledger each",
+    "new budget 12/cumulative33; new gateway confirmed inference11/cumulative32",
+    "HTTP400 lacks x-request-id; failed Request attribution remains temporal correlation",
+    "remaining three combination directories absent and Responses JSON not rerun",
+    "PID0, temporary ports released, production and 139 historical files preserved",
+    "management GET99 separately accounted; real extensions0"
+  ],
+  "real_batch_verdict": "FAIL",
+  "whole_issues_verdict": "PARTIAL",
+  "github_status_at_review": "PENDING; excluded and requires separate independent readback"
+}

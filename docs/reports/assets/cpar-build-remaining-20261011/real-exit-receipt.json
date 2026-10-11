@@ -1,0 +1,183 @@
+{
+  "status": "PASS; resource exit and count reconciliation",
+  "resource_exit_status": "PASS",
+  "count_reconciliation_status": "PASS",
+  "observed_at_utc": "2026-10-11T02:51:58.974139+00:00",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "process_pid_before_stop": 2992034,
+  "main_pid_after_stop": 0,
+  "temporary_ports_listening": [],
+  "post_stop_flat_seconds": 5,
+  "network_audit_sha256": "82daac46db2bd8eb2f951815f9740c7a784cc1b192f9192b443db01da238d8ed",
+  "network_audit_events": [
+    "dns_build_allowed",
+    "connect_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "dns_build_allowed",
+    "connect_build_allowed"
+  ],
+  "new_pin_intents": 2,
+  "new_basic_intents": 10,
+  "new_pin_actual_sends": 2,
+  "new_pin_confirmed_sends_lower_bound": 2,
+  "pin_send_accounting_complete": true,
+  "new_basic_attempts": 9,
+  "new_event_counts": {
+    "attempt": 9,
+    "request": 10,
+    "request_finished": 10,
+    "usage": 9
+  },
+  "inherited_event_counts": {
+    "attempt": 1,
+    "request": 1,
+    "request_finished": 1,
+    "usage": 1
+  },
+  "new_ledger_rows": 9,
+  "all_attempt_outcomes_including_inherited": [
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded"
+  ],
+  "all_attempt_retry_decisions_including_inherited": [
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed",
+    "completed"
+  ],
+  "billing_including_inherited": [
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    },
+    {
+      "cost_microunits": null,
+      "cost_confidence": "unpriced",
+      "billing_status": "unpriced"
+    }
+  ],
+  "budget": {
+    "schema_version": 4,
+    "historical_provider_pin_requests": 5,
+    "historical_basic_requests": 16,
+    "historical_inference_requests": 21,
+    "historical_catalog_requests": 1,
+    "new_pin_intents": 2,
+    "new_basic_intents": 10,
+    "new_catalog_intents": 0,
+    "new_inference_limit": 50,
+    "cumulative_inference_limit": 71,
+    "new_pin_limit": 5,
+    "new_basic_limit": 45,
+    "historical_responses_json_basic_passed": true,
+    "stopped": true,
+    "combinations": {
+      "responses-sse": {
+        "pin_status": "PASS",
+        "basic_status": "PASS"
+      },
+      "chat-json": {
+        "pin_status": "PASS",
+        "basic_status": "FAIL"
+      }
+    },
+    "oauth_refresh_reauthorization": 0,
+    "quota_queries": 0,
+    "extensions": 0,
+    "retries": 0,
+    "fallbacks": 0,
+    "reruns_after_failure": 0,
+    "authorization": "new remaining-five batch; no Responses JSON rerun; every Pin and basic counts; failure/unknown stops all"
+  },
+  "account_native_revision": 135,
+  "worker_claim": null,
+  "production_after": {
+    "MainPID": "499070",
+    "NRestarts": "0",
+    "ExecMainStartTimestampMonotonic": "5514090365162",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+    "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+    "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+    "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+    "caddyfile_sha256": "bfede78bae3c2bb4d120bcbd08924c0ba564fa3a1a02d8edda37a9004f9b945e"
+  },
+  "production_active_configuration": [
+    {
+      "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+      "revision": "rev-1",
+      "status": "active"
+    }
+  ],
+  "historical_file_hashes_preserved": true,
+  "provider_http_receive_count": "UNKNOWN; independent Provider receive counter unavailable",
+  "new_provider_calls_in_exit": 0,
+  "management_get_intents_in_exit": 1,
+  "private_file_count": 66,
+  "private_inventory_sha256": "1f89023a039d1b6d0b7388ad11c31b238239e7070a0a84a75b598dc136ae3930"
+}

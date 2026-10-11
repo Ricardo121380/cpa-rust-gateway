@@ -1,0 +1,70 @@
+{
+  "status": "FAIL; stopped and exited",
+  "model": "grok-4.5",
+  "historical_complete_scenarios": 3,
+  "historical_complete_combinations": 1,
+  "current_complete_scenarios": 6,
+  "scenario_total": 18,
+  "current_complete_combinations": 2,
+  "combination_total": 6,
+  "rows": [
+    {
+      "combination": "responses-json",
+      "pin": "HISTORICAL_PASS",
+      "text": "PASS 3/3",
+      "single_tool": "PASS 2/2",
+      "two_tool": "PASS 4/4",
+      "basic": "PASS 9/9",
+      "source": "../cpar-build-batch-20261011/responses-json-basic.json",
+      "rerun_this_batch": false
+    },
+    {
+      "combination": "responses-sse",
+      "pin": "PASS",
+      "text": "PASS 3/3",
+      "single_tool": "PASS 2/2",
+      "two_tool": "PASS 4/4",
+      "basic": "PASS 9/9",
+      "source": "responses-sse-audit.json"
+    },
+    {
+      "combination": "chat-json",
+      "pin": "PASS",
+      "text": "FAIL 0/3; first HTTP400, remaining2 NOT_RUN",
+      "single_tool": "NOT_RUN 0/2",
+      "two_tool": "NOT_RUN 0/4",
+      "basic": "FAIL; 1/9 HTTP attempted, 0 PASS",
+      "source": "chat-json-audit.json"
+    },
+    {
+      "combination": "chat-sse",
+      "pin": "NOT_RUN",
+      "text": "NOT_RUN",
+      "single_tool": "NOT_RUN",
+      "two_tool": "NOT_RUN",
+      "basic": "NOT_RUN",
+      "reason": "whole batch stopped on chat-json first HTTP400"
+    },
+    {
+      "combination": "messages-json",
+      "pin": "NOT_RUN",
+      "text": "NOT_RUN",
+      "single_tool": "NOT_RUN",
+      "two_tool": "NOT_RUN",
+      "basic": "NOT_RUN",
+      "reason": "whole batch stopped on chat-json first HTTP400"
+    },
+    {
+      "combination": "messages-sse",
+      "pin": "NOT_RUN",
+      "text": "NOT_RUN",
+      "single_tool": "NOT_RUN",
+      "two_tool": "NOT_RUN",
+      "basic": "NOT_RUN",
+      "reason": "whole batch stopped on chat-json first HTTP400"
+    }
+  ],
+  "not_run_evidence": "post-exit-readback.json",
+  "independent_provider_receive_count": "UNKNOWN",
+  "actual_cost": "UNKNOWN"
+}

@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T02:48:35.081923+00:00",
+  "production_pid": 499070,
+  "production_process_start": "551409035",
+  "listening": [
+    {
+      "family": "tcp",
+      "local_address": "0100007F:4704",
+      "port": 18180,
+      "production_pid_owns_socket": true
+    },
+    {
+      "family": "tcp",
+      "local_address": "0100007F:4705",
+      "port": 18181,
+      "production_pid_owns_socket": true
+    }
+  ],
+  "temporary_ports_listening": []
+}

@@ -1,0 +1,59 @@
+{
+  "status": "STATIC_CODE_TRACE_COMPLETE; live HTTP400 preserved",
+  "actual_public_failure": "chat-json-failure-capture.json",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "source_files": {
+    "crates/protocol-openai-chat/src/lib.rs": {
+      "same_as_product_source": true,
+      "sha256": "7f7709aa3cc15660bdc705b6af29fbd3a7bac4dd67f3bbde274d6704eeee8783"
+    },
+    "crates/gateway-router/src/protocol_transform.rs": {
+      "same_as_product_source": true,
+      "sha256": "3dd0c5f3c0838f449dc899a7942fe7b06db487f51bd407109fb313a7702e99f8"
+    },
+    "apps/gateway/src/runtime.rs": {
+      "same_as_product_source": true,
+      "sha256": "1a94c76bf948a1e8df70ba46afb1339e2a90c2f8ac052f4e7a3dec6cc87639d6"
+    }
+  },
+  "field": "max_completion_tokens",
+  "frozen_value": 4096,
+  "mapping_chain": [
+    {
+      "path": "crates/protocol-openai-chat/src/lib.rs",
+      "line": 125,
+      "symbol": "decode_request",
+      "fact": "preserves as openai.chat.max_completion_tokens extension"
+    },
+    {
+      "path": "crates/gateway-router/src/protocol_transform.rs",
+      "line": 385,
+      "symbol": "CHAT_OUTPUT_LIMIT",
+      "fact": "only openai.chat.max_tokens is recognized output-limit name"
+    },
+    {
+      "path": "crates/gateway-router/src/protocol_transform.rs",
+      "line": 471,
+      "symbol": "project_root_extensions",
+      "fact": "other extension returns UnknownRequestExtensions"
+    },
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "line": 2024,
+      "symbol": "is_candidate_eligible",
+      "fact": "candidate rejected before credential selection"
+    },
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "line": 2104,
+      "symbol": "all_matching_candidates_reject_protocol",
+      "fact": "all incompatible candidates produce ClientRequestError"
+    }
+  ],
+  "diagnosis": "static chain is consistent with captured local rejection; product contract verdict not asserted",
+  "minimal_reproduction": "construct formal text_multi_turn first request at cpar_new_build_acceptance.py:693 with frozen Chat JSON model=grok-4.5,max_completion_tokens=4096,stream=false; exact messages remain in owned private http-01-private.json; decode_request then project_registered_protocol_request(Chat to Responses,CanonicalBridge)",
+  "offline_rust_execution": "NOT_RUN; no Rust source or tests modified",
+  "request_parameter_change": false,
+  "real_rerun_after_failure": 0,
+  "future_product_scope": "Chat cross-protocol output-limit mapping/alias and collision rules; requires separate product scope"
+}

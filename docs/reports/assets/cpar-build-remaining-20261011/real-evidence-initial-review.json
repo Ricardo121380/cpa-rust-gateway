@@ -1,0 +1,17 @@
+{
+  "status": "PARTIAL",
+  "agent": "/root/real_batch_evidence_check",
+  "completion": "complete",
+  "finding": "manifest file hash and canonical object hash not explained within specified receipt set",
+  "resolution_evidence": "manifest-hash-reconciliation.json",
+  "verified_other_facts": [
+    "dual_review_gate",
+    "remote_bytes",
+    "SSE_9_of_9_exact_attribution",
+    "native135_runtime136",
+    "budget12_33_confirmed11_32",
+    "failed_wire_request_id_absent",
+    "exit_and_production_preserved"
+  ],
+  "no_false_pass": true
+}

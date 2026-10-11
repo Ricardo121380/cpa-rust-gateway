@@ -1,0 +1,80 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T02:48:19.200390+00:00",
+  "review_head": "dbfb977ac24e825a43c73f6317576a8604b8bd86",
+  "files": [
+    {
+      "name": "cpar_new_build_acceptance.py",
+      "bytes": 105450,
+      "sha256": "c6587ea4695fd9802742f5c83ccd6317529ad2ad2f7c0a1e5cf310ec8ec8aef4",
+      "mode": "0600"
+    },
+    {
+      "name": "cpar_build_extensions.py",
+      "bytes": 51156,
+      "sha256": "77e398f6dfe14dcfac179fe99a4b0fe7eeac6bcddf0db7a2fb4020c63c6e02ef",
+      "mode": "0600"
+    },
+    {
+      "name": "cpar-batch-c-live.py",
+      "bytes": 11958,
+      "sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "mode": "0600"
+    },
+    {
+      "name": "user-authorization.json",
+      "bytes": 1444,
+      "sha256": "f989ffcc4857a54c3a8526bd72b62b3ac1651725d82397e0060562bee39bbd6e",
+      "mode": "0600"
+    },
+    {
+      "name": "wrapper-review-final.json",
+      "bytes": 1445,
+      "sha256": "0b5b1bda9b3b2b680e673594c6c15f39e100f13424aa05babfe5265be3c2ce85",
+      "mode": "0600"
+    },
+    {
+      "name": "wrapper-review-freeze-final.json",
+      "bytes": 23572,
+      "sha256": "f977d8d715ad471a6f7214bba38c907b528d854a89f9b8631a11cf01b0f5dd0d",
+      "mode": "0600"
+    },
+    {
+      "name": "remote-basics.py",
+      "bytes": 8999,
+      "sha256": "78935d195d8f23ec438d38ecea8bf1d2de8ba2dd784996f65d9a312f0eaec531",
+      "mode": "0600"
+    },
+    {
+      "name": "remote-exit.py",
+      "bytes": 7818,
+      "sha256": "ee839170c92b8822bb6e625fef0f9445f6ca1f502067cd86f7c02682f031d852",
+      "mode": "0600"
+    },
+    {
+      "name": "remote-pin.py",
+      "bytes": 12514,
+      "sha256": "864c8ab92ef8d50e53a06eb090667b680ae865d3fa75aa43d95e6569f83086a2",
+      "mode": "0600"
+    },
+    {
+      "name": "remote-prepare.py",
+      "bytes": 12433,
+      "sha256": "f8e4309bb41b4363ca4ef0fdfd5ea2f3e37596676a0ec4bfc8406c4b20b2d6bf",
+      "mode": "0600"
+    },
+    {
+      "name": "remote-readiness.py",
+      "bytes": 5376,
+      "sha256": "d2a4c60131e8062c224c543fe5bd0f7e467dc7ac5adc657d1999a6b84cce2351",
+      "mode": "0600"
+    },
+    {
+      "name": "remote-start.py",
+      "bytes": 11967,
+      "sha256": "5bb0aacb2efb05acb3b5f3712918e86d6cafa5ad347ddbd0a6e62699d19624b4",
+      "mode": "0600"
+    }
+  ],
+  "provider_inference_requests": 0
+}

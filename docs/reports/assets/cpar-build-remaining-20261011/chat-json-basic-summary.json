@@ -1,0 +1,196 @@
+{
+  "combination": "chat-json",
+  "status": "FAIL",
+  "basic_intents": 1,
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "formal_tool_sha256": "c6587ea4695fd9802742f5c83ccd6317529ad2ad2f7c0a1e5cf310ec8ec8aef4",
+  "formal_entry_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+  "formal_entry_exit": 1,
+  "formal_audit_status": "FAIL",
+  "observed_response_count": 1,
+  "checks": [
+    {
+      "case": "execution",
+      "status": "FAIL",
+      "category": "http_error"
+    },
+    {
+      "case": "text_multi_turn",
+      "status": "NOT_RUN",
+      "category": "execution_stopped",
+      "executed_turn_count": 1
+    },
+    {
+      "case": "single_tool",
+      "status": "NOT_RUN",
+      "category": "samples_unavailable"
+    },
+    {
+      "case": "two_tool_cycles",
+      "status": "NOT_RUN",
+      "category": "samples_unavailable"
+    },
+    {
+      "case": "cancel_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_before_send",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "error",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "no_retry_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "retry_before_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "truncation",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "continuation",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "parallel",
+      "case": "declaration",
+      "declared": false,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "reasoning",
+      "case": "reasoning_history",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "reasoning",
+      "case": "visible_reasoning",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "websocket",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    }
+  ],
+  "execution_failure": {
+    "status": "FAIL",
+    "category": "http_error"
+  },
+  "target": {
+    "channel": "grok.build",
+    "endpoint_id": "cpar-build-endpoint",
+    "route_id": "cpar-build-route",
+    "route_candidate_id": "cpar-build-candidate",
+    "upstream_model": "grok-4.5",
+    "public_model": "grok-4.5",
+    "response_model": "grok-4.5",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "credential_revision": 136,
+    "config_version_id": "cpar-build-config-20261010",
+    "config_revision": 9,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": {
+      "source": "not_applicable"
+    },
+    "protocol": "chat",
+    "mode": "json",
+    "parameters": {
+      "max_completion_tokens": 4096
+    },
+    "capabilities": {
+      "compact": true,
+      "continuation": true,
+      "parallel": false,
+      "reasoning": true,
+      "stored": true,
+      "websocket": true
+    },
+    "declaration_evidence": {
+      "source": "serving_snapshot",
+      "config_version_id": "cpar-build-config-20261010",
+      "config_revision": 9,
+      "capabilities": {
+        "reasoning": true,
+        "parallel": false,
+        "stored": true,
+        "continuation": true,
+        "compact": true,
+        "websocket": true
+      },
+      "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+      "projection_id": "1f0c71daf1fca2110e297448155f255a5c5c24c24d6c51d83c1d060741cb780d",
+      "observed_at_utc": "2026-10-11T02:51:24.563000+00:00",
+      "route_id": "cpar-build-route",
+      "route_candidate_id": "cpar-build-candidate",
+      "endpoint_id": "cpar-build-endpoint",
+      "upstream_model": "grok-4.5"
+    },
+    "declaration_observed_at_utc": "2026-10-11T02:51:24.563000+00:00"
+  },
+  "private_wire_sha256": "9fb4dd0c69ae9ad5847e5458ce0d95504b26b288782fe1576d6d14b3a8ee5d0c",
+  "collector": "unchanged formal REMOTE_READ/REMOTE_COLLECT; local authorized-host subprocess; one 2s billing settling delay",
+  "observed_at_utc": "2026-10-11T02:51:36.041859+00:00",
+  "new_pin_intents_total": 2,
+  "new_basic_intents_total": 10
+}

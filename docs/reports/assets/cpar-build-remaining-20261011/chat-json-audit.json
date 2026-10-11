@@ -1,0 +1,192 @@
+{
+  "schema_version": 2,
+  "layer": "LIVE_NEW_BUILD",
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "observed_at_utc": "2026-10-11T02:51:36.039466+00:00",
+  "runtime": {
+    "method": "proc_executable",
+    "instance": "instance-20260726-2136",
+    "pid": 2992034,
+    "process_start": "661359016",
+    "observed_at_utc": "2026-10-11T02:51:24.486342+00:00",
+    "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+    "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+    "stable_process": true,
+    "manifest_sha256": "ffaea62e61fa3c974d2e4a212556249ac2db10963657db9d078eb7e151de7d14",
+    "manifest_matches": true
+  },
+  "target": {
+    "channel": "grok.build",
+    "endpoint_id": "cpar-build-endpoint",
+    "route_id": "cpar-build-route",
+    "route_candidate_id": "cpar-build-candidate",
+    "upstream_model": "grok-4.5",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "credential_revision": 136,
+    "config_version_id": "cpar-build-config-20261010",
+    "config_revision": 9,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": {
+      "source": "not_applicable"
+    },
+    "protocol": "chat",
+    "mode": "json",
+    "public_model": "grok-4.5",
+    "response_model": "grok-4.5"
+  },
+  "parameters_sha256": "cabecbe7372b10d43d48401c6b79f6f555b471d0f4524ed6906ab015957598fd",
+  "capabilities": {
+    "stored": true,
+    "parallel": false,
+    "continuation": true,
+    "websocket": true,
+    "compact": true,
+    "reasoning": true
+  },
+  "declaration_observed_at_utc": "2026-10-11T02:51:24.563000+00:00",
+  "value_free": true,
+  "checks": [
+    {
+      "case": "execution",
+      "status": "FAIL",
+      "category": "http_error"
+    },
+    {
+      "case": "text_multi_turn",
+      "status": "NOT_RUN",
+      "category": "execution_stopped",
+      "executed_turn_count": 1
+    },
+    {
+      "case": "single_tool",
+      "status": "NOT_RUN",
+      "category": "samples_unavailable"
+    },
+    {
+      "case": "two_tool_cycles",
+      "status": "NOT_RUN",
+      "category": "samples_unavailable"
+    },
+    {
+      "case": "cancel_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_before_send",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "error",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "no_retry_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "retry_before_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "truncation",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "continuation",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "parallel",
+      "case": "declaration",
+      "declared": false,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "reasoning",
+      "case": "reasoning_history",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "reasoning",
+      "case": "visible_reasoning",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    },
+    {
+      "extension": "websocket",
+      "case": "declaration",
+      "declared": true,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "protocol_not_applicable"
+    }
+  ],
+  "evidence_paths": [],
+  "sent_requests": 1,
+  "preflight": {
+    "status": "PASS",
+    "category": "verified"
+  },
+  "parameters": {
+    "max_completion_tokens": 4096
+  },
+  "basic_scenario_version": 3,
+  "status": "FAIL",
+  "basic_status": "FAIL",
+  "command": "cpar-batch-c-live.py --new-build run",
+  "environment": {
+    "platform": "linux",
+    "python": "3.12.3"
+  },
+  "tool_sha256": "c6587ea4695fd9802742f5c83ccd6317529ad2ad2f7c0a1e5cf310ec8ec8aef4",
+  "legacy_runner_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f"
+}

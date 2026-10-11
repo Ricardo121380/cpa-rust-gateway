@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T03:00:22.630422+00:00",
+  "owned_combination_directories_present": {
+    "responses-json": false,
+    "responses-sse": true,
+    "chat-json": true,
+    "chat-sse": false,
+    "messages-json": false,
+    "messages-sse": false
+  },
+  "budget_stopped": true,
+  "combinations": {
+    "responses-sse": {
+      "pin_status": "PASS",
+      "basic_status": "PASS"
+    },
+    "chat-json": {
+      "pin_status": "PASS",
+      "basic_status": "FAIL"
+    }
+  },
+  "new_pin_intents": 2,
+  "new_basic_intents": 10,
+  "network_audit_unchanged_since_exit": true,
+  "network_audit_sha256": "82daac46db2bd8eb2f951815f9740c7a784cc1b192f9192b443db01da238d8ed",
+  "main_pid": 0,
+  "provider_inference_requests_in_probe": 0,
+  "management_gets_in_probe": 0
+}

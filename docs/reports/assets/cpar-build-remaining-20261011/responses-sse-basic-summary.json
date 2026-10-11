@@ -1,0 +1,695 @@
+{
+  "combination": "responses-sse",
+  "status": "PASS",
+  "basic_intents": 9,
+  "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "formal_tool_sha256": "c6587ea4695fd9802742f5c83ccd6317529ad2ad2f7c0a1e5cf310ec8ec8aef4",
+  "formal_entry_sha256": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+  "formal_entry_exit": 2,
+  "formal_audit_status": "NOT_RUN",
+  "observed_response_count": 9,
+  "checks": [
+    {
+      "case": "text_multi_turn",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "af4735be95bae5d5a0325df9ebbead2eb2d57b4cab5bb5a2dc4a0ce456d1cb58",
+          "native_usage": {
+            "native": {
+              "input_tokens": 229,
+              "output_tokens": 156,
+              "total_tokens": 385,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 155
+            },
+            "source": {
+              "input_tokens": 229,
+              "output_tokens": 156,
+              "reasoning_tokens": 155,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:50:26.168928+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "ebcf768a61adab2be453503dcd5ea2efe90699d861ae010aa4f21fea755b13db",
+          "attempt_evidence_ids": [
+            "91baabae1210134669e883b5128dce662c2eb27aca7d27cdb5d97ae2b623b2b2"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "88cabc54d4fd43c17e8f3e276d0eceb7ed3bc202dca91e9cebed6720342b0094",
+          "native_usage": {
+            "native": {
+              "input_tokens": 244,
+              "output_tokens": 112,
+              "total_tokens": 356,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 94
+            },
+            "source": {
+              "input_tokens": 244,
+              "output_tokens": 112,
+              "reasoning_tokens": 94,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:50:30.436092+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "549ab5abb39404138988f85218746a9de7c880156a26e365311e72ac302ee851",
+          "attempt_evidence_ids": [
+            "6e4afa156645ebe55400156e332dec30aefac889ecf2486b6ec518ea4ee0de35"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 3,
+          "response_evidence_id": "02855144b0deed51b4f8129ca4492a5c9f7dccae47927419de07444dad836537",
+          "native_usage": {
+            "native": {
+              "input_tokens": 276,
+              "output_tokens": 195,
+              "total_tokens": 471,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 177
+            },
+            "source": {
+              "input_tokens": 276,
+              "output_tokens": 195,
+              "reasoning_tokens": 177,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:50:36.461116+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "a874b1c8d170a17bfa33d2eecf5e0ada1cb4d5b1192e015342cfd73a07b99b08",
+          "attempt_evidence_ids": [
+            "73d5f21c8847a38a85928571f89fa466a1750275ede15a29523b7516e94ab382"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "single_tool",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "47c087e8744d3e384527dbdea8b9f3cf656a965e5a4807cccecfb94b487bb1b6",
+          "native_usage": {
+            "native": {
+              "input_tokens": 303,
+              "output_tokens": 163,
+              "total_tokens": 466,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 154
+            },
+            "source": {
+              "input_tokens": 303,
+              "output_tokens": 163,
+              "reasoning_tokens": 154,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:50:44.546268+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "36395ec0b035ac39f078bca2ef12d851b24ec1d50a51448ab20503c241d44453",
+          "attempt_evidence_ids": [
+            "69ff83c19f8ce8abc13372240b18556cd0bc5b6161ac95eb6505cdf964ec72ea"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "931757f8d91fc0677ce0b8063cb72bcf83459f542221314d3ab258c206fa6c45",
+          "native_usage": {
+            "native": {
+              "input_tokens": 361,
+              "output_tokens": 18,
+              "total_tokens": 379,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 256,
+              "reasoning_tokens": 0
+            },
+            "source": {
+              "input_tokens": 361,
+              "output_tokens": 18,
+              "reasoning_tokens": 0,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 256,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:50:47.906858+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "aa62c2c83b88cec2939df63a83c8e258fdd8ed7b55e2af50925e56ea0f39cf96",
+          "attempt_evidence_ids": [
+            "619d54893e46d7361e9baff7d707a68844fdc0e194ee8a593f83c5235726203d"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "two_tool_cycles",
+      "status": "PASS",
+      "category": "verified",
+      "turns": [
+        {
+          "round": 1,
+          "response_evidence_id": "279ff51c77aaa8659caee0f93e49aeed561e2ace7831018dd88b4a30dc66b98d",
+          "native_usage": {
+            "native": {
+              "input_tokens": 327,
+              "output_tokens": 151,
+              "total_tokens": 478,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 150
+            },
+            "source": {
+              "input_tokens": 327,
+              "output_tokens": 151,
+              "reasoning_tokens": 150,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:50:52.964607+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "f12e89eff55e0eb9ff41cc978d3e4b3008123b170c34987d740274fa8972580e",
+          "attempt_evidence_ids": [
+            "08a03af9d5bf4f1f41ccba026ff7ea9adb888fd88f5dda51fa69f8b64cdc7f63"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 2,
+          "response_evidence_id": "3207b040ae2c3ab684800a47900ecded17aa4ee58de695c2a7ae4c4aeae1ac96",
+          "native_usage": {
+            "native": {
+              "input_tokens": 334,
+              "output_tokens": 132,
+              "total_tokens": 466,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 256,
+              "reasoning_tokens": 123
+            },
+            "source": {
+              "input_tokens": 334,
+              "output_tokens": 132,
+              "reasoning_tokens": 123,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 256,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:50:59.029167+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "09a89f7a5bb673750b958b1480f11025ceeea20cdc4c84088f18c527dc54009e",
+          "attempt_evidence_ids": [
+            "477106615e45db079ba648e4ec14459a60b39ac9c03ea3ec8688e3e0e802fb0e"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 3,
+          "response_evidence_id": "1db85866b09bd2effd589e960f89d53bf0c9a63060c7c11611286c12ab2c37cb",
+          "native_usage": {
+            "native": {
+              "input_tokens": 360,
+              "output_tokens": 54,
+              "total_tokens": 414,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 256,
+              "reasoning_tokens": 45
+            },
+            "source": {
+              "input_tokens": 360,
+              "output_tokens": 54,
+              "reasoning_tokens": 45,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 256,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 1,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:51:03.281645+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "4cb3bd76a8a0e630eba6867f5c022ab62b70cf365ccc98f4ffd75e9b3b3dbf09",
+          "attempt_evidence_ids": [
+            "75ed29d6546d5ca0215067a82715c15b5ecff8c755d9208e4b384c2b84e3ad74"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        },
+        {
+          "round": 4,
+          "response_evidence_id": "22f7e9105e636b13f4978872e826a62474fe86fa0dd0e2ac806687af8c42da1a",
+          "native_usage": {
+            "native": {
+              "input_tokens": 418,
+              "output_tokens": 192,
+              "total_tokens": 610,
+              "cache_read_input_tokens": null,
+              "cache_creation_input_tokens": null,
+              "cached_tokens": 128,
+              "reasoning_tokens": 174
+            },
+            "source": {
+              "input_tokens": 418,
+              "output_tokens": 192,
+              "reasoning_tokens": 174,
+              "cache_read_tokens": null,
+              "cache_creation_tokens": null,
+              "cached_tokens": 128,
+              "provenance": "measured",
+              "input_accounting": "inclusive"
+            }
+          },
+          "tool_call_count": 0,
+          "runtime": {
+            "method": "proc_executable",
+            "instance": "instance-20260726-2136",
+            "pid": 2992034,
+            "process_start": "661359016",
+            "observed_at_utc": "2026-10-11T02:51:08.940511+00:00",
+            "artifact_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+            "artifact_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+            "stable_process": true,
+            "manifest_sha256": null,
+            "manifest_matches": null
+          },
+          "request_evidence_id": "c834027d2d0bb5aec4e65f93c74d993d02c95f2810a0ae079f1f56d5c86ec73e",
+          "attempt_evidence_ids": [
+            "548929a160e305640e1e782fe0988b6f759c251ea106a4ef070772722430afe8"
+          ],
+          "attempt_count": 1,
+          "ledger_rows": 1,
+          "usage_rows": 1
+        }
+      ]
+    },
+    {
+      "case": "cancel_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_before_send",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "cancel_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "error",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "no_retry_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "retry_before_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_after_output",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "timeout_bootstrap",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "case": "truncation",
+      "status": "NOT_RUN",
+      "category": "controlled_boundary_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "compact_foreign_owner",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "compact_lineage_rejection",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "compact",
+      "case": "compact_roundtrip",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "continuation",
+      "case": "exact_continuation",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "continuation",
+      "case": "lineage_rejection",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "parallel",
+      "case": "declaration",
+      "declared": false,
+      "applicable": false,
+      "status": "NOT_RUN",
+      "category": "explicitly_not_declared"
+    },
+    {
+      "extension": "reasoning",
+      "case": "reasoning_history",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "reasoning",
+      "case": "visible_reasoning",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "deleted_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "expired_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "foreign_owner",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "persistence_failure",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "restart_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "stored",
+      "case": "store_read",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_cancel",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_failed_root",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_handshake_rejection",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    },
+    {
+      "extension": "websocket",
+      "case": "ws_multiturn",
+      "declared": true,
+      "applicable": true,
+      "status": "NOT_RUN",
+      "category": "declared_extension_sample_required"
+    }
+  ],
+  "execution_failure": null,
+  "target": {
+    "channel": "grok.build",
+    "endpoint_id": "cpar-build-endpoint",
+    "route_id": "cpar-build-route",
+    "route_candidate_id": "cpar-build-candidate",
+    "upstream_model": "grok-4.5",
+    "public_model": "grok-4.5",
+    "response_model": "grok-4.5",
+    "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "credential_revision": 136,
+    "config_version_id": "cpar-build-config-20261010",
+    "config_revision": 9,
+    "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+    "egress_revision": {
+      "source": "not_applicable"
+    },
+    "protocol": "responses",
+    "mode": "sse",
+    "parameters": {
+      "max_output_tokens": 4096
+    },
+    "capabilities": {
+      "compact": true,
+      "continuation": true,
+      "parallel": false,
+      "reasoning": true,
+      "stored": true,
+      "websocket": true
+    },
+    "declaration_evidence": {
+      "source": "serving_snapshot",
+      "config_version_id": "cpar-build-config-20261010",
+      "config_revision": 9,
+      "capabilities": {
+        "reasoning": true,
+        "parallel": false,
+        "stored": true,
+        "continuation": true,
+        "compact": true,
+        "websocket": true
+      },
+      "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+      "projection_id": "1f0c71daf1fca2110e297448155f255a5c5c24c24d6c51d83c1d060741cb780d",
+      "observed_at_utc": "2026-10-11T02:50:07.947000+00:00",
+      "route_id": "cpar-build-route",
+      "route_candidate_id": "cpar-build-candidate",
+      "endpoint_id": "cpar-build-endpoint",
+      "upstream_model": "grok-4.5"
+    },
+    "declaration_observed_at_utc": "2026-10-11T02:50:07.947000+00:00"
+  },
+  "private_wire_sha256": "15c94fce386518265ed13c407f415e5220021fdb452426586120e6f34891df03",
+  "collector": "unchanged formal REMOTE_READ/REMOTE_COLLECT; local authorized-host subprocess; one 2s billing settling delay",
+  "observed_at_utc": "2026-10-11T02:51:08.994907+00:00",
+  "new_pin_intents_total": 1,
+  "new_basic_intents_total": 9
+}

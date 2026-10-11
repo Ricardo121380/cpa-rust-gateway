@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "mode": "docs",
+  "passed": 7,
+  "failed": 0,
+  "started_at_utc": "2026-10-11T03:05:36Z",
+  "completed_at_utc": "2026-10-11T03:06:41Z",
+  "report_sha256": "733fbb32d32d9dcfd7515ee4a9342c432e0bbd4cd63674d2b751ef0a66a4825d",
+  "log_sha256": "278323822df128c6b8d9c64dea8d18c6b4da2e8a5a740dc2c7b6827257d1792b",
+  "steps": [
+    "Document links",
+    "Contract tests",
+    "Plan state",
+    "Canary thresholds",
+    "Caddy split",
+    "Tracked secret scan",
+    "Git whitespace"
+  ],
+  "reviewed_code_head": "dbfb977ac24e825a43c73f6317576a8604b8bd86",
+  "code_changes_after_dual_pass": 0
+}

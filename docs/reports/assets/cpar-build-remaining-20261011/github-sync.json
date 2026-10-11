@@ -1,0 +1,6 @@
+{
+  "status": "PENDING",
+  "repository": "Ricardo121380/cpa-rust-gateway",
+  "scope": "append sanitized batch result to existing progress comments #47/#57/#9; preserve history, issue metadata and dependencies; keep OPEN",
+  "remote_mutations_completed": 0
+}

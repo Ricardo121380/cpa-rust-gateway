@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-11T02:54:21.124319+00:00",
+  "production_pid": 499070,
+  "production_process_start": "551409035",
+  "listening": [
+    {
+      "family": "tcp",
+      "local_address": "0100007F:4704",
+      "port": 18180,
+      "production_pid_owns_socket": true
+    },
+    {
+      "family": "tcp",
+      "local_address": "0100007F:4705",
+      "port": 18181,
+      "production_pid_owns_socket": true
+    }
+  ],
+  "temporary_ports_listening": [],
+  "temporary_pid": 0,
+  "production_ports_and_owner_unchanged": true,
+  "failed_request_candidates": 1,
+  "failed_request": {
+    "correlation": "unique send-time window; HTTP response has no x-request-id",
+    "wire_request_id_present": false,
+    "request_evidence_id": "b46dc578d8853dce550b2a7579cf7e79fa5f43e91b58076156eaf54db4f8f73a",
+    "event_types": [
+      "request",
+      "request_finished"
+    ],
+    "protocol": "openai_chat_completions",
+    "streaming": false,
+    "requested_model": "grok-4.5",
+    "outcome": "failed",
+    "error_code": "ClientRequestError",
+    "started_at_ms": 1791687096006,
+    "finished_at_ms": 1791687096010,
+    "duration_ms": 4,
+    "attempt_count": 0,
+    "usage_count": 0
+  },
+  "inference_counts": {
+    "new_pin_confirmed_sends": 2,
+    "new_basic_attempts": 9,
+    "new_basic_http_intents": 10,
+    "new_inference_budget_intents": 12,
+    "historical_inference_requests": 21,
+    "cumulative_inference_budget_intents": 33,
+    "cumulative_gateway_confirmed_inference_attempts": 32,
+    "independent_provider_receive_count": "UNKNOWN",
+    "actual_provider_cost": "UNKNOWN"
+  }
+}

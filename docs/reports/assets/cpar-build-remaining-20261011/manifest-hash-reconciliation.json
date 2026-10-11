@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "manifest_file_sha256": "20ef11961ca40d4dd659ae278c1e7ee629f9f70319f4a4b006d2d8685a5c9777",
+  "manifest_canonical_object_sha256": "ffaea62e61fa3c974d2e4a212556249ac2db10963657db9d078eb7e151de7d14",
+  "file_source": "same protected epoch artifact-manifest.json",
+  "file_hash_used_by": "remote-start.py/start-receipt.json",
+  "canonical_object_hash_used_by": "formal bind_manifest; responses-sse-audit/runtime and frozen Pin",
+  "algorithm": "SHA256(json.dumps(manifest, sort_keys=True, separators=(comma,colon), ensure_ascii=False).encode())",
+  "artifact_source_sha": "1b6023f52f4c00ea6d8296524d306c141e4edae7",
+  "artifact_binary_sha256": "ea89d5c72628a871f7683f32d0b51a76dc9c588f7172c86345d1c989f1bd9063",
+  "manifest_matches": true,
+  "provider_requests": 0
+}
