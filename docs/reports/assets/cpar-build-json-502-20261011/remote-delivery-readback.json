@@ -1,0 +1,38 @@
+{
+  "status": "PASS; read-only final exit readback",
+  "observed_at_utc": "2026-10-11T13:19:55.808200+00:00",
+  "unit_state": {
+    "MainPID": "0",
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead"
+  },
+  "temporary_ports": [],
+  "competing_processes": [],
+  "audit_absent_and_flat_seconds": 5,
+  "native_capture_files": 0,
+  "new_pin_intents": 0,
+  "new_chat_intents": 0,
+  "budget_stopped": true,
+  "new_event_and_ledger_rows": 0,
+  "source_writes": 0,
+  "private_file_count": 29,
+  "private_directory_count": 4,
+  "private_modes": "0700/0600; no symlinks",
+  "historical_frozen_files_unchanged": 334,
+  "uploaded_payloads_unchanged": 14,
+  "uploaded_driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+  "repaired_driver_uploaded": false,
+  "production_runtime_identity_unchanged": true,
+  "production_active_config_verified_at_exit": [
+    {
+      "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+      "revision": "rev-1",
+      "status": "active"
+    }
+  ],
+  "provider_inference_intents": 0,
+  "provider_independent_receive_count": "UNKNOWN",
+  "actual_provider_cost": "UNKNOWN",
+  "executed_readonly_script_sha256": "175922febf6fcaa7268c280d46147912e70d5f2d5275f52ac0b19d0e68d40a32"
+}
