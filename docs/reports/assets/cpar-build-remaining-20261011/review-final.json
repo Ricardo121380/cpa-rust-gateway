@@ -1,0 +1,51 @@
+{
+  "schema": "cpar-build-review-v1",
+  "base": "2d66f892a0e507becbf9d2bd1f0142a64d16fd4a",
+  "head": "bb30f04839abb566aa8d11dd950280f7deaa70d1",
+  "scope_paths": 92,
+  "standards": {
+    "status": "PASS",
+    "completion": "complete",
+    "hard_findings": 0,
+    "smells": 0,
+    "agent": "/root/acceptance_standards_execution"
+  },
+  "spec": {
+    "status": "PASS",
+    "completion": "complete",
+    "findings": 0,
+    "agent": "/root/acceptance_spec_execution",
+    "independent_raw_success_bundles": 19,
+    "independent_raw_bundle_hashes": 30
+  },
+  "reuse": {
+    "unchanged_paths": 77,
+    "reviewed_changed_code_paths": 5,
+    "reviewed_new_assets": 10
+  },
+  "closed_findings": [
+    "resource_actual_raw_sequence",
+    "successful_ws_origin",
+    "delete_empty_204",
+    "compact_extra_output_and_plaintext",
+    "ws_wrong_route",
+    "compact_fail_stop_before_consume",
+    "delete_numeric_true",
+    "compact_incomplete_terminal"
+  ],
+  "local_validation": {
+    "unit": {
+      "passed": 50,
+      "failed": 0
+    },
+    "public_checks": {
+      "passed": 354,
+      "failed": 0
+    },
+    "cli_runs": 40,
+    "synthetic_upstream_receives": 52,
+    "layer": "LOCAL_SIMULATED"
+  },
+  "whole_issues_status": "PARTIAL",
+  "real_provider_requests": 0
+}

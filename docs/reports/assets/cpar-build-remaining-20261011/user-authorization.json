@@ -1,0 +1,40 @@
+{
+  "status": "APPROVED",
+  "basis": "user_explicit",
+  "authorization_date": "2026-10-11",
+  "combinations": [
+    "responses-sse",
+    "chat-json",
+    "chat-sse",
+    "messages-json",
+    "messages-sse"
+  ],
+  "max_new_pin": 5,
+  "max_new_basic": 45,
+  "max_new_inference_requests": 50,
+  "historical_expected": 21,
+  "cumulative_ceiling_if_start_matches": 71,
+  "max_attempts": 1,
+  "allow_retry": false,
+  "allow_fallback": false,
+  "first_failure_unknown_or_contradiction_stops_whole_batch": true,
+  "real_extensions_authorized": false,
+  "model": "grok-4.5",
+  "account_source": "existing approved same grant; no active refresh or reauthorization",
+  "temporary_unit": "cpar-build-acceptance-20261010.service",
+  "loopback_ports": [
+    19180,
+    19181
+  ],
+  "cost_policy": "UNLIMITED_USER_EXPLICIT",
+  "cost_policy_inherited_from": "../cpar-build-batch-20261011/user-authorization.json",
+  "cost_policy_evidence_sha256": "c979508e082696b2178677f0179ab0fc73e5c01f24b467f3e0befb04ef7480bf",
+  "github_authorized_issues": [
+    47,
+    57,
+    9
+  ],
+  "push_authorized": false,
+  "production_changes_authorized": false,
+  "raw_user_excerpt": "每个组合最多新 Pin 1 次、基础请求 9 次；本轮合计最多 5 Pin＋45 基础＝50 次新增推理；这是一批新的授权，不是续用旧失败批次余量；费用沿用既有明确批准的政策；首个真实失败、未知结果或证据矛盾立即停止全批。"
+}
