@@ -1,0 +1,93 @@
+{
+  "batch_base": "5a7826e806a04b3d403b1b1c0eef00a2b686ff32",
+  "prior_complete_review_target": "74de66f3ff95ec78364c01d231b9617f482d5353",
+  "delivery_review_target": "2f109bdd9a6a92161f5746c343fa1123b2acdb86",
+  "scope": {
+    "prior_complete_paths": 141,
+    "delivery_delta_paths": 14,
+    "overlap_paths": 4,
+    "whole_batch_reviewed_paths": 151,
+    "union_exact": true,
+    "whole_changed_paths_canonical_sha256": "1983b4a904b9b3ca63e179cfae53516ead68452a91cf1e1672642e23034ab9cc",
+    "whole_changed_paths_encoding": "UTF-8 JSON array, sorted paths, ensure_ascii=false, separators=[comma,colon]",
+    "delivery_manifest_local_path": "output/cpar-build-json-502-20261011/review-delivery-paths.json",
+    "delivery_manifest_file_sha256": "7c2ec98076d247998da43e710007763a67cedaa2f0319631c58be3501a989860"
+  },
+  "standards": {
+    "status": "COMPLETE PASS",
+    "actionable_findings": 0,
+    "ops_reviewer": "/root/delivery_standards_ops",
+    "ops_full_files": 6,
+    "ops_full_lines": 263,
+    "ops_all_hunks": 10,
+    "ops_linked_log_archives_verified": 7,
+    "github_reviewer": "/root/delivery_standards_github",
+    "github_full_files": 8,
+    "github_full_lines": 476,
+    "github_all_hunks": 8,
+    "github_exact_schema_assertions": "36/36 PASS",
+    "partition_union": "disjoint6+8=14, exact delivery delta; both read all four commit logs",
+    "rule_source": "current disk AGENTS.md83 lines, quality-gates.md45 lines, issue-tracker.md62 lines, batch-contract.md82 lines; current untracked issue-tracker retained",
+    "user_agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+  },
+  "spec": {
+    "status": "COMPLETE PASS",
+    "actionable_findings": 0,
+    "reviewer": "/root/delivery_spec",
+    "full_files": 14,
+    "all_hunks_and_four_commit_logs_read": true,
+    "exact_prefix_append_payload_patch_response_immediate_get_final_get": "PASS for three comments, UTF-8 hashes/lengths/character counts",
+    "archive_file_hashes_verified": 18,
+    "protected_issue_projection_hashes_verified": 3,
+    "dependency_rows_verified": 31,
+    "production_exit_and_delivery_scope_checked": true,
+    "colima_initial_final_six_fields_checked": true
+  },
+  "prior_review_attempts_preserved": [
+    {
+      "reviewer": "/root/delivery_standards",
+      "status": "BLOCKED",
+      "full_files": 0,
+      "reason": "reviewer used git show for existing untracked issue-tracker rules; no batch text read; not a product finding"
+    },
+    {
+      "reviewer": "/root/delivery_standards_disk_rules",
+      "status": "INTERRUPTED_WITHOUT_FINAL_VERDICT",
+      "coverage": "UNKNOWN; no terminal review returned after narrowing request",
+      "used_as_pass_evidence": false
+    }
+  ],
+  "unchanged_source_qualification": {
+    "product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "frozen_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+    "executed_driver_source_sha": "38504a1eabeaacfcb548e23de7a61a545351b35b",
+    "product_build_and_qualification_driver_bytes_unchanged": true,
+    "task": "42/42 PASS",
+    "phase": "45/45 PASS",
+    "rust_each_gate": "1510 passed,0 failed,12 ignored",
+    "diagnostic": "18/18 PASS",
+    "oracle": "54/54 PASS",
+    "phase_duplicate_dependency_warnings_retained": 14,
+    "repaired_driver_remote_execution": "NOT_RUN; never uploaded",
+    "actual_new_lease_and_pin": "NOT_ESTABLISHED"
+  },
+  "real_diagnostic": {
+    "status": "BLOCKED_BEFORE_LAUNCH",
+    "new_inference_intents": 0,
+    "new_confirmed_sends": 0,
+    "historical_intents": 35,
+    "historical_confirmed_sends": 34,
+    "provider_independent_receive_count": "UNKNOWN",
+    "actual_provider_cost": "UNKNOWN",
+    "old_remaining58_and_new_unused2": "TERMINATED; not reusable",
+    "old_chat_json_502_root_cause": "UNKNOWN",
+    "new_native_response_sample": "NONE",
+    "full_six_matrix": "NOT_RUN"
+  },
+  "github_delivery": "PASS; exact three body-only PATCHes to existing progress comments; independent GETs; historical prefixes, issue AC/protected metadata and31 dependencies unchanged;47/57/9 OPEN",
+  "exit_evidence": "NOT_STARTED_VERIFIED; no ports/competing process/audit growth;334 historical and14 uploaded payload hashes unchanged;29 private files/4 directories0600/0700; production runtime identity unchanged; Colima two profiles Stopped",
+  "remote_ci_release_deployment_production_acceptance": "NOT_RUN",
+  "initial_fail_raw_limitation": "initial runner aggregate raw overwritten; excerpt only; final complete PASS logs retained",
+  "archive_boundary": "immutable independent review covers151 paths at2f109bdd; this generated verdict receipt and the report link are primary-agent summaries of those terminal reviews, outside that immutable target; no new code, candidate, remote action or qualification",
+  "reviewer_limits": "read-only local source/diffs and explicitly bound sanitized archives; no new GH/SSH/Provider/systemd/live Colima checks, no credential/private native read, no gate rerun or old141 content reread"
+}
