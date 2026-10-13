@@ -1,0 +1,35 @@
+{
+  "status": "PASS; terminal local static checks",
+  "created_at_utc": "2026-10-13T04:27:14.363771+00:00",
+  "reviewed_source": "d39fc9aec4744d5760afff23c65ebf3c621903e7",
+  "terminal_delta": "review receipts, exact GitHub independent readback receipt, main-report completion paragraph only",
+  "reviewed_behavior_assets_unchanged_after_two_axis_review": true,
+  "main_report_completion_links_exist": true,
+  "new_json_valid": true,
+  "diff_check": "PASS",
+  "original_stage_sha256": "2d67d9c5f86e5d36babbe44ee0b9c9081135943fe2ef6ce9483c4be3be4b976e",
+  "original_freeze_sha256": "c30d2688d0b182f4a97d3a30216e0b7421ff8c0a6a360d6c71eeb145b8ec4545",
+  "original_upload_tar_sha256": "b051aea8b6b93ac520a36e6d99c5d6b125a2b741d0e2e4cc2e84511f126420c4",
+  "original_stopped_state_unchanged": true,
+  "observations": 1,
+  "formal_actions": [],
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "user_agents_unchanged_and_unstaged": true,
+  "private_directories_checked": 7,
+  "private_files_checked": 174,
+  "private_modes": "all owned directories0700 and regular files0600; no symlinks",
+  "owned_private_mode_corrections": [
+    {
+      "kind": "file",
+      "previous_mode": "0o644"
+    },
+    {
+      "kind": "file",
+      "previous_mode": "0o644"
+    }
+  ],
+  "remote_or_historical_permissions_changed": false,
+  "github_sync": "PASS; existing progress3, independent GET9, all issues OPEN",
+  "repeated_full_tests_or_build": "NOT_RUN; no new behavior or build input changes",
+  "actual_start_pin_chat": "NOT_RUN; stopped batch not reopened"
+}
