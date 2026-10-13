@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "steps": 7,
+  "source_sha": "d9092108e1c2f38572b05d21ea1471f21b44b193",
+  "report": "docs-gate-pre-execution.md",
+  "raw_log_sha256": "ef80f379cf45c87a86c1c4a1186cdb4e8f5d7cb33f580895acd17493606106dc",
+  "gzip_sha256": "fc806c19160ed2840e5affbcd7b31c72c58ba69c7f9bd794b06f1cb386c0ef21",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "new_product_builds": 0,
+  "dependency_installs": 0,
+  "unchanged_full_gates": "Task42/42 Phase45/45 reused with identical source/full-log hashes"
+}
