@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "reviewer": "/root/frozen_bytes_verifier",
+  "read_only": true,
+  "scope": "Remaining frozen bytes and historical originals only; no behavior or Standards/Spec review",
+  "public_private_freeze_equal": true,
+  "payload_freeze_sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
+  "payload_files": {
+    "matched": 16,
+    "expected": 16
+  },
+  "tar": {
+    "members": 17,
+    "matched_bytes": 17,
+    "expected": 17,
+    "sha256": "cd1de2ff68f153a58a29be52e9098ad59910e7252784f0ad6930a27f4de7e590",
+    "bytes": 19824640,
+    "extra_or_duplicate": 0
+  },
+  "local_tools": {
+    "matched": 3,
+    "expected": 3
+  },
+  "historical_originals": {
+    "sha_matched": 3,
+    "payload_byte_equal": 3,
+    "manifest_rows_verified": 2,
+    "manifest_relative_path_note": "Historical binary row relative location is not the explicit reuse binary original path; basename, actual bytes and hash binding verified; no path relocation attempted"
+  },
+  "task_phase": {
+    "gzip_sha_matched": 2,
+    "raw_sha_matched": 2
+  },
+  "prior_reviews": {
+    "sha_matched": 2
+  },
+  "tests_builds_remote_operations": 0
+}

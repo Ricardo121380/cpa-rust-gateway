@@ -1,0 +1,46 @@
+{
+  "base": "9b6d70615d7507114aeab0007b34ea9db81d6182",
+  "target": "f06fbcdb3ddc2462503640ce2e8798d802677123",
+  "completed_at_utc": "2026-10-13T06:03:38.611186+00:00",
+  "coverage": {
+    "full_initial_objects": 52,
+    "new_or_changed_full_text": 4,
+    "unchanged_objects_byte_bound": 50,
+    "cumulative_objects": 54,
+    "gzip_full_text": 18,
+    "method": "Cumulative complete independent review plus byte-identical coverage reuse, not a spot check"
+  },
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "completion_basis": [
+        "/root/preparation_standards_final: full 52 objects and 18 gzip; one document finding, all frozen original bindings PASS",
+        "/root/preparation_standards_closure: full four changed objects and all hunks; 50 byte-identical original coverage reused; sole document finding CLOSED; no new hard or heuristic findings",
+        "/root/frozen_bytes_verifier: remaining supplementary byte checks all PASS; 16/17/3 plus historical originals and gates"
+      ],
+      "hard_findings": 0,
+      "heuristic_findings": 0,
+      "aggregation": "Main agent combines the independent complete scope and independent closure evidence; historical FAIL/PARTIAL statuses preserved, not rewritten"
+    },
+    "Spec": {
+      "status": "PASS",
+      "reviewer": "/root/preparation_spec_closure",
+      "missing": 0,
+      "partial": 0,
+      "wrongbehavior": 0,
+      "extra": 0
+    }
+  },
+  "payload_freeze_sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
+  "product_inputs_changed": false,
+  "product_builds": 0,
+  "product_full_reruns": 0,
+  "real": "NOT_RUN",
+  "qualification_authority": "none; separate fresh read-only observation and prepare gate required",
+  "historical_receipts_preserved": [
+    "review-preparation-first.json",
+    "review-preparation-second.json",
+    "review-preparation-third.json",
+    "review-preparation-closure.json"
+  ]
+}
