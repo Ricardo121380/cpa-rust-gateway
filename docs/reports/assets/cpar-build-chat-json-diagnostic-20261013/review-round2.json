@@ -1,0 +1,45 @@
+{
+  "base": "810d210f7217c479ebc1376150fb3a45609b7759",
+  "target": "a56c02fcb57fff26464852b495546dd9d16b1b82",
+  "Standards": {
+    "status": "PASS",
+    "reviewer": "/root/repair_standards",
+    "full_coverage": 37,
+    "delta_coverage": 14,
+    "initial_P2_closed": 2
+  },
+  "Spec": {
+    "status": "FAIL",
+    "control": {
+      "reviewer": "/root/prep_spec_control",
+      "status": "FAIL",
+      "coverage": 8,
+      "findings": [
+        "management startup URLError retry includes HTTP401/403",
+        "missing actual listener PID ownership"
+      ]
+    },
+    "execution": {
+      "reviewer": "/root/prep_spec_execution",
+      "status": "PASS",
+      "coverage": 4
+    },
+    "evidence": {
+      "reviewer": "/root/prep_spec_evidence",
+      "status": "PARTIAL",
+      "file_coverage": 25,
+      "gzip_full": 7,
+      "checks_complete": [
+        "freeze16/16 tar17/17 binary/manifest SHA assembled argv hash",
+        "gate log source/hash",
+        "AGENTS and private permissions"
+      ],
+      "remaining": [
+        "recipe/options binding",
+        "manifest two rows binding",
+        "private GH body/AC/dependencies"
+      ],
+      "reason": "verification helper assumed approved_launch was dict; actual is list; no product failure"
+    }
+  }
+}

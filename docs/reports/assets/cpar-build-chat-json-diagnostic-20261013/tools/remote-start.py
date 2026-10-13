@@ -111,6 +111,23 @@ def temporary_ports():
             if row.split()[3] == '0A' and int(row.split()[1].rsplit(':', 1)[1], 16) in [19180, 19181]]
 
 
+def listener_ports(proc):
+    sockets = {os.readlink(fd) for fd in (proc / 'fd').iterdir()}
+    ports = []
+    for family in ['tcp', 'tcp6']:
+        for row in (proc.parent / 'net' / family).read_text().splitlines()[1:]:
+            fields = row.split()
+            address, port = fields[1].rsplit(':', 1)
+            port = int(port, 16)
+            if fields[3] != '0A' or port not in [19180, 19181]:
+                continue
+            assert family == 'tcp' and address == '0100007F'
+            assert 'socket:[' + fields[9] + ']' in sockets
+            assert port not in ports
+            ports.append(port)
+    return sorted(ports)
+
+
 def process_exists(pid):
     return pathlib.Path('/proc', str(pid)).exists()
 
@@ -146,14 +163,13 @@ try:
     startup_identity = read_owned_identity()
     assert startup_identity is not None
     (epoch / 'startup-process-binding.json').write_text(json.dumps(startup_identity, indent=2) + '\n')
+    proc = pathlib.Path('/proc', str(startup_identity['pid']))
     deadline = time.monotonic() + 30
-    while True:
-        try:
-            versions = get('/admin/config-versions')
-            break
-        except urllib.error.URLError:
-            assert time.monotonic() < deadline
-            time.sleep(.2)
+    # Wait only for kernel listeners; a failed HTTP operation is never retried.
+    while listener_ports(proc) != [19180, 19181]:
+        assert read_owned_identity() == startup_identity and time.monotonic() < deadline
+        time.sleep(.2)
+    versions = get('/admin/config-versions')
     active = [row for row in versions if row['status'] == 'active']
     assert len(active) == 1 and active[0]['id'] == 'cpar-build-config-20261010'
     assert active[0]['revision'].strip('"') == 'rev-9'
@@ -173,11 +189,14 @@ try:
     assert not any(env.get(name) for name in ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy'])
     status = dict(row.split(':', 1) for row in (proc / 'status').read_text().splitlines() if ':' in row)
     assert int(status['CapEff'].strip(), 16) == 4
+    assert listener_ports(proc) == [19180, 19181]
     begin = time.monotonic()
     while time.monotonic() - begin < 65:
         assert int(subprocess.check_output(['systemctl', 'show', unit, '--value', '--property=MainPID'])) == pid
         assert not audit.exists() or audit.stat().st_size == 0
         time.sleep(.5)
+    assert read_owned_identity() == startup_identity
+    assert listener_ports(proc) == [19180, 19181]
     pools = get('/admin/operations/provider-account-pools?limit=100')['items']
     assert len(pools) == 1 and pools[0]['credential_revision'] == prepare['expected_runtime_revision']
     assert pools[0]['runtime_status'] == 'available' and pools[0]['active_leases'] == 0
@@ -213,6 +232,7 @@ try:
         'source_ciphertext_and_all_account_fields_match_except_import_batch': True,
         'source_key_version_match': version, 'expires_at_ms': pools[0]['expires_at_ms'],
         'worker_claim': None, 'guard_sha256': digest(guard), 'guard_mapped': True,
+        'listening_ports': [19180, 19181], 'listener_pid': pid, 'listener_socket_ownership_verified': True,
         'background_provider_tasks': 'disabled', 'flat_observation_seconds': time.monotonic() - begin,
         'new_network_audit_events': 0, 'competing_state_processes': competing,
         'management_audit_unchanged': True, 'management_get_requests': management_gets,

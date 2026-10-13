@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "scope": "actual single management probe and kernel loopback listener ownership; no network/process launch",
+  "red": {
+    "status": "FAIL; both missing startup behaviors reproduced",
+    "tests": 2,
+    "file": "start-red.log.gz",
+    "raw_sha256": "d42db605a2d363fc02bfc30de0e570d9976b326036b640c0ef6a1f86aaa09259",
+    "gzip_sha256": "87e43d991e0133db0f922b35e7c6a39c2e438307ba495c8a0488f764aa4aeb3b"
+  },
+  "green": {
+    "status": "PASS",
+    "tests": 2,
+    "file": "start-green.log.gz",
+    "raw_sha256": "c01b6cf75030cfda6c01df1af44ff8ffe9fbdeaa2333517a2e9e781860447efe",
+    "gzip_sha256": "af03a5a710f2e84281ca08358cafbcc25b98e4637f89ac380abfd9bc33e6de89"
+  },
+  "provider_calls": 0,
+  "remote_actions": 0,
+  "real_ports": "NOT_RUN"
+}
