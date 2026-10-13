@@ -1,0 +1,14 @@
+{
+  "status": "PASS for scoped preservation",
+  "baseline_head": "201dbe2e283b9c07c85b6054779f53f4d368afd2",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_remains_unstaged": true,
+  "initial_dirty_paths_exist": 119,
+  "initial_dirty_paths_missing": 0,
+  "unrelated_tracked_modifications_after_commit": [
+    "AGENTS.md"
+  ],
+  "owned_commit": "8873c7ba25dfa442a1049ea2a890ac8b30fb6ffc",
+  "no_reset_cleanup_broad_add": true,
+  "limits": "all initial dirty paths checked for existence; only AGENTS had a fresh initial content hash; no claim of a new full untracked-tree byte baseline"
+}

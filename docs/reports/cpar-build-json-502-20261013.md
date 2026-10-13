@@ -59,8 +59,10 @@ signature、工具结果、call_id、顺序或历史，没有降低能力声明�
 及[驱动检查](assets/cpar-build-json-502-20261013/driver-local-checks.json)。它们均为
 LOCAL_SIMULATED，真实 Provider 请求0，不能算入六组合验收或精确重放旧响应。
 
-本批新增证据适用 docs 门槛和独立两轴审查；其冻结提交、覆盖与结果将封存在本批
-审查回执。本批复用完整 Task/Phase，不因只有证据变化重做无变化的产品 Full 或构建。
+本批新增证据的 [docs 门槛](assets/cpar-build-json-502-20261013/docs-gate.json)
+在冻结提交 `8873c7ba25dfa442a1049ea2a890ac8b30fb6ffc` 上 **7/7 PASS**。
+独立两轴审查的冻结提交、覆盖与结果将封存在本批审查回执。
+本批复用完整 Task/Phase，不因只有证据变化重做无变化的产品 Full 或构建。
 远端 CI、正式发布、部署和生产验收均 NOT_RUN。
 
 ## 本次资格检查与永久停止
@@ -96,7 +98,7 @@ BLOCKED_BEFORE_PREPARE，本批在本地[永久锁存停止](assets/cpar-build-j
 [独立退出读回](assets/cpar-build-json-502-20261013/remote-exit-final.json)为 PASS：
 NOT_CREATED_VERIFIED；临时 unit MainPID0/not-found，19180/19181无监听或竞争进程，
 本批 epoch/upload/audit 均不存在且5秒保持。旧停止 epoch 保持停止，334个历史冻结文件、
-14个旧上传载荷摘要一致，保护根363个文件在退出窗口字节与权限不变。
+14个旧上传载荷摘要一致，保护根363个文件在退出窗口字节不变，私有树权限不变。
 原诊断 epoch/捕获继续0700/0600、root owner、无symlink。三份更早 bootstrap 回执
 的历史0644权限保留于0700父目录下；没有把它们改写成新捕获权限或修改历史文件。
 
@@ -106,7 +108,7 @@ NOT_CREATED_VERIFIED；临时 unit MainPID0/not-found，19180/19181无监听或�
 确认 default / acceptance 两 profile 为 Stopped，本批没有启动、停止或构建操作。
 
 本批保留操作辅助失败：[失败记录](assets/cpar-build-json-502-20261013/operational-failures.json)。
-首次只读 SSH 缺 sudo，PermissionError 出现在 ownership 读取前；补齐既有 sudo -n 后
+首次只读 SSH 缺 sudo，PermissionError 出现在 ownership 读取时；补齐既有 sudo -n 后
 取得观察。首次退出 wrapper 未正确引用 JSON argv；第二次新 checker 错把三份历史0644
 回执套入全树0600断言。前两份失败回执、原提交脚本精确摘要和真实 stderr 私有文件保留；
 核验随后按已观察历史基线完成，捕获和产品断言未放宽。候选核验器还曾错误查找 manifest
@@ -119,7 +121,9 @@ NOT_CREATED_VERIFIED；临时 unit MainPID0/not-found，19180/19181无监听或�
 [初始三票摘要](assets/cpar-build-json-502-20261013/github-initial-summary.json)。
 只向既有评论追加本次脱敏记录，保留历史前缀、正文/AC、state、元数据及分页依赖，
 写入后独立 GET 核对；写入与读回结果单独封存。三票局部修复不满足整体关闭条件。
-只提交本批拥有证据，用户 AGENTS 与无关文件保留，不 push 或发布/部署。
+只提交本批拥有证据，用户 AGENTS 与无关文件保留，见
+[保存核验](assets/cpar-build-json-502-20261013/workspace-preservation.json)；
+不 push 或发布/部署。
 
 重新开始先需新的明确批次授权，且材料在准备时剩余 **超过60分钟**，并覆盖后续静默
 观察和资格冻结。采用已修复驱动的新自有 epoch/载荷，对新绑定做本地验证及完整两轴

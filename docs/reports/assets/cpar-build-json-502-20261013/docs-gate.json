@@ -1,0 +1,20 @@
+{
+  "source_sha": "8873c7ba25dfa442a1049ea2a890ac8b30fb6ffc",
+  "command": [
+    "./scripts/check.sh",
+    "docs"
+  ],
+  "started_at_utc": "2026-10-13T02:07:55.958764+00:00",
+  "exit_code": 0,
+  "result": "PASS",
+  "step_count": 7,
+  "raw_sha256": "85567e2d5162c8ea6feb589ffab0d4c12ed6f7d34910d4aebccef4ea060c40de",
+  "gzip_sha256": "c4c1ee9c5672bed5a3ec5cc3eb108aecdd588324e59b3f44b8eaec4cb88642de",
+  "task_phase_reused_for_unchanged_code": {
+    "task": "42/42 PASS",
+    "phase": "45/45 PASS",
+    "source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6"
+  },
+  "product_full_rerun": false,
+  "remote_ci": "NOT_RUN"
+}
