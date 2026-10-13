@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "python_ast_count": 20,
+  "source_sha256": {
+    "full-flow-tests.py": "1c068ad16d8a8ef0a5b68086153b5a40d49ca8784fcf6285a36e4c840e2f42db",
+    "launch_recipe.py": "cd89b3f69656fc7b2ad712981d1de9e3e25a1a67af9dd9ae50986c42d2205e01",
+    "linux-system-validation.py": "e7e556b0b4b6ab1ab325c5c3b5a3680bd85bf9f704f5faccc64d70ff80c4408a",
+    "local-control.py": "cdd9b4c322ccd7a74681b32fa5119299d451f3b4371996e6ce61bd9c571f808b",
+    "prepare-local.py": "b5af99fd75f9ec3cb43c57f44fbcd1169f4078ac47807d3d75bed3414d86be8e",
+    "qualification.py": "a7718f86a1b0437a6ed2f076f6e96595f27cf2dc1893f4738d9939316cb30237",
+    "remote-chat.py": "b3e48c2eb05c7d80a5df78254f7da6f965d82005be2a367ec51e9f23b2550c17",
+    "remote-exit.py": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
+    "remote-no-launch-exit.py": "70c42f6111f140965628d2aaa317f3e18f65540590fa2cb05abbbb7406208184",
+    "remote-pin.py": "e427551892b9047dcf40603a497383d8df4f6fd1e70b26812bf54d118ad83b48",
+    "remote-prepare.py": "ee8888611dbd3ca931dea62c3a35b06a4b6e0143eba4fc75989da10a5a3903cd",
+    "remote-readiness.py": "684b8393c756d2752f758719454b6de07b6a5dd99a15dddb53e37e6d8d953d45",
+    "remote-start.py": "9977d3db22660874b55f6942cb6ee6f47c4c4c4d9b6d4332a58a94bddac65390",
+    "remote-upload.py": "66d78ff9dfd1dbc535cf3212ef2f441fcb3c866d67631963b0f05e5dca814e04",
+    "startup_probe.py": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95",
+    "system-control.py": "70472aef06b80a54e92731fabcd30f3d35330b69281d82b312890074fb5e77a5",
+    "system-design-tests.py": "f3c98b87aee732e2b5a7751588ce28a4c38ae29224e4a366f3fa6b0bdf1f9427",
+    "system-readback-initial.py": "a38e9c7ab027308cb0c9835bc4ce3d8ff923c396d0183773a552f9c52026e0d5",
+    "system-readback.py": "ba082258e0544c361e197c564d77636de6cd7e81dd77abf56f4bffe150169135",
+    "system_exit_adapter.py": "9796f171ac307bb9624b4bf1411ee5674f175c8b5185ee3457561445f0396573"
+  },
+  "preserved_prior_files_and_modes": 105,
+  "prior_readback_helper_fail": "retained; exact public projection fixed only in new read-only helper; no frozen system bytes change"
+}

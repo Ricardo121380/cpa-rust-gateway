@@ -1,0 +1,339 @@
+{
+  "command": [
+    "ssh",
+    "-T",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "new-vps",
+    "sudo -n python3 -"
+  ],
+  "remote_script_sha256": "b7c636b83cd3ceffed8e95c22b14ba0d8e9bec959e30f15de41763fe52803a70",
+  "freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+  "run": "C",
+  "remote_exit_code": 0,
+  "stdout_sha256": "e37a58105b109e365d4f48dca4eb8a728f2b98de1d6e9a05297fab1b1a541c15",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "layer": "REAL_LINUX_SYSTEM_SYNTHETIC",
+    "scenario": "management_auth_failure",
+    "run": "C",
+    "formal_account_qualification": "NOT_RUN",
+    "provider_intents": 0,
+    "provider_requests": 0,
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "actual_executable_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "preparation": [
+      {
+        "action": "create",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "validate",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "publish",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "unit": "cpar-linux-final-synthetic-20261013-C.service",
+    "epoch": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/linux-final-synthetic-20261013-C",
+    "freeze": {
+      "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+      "epoch": "linux-final-synthetic-20261013-C",
+      "files": {
+        "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+        "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+        "remote-exit.py": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
+        "system_exit_adapter.py": "9796f171ac307bb9624b4bf1411ee5674f175c8b5185ee3457561445f0396573",
+        "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+        "startup_probe.py": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95"
+      },
+      "assembled_launch_sha256": "1ee2e59d4c9c4d5bd1d3a441fec074d7dcbb693f3813bd7f766b3c6526feea0c",
+      "authority": "REAL_LINUX_SYSTEM_SYNTHETIC; Provider limit zero"
+    },
+    "systemd_version": "systemd 255 (255.4-1ubuntu8.17)",
+    "status": "PASS",
+    "startup_validation_status": "FAIL",
+    "startup_gates": {
+      "exec": "PASS",
+      "identity": "PASS",
+      "listeners": "PASS",
+      "application": "FAIL",
+      "quiet_audit": "UNKNOWN"
+    },
+    "launch": {
+      "status": "RETURNED",
+      "returncode": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout_seconds": 25,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    "failure_reason": "first_management_request_rejected",
+    "preset_negative": true,
+    "resource_exit_status": "PASS",
+    "isolation": {
+      "interfaces": [
+        [
+          1,
+          "lo"
+        ]
+      ],
+      "connect_errno": [
+        101,
+        101
+      ],
+      "network_namespace": "net:[4026533550]",
+      "host_network_namespace": "net:[4026531833]",
+      "private_network": true,
+      "no_external_route_verified": true
+    },
+    "http_statuses": [
+      404
+    ],
+    "flat_observation_seconds": null,
+    "post_stop_flat_seconds": 5,
+    "production_identity_preserved": true,
+    "identity": {
+      "pid": 2654477,
+      "process_start": "683218912",
+      "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+      "argv_sha256": "fcc65dbc7ba2b369549d3701a7038013ec2bd9e035cb85a3dbff4f8ad95f6969",
+      "state_dir": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/linux-final-synthetic-20261013-C/state"
+    },
+    "startup_observations": {
+      "unit": "cpar-linux-final-synthetic-20261013-C.service",
+      "launch": {
+        "status": "RETURNED",
+        "returncode": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 25,
+        "stdout_bytes": 0,
+        "stderr_bytes": 0
+      },
+      "observations": [
+        {
+          "phase": "launch_requested",
+          "utc": "2026-10-13T15:32:01.010941+00:00",
+          "monotonic_seconds": 6832189.113672796
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T15:32:01.097981+00:00",
+          "monotonic_seconds": 6832189.20070015,
+          "systemd": {
+            "Type": "exec",
+            "MainPID": "2654477",
+            "Result": "success",
+            "ExecMainStartTimestampMonotonic": "6832189133137",
+            "ExecMainPID": "2654477",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "ControlGroup": "/system.slice/cpar-linux-final-synthetic-20261013-C.service",
+            "LoadState": "loaded",
+            "ActiveState": "active",
+            "SubState": "running",
+            "ActiveEnterTimestampMonotonic": "6832189167454",
+            "InactiveEnterTimestampMonotonic": "0"
+          },
+          "process": {
+            "pid": 2654477,
+            "process_start": "683218912",
+            "exe_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/linux-final-synthetic-20261013-C/gateway-aarch64-unknown-linux-gnu",
+            "exe_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+            "argv_sha256": "fcc65dbc7ba2b369549d3701a7038013ec2bd9e035cb85a3dbff4f8ad95f6969",
+            "argv_exact_match": true,
+            "state_dir_match": true,
+            "guard_mapped": true,
+            "environment_matches": {
+              "LD_PRELOAD": true,
+              "CPAR_BUILD_EGRESS_AUDIT": true,
+              "CPAR_BUILD_DIAGNOSTIC_DIR": true,
+              "CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256": true,
+              "CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION": true
+            },
+            "proxy_environment_absent": true,
+            "cap_eff": "0000000000000004"
+          },
+          "failure_reasons": []
+        },
+        {
+          "phase": "listeners_ready",
+          "utc": "2026-10-13T15:32:01.151173+00:00",
+          "monotonic_seconds": 6832189.253893315,
+          "ports": [
+            19180,
+            19181
+          ],
+          "pid": 2654477
+        },
+        {
+          "phase": "application_check_started",
+          "utc": "2026-10-13T15:32:01.154762+00:00",
+          "monotonic_seconds": 6832189.25773407
+        },
+        {
+          "phase": "application_rejected",
+          "utc": "2026-10-13T15:32:01.268972+00:00",
+          "monotonic_seconds": 6832189.37169447,
+          "http_status": 404
+        },
+        {
+          "phase": "validation_failed",
+          "utc": "2026-10-13T15:32:01.272883+00:00",
+          "monotonic_seconds": 6832189.375599745,
+          "failure_reason": "first_management_request_rejected",
+          "exception_type": "StartupError"
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T15:32:01.310398+00:00",
+          "monotonic_seconds": 6832189.413116888,
+          "systemd": {
+            "Type": "exec",
+            "MainPID": "2654477",
+            "Result": "success",
+            "ExecMainStartTimestampMonotonic": "6832189133137",
+            "ExecMainPID": "2654477",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "ControlGroup": "/system.slice/cpar-linux-final-synthetic-20261013-C.service",
+            "LoadState": "loaded",
+            "ActiveState": "active",
+            "SubState": "running",
+            "ActiveEnterTimestampMonotonic": "6832189167454",
+            "InactiveEnterTimestampMonotonic": "0"
+          },
+          "process": {
+            "pid": 2654477,
+            "process_start": "683218912",
+            "exe_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/linux-final-synthetic-20261013-C/gateway-aarch64-unknown-linux-gnu",
+            "exe_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+            "argv_sha256": "fcc65dbc7ba2b369549d3701a7038013ec2bd9e035cb85a3dbff4f8ad95f6969",
+            "argv_exact_match": true,
+            "state_dir_match": true,
+            "guard_mapped": true,
+            "environment_matches": {
+              "LD_PRELOAD": true,
+              "CPAR_BUILD_EGRESS_AUDIT": true,
+              "CPAR_BUILD_DIAGNOSTIC_DIR": true,
+              "CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256": true,
+              "CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION": true
+            },
+            "proxy_environment_absent": true,
+            "cap_eff": "0000000000000004"
+          },
+          "failure_reasons": []
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T15:32:01.347995+00:00",
+          "monotonic_seconds": 6832189.450713951,
+          "systemd": {
+            "Type": "exec",
+            "MainPID": "2654477",
+            "Result": "success",
+            "ExecMainStartTimestampMonotonic": "6832189133137",
+            "ExecMainPID": "2654477",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "ControlGroup": "/system.slice/cpar-linux-final-synthetic-20261013-C.service",
+            "LoadState": "loaded",
+            "ActiveState": "active",
+            "SubState": "running",
+            "ActiveEnterTimestampMonotonic": "6832189167454",
+            "InactiveEnterTimestampMonotonic": "0"
+          },
+          "process": {
+            "pid": 2654477,
+            "process_start": "683218912",
+            "exe_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/linux-final-synthetic-20261013-C/gateway-aarch64-unknown-linux-gnu",
+            "exe_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+            "argv_sha256": "fcc65dbc7ba2b369549d3701a7038013ec2bd9e035cb85a3dbff4f8ad95f6969",
+            "argv_exact_match": true,
+            "state_dir_match": true,
+            "guard_mapped": true,
+            "environment_matches": {
+              "LD_PRELOAD": true,
+              "CPAR_BUILD_EGRESS_AUDIT": true,
+              "CPAR_BUILD_DIAGNOSTIC_DIR": true,
+              "CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256": true,
+              "CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION": true
+            },
+            "proxy_environment_absent": true,
+            "cap_eff": "0000000000000004"
+          },
+          "failure_reasons": []
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T15:32:01.394333+00:00",
+          "monotonic_seconds": 6832189.497051813,
+          "systemd": {
+            "Type": "exec",
+            "MainPID": "2654477",
+            "Result": "success",
+            "ExecMainStartTimestampMonotonic": "6832189133137",
+            "ExecMainPID": "2654477",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "ControlGroup": "/system.slice/cpar-linux-final-synthetic-20261013-C.service",
+            "LoadState": "loaded",
+            "ActiveState": "active",
+            "SubState": "running",
+            "ActiveEnterTimestampMonotonic": "6832189167454",
+            "InactiveEnterTimestampMonotonic": "0"
+          },
+          "process": {
+            "pid": 2654477,
+            "process_start": "683218912",
+            "exe_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/linux-final-synthetic-20261013-C/gateway-aarch64-unknown-linux-gnu",
+            "exe_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+            "argv_sha256": "fcc65dbc7ba2b369549d3701a7038013ec2bd9e035cb85a3dbff4f8ad95f6969",
+            "argv_exact_match": true,
+            "state_dir_match": true,
+            "guard_mapped": true,
+            "environment_matches": {
+              "LD_PRELOAD": true,
+              "CPAR_BUILD_EGRESS_AUDIT": true,
+              "CPAR_BUILD_DIAGNOSTIC_DIR": true,
+              "CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256": true,
+              "CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION": true
+            },
+            "proxy_environment_absent": true,
+            "cap_eff": "0000000000000004"
+          },
+          "failure_reasons": []
+        },
+        {
+          "phase": "owned_stop_verified",
+          "utc": "2026-10-13T15:32:01.744107+00:00",
+          "monotonic_seconds": 6832189.846825725,
+          "pid": 2654477,
+          "process_start": "683218912"
+        }
+      ],
+      "gates": {
+        "exec": "PASS",
+        "identity": "PASS",
+        "listeners": "PASS",
+        "application": "FAIL",
+        "quiet_audit": "UNKNOWN"
+      }
+    },
+    "exec_native": null,
+    "synthetic_injection": null,
+    "complete_exit_receipt": null,
+    "audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "real_network_events": 0,
+    "synthetic_audit_events": 0
+  }
+}

@@ -1,0 +1,322 @@
+{
+  "command": [
+    "ssh",
+    "-T",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "new-vps",
+    "sudo -n python3 -"
+  ],
+  "remote_script_sha256": "f3ea740176ee6574a42839e2b7d6ccd8f28b4425c03144402233b094df587369",
+  "freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+  "run": "A",
+  "remote_exit_code": 0,
+  "stdout_sha256": "a95d54679d3e32f29459e322aa4773e3ce6d524d3fdb6587c89e58e8b596eecf",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "layer": "REAL_LINUX_SYSTEM_SYNTHETIC",
+    "scenario": "normal",
+    "run": "A",
+    "formal_account_qualification": "NOT_RUN",
+    "provider_intents": 0,
+    "provider_requests": 0,
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "actual_executable_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "preparation": [
+      {
+        "action": "create",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "validate",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "publish",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "unit": "cpar-linux-final-synthetic-20261013-A.service",
+    "epoch": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/linux-final-synthetic-20261013-A",
+    "freeze": {
+      "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+      "epoch": "linux-final-synthetic-20261013-A",
+      "files": {
+        "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+        "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+        "remote-exit.py": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
+        "system_exit_adapter.py": "9796f171ac307bb9624b4bf1411ee5674f175c8b5185ee3457561445f0396573",
+        "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+        "startup_probe.py": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95"
+      },
+      "assembled_launch_sha256": "3327ed19bfbf968e5215241cff9ef85a399582f9c9dc3a223fdb4fd513608e09",
+      "authority": "REAL_LINUX_SYSTEM_SYNTHETIC; Provider limit zero"
+    },
+    "systemd_version": "systemd 255 (255.4-1ubuntu8.17)",
+    "status": "PASS",
+    "startup_validation_status": "PASS",
+    "startup_gates": {
+      "exec": "PASS",
+      "identity": "PASS",
+      "listeners": "PASS",
+      "application": "PASS",
+      "quiet_audit": "PASS"
+    },
+    "launch": {
+      "status": "RETURNED",
+      "returncode": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout_seconds": 25,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    "failure_reason": null,
+    "preset_negative": false,
+    "resource_exit_status": "PASS",
+    "isolation": {
+      "interfaces": [
+        [
+          1,
+          "lo"
+        ]
+      ],
+      "connect_errno": [
+        101,
+        101
+      ],
+      "network_namespace": "net:[4026533549]",
+      "host_network_namespace": "net:[4026531833]",
+      "private_network": true,
+      "no_external_route_verified": true
+    },
+    "http_statuses": [
+      200
+    ],
+    "flat_observation_seconds": 65.4503982970491,
+    "post_stop_flat_seconds": 5,
+    "production_identity_preserved": true,
+    "identity": {
+      "pid": 2652131,
+      "process_start": "683206288",
+      "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+      "argv_sha256": "b985daae3d778f5b3426dcbe7e666bf2cb119b79636b03506449ea54768250bf",
+      "state_dir": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/linux-final-synthetic-20261013-A/state"
+    },
+    "startup_observations": {
+      "unit": "cpar-linux-final-synthetic-20261013-A.service",
+      "launch": {
+        "status": "RETURNED",
+        "returncode": 0,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 25,
+        "stdout_bytes": 0,
+        "stderr_bytes": 0
+      },
+      "observations": [
+        {
+          "phase": "launch_requested",
+          "utc": "2026-10-13T15:29:54.768734+00:00",
+          "monotonic_seconds": 6832062.871466309
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T15:29:54.855802+00:00",
+          "monotonic_seconds": 6832062.958521063,
+          "systemd": {
+            "Type": "exec",
+            "MainPID": "2652131",
+            "Result": "success",
+            "ExecMainStartTimestampMonotonic": "6832062890114",
+            "ExecMainPID": "2652131",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "ControlGroup": "/system.slice/cpar-linux-final-synthetic-20261013-A.service",
+            "LoadState": "loaded",
+            "ActiveState": "active",
+            "SubState": "running",
+            "ActiveEnterTimestampMonotonic": "6832062923439",
+            "InactiveEnterTimestampMonotonic": "0"
+          },
+          "process": {
+            "pid": 2652131,
+            "process_start": "683206288",
+            "exe_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/linux-final-synthetic-20261013-A/gateway-aarch64-unknown-linux-gnu",
+            "exe_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+            "argv_sha256": "b985daae3d778f5b3426dcbe7e666bf2cb119b79636b03506449ea54768250bf",
+            "argv_exact_match": true,
+            "state_dir_match": true,
+            "guard_mapped": true,
+            "environment_matches": {
+              "LD_PRELOAD": true,
+              "CPAR_BUILD_EGRESS_AUDIT": true,
+              "CPAR_BUILD_DIAGNOSTIC_DIR": true,
+              "CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256": true,
+              "CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION": true
+            },
+            "proxy_environment_absent": true,
+            "cap_eff": "0000000000000004"
+          },
+          "failure_reasons": []
+        },
+        {
+          "phase": "listeners_ready",
+          "utc": "2026-10-13T15:29:54.909073+00:00",
+          "monotonic_seconds": 6832063.011794989,
+          "ports": [
+            19180,
+            19181
+          ],
+          "pid": 2652131
+        },
+        {
+          "phase": "application_check_started",
+          "utc": "2026-10-13T15:29:54.912427+00:00",
+          "monotonic_seconds": 6832063.015401022
+        },
+        {
+          "phase": "synthetic_application_passed",
+          "utc": "2026-10-13T15:29:55.025189+00:00",
+          "monotonic_seconds": 6832063.127911968
+        },
+        {
+          "phase": "quiet_audit_started",
+          "utc": "2026-10-13T15:29:55.029291+00:00",
+          "monotonic_seconds": 6832063.132025846,
+          "required_seconds": 65
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T15:31:00.461851+00:00",
+          "monotonic_seconds": 6832128.564569141,
+          "systemd": {
+            "Type": "exec",
+            "MainPID": "2652131",
+            "Result": "success",
+            "ExecMainStartTimestampMonotonic": "6832062890114",
+            "ExecMainPID": "2652131",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "ControlGroup": "/system.slice/cpar-linux-final-synthetic-20261013-A.service",
+            "LoadState": "loaded",
+            "ActiveState": "active",
+            "SubState": "running",
+            "ActiveEnterTimestampMonotonic": "6832062923439",
+            "InactiveEnterTimestampMonotonic": "0"
+          },
+          "process": {
+            "pid": 2652131,
+            "process_start": "683206288",
+            "exe_path": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/linux-final-synthetic-20261013-A/gateway-aarch64-unknown-linux-gnu",
+            "exe_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+            "argv_sha256": "b985daae3d778f5b3426dcbe7e666bf2cb119b79636b03506449ea54768250bf",
+            "argv_exact_match": true,
+            "state_dir_match": true,
+            "guard_mapped": true,
+            "environment_matches": {
+              "LD_PRELOAD": true,
+              "CPAR_BUILD_EGRESS_AUDIT": true,
+              "CPAR_BUILD_DIAGNOSTIC_DIR": true,
+              "CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256": true,
+              "CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION": true
+            },
+            "proxy_environment_absent": true,
+            "cap_eff": "0000000000000004"
+          },
+          "failure_reasons": []
+        },
+        {
+          "phase": "quiet_audit_passed",
+          "utc": "2026-10-13T15:31:00.476090+00:00",
+          "monotonic_seconds": 6832128.578808431,
+          "elapsed_seconds": 65.44679738394916
+        }
+      ],
+      "gates": {
+        "exec": "PASS",
+        "identity": "PASS",
+        "listeners": "PASS",
+        "application": "PASS",
+        "quiet_audit": "PASS"
+      }
+    },
+    "exec_native": null,
+    "synthetic_injection": null,
+    "complete_exit_receipt": {
+      "status": "PASS; resource exit and count reconciliation",
+      "resource_exit_status": "PASS",
+      "count_reconciliation_status": "PASS",
+      "exit_observations_sha256": "cafa5069bd78ea8ca97ed5952df0cfa20dc6f6d6489d3c922cddbb61797b7398",
+      "stop_intent_sha256": "f9da3b685d1410135147a97f4f0a919cb57ef8fb3e78233770da86e85a459fd7",
+      "observed_at_utc": "2026-10-13T15:31:06.097096+00:00",
+      "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+      "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+      "process_pid_before_stop": 2652131,
+      "main_pid_after_stop": 0,
+      "temporary_ports_listening": [],
+      "post_stop_flat_seconds": 5,
+      "network_audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "network_audit_events": [],
+      "new_pin_intents": 0,
+      "new_basic_intents": 0,
+      "new_pin_actual_sends": 0,
+      "new_pin_confirmed_sends_lower_bound": 0,
+      "pin_send_accounting_complete": true,
+      "new_basic_attempts": 0,
+      "basic_send_accounting_complete": true,
+      "new_basic_confirmed_sends_lower_bound": 0,
+      "new_gateway_pin_confirmed_sends_lower_bound": 0,
+      "new_gateway_pin_actual_sends": 0,
+      "new_event_counts": {},
+      "inherited_event_counts": {},
+      "new_ledger_rows": 0,
+      "all_attempt_outcomes_including_inherited": [],
+      "all_attempt_retry_decisions_including_inherited": [],
+      "billing_including_inherited": [],
+      "budget": {
+        "provider_intent_limit": 0,
+        "provider_intents": 0,
+        "stopped": true,
+        "historical_inference_requests": 35,
+        "historical_gateway_pin_confirmed_sends": 34,
+        "new_pin_intents": 0,
+        "new_basic_intents": 0,
+        "new_inference_limit": 0,
+        "cumulative_inference_limit": 35
+      },
+      "account_native_revision": 0,
+      "worker_claim": null,
+      "production_after": {
+        "MainPID": "499070",
+        "NRestarts": "0",
+        "ExecMainStartTimestampMonotonic": "5514090365162",
+        "ActiveState": "active",
+        "SubState": "running",
+        "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+        "process_start": "551409035",
+        "argv_sha256": "8e9ba655230357c798c3940125e7fe1a69c586c560e3b22404d50be8222186ee",
+        "exe_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+        "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+        "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+        "caddyfile_sha256": "dca3a7a34532447432fae49036bdde3d67412861b3b8bfcf737f62ab7fa2966c"
+      },
+      "production_active_configuration": [],
+      "historical_file_hashes_preserved": true,
+      "provider_http_receive_count": "UNKNOWN; independent Provider receive counter unavailable",
+      "new_provider_calls_in_exit": 0,
+      "management_get_intents_in_exit": 0,
+      "production_configuration_http": "NOT_RUN; synthetic adapter",
+      "private_file_count": 32,
+      "private_inventory_sha256": "303f519984ed0383c306d69323c9fea76500cfadd83acd9e83612c7c67b81fd7"
+    },
+    "audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "real_network_events": 0,
+    "synthetic_audit_events": 0
+  }
+}

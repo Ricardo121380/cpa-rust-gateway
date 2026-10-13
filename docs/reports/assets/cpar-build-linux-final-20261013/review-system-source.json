@@ -1,0 +1,35 @@
+{
+  "scope": "SOURCE_AND_DESIGN_ONLY",
+  "fixed_base": "f03325fb46798219d923da6510876d47f0d34658",
+  "fixed_head": "daad22e1df0ad216f5051050a9b3d25fb68677cc",
+  "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+  "reuse_initial_review": "review-system-initial.json",
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "reviewer": "/root/standards_tail_fix",
+      "hard_findings": 0,
+      "new_findings": 0,
+      "inherited_heuristics": 1
+    },
+    "Spec": {
+      "status": "PASS",
+      "reviewer": "/root/spec_deadline_narrow",
+      "blockers": 0,
+      "scope_creep": 0
+    }
+  },
+  "interrupted_review": {
+    "reviewer": "/root/spec_tail_fix",
+    "status": "PARTIAL_NO_TERMINAL",
+    "reason": "bounded collection request followed by interrupt; never used as PASS"
+  },
+  "linux": "NOT_RUN",
+  "linux_execution_allowed": true,
+  "formal_execution_allowed": false,
+  "private_preflight": {
+    "system_frozen_files": "PASS",
+    "prepared_payload_17_files": "PASS",
+    "old_preserved_files": 105
+  }
+}

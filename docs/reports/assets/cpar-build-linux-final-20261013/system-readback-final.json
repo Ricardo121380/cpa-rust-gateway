@@ -1,0 +1,128 @@
+{
+  "command": [
+    "ssh",
+    "-T",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "new-vps",
+    "sudo",
+    "-n",
+    "python3",
+    "-"
+  ],
+  "remote_exit_code": 0,
+  "script_sha256": "ffddf5fb0eeee6e585886b8a0f2accbd855494e5d6b26f0b992ece4145613fca",
+  "tool_sha256": "ba082258e0544c361e197c564d77636de6cd7e81dd77abf56f4bffe150169135",
+  "stdout_sha256": "281349625b077c61c68ebbe1f2e61c8b71579f3f05638a825653f78c3f510c86",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "status": "PASS",
+    "kind": "READ_ONLY_INDEPENDENT_READBACK",
+    "rows": [
+      {
+        "run": "A",
+        "status": "PASS",
+        "resource_exit_status": "PASS",
+        "unit_state": {
+          "MainPID": "0",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        },
+        "result_sha256": "91b340f299a0d8d233e3f6c252ea9b0a314b44b5b932ac3c3a432cd03a9d36c0",
+        "stop_intent_sha256": "f9da3b685d1410135147a97f4f0a919cb57ef8fb3e78233770da86e85a459fd7",
+        "audit_exists": false,
+        "audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "audit_bytes": 0,
+        "exit_invocation": {
+          "formal_source_sha256": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
+          "adapter_sha256": "9796f171ac307bb9624b4bf1411ee5674f175c8b5185ee3457561445f0396573",
+          "adapted_source_sha256": "5b1d5f32fcf89b5b4d6e79a72868139a496715ca6a2a5323cc563d328067499e",
+          "executed_sha256": "c0ed4f24522284b1d8f037881af229fe93fc98fa780d1d52d14d1152d6363b59",
+          "branch": "complete remote-exit successful-start branch",
+          "provider_authority": 0
+        },
+        "startup_observations_preserved": true
+      },
+      {
+        "run": "B",
+        "status": "PASS",
+        "resource_exit_status": "PASS",
+        "unit_state": {
+          "MainPID": "0",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        },
+        "result_sha256": "91a98a387e65cf50d51f8132b7e05587008fc3aa278a49b5cd074162d0f46ddf",
+        "stop_intent_sha256": "b3229092d4cd28385513674742166cc9c6a69d986164f5f7a21745312537ec03",
+        "audit_exists": false,
+        "audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "audit_bytes": 0,
+        "native_exec_format_messages": [
+          "cpar-linux-final-synthetic-20261013-B.service: Failed to execute /var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/linux-final-synthetic-20261013-B/intentionally-invalid-gateway: Exec format error"
+        ]
+      },
+      {
+        "run": "C",
+        "status": "PASS",
+        "resource_exit_status": "PASS",
+        "unit_state": {
+          "MainPID": "0",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        },
+        "result_sha256": "9876435c5476cab118d4b6a916a4f94382e895d802c0c9f815d46b8a93b125b2",
+        "stop_intent_sha256": "d2e1db37488278a8540be4c131cb9221bacd51a4cf9f8add677ea8bd608b59ce",
+        "audit_exists": false,
+        "audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "audit_bytes": 0,
+        "application": {
+          "http_statuses": [
+            404
+          ],
+          "request_intents": 1
+        }
+      },
+      {
+        "run": "D",
+        "status": "PASS",
+        "resource_exit_status": "PASS",
+        "unit_state": {
+          "MainPID": "0",
+          "LoadState": "not-found",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        },
+        "result_sha256": "2bf50822aea0ef57739341f3e5b302c5c84443b4c01c997b080787b56216446b",
+        "stop_intent_sha256": "6b28d16af02982a7481fd8b518612dbe35541b795cb73f8219182fab68a9efae",
+        "audit_exists": true,
+        "audit_sha256": "afef9b392fd69ba001d520aa03e810847647583b8428c4e23a896998345d417e",
+        "audit_bytes": 159,
+        "synthetic_event": {
+          "event": "synthetic_audit_tail",
+          "synthetic": true,
+          "marker": "cpar-linux-final-D-tail",
+          "monotonic_seconds": 6832278.858684089,
+          "elapsed_seconds": 65.41975896526128
+        },
+        "injection": {
+          "event": "synthetic_audit_tail",
+          "synthetic": true,
+          "marker": "cpar-linux-final-D-tail",
+          "monotonic_seconds": 6832278.858684089,
+          "elapsed_seconds": 65.41975896526128,
+          "sha256": "afef9b392fd69ba001d520aa03e810847647583b8428c4e23a896998345d417e",
+          "bytes": 159
+        },
+        "no_start_receipt": true
+      }
+    ],
+    "production_identity_preserved": true,
+    "provider_intents": 0,
+    "new_system_launches": 0
+  }
+}

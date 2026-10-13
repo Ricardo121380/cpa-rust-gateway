@@ -1,0 +1,178 @@
+{
+  "command": [
+    "ssh",
+    "-T",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "new-vps",
+    "sudo -n python3 -"
+  ],
+  "remote_script_sha256": "31ad904273858996e8aa01f3036652e7ddcaeba48daa4aeb557f151065dbbaa7",
+  "freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+  "run": "B",
+  "remote_exit_code": 0,
+  "stdout_sha256": "740af76407f8711b9b215dae9f6d115442c8934780189c9c3c962a2794d846ce",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "layer": "REAL_LINUX_SYSTEM_SYNTHETIC",
+    "scenario": "exec_failure",
+    "run": "B",
+    "formal_account_qualification": "NOT_RUN",
+    "provider_intents": 0,
+    "provider_requests": 0,
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "actual_executable_sha256": "607ec3e6b8f5099e82fa735b3af5409174a9b155fda25f5d3c39802aaf43821a",
+    "preparation": [
+      {
+        "action": "create",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "validate",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "publish",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "unit": "cpar-linux-final-synthetic-20261013-B.service",
+    "epoch": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/linux-final-synthetic-20261013-B",
+    "freeze": {
+      "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+      "epoch": "linux-final-synthetic-20261013-B",
+      "files": {
+        "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+        "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+        "remote-exit.py": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
+        "system_exit_adapter.py": "9796f171ac307bb9624b4bf1411ee5674f175c8b5185ee3457561445f0396573",
+        "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+        "intentionally-invalid-gateway": "607ec3e6b8f5099e82fa735b3af5409174a9b155fda25f5d3c39802aaf43821a",
+        "startup_probe.py": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95"
+      },
+      "assembled_launch_sha256": "9d8f3e4387d6efbb53e0b386847e8878ac5835d217df0f901b76c44031580df9",
+      "authority": "REAL_LINUX_SYSTEM_SYNTHETIC; Provider limit zero"
+    },
+    "systemd_version": "systemd 255 (255.4-1ubuntu8.17)",
+    "status": "PASS",
+    "startup_validation_status": "FAIL",
+    "startup_gates": {
+      "exec": "FAIL",
+      "identity": "UNKNOWN",
+      "listeners": "UNKNOWN",
+      "application": "UNKNOWN",
+      "quiet_audit": "UNKNOWN"
+    },
+    "launch": {
+      "status": "RETURNED",
+      "returncode": 1,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout_seconds": 25,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    "failure_reason": "exec_handshake_failed",
+    "preset_negative": true,
+    "resource_exit_status": "PASS",
+    "isolation": null,
+    "http_statuses": [],
+    "flat_observation_seconds": null,
+    "post_stop_flat_seconds": 5,
+    "production_identity_preserved": true,
+    "identity": null,
+    "startup_observations": {
+      "unit": "cpar-linux-final-synthetic-20261013-B.service",
+      "launch": {
+        "status": "RETURNED",
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 25,
+        "stdout_bytes": 0,
+        "stderr_bytes": 0
+      },
+      "observations": [
+        {
+          "phase": "launch_requested",
+          "utc": "2026-10-13T15:31:40.223754+00:00",
+          "monotonic_seconds": 6832168.326486226
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T15:31:40.296396+00:00",
+          "monotonic_seconds": 6832168.399114449,
+          "systemd": {
+            "Type": "exec",
+            "MainPID": "0",
+            "Result": "exit-code",
+            "ExecMainStartTimestampMonotonic": "6832168352136",
+            "ExecMainPID": "2654171",
+            "ExecMainCode": "1",
+            "ExecMainStatus": "203",
+            "ControlGroup": "",
+            "LoadState": "loaded",
+            "ActiveState": "failed",
+            "SubState": "failed",
+            "ActiveEnterTimestampMonotonic": "0",
+            "InactiveEnterTimestampMonotonic": "6832168385379"
+          },
+          "process": {
+            "pid": 0
+          },
+          "failure_reasons": [
+            "main_pid_absent"
+          ]
+        },
+        {
+          "phase": "validation_failed",
+          "utc": "2026-10-13T15:31:40.304070+00:00",
+          "monotonic_seconds": 6832168.406793999,
+          "failure_reason": "exec_handshake_failed",
+          "exception_type": "StartupError"
+        }
+      ],
+      "gates": {
+        "exec": "FAIL",
+        "identity": "UNKNOWN",
+        "listeners": "UNKNOWN",
+        "application": "UNKNOWN",
+        "quiet_audit": "UNKNOWN"
+      }
+    },
+    "exec_native": {
+      "systemd": {
+        "Type": "exec",
+        "MainPID": "0",
+        "Result": "exit-code",
+        "ExecMainStartTimestampMonotonic": "6832168352136",
+        "ExecMainPID": "2654171",
+        "ExecMainCode": "1",
+        "ExecMainStatus": "203",
+        "ControlGroup": "",
+        "LoadState": "loaded",
+        "ActiveState": "failed",
+        "SubState": "failed",
+        "ActiveEnterTimestampMonotonic": "0",
+        "InactiveEnterTimestampMonotonic": "6832168385379"
+      },
+      "show_returncode": 0,
+      "journal_returncode": 0,
+      "show_sha256": "3ff490fdaeec32debe88201700ac691364330b8592af3d51eaa8c3c9a3866937",
+      "journal_sha256": "c63120bc4c7b1eb2730d83fc03e999f11d852bfc84614f1758e9c05d1b9c2b75",
+      "exec_format_error_observed": true,
+      "fixture_exists": true,
+      "fixture_mode": "0o700"
+    },
+    "synthetic_injection": null,
+    "complete_exit_receipt": null,
+    "audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "real_network_events": 0,
+    "synthetic_audit_events": 0
+  }
+}

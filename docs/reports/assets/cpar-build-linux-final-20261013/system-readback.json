@@ -1,0 +1,20 @@
+{
+  "command": [
+    "ssh",
+    "-T",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "new-vps",
+    "sudo",
+    "-n",
+    "python3",
+    "-"
+  ],
+  "remote_exit_code": 1,
+  "script_sha256": "829c9c9ac0ea0d929a8118dae741ef1abf44af66e64cf6a37e44f638c784b62e",
+  "tool_sha256": "a38e9c7ab027308cb0c9835bc4ce3d8ff923c396d0183773a552f9c52026e0d5",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "a24f4e1d101d82fe3f9b1f5b5e1842879f96de13feabe2d0799c383afbbf7d01"
+}

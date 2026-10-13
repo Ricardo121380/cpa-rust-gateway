@@ -1,0 +1,55 @@
+{
+  "status": "PASS",
+  "layer": "REAL_LINUX_SYSTEM_SYNTHETIC",
+  "observed_at_utc": "2026-10-13T15:37:52.424427+00:00",
+  "source_head": "daad22e1df0ad216f5051050a9b3d25fb68677cc",
+  "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+  "runs": [
+    {
+      "run": "A",
+      "scenario": "normal",
+      "status": "PASS",
+      "resource_exit_status": "PASS",
+      "startup_validation_status": "PASS",
+      "receipt_sha256": "68211c99262ab1cbad28a91dc8895d4c424cee28d0b953f3efc21f2c63a3d965",
+      "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+    },
+    {
+      "run": "B",
+      "scenario": "exec_failure",
+      "status": "PASS",
+      "resource_exit_status": "PASS",
+      "startup_validation_status": "FAIL",
+      "receipt_sha256": "8d1f2261ef9c0a44bd69d9ae40039c5b9f94eee88a00254edb4a4958f747afdf",
+      "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+    },
+    {
+      "run": "C",
+      "scenario": "management_auth_failure",
+      "status": "PASS",
+      "resource_exit_status": "PASS",
+      "startup_validation_status": "FAIL",
+      "receipt_sha256": "1e1d73be1fee9ea65cdd28ed7a6fa4f2e506ca594b65d5d6020acb0ccd3ed265",
+      "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+    },
+    {
+      "run": "D",
+      "scenario": "audit_tail_injection",
+      "status": "PASS",
+      "resource_exit_status": "PASS",
+      "startup_validation_status": "FAIL",
+      "receipt_sha256": "ec5732d2d06a8945f13016e795ca78c3a5ecdefb8eb559d35b60aa1cf2df10be",
+      "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+    }
+  ],
+  "runs_used": 4,
+  "runs_limit": 4,
+  "provider_intents": 0,
+  "real_network_events": 0,
+  "synthetic_audit_events": 1,
+  "independent_readback_sha256": "4ecc26a38cafd03cb6437460237a74e8aad12abf87921ed0c1c1eae71171d894",
+  "formal_provider_authority": "REQUIRES_PRE_EXECUTION_REVIEW_AND_ACTUAL_QUALIFICATION",
+  "old_runtime_partial_preserved": true,
+  "old_failures_preserved": true,
+  "synthetic_adapters": "declared in batch-contract and complete system-exit-A.diff; no real account qualification"
+}
