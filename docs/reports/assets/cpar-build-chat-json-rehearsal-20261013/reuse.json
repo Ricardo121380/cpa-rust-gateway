@@ -1,0 +1,55 @@
+{
+  "status": "PASS",
+  "product_source": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "fixed_driver_source": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+  "unchanged_git_objects": {
+    "apps": "ac4c1cb1b9eb0abca84e0f407b11047746015148",
+    "crates": "4f23aa68b29f55eb98c768cfecb9de0393314d76",
+    "scripts/build-release.sh": "786ad12ed88596846bb0654d0865c21065ab9c4a",
+    "Cargo.toml": "e5299b5af192df9c258f4c79457ecc411712138a",
+    "Cargo.lock": "66138b9aa931ea2edff3fac44f3a502ed7888e7b",
+    "rust-toolchain.toml": "3caff2a7c8054117b0c69401d38fbb47ba2241a2"
+  },
+  "binary_absolute_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-json-502-20261011/artifacts/gateway-aarch64-unknown-linux-gnu",
+  "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+  "binary_bytes": 19565744,
+  "manifest_sha256": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+  "metadata_sha256": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+  "quality": {
+    "source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+    "candidate_product_source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "candidate_product_blobs_unchanged": true,
+    "task": {
+      "status": "PASS",
+      "steps": 42,
+      "report": "task-fast-c23d2c35.md",
+      "log_sha256": "a67ba6579008b9c13a3fbc7a9369cd03015ddb118cc4d1a595da3c8700de9c31",
+      "gzip_sha256": "c6f7616e371c7489af06015dbfabbf8f4b284d272be8591ec1547eae03596cb8"
+    },
+    "phase": {
+      "status": "PASS",
+      "steps": 45,
+      "report": "phase-full-c23d2c35.md",
+      "log_sha256": "4de698eb3dc6ee3f59fa51bdb6c6d54bc1edee3d14df60a59cfc07fadbc48ca8",
+      "gzip_sha256": "e96396000759d11a4db2aad907684a34fe6748a921d30d5f32bd8db9a539fcab"
+    },
+    "standalone_diagnostic_policy": {
+      "status": "PASS",
+      "tests": 18,
+      "existing_oracle_tests": 54,
+      "provider_calls": 0
+    },
+    "remote_ci": "NOT_RUN",
+    "release_deployment_production_acceptance": "NOT_RUN",
+    "real_diagnostic_status": "BLOCKED_BEFORE_LAUNCH; terminated; actual new lease and Pin not established"
+  },
+  "prior_reviews": {
+    "review-final.json": "078759cc0368f8172d32e5f3ba1d99fb3d7f4536c68788afb0621df4f399ddf9",
+    "review-delivery.json": "de94ce542145c63a997d80e39c3e072b93fcfe3ec2ca96dc5bfe12e56aa871bf"
+  },
+  "reuse_boundary": "unchanged implementation/build/full Task Phase and full reviews; no execution qualification",
+  "builds": 0,
+  "dependency_installs": 0,
+  "verified_at_current_head": "9b6d70615d7507114aeab0007b34ea9db81d6182",
+  "new_batch": "chat-json-rehearsal-20261013"
+}

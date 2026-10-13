@@ -1,0 +1,7 @@
+{
+  "status": "PASS; frozen before upload",
+  "tar_sha256": "2c0f307308fb61c4506693a799cd9dc08b9b3d2b102cd25920af399567b8368a",
+  "tar_bytes": 19824640,
+  "freeze_sha256": "b3a6cbbcd4b0042f5d1be8df61cc7c552b5e081bdbc5c5582ca3fb6c1baabd6c",
+  "old_freeze_preserved": "c30d2688d0b182f4a97d3a30216e0b7421ff8c0a6a360d6c71eeb145b8ec4545"
+}
