@@ -1,0 +1,427 @@
+{
+  "at_utc": "2026-10-13T14:50:01.531807+00:00",
+  "head": "51281f0a7255e178ddc770034a8141b197e67d6f",
+  "status": " M AGENTS.md\n?? .codegraph/\n?? .playwright-cli/page-2026-09-09T15-11-35-207Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-21-007Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-22-868Z.yml\n?? .playwright-cli/page-2026-09-09T15-12-52-550Z.yml\n?? .playwright-cli/page-2026-09-09T15-15-12-102Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-14-153Z.yml\n?? .playwright-cli/page-2026-09-09T15-20-20-179Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-11-667Z.yml\n?? .playwright-cli/page-2026-09-09T15-22-18-576Z.yml\n?? .playwright-cli/page-2026-09-09T16-02-31-272Z.yml\n?? .playwright-cli/page-2026-09-09T16-03-38-495Z.yml\n?? .playwright-cli/page-2026-09-09T16-04-22-789Z.yml\n?? .playwright-cli/page-2026-09-09T16-06-19-180Z.yml\n?? .playwright-cli/page-2026-09-09T16-07-25-850Z.yml\n?? .playwright-cli/page-2026-09-09T16-08-28-006Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-39-777Z.yml\n?? .playwright-cli/page-2026-09-09T16-09-41-755Z.yml\n?? .playwright-cli/page-2026-09-09T16-10-44-249Z.yml\n?? .playwright-cli/page-2026-09-10T02-36-28-972Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-28-129Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-30-529Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-45-615Z.yml\n?? .playwright-cli/page-2026-09-10T02-37-58-130Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-07-623Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-19-639Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-34-386Z.yml\n?? .playwright-cli/page-2026-09-10T02-38-49-778Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-45-554Z.yml\n?? .playwright-cli/page-2026-09-10T02-40-46-813Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-07-207Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-22-419Z.yml\n?? .playwright-cli/page-2026-09-10T02-41-33-776Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-02-795Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-21-769Z.yml\n?? .playwright-cli/page-2026-09-10T02-42-44-731Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-09-459Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-26-485Z.yml\n?? .playwright-cli/page-2026-09-10T02-43-42-948Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-06-054Z.yml\n?? .playwright-cli/page-2026-09-10T02-44-23-273Z.yml\n?? CONTEXT.md\n?? docs/agents/\n?? docs/design/prism-opendesign-v2.html\n?? docs/handoffs/prism-opendesign-v2.md\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-a05-frontend-check-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-a05-type-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-a05-units-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-api-config-expanded-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-api-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-config-failure-confirmed-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-import-config-expanded-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-import-config-with-id-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-import-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-import-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-oauth-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a02-oauth-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a03-browser-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a03-close-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a04-nonempty-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a04-nonempty-red-target-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a04-selected-empty-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a04-selected-red-actual-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a04-selected-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a04-tracked-empty-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a04-tracked-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a05-kimi-expanded-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a05-kimi-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a05-kiro-expanded-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a05-kiro-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a06-a08-type-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a06-a08-ui-directed-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a06-materials-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a06-materials-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a07-error-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a07-error-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a07-pending-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a07-pending-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a08-backend-directed-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a08-current-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a08-current-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a08-current-red-target-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a08-stale-green-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/a08-stale-red-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-baseline-build-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-build-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-complete/\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-expanded/\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-final/\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-green-first/\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-green-second/\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-process-complete-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-process-expanded-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-process-final-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-process-green-first-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-process-green-second-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/b05-red/\n?? docs/reports/assets/cpar-p2-eight-20261008/backend-final-clippy-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/frontend-all-directed-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/frontend-build-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/frontend-contract-check-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/frontend-final-type-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/frontend-source-type-receipt.json\n?? docs/reports/assets/cpar-p2-eight-20261008/initial-status.txt\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-0-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1280.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-1440.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-1-390.png\n?? docs/reports/assets/prism-v2-density-20260923/accounts-light-final.png\n?? docs/reports/assets/prism-v2-density-20260923/layout.json\n?? output/\n?? scripts/.tmp-chatgpt-go-live-test.py\n?? scripts/p12-06-enter-codex-bridge-graph.py\n?? scripts/p12-06-rotate-kiro-credential.py\n?? scripts/test-p12-06-enter-codex-bridge-graph.py\n?? test-results/\n",
+  "preserved": {
+    "docs/reports/assets/cpar-build-linux-start-20261013/issue-9-dependencies.json": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/docs-gate-final.json": {
+      "sha256": "da0f0074aec6c39ee4b506a8b67251cd6240df9037f7a6c1863048c41de596b4",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/issue-47-body.md": {
+      "sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/issue-57-body.md": {
+      "sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github-progress-draft.md": {
+      "sha256": "8cbc9458d9f1394aa0cea82965d604965465b9467ec4835be540453fe132fb05",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-regression-final.log.gz": {
+      "sha256": "b42f10080809017102026ecf6be480eb609b6e96565bb77379baea48dcd60aa9",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/review-initial.md": {
+      "sha256": "3e6ba1206155aea49a706c6cf2de40ff498c48c7e0159e9d6a998e5b560eec6e",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/prepared-binding-check.json": {
+      "sha256": "895da48a58bb0c0643b9d4528f6bb00eb41df03704956cd0cedd9103edc0306b",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-regression.json": {
+      "sha256": "c7490569cb52b30839ed559181bf2e7cfd536e58965eaf8ebfa06d64af9c13b2",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/review-final.md": {
+      "sha256": "b3532302d7b2ab2aae61402aa8225cb35cbefa474efc58a267418fc4e28c61d7",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/observation-boundary-red.json": {
+      "sha256": "e151b3031ff27fb759e33b9a652de791ba79a46776efc3d7ec0f0c861e198a8f",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/delivery.json": {
+      "sha256": "d0747044edabda704db7294c81fb59745e9f1f48647a536d7a428ef663ef8d4a",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-regression-final.json": {
+      "sha256": "f2fb9efbcdc65544c25a54f415b24e9c5ccfb42d1399c49ea9644cef675d74ff",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-final-complete.log.gz": {
+      "sha256": "2957a6052111f74ca55543862bfadfe2ab6fcad092439a96b8db772ea0782a63",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/launch-evidence-red.json": {
+      "sha256": "7f4feb8f840283820b1fca4fcd31788b8a71fc29282b44b116b0519746e29db1",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/linux-oracle-final.log.gz": {
+      "sha256": "dbb5da3b6f00a8caf638c59c830eb526073031ae8f8d266f24ac06fa2847161a",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/linux-oracle-red.json": {
+      "sha256": "bad83d8dd52d09f1445a34fe37d63f3a46626dd2193ce71718f0d9843826182e",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-2.json": {
+      "sha256": "c184c0e017001ced8d0ab310d71e3a8aa21d5e10aee0c93a4a4917b7c44d7f12",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github-readback-9.json": {
+      "sha256": "9a28e61ae250f2e9e3a5580e7ded30ddf61991de261438cd361a25d1dbca0b5c",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/launch-evidence-red.log.gz": {
+      "sha256": "97276558643d7fff54d82bbf71c2b09c57d2cbf6372ab96bcf6b1f2ca0327211",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/startup-gap-green-first.json": {
+      "sha256": "77bcc182d69aca4b8a594953d0e424edeefe6c8f60f774192c05b333c42344e3",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/contract-fixtures.json": {
+      "sha256": "43e43f2da3a7e17a2da348c1f376d28f62604ede32c674d1c481f6f6c95057ee",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/issue-57-dependencies.json": {
+      "sha256": "403688175fbf4e507afff55a534ffb0dea99a3829da61f7ea2b108d3717aae89",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-preservation.json": {
+      "sha256": "5177146b5707332fef5c7d21824c54853c160699371598935f27b7dbf3d608ab",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/batch-contract.md": {
+      "sha256": "1e82256013efed4917db391cdd4859b4b5ab19c986b4cee97d3822744ae098cd",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/fresh-exit.json": {
+      "sha256": "75098444c34312f68cd959f1a19182898fa809c9917c8ed153de1b0617c5cae4",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/delivery-preservation.json": {
+      "sha256": "af74a2683a3a13cb8361ddb4eb50fd280e8fdfed24ec3428f4b7ed6e027b6a39",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/preservation-baseline.json": {
+      "sha256": "460a9055cd4b3297fed3042da747f5d7e81f38fc682f96273cc9ee3e7559b218",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-freeze.json": {
+      "sha256": "3bcfa283a775b2c63da589de3de25b41906ba6ad0d97e14848d1fe51e1850b03",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-3.json": {
+      "sha256": "95f7bb9803da912d7ea492a83e9ffa8702c7eda1cc78cd0505ef7ed861cf9103",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-semantics.md": {
+      "sha256": "0ba06ab1067c3507e8913e41bb6f7c465502df019b80e71271a675b5f1d0978e",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/observation-boundary-red.log.gz": {
+      "sha256": "6cc572715f73c425d7a88b7badf10114a6ffb7e23f55fd73d7e34209118bf5a6",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/linux-oracle-red.log.gz": {
+      "sha256": "718ec2e46d04b7ae40c814dc7bd102ecde857716cb2055b2692ff561cd237e8f",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/startup-gap-green-first.log.gz": {
+      "sha256": "63660f8d94c16e3909225b935f879ae9e22991cf1e9e6bd81c0e8d3676afc490",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/affected-final.log.gz": {
+      "sha256": "16888933fb35c6475e0203656c0de9e6397150590188760984aa8e1452f32479",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github-preflight.json": {
+      "sha256": "4f491bcf9a8b91a581af7a6fbba6bf07db8b6468bd5fb0d88b93d5f0e77c1b6d",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/execution-summary.json": {
+      "sha256": "ead5cc57b52e525717200e62f8f90602068ca52a7edda32daaf3cc8fd65c71a0",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/prepared-freeze-9ff3d9c0.json": {
+      "sha256": "6fe86c485da98d0acea07a67f3e1c49a3558a9ab5633c74b6e2c505f9fdd8257",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/successful-exit-red.log.gz": {
+      "sha256": "e8e8d11c067837e3f93315e36877f41393ab2e34b0ce2e26661fb681de3437e7",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/reuse.json": {
+      "sha256": "d751bfcd3aebdf1be9d5c96e85ac48e20a2364b174a3d58994476bd398b9db3c",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/prepared-freeze.json": {
+      "sha256": "636f73e75948f3f7592e5e18e225c12f9cb3c0c7c2961ab885c204612061f3c5",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/delivery-static.json": {
+      "sha256": "1bc2606f7f7ade9ce09a5b4817730f056dcb1ad0daf713cadee64db5ceea6c3a",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github9-read-recovery.json": {
+      "sha256": "553276a76aa7d07b82c2080ebb1a2ee0c067fafd3db73be1b50a81288253a89b",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/startup-gap-red.json": {
+      "sha256": "101d1d3799d8660d36bd0ec5c94b800546793bcf0041e9686fffd0a195bd447b",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/review-second.md": {
+      "sha256": "1f3ecdd3b16c5c4b0f32e1ff035bd6f58fae32cc1de676c40c6dae43a7684f8b",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-final-audit-tail.json": {
+      "sha256": "ef4d64108952057da687fe96172423a0d5d8fc1626b9df9c6c9ee430749dd8fc",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/docs-delivery.json": {
+      "sha256": "b178dcc9da13c46ac85aa7a8f42d4f654fcf87d5053006682c1abe61105a7c46",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github-first-sync-interrupted.json": {
+      "sha256": "4707fa8c768a5b986569713b338d3e763da0e4988aeecd7d770b6a7c66f92ba9",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/remote-ci.json": {
+      "sha256": "7bb1f0465479cceba2c59bf5b16dc97e8d21ce27058441687ccb93b38c85c177",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/prepared-freeze-1d9cb436.json": {
+      "sha256": "df62645668354f581aa0dd2b3eefb4d830bdf56ec2e4d113ce5670318e466fff",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-freeze-third.json": {
+      "sha256": "e38f5f621ab4c6340f6190b7edf3dc97a58d5d8cf4d85b03a71f67a89c5c29ef",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/docs-delivery.md": {
+      "sha256": "ae372f66da3d5d724a3e5694ded014e5042b2008e5e947a164c91222fc6d27d5",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/issue-47-dependencies.json": {
+      "sha256": "53135957bed7815e58b7956a991d24154066434e4987ca80e73c0618d39039a6",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github-readback-57.json": {
+      "sha256": "fbeba6954521e10db80ef3e72d90ffb6581e17e06dd24b64f60fa4c8f8eda451",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/quiet-tail-red.json": {
+      "sha256": "6862b712298725009de820ae11e25896db8d6eac8248142d060258be348c3142",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-post-review-final.log.gz": {
+      "sha256": "7f033c4c051667f77551c60e404597a14974a6f32ea8f917322a923edb865c14",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-1.json": {
+      "sha256": "9235382d63ae24409d8d2d9137995ba20959dd7ffa497f59253a70ff31bf701b",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/docs-gate.md": {
+      "sha256": "8c6db054c0c7f39a6928227a4f5d2ba775400fc8d53af9dcc9e88861fc0c8703",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-final-audit-tail.log.gz": {
+      "sha256": "94c92d142673dcd6ecb60b6c5843c5e9d6ddd9255d56821ddb98b63448500d86",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/issue-9-body.md": {
+      "sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/linux-oracle-green.log.gz": {
+      "sha256": "dbb5da3b6f00a8caf638c59c830eb526073031ae8f8d266f24ac06fa2847161a",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/startup-gap-red.log.gz": {
+      "sha256": "e324dbc917455b37b67f576e50018ff939bd1dbf997a72e33b37f881a989693b",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/affected-final.json": {
+      "sha256": "04965064a1c95fe7a1407607ec94f4e70855670c5053c55a3a176317ccaecfaf",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/quiet-tail-red.log.gz": {
+      "sha256": "22e86b1518a0bee5e6ce187e69945e0acd44973cd47f24537b10c896c5a31115",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github-sync.json": {
+      "sha256": "b581992be9d2892fe5b46d41733b258cf20743f0e139d53bcec15b161f83383b",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/github-readback-47.json": {
+      "sha256": "db793bf74bd82713b93ead32f41bc85a3c20f7e47ef3cd8a7d322712b5055ad6",
+      "mode": "0o600"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/verification-commands.json": {
+      "sha256": "fdedd420e2d14573a44746e8e22982158eef7bd73bf4b536acf666affe9a92d6",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/issue-body-projection.json": {
+      "sha256": "c52da9d815a4adf0ad873aa3aa87a04178d868e6824e76231ff717419ec189a0",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/docs-gate-final.log.gz": {
+      "sha256": "c4b6d0d89032dfc4869a5f52351e375f422b68aed3a0a0771f70d74383863895",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-3-local-rejection.json": {
+      "sha256": "49187a9723cd6a1bb01bf4e588b3132afc4f041ae62bdeda4e4f19a38f4614d3",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/docs-delivery.log.gz": {
+      "sha256": "bc9091eaf274155c4bd5657f4842e0b15fe7c012c952412147caaedb04cb9a6d",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/review-final.json": {
+      "sha256": "eec8413f127a0e607ff1cfc57d61616786fecebb0c255cae59388e5533858e5f",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-gate.json": {
+      "sha256": "a235e2b6a97ebbb775488c48fde965aa068229f20e236b129e4b1272e132def6",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-post-review-final.json": {
+      "sha256": "160819b25af6616d5c3e57dd7d4b14bd77283c5ba3b0a9647617a04c68cac28d",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/linux-oracle-green.json": {
+      "sha256": "3d40366ad50660c7e79885645a504e688b950c81d88fb2ab0bdb3685a858cb27",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/user-authorization.json": {
+      "sha256": "81e476b83dc2a14243356b7f230bfb0071aca67e08c4b6b0edec3f60f786dbf6",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/local-regression.log.gz": {
+      "sha256": "30580718b0940b87db3188f12e809e2fe22e73eb1c24e3e076e02987ad80c59a",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/successful-exit-red.json": {
+      "sha256": "5135c071293691016d653507b6b867715daf5a3f04dc2f4b92315435f7033aac",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-chat.py": {
+      "sha256": "679e57c5c5aef454fabde091c15293c4a3cb0a1ea1167edcee03413237f2d30f",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-start.py": {
+      "sha256": "2410af0c558bd49acf7b3552209ef2142df622db643b2351c2aa9964ba6b3cac",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-pin.py": {
+      "sha256": "577e7682882069bcebc95367fdfaa8ba54233fe4f9d91e4529b96e3ab727ce31",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-exit.py": {
+      "sha256": "f7a6c3d69f04cacb41b779a087deb82382489d30e65c444650bf631d595599dd",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-readiness.py": {
+      "sha256": "1775c14a52346d94c0c83a37b9b056a7cbdee5272fb00c442f586a86873bbf71",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/linux-system-validation.py": {
+      "sha256": "5cb76d69ebb78a96ded467c266cd91341785512e1fa24c5302459fe178722349",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/local-control.py": {
+      "sha256": "444d163264ae5371807de6f673568f0ab939b4a2df481a7d3b03a0361562f04a",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/system-control.py": {
+      "sha256": "f45953dc3435018afddb64d1e28c572fabe680e50ab02cb1465fd31b1b91ddb9",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/full-flow-tests.py": {
+      "sha256": "2b07424d56e450be64df07dfcace4f313151a568194e966668166873ce6b7c12",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/launch_recipe.py": {
+      "sha256": "cd89b3f69656fc7b2ad712981d1de9e3e25a1a67af9dd9ae50986c42d2205e01",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/qualification.py": {
+      "sha256": "a7718f86a1b0437a6ed2f076f6e96595f27cf2dc1893f4738d9939316cb30237",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/linux-oracle-tests.py": {
+      "sha256": "47e90475159377335c38c8ca2148408c50dfdae1fe4bf58ec5e68e115ee3a78e",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-prepare.py": {
+      "sha256": "7c32083563ebf6db6bd55225ca7c7bfbebc784da971cde891fb8cda6fd37df42",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-no-launch-exit.py": {
+      "sha256": "d68d09c7412e66180cd1f3501518b979d67dd929334ad45956e359c8871ec204",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/final-system-exit-read.py": {
+      "sha256": "30b912c4d7b30bbdf22e6701328bef320137944b3b75a0e210725d8e7f466d8e",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/remote-upload.py": {
+      "sha256": "b9046b66c9b835ee4744d86566636bb17ddd50558cb943f1b1c9ee9f9d677c16",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/startup_probe.py": {
+      "sha256": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-driver-v1/linux-system-validation.py": {
+      "sha256": "bf2c62fc3e198341c8d3bb1e2ea0538a6e58c7ed46c90b7d57d9d4adf494b9eb",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-driver-v1/system-control.py": {
+      "sha256": "00e2517d66f8b252161aef27567becc03f10c3b216dc993e0e591b24cb382d27",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-driver-v1/launch_recipe.py": {
+      "sha256": "cd89b3f69656fc7b2ad712981d1de9e3e25a1a67af9dd9ae50986c42d2205e01",
+      "mode": "0o644"
+    },
+    "docs/reports/assets/cpar-build-linux-start-20261013/system-driver-v1/startup_probe.py": {
+      "sha256": "1dd98009557db54664c96e6cbc82b046fc90d8b3a31bb2dde450625819326169",
+      "mode": "0o644"
+    },
+    "AGENTS.md": {
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "mode": "0o644"
+    },
+    "docs/reports/cpar-build-linux-start-20261013.md": {
+      "sha256": "d616591668178d2a7dffbeca19bce598b7f68d789fc28350ae5d6315378dfd0f",
+      "mode": "0o644"
+    },
+    "output/cpar-build-linux-start-20261013/stage.json": {
+      "sha256": "af082b423b7d00f778d0e1fba28a062333c0f0dc527f74eb3500d44ac55a2ad4",
+      "mode": "0o644"
+    },
+    "output/cpar-build-linux-start-20261013/system-stage.json": {
+      "sha256": "225219b363df46225e3223ceece8c922173c9767b5fce6a92b07c536ba2dea61",
+      "mode": "0o600"
+    },
+    "output/cpar-build-linux-start-20261013/system-third-stage.json": {
+      "sha256": "25938c6cf96aff99996d101c27baacadd72dbb06e08c9d8f299fb950a85556f9",
+      "mode": "0o600"
+    },
+    "output/cpar-build-linux-start-20261013/payload/freeze.json": {
+      "sha256": "cbf5efea00ac9f1e8c2fb2fdbe95ebc393f2a19cd4b373c7a51d56b42d788d40",
+      "mode": "0o644"
+    }
+  }
+}

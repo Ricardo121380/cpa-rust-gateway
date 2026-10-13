@@ -1,0 +1,11 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-final-20261013/tools/system-design-tests.py"
+  ],
+  "layer": "LOCAL_SIMULATED",
+  "exit_code": 0,
+  "raw_sha256": "4eb4024ddd3f7650f9902fc74b97fe5f1c22d5cf0d19b2a6e877f13c766b1a4e",
+  "gzip_sha256": "657e64070c8426bfd962cda9f85dccfab2136594e7f3961713b00663de3eba48"
+}

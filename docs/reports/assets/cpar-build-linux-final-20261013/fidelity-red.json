@@ -1,0 +1,11 @@
+{
+  "layer": "LOCAL_SIMULATED",
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-final-20261013/tools/full-flow-tests.py",
+    "FullFlow.test_http200_with_unrepresented_native_reasoning_never_passes"
+  ],
+  "exit_code": 1,
+  "raw_sha256": "780cb9d31598744b9b2c413181ccd691139cef5f0168fe2e00819ad10eaf3384"
+}
