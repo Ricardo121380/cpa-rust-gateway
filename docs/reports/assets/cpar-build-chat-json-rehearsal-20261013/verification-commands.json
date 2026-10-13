@@ -1,0 +1,77 @@
+{
+  "working_directory": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "environment": "Darwin 27.0.0 arm64",
+  "status": "PASS",
+  "commands": [
+    {
+      "command": "python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/full-flow-tests.py > output/cpar-build-chat-json-rehearsal-20261013/upload-exit-green.stdout 2> output/cpar-build-chat-json-rehearsal-20261013/upload-exit-green.stderr",
+      "exit_code": 0,
+      "layer": "LOCAL_SIMULATED",
+      "tests": 18,
+      "current_evidence": "new execution after upload-exit repair",
+      "log": "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-green.log.gz",
+      "raw_log_sha256": "092e72825979bde1d8a16dadc21f68fedccba2276c49429dcb7ad55590f33277",
+      "code_bytes_bound_at_commit": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d"
+    },
+    {
+      "command": "python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/control-regression-tests.py > output/cpar-build-chat-json-rehearsal-20261013/upload-exit-control.stdout 2> output/cpar-build-chat-json-rehearsal-20261013/upload-exit-control.stderr",
+      "exit_code": 0,
+      "layer": "LOCAL_SIMULATED",
+      "tests": 2,
+      "current_evidence": "new execution after upload-exit repair",
+      "log": "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-control.log.gz",
+      "raw_log_sha256": "efa4efa94ceeba822b1c4413fc5e2dbb9f96a8020b525a4f382f62121f527e36",
+      "code_bytes_bound_at_commit": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d"
+    },
+    {
+      "command": "python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-tests.py > output/cpar-build-chat-json-rehearsal-20261013/review-gap-local.stdout 2> output/cpar-build-chat-json-rehearsal-20261013/review-gap-local.stderr",
+      "exit_code": 0,
+      "layer": "LOCAL_SIMULATED",
+      "tests": 9,
+      "current_evidence": "reuse unchanged qualification/preparation code",
+      "log": "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-gap-local.log.gz",
+      "raw_log_sha256": "b44f2b6d4aa9239f43eae5142f8dd846789f06a2713a0f6c82b6f698c392d8be",
+      "code_bytes_bound_at_commit": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d"
+    },
+    {
+      "command": "python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/start-regression-tests.py > output/cpar-build-chat-json-rehearsal-20261013/review-gap-start.stdout 2> output/cpar-build-chat-json-rehearsal-20261013/review-gap-start.stderr",
+      "exit_code": 0,
+      "layer": "LOCAL_SIMULATED",
+      "tests": 2,
+      "current_evidence": "reuse unchanged startup code",
+      "log": "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-gap-start.log.gz",
+      "raw_log_sha256": "cc4ce8d54ec0f6a2d972abf34157488e5e132e9d71efaebb422979f2bf3356f8",
+      "code_bytes_bound_at_commit": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d"
+    },
+    {
+      "command": "CHECK_REPORT_PATH=docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.md scripts/check.sh docs > output/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.stdout 2> output/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.stderr",
+      "exit_code": 0,
+      "layer": "LOCAL_STATIC",
+      "steps": 7,
+      "log": "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.log.gz",
+      "raw_log_sha256": "4fb5b8048390117c3c7d4a3540b05c5a4208ab1cd5f1924b84197ed6e2b78934",
+      "checked_head": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d"
+    }
+  ],
+  "tests": 31,
+  "latest_new_execution_tests": 20,
+  "reused_unchanged_tests": 11,
+  "supplemental_static_steps": 7,
+  "new_runs_for_this_document_correction": 0,
+  "provider_calls": 0,
+  "document_correction_validation": {
+    "prior_tool_path_failure": {
+      "command": "python3 scripts/check_doc_links.py",
+      "exit_code": 2,
+      "reason": "TOOL_PATH_NOT_FOUND; no tests or remote action executed"
+    },
+    "actual_document_links": {
+      "command": "scripts/check-doc-links.rb",
+      "exit_code": 0
+    },
+    "whitespace": {
+      "command": "git diff --check -- docs/reports/assets/cpar-build-chat-json-rehearsal-20261013 docs/reports/cpar-build-chat-json-rehearsal-20261013.md",
+      "exit_code": 0
+    }
+  }
+}

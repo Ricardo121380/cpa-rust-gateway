@@ -36,6 +36,20 @@ Task42/42、Phase45/45的gzip及完整原始日志摘要、完整历史两轴审
 
 见 [第二轮审查](assets/cpar-build-chat-json-rehearsal-20261013/review-preparation-second.json)、[上传退出RED](assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-red.log.gz)、[上传退出GREEN](assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-green.log.gz)。
 
+## 已执行命令与退出状态
+
+工作目录 `/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway`，本地环境 Darwin27 arm64。以下为已有实际执行的准确命令主体；stdout/stderr的受控重定向、退出码0和原始日志摘要完整记录于 [命令回执](assets/cpar-build-chat-json-rehearsal-20261013/verification-commands.json)。本段补录不重跑检查。
+
+| 检查 | 已执行命令（在上述目录） | 退出码 | 当前证据 |
+|---|---|---|---|
+| 完整流程 | `python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/full-flow-tests.py` | 0 | 上传退出修复后新执行18/18；[日志](assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-green.log.gz) |
+| 控制器/锁 | `python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/control-regression-tests.py` | 0 | 修复后新执行2/2；[日志](assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-control.log.gz) |
+| 资格/准备/权限/哈希 | `python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-tests.py` | 0 | 代码未变，复用本批9/9；[日志](assets/cpar-build-chat-json-rehearsal-20261013/review-gap-local.log.gz) |
+| 启动认证/监听归属 | `python3 -B docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/start-regression-tests.py` | 0 | 代码未变，复用本批2/2；[日志](assets/cpar-build-chat-json-rehearsal-20261013/review-gap-start.log.gz) |
+| docs/static补充门槛 | `CHECK_REPORT_PATH=docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.md scripts/check.sh docs` | 0 | 已执行7/7；[门槛](assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.md)、[日志](assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.log.gz) |
+
+第三轮完整阅读52/52对象及18/18 gzip：Standards发现本报告缺命令/退出状态，Spec因历史manifest/metadata误定位返回PARTIAL，范围内未确认实现缺口。本段补齐命令回执；[复用回执](assets/cpar-build-chat-json-rehearsal-20261013/reuse.json)现明确两个历史原件的实际位置，原件与私有payload逐字节一致且manifest两行大小/摘要匹配，产品构建0。保留 [第三轮原结论](assets/cpar-build-chat-json-rehearsal-20261013/review-preparation-third.json)，由新的独立审查者关闭未完成门槛；不把之前PARTIAL改写成PASS。
+
 ## 本批执行与剩余条件
 
 实际观察/远端创建/启动/fresh Pin/Chat目前NOT_RUN；真实根因、Request/Attempt/Usage/账本、发送和退出结果在新鲜回执后追加。旧502根因仍UNKNOWN，没有NOT_REPRODUCED或六组合PASS。

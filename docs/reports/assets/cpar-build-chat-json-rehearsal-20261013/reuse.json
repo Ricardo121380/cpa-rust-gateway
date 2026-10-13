@@ -51,5 +51,13 @@
   "builds": 0,
   "dependency_installs": 0,
   "verified_at_current_head": "9b6d70615d7507114aeab0007b34ea9db81d6182",
-  "new_batch": "chat-json-rehearsal-20261013"
+  "new_batch": "chat-json-rehearsal-20261013",
+  "manifest_absolute_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-build-json-502-20261011/artifact-manifest.json",
+  "metadata_absolute_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-build-json-502-20261011/gateway-build-metadata.json",
+  "historical_originals_reverified": {
+    "at_head": "77e1d7119e3799b640e161f96272bde7ae0090fa",
+    "files": 2,
+    "payload_exact_byte_equality": true,
+    "manifest_rows_actual_bytes_verified": 2
+  }
 }
