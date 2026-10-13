@@ -1,10 +1,11 @@
 {
   "status": "PASS",
   "payload_files": 16,
-  "freeze_sha256": "fc522cc633cb5d6083dcd3f8f7f7ca125bb062ca228c028434f191ada2c41d58",
-  "tar_sha256": "f75f3f4a9a938d986a2a480f13075e16ba0dc7a3bc203f25deb647a5ea7f1310",
+  "freeze_sha256": "4afe5d5ca442109819df88737c74f3a95574ed8634ea7069325d23810d1acf49",
+  "tar_sha256": "5643a77066238ebf566183db4dbac2dd8e2bfba42781af7c17881586e5f1aaa2",
   "tar_bytes": 19793920,
   "binary_manifest_rows_verified": 2,
   "new_product_builds": 0,
-  "dependency_installs": 0
+  "dependency_installs": 0,
+  "previous_package": "retained in Git and private freeze/upload-before-controller-repair; never uploaded"
 }

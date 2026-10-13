@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "bound_preparation_tests": 8,
+  "controller_boundary_tests": 2,
+  "scope": "recheck new controller freeze against unchanged16 payload files and prior actual recipe tests",
+  "raw_log_sha256": "c57e833f026773c218c965cc8726b7bfb3b9b889adb427cb6bf285f303c799de",
+  "gzip_sha256": "1d9a597c4d8b6acc7b41fa0d497bdb66ccfd387d5ad8139b447b783898c7313a",
+  "provider_calls": 0,
+  "remote_actions": 0
+}

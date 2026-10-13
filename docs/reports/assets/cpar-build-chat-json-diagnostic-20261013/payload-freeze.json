@@ -3,7 +3,7 @@
   "kind": "chat_json_502_diagnostic",
   "epoch": "chat-json-diagnostic-20261013",
   "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
-  "driver_source_sha": "bfcdae93d3a123c7033c15138b344e36e176cc88",
+  "driver_source_sha": "1e589079301b93d32f18c63866edd6ea64323643",
   "fixed_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
   "files": {
     "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
@@ -28,5 +28,5 @@
   "approved_recipe_file_sha256": "af73dd3177479147adca982bfcc95de7264442845f7b5a31e134643bc998bff0",
   "copy_runtime_options_file_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
   "upload_tool_sha256": "e675970fe997bffce2d69b228f1f5b49dd6b090c1c3195f5ae12130522a5fdf2",
-  "local_controller_sha256": "6e347ea461cf227713c791977ac7fe9a5c7433d69f71c4679f09a7b038a27025"
+  "local_controller_sha256": "a1d6dadcbad92acce578f91ffa0eb089badcb0130c06149a0525d125fd102990"
 }
