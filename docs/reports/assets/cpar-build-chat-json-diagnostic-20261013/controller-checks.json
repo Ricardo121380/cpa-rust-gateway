@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "scope": "actual controller frozen observation byte selection and exclusive local state ownership",
+  "red": {
+    "status": "FAIL; both defects reproduced",
+    "tests": 2,
+    "file": "controller-red.log.gz",
+    "raw_sha256": "230f38a9e1d1ef70655593714cccd62c22ffb560a75c5793dcfd0fa96a01e0dc",
+    "gzip_sha256": "cb60bbdb244a4fda656eb00cc7e94b58fba4267cbe26557498c1c4aa0b38a8b4"
+  },
+  "green": {
+    "status": "PASS",
+    "tests": 2,
+    "file": "controller-green.log.gz",
+    "raw_sha256": "16969f697bb676dea41922c31de1a11381ed4f951e64bc583e1fae9970c30682",
+    "gzip_sha256": "43e6f942551abfa81940138565c1ebfeb96b671d3a60b9fd7bdb813f502ee0b4"
+  },
+  "provider_calls": 0,
+  "remote_actions": 0,
+  "test_root": "private isolated temporary roots; no real stage or epoch",
+  "not_owned_lock": "exit 2 before state mutation or remote stop; does not stop the active owner"
+}

@@ -1,7 +1,7 @@
 """One explicitly selected batch action per invocation; no loop or implicit retry."""
 import datetime
+import fcntl
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -85,12 +85,17 @@ print(json.dumps({{'status':'PASS; stop latched','epoch_created':epoch.exists(),
 
 
 def main(action):
-    import qualification
     frozen = json.loads((PRIVATE / 'payload/freeze.json').read_text())
     assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == frozen['local_controller_sha256']
-    assert hashlib.sha256((PUBLIC / 'tools/remote-upload.py').read_bytes()).hexdigest() == frozen['upload_tool_sha256']
+    upload_script = (PUBLIC / 'tools/remote-upload.py').read_bytes()
+    assert hashlib.sha256(upload_script).hexdigest() == frozen['upload_tool_sha256']
+    verified_payload = {}
     for name, expected_hash in frozen['files'].items():
-        assert hashlib.sha256((PRIVATE / 'payload' / name).read_bytes()).hexdigest() == expected_hash
+        content = (PRIVATE / 'payload' / name).read_bytes()
+        assert hashlib.sha256(content).hexdigest() == expected_hash
+        verified_payload[name] = content
+    qualification = {}
+    exec(compile(verified_payload['qualification.py'], 'frozen-qualification.py', 'exec'), qualification)
     review = json.loads((PUBLIC / 'review-pre-execution.json').read_text())
     assert review['axes']['Standards']['status'] == review['axes']['Spec']['status'] == 'PASS'
     assert review['payload_freeze_sha256'] == hashlib.sha256((PRIVATE / 'payload/freeze.json').read_bytes()).hexdigest()
@@ -98,16 +103,16 @@ def main(action):
     if action == 'observe':
         assert not state['stopped'] and state['phase'] in ('PREPARED_LOCAL', 'WAITING_FOR_QUALIFICATION')
         now_ms = int(time.time() * 1000)
-        qualification.may_observe(state['observations'], now_ms)
+        qualification['may_observe'](state['observations'], now_ms)
         name = 'observation-' + str(len(state['observations']) + 1)
         # Persist the observation slot before any read, including a failed read.
         row = {'local_started_at_ms': now_ms, 'classification': 'UNKNOWN'}
         state['observations'].append(row)
         save(PRIVATE / 'stage.json', state)
-        script = (PUBLIC / 'tools/qualification.py').read_text() + '\n' + (
-            PUBLIC / 'tools/remote-readiness.py').read_text().replace('from qualification import classify', '')
+        script = verified_payload['qualification.py'].decode() + '\n' + (
+            verified_payload['remote-readiness.py'].decode().replace('from qualification import classify', ''))
         result = remote(script, name, timeout=40)
-        row['classification'] = qualification.classify(result)
+        row['classification'] = qualification['classify'](result)
         state['phase'] = row['classification']
         save(PRIVATE / 'stage.json', state)
         print(json.dumps({'phase': state['phase'], 'observation': len(state['observations']),
@@ -127,9 +132,8 @@ def main(action):
     state['formal_actions'].append(action)
     state['phase'] = 'EXECUTING_' + action.upper()
     save(PRIVATE / 'stage.json', state)
-    script = (PUBLIC / 'tools' / ('remote-' + action + '.py')).read_text()
     if action == 'upload':
-        result = remote(script, 'upload', stream=(PRIVATE / 'upload.tar').read_bytes(),
+        result = remote(upload_script.decode(), 'upload', stream=(PRIVATE / 'upload.tar').read_bytes(),
                         arguments=(hashlib.sha256((PRIVATE / 'payload/freeze.json').read_bytes()).hexdigest(),))
     else:
         # Execute the reviewed uploaded bytes; no inline unreviewed remote edit.
@@ -153,6 +157,12 @@ exec(compile(path.read_text(),str(path),'exec'))
 
 if __name__ == '__main__':
     assert len(sys.argv) == 2
+    execution_lock = (PRIVATE / 'local-execution.lock').open('a')
+    try:
+        fcntl.flock(execution_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print(json.dumps({'status': 'BLOCKED; another local operation owns execution'}))
+        sys.exit(2)
     try:
         main(sys.argv[1])
     except BaseException as error:

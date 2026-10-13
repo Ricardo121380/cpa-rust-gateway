@@ -1,0 +1,21 @@
+{
+  "base": "810d210f7217c479ebc1376150fb3a45609b7759",
+  "target": "29931b349f14bad97bf54e84799d0039899c6de5",
+  "axes": {
+    "Standards": {
+      "status": "FAIL",
+      "coverage": "COMPLETE; 26/26 changed files, 23 full text files and 3 fully decompressed logs; all four commits",
+      "reviewer": "/root/prep_standards",
+      "findings": [
+        "P2 executed public observation copies were not frozen",
+        "P2 local state lacked mutual exclusion; stale success could overwrite stop"
+      ],
+      "additional_summary_script": "SyntaxError; optional only, no rerun, required review complete"
+    },
+    "Spec": {
+      "status": "PARTIAL",
+      "reviewer": "/root/prep_spec",
+      "terminal": "INTERRUPTED_WITHOUT_FINAL_VERDICT; no PASS"
+    }
+  }
+}
