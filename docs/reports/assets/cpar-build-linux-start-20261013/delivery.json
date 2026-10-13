@@ -1,0 +1,72 @@
+{
+  "status": "PARTIAL; formal diagnostic BLOCKED",
+  "checked_utc": "2026-10-13T10:50:28.274633+00:00",
+  "base": "9aa08db64fa74767064db65f906fa7bae0f2aa50",
+  "reviewed_source_head": "68c007e819c25484a681030552a982722b186602",
+  "local_source_commits": [
+    "1d9cb436afbced7244993d6fca20789afeaa18cf",
+    "9ff3d9c003afe52f43d87e8eb4790013852b6797",
+    "68c007e819c25484a681030552a982722b186602"
+  ],
+  "closure_commit_scope": "report and receipt metadata only; source bytes remain bound to review-final.json",
+  "source_review": {
+    "Standards": "PASS",
+    "Spec": "PARTIAL",
+    "terminal_axes": 2
+  },
+  "local_simulated_full_flow": {
+    "status": "PASS",
+    "tests": 34
+  },
+  "offline_real_receipt_oracle": {
+    "status": "PASS",
+    "tests": 3
+  },
+  "real_linux": {
+    "gate": "PARTIAL",
+    "runs": 3,
+    "authorized_limit": 3,
+    "original_results": [
+      "PASS",
+      "FAIL",
+      "FAIL"
+    ],
+    "resource_exit": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "final_driver_real_retest": "NOT_RUN"
+  },
+  "formal_start": "NOT_RUN; BLOCKED before account observation",
+  "fresh_pin_intents": 0,
+  "chat_intents": 0,
+  "formal_confirmed_sends": 0,
+  "formal_new_lease": null,
+  "provider_independent_receive_count": "UNKNOWN",
+  "provider_cost": "UNKNOWN",
+  "old_502": "UNKNOWN; current Chat NOT_RUN",
+  "github_sync": {
+    "status": "PASS",
+    "existing_body_patches": 3,
+    "new_comments": 0,
+    "issues_closed": 0,
+    "readback": "independent full body, prefix, issue metadata and paginated dependencies; all OPEN"
+  },
+  "remote_ci": "NOT_RUN; no matching source-head runs; no push/dispatch",
+  "production_changes": 0,
+  "product_builds": 0,
+  "dependency_installs": 0,
+  "full_product_reruns": 0,
+  "pushes": 0,
+  "deployments": 0,
+  "matrix_runs": 0,
+  "preservation": "delivery-preservation.json",
+  "docs_static": {
+    "status": "PASS",
+    "steps": 7,
+    "receipt": "docs-delivery.json"
+  },
+  "remaining_gate": "new bounded zero-Provider Linux authorization required for final normal/failure/cleanup and kernel exec negative evidence; then full two-axis qualification and new identity/material authorization freeze before any formal call",
+  "stopped_epochs_or_budgets_resumed": false
+}

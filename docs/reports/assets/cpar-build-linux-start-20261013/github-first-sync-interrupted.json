@@ -1,0 +1,27 @@
+{
+  "status": "PARTIAL; pre-write read failed for9",
+  "writes": [
+    {
+      "number": 47,
+      "comment_id": 6081215242,
+      "intent": "PATCH_BODY_ONLY",
+      "status": "PASS",
+      "expected_body_sha256": "0c189ed40f3d61f5eb0d86b7f12a193c1caeedb209615e5c167eee867cda2353",
+      "attempts": 1,
+      "patch_exit_code": 0
+    },
+    {
+      "number": 57,
+      "comment_id": 6081234278,
+      "intent": "PATCH_BODY_ONLY",
+      "status": "PASS",
+      "expected_body_sha256": "7fa4821fa91d5223c680799efca25972bf95ff32457f414b967b3faacab079db",
+      "attempts": 1,
+      "patch_exit_code": 0
+    }
+  ],
+  "unwritten_issue": 9,
+  "issue9_patch_intents": 0,
+  "read_failure_reason": "github_read_failed; original native error not retained; concrete cause UNKNOWN",
+  "no_mutation_replay": true
+}

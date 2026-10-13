@@ -50,6 +50,21 @@ run2原controller stopped及两个stopped零Provider预算保持原样。在核�
 
 ## 审查、GitHub及交付
 
-本报告冻结版尚待独立Standards/Spec终态。按固定base9aa08db6与本批提交head/完整文件集进行两轴审查，保留所有FAIL/PARTIAL与后续收口。最终回执及提交号在交付附记中记录；两轴结论不升级system PARTIAL。
+最终源代码固定审查范围 `9aa08db64fa74767064db65f906fa7bae0f2aa50...68c007e819c25484a681030552a982722b186602`，84个本批源/证据文件；两轴已取得终态：[Standards PASS](assets/cpar-build-linux-start-20261013/review-final.md)（硬0、低建议1），Spec PARTIAL（代码缺陷0、实测资格缺口1）。原第一Standards FAIL、不完整/中断Spec、第二Spec FAIL均保留。成功退出与审计末端问题已先RED再修复，34/34合成通过；审查不能升级真实Linux PARTIAL或恢复正式预算。[最终审查绑定](assets/cpar-build-linux-start-20261013/review-final.json)列出固定head、完整文件集、所有当前工具摘要和prepared freeze。后续只追加交付元数据，工具源字节不变。最终文档静态检查7/7、exit0，报告/回执新增文件另做staged秘密扫描与diff检查；[交付检查](assets/cpar-build-linux-start-20261013/docs-delivery.json)、[保留核验](assets/cpar-build-linux-start-20261013/delivery-preservation.json)和[收口回执](assets/cpar-build-linux-start-20261013/delivery.json)分别保存结果。88个原文件的字节与权限保持，用户AGENTS未暂存。
 
-本批计划将经核对的脱敏结果追加到#47/#57/#9的既有progress，保留完整前缀及正文/AC/元数据/依赖/OPEN，并独立GET读回。本冻结版GitHub同步尚NOT_RUN，后续实际结果单独归档。remote CI NOT_RUN，源码/报告仅本地提交；无push、发布、部署、生产变更或矩阵。
+GitHub同步PASS：[47既有progress](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[57既有progress](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[9既有progress](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。各body-only PATCH一次、共3次、0新评论；独立GET完整正文严格相等且原完整前缀保留，工单正文/清单/标题/标签/assignee/milestone/锁定/状态与分页依赖保持，三票OPEN。47/57写后读回已通过；首次9依赖读取在PATCH前失败，保留PARTIAL中断和具体原因UNKNOWN，只读恢复后仅完成未写入9，不重放前两次。见[同步与读回](assets/cpar-build-linux-start-20261013/github-sync.json)及单票回执。
+
+remote CI [NOT_RUN](assets/cpar-build-linux-start-20261013/remote-ci.json)：只读Actions查询本批源head68c007e8，匹配run0；没有push或workflow dispatch。这不重分类旧Task42/Phase45复用证据，也不代表其他源HEAD的所有CI状态。交付仅本地提交：1d9cb436（启动与真实失败原件）→9ff3d9c0（成功退出补修）→68c007e8（审计末端补修）；最后收口提交仅报告/回执元数据。没有发布、部署、生产更改或矩阵。
+
+| 层/项目 | 最终状态 | 实际范围与限制 |
+|---|---|---|
+| 本地合成 | PASS | 最终34/34；systemd/proc/clock/HTTP均替身 |
+| 真实回执离线oracle | PASS | 3/3；不计新Linux运行，不改原FAIL |
+| 真实Linux系统 | PARTIAL | 3/3槽，原PASS/FAIL/FAIL；完整最终driver及kernel203负例未实测 |
+| 正式启动 | NOT_RUN / BLOCKED | 早于材料观察的system gate阻断；远端epoch未创建 |
+| fresh Pin / Chat | NOT_RUN | 0/0；新增正式意图0，材料/lease/执行身份null |
+| Standards | PASS | 硬0，低建议1；独立终态 |
+| Spec | PARTIAL | 代码0，实测资格缺口1；独立终态 |
+| 资源退出 | PASS | 三运行均退出，最终独立只读复核；生产元数据/摘要保持 |
+| GitHub同步 | PASS | 3既有评论一次PATCH+独立GET，历史/元数据/依赖/OPEN保持 |
+| 远端CI | NOT_RUN | 本批源head匹配run0；无push/dispatch |

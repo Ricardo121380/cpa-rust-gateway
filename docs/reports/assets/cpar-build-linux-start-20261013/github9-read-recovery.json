@@ -1,0 +1,14 @@
+{
+  "command": [
+    "gh",
+    "api",
+    "repos/Ricardo121380/cpa-rust-gateway/issues/9/dependencies/blocked_by?per_page=100",
+    "--paginate",
+    "--slurp"
+  ],
+  "exit_code": 0,
+  "stdout_sha256": "cf1cbb66a638b4860a516671fb74850e6ccf787fe6c4c8d29e9c04efe880bd05",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "phase": "READ_ONLY; no issue9 mutation",
+  "dependencies": []
+}

@@ -1,0 +1,134 @@
+{
+  "number": 57,
+  "status": "PASS",
+  "comment_id": 6081234278,
+  "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278",
+  "patch_attempts": 1,
+  "patch_exit_code": 0,
+  "independent_get": true,
+  "full_body_equals_expected": true,
+  "old_prefix_preserved": true,
+  "prefix_sha256": "502b5bf1acfbdea300a32c298204fa4f3875d7ae0b0e61bd4d2f602d82a4c3b6",
+  "final_comment_sha256": "7fa4821fa91d5223c680799efca25972bf95ff32457f414b967b3faacab079db",
+  "issue_metadata_body_checklist_unchanged": true,
+  "dependencies_unchanged": true,
+  "issue_state": "open",
+  "dependencies": [
+    {
+      "id": 5631328914,
+      "number": 12,
+      "state": "closed"
+    },
+    {
+      "id": 5631339239,
+      "number": 17,
+      "state": "closed"
+    },
+    {
+      "id": 5631347684,
+      "number": 21,
+      "state": "closed"
+    },
+    {
+      "id": 5631356096,
+      "number": 25,
+      "state": "closed"
+    },
+    {
+      "id": 5631358441,
+      "number": 26,
+      "state": "closed"
+    },
+    {
+      "id": 5631386213,
+      "number": 37,
+      "state": "closed"
+    },
+    {
+      "id": 5631388515,
+      "number": 38,
+      "state": "closed"
+    },
+    {
+      "id": 5631395778,
+      "number": 40,
+      "state": "open"
+    },
+    {
+      "id": 5631402450,
+      "number": 41,
+      "state": "open"
+    },
+    {
+      "id": 5631408970,
+      "number": 42,
+      "state": "open"
+    },
+    {
+      "id": 5631415759,
+      "number": 43,
+      "state": "open"
+    },
+    {
+      "id": 5631422686,
+      "number": 44,
+      "state": "open"
+    },
+    {
+      "id": 5631429622,
+      "number": 45,
+      "state": "open"
+    },
+    {
+      "id": 5631436822,
+      "number": 46,
+      "state": "open"
+    },
+    {
+      "id": 5631444349,
+      "number": 47,
+      "state": "open"
+    },
+    {
+      "id": 5631451729,
+      "number": 48,
+      "state": "open"
+    },
+    {
+      "id": 5631458604,
+      "number": 49,
+      "state": "open"
+    },
+    {
+      "id": 5631464240,
+      "number": 50,
+      "state": "open"
+    },
+    {
+      "id": 5631493317,
+      "number": 52,
+      "state": "closed"
+    },
+    {
+      "id": 5631495525,
+      "number": 53,
+      "state": "closed"
+    },
+    {
+      "id": 5631498436,
+      "number": 54,
+      "state": "closed"
+    },
+    {
+      "id": 5631513961,
+      "number": 55,
+      "state": "closed"
+    },
+    {
+      "id": 5631516660,
+      "number": 56,
+      "state": "closed"
+    }
+  ],
+  "observed_at_utc": "2026-10-13T10:35:11.358818+00:00"
+}

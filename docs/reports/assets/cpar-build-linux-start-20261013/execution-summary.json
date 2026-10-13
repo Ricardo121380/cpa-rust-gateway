@@ -39,7 +39,15 @@
   "product_full_reruns": 0,
   "matrix": "NOT_RUN",
   "push_release_deployment_production_changes": "NOT_RUN",
-  "remote_ci": "NOT_RUN",
+  "remote_ci": "NOT_RUN; new source-associated workflow runs0",
   "post_review_successful_exit_fix_real_linux": "NOT_RUN; system slots exhausted",
-  "post_review_quiet_audit_tail_fix_real_linux": "NOT_RUN; system slots exhausted"
+  "post_review_quiet_audit_tail_fix_real_linux": "NOT_RUN; system slots exhausted",
+  "standards": "PASS; hard0/judgement1",
+  "spec": "PARTIAL; code0/qualification1",
+  "github_sync": "PASS;3 existing body PATCH; independent GET;allOPEN",
+  "final_docs_static": {
+    "status": "PASS",
+    "steps": 7,
+    "receipt": "docs-delivery.json"
+  }
 }

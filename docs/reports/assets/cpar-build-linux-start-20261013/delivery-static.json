@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "checked_utc": "2026-10-13T10:50:28.722276+00:00",
+  "staged_secret_scan": {
+    "command": [
+      "scripts/secret-scan.sh",
+      "--staged"
+    ],
+    "exit_code": 0,
+    "raw_sha256": "9707df96b0cbed2552381f241588e8a5d776894273847642d8ecdce68472730e",
+    "staged_owned_metadata_files": 19
+  },
+  "targeted_changed_markdown_links": {
+    "files": 4,
+    "local_links": 18,
+    "status": "PASS"
+  },
+  "cached_whitespace": "PASS",
+  "cached_scope": "owned report/assets metadata only",
+  "reviewed_source_bytes_changed": false
+}

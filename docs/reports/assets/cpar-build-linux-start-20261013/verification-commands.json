@@ -64,6 +64,26 @@
       "log": "local-final-audit-tail.log.gz",
       "raw_sha256": "8abb3f5a01175ab0652fc16b739efd2caa63435822caffeb3c1e68774a1547b5",
       "gzip_sha256": "94c92d142673dcd6ecb60b6c5843c5e9d6ddd9255d56821ddb98b63448500d86"
+    },
+    {
+      "command": [
+        "scripts/check.sh",
+        "docs"
+      ],
+      "environment": {
+        "CHECK_REPORT_PATH": "docs/reports/assets/cpar-build-linux-start-20261013/docs-delivery.md"
+      },
+      "started_utc": "2026-10-13T10:48:05.984097+00:00",
+      "elapsed_seconds": 65.477179084,
+      "exit_code": 0,
+      "steps_passed": 7,
+      "raw_sha256": "803fd0077fb42d79a9f998e0b88047d601f76aefda24419919927477d6e45ec5",
+      "gzip_sha256": "bc9091eaf274155c4bd5657f4842e0b15fe7c012c952412147caaedb04cb9a6d",
+      "log": "docs-delivery.log.gz",
+      "report": "docs-delivery.md",
+      "layer": "LOCAL_DOCS_STATIC",
+      "staged_scope_includes_only_owned_metadata": true,
+      "staged_secret_coverage": "separate final --staged scan after all closure metadata is staged; initial docs run started before successful staging"
     }
   ],
   "product_builds": 0,

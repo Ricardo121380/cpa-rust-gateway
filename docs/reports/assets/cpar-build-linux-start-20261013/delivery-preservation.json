@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "checked_utc": "2026-10-13T10:49:15.317985+00:00",
+  "original_files": 88,
+  "sha256_and_modes_unchanged": true,
+  "preservation_baseline": "preservation-baseline.json",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "old_private_payload_freeze_sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
+  "old_private_payload_freeze_unchanged": true,
+  "review_base": "9aa08db64fa74767064db65f906fa7bae0f2aa50",
+  "review_source_head": "68c007e819c25484a681030552a982722b186602",
+  "current_tool_files": 17,
+  "reviewed_tool_sha256_unchanged": true,
+  "prepared_public_wrapper_sha256": "636f73e75948f3f7592e5e18e225c12f9cb3c0c7c2961ab885c204612061f3c5",
+  "prepared_embedded_payload_equals_private_payload": true,
+  "prepared_private_payload_freeze_sha256": "cbf5efea00ac9f1e8c2fb2fdbe95ebc393f2a19cd4b373c7a51d56b42d788d40",
+  "formal_upload_tar_created": false,
+  "real_linux_runs": 3,
+  "new_fresh_pin_intents": 0,
+  "new_chat_intents": 0,
+  "historical_stopped_budgets_restored": false,
+  "verification_correction": "initial wrapper-byte hash assertion compared distinct outer report and payload objects; final checks use embedded object equality plus actual payload byte hash; neither object was changed"
+}
