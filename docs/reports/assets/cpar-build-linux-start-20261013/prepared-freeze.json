@@ -1,6 +1,6 @@
 {
   "status": "PREPARED_ONLY; formal execution BLOCKED",
-  "payload_freeze_sha256": "471e66b5e8ab8978eb71ab5ea1dca2fff7b55d4330bb9605e3fbfbb2ab0610c3",
+  "payload_freeze_sha256": "64064ba4e9ac1fa7574c46b06b3417908a51170f1144995989326df7b81a2d7b",
   "freeze": {
     "kind": "chat_json_502_diagnostic",
     "epoch": "chat-json-linux-20261013",
@@ -13,7 +13,7 @@
       "remote-chat.py": "679e57c5c5aef454fabde091c15293c4a3cb0a1ea1167edcee03413237f2d30f",
       "remote-start.py": "2410af0c558bd49acf7b3552209ef2142df622db643b2351c2aa9964ba6b3cac",
       "remote-pin.py": "577e7682882069bcebc95367fdfaa8ba54233fe4f9d91e4529b96e3ab727ce31",
-      "remote-exit.py": "a5d74d94d0ff6e4c10503797ab99fedfdea72bda85469d7d57b17e8de7bd393f",
+      "remote-exit.py": "f7a6c3d69f04cacb41b779a087deb82382489d30e65c444650bf631d595599dd",
       "remote-readiness.py": "1775c14a52346d94c0c83a37b9b056a7cbdee5272fb00c442f586a86873bbf71",
       "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
       "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",

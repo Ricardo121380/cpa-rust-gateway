@@ -964,6 +964,59 @@ class FullFlow(unittest.TestCase):
                 self.assertTrue(json.loads((f.epoch / 'budget.json').read_text())['stopped'])
                 self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
 
+    def test_successful_start_exit_rejects_current_ownership_drift(self):
+        for mismatch in ['exe-path', 'argv-extra', 'guard-map', 'duplicate-environment', 'start-after-intent']:
+            with self.subTest(mismatch=mismatch):
+                f = self.fixture(); self.assertEqual(f.through('start')[0], 0)
+                proc = f.proc / '202'
+                if mismatch == 'exe-path':
+                    other = f.root / 'same-bytes-other-binary'; other.write_bytes(f.binary_bytes)
+                    (proc / 'exe').unlink(); (proc / 'exe').symlink_to(other)
+                elif mismatch == 'argv-extra':
+                    with (proc / 'cmdline').open('ab') as output: output.write(b'--unowned-option\0')
+                elif mismatch == 'guard-map':
+                    (proc / 'maps').write_text('LOCAL_SIMULATED-unowned-guard')
+                elif mismatch == 'duplicate-environment':
+                    with (proc / 'environ').open('ab') as output:
+                        output.write(('CPAR_BUILD_DIAGNOSTIC_DIR=' + str(f.epoch / 'native-capture') + '\0').encode())
+                original = Path.read_text
+                def drift_after_intent(path, *args, **kwargs):
+                    value = original(path, *args, **kwargs)
+                    if mismatch == 'start-after-intent' and path == proc / 'stat' and (f.epoch / 'startup-stop-intent.json').exists():
+                        return value.rsplit('701', 1)[0] + '702'
+                    return value
+                with patch.object(Path, 'read_text', drift_after_intent):
+                    self.assertNotEqual(f.invoke('exit')[0], 0)
+                self.assertTrue(f.started, 'unknown ownership must not stop the process')
+                self.assertTrue(json.loads((f.epoch / 'budget.json').read_text())['stopped'])
+                self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
+
+    def test_successful_exit_has_durable_bound_intent_and_keeps_startup_observations(self):
+        f = self.fixture(); self.assertEqual(f.through('start')[0], 0)
+        startup = (f.epoch / 'startup-observations.json').read_bytes()
+        original_run, original_sync, synchronized = f.run, os.fsync, []
+        def track_sync(descriptor):
+            synchronized.append(os.fstat(descriptor).st_ino)
+            return original_sync(descriptor)
+        def check_stop(command, **kwargs):
+            if command[:2] == ['systemctl', 'stop']:
+                path = f.epoch / 'startup-stop-intent.json'
+                self.assertTrue(path.exists(), 'successful startup exit also needs durable stop intent')
+                intent = json.loads(path.read_text())
+                self.assertEqual((intent['pid'], intent['process_start']), (202, '701'))
+                self.assertEqual(intent['state_dir'], str(f.epoch / 'state'))
+                self.assertTrue(json.loads((f.epoch / 'budget.json').read_text())['stopped'])
+                self.assertIn(path.stat().st_ino, synchronized)
+                self.assertIn(f.epoch.stat().st_ino, synchronized)
+                self.assertLessEqual(kwargs.get('timeout', 999), 25)
+            return original_run(command, **kwargs)
+        f.run = check_stop
+        with patch.object(os, 'fsync', track_sync):
+            self.assertEqual(f.invoke('exit')[0], 0)
+        self.assertFalse(f.started)
+        self.assertEqual((f.epoch / 'startup-observations.json').read_bytes(), startup)
+        self.assertTrue((f.epoch / 'exit-observations.json').exists())
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

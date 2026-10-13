@@ -1,0 +1,10 @@
+{
+  "layer": "LOCAL_SIMULATED",
+  "exit_code": 1,
+  "tests": 2,
+  "failed_subtests_and_methods": 6,
+  "log": "successful-exit-red.log.gz",
+  "raw_sha256": "25ceaa3500b93291517b43968c24439579b34628be0eff833b7072375f5b73eb",
+  "gzip_sha256": "e8e8d11c067837e3f93315e36877f41393ab2e34b0ce2e26661fb681de3437e7",
+  "reason": "independent Standards H1: successful-start exit lacks full current ownership and durable bound stop intent"
+}

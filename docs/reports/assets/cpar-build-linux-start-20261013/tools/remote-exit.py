@@ -142,19 +142,42 @@ assert budget['historical_inference_requests'] == 35 and budget['historical_gate
 assert 0 <= budget['new_pin_intents'] <= 1 and 0 <= budget['new_basic_intents'] <= 1
 assert budget['new_pin_intents'] + budget['new_basic_intents'] <= 2
 assert budget['new_inference_limit'] == 2 and budget['cumulative_inference_limit'] == 37
-budget['stopped'] = True
 import sys
 sys.path.insert(0,str(epoch))
 import cpar_build_json_diagnostic as diagnostic
-diagnostic.save_budget(epoch / 'budget.json',budget)
-pid = int(subprocess.check_output(['systemctl', 'show', unit, '--value', '--property=MainPID']))
-assert pid == start['pid']
+uploaded = base / 'bin/chat-json-linux-20261013'
+freeze = json.loads((uploaded / 'freeze.json').read_text())
+assert json.loads((epoch / 'freeze.json').read_text()) == freeze
+assert all(hashlib.sha256((uploaded / name).read_bytes()).hexdigest() == value
+           for name, value in freeze['files'].items())
+assert hashlib.sha256((epoch / 'startup_probe.py').read_bytes()).hexdigest() == freeze['files']['startup_probe.py']
+launch = json.loads((epoch / 'launch-v2.json').read_text())['command']
+assert hashlib.sha256(json.dumps(launch, separators=(',', ':')).encode()).hexdigest() == freeze['assembled_launch_sha256']
+assert start['assembled_launch_sha256'] == freeze['assembled_launch_sha256']
+binary = uploaded / 'gateway-aarch64-unknown-linux-gnu'
+guard = base / 'bin/egress-guard-tcp.so'
+assert hashlib.sha256(guard.read_bytes()).hexdigest() == start['guard_sha256'] == '91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06'
+from startup_probe import StartupProbe, StartupError
+probe = StartupProbe(epoch, unit, binary, freeze['files'][binary.name], launch, guard)
+probe.path = epoch / 'exit-observations.json'  # Keep original startup observations immutable.
+assert hashlib.sha256(json.dumps(probe.expected_args, separators=(',', ':')).encode()).hexdigest() == start['argv_sha256']
+
+def persist_stop():
+    budget['stopped'] = True
+    diagnostic.save_budget(epoch / 'budget.json', budget)
+
+try:
+    identity = probe.identity()
+    assert all(identity[name] == start[name] for name in ['pid', 'process_start', 'binary_sha256'])
+    probe.stop(identity, persist_stop)
+except BaseException as error:
+    # A denied/unknown ownership proof terminates the epoch but cannot stop a process.
+    persist_stop()
+    probe.record('exit_failed', exception_type=type(error).__name__,
+                 failure_reason=str(error) if isinstance(error, StartupError) else 'exit_validation_failed')
+    raise
+pid = identity['pid']
 proc = pathlib.Path('/proc', str(pid))
-assert (proc / 'stat').read_text().rsplit(')', 1)[1].split()[19] == start['process_start']
-args = (proc / 'cmdline').read_bytes().decode().split('\0')
-assert args[args.index('--state-dir') + 1] == str(epoch / 'state')
-assert hashlib.sha256((proc / 'exe').read_bytes()).hexdigest() == start['binary_sha256']
-subprocess.run(['systemctl', 'stop', unit], check=True)
 assert int(subprocess.check_output(['systemctl', 'show', unit, '--value', '--property=MainPID'])) == 0
 assert not proc.exists()
 for family in ['tcp', 'tcp6']:
@@ -209,6 +232,8 @@ for path in epoch.rglob('*'):
         files[str(path.relative_to(base))] = {'sha256': digest(path), 'bytes': path.stat().st_size, 'mode': '0600'}
 receipt = {'status': 'PASS; resource exit and count reconciliation' if send_accounting_complete else 'PARTIAL; resource exit PASS; send count UNKNOWN',
            'resource_exit_status': 'PASS', 'count_reconciliation_status': 'PASS' if send_accounting_complete else 'UNKNOWN',
+           'exit_observations_sha256': digest(probe.path),
+           'stop_intent_sha256': digest(epoch / 'startup-stop-intent.json'),
            'observed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
            'source_sha': start['source_sha'], 'binary_sha256': start['binary_sha256'],
            'process_pid_before_stop': pid, 'main_pid_after_stop': 0,

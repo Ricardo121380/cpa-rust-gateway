@@ -2,7 +2,7 @@
   "status": "PARTIAL; formal diagnostic BLOCKED",
   "local_simulated_full_flow": {
     "status": "PASS",
-    "tests": 31
+    "tests": 33
   },
   "offline_real_receipt_oracle": {
     "status": "PASS",
@@ -39,5 +39,6 @@
   "product_full_reruns": 0,
   "matrix": "NOT_RUN",
   "push_release_deployment_production_changes": "NOT_RUN",
-  "remote_ci": "NOT_RUN"
+  "remote_ci": "NOT_RUN",
+  "post_review_successful_exit_fix_real_linux": "NOT_RUN; system slots exhausted"
 }
