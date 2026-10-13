@@ -1,0 +1,26 @@
+{
+  "status": "FROZEN",
+  "base": "51281f0a7255e178ddc770034a8141b197e67d6f",
+  "files": {
+    "startup_probe.py": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95",
+    "launch_recipe.py": "cd89b3f69656fc7b2ad712981d1de9e3e25a1a67af9dd9ae50986c42d2205e01",
+    "linux-system-validation.py": "e7e556b0b4b6ab1ab325c5c3b5a3680bd85bf9f704f5faccc64d70ff80c4408a",
+    "remote-exit.py": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
+    "system_exit_adapter.py": "fa55c5bbf3cd134e9aa0bfb8ae1bb8b4dba408cb2debc9f6c005ef45a9cdf3d5",
+    "recipe.json": "7eaf89f7b326fd5b0f60f20c0075e0e95076e5223127f6c83b5246be4f16f6ee",
+    "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+    "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c"
+  },
+  "controller_sha256": "70472aef06b80a54e92731fabcd30f3d35330b69281d82b312890074fb5e77a5",
+  "max_runs": 4,
+  "scenarios": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "provider_intent_limit": 0,
+  "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+  "guard_sha256": "91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06",
+  "adapted_exit_A_sha256": "5b1d5f32fcf89b5b4d6e79a72868139a496715ca6a2a5323cc563d328067499e"
+}

@@ -1,0 +1,24 @@
+{
+  "scope": "SOURCE_AND_DESIGN_ONLY",
+  "fixed_base": "51281f0a7255e178ddc770034a8141b197e67d6f",
+  "fixed_head": "f03325fb46798219d923da6510876d47f0d34658",
+  "system_freeze_sha256": "b245e30fe6c934b88e52719ad99a0d7c512dfd223a994ae077af8d588c22a078",
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "reviewer": "/root/standards_pre_system",
+      "hard_findings": 0,
+      "new_findings": 0,
+      "inherited_heuristics": 1
+    },
+    "Spec": {
+      "status": "FAIL",
+      "reviewer": "/root/spec_pre_system",
+      "blockers": 1,
+      "finding": "D deadline can cross between post-sleep clock read64.999 and next loop-condition read65.001; no injection and erroneous quiet_audit PASS."
+    }
+  },
+  "linux": "NOT_RUN",
+  "formal_execution_allowed": false,
+  "record_kind": "primary transcription of independent terminal results; source facts in attached review note"
+}

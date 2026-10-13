@@ -1,0 +1,12 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-final-20261013/tools/system-design-tests.py",
+    "Design.test_tail_crosses_deadline_between_sleep_and_loop_check"
+  ],
+  "layer": "LOCAL_SIMULATED",
+  "exit_code": 1,
+  "raw_sha256": "761615985b27c3e7084acf4494d939451dd3fa6486a643887af7d3b10cc1101c",
+  "gzip_sha256": "08fd4eba707d3851e3c7255c58549a4a14184d014f1a1c9e1d1ea227c7ddd546"
+}

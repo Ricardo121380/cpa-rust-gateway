@@ -6,7 +6,7 @@
     "launch_recipe.py": "cd89b3f69656fc7b2ad712981d1de9e3e25a1a67af9dd9ae50986c42d2205e01",
     "linux-system-validation.py": "e7e556b0b4b6ab1ab325c5c3b5a3680bd85bf9f704f5faccc64d70ff80c4408a",
     "remote-exit.py": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
-    "system_exit_adapter.py": "fa55c5bbf3cd134e9aa0bfb8ae1bb8b4dba408cb2debc9f6c005ef45a9cdf3d5",
+    "system_exit_adapter.py": "9796f171ac307bb9624b4bf1411ee5674f175c8b5185ee3457561445f0396573",
     "recipe.json": "7eaf89f7b326fd5b0f60f20c0075e0e95076e5223127f6c83b5246be4f16f6ee",
     "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
     "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c"

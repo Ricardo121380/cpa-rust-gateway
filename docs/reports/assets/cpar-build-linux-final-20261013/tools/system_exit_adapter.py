@@ -62,7 +62,7 @@ def adapt_exit(source, epoch_name, unit):
 
 
 class AuditTailClock:
-    """Real clock and waits; inject once after the last real audit wait."""
+    """Real clock and waits; append before returning the first deadline crossing."""
     def __init__(self, real_time, probe, audit, marker):
         self.real, self.probe, self.audit, self.marker = real_time, probe, audit, marker
         self.injection = None
@@ -72,19 +72,23 @@ class AuditTailClock:
         value = self.real.monotonic()
         if self.begin is None:
             self.begin = value  # The real quiet_audit() begin call, before its record.
+        self.inject_at_deadline(value)
         return value
 
     def sleep(self, seconds):
-        import os
         self.real.sleep(seconds)
+        self.monotonic()
+
+    def inject_at_deadline(self, value):
+        import os
         starts = [row for row in self.probe.trace['observations'] if row['phase'] == 'quiet_audit_started']
         if not starts or self.injection is not None:
             return
-        elapsed = self.monotonic() - self.begin
+        elapsed = value - self.begin
         if elapsed >= 65:
             assert not self.audit.exists() or self.audit.stat().st_size == 0
             row = {'event': 'synthetic_audit_tail', 'synthetic': True, 'marker': self.marker,
-                   'monotonic_seconds': self.monotonic(), 'elapsed_seconds': elapsed}
+                   'monotonic_seconds': value, 'elapsed_seconds': elapsed}
             raw = (json.dumps(row, separators=(',', ':')) + '\n').encode()
             with self.audit.open('ab') as output:
                 output.write(raw)

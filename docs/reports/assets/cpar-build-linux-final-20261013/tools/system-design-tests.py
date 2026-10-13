@@ -107,6 +107,27 @@ class Design(unittest.TestCase):
         with self.assertRaises(AssertionError): clock.sleep(65)
         self.assertEqual(audit.read_bytes(), b'previous-event\n')
 
+    def test_tail_crosses_deadline_between_sleep_and_loop_check(self):
+        import startup_probe
+        directory = tempfile.TemporaryDirectory(); self.addCleanup(directory.cleanup)
+        root = Path(directory.name); audit = root / 'audit.jsonl'
+        values = iter([0.0, 64.490, 64.999, 65.001, 65.003, 65.004])
+        waits = []
+        real = types.SimpleNamespace(monotonic=lambda: next(values), sleep=waits.append)
+        identity = {'pid': 202}
+        probe = types.SimpleNamespace(epoch=root, ports=[3117], trace={'observations': [], 'gates': {}},
+            systemd=lambda: {'MainPID': '202'}, identity=lambda: identity, listeners=lambda proc: [3117])
+        probe.record = lambda phase, **fields: probe.trace['observations'].append({'phase': phase, **fields})
+        clock = AuditTailClock(real, probe, audit, 'synthetic-cross-deadline')
+        with patch.object(startup_probe, 'time', clock):
+            with self.assertRaisesRegex(startup_probe.StartupError, 'quiet_audit_not_flat'):
+                startup_probe.StartupProbe.quiet_audit(probe, identity, audit)
+        self.assertEqual(waits, [.5])
+        self.assertGreaterEqual(clock.injection['elapsed_seconds'], 65)
+        self.assertEqual(json.loads(audit.read_bytes())['marker'], 'synthetic-cross-deadline')
+        self.assertNotEqual(probe.trace['gates'].get('quiet_audit'), 'PASS')
+        self.assertFalse(any(row['phase'] == 'quiet_audit_passed' for row in probe.trace['observations']))
+
     def test_failed_system_slot_is_durable_and_never_dispatches_next(self):
         f = self.fixture()
         names = ['startup_probe.py', 'launch_recipe.py', 'linux-system-validation.py', 'remote-exit.py', 'system_exit_adapter.py']
