@@ -1,0 +1,6 @@
+{
+  "status": "FAIL",
+  "reason": "git diff --cached --check flagged a blank unified-diff context line as trailing whitespace",
+  "affected_path": "docs/reports/assets/cpar-build-linux-final-20261013/system-exit-A.diff",
+  "resolution": "generate a zero-context unified diff; no runtime source changed"
+}

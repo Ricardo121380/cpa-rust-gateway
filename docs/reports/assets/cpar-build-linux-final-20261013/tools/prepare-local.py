@@ -30,7 +30,7 @@ if sys.argv[1] == 'system':
     from system_exit_adapter import adapt_exit
     original = (public / 'tools/remote-exit.py').read_text()
     adapted = adapt_exit(original, 'linux-final-synthetic-20261013-A', 'cpar-linux-final-synthetic-20261013-A.service')
-    (public / 'system-exit-A.diff').write_text(''.join(difflib.unified_diff(original.splitlines(True), adapted.splitlines(True), fromfile='formal-remote-exit.py', tofile='synthetic-executed-remote-exit-A.py')))
+    (public / 'system-exit-A.diff').write_text(''.join(difflib.unified_diff(original.splitlines(True), adapted.splitlines(True), fromfile='formal-remote-exit.py', tofile='synthetic-executed-remote-exit-A.py', n=0)))
     freeze['adapted_exit_A_sha256'] = hashlib.sha256(adapted.encode()).hexdigest()
     save(public / 'system-freeze.json', freeze)
 else:

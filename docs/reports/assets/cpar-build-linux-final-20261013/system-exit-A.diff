@@ -1,52 +1,26 @@
 --- formal-remote-exit.py
 +++ synthetic-executed-remote-exit-A.py
-@@ -15,20 +15,17 @@
- 
- os.umask(0o077)
- base = pathlib.Path('/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010')
+@@ -18,2 +18,2 @@
 -epoch = base / 'private/chat-json-linux-final-20261013'
 -unit = 'cpar-build-chat-json-linux-final-20261013.service'
 +epoch = base / 'private/linux-final-synthetic-20261013-A'
 +unit = 'cpar-linux-final-synthetic-20261013-A.service'
- assert json.loads((base / 'owner.json').read_text())['task'] == 'cpar-build-20261010'
- assert not (epoch / 'final-receipt.json').exists()
+@@ -22,4 +22 @@
 -source = ast.parse((base / 'private/bootstrap.py').read_text())
 -functions = ast.Module(body=[node for node in source.body if isinstance(node, ast.FunctionDef)
 -                            and node.name == 'production'], type_ignores=[])
 -exec(compile(functions, 'production-proof', 'exec'))
 +from system_exit_adapter import production_identity as production
- if not (epoch / 'start-receipt.json').exists():
-     # Startup may fail before its successful binding receipt. A current process
-     # must be fully bound to the frozen launch before any stop; this is cleanup
-     # evidence only and never restores startup or inference qualification.
-     expected = exit_expected_baseline
+@@ -31 +28 @@
 -    uploaded = base / 'bin/chat-json-linux-final-20261013'
 +    uploaded = base / 'bin/linux-final-synthetic-20261013-A'
-     freeze = json.loads((uploaded / 'freeze.json').read_text())
-     assert all(hashlib.sha256((uploaded / name).read_bytes()).hexdigest() == value
-                for name, value in freeze['files'].items())
-@@ -38,7 +35,7 @@
-         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-         if (epoch / 'budget.json').exists():
-             sys.path.insert(0, str(epoch))
+@@ -41 +38 @@
 -            import cpar_build_json_diagnostic as diagnostic
 +            import system_exit_adapter as diagnostic
-             budget = json.loads((epoch / 'budget.json').read_text())
-             assert budget['new_pin_intents'] == budget['new_basic_intents'] == 0
-             budget['stopped'] = True
-@@ -61,7 +58,7 @@
-         assert str(guard) in (proc / 'maps').read_text()
-         environment = [row for row in (proc / 'environ').read_bytes().decode().split('\0') if '=' in row]
-         prepare = json.loads((epoch / 'prepare-receipt.json').read_text())
+@@ -64 +61 @@
 -        required_environment = {'LD_PRELOAD': str(guard), 'CPAR_BUILD_EGRESS_AUDIT': str(base / 'audit/chat-json-linux-final-20261013.jsonl'),
 +        required_environment = {'LD_PRELOAD': str(guard), 'CPAR_BUILD_EGRESS_AUDIT': str(base / 'audit/linux-final-synthetic-20261013-A.jsonl'),
-             'CPAR_BUILD_DIAGNOSTIC_DIR': str(epoch / 'native-capture'),
-             'CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256': prepare['selected_request_sha256'],
-             'CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION': freeze['source_sha']}
-@@ -96,15 +93,8 @@
-         assert not any(row.split()[3] == '0A' and int(row.split()[1].rsplit(':', 1)[1], 16) in [19180, 19181]
-                        for row in pathlib.Path('/proc/net', family).read_text().splitlines()[1:])
-     assert production() == expected['production']
+@@ -99,9 +96,2 @@
 -    args = pathlib.Path('/proc', expected['production']['MainPID'], 'cmdline').read_bytes().decode().split('\0')
 -    credentials = pathlib.Path(args[args.index('--credential-dir') + 1])
 -    client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -58,48 +32,23 @@
 -    assert active == expected['production_config']
 +    active = []
 +    assert expected['production_config'] == active
-     prior = json.loads((base / 'private/chat-json-502-20261011/prepare-receipt.json').read_text())
-     assert json.loads((base / 'private/chat-json-502-20261011/budget.json').read_text())['stopped'] is True
-     assert all(hashlib.sha256((base / name).read_bytes()).hexdigest() == value
-@@ -113,7 +103,7 @@
-         for path in epoch.rglob('*'):
-             assert not path.is_symlink()
-             assert stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
+@@ -116 +106 @@
 -    audit = base / 'audit/chat-json-linux-final-20261013.jsonl'
 +    audit = base / 'audit/linux-final-synthetic-20261013-A.jsonl'
-     audit_hash = hashlib.sha256(audit.read_bytes() if audit.exists() else b'').hexdigest()
-     time.sleep(5)
-     assert hashlib.sha256(audit.read_bytes() if audit.exists() else b'').hexdigest() == audit_hash
-@@ -141,11 +131,13 @@
- assert budget['historical_inference_requests'] == 35 and budget['historical_gateway_pin_confirmed_sends'] == 34
- assert 0 <= budget['new_pin_intents'] <= 1 and 0 <= budget['new_basic_intents'] <= 1
- assert budget['new_pin_intents'] + budget['new_basic_intents'] <= 2
+@@ -144 +134,3 @@
 -assert budget['new_inference_limit'] == 2 and budget['cumulative_inference_limit'] == 37
 +assert budget['new_inference_limit'] == 0 and budget['cumulative_inference_limit'] == 35
 +assert budget['provider_intent_limit'] == budget['provider_intents'] == 0
 +assert budget['new_pin_intents'] == budget['new_basic_intents'] == 0
- import sys
- sys.path.insert(0,str(epoch))
+@@ -147,2 +139,2 @@
 -import cpar_build_json_diagnostic as diagnostic
 -uploaded = base / 'bin/chat-json-linux-final-20261013'
 +import system_exit_adapter as diagnostic
 +uploaded = base / 'bin/linux-final-synthetic-20261013-A'
- freeze = json.loads((uploaded / 'freeze.json').read_text())
- assert json.loads((epoch / 'freeze.json').read_text()) == freeze
- assert all(hashlib.sha256((uploaded / name).read_bytes()).hexdigest() == value
-@@ -184,7 +176,7 @@
-     assert not any(row.split()[3] == '0A' and int(row.split()[1].rsplit(':', 1)[1], 16) in [19180, 19181]
-                    for row in pathlib.Path('/proc/net', family).read_text().splitlines()[1:])
- digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+@@ -187 +179 @@
 -audit = base / 'audit/chat-json-linux-final-20261013.jsonl'
 +audit = base / 'audit/linux-final-synthetic-20261013-A.jsonl'
- audit_hash = hashlib.sha256(audit.read_bytes() if audit.exists() else b'').hexdigest()
- time.sleep(5)
- assert hashlib.sha256(audit.read_bytes() if audit.exists() else b'').hexdigest() == audit_hash
-@@ -192,14 +184,8 @@
- assert all(event in ['dns_build_allowed', 'connect_build_allowed'] for event in network_events)
- assert all(digest(base / name) == value for name, value in start['historical_file_hashes'].items())
- assert production() == start['production_before']
+@@ -195,8 +187,2 @@
 -source_args = pathlib.Path('/proc', start['production_before']['MainPID'], 'cmdline').read_bytes().decode().split('\0')
 -credentials = pathlib.Path(source_args[source_args.index('--credential-dir') + 1])
 -client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -110,15 +59,6 @@
 -assert active == start['production_active_configuration']
 +active = []  # Synthetic run: production configuration HTTP is NOT_RUN.
 +assert start['production_active_configuration'] == active
- with sqlite3.connect('file:' + str(epoch / 'state/control.sqlite3') + '?mode=ro', uri=True) as db:
-     db.row_factory = sqlite3.Row
-     counts = dict(db.execute('SELECT event_type,count(*) FROM gateway_event_log GROUP BY event_type'))
-@@ -255,7 +241,7 @@
-            'production_after': production(), 'production_active_configuration': active,
-            'historical_file_hashes_preserved': True, 'private_files': files,
-            'provider_http_receive_count': 'UNKNOWN; independent Provider receive counter unavailable',
+@@ -258 +244 @@
 -           'new_provider_calls_in_exit': 0, 'management_get_intents_in_exit': 1}
 +           'new_provider_calls_in_exit': 0, 'management_get_intents_in_exit': 0, 'production_configuration_http': 'NOT_RUN; synthetic adapter'}
- with (epoch / 'final-receipt.json').open('x') as output:
-     json.dump(receipt, output, indent=2)
- public = {key: value for key, value in receipt.items() if key != 'private_files'}
