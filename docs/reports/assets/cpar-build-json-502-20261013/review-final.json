@@ -1,0 +1,76 @@
+{
+  "status": "PASS for complete owned delivery diff; real qualification remains BLOCKED",
+  "base_sha": "201dbe2e283b9c07c85b6054779f53f4d368afd2",
+  "target_sha": "78acbcda00561a38d4964026fec362070a7a487b",
+  "diff_command": [
+    "git",
+    "diff",
+    "201dbe2e283b9c07c85b6054779f53f4d368afd2...78acbcda00561a38d4964026fec362070a7a487b"
+  ],
+  "scope_files": [
+    "docs/reports/assets/cpar-build-json-502-20261013/baseline.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/batch-contract.md",
+    "docs/reports/assets/cpar-build-json-502-20261013/colima-observation.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/diagnostic.log.gz",
+    "docs/reports/assets/cpar-build-json-502-20261013/docs-gate.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/docs-gate.log.gz",
+    "docs/reports/assets/cpar-build-json-502-20261013/docs-gate.md",
+    "docs/reports/assets/cpar-build-json-502-20261013/driver-local-checks.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/github-append-47.md",
+    "docs/reports/assets/cpar-build-json-502-20261013/github-append-57.md",
+    "docs/reports/assets/cpar-build-json-502-20261013/github-append-9.md",
+    "docs/reports/assets/cpar-build-json-502-20261013/github-append-plan.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/github-initial-summary.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/operational-failures.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/oracle.log.gz",
+    "docs/reports/assets/cpar-build-json-502-20261013/prior-evidence-reuse.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/public-regressions.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/public-regressions.log.gz",
+    "docs/reports/assets/cpar-build-json-502-20261013/qualification.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/readiness-initial.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/readiness-root.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/remote-exit-final.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/remote-exit-readback-complete.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/remote-exit-readback.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/remote-mode-diagnosis.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/remote-no-launch-exit-initial.py.txt",
+    "docs/reports/assets/cpar-build-json-502-20261013/remote-no-launch-exit.py",
+    "docs/reports/assets/cpar-build-json-502-20261013/terminated-budget.json",
+    "docs/reports/assets/cpar-build-json-502-20261013/workspace-preservation.json",
+    "docs/reports/cpar-build-json-502-20261013.md"
+  ],
+  "file_count": 30,
+  "text_count": 26,
+  "gzip_count": 4,
+  "worktree_matches_target": true,
+  "completed_at_utc": "2026-10-13T02:17:42.878062+00:00",
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "findings": 0,
+      "smell_findings": 0,
+      "agent": "/root/fresh_standards_review",
+      "terminal": "FINAL_ANSWER",
+      "scope": "complete 30/30",
+      "report": "review-standards.md",
+      "report_sha256": "157b36858982cb08eb3623908134fbe1b31b555b265d5112d98f45535e236930"
+    },
+    "Spec": {
+      "status": "PASS",
+      "findings": 0,
+      "agent": "/root/fresh_spec_review",
+      "terminal": "FINAL_ANSWER",
+      "scope": "complete 30/30",
+      "report": "review-spec.md",
+      "archive_note": "reported type counts 25+5 corrected by root exact fixed scope enumeration to 26+4; raw textual count retained",
+      "report_sha256": "793527b8727738b318d17287cae17ce0a9bda9e49db7f464fbb0dfe69e0f8df7"
+    }
+  },
+  "product_and_driver_review_reuse": "only matching unchanged implementation and explicitly bound prior full reviews; not remote lease/Pin资格",
+  "pending_after_this_review": [
+    "GitHub append and independent readback",
+    "final generated delivery receipts and summary static verification"
+  ],
+  "real_diagnostic": "BLOCKED_BEFORE_PREPARE",
+  "remote_ci_release_deploy_production": "NOT_RUN"
+}
