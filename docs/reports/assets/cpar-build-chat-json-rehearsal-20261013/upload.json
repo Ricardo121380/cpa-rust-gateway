@@ -1,0 +1,32 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "907cb3a02d954ca53e8a4ead675d2b6d6f80089d8f267010488c5dd952efd14b",
+  "stdout_sha256": "a29e087a5948ed083ddde67f9adfd16c49dcd0628f5efe5eaa8916734bb05305",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-13T06:04:05.370236+00:00",
+  "result": {
+    "status": "PASS",
+    "directory": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/chat-json-rehearsal-20261013",
+    "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "uploaded_hashes": {
+      "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+      "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+      "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+      "user-authorization.json": "cb9037bd7dad9880988897a614d59f69930411a66e2de3b67f18395d3c00830a",
+      "historical-cost-authorization.json": "77980e82623fa9913bd0623803f1a0f6b33857335127ad96fde5064f0ebaaa0f",
+      "cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "cpar_new_build_acceptance.py": "fc15d63a82c2686582f915580f9b635ae7cc0b8cee4ac03f1fcfc706826b7854",
+      "cpar_build_json_diagnostic.py": "e0aec5d82e3f56f9a59a3ac4de73b9a31ae3656e0b066d38ec011e181c034477",
+      "remote-chat.py": "4c56b0b96ba798f23756252c954146c0604e27cc2fca49c76996836de9b0fb3e",
+      "remote-start.py": "726c38cb829aa8bca759a164d95e2b96bfc649810f40fd3e3d347bb7a2f17705",
+      "remote-pin.py": "8c820db1eec69d2f69e8f7fea0f80b7c6bd04fe2369fae5e70e7629e3239523c",
+      "remote-exit.py": "8c1a31936644903fdbb94b7471f7a76d27418af815d5281fc10a1e4e74f940f8",
+      "remote-readiness.py": "8bb7d18f2d12ee2154bbf977b375f91efc6bbf35685217f8bec715a833fea487",
+      "remote-prepare.py": "50fa205cbaa0040fdd4495bed7b9cfb560d635d1690ef1ea5448906166f5fb12",
+      "launch_recipe.py": "4f0de87b85ffa58e29784423da1ae1d39f9296cd6b21d55fde297591ce14379a",
+      "qualification.py": "a7718f86a1b0437a6ed2f076f6e96595f27cf2dc1893f4738d9939316cb30237"
+    },
+    "overwrite_count": 0,
+    "provider_calls": 0
+  }
+}

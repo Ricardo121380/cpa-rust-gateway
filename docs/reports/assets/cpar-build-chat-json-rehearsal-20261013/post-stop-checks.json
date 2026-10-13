@@ -1,0 +1,58 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/full-flow-tests.py"
+  ],
+  "working_directory": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "exit_code": 0,
+  "raw_sha256": "446dd65825b7efd79df228f7b961b8d1f1cf0c522c0537bbe2113c22709ecacc",
+  "gzip_sha256": "2b2f1810b35277be25c9058fd9335057bda52a2c3053a9d6136d4d1a9ac4bd09",
+  "tests": 20,
+  "layer": "LOCAL_SIMULATED",
+  "observed_at_utc": "2026-10-13T06:12:50.923355+00:00",
+  "code_sha256": {
+    "remote-exit.py": "779e9a9afffef0c2b5bbcaf44435f4689ddfd63230f2ab47b8fb4a975c1ed515",
+    "full-flow-tests.py": "023d55d13d60c03db9a53ee0aeb9b87a406edf95f338efc0e92086b4e17c6b7d"
+  },
+  "provider_calls": 0,
+  "actual_execution_payload_unchanged": true,
+  "frozen_sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
+  "original_execution_code_commit": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d",
+  "red": {
+    "command": [
+      "python3",
+      "-B",
+      "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/full-flow-tests.py",
+      "FullFlow.test_start_identity_failure_later_stable_owned_process_has_resource_exit"
+    ],
+    "exit_code": 1,
+    "raw_sha256": "d46cb728e60a1d8b236ad53b8133eb72a8c05fa3015848f39c112dde1669a5e0",
+    "gzip": "post-stop-exit-red.log.gz"
+  },
+  "focused_green": {
+    "command": [
+      "python3",
+      "-B",
+      "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/full-flow-tests.py",
+      "FullFlow.test_start_identity_failure_later_stable_owned_process_has_resource_exit"
+    ],
+    "exit_code": 0,
+    "raw_sha256": "84d71276220a89dbee22ed0476516c6497cd236c27676b49ef6f29f79b9e7c7c",
+    "gzip": "post-stop-exit-green-focused.log.gz"
+  },
+  "docs_static": {
+    "command": "CHECK_REPORT_PATH=docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-post-stop.md scripts/check.sh docs",
+    "exit_code": 0,
+    "steps": 7,
+    "raw_sha256": "f51bec25f25b8850479269b1983ffbf6830265d2fd43c26d14a864513aa5a5f0",
+    "gzip_sha256": "f11d2224fb7b2ea542a7761b3a277bf59daaf46fb81128a36da382ba3f66c716",
+    "gzip": "docs-gate-post-stop.log.gz"
+  },
+  "reused_unchanged": {
+    "control": 2,
+    "qualification": 9,
+    "start": 2
+  },
+  "total_local_simulated": 33
+}

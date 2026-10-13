@@ -24,9 +24,67 @@ functions = ast.Module(body=[node for node in source.body if isinstance(node, as
                             and node.name == 'production'], type_ignores=[])
 exec(compile(functions, 'production-proof', 'exec'))
 if not (epoch / 'start-receipt.json').exists():
-    # Failed preparation/startup owns no successfully bound process. Prove absence;
-    # never stop a PID that lacks the fresh, complete start binding.
+    # Startup may fail before its successful binding receipt. A current process
+    # must be fully bound to the frozen launch before any stop; this is cleanup
+    # evidence only and never restores startup or inference qualification.
     expected = exit_expected_baseline
+    uploaded = base / 'bin/chat-json-rehearsal-20261013'
+    freeze = json.loads((uploaded / 'freeze.json').read_text())
+    assert all(hashlib.sha256((uploaded / name).read_bytes()).hexdigest() == value
+               for name, value in freeze['files'].items())
+    owned_process_stop_status = None
+    if epoch.exists():
+        lock = (epoch / 'execution.lock').open('a')
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if (epoch / 'budget.json').exists():
+            sys.path.insert(0, str(epoch))
+            import cpar_build_json_diagnostic as diagnostic
+            budget = json.loads((epoch / 'budget.json').read_text())
+            assert budget['new_pin_intents'] == budget['new_basic_intents'] == 0
+            budget['stopped'] = True
+            diagnostic.save_budget(epoch / 'budget.json', budget)
+    pid = int(subprocess.check_output(['systemctl', 'show', unit, '--value', '--property=MainPID']))
+    if pid:
+        assert json.loads((epoch / 'freeze.json').read_text()) == freeze
+        launch = json.loads((epoch / 'launch-v2.json').read_text())['command']
+        assert hashlib.sha256(json.dumps(launch, separators=(',', ':')).encode()).hexdigest() == freeze['assembled_launch_sha256']
+        binary = uploaded / 'gateway-aarch64-unknown-linux-gnu'
+        proc = pathlib.Path('/proc', str(pid))
+        args = (proc / 'cmdline').read_bytes().decode().rstrip('\0').split('\0')
+        assert args == launch[launch.index(str(binary)):]
+        assert args[args.index('--state-dir') + 1] == str(epoch / 'state')
+        assert args[args.index('--background-provider-tasks') + 1] == 'disabled'
+        assert str((proc / 'exe').resolve()) == str(binary)
+        assert hashlib.sha256((proc / 'exe').read_bytes()).hexdigest() == freeze['files'][binary.name]
+        guard = base / 'bin/egress-guard-tcp.so'
+        assert hashlib.sha256(guard.read_bytes()).hexdigest() == '91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06'
+        assert str(guard) in (proc / 'maps').read_text()
+        environment = [row for row in (proc / 'environ').read_bytes().decode().split('\0') if '=' in row]
+        prepare = json.loads((epoch / 'prepare-receipt.json').read_text())
+        required_environment = {'LD_PRELOAD': str(guard), 'CPAR_BUILD_EGRESS_AUDIT': str(base / 'audit/chat-json-rehearsal-20261013.jsonl'),
+            'CPAR_BUILD_DIAGNOSTIC_DIR': str(epoch / 'native-capture'),
+            'CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256': prepare['selected_request_sha256'],
+            'CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION': freeze['source_sha']}
+        assert all(sum(row.split('=', 1)[0] == name for row in environment) == 1
+                   and name + '=' + value in environment for name, value in required_environment.items())
+        process_start = (proc / 'stat').read_text().rsplit(')', 1)[1].split()[19]
+        binding = {'pid': pid, 'process_start': process_start, 'binary_sha256': freeze['files'][binary.name],
+                   'argv_sha256': hashlib.sha256(json.dumps(args, separators=(',', ':')).encode()).hexdigest(),
+                   'state_dir': str(epoch / 'state'), 'startup_validation_status': 'NOT_PASSED'}
+        with (epoch / 'exit-process-binding.json').open('x') as output:
+            json.dump(binding, output, indent=2)
+            output.flush()
+            os.fsync(output.fileno())
+        directory = os.open(epoch, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+        assert int(subprocess.check_output(['systemctl', 'show', unit, '--value', '--property=MainPID'])) == pid
+        assert (proc / 'stat').read_text().rsplit(')', 1)[1].split()[19] == process_start
+        subprocess.run(['systemctl', 'stop', unit], check=True)
+        assert not proc.exists()
+        owned_process_stop_status = 'STOPPED_VERIFIED'
     assert int(subprocess.check_output(['systemctl', 'show', unit, '--value', '--property=MainPID'])) == 0
     for proc in pathlib.Path('/proc').iterdir():
         if not proc.name.isdigit() or int(proc.name) == os.getpid(): continue
@@ -47,24 +105,11 @@ if not (epoch / 'start-receipt.json').exists():
         active = [{key: row[key] for key in ['id', 'revision', 'status']}
                   for row in json.load(response) if row['status'] == 'active']
     assert active == expected['production_config']
-    uploaded = base / 'bin/chat-json-rehearsal-20261013'
-    freeze = json.loads((uploaded / 'freeze.json').read_text())
-    assert all(hashlib.sha256((uploaded / name).read_bytes()).hexdigest() == value
-               for name, value in freeze['files'].items())
     prior = json.loads((base / 'private/chat-json-502-20261011/prepare-receipt.json').read_text())
     assert json.loads((base / 'private/chat-json-502-20261011/budget.json').read_text())['stopped'] is True
     assert all(hashlib.sha256((base / name).read_bytes()).hexdigest() == value
                for name, value in prior['historical_file_hashes'].items())
     if epoch.exists():
-        lock = (epoch / 'execution.lock').open('a')
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        if (epoch / 'budget.json').exists():
-            sys.path.insert(0, str(epoch))
-            import cpar_build_json_diagnostic as diagnostic
-            budget = json.loads((epoch / 'budget.json').read_text())
-            assert budget['new_pin_intents'] == budget['new_basic_intents'] == 0
-            budget['stopped'] = True
-            diagnostic.save_budget(epoch / 'budget.json', budget)
         for path in epoch.rglob('*'):
             assert not path.is_symlink()
             assert stat.S_IMODE(path.stat().st_mode) == (0o700 if path.is_dir() else 0o600)
@@ -76,7 +121,8 @@ if not (epoch / 'start-receipt.json').exists():
     start_failure = (json.loads((epoch / 'start-failure-v2.json').read_text())
                      if (epoch / 'start-failure-v2.json').exists() else {})
     receipt = {'status': 'PASS; resource exit before successful start', 'resource_exit_status': 'PASS',
-               'owned_process_stop_status': start_failure.get('owned_process_stop_status', 'NOT_STARTED'),
+               'owned_process_stop_status': owned_process_stop_status or start_failure.get('owned_process_stop_status', 'NOT_STARTED'),
+               'startup_validation_status': 'NOT_PASSED',
                'remote_epoch_status': 'CREATED' if epoch.exists() else 'NOT_CREATED',
                'temporary_ports_listening': [], 'post_stop_flat_seconds': 5, 'production_after': production(),
                'production_active_configuration': active, 'historical_file_hashes_preserved': True,

@@ -303,7 +303,10 @@ class Fixture:
         (p / 'fd').mkdir(parents=True, exist_ok=True)
         (p / 'cmdline').write_bytes(('\0'.join(argv) + '\0').encode())
         (p / 'stat').write_text(str(pid) + ' (fixture) ' + ' '.join(['S'] + ['0'] * 18 + ['701']))
-        (p / 'exe').write_bytes(self.binary_bytes)
+        if pid == 202:
+            (p / 'exe').symlink_to(argv[0])
+        else:
+            (p / 'exe').write_bytes(self.binary_bytes)
         (p / 'status').write_text('CapEff:\t0000000000000004\n')
         (p / 'maps').write_text(str(self.base / 'bin/egress-guard-tcp.so'))
 
@@ -539,7 +542,13 @@ class Fixture:
     def invoke(self, action):
         self.action = action
         if not hasattr(self, 'expiry'): self.expiry = int(time.time() * 1000) + 7200000
+        original_read_bytes = Path.read_bytes
+        def read_process_bytes(path):
+            if self.failure == 'start-identity-not-ready' and action == 'start' and path == self.proc / '202/cmdline':
+                return b'LOCAL_SIMULATED-exec-pending\0'
+            return original_read_bytes(path)
         with process_file_lifetime(), patch.object(subprocess, 'run', self.run), patch.object(subprocess, 'check_output', self.check_output), \
+             patch.object(Path, 'read_bytes', read_process_bytes), \
              patch.object(urllib.request, 'build_opener', lambda *args: types.SimpleNamespace(open=self.open)), \
              patch.object(time, 'monotonic', lambda: self.clock), patch.object(time, 'sleep', self.sleep), \
              patch.object(sys, 'argv', ['local-control.py', action]), contextlib.redirect_stdout(io.StringIO()):
@@ -752,6 +761,64 @@ class FullFlow(unittest.TestCase):
             receipt = json.loads((f.public / 'exit.json').read_text())['result']
             self.assertEqual(receipt['resource_exit_status'], 'PASS')
             self.assertEqual(receipt['owned_process_stop_status'], 'NOT_STARTED' if end == 'prepare' else 'STOPPED_VERIFIED')
+
+    def test_start_identity_failure_later_stable_owned_process_has_resource_exit(self):
+        f = self.fixture(); f.failure = 'start-identity-not-ready'
+        self.assertNotEqual(f.through('start')[0], 0)
+        self.assertTrue(f.started)
+        self.assertFalse((f.epoch / 'start-receipt.json').exists())
+        self.assertEqual(json.loads((f.epoch / 'start-failure-v2.json').read_text())['owned_process_stop_status'],
+                         'IDENTITY_OR_EXIT_UNKNOWN')
+        self.assertNotEqual(f.invoke('pin')[0], 0)
+        original_run = f.run
+        def check_stop_persistence(command, **kwargs):
+            if command[:2] == ['systemctl', 'stop']:
+                self.assertTrue((f.epoch / 'exit-process-binding.json').exists())
+                self.assertTrue(json.loads((f.epoch / 'budget.json').read_text())['stopped'])
+            return original_run(command, **kwargs)
+        f.run = check_stop_persistence
+        self.assertEqual(f.invoke('exit')[0], 0)
+        self.assertFalse(f.started)
+        receipt = json.loads((f.public / 'exit.json').read_text())['result']
+        self.assertEqual(receipt['resource_exit_status'], 'PASS')
+        self.assertEqual(receipt['owned_process_stop_status'], 'STOPPED_VERIFIED')
+        self.assertEqual(receipt['startup_validation_status'], 'NOT_PASSED')
+        intent = json.loads((f.epoch / 'exit-process-binding.json').read_text())
+        self.assertEqual(intent['pid'], 202)
+        self.assertEqual(intent['binary_sha256'], sha(f.binary_bytes))
+        self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
+        self.assertTrue(json.loads((f.epoch / 'budget.json').read_text())['stopped'])
+
+    def test_failed_start_exit_never_stops_mismatched_process_identity(self):
+        for mismatch in ['exe-path', 'argv-state', 'guard-map', 'duplicate-environment', 'process-start']:
+            with self.subTest(mismatch=mismatch):
+                f = self.fixture(); f.failure = 'start-identity-not-ready'
+                self.assertNotEqual(f.through('start')[0], 0)
+                proc = f.proc / '202'
+                if mismatch == 'exe-path':
+                    other = f.root / 'same-bytes-other-binary'; other.write_bytes(f.binary_bytes)
+                    (proc / 'exe').unlink(); (proc / 'exe').symlink_to(other)
+                elif mismatch == 'argv-state':
+                    (proc / 'cmdline').write_bytes((proc / 'cmdline').read_bytes().replace(
+                        str(f.epoch / 'state').encode(), str(f.root / 'unowned-state').encode()))
+                elif mismatch == 'guard-map':
+                    (proc / 'maps').write_text('LOCAL_SIMULATED-unowned-guard')
+                elif mismatch == 'duplicate-environment':
+                    with (proc / 'environ').open('ab') as output:
+                        output.write(('CPAR_BUILD_DIAGNOSTIC_DIR=' + str(f.epoch / 'native-capture') + '\0').encode())
+                original_text = Path.read_text
+                reads = []
+                def read_process_start(path, *args, **kwargs):
+                    value = original_text(path, *args, **kwargs)
+                    if mismatch == 'process-start' and path == proc / 'stat':
+                        reads.append(value)
+                        if len(reads) > 1: return value.rsplit('701', 1)[0] + '702'
+                    return value
+                with patch.object(Path, 'read_text', read_process_start):
+                    self.assertNotEqual(f.invoke('exit')[0], 0)
+                self.assertTrue(f.started)
+                self.assertTrue(json.loads((f.epoch / 'budget.json').read_text())['stopped'])
+                self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
 
 
 if __name__ == '__main__':

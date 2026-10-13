@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "preserved_local_historical_files": 250,
+  "historical_mismatches": 0,
+  "user_agents_hash_equal": true,
+  "user_agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "executed_payload_16_unchanged": true,
+  "executed_tar_unchanged": true,
+  "private_mode_failure_count": 0,
+  "product_worktree_diff_empty": true
+}

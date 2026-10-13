@@ -1,0 +1,83 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "314da56b7880d6e58b1e8324e8ec43b551ca1a40ac6111d3b63d86849a179720",
+  "stdout_sha256": "5ca434ce3f61ae22b787b3d531409fea34ccee2b15333a61309e1fddf7f42844",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-13T06:08:34.743346+00:00",
+  "result": {
+    "status": "PASS",
+    "resource_exit_status": "PASS",
+    "owned_process_stop_status": "STOPPED_VERIFIED",
+    "execution_status": "BLOCKED_AFTER_START_FAILURE; NEVER_RESUMED",
+    "remote_epoch_status": "CREATED",
+    "startup_validation_status": "FAIL; no successful startup receipt or 65-second gate",
+    "observed_at_utc": "2026-10-13T06:08:34.415116+00:00",
+    "identity": {
+      "pid": 2026813,
+      "process_start": "679814074",
+      "exe_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+      "argv_sha256": "d021fe9417eb5a7f07be6d6e5c566cec0160056ef6abc2f491f743a861b89d9d",
+      "state_dir": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/private/chat-json-rehearsal-20261013/state",
+      "guard_mapped": true,
+      "environment_unique_and_exact": true,
+      "provider_calls": 0
+    },
+    "main_pid_after_stop": 0,
+    "temporary_ports_listening": [],
+    "post_stop_flat_seconds": 5,
+    "audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "audit_bytes": 0,
+    "checks": {
+      "main_pid_zero": true,
+      "owned_pid_absent": true,
+      "temporary_ports_released": true,
+      "post_stop_audit_flat": true,
+      "history_bytes_preserved": true,
+      "old_budget_still_stopped": true,
+      "private_modes_preserved": true,
+      "production_process_and_files_match_fresh_prepare": true,
+      "production_active_config_matches_fresh_prepare": true,
+      "zero_new_event_rows": true,
+      "zero_new_ledger_rows": true,
+      "candidate_native_revision_preserved": true
+    },
+    "historical_files_verified": 381,
+    "historical_mismatch_count": 0,
+    "private_file_count": 36,
+    "private_mode_failure_count": 0,
+    "private_inventory_sha256": "27b668b9e41d83302f22a65da6f4196c12a381b3aed50a6b4a1249685667afce",
+    "production_after": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "dca3a7a34532447432fae49036bdde3d67412861b3b8bfcf737f62ab7fa2966c"
+    },
+    "production_active_configuration": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "budget_stopped": true,
+    "new_pin_intents": 0,
+    "new_basic_intents": 0,
+    "new_gateway_pin_confirmed_sends": 0,
+    "new_event_counts": {
+      "request_finished": 0,
+      "request": 0,
+      "attempt": 0,
+      "usage": 0
+    },
+    "new_ledger_rows": 0,
+    "provider_http_receive_count": "UNKNOWN",
+    "actual_provider_cost": "UNKNOWN",
+    "provider_calls_in_cleanup": 0
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "exit_code": 1,
+  "executed_script_sha256": "34e0ec871e6cecb2b936c243b52eefbfdaacfdebf51b49b9f14d72d7452fe8d5",
+  "stdout_sha256": "61b8782e4b8b6a2afc9570f6673520883ddfb9897d189788400909470d0c6af3",
+  "stderr_sha256": "0c2a160618127a3ebe4a58addc5c109a38afa113ab7e35f89cb10b6da4906a33",
+  "observed_at_utc": "2026-10-13T06:04:33.047642+00:00"
+}

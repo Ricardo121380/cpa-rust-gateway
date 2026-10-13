@@ -1,0 +1,118 @@
+{
+  "working_directory": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "commands": [
+    {
+      "local_argv": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-control.py",
+        "observe"
+      ],
+      "local_exit_code": 0,
+      "remote_exit_code": 0,
+      "receipt": "observation-1.json",
+      "executed_script_sha256": "b695d84f27df73737dfd4d95fb918b8f20697ab8de5961f91e4be244dd451e52"
+    },
+    {
+      "local_argv": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-control.py",
+        "upload"
+      ],
+      "local_exit_code": 0,
+      "remote_exit_code": 0,
+      "receipt": "upload.json",
+      "executed_script_sha256": "907cb3a02d954ca53e8a4ead675d2b6d6f80089d8f267010488c5dd952efd14b"
+    },
+    {
+      "local_argv": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-control.py",
+        "prepare"
+      ],
+      "local_exit_code": 0,
+      "remote_exit_code": 0,
+      "receipt": "prepare.json",
+      "executed_script_sha256": "cd82c5ccbe17db6a9292cc921ecd839bb8da233d656d91b1ddf8e6636d1dd210"
+    },
+    {
+      "local_argv": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-control.py",
+        "start"
+      ],
+      "local_exit_code": 1,
+      "remote_exit_code": 1,
+      "receipt": "start.json",
+      "executed_script_sha256": "34e0ec871e6cecb2b936c243b52eefbfdaacfdebf51b49b9f14d72d7452fe8d5"
+    },
+    {
+      "local_argv": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-control.py",
+        "exit"
+      ],
+      "local_exit_code": 1,
+      "remote_exit_code": 1,
+      "receipt": "exit.json",
+      "executed_script_sha256": "11c42b5f15262f4710bcb674e68e7ba14d3675c879a05c3f3c47fc33d89cf697"
+    },
+    {
+      "purpose": "identity-observation",
+      "remote_argv": [
+        "ssh",
+        "-T",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
+        "new-vps",
+        "sudo -n python3 -"
+      ],
+      "local_wrapper_exit_code": 0,
+      "remote_exit_code": 0,
+      "script_sha256": "6edf4ef586dbd01d640663b4f634d1f9d30fc15a6ae82e67baee8823159c11d8",
+      "receipt": "identity-observation.json"
+    },
+    {
+      "purpose": "identity-bound-cleanup",
+      "remote_argv": [
+        "ssh",
+        "-T",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
+        "new-vps",
+        "sudo -n python3 -"
+      ],
+      "local_wrapper_exit_code": 0,
+      "remote_exit_code": 1,
+      "script_sha256": "72beeb6153ae9be5ec3e2b78bb6068575ecff2b8845fa6bb43fdf55aee4aa8ba",
+      "receipt": "identity-bound-cleanup.json"
+    },
+    {
+      "purpose": "identity-bound-cleanup-final",
+      "remote_argv": [
+        "ssh",
+        "-T",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
+        "new-vps",
+        "sudo -n python3 -"
+      ],
+      "local_wrapper_exit_code": 0,
+      "remote_exit_code": 0,
+      "script_sha256": "314da56b7880d6e58b1e8324e8ec43b551ca1a40ac6111d3b63d86849a179720",
+      "receipt": "identity-bound-cleanup-final.json"
+    }
+  ],
+  "real_inference_calls": 0,
+  "no_operation_reentry": "original formal start and exit never replayed; identity-bound cleanup is separate authorized resource exit proof"
+}

@@ -1,6 +1,6 @@
 # CPAR-38 / #47：验收驱动跨版本完整预演与受控 Chat JSON 诊断
 
-本批当前完成 **LOCAL_SIMULATED 完整预演**，真实观察、启动、Pin/Chat和退出尚未执行。独立两轴审查在执行前单列，不把本地通过作为远端资格。
+本批已完成 **LOCAL_SIMULATED 完整预演及实际受控尝试，最终锁存停止**。第一次只读观察、上传和prepare通过；临时进程实际创建，但启动身份检查失败，未完成启动资格，fresh Pin与Chat均未执行。资源退出另以严格身份绑定证明PASS。没有取得本次Chat诊断结果，旧502根因仍UNKNOWN。
 
 ## 基线、授权与复用
 
@@ -54,6 +54,32 @@ Task42/42、Phase45/45的gzip及完整原始日志摘要、完整历史两轴审
 
 执行前累计完整覆盖54对象，Standards与Spec均PASS。Standards使用原完整52对象审查、四份文档全文收口审查和独立16/17/3及历史原件哈希核验组合，未改写历史FAIL/PARTIAL；Spec独立累计54对象完整PASS。见 [完整审查依据](assets/cpar-build-chat-json-rehearsal-20261013/review-pre-execution.md)及[机器门槛](assets/cpar-build-chat-json-rehearsal-20261013/review-pre-execution.json)。额外Standards尝试中断且无终态，不作为PASS依据。
 
-实际观察/远端创建/启动/fresh Pin/Chat目前NOT_RUN；真实根因、Request/Attempt/Usage/账本、发送和退出结果在新鲜回执后追加。旧502根因仍UNKNOWN，没有NOT_REPRODUCED或六组合PASS。
+实际结果见 [汇总](assets/cpar-build-chat-json-rehearsal-20261013/actual-summary.json)及[执行命令/退出状态](assets/cpar-build-chat-json-rehearsal-20261013/actual-commands.json)。真实观察只进行1次，返回同一授权连续性PASS、剩余9355秒，正常续期等待0次；生产版本仍b0cf/schema31，源端摘要credential_revision=null。观察没有创建远端epoch或Provider调用。
+
+上传16/16实际字节与冻结摘要匹配，覆盖0；prepare重新核对有效期大于整小时、身份连续和同一授权source，复制1个账号，native revision=144、candidate schema34，runtime预期=145。没有主动刷新、重新授权、账号切换、产品构建或生产写入。见 [观察](assets/cpar-build-chat-json-rehearsal-20261013/observation-1.json)、[上传](assets/cpar-build-chat-json-rehearsal-20261013/upload.json)、[准备](assets/cpar-build-chat-json-rehearsal-20261013/prepare.json)。
+
+实际systemd临时进程创建后，`remote-start.py:145` 首次argv/state身份断言失败；启动失败处理也未取得绑定，自动清理状态为IDENTITY_OR_EXIT_UNKNOWN。远端预算随后锁存，Pin/Chat禁止；原退出程序因缺成功start receipt而只允许MainPID=0，同样失败。最初断言读取的argv值未保存，不能确认exec过渡、实际错误参数或其他确切启动原因；合成exec未就绪场景只用于离线回归，不是实际根因证明。65秒审计、候选池runtime revision及socket/PID完整门槛没有完成，不能以稍后进程证据替代。见 [启动失败](assets/cpar-build-chat-json-rehearsal-20261013/start.json)、[退出失败](assets/cpar-build-chat-json-rehearsal-20261013/exit.json)、[最终锁存](assets/cpar-build-chat-json-rehearsal-20261013/stop-latch.json)。
+
+新的只读观察确认本批PID2026813/start679814074，exe摘要与冻结binary一致，完整argv与冻结launch精确相等，state目录归属本批，guard已映射，五个环境字段唯一。随后独立资源清理在停止前重新核对这些身份、上传freeze原字节及prepare私有freeze的JSON内容相等，持久化清理意图，并再次核对PID/start；只停止该临时unit。首个补充清理脚本误将重新序列化的私有freeze当原字节核验，在停止前被拒绝，失败原件保留；纠正为上传原件后完成停止。这些操作只为资源退出，没有重新执行formal start/exit、恢复epoch资格或发送推理。见 [只读身份](assets/cpar-build-chat-json-rehearsal-20261013/identity-observation.json)、[补充清理首个拒绝](assets/cpar-build-chat-json-rehearsal-20261013/identity-bound-cleanup.json)、[最终资源证明](assets/cpar-build-chat-json-rehearsal-20261013/identity-bound-cleanup-final.json)及[实际清理代码](assets/cpar-build-chat-json-rehearsal-20261013/tools/identity-bound-resource-exit.py)。
+
+退出结果PASS：MainPID=0、旧PID消失、19180/19181释放、停止后5秒审计零变化且总审计字节0；381个历史文件摘要、历史停止预算、36个私有文件及0700/0600权限均核验通过。生产进程/文件与本批prepare新鲜基线一致，活动配置仍kimi rev-1；没有把旧报告配置当恢复目标。控制器原失败phase EXECUTING_EXIT和stopped=true保持，不改写为成功formal退出；独立资源退出为STOPPED_VERIFIED。本批epoch为CREATED，不能填NOT_CREATED/NOT_STARTED。
+
+| 计数与来源 | 本批结果 |
+|---|---|
+| 历史意图 / 网关及Pin确认发送 | 35 / 34；不恢复历史剩余预算 |
+| fresh Pin / Chat / 新意图合计 | 0 / 0 / 0；两者均NOT_RUN，未建立实际lease或执行计划 |
+| 新网关及Pin确认发送 | 0，预算0、审计0、新事件0及无Pin/Chat动作相互支持 |
+| Request / Attempt / Finished / Usage / 账本新行 | 全为0；prepare继承的各1行事件及1行账本单列，不能归本批 |
+| 本次Request-ID / 实际lease / native捕获 | 未建立；原请求精确SHA与4096限制保持，未发送 |
+| Provider独立接收数 / 实际费用 | UNKNOWN / UNKNOWN，不能从网关或资源证明投射为0 |
+| 旧502根因 / 本次NOT_REPRODUCED | UNKNOWN / 不适用；未取得Chat结果，也未进入严格保真拒绝判定 |
+
+## 停止后的离线最小修复
+
+实际证据确认的驱动缺陷是：没有成功start receipt时，即使进程稍后可完整绑定为本批，原退出分支仍只允许PID=0，不能完成受控资源退出。先运行真实控制器/阶段逻辑的合成场景得到1项FAIL，再修改本批remote-exit：完整核对冻结launch、exe路径及摘要、argv/state、guard映射与摘要、五个唯一环境字段；预算和新鲜PID/start绑定先持久化，再复查PID/start后停止。拒绝身份缺失或漂移，不等待恢复执行资格；退出明确startup_validation_status=NOT_PASSED。最初启动断言及其未知实际根因未被放宽，也没有改变systemd启动或产品规则。
+
+新增完整流程测试覆盖晚到稳定身份的安全退出及停止前持久化，并以exe路径、argv/state、guard、重复环境和PID启动时刻五种错误确认不停止未知进程。完整流程20/20新通过；未改控制器2/2、资格9/9、启动2/2复用，总计33/33 LOCAL_SIMULATED；docs/static7/7通过。准确命令、exit1 RED与exit0 GREEN、源代码及raw/gzip摘要见 [停止后检查](assets/cpar-build-chat-json-rehearsal-20261013/post-stop-checks.json)、[RED](assets/cpar-build-chat-json-rehearsal-20261013/post-stop-exit-red.log.gz)、[GREEN](assets/cpar-build-chat-json-rehearsal-20261013/post-stop-exit-green.log.gz)、[门槛](assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-post-stop.md)。
+
+实际执行driver仍为400bb672，原freeze `53c1e388...`、私有payload、tar和远端已上传代码保持不变；停止后源代码修复没有重新打包、上传、启动或真实调用。原执行代码可从该Git提交及保留的私有payload取得，不能把修复后的源码摘要当本次实际执行身份。停止后修复和交付材料的独立两轴完整审查单列归档，尚待收口。
 
 诊断与保真规则缺口消除后才提出下一轮基础矩阵。六组合最多60新意图及扩展仍需独立授权，本批不执行。#47/#57/#9保持正文/AC/依赖/状态，只在本批真实停止交付后追加既有progress并独立读回，不按局部结果关闭整票。
