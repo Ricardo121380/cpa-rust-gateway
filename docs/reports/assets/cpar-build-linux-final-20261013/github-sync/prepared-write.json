@@ -1,0 +1,44 @@
+{
+  "status": "PREPARED",
+  "at_cst": "2026-10-14T00:50:22.813397+08:00",
+  "issues": [
+    {
+      "number": 47,
+      "comment_id": 6081215242,
+      "prefix_sha256": "0c189ed40f3d61f5eb0d86b7f12a193c1caeedb209615e5c167eee867cda2353",
+      "expected_body_sha256": "9af8eeac0ba620efd7f952d81ae70ce82fd448f6e07d68bd396f40a9642fd014",
+      "old_chars": 31867,
+      "new_chars": 34586,
+      "patch_fields": [
+        "body"
+      ],
+      "state_action": "KEEP_OPEN"
+    },
+    {
+      "number": 57,
+      "comment_id": 6081234278,
+      "prefix_sha256": "7fa4821fa91d5223c680799efca25972bf95ff32457f414b967b3faacab079db",
+      "expected_body_sha256": "a34b5a3a4eda2e5780e39b43dda3780fac72a31ce842e61d17ef8fba4101edb5",
+      "old_chars": 35580,
+      "new_chars": 38299,
+      "patch_fields": [
+        "body"
+      ],
+      "state_action": "KEEP_OPEN"
+    },
+    {
+      "number": 9,
+      "comment_id": 6081235490,
+      "prefix_sha256": "757f3ac3deb7a444fbc33a3961d4e7054628efb3bc1b4df49677bd6fcbd60575",
+      "expected_body_sha256": "928379e07d459ee481494ddbb3238eddc940e0f58280a26204587bf094f5dd52",
+      "old_chars": 34326,
+      "new_chars": 37045,
+      "patch_fields": [
+        "body"
+      ],
+      "state_action": "KEEP_OPEN"
+    }
+  ],
+  "append_file": "progress-append.md",
+  "new_comment_or_issue_change": false
+}

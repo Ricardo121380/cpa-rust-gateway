@@ -1,6 +1,6 @@
 # CPAR-38 最终 Linux 系统门槛与条件式单次 Chat JSON 诊断收口
 
-本批从2026-10-13开始，收口时间 CST: 2026-10-14T00:20:53.989562+08:00。最终 Linux 合成系统门槛 **PASS，4/4**；独立 Standards / Spec 诊断前置审查 **PASS / PASS**。正式资格观察、准备和启动通过，fresh Pin 入口在预留与发送前因 serving snapshot 资格声明为空阻断；**实际新 Pin / Chat 为0/0，Chat NOT_RUN，正式诊断 BLOCKED**。本 epoch 已永久停止，未用2个意图封存。旧502根因保持 UNKNOWN，下一轮协议矩阵条件尚不齐备。
+本批从2026-10-13开始，初始草稿时间 CST: 2026-10-14T00:20:53.989562+08:00；最终元数据记录时间 CST: 2026-10-14T00:56:18.742446+08:00。最终 Linux 合成系统门槛 **PASS，4/4**；独立 Standards / Spec 诊断前置审查 **PASS / PASS**。正式资格观察、准备和启动通过，fresh Pin 入口在预留与发送前因 serving snapshot 资格声明为空阻断；**实际新 Pin / Chat 为0/0，Chat NOT_RUN，正式诊断 BLOCKED**。本 epoch 已永久停止，未用2个意图封存。旧502根因保持 UNKNOWN，下一轮协议矩阵条件尚不齐备。
 
 ## 基线、规则与复用
 
@@ -25,7 +25,7 @@ HTTP200诊断驱动增加原生与公开文本、reasoning、id/model、usage及
 
 初始新增独立只读readback helper误比完整private receipt与public projection，exit1记录/源码原样保留；仅helper改为原remote-exit完全相同的投影和inventory digest严格比较，后独立readback PASS。核心系统/正式执行驱动与freeze未改，未迁移旧PASS给新执行字节。中断且无终态的探子均PARTIAL归档，不用作PASS。
 
-最终交付初审 Standards FAIL、Spec材料FAIL/执行契约PASS/完整目标PARTIAL：报告生成器全局替换时间占位符时损坏了7处UNKNOWN文字，机器回执未改变。原报告副本与两路初审终态保留在report-initial-delivery-fail.md、review-delivery-initial.json及对应原文；本次仅修复7处文字并补充这条说明，执行源、冻结、实际运行证据均不变。文案修正另作独立窄范围两轴核验，不将完整诊断目标升级为PASS。
+最终交付初审 Standards FAIL、Spec材料FAIL/执行契约PASS/完整目标PARTIAL：报告生成器全局替换时间占位符时损坏了7处UNKNOWN文字，机器回执未改变。原报告副本与两路初审终态保留在report-initial-delivery-fail.md、review-delivery-initial.json及对应原文；该修正增量仅修复7处文字并补充失败保留说明，执行源、冻结、实际运行证据均不变。独立窄范围核验确认修正文案PASS，不将完整诊断目标升级为PASS。Spec探子额外比对误猜不存在的公开文件名后工具BLOCKED原样保留；新的独立探子只补三份17项公开摘要映射，终态complete/PASS。upload没有单独freeze字段，prepared与presend的实际freeze声明相同；不把探子任意重序列化对象得到的不同派生hash当作真实freeze证据。
 
 ## 场景—实际入口—预期及实测证据—退出
 
@@ -63,18 +63,18 @@ system-readback-final.json独立读取原冻结文件、实际执行wrapper/hash
 | --- | --- | --- |
 | 本地合成完整流程 | PASS37/37 | local-full-flow-declaration-negative；旧34/36及RED保留 |
 | 本地系统设计 | PASS7/7 | local-system-design-tail-fix，含实际quiet_audit模拟调度反例 |
-| 历史回执离线重放 | PASS3/3 | 原旧raw FAIL不改，historical-replay；LOCAL_SIMULATED |
+| 历史回执离线重放 | PASS3/3 | 原旧raw FAIL不改，historical-replay；OFFLINE_RECEIPT_REPLAY |
 | 产品构建/Task/Phase | PASS_REUSED | 同产品/产物摘要，Task42/Phase45；本批build0/Full新执行0 |
-| 真实Linux系统验证 | PASS4/4 | 全新隔离A/B/C/D各一次，Provider0；合成账号资格 |
+| 真实Linux系统验证 | PASS4/4 | 全新隔离A/B/C/D各一次，Provider意图0/真实网络事件0；合成账号资格 |
 | 正式材料/准备 | PASS | 一次同授权观察，prepare严格>3600秒 |
 | 正式启动 | PASS1次 | 原正式入口、实际65.472秒、Provider0 |
 | fresh Pin | BLOCKED_BEFORE_RESERVATION；actualNOT_RUN | 入口1次，声明0要求1；意图/发送0，实际lease未知/null |
 | 原Chat JSON | NOT_RUN / 诊断BLOCKED | 无HTTP结果；不能NOT_REPRODUCED |
 | 独立Standards/Spec前置 | PASS/PASS | 固定9d670ba7源码复用+实际四槽+新freeze；不等于正式输出通过 |
-| 本批最终材料审查 | PENDING_FINAL_REVIEW | 新测试/只读补充/本报告待独立收口；完整诊断目标未达 |
+| 本批最终材料审查 | Standards PASS；Spec PARTIAL | 执行契约及修正文案PASS；正式资格缺口1；原材料FAIL/工具BLOCKED保留，公开映射补核PASS |
 | 资源退出 | PASS5/5 | 系统4次＋正式1次，独立原件回读；保留失败启动 |
 | Provider独立receive/费用 | UNKNOWN/UNKNOWN | 无独立Provider接收/费用证据 |
-| GitHub#47/#57/#9 | PENDING_SYNC；均OPEN | 既有progress将body-only追加、独立comment/issue/分页deps读回 |
+| GitHub#47/#57/#9 | PASS3/3；均OPEN | 既有progress各body-only追加1次，独立comment/issue/分页deps读回；票面AC、标签/assignees/milestone与依赖边状态不变 |
 | 远端CI | NOT_RUN | 固定执行审查点9d670ba7 Actions匹配run0；未push/dispatch |
 | 发布/生产/六组合矩阵 | NOT_RUN | 只跑本批系统和正式启动，没有生产服务变更 |
 
@@ -86,4 +86,10 @@ Linux五缺口已收口。正式资格声明缺口仍存在：必须以真实ser
 
 目前 **尚不具备下一轮协议矩阵验收条件**。即使之后一条诊断通过，六组合/扩展资格/Remote CI/Artifact/生产及父票门槛仍独立，只有全票验收条件全部满足才关票。本批#47/#57/#9保持OPEN，只提交拥有文件，不push/发布/部署。历史FAIL/PARTIAL与旧未知根因保留。
 
-主要证据：本批assets下 baseline/reuse、batch-contract、system-freeze/system-A/B/C/D/system-gate、system-readback-final、review-system-initial/source/pre-execution、prepared-freeze、observation-1/prepare/start/presend-binding/pin/exit、pin-presend-assertion-analysis/pin-capability-snapshot、formal-final-readback、formal-stopped-summary、local37/design7/historical-replay3、remote-ci-readback。私有原始材料保留在output/cpar-build-linux-final-20261013与new-vps acceptance的新epoch。
+## GitHub独立读回
+
+既有progress [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490) 各PATCH一次，原body逐字节前缀保留。独立GET验证完整body与准备载荷相等，三票body/AC/state/标签/assignees/milestone等保持。分页blocked_by读取：#47共8/OPEN0，#57共23/OPEN11（40–50），#9为0；没有修改依赖或关闭票。
+
+初次本地readback validator要求整个dependency对象逐字相等而FAIL，原stderr和快照保留在github-sync/initial-verification-fail.json。逐字段核对唯一变化为#57依赖#47的updated_at，从10:34:55Z到16:50:40Z，后者精确等于本次#47授权progress PATCH及独立comment/issue GET时间；其他所有字段、边顺序/数量及状态完全相等。限定接受这一绑定活动时间变化后核验PASS；没有额外远端写入，没有放宽依赖状态或票面AC核对。
+
+主要证据：本批assets下 baseline/reuse、batch-contract、system-freeze/system-A/B/C/D/system-gate、system-readback-final、review-system-initial/source/pre-execution/final、prepared-freeze、observation-1/prepare/start/presend-binding/pin/exit、pin-presend-assertion-analysis/pin-capability-snapshot、formal-final-readback、formal-stopped-summary、local37/design7/historical-replay3、remote-ci-readback、github-sync/summary、delivery-status及static-delivery-final。私有原始材料保留在output/cpar-build-linux-final-20261013与new-vps acceptance的新epoch。最后交付元数据由主代理静态核对，独立审查各自固定head/复用范围不变；本地提交不等于remote CI或发布证据。

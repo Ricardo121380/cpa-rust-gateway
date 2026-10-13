@@ -1,0 +1,23 @@
+{
+  "status": "FAIL",
+  "layer": "LOCAL_POST_PATCH_READBACK_VALIDATOR",
+  "exit_code": 1,
+  "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 19, in <module>\nAssertionError: (57, 'paginated dependencies drift')\n",
+  "failed_assertion": "preflight_dependencies == readback_dependencies",
+  "issue": 57,
+  "native_patch_outcomes": {"47": 0, "57": 0, "9": 0},
+  "native_independent_GET_outcomes": "all nine requests exit0",
+  "exact_actual_difference": {
+    "dependency_issue": 47,
+    "field": "updated_at",
+    "before": "2026-10-13T10:34:55Z",
+    "after": "2026-10-13T16:50:40Z",
+    "after_matches_issue47_independent_issue_GET": true,
+    "after_matches_issue47_independent_comment_GET": true
+  },
+  "dependency_edges_states_body_and_other_metadata_unchanged": true,
+  "correction_scope": "allow only this authorized updated_at change when exactly bound to the independently read comment and issue timestamps; compare every other dependency field exactly",
+  "new_remote_writes_after_failure": 0,
+  "original_snapshots_and_responses_retained": true,
+  "not_a_formal_runtime_or_provider_outcome": true
+}

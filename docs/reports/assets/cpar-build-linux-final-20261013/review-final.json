@@ -1,0 +1,58 @@
+{
+  "scope": "FINAL_LINUX_RUNTIME_PLUS_STOPPED_FORMAL_DIAGNOSTIC_AND_POST_STOP_LOCAL_REGRESSION",
+  "system_and_diagnostic_pre_execution_fixed_head": "9d670ba720fce2c92b7f1ba11516cee397ff1037",
+  "post_stop_increment_fixed_head": "f40d4a4f4c0196353c6da9a88ba850adee651cd7",
+  "document_repair_fixed_head": "14f694ee9483dce95b6a5305a9ece863c027578d",
+  "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+  "payload_freeze_sha256": "d00c82797519a31c5973717c0eb5c628d70a9078baa089248c75ac63fe3d5f61",
+  "system_gate_status": "PASS",
+  "pre_execution_axes": {"Standards": "PASS", "Spec": "PASS"},
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "hard_findings": 0,
+      "new_judgement_findings": 0,
+      "inherited_heuristics": 1,
+      "final_reviewer": "/root/standards_document_repair",
+      "source_and_runtime_reuse": "review-pre-execution.json plus initial delivery non-finding scope by unchanged SHA",
+      "original_delivery_FAIL_preserved": "review-delivery-initial.json",
+      "document_repair_PASS": "review-document-repair-standards.md"
+    },
+    "Spec": {
+      "status": "PARTIAL",
+      "execution_contract_status": "PASS",
+      "execution_contract_blockers": 0,
+      "scope_creep": 0,
+      "corrected_public_materials_status": "PASS",
+      "document_findings_open": 0,
+      "completion_status": "PARTIAL/BLOCKED",
+      "qualification_blockers": 1,
+      "actual_fresh_pin_and_chat": "NOT_RUN",
+      "reviewers": ["/root/spec_delivery_final", "/root/spec_document_repair", "/root/spec_public_binding_final"],
+      "original_delivery_material_FAIL_preserved": "review-delivery-initial.json",
+      "document_tool_BLOCKED_preserved": "review-document-repair.json",
+      "missing_public_mapping_supplement_status": "PASS",
+      "mapping_terminal": "review-public-binding-final.md",
+      "source_and_runtime_reuse": "review-pre-execution.json plus unchanged stopped-driver scope in initial delivery Spec"
+    }
+  },
+  "public_binding_scope": {
+    "maps": 3,
+    "items_per_map": 17,
+    "equal": true,
+    "actual_freeze_fields": ["prepared-freeze.payload_freeze_sha256", "presend-binding.result.payload_freeze_sha256"],
+    "upload_has_standalone_freeze_field": false,
+    "new_remote_or_actual_payload_validation_by_supplemental_scout": false,
+    "unsupported_reviewer_reserialization_hash_is_not_execution_evidence": true
+  },
+  "first_formal_blocker": "remote-pin.py:91 serving declaration count0 expected1, before reserve_pin",
+  "formal_epoch_permanently_stopped": true,
+  "new_pin_intents": 0,
+  "new_chat_intents": 0,
+  "sealed_unused_intents": 2,
+  "resource_exit_status": "PASS",
+  "formal_execution_allowed": false,
+  "whole_ticket_completion": false,
+  "next_protocol_matrix_readiness": "BLOCKED",
+  "final_github_and_status_metadata": "root static verification after recorded independent fixed-head scopes; no execution source changes"
+}

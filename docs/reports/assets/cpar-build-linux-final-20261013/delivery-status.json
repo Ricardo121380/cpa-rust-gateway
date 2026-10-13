@@ -1,0 +1,204 @@
+{
+  "at_utc": "2026-10-13T16:56:18.742446+00:00",
+  "at_cst": "2026-10-14T00:56:18.742446+08:00",
+  "batch": "cpar-build-linux-final-20261013",
+  "overall_status": "PARTIAL/BLOCKED",
+  "layers": {
+    "local_simulated_full_flow": {
+      "status": "PASS",
+      "passed": 37,
+      "total": 37,
+      "receipt": "local-full-flow-declaration-negative.json"
+    },
+    "local_simulated_system_design": {
+      "status": "PASS",
+      "passed": 7,
+      "total": 7,
+      "receipt": "local-system-design-tail-fix.json"
+    },
+    "offline_receipt_replay": {
+      "status": "PASS",
+      "passed": 3,
+      "total": 3,
+      "receipt": "historical-replay.json",
+      "layer": "OFFLINE_RECEIPT_REPLAY"
+    },
+    "build_task_phase": {
+      "status": "PASS_REUSED",
+      "product_source": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+      "task_passed": 42,
+      "phase_passed": 45,
+      "new_builds": 0,
+      "new_full_runs": 0
+    },
+    "real_linux_system": {
+      "status": "PASS",
+      "layer": "REAL_LINUX_SYSTEM_SYNTHETIC",
+      "runs_used": 4,
+      "runs_limit": 4,
+      "results": [
+        {
+          "run": "A",
+          "scenario": "normal",
+          "status": "PASS",
+          "resource_exit_status": "PASS",
+          "startup_validation_status": "PASS",
+          "receipt_sha256": "68211c99262ab1cbad28a91dc8895d4c424cee28d0b953f3efc21f2c63a3d965",
+          "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+        },
+        {
+          "run": "B",
+          "scenario": "exec_failure",
+          "status": "PASS",
+          "resource_exit_status": "PASS",
+          "startup_validation_status": "FAIL",
+          "receipt_sha256": "8d1f2261ef9c0a44bd69d9ae40039c5b9f94eee88a00254edb4a4958f747afdf",
+          "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+        },
+        {
+          "run": "C",
+          "scenario": "management_auth_failure",
+          "status": "PASS",
+          "resource_exit_status": "PASS",
+          "startup_validation_status": "FAIL",
+          "receipt_sha256": "1e1d73be1fee9ea65cdd28ed7a6fa4f2e506ca594b65d5d6020acb0ccd3ed265",
+          "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+        },
+        {
+          "run": "D",
+          "scenario": "audit_tail_injection",
+          "status": "PASS",
+          "resource_exit_status": "PASS",
+          "startup_validation_status": "FAIL",
+          "receipt_sha256": "ec5732d2d06a8945f13016e795ca78c3a5ecdefb8eb559d35b60aa1cf2df10be",
+          "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f"
+        }
+      ],
+      "provider_intents": 0,
+      "real_network_events": 0,
+      "synthetic_audit_events": 1,
+      "receipt": "system-gate.json"
+    },
+    "formal_material_and_prepare": {
+      "status": "PASS",
+      "readonly_observations": 1,
+      "observed_remaining_seconds": 16395.674,
+      "prepare_remaining_seconds": 16231.104,
+      "minimum_strictly_greater_than_seconds": 3600,
+      "task_authorization_refreshes": 0
+    },
+    "formal_start": {
+      "status": "PASS",
+      "launches": 1,
+      "actual_quiet_seconds": 65.47212190087885,
+      "receipt": "start.json"
+    },
+    "fresh_pin": {
+      "entry_status": "BLOCKED_BEFORE_RESERVATION",
+      "actual_status": "NOT_RUN",
+      "entry_invocations": 1,
+      "new_intents": 0,
+      "confirmed_sends": 0,
+      "actual_lease": null,
+      "first_assertion": "remote-pin.py:91 len(declarations)==1; actual0 expected1"
+    },
+    "original_chat_json": {
+      "status": "NOT_RUN",
+      "new_intents": 0,
+      "confirmed_sends": 0,
+      "diagnostic_status": "BLOCKED",
+      "original_request_sha256": "245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062"
+    },
+    "independent_pre_execution_review": {
+      "Standards": "PASS",
+      "Spec": "PASS",
+      "fixed_head": "9d670ba720fce2c92b7f1ba11516cee397ff1037"
+    },
+    "independent_final_review": {
+      "Standards": "PASS",
+      "Spec": "PARTIAL",
+      "execution_contract": "PASS",
+      "corrected_materials": "PASS",
+      "qualification_blockers": 1,
+      "receipt": "review-final.json"
+    },
+    "resource_exit": {
+      "status": "PASS",
+      "system_checks": 4,
+      "formal_checks": 1,
+      "passed": 5,
+      "total": 5,
+      "independent_original_readbacks": true,
+      "production_identity_preserved": true
+    },
+    "github": {
+      "status": "PASS",
+      "updated_existing_progress": 3,
+      "issues_open": [
+        47,
+        57,
+        9
+      ],
+      "closures": 0,
+      "new_comments": 0,
+      "receipt": "github-sync/summary.json"
+    },
+    "remote_ci": {
+      "status": "NOT_RUN",
+      "queried_fixed_execution_head": "9d670ba720fce2c92b7f1ba11516cee397ff1037",
+      "matched_runs_at_readback": 0,
+      "pushes": 0,
+      "workflow_dispatches": 0,
+      "receipt": "remote-ci-readback.json"
+    },
+    "release_deployment_production_six_combination": {
+      "status": "NOT_RUN"
+    }
+  },
+  "counts": {
+    "new_system_runs": 4,
+    "new_formal_launches": 1,
+    "new_pin_entry_invocations": 1,
+    "new_chat_entry_invocations": 0,
+    "new_provider_intents": 0,
+    "new_provider_confirmed_sends": 0,
+    "unused_new_intents_permanently_sealed": 2,
+    "historical_intents": 35,
+    "historical_gateway_plus_pin_confirmed_sends": 34
+  },
+  "formal_epoch_permanently_stopped": true,
+  "new_event_counts": {
+    "attempt": 0,
+    "request": 0,
+    "request_finished": 0,
+    "usage": 0
+  },
+  "new_ledger_rows": 0,
+  "native_capture_count": 0,
+  "provider_independent_receive_count": "UNKNOWN",
+  "provider_cost": "UNKNOWN",
+  "declaration_empty_reason": "UNKNOWN",
+  "old_502_root_cause": "UNKNOWN",
+  "next_protocol_matrix_readiness": "BLOCKED",
+  "whole_ticket_completion": false,
+  "product_and_artifacts_unchanged": true,
+  "actual_execution_sources_and_freezes_unchanged_after_runs": true,
+  "report_final_metadata_scope": "timestamp, review/GitHub statuses, readback explanation and correct offline layer only; root static verification",
+  "preserved_original_failure_records": [
+    "review-system-initial.json",
+    "audit-tail-red.json",
+    "system-readback.json",
+    "report-initial-delivery-fail.md",
+    "review-delivery-initial.json",
+    "review-document-repair.json",
+    "github-sync/initial-verification-fail.json"
+  ],
+  "key_proofs_sha256": {
+    "system-gate.json": "bef8815f766c09c5a13eb0ea007a115a8685e692100e12f6e56c19fba6f169e5",
+    "review-pre-execution.json": "08e171e57eed6e27e94487c911d3bc4cd95dd479e7317e052c8f4660a9b9a5b9",
+    "review-final.json": "6d976ade9feaaa1fd05089b0f045043e8ea067a93230cb94efe3135d8a560d66",
+    "formal-stopped-summary.json": "79e26af8fc4b8318ca719f022c7bcde37fd0faf50db62ed2b513c12f076a66a9",
+    "formal-final-readback.json": "a5d927df6f80432e66acc154f1c5b2af6b6f7b2e02049d184c399148f2781c21",
+    "github-sync/summary.json": "d2981ed26e3102bbc41c0123aac52a2fcf9f85c066eaa5e8a89e34d35d08ed0b"
+  }
+}

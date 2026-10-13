@@ -1,0 +1,39 @@
+{
+  "base": "f40d4a4f4c0196353c6da9a88ba850adee651cd7",
+  "fixed_head": "14f694ee9483dce95b6a5305a9ece863c027578d",
+  "scope": "EXACT_SEVEN_UNKNOWN_DOCUMENT_REPAIRS_PLUS_FAILURE_RETENTION",
+  "Standards": {
+    "reviewer": "/root/standards_document_repair",
+    "agent_terminal": "complete",
+    "status": "PASS",
+    "hard_findings": 0,
+    "new_judgement_findings": 0,
+    "inherited_heuristics": 1,
+    "terminal_text": "review-document-repair-standards.md"
+  },
+  "Spec": {
+    "reviewer": "/root/spec_document_repair",
+    "agent_terminal": "blocked",
+    "corrected_materials_status": "PASS",
+    "closed_materials_findings": 1,
+    "materials_blockers": 0,
+    "execution_contract_status": "PASS_REUSED",
+    "execution_contract_blockers": 0,
+    "completion_status": "PARTIAL/BLOCKED",
+    "qualification_blockers": 1,
+    "scope_creep": 0,
+    "terminal_text": "review-document-repair-spec.md",
+    "tool_block": {
+      "operation": "git show fixed head public receipt",
+      "incorrect_guessed_path": "presend-binding-readback.json",
+      "actual_correct_path": "presend-binding.json",
+      "git_exit_code": 128,
+      "remaining_independent_supplement": "three public prepared/upload/presend 17-file maps",
+      "core_document_checks_completed_before_tool_block": true,
+      "not_a_runtime_or_provider_failure": true
+    }
+  },
+  "original_material_FAIL_preserved": true,
+  "actual_execution_sources_and_freezes_unchanged": true,
+  "further_real_execution": false
+}
