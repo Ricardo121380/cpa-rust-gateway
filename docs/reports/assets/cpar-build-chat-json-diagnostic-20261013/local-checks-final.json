@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "tests": 12,
+  "bound_preparation": 8,
+  "controller_regressions": 2,
+  "actual_startup_regressions": 2,
+  "bound_preparation_raw_sha256": "2e7e95d82618f1ea08b0a24d61f374c3b161fb04ee47113d6baab1ebd15ac0a2",
+  "bound_preparation_gzip_sha256": "365183838ed023ffc8426b115b929175c1409cbd82b8fc308658a0d0c316be76",
+  "controller_proof": "controller-checks.json; unchanged controller bytes reuse",
+  "startup_proof": "start-checks.json; actual AST/probe and socket owner checks",
+  "real_start": "NOT_RUN",
+  "provider_calls": 0,
+  "dependency_installs": 0,
+  "product_rebuilds": 0
+}

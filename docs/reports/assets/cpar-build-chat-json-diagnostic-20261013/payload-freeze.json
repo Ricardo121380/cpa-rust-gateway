@@ -3,7 +3,7 @@
   "kind": "chat_json_502_diagnostic",
   "epoch": "chat-json-diagnostic-20261013",
   "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
-  "driver_source_sha": "1e589079301b93d32f18c63866edd6ea64323643",
+  "driver_source_sha": "4cb9c3ffedb288116e21ef944f46a9b5c278af32",
   "fixed_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
   "files": {
     "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
@@ -15,7 +15,7 @@
     "cpar_new_build_acceptance.py": "fc15d63a82c2686582f915580f9b635ae7cc0b8cee4ac03f1fcfc706826b7854",
     "cpar_build_json_diagnostic.py": "e0aec5d82e3f56f9a59a3ac4de73b9a31ae3656e0b066d38ec011e181c034477",
     "remote-chat.py": "129cf67026f2eb4b92b2351c9b167df7d129ee18917fd30e6db5b047acca55e1",
-    "remote-start.py": "4e9415a7c2b03fecff2f47942b73ddfbf8f612ce412c526850bbe9e59c840949",
+    "remote-start.py": "188962232fec7ae02d7b357261ee521d9961d32e27fff73152274b0fb38eb7fc",
     "remote-pin.py": "4b757e153a8b8773fdd97385f79ed5711994b4b79c277cef98c014455bed7d0b",
     "remote-exit.py": "17d15dad92dddc9f368b4407696416b6e2c93f1c280d79b27651dfe3af64074c",
     "remote-readiness.py": "822468a2f1fe143c9575d55755a01279052d6d663b6bc9145041e71684a6840f",
