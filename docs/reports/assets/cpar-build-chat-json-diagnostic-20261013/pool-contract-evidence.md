@@ -1,0 +1,11 @@
+# Source pool API version mismatch established offline
+
+Current production target captured fresh in observation-1 and no-launch-exit is b0cf36e387b774439acc23830221389eb3ac74d0. Its actual GET /admin/operations/provider-account-pools handler (crates/gateway-http-actix/src/management_resources.rs:4649,4742 at that commit) directly serializes ProviderAccountPoolItemResponse. Its full DTO at3883–3900 and OpenAPI schema at2786–2815 have no credential_revision member. Missing metadata was projected by pool.get() as null.
+
+The unchanged candidatebf822b14/current source DTO atmanagement_resources.rs:4054 defines credential_revision: Option<u64>, its converter10485 projects that option, and OpenAPI3025 allows null/absence. Snapshot revision is defined atgateway-upstream/src/credential_pool.rs:915–920 and app adapter695–697; the actual lease methodCredentialLease::credential_revision at859–860 returns self.material.credential_revision. A source summary is not a lease.
+
+Independent scout/root/pool_contract_probe returned this bounded file/symbol evidence; the primary read the exact old DTO/handler and current DTO/converter/lease/snapshot segments. The driver unconditionally required an API field absent on the captured production version. This is an evidenced qualification-driver defect; missing metadata establishes no lease mismatch.
+
+The new offline regression uses the closed observed classifier input, restores only the status changed by the failure-export wrapper and removes its failure-only fields. It retains original snapshot bytes, identity/continuity/source fields, timing and pool data. RED: null AssertionError/missing KeyError; GREEN:9 preparation tests. If optional source summary revision is present and non-null, equality remains required. Identity/non-refresh/pool/lease-count/time anomalies still reject; prepare stays strictly >3600000. Actual candidate instance/pool/Pin lease equality remains mandatory and unchanged.
+
+The batch stays stopped; no follow-up observation, remote upload/epoch/start/Pin/Chat or payload re-freeze occurs. The corrected public driver is a future preparation reference only. The original rejected frozen packagec30d2688 remains immutable. No old502 native response was captured or replayed, and its root cause remains UNKNOWN.

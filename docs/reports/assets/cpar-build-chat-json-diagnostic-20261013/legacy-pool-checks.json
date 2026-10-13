@@ -1,0 +1,28 @@
+{
+  "status": "PASS; offline driver repair only",
+  "red": {
+    "tests": 1,
+    "subcases": 2,
+    "result": "null AssertionError and missing KeyError",
+    "file": "legacy-pool-red.log.gz",
+    "raw_sha256": "2d0b16e8473b4223f575735314175f8a3adaaeb2053fd1625aca4d580d53bd31",
+    "gzip_sha256": "385d2dfb15257b0b3257597121b9cf9afb8e126c8ac26c82d3ccc2cd78f88f2c"
+  },
+  "green": {
+    "tests": 9,
+    "result": "all original negative qualification checks plus observed legacy pool regression pass",
+    "file": "legacy-pool-green.log.gz",
+    "raw_sha256": "8411946213dc2a1118c87db5d3be2cdb981e124a9750eb02d3b60bc09fe65daa",
+    "gzip_sha256": "58816dbf52d16c508653ff5ec8f68b2e7ca7a81b52472e45ceeeb84997888c2f"
+  },
+  "total_affected_local_proof": 13,
+  "unchanged_controller_tests": 2,
+  "unchanged_startup_tests": 2,
+  "snapshot_reconstruction": "only restore pre-handler status and remove closed rejection-only fields; all observed account/pool/time/identity/continuity and historical data preserved; original receipt immutable",
+  "product_rules_changed": false,
+  "strict_prepare_margin_ms": 3600000,
+  "instance_and_pin_actual_revision_checks": "unchanged and mandatory",
+  "stage_reopened": false,
+  "payload_refrozen": false,
+  "provider_calls": 0
+}

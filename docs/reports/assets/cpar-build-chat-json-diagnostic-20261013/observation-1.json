@@ -1,0 +1,84 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "1ea6694e628bc1ec8fd11623db40857d0d519bfec100001bfd573ec98e8b1323",
+  "stdout_sha256": "32a2770fe9ec51ddc18f201d724b7d1dd4b0ea4541ecf858b7d4bdac4eb1e727",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-13T03:56:24.421258+00:00",
+  "result": {
+    "status": "BLOCKED; read-only observation",
+    "authorization_continuity_status": "PASS",
+    "observed_now_ms": 1791863784162,
+    "authorized_last_refresh_at_ms": 1791689742670,
+    "observed_at_utc": "2026-10-13T03:56:24.162573+00:00",
+    "unit": {
+      "MainPID": "0",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "FragmentPath": "",
+      "Transient": "no"
+    },
+    "ports_listening": [],
+    "competing_processes": [],
+    "production": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "a2a47fc24a41730d9a4f4295fdc00d3d5c747ae8651598ad069cf6abda97e4d3"
+    },
+    "production_function_sha256": "bd655d7f56b2c07fc1d9081761d2d7a28d42c22f3d5eaba581bc0fd7a7c0a110",
+    "production_config": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "source_account": {
+      "provider": "build",
+      "enabled": 1,
+      "auth_status": "active",
+      "revision": 144,
+      "worker_claim_kind": null,
+      "last_refresh_at_ms": 1791859182663,
+      "continuation_floor_revision": 77,
+      "continuation_current_revision": 145
+    },
+    "source_schema": 31,
+    "source_pool": {
+      "runtime_status": "available",
+      "credential_revision": null,
+      "expires_at_ms": 1791880782392,
+      "active_leases": 0
+    },
+    "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "identity_digest_matches_authorized_source": true,
+    "source_changed_field_names": [
+      "credential_ciphertext",
+      "refresh_due_at_ms",
+      "last_refresh_at_ms",
+      "revision",
+      "import_batch_id",
+      "updated_at_ms",
+      "continuation_current_revision"
+    ],
+    "remaining_material_seconds": 16998.23,
+    "historical_budget_intents": 35,
+    "historical_gateway_pin_confirmed_sends": 34,
+    "authorized_native_revision": 136,
+    "authorized_continuation_current_revision": 137,
+    "authorized_continuation_floor_revision": 77,
+    "management_get_intents": 2,
+    "new_provider_calls": 0,
+    "oauth_refresh_reauthorization": 0,
+    "classification": "QUALIFICATION_REJECTED",
+    "exception_type": "AssertionError",
+    "failed_source_line": 24
+  }
+}

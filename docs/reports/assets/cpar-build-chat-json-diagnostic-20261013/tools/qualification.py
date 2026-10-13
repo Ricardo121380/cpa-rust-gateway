@@ -21,7 +21,10 @@ def classify(observation):
     assert observation['source_schema'] == 31
     pool = observation['source_pool']
     assert pool['runtime_status'] == 'available' and pool['active_leases'] == 0
-    assert pool['credential_revision'] == account['continuation_current_revision']
+    # The source pool summary predates this optional field on production b0cf36e.
+    # It is not a lease; actual instance/Pin revision checks remain mandatory.
+    if pool.get('credential_revision') is not None:
+        assert pool['credential_revision'] == account['continuation_current_revision']
     assert type(pool['expires_at_ms']) is int
     assert pool['expires_at_ms'] > observation['observed_now_ms']
     assert observation['historical_budget_intents'] == 35

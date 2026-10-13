@@ -40,6 +40,24 @@ def observation():
 
 
 class BoundPreparation(unittest.TestCase):
+    def test_observed_legacy_source_pool_without_revision_keeps_prepare_margin(self):
+        observed = json.loads((TOOLS.parent / 'observation-1.json').read_text())['result']
+        # Reconstruct the classify input before its closed failure handler changed
+        # status. Preserve the original receipt and all observed qualification data.
+        observed = copy.deepcopy(observed)
+        observed['status'] = 'PASS; read-only observation'
+        for field in ['classification', 'exception_type', 'failed_source_line']:
+            observed.pop(field, None)
+        for missing in [False, True]:
+            row = copy.deepcopy(observed)
+            if missing: row['source_pool'].pop('credential_revision')
+            with self.subTest(missing=missing):
+                self.assertEqual(qualification.classify(row), 'PREPARE_WINDOW_AVAILABLE')
+                row['source_pool']['expires_at_ms'] = row['observed_now_ms'] + 3600000
+                self.assertEqual(qualification.classify(row), 'WAITING_FOR_QUALIFICATION')
+                row['source_pool']['expires_at_ms'] = row['observed_now_ms']
+                with self.assertRaises(AssertionError): qualification.classify(row)
+
     def test_strict_hour_boundary_and_only_short_positive_material_waits(self):
         row = observation()
         self.assertEqual(qualification.classify(row), 'PREPARE_WINDOW_AVAILABLE')
