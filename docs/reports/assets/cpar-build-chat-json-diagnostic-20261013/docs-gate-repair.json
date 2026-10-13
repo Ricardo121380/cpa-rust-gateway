@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "steps": 7,
+  "source_sha": "bf295e1197696defb22a2b40a429634fa9d20742",
+  "report": "docs-gate-repair.md",
+  "raw_log_sha256": "8d384829583fc982366487554a1a4cd12e2ff171a1bbc405a949402a04fe7d10",
+  "gzip_sha256": "760c2eafb686b8e4b70ad695d83392c867a35a7f4a7d04439af108ba7aa9098c",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "new_product_builds": 0,
+  "dependency_installs": 0,
+  "unchanged_full_gates": "Task42/42 Phase45/45 still reuse verified bytes"
+}
