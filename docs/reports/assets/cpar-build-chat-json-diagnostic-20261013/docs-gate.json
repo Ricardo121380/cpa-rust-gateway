@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "steps": 7,
+  "source_sha": "79840fe88bb0918e0d78eccdf93f8ba42f9d322c",
+  "report": "docs-gate.md",
+  "raw_log_sha256": "75724da5a8f3f894c4f8cb2fa3b8bdbf328e2f8fb5f4c0dc5d0cd45229fda7d3",
+  "gzip_sha256": "4c2622f2c6ea364a3550f9909dd8a81315e716eb0964c6e04284ef5fb3bbc433",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "earlier_same_gate_log": "private docs-gate.stdout, report variable was misnamed; not the source of final gate",
+  "unchanged_full_gates": "Task42/42 Phase45/45 reused with exact source and full gzip/raw hashes"
+}
