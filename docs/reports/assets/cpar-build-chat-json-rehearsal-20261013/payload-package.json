@@ -1,7 +1,8 @@
 {
   "status": "PASS; frozen before upload",
-  "tar_sha256": "2c0f307308fb61c4506693a799cd9dc08b9b3d2b102cd25920af399567b8368a",
+  "tar_sha256": "d65edeb7140899f8b5c815e22a549f385bccff7e0b7f7e3f4fcab4ca21325b8c",
   "tar_bytes": 19824640,
-  "freeze_sha256": "b3a6cbbcd4b0042f5d1be8df61cc7c552b5e081bdbc5c5582ca3fb6c1baabd6c",
-  "old_freeze_preserved": "c30d2688d0b182f4a97d3a30216e0b7421ff8c0a6a360d6c71eeb145b8ec4545"
+  "freeze_sha256": "9b9f96d4da4df99ac00c55ae47cf9f28137072a089b8c042e6e26109f6ab67d1",
+  "old_freeze_preserved": "c30d2688d0b182f4a97d3a30216e0b7421ff8c0a6a360d6c71eeb145b8ec4545",
+  "driver_source_sha": "c4f15b106c2fce049582c7296044e9de765ab09f"
 }
