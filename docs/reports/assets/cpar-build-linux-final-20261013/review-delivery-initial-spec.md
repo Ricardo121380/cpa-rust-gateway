@@ -1,0 +1,14 @@
+complete
+
+固定比较 `9d670ba720fce2c92b7f1ba11516cee397ff1037...f40d4a4f4c0196353c6da9a88ba850adee651cd7`，当前 HEAD 与指定 head 一致。下文 `P=docs/reports/assets/cpar-build-linux-final-20261013`。
+
+**Spec 分层结果：执行契约 PASS，执行违约 blocker 0、scope creep 0；最终公开材料 FAIL，发现文档状态词损坏 1 项；完整诊断目标 PARTIAL/BLOCKED，资格 blocker 1，实际 fresh Pin、原 Chat 两项未完成。不能给整票或矩阵 PASS。**
+
+- **确认的材料缺陷：** `docs/reports/cpar-build-linux-final-20261013.md:3,14,48,50,54,74` 共 **7 处**把 `UNKNOWN` 写成了 `UNK2026-10-14T00:20:53.989562+08:00N`。固定 head 原文和当前文件相同，确非工具渲染问题。违反 `P/batch-contract.md:38` 的原文“缺独立Provider接收/费用证据保持UNKNOWN”；也损坏了 durable UNKNOWN、旧502根因及声明为空原因的状态记录。对应机器材料仍正确：`P/formal-stopped-summary.json:29-32` 全部保留 `UNKNOWN`。本项是公开交付文字缺陷，没有发现执行状态被改写。
+- **观察、准备、启动证据吻合：** `P/observation-1.json:8-12,60-80`：同授权连续性 PASS、余效 `16395.674`、新 Provider/主动 refresh 均0。`P/prepare.json:17-38`：native146、预期runtime147、身份连续、Provider/任务refresh0；结合 `:9/:33` 计算准备余效约 `16231.104s`。冻结源 `P/tools/remote-prepare.py:112` 明确 `expiry > int(time.time() * 1000) + 3600000`。`P/start.json:9-16,21-45,81-82`：五门 PASS、PID2683088、监听归属与argv匹配、实际 `65.47212190087885s`，Provider/catalog0。
+- **revision 与 lease 没有混淆：** source DTO `credential_revision:null` 在 `P/observation-1.json:54-58`；候选池实测147且active leases0在 `P/pin-presend-offline-check.json:156-160`；实际 fresh lease `null` 在 `P/formal-final-readback.json:29`。预期候选revision没有被升级为lease证明。
+- **首个阻断位置准确：** 冻结 `P/tools/remote-pin.py:90-91` 为 `declarations = runtime['capability_observations']; assert len(declarations) == 1`，预留在 `:125`。原离线receipt仍保留错误标签88，`P/pin-presend-assertion-analysis.json:3-10` 明确原标签低3行、正确91行及actual0/expected1；没有重写原raw。`P/pin.json:9-18` 是 BLOCKED、Pin/Chat意图0。
+- **停批及退出吻合：** `P/exit.json:22-44,58-76`：actual sends0、Request/Attempt/Finished/Usage/ledger新增0、stopped=true、Pin/Chat NOT_RUN、retry/fallback/refresh0。`P/formal-final-readback.py:5-20` 检查unit、原PID、cgroup、停止身份、DB及IPv4/IPv6监听；对应receipt `P/formal-final-readback.json:15-37` 为退出 PASS、封存2意图、capture0、lease null，独立receive/cost UNKNOWN。这些0没有被用来推导Provider免费或接收0。
+- **回归范围准确：** 唯一已有源码变化是 `P/tools/full-flow-tests.py:777-810`，新增35行；`no_models/no_sources` 两种模拟输入验证预留前停止、禁止Pin/Chat重入、无POST和安全退出。`P/local-full-flow-declaration-negative.json:7-12` 标注 `LOCAL_SIMULATED`。本地只读解压核对新raw/gzip摘要，日志确为37 tests/OK；旧36 tests/OK日志及receipt与base逐字节相同。
+- **复用与边界：** 18个工具源摘要与 `P/static-delivery-pre-review.json:8-26` 全部匹配；24个Python文件只读AST解析通过。prepared/system freeze、system gate、system readback与base未变；前置双轴 PASS按 `P/review-pre-execution.json:2-27` 的固定hash复用。未重审全部驱动或产品根因，也未读取私有output；17payload整体绑定复用既有冻结/readback，本探子没有远端重测。
+- **完成性仍阻断：** `P/formal-stopped-summary.json:21-32` 明确下一轮矩阵 BLOCKED，实际effective页body未保留，声明为空原因及旧502根因 UNKNOWN。`P/pin-capability-snapshot.json:52,92-94,126-131` 的public capabilities `{}`、allow_unlisted_model和声明0不足以确定原因。`P/batch-contract.md:36-38` 禁止失败后追加及未执行Chat标NOT_REPRODUCED，当前停批符合。GitHub仅在报告`:75`保留PENDING_SYNC，本范围未联网核验；这是待记录元数据，不构成缺代码。本批不能追加真实调用。

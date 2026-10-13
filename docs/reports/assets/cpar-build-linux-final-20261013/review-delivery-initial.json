@@ -1,0 +1,38 @@
+{
+  "scope": "POST_STOP_TEST_READONLY_PROOF_AND_PUBLIC_REPORT_INCREMENT",
+  "base": "9d670ba720fce2c92b7f1ba11516cee397ff1037",
+  "fixed_head": "f40d4a4f4c0196353c6da9a88ba850adee651cd7",
+  "axes": {
+    "Standards": {
+      "reviewer": "/root/standards_delivery_final",
+      "status": "FAIL",
+      "hard_findings": 1,
+      "new_judgement_findings": 0,
+      "inherited_heuristics": 1,
+      "terminal_text": "review-delivery-initial-standards.md"
+    },
+    "Spec": {
+      "reviewer": "/root/spec_delivery_final",
+      "public_materials_status": "FAIL",
+      "execution_contract_status": "PASS",
+      "execution_contract_blockers": 0,
+      "scope_creep": 0,
+      "completion_status": "PARTIAL/BLOCKED",
+      "qualification_blockers": 1,
+      "terminal_text": "review-delivery-initial-spec.md"
+    }
+  },
+  "shared_finding": {
+    "kind": "PUBLIC_REPORT_UNKNOWN_WORD_CORRUPTION",
+    "finding_count": 1,
+    "occurrences": 7,
+    "corrupted_value": "UNK2026-10-14T00:20:53.989562+08:00N",
+    "expected_value": "UNKNOWN",
+    "original_report": "report-initial-delivery-fail.md",
+    "original_lines": [3, 14, 48, 50, 54, 74],
+    "machine_receipts_unchanged_and_correct": true
+  },
+  "formal_epoch_permanently_stopped": true,
+  "further_real_runs_or_provider_intents_authorized": false,
+  "repair_scope": "seven exact documentation replacements and retained-failure explanation only"
+}

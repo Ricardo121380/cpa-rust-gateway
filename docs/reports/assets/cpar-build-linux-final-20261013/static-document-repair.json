@@ -1,0 +1,26 @@
+{
+  "at_utc": "2026-10-13T16:37:01.698717+00:00",
+  "status": "PASS",
+  "base": "f40d4a4f4c0196353c6da9a88ba850adee651cd7",
+  "scope": "EXACT_SEVEN_DOCUMENT_STATUS_REPAIRS_PLUS_FAILURE_RETENTION_EXPLANATION",
+  "original_failed_report_sha256": "9537dbd23f969b906d8fd72cf58da81c98ab7e48b9bfa964f29c4438fd732c9c",
+  "corrected_report_sha256": "ef81b4c1312153eeebff2351bee2dad8a2653d4cd9b3f4e15e167d91280d3566",
+  "repaired_occurrences": 7,
+  "fixed_source_sha256_matches": 18,
+  "fixed_proof_files": {
+    "system-freeze.json": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+    "prepared-freeze.json": "bed5cd285c3985f60bd8320fe56cc2fac62bfd0783b26e56c0b251b806e020f7",
+    "system-gate.json": "bef8815f766c09c5a13eb0ea007a115a8685e692100e12f6e56c19fba6f169e5",
+    "system-readback-final.json": "4ecc26a38cafd03cb6437460237a74e8aad12abf87921ed0c1c1eae71171d894",
+    "formal-final-readback.json": "a5d927df6f80432e66acc154f1c5b2af6b6f7b2e02049d184c399148f2781c21",
+    "formal-stopped-summary.json": "79e26af8fc4b8318ca719f022c7bcde37fd0faf50db62ed2b513c12f076a66a9"
+  },
+  "actual_payload_sha256_matches": 17,
+  "payload_freeze_sha256": "d00c82797519a31c5973717c0eb5c628d70a9078baa089248c75ac63fe3d5f61",
+  "system_runs_used": 4,
+  "system_stopped": true,
+  "formal_stopped": true,
+  "new_provider_intents": 0,
+  "prior_105_preservation_proof_reused": "static-delivery-pre-review.json",
+  "further_runtime_or_provider_execution": false
+}

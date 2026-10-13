@@ -1,6 +1,6 @@
 # CPAR-38 最终 Linux 系统门槛与条件式单次 Chat JSON 诊断收口
 
-本批从2026-10-13开始，收口时间 CST: 2026-10-14T00:20:53.989562+08:00。最终 Linux 合成系统门槛 **PASS，4/4**；独立 Standards / Spec 诊断前置审查 **PASS / PASS**。正式资格观察、准备和启动通过，fresh Pin 入口在预留与发送前因 serving snapshot 资格声明为空阻断；**实际新 Pin / Chat 为0/0，Chat NOT_RUN，正式诊断 BLOCKED**。本 epoch 已永久停止，未用2个意图封存。旧502根因保持 UNK2026-10-14T00:20:53.989562+08:00N，下一轮协议矩阵条件尚不齐备。
+本批从2026-10-13开始，收口时间 CST: 2026-10-14T00:20:53.989562+08:00。最终 Linux 合成系统门槛 **PASS，4/4**；独立 Standards / Spec 诊断前置审查 **PASS / PASS**。正式资格观察、准备和启动通过，fresh Pin 入口在预留与发送前因 serving snapshot 资格声明为空阻断；**实际新 Pin / Chat 为0/0，Chat NOT_RUN，正式诊断 BLOCKED**。本 epoch 已永久停止，未用2个意图封存。旧502根因保持 UNKNOWN，下一轮协议矩阵条件尚不齐备。
 
 ## 基线、规则与复用
 
@@ -11,7 +11,7 @@
 
 ## 最小驱动、夹具与回执改动
 
-四槽控制器 A→B→C→D 独占执行，每槽UNK2026-10-14T00:20:53.989562+08:00N先持久化再SSH；异常立即锁停，不重开/重试旧槽。新目录/unit/身份/预算，合成disabled账号与随机钥匙，PrivateNetwork=yes、独立namespace仅lo、实际IPv4/IPv6 TEST-NET返回ENETUNREACH101；无生产/全局网络修改或新基础设施。
+四槽控制器 A→B→C→D 独占执行，每槽UNKNOWN先持久化再SSH；异常立即锁停，不重开/重试旧槽。新目录/unit/身份/预算，合成disabled账号与随机钥匙，PrivateNetwork=yes、独立namespace仅lo、实际IPv4/IPv6 TEST-NET返回ENETUNREACH101；无生产/全局网络修改或新基础设施。
 
 A 创建完整freeze/prepare/start/argv材料，真正执行完整remote-exit成功分支。适配只替换合成epoch/unit、零Provider预算、生产credentials HTTP为生产元数据摘要；完整绑定、停止意图fsync、PID/start复查、真实stop、审计/SQL/权限对账均保留。完整diff/源/实际wrapper SHA单列；合成适配不证明真实账号资格。实际source/adapter/adapted/wrapper摘要由独立原件readback核对。
 
@@ -24,6 +24,8 @@ D 追加明确synthetic marker并文件/目录fsync。初次独立Spec发现64.9
 HTTP200诊断驱动增加原生与公开文本、reasoning、id/model、usage及可无损表达结构核验；unsupported/lossy结构不获NOT_REPRODUCED资格，产品不丢字段。原fidelity RED及修复后本地证据保留。本批未执行真实Chat，不声称真实保真通过。
 
 初始新增独立只读readback helper误比完整private receipt与public projection，exit1记录/源码原样保留；仅helper改为原remote-exit完全相同的投影和inventory digest严格比较，后独立readback PASS。核心系统/正式执行驱动与freeze未改，未迁移旧PASS给新执行字节。中断且无终态的探子均PARTIAL归档，不用作PASS。
+
+最终交付初审 Standards FAIL、Spec材料FAIL/执行契约PASS/完整目标PARTIAL：报告生成器全局替换时间占位符时损坏了7处UNKNOWN文字，机器回执未改变。原报告副本与两路初审终态保留在report-initial-delivery-fail.md、review-delivery-initial.json及对应原文；本次仅修复7处文字并补充这条说明，执行源、冻结、实际运行证据均不变。文案修正另作独立窄范围两轴核验，不将完整诊断目标升级为PASS。
 
 ## 场景—实际入口—预期及实测证据—退出
 
@@ -45,13 +47,13 @@ system-readback-final.json独立读取原冻结文件、实际执行wrapper/hash
 - 一次read-only同授权连续性观察PASS，余效16395.674秒；实际prepare记录余效16231.104秒，严格>3600。无本任务主动refresh/重新授权/账号替换/等待再观察。正常已存在refresh字段变化与identity连续性有单独证据。
 - 旧source DTO credential_revision=null被作为可选摘要处理。candidate严格观测revision147；账号native146；这些是source/candidate字段，实际fresh Pin lease从未建立，保持null。
 - 上传/准备PASS。正式启动PASS，PID2683088，监听19180/19181归属验证，guard/cap4/唯一env/argv准确、候选池可用且无lease，实际65.472122秒静默、Provider/catalog请求0。
-- 一次Pin入口检查后BLOCKED，原native summary category AssertionError。账号/候选池/余效/实际revision检查均过；保留inspection哈希7d4096fb…中的capability_observations=[]，首个不成立断言是 frozen remote-pin.py:91 的len(declarations)==1。ClientKey/group/route/model/candidate均active、route grant enabled，capability_read_errors=[]；public model capabilities={}、candidate override仅allow_unlisted_model=true。这些事实不证明为何effective声明为空；原因保持UNK2026-10-14T00:20:53.989562+08:00N。
+- 一次Pin入口检查后BLOCKED，原native summary category AssertionError。账号/候选池/余效/实际revision检查均过；保留inspection哈希7d4096fb…中的capability_observations=[]，首个不成立断言是 frozen remote-pin.py:91 的len(declarations)==1。ClientKey/group/route/model/candidate均active、route grant enabled，capability_read_errors=[]；public model capabilities={}、candidate override仅allow_unlisted_model=true。这些事实不证明为何effective声明为空；原因保持UNKNOWN。
 - snapshot离线比较不发管理HTTP/Provider，第一次比较脚本source_line标签低3行，原执行回执保留，正确91行出处另存pin-presend-assertion-analysis.json。未执行/重放Pin程序或真实请求。
-- 断言发生在reserve_pin之前；pin-request/private-pin不存在，实际Pin意图0、Chat意图0，Chat根本未执行。未产生新Request/Attempt/Finished/Usage/native capture/ledger，独立最终DB/文件/readback验证新增均0。Provider独立接收数与费用仍UNK2026-10-14T00:20:53.989562+08:00N；不以gateway0推算Provider独立证据。
+- 断言发生在reserve_pin之前；pin-request/private-pin不存在，实际Pin意图0、Chat意图0，Chat根本未执行。未产生新Request/Attempt/Finished/Usage/native capture/ledger，独立最终DB/文件/readback验证新增均0。Provider独立接收数与费用仍UNKNOWN；不以gateway0推算Provider独立证据。
 - 首次BLOCKED即永久锁停，仅调用冻结remote-exit完成安全退出。正式exit与count reconciliation PASS；原startup观测保留，停止意图PID/start绑定，unit/PID/cgroup/监听无遗留；budget stopped，未用2意图永久封存。没有retry/fallback/换模型账号/refresh或修复后真实追加。
 - 本地prepare命令一次因上传仍持锁被本地flock拒绝(rc2)，在main/预留/派发之前，没有prepare或Provider意图；原local-lock-denial单列。实际upload结束PASS后才进行唯一prepare派发。本地调度拒绝未当作正式执行结果或未知副作用。
 
-原Chat POST /v1/chat/completions、grok-4.5、stream=false、max_completion_tokens=4096，原请求SHA245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062不变。Chat NOT_RUN，不能写NOT_REPRODUCED，旧502精确根因仍UNK2026-10-14T00:20:53.989562+08:00N。
+原Chat POST /v1/chat/completions、grok-4.5、stream=false、max_completion_tokens=4096，原请求SHA245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062不变。Chat NOT_RUN，不能写NOT_REPRODUCED，旧502精确根因仍UNKNOWN。
 
 新增本地缺serving声明回归覆盖no_models/no_sources两种模拟输入，均在预留前阻断、预算stopped、不可重入Pin/Chat、无POST且安全退出PASS。全流现在37/37；只改变测试文件，原执行驱动/systemfreeze/实际17payload字节保持。历史36/36日志仍保留；不重跑真实槽或调用。
 
@@ -71,7 +73,7 @@ system-readback-final.json独立读取原冻结文件、实际执行wrapper/hash
 | 独立Standards/Spec前置 | PASS/PASS | 固定9d670ba7源码复用+实际四槽+新freeze；不等于正式输出通过 |
 | 本批最终材料审查 | PENDING_FINAL_REVIEW | 新测试/只读补充/本报告待独立收口；完整诊断目标未达 |
 | 资源退出 | PASS5/5 | 系统4次＋正式1次，独立原件回读；保留失败启动 |
-| Provider独立receive/费用 | UNK2026-10-14T00:20:53.989562+08:00N/UNK2026-10-14T00:20:53.989562+08:00N | 无独立Provider接收/费用证据 |
+| Provider独立receive/费用 | UNKNOWN/UNKNOWN | 无独立Provider接收/费用证据 |
 | GitHub#47/#57/#9 | PENDING_SYNC；均OPEN | 既有progress将body-only追加、独立comment/issue/分页deps读回 |
 | 远端CI | NOT_RUN | 固定执行审查点9d670ba7 Actions匹配run0；未push/dispatch |
 | 发布/生产/六组合矩阵 | NOT_RUN | 只跑本批系统和正式启动，没有生产服务变更 |
