@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "tests": 8,
+  "scope": "new complete actual recipe binding, all five environment selectors with negative execution, stopped launch guard, waiting abnormalities, strict >60 minute threshold, spacing/count/window, payload/request hashes",
+  "raw_log_sha256": "5b4d3b0d48a443e433b2876ecb1f99c89fd40a4c694fc04447c2d7954628bd8e",
+  "gzip_sha256": "6e62f487fcc3d66a5929a800ba9815a765bf8f33952b088b2a3247873c625e75",
+  "red_archive": "local-tests-red.log.gz",
+  "provider_calls": 0,
+  "unchanged_tests_and_full_gates": "reuse verified identical source/full log hashes; no repeated unchanged suite"
+}

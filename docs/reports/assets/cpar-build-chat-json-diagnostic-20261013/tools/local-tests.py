@@ -128,9 +128,22 @@ class BoundPreparation(unittest.TestCase):
         source = (TOOLS / 'remote-start.py').read_text()
         self.assertIn('assert args == launch[launch.index(str(binary)):]', source)
         self.assertIn("assert hashlib.sha256(json.dumps(launch,separators=(',',':')).encode()).hexdigest() == freeze['assembled_launch_sha256']", source)
-        for key in ['LD_PRELOAD', 'CPAR_BUILD_EGRESS_AUDIT', 'CPAR_BUILD_DIAGNOSTIC_DIR',
-                    'CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256', 'CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION']:
-            self.assertIn("assert env['" + key + "']", source)
+        guards = [node for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Assert)
+                  and any(isinstance(value, ast.Subscript) and isinstance(value.value, ast.Name)
+                          and value.value.id == 'env' for value in ast.walk(node))]
+        epoch = Path('/protected/private/owned')
+        expected = {'LD_PRELOAD': '/guard', 'CPAR_BUILD_EGRESS_AUDIT': '/audit',
+                    'CPAR_BUILD_DIAGNOSTIC_DIR': str(epoch / 'native-capture'),
+                    'CPAR_BUILD_DIAGNOSTIC_REQUEST_SHA256': 'a' * 64,
+                    'CPAR_BUILD_DIAGNOSTIC_SOURCE_REVISION': 'b' * 40}
+        program = compile(ast.Module(body=guards, type_ignores=[]), 'bound-environment-check', 'exec')
+        namespace = {'env': expected, 'guard': Path('/guard'), 'audit': Path('/audit'), 'epoch': epoch,
+                     'prepare': {'selected_request_sha256': 'a' * 64}, 'source_sha': 'b' * 40}
+        exec(program, namespace)
+        for key in expected:
+            changed = copy.deepcopy(namespace); changed['env'][key] = '/changed'
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                exec(program, changed)
 
     def test_new_payload_and_request_binding_use_fixed_candidate(self):
         payload = PRIVATE / 'payload'

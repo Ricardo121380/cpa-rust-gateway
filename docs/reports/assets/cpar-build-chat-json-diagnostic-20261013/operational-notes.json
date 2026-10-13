@@ -1,5 +1,7 @@
 {
   "initial_scouts": "INTERRUPTED without final verdict; not PASS; primary verified exact known files",
   "local_reuse_checker_first_attempt": "PARTIAL: included post-gate remote-final-readback path absent at c23d2c35; no product failure; corrected to exact seven executed driver files",
-  "remote_recipe_read": "PASS; one SSH read of fixed approved recipe and options only; no material/pool/management GET/Provider/write"
+  "remote_recipe_read": "PASS; one SSH read of fixed approved recipe and options only; no material/pool/management GET/Provider/write",
+  "local_bound_test_first_attempt": "FAIL: string lookup expected a separate audit assert, but actual guard and audit are asserted together; equivalent AST execution will check all five selectors and reject changed values; no product failure or assertion relaxation",
+  "local_red_raw_sha256": "35a9a8545e81765c458b7e180d0d38fb69f56fd0e3cb0b6e37c5db48726f9998"
 }
