@@ -3,7 +3,7 @@
   "kind": "chat_json_502_diagnostic",
   "epoch": "chat-json-rehearsal-20261013",
   "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
-  "driver_source_sha": "c4f15b106c2fce049582c7296044e9de765ab09f",
+  "driver_source_sha": "6ff7a51634bd7814b74736db85fc36b07f761d91",
   "fixed_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
   "files": {
     "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
@@ -28,7 +28,8 @@
   "approved_recipe_file_sha256": "af73dd3177479147adca982bfcc95de7264442845f7b5a31e134643bc998bff0",
   "copy_runtime_options_file_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
   "upload_tool_sha256": "907cb3a02d954ca53e8a4ead675d2b6d6f80089d8f267010488c5dd952efd14b",
-  "local_controller_sha256": "eaa6def1ea5bf7fe948cc0683fd8e7a73f99ddcf92046777fdbac2dd262baa8f",
+  "local_controller_sha256": "56bcae50df9134d860d44df6a10a24bb0ab89cbedf3f1fce06aebf906124f0e8",
   "source_pool_repair_sha": "5e8768c485dda02b8b84672a7603a97d49f85a1f",
-  "derivation_base": "9b6d70615d7507114aeab0007b34ea9db81d6182"
+  "derivation_base": "9b6d70615d7507114aeab0007b34ea9db81d6182",
+  "no_launch_exit_tool_sha256": "a35e444c5e2d377512563aef4b4b9b3493a68009c2aff35503ac993f62e2dba6"
 }
