@@ -1017,6 +1017,22 @@ class FullFlow(unittest.TestCase):
         self.assertEqual((f.epoch / 'startup-observations.json').read_bytes(), startup)
         self.assertTrue((f.epoch / 'exit-observations.json').exists())
 
+    def test_quiet_audit_last_wait_event_never_qualifies_startup(self):
+        f = self.fixture(); original = f.sleep
+        def event_during_last_wait(seconds):
+            original(seconds)
+            if f.started and f.clock >= 64.75:
+                (f.base / 'audit' / (EPOCH + '.jsonl')).write_text('{"event":"connect_build_allowed"}\n')
+        f.sleep = event_during_last_wait
+        self.assertNotEqual(f.through('start')[0], 0)
+        trace = json.loads((f.epoch / 'startup-observations.json').read_text())
+        self.assertNotEqual(trace['gates']['quiet_audit'], 'PASS')
+        self.assertFalse((f.epoch / 'start-receipt.json').exists())
+        self.assertFalse(f.started)
+        self.assertTrue(json.loads((f.epoch / 'budget.json').read_text())['stopped'])
+        self.assertNotEqual(f.invoke('pin')[0], 0)
+        self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

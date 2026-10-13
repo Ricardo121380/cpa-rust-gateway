@@ -1,6 +1,6 @@
 {
   "status": "PREPARED_ONLY; formal execution BLOCKED",
-  "payload_freeze_sha256": "64064ba4e9ac1fa7574c46b06b3417908a51170f1144995989326df7b81a2d7b",
+  "payload_freeze_sha256": "cbf5efea00ac9f1e8c2fb2fdbe95ebc393f2a19cd4b373c7a51d56b42d788d40",
   "freeze": {
     "kind": "chat_json_502_diagnostic",
     "epoch": "chat-json-linux-20261013",
@@ -24,7 +24,7 @@
       "historical-cost-authorization.json": "77980e82623fa9913bd0623803f1a0f6b33857335127ad96fde5064f0ebaaa0f",
       "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
       "user-authorization.json": "81e476b83dc2a14243356b7f230bfb0071aca67e08c4b6b0edec3f60f786dbf6",
-      "startup_probe.py": "04d3c01ab11d388848985e852aed3c546ea8abe4b6fa83e50eff36fbf60702f5"
+      "startup_probe.py": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95"
     },
     "assembled_launch_sha256": "7034c4b4d6f0988f26fe6cac266ffccd9aa80c1f76868bbe5aef8a71d2304b50",
     "local_controller_sha256": "444d163264ae5371807de6f673568f0ab939b4a2df481a7d3b03a0361562f04a",

@@ -51,6 +51,19 @@
       "log": "local-post-review-final.log.gz",
       "raw_sha256": "2a19dad8d9e6c11ef2e2c0dc70806cf2d56555c385021b0f755445ec2c0a8db4",
       "gzip_sha256": "7f033c4c051667f77551c60e404597a14974a6f32ea8f917322a923edb865c14"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-linux-start-20261013/tools/full-flow-tests.py"
+      ],
+      "layer": "LOCAL_SIMULATED",
+      "exit_code": 0,
+      "tests": 34,
+      "log": "local-final-audit-tail.log.gz",
+      "raw_sha256": "8abb3f5a01175ab0652fc16b739efd2caa63435822caffeb3c1e68774a1547b5",
+      "gzip_sha256": "94c92d142673dcd6ecb60b6c5843c5e9d6ddd9255d56821ddb98b63448500d86"
     }
   ],
   "product_builds": 0,

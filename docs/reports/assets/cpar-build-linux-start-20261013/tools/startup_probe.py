@@ -188,6 +188,8 @@ class StartupProbe:
             time.sleep(.5)
         if self.identity() != identity or self.listeners(Path('/proc', str(identity['pid']))) != self.ports:
             raise StartupError('post_audit_identity_or_listener_changed')
+        if audit.exists() and audit.stat().st_size:
+            raise StartupError('quiet_audit_not_flat')
         self.trace['gates']['quiet_audit'] = 'PASS'
         self.record('quiet_audit_passed', elapsed_seconds=time.monotonic() - begin)
         return time.monotonic() - begin

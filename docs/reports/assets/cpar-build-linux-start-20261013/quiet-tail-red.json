@@ -1,0 +1,15 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/full-flow-tests.py",
+    "FullFlow.test_quiet_audit_last_wait_event_never_qualifies_startup"
+  ],
+  "layer": "LOCAL_SIMULATED",
+  "exit_code": 1,
+  "tests": 1,
+  "log": "quiet-tail-red.log.gz",
+  "raw_sha256": "2ee7bea958c7eef12b30705bae0f1e96eaf3fd308b3aac464157ce8a210b542f",
+  "gzip_sha256": "22e86b1518a0bee5e6ce187e69945e0acd44973cd47f24537b10c896c5a31115",
+  "failure": "late audit event after last polling read can leave audit PASS"
+}
