@@ -1,0 +1,36 @@
+[
+  {
+    "kind": "diagnostic",
+    "command": [
+      "python3",
+      "scripts/test-cpar-build-json-diagnostic.py"
+    ],
+    "source_sha": "201dbe2e283b9c07c85b6054779f53f4d368afd2",
+    "started_at_utc": "2026-10-13T02:01:05.507600+00:00",
+    "exit_code": 0,
+    "raw_sha256": "c8bfcaf7353b2c23f01a7d42b89090260e3fc8951e3dbf3488473e42db732523",
+    "gzip_sha256": "95b4c8f2ac3a1ce55a519e87c9f2f13484dfe0217c22299e161d2b98b5fa93ea",
+    "summary": [
+      "Ran 18 tests in 0.166s",
+      "OK"
+    ],
+    "provider_real_calls": 0
+  },
+  {
+    "kind": "oracle",
+    "command": [
+      "python3",
+      "scripts/test-cpar-new-build-acceptance.py"
+    ],
+    "source_sha": "201dbe2e283b9c07c85b6054779f53f4d368afd2",
+    "started_at_utc": "2026-10-13T02:01:05.814970+00:00",
+    "exit_code": 0,
+    "raw_sha256": "b8f687315ba27430a0a7eaf82a9e2ad2dca20a4ce5f21c84d298a57f07a3c2f4",
+    "gzip_sha256": "adcb91be12c41bd9cca57a9ae8ef7bfb53387111ea976e0ef09527b3d0c160f9",
+    "summary": [
+      "Ran 54 tests in 6.225s",
+      "OK"
+    ],
+    "provider_real_calls": 0
+  }
+]

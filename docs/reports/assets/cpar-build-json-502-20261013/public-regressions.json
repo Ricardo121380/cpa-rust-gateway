@@ -1,0 +1,25 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway",
+    "runtime::batch_c::grok",
+    "--",
+    "--nocapture"
+  ],
+  "source_sha": "201dbe2e283b9c07c85b6054779f53f4d368afd2",
+  "started_at_utc": "2026-10-13T01:57:57.850884+00:00",
+  "exit_code": 0,
+  "log_sha256": "2b0b819fafded91ba738397b5f00ca8f7961d5d898e5a53ef3f5fb42d6922d6b",
+  "layer": "LOCAL_SIMULATED public HTTP/runtime/SQLite/billing; synthetic upstream transport",
+  "provider_real_calls": 0,
+  "summary": [
+    "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 202 filtered out; finished in 5.12s"
+  ],
+  "gzip_sha256": "8dde9d05629357adf67e4239e259d68249f0fc84951a663c1ce09bb6f749d63e"
+}

@@ -1,0 +1,58 @@
+{
+  "observed_at_utc": "2026-10-13T02:04:11.239956+00:00",
+  "script_sha256": "49ded931037e8e7e1eeded210a6805fde99645539e618cba7bc7141455059b8a",
+  "exit_code": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "ff2b6cba9cca9ee476a8b409a360af37f7a6a5ee3833655c858c30b065117c18",
+  "earlier_wrapper_and_scope_assertion_failures_preserved": true,
+  "new_qualification_attempt": false,
+  "result": {
+    "status": "PASS",
+    "observed_at_utc": "2026-10-13T02:04:10.981438+00:00",
+    "owned_process_stop_status": "NOT_CREATED_VERIFIED",
+    "temporary_unit": {
+      "MainPID": "0",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "temporary_ports": [],
+    "competing_processes": [],
+    "new_epoch_upload_audit_absent": true,
+    "flat_observation_seconds": 5,
+    "old_stopped_epoch_unchanged": true,
+    "historical_frozen_files_verified": 334,
+    "old_uploaded_payloads_verified": 14,
+    "protected_root_files_flat": 363,
+    "protected_root_inventory_sha256": "f1ae70ffec26d0b7e4563102a1cca530d3c18985f994c2addfc84a5471cff1cf",
+    "owned_epoch_and_capture_modes": "0700/0600; root owner; no symlinks",
+    "private_parent_mode": "0700",
+    "historical_bootstrap_modes_preserved": "three existing 0644 receipts",
+    "production": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "a2a47fc24a41730d9a4f4295fdc00d3d5c747ae8651598ad069cf6abda97e4d3"
+    },
+    "production_config": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "new_inference_intents": 0,
+    "new_gateway_pin_confirmed_sends": 0,
+    "provider_independent_receive_count": "UNKNOWN",
+    "actual_provider_cost": "UNKNOWN",
+    "management_get_intents": 1,
+    "production_writes": 0,
+    "remote_files_written": 0
+  }
+}

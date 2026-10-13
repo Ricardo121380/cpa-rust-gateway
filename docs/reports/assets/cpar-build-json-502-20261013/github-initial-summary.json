@@ -1,0 +1,62 @@
+[
+  {
+    "number": 47,
+    "state": "open",
+    "object_kind": "ISSUE",
+    "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+    "dependency_count": 8,
+    "dependency_numbers": [
+      16,
+      27,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34
+    ],
+    "comment_count": 1
+  },
+  {
+    "number": 57,
+    "state": "open",
+    "object_kind": "ISSUE",
+    "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+    "dependency_count": 23,
+    "dependency_numbers": [
+      12,
+      17,
+      21,
+      25,
+      26,
+      37,
+      38,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      52,
+      53,
+      54,
+      55,
+      56
+    ],
+    "comment_count": 1
+  },
+  {
+    "number": 9,
+    "state": "open",
+    "object_kind": "ISSUE",
+    "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+    "dependency_count": 0,
+    "dependency_numbers": [],
+    "comment_count": 1
+  }
+]

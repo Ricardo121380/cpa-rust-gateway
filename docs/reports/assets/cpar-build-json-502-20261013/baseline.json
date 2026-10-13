@@ -1,0 +1,11 @@
+{
+  "branch": "codex/prism-v4-delivery",
+  "head": "201dbe2e283b9c07c85b6054779f53f4d368afd2",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "initial_status_sha256": "2acd9f2b46883a09b60ea63e9d6ea4a7cab36aae1aefe26b80882f1e121c1df7",
+  "user_checkpoints_are_not_rollback_instructions": true,
+  "history_intents": 35,
+  "history_confirmed_sends": 34,
+  "new_intent_limit": 2,
+  "prior_epoch_terminated": true
+}

@@ -1,0 +1,10 @@
+{
+  "observed_at_utc": "2026-10-13T01:57:42.734988+00:00",
+  "command_kind": "ssh read-only approved ownership/material observation",
+  "script_sha256": "ef3e2f063e4187101da9cb7da736ec63ac1b85ec116bca1a9afc384555055fd8",
+  "exit_code": 1,
+  "stderr_sha256": "37e4e0b5f06cfefdbdb7f0e0b6a00e8899392dd000fb6c66c0a773366b6b0eaa",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "provider_calls": 0,
+  "exception_type": "REMOTE_READ_FAILED"
+}

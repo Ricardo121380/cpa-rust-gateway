@@ -1,0 +1,29 @@
+{
+  "status": "READ_ONLY",
+  "private_mode_mismatches": [
+    {
+      "relative_path": "private/recovered-launch.json",
+      "mode": "0o644",
+      "uid": 0,
+      "symlink": false,
+      "in_prior_historical_hashes": true
+    },
+    {
+      "relative_path": "private/guard-preflight-corrected.json",
+      "mode": "0o644",
+      "uid": 0,
+      "symlink": false,
+      "in_prior_historical_hashes": true
+    },
+    {
+      "relative_path": "private/bootstrap-receipt.json",
+      "mode": "0o644",
+      "uid": 0,
+      "symlink": false,
+      "in_prior_historical_hashes": true
+    }
+  ],
+  "new_epoch_exists": false,
+  "new_upload_exists": false,
+  "new_audit_exists": false
+}

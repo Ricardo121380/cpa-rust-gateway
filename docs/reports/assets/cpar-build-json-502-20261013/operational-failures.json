@@ -1,0 +1,29 @@
+{
+  "nonroot_readiness_error": {
+    "exception_type": "PermissionError",
+    "stdin_line": 16,
+    "new_epoch_created": false,
+    "provider_calls": 0
+  },
+  "first_exit_wrapper_failure": {
+    "exception_type": "AssertionError",
+    "stdin_line": 21,
+    "cause": "JSON remote argv was split by SSH shell; explicit shell quoting added",
+    "remote_epoch_created": false,
+    "provider_calls": 0
+  },
+  "second_exit_permission_assertion": {
+    "exception_type": "AssertionError",
+    "stdin_line": 44,
+    "status": "CLOSED; observed historical baseline retained",
+    "provider_calls": 0,
+    "cause": "new checker incorrectly imposed 0600 on three older bootstrap receipts under 0700 parent; receipts belong to previous frozen history; owned capture remains strict 0700/0600",
+    "remote_permissions_modified": false
+  },
+  "reuse_checker_partial": {
+    "exception_type": "KeyError",
+    "field": "payloads",
+    "cause": "checker assumed wrong schema; actual manifest is files/name; corrected bound metadata check",
+    "product_behavior_changed": false
+  }
+}

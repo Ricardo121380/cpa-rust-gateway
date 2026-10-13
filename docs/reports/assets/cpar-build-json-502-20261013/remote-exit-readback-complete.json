@@ -1,0 +1,15 @@
+{
+  "observed_at_utc": "2026-10-13T02:02:05.914115+00:00",
+  "script_sha256": "12fc360290179883532c463c23e79066d9aad8c883f22bd26db37b26f1f9ccdf",
+  "exit_code": 1,
+  "stderr_sha256": "e2990bdd9105ea542f7a2032e1dccce32d49c9e6ea0646a24871f02b8ee513bf",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "prior_readback_wrapper_argument_failure_preserved": true,
+  "new_qualification_attempt": false,
+  "exception_types": [
+    "AssertionError"
+  ],
+  "stdin_line_numbers": [
+    44
+  ]
+}

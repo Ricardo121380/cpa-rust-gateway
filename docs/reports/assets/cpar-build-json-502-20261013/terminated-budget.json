@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "chat_json_502_diagnostic",
+  "historical_inference_requests": 35,
+  "historical_gateway_pin_confirmed_sends": 34,
+  "new_pin_intents": 0,
+  "new_basic_intents": 0,
+  "new_inference_limit": 2,
+  "new_pin_limit": 1,
+  "new_basic_limit": 1,
+  "cumulative_inference_limit": 37,
+  "stopped": true,
+  "pin_status": "NOT_RUN",
+  "chat_status": "NOT_RUN",
+  "provider_receive_count": null,
+  "actual_cost": null,
+  "retries": 0,
+  "fallbacks": 0,
+  "refresh_reauthorization": 0
+}
