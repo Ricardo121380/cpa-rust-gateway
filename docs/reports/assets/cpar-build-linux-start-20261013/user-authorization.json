@@ -1,0 +1,31 @@
+{
+  "basis": "user_explicit_20261013_current_task",
+  "batch_base": "9aa08db64fa74767064db65f906fa7bae0f2aa50",
+  "epoch": "chat-json-linux-20261013",
+  "max_system_runs": 3,
+  "system_provider_intent_limit": 0,
+  "max_new_pin_intents": 1,
+  "max_new_chat_intents": 1,
+  "max_new_inference_intents": 2,
+  "historical_inference_intents": 35,
+  "historical_gateway_pin_confirmed_sends": 34,
+  "cumulative_intent_limit": 37,
+  "all_historical_unused_budgets_terminated": true,
+  "source_account": "same existing approved Build authorization source",
+  "model": "grok-4.5",
+  "max_completion_tokens": 4096,
+  "retry": false,
+  "fallback": false,
+  "proactive_refresh": false,
+  "reauthorization": false,
+  "production_changes": false,
+  "push": false,
+  "issues_remain_open": [
+    47,
+    57,
+    9
+  ],
+  "cost_policy": "UNLIMITED_USER_EXPLICIT",
+  "budget_limit": null,
+  "request_limit_independent_of_inherited_cost_policy": true
+}

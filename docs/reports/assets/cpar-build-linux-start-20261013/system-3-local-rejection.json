@@ -1,0 +1,13 @@
+{
+  "local_command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/system-control.py",
+    "3"
+  ],
+  "exit_code": 1,
+  "reason": "previous_system_controller_latched_before_slot_reservation",
+  "ssh_invocations": 0,
+  "system_launches": 0,
+  "slot_3_reserved": false
+}

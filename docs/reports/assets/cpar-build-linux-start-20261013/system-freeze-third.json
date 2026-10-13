@@ -1,0 +1,15 @@
+{
+  "status": "FROZEN",
+  "files": {
+    "startup_probe.py": "0533e16d165c41ee4da71fab9b9cd8063327d84bf5e54eaa1a4877e57811e087",
+    "launch_recipe.py": "cd89b3f69656fc7b2ad712981d1de9e3e25a1a67af9dd9ae50986c42d2205e01",
+    "linux-system-validation.py": "bf2c62fc3e198341c8d3bb1e2ea0538a6e58c7ed46c90b7d57d9d4adf494b9eb",
+    "recipe.json": "7eaf89f7b326fd5b0f60f20c0075e0e95076e5223127f6c83b5246be4f16f6ee"
+  },
+  "controller_sha256": "f45953dc3435018afddb64d1e28c572fabe680e50ab02cb1465fd31b1b91ddb9",
+  "authorized_slot": 3,
+  "max_total_system_runs": 3,
+  "prior_stage_stopped_preserved": true,
+  "prior_budgets_stopped_preserved": true,
+  "provider_intent_limit": 0
+}

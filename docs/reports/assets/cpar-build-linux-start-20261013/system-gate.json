@@ -1,0 +1,35 @@
+{
+  "status": "PARTIAL",
+  "layer": "REAL_LINUX_SYSTEM_SYNTHETIC",
+  "system_runs": 3,
+  "max_runs": 3,
+  "runs": [
+    {
+      "run": 1,
+      "scenario": "normal",
+      "status": "PASS",
+      "resource_exit_status": "PASS",
+      "receipt_sha256": "9235382d63ae24409d8d2d9137995ba20959dd7ffa497f59253a70ff31bf701b"
+    },
+    {
+      "run": 2,
+      "scenario": "exec_failure",
+      "status": "FAIL",
+      "resource_exit_status": "PASS",
+      "receipt_sha256": "c184c0e017001ced8d0ab310d71e3a8aa21d5e10aee0c93a4a4917b7c44d7f12"
+    },
+    {
+      "run": 3,
+      "scenario": "management_auth_failure",
+      "status": "FAIL",
+      "resource_exit_status": "PASS",
+      "receipt_sha256": "95f7bb9803da912d7ea492a83e9ffa8702c7eda1cc78cd0505ef7ed861cf9103"
+    }
+  ],
+  "blocking_reason": "run2_preset_exec_fixture_did_not_produce_retained_systemd_exec_failure_status; corrected_fixture_not_real_retested",
+  "normal_real_start": "PASS at first system freeze",
+  "management_failure_cleanup": "PASS observed404 and verified exit; original run3 oracle FAIL retained",
+  "final_diagnostics_and_oracle_delta_real_retested": false,
+  "formal_provider_authority": "BLOCKED",
+  "provider_intents": 0
+}

@@ -1,0 +1,43 @@
+{
+  "status": "PARTIAL; formal diagnostic BLOCKED",
+  "local_simulated_full_flow": {
+    "status": "PASS",
+    "tests": 31
+  },
+  "offline_real_receipt_oracle": {
+    "status": "PASS",
+    "tests": 3
+  },
+  "real_linux_system_gate": "PARTIAL",
+  "real_system_runs": 3,
+  "systemd_run_invocations": 3,
+  "observed_created_units": 2,
+  "normal_run_status": "PASS at first system freeze",
+  "preset_run2_original": "FAIL; exec status203 unavailable; unit not found",
+  "preset_run3_original": "FAIL; expected401 observed404",
+  "run3_offline_oracle_after_contract_correction": "PASS; original FAIL not changed",
+  "all_three_resource_exit_status": "PASS",
+  "formal_start": "NOT_RUN; BLOCKED by system gate",
+  "new_account_continuity_expiry_observation": "NOT_RUN",
+  "fresh_pin_intents": 0,
+  "chat_intents": 0,
+  "new_gateway_pin_confirmed_sends": 0,
+  "new_formal_request_attempt_finished_usage_ledger": "NOT_CREATED",
+  "actual_fresh_pin_lease": null,
+  "provider_independent_receive_count": "UNKNOWN",
+  "actual_provider_cost": "UNKNOWN",
+  "old_startup_root_cause": "UNKNOWN",
+  "old_502_root_cause": "UNKNOWN",
+  "chat_reproduction_verdict": "NOT_RUN; no NOT_REPRODUCED",
+  "new_diagnostic_epoch_status": "NOT_CREATED remotely; stopped locally before observation",
+  "historical_intents": 35,
+  "historical_gateway_pin_confirmed_sends": 34,
+  "new_authorized_intents": 2,
+  "new_unused_intents_terminated": 2,
+  "product_builds": 0,
+  "dependency_installs": 0,
+  "product_full_reruns": 0,
+  "matrix": "NOT_RUN",
+  "push_release_deployment_production_changes": "NOT_RUN",
+  "remote_ci": "NOT_RUN"
+}

@@ -1,0 +1,1489 @@
+{
+  "layer": "LOCAL_SIMULATED",
+  "source_api": {
+    "revision": "b0cf36e387b774439acc23830221389eb3ac74d0",
+    "openapi_sha256": "dd2e028076150d008e074e456484ef68b1caeae6cad14d4e81932d8d0bb3053e",
+    "schemas": {
+      "AccountDisplayIdentity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "phone",
+          "username"
+        ],
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "description": "Human-readable identity evidence from stored credential metadata. Nullable; never inferred from a digest, import batch or opaque subject. Display only, not verified authorization evidence."
+      },
+      "AccountRuntimePresentation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity",
+          "category",
+          "provider",
+          "api_format",
+          "host",
+          "source"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/AccountDisplayIdentity"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "api",
+              "codex",
+              "claude",
+              "kimi",
+              "kiro",
+              "grok"
+            ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "api_format": {
+            "type": "string"
+          },
+          "host": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ChannelPin": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_id",
+          "config_version_id",
+          "config_revision",
+          "provider_id",
+          "channel_id",
+          "route_id",
+          "credential_id",
+          "requested_model",
+          "protocol",
+          "mode",
+          "outcome",
+          "upstream_sent",
+          "attempt_count",
+          "response_started",
+          "observed_at_ms"
+        ],
+        "properties": {
+          "request_id": {
+            "$ref": "#/components/schemas/Id512"
+          },
+          "config_version_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "config_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "provider_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "channel_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "route_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "credential_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "requested_model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "openai_chat_completions",
+              "openai_responses",
+              "anthropic_messages"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "json",
+              "sse"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "rejected",
+              "failed"
+            ]
+          },
+          "upstream_sent": {
+            "type": "boolean"
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "response_started": {
+            "type": "boolean"
+          },
+          "observed_at_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "request_conversion",
+              "egress_admission",
+              "http_transport",
+              "http_status",
+              "content_type",
+              "body_read",
+              "decoder",
+              "sse_bootstrap"
+            ]
+          }
+        }
+      },
+      "ChannelPinInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id",
+          "channel_id",
+          "route_id",
+          "credential_id",
+          "requested_model",
+          "protocol",
+          "mode"
+        ],
+        "properties": {
+          "provider_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "channel_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "route_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "credential_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "requested_model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "openai_chat_completions",
+              "openai_responses",
+              "anthropic_messages"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "json",
+              "sse"
+            ]
+          }
+        }
+      },
+      "Id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "Id512": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "ProviderAccountEntitlement": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domain",
+          "tier",
+          "source",
+          "confidence",
+          "observed_at_ms"
+        ],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "enum": [
+              "grok_build",
+              "grok_web",
+              "chatgpt",
+              "claude"
+            ]
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "free",
+              "supergrok",
+              "heavy",
+              "basic",
+              "super",
+              "go",
+              "plus",
+              "pro5x",
+              "pro20x",
+              "pro",
+              "max5x",
+              "max20x"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "provider_subscription",
+              "signed_token",
+              "imported_metadata"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "authoritative",
+              "derived",
+              "declared"
+            ]
+          },
+          "observed_at_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "grok_build"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "free",
+                      "supergrok",
+                      "heavy"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "grok_web"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "basic",
+                      "super",
+                      "heavy"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "chatgpt"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "free",
+                      "go",
+                      "plus",
+                      "pro5x",
+                      "pro20x"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "claude"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "free",
+                      "pro",
+                      "max5x",
+                      "max20x"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "provider_subscription"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "authoritative"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "signed_token"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "derived"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "imported_metadata"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "declared"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "ProviderAccountPoolItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id",
+          "channel_id",
+          "account_id",
+          "account_kind",
+          "auth_status",
+          "runtime_status",
+          "enabled",
+          "priority",
+          "weight",
+          "max_concurrency",
+          "active_leases",
+          "expires_at_ms",
+          "refresh_due_at_ms",
+          "quota_sync_due_at_ms",
+          "entitlement",
+          "presentation"
+        ],
+        "properties": {
+          "provider_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "channel_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "account_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "account_kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "auth_status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "reauth_required",
+              "disabled",
+              "expired"
+            ]
+          },
+          "runtime_status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "cooling",
+              "circuit_open",
+              "quota_blocked",
+              "unauthorized",
+              "recovery_in_flight",
+              "expired"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "max_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "active_leases": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "expires_at_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refresh_due_at_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quota_sync_due_at_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entitlement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderAccountEntitlement"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "presentation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountRuntimePresentation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Identity and channel labels; operational IDs remain exact. Native identity observations may be newer than the immutable scheduling snapshot."
+          }
+        }
+      }
+    }
+  },
+  "candidate_api": {
+    "revision": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "openapi_sha256": "705b2d62bd0e827ad1901594d1655c3b5d0c950e9bd0f744853231aa2be05d93",
+    "schemas": {
+      "AccountDisplayIdentity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "phone",
+          "username"
+        ],
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "description": "Human-readable identity evidence from stored credential metadata. Nullable; never inferred from a digest, import batch or opaque subject. Display only, not verified authorization evidence."
+      },
+      "AccountRuntimePresentation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity",
+          "category",
+          "provider",
+          "api_format",
+          "host",
+          "source"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/AccountDisplayIdentity"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "api",
+              "codex",
+              "claude",
+              "kimi",
+              "kiro",
+              "grok"
+            ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "api_format": {
+            "type": "string"
+          },
+          "host": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AttemptExecutionIdentity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel",
+          "credential_revision",
+          "config_version_id",
+          "config_revision",
+          "egress",
+          "capabilities"
+        ],
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "openai-compatible",
+              "anthropic-compatible",
+              "codex",
+              "claude",
+              "grok.build",
+              "grok.console",
+              "grok.web",
+              "grok.official",
+              "kimi-coding",
+              "kimi-api",
+              "kiro"
+            ]
+          },
+          "credential_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "config_version_id": {
+            "$ref": "#/components/schemas/Id512"
+          },
+          "config_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "egress": {
+            "$ref": "#/components/schemas/ExecutionEgress"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/EffectiveCapabilities"
+          }
+        }
+      },
+      "ChannelPin": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_id",
+          "config_version_id",
+          "config_revision",
+          "provider_id",
+          "channel_id",
+          "route_id",
+          "credential_id",
+          "requested_model",
+          "protocol",
+          "mode",
+          "outcome",
+          "upstream_sent",
+          "attempt_count",
+          "response_started",
+          "observed_at_ms"
+        ],
+        "properties": {
+          "request_id": {
+            "$ref": "#/components/schemas/Id512"
+          },
+          "config_version_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "config_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "provider_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "channel_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "route_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "credential_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "requested_model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "openai_chat_completions",
+              "openai_responses",
+              "anthropic_messages"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "json",
+              "sse"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "rejected",
+              "failed"
+            ]
+          },
+          "upstream_sent": {
+            "type": "boolean"
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "response_started": {
+            "type": "boolean"
+          },
+          "observed_at_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "request_conversion",
+              "egress_admission",
+              "http_transport",
+              "http_status",
+              "content_type",
+              "body_read",
+              "decoder",
+              "sse_bootstrap"
+            ]
+          },
+          "client_key_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credential_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "connection_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "runtime_build": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_basis": {
+            "type": "string",
+            "enum": [
+              "management_key_projection",
+              "administrator_diagnostic"
+            ]
+          },
+          "server_instance": {
+            "type": "string",
+            "description": "Nonsecret identity of this management process. Old invocation evidence is historical after restart."
+          },
+          "runtime_credential_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "execution": {
+            "$ref": "#/components/schemas/ChannelPinExecution",
+            "description": "Actual attempt facts captured from the selected lease and transport. Absence means unknown; management and native account revisions remain separate."
+          }
+        }
+      },
+      "ChannelPinExecution": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attempt_id",
+          "route_candidate_id",
+          "upstream_model",
+          "identity"
+        ],
+        "properties": {
+          "attempt_id": {
+            "$ref": "#/components/schemas/Id512"
+          },
+          "route_candidate_id": {
+            "$ref": "#/components/schemas/Id512"
+          },
+          "upstream_model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "identity": {
+            "$ref": "#/components/schemas/AttemptExecutionIdentity"
+          }
+        }
+      },
+      "ChannelPinInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id",
+          "channel_id",
+          "route_id",
+          "credential_id",
+          "requested_model",
+          "protocol",
+          "mode",
+          "client_key_id"
+        ],
+        "properties": {
+          "provider_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "channel_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "route_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "credential_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "requested_model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "openai_chat_completions",
+              "openai_responses",
+              "anthropic_messages"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "json",
+              "sse"
+            ]
+          },
+          "client_key_id": {
+            "$ref": "#/components/schemas/Id",
+            "description": "Optional Key ID for its current permission graph; this does not verify possession of its secret."
+          },
+          "credential_revision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "EffectiveCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reasoning",
+          "parallel",
+          "stored",
+          "continuation",
+          "compact",
+          "websocket"
+        ],
+        "properties": {
+          "reasoning": {
+            "type": "boolean"
+          },
+          "parallel": {
+            "type": "boolean"
+          },
+          "stored": {
+            "type": "boolean"
+          },
+          "continuation": {
+            "type": "boolean"
+          },
+          "compact": {
+            "type": "boolean"
+          },
+          "websocket": {
+            "type": "boolean"
+          }
+        },
+        "description": "Complete compiled gateway declaration. Missing capability_evidence means unknown. Continuation includes declared StoredResponse, Compaction, WebSocketSession, or Grok Build OwnedReasoning; protocol applicability is evaluated separately."
+      },
+      "ExecutionEgress": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "unknown"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "not_selected"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "direct"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "transport_fingerprint"
+            ],
+            "properties": {
+              "kind": {
+                "const": "process_proxy"
+              },
+              "transport_fingerprint": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "target_id",
+              "node_id",
+              "config_version_id",
+              "config_revision"
+            ],
+            "properties": {
+              "kind": {
+                "const": "configured_proxy"
+              },
+              "target_id": {
+                "$ref": "#/components/schemas/Id512"
+              },
+              "node_id": {
+                "$ref": "#/components/schemas/Id512"
+              },
+              "config_version_id": {
+                "$ref": "#/components/schemas/Id512"
+              },
+              "config_revision": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        ]
+      },
+      "Id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "Id512": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "ProviderAccountEntitlement": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domain",
+          "tier",
+          "source",
+          "confidence",
+          "observed_at_ms"
+        ],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "enum": [
+              "grok_build",
+              "grok_web",
+              "chatgpt",
+              "claude"
+            ]
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "free",
+              "supergrok",
+              "heavy",
+              "basic",
+              "super",
+              "go",
+              "plus",
+              "pro5x",
+              "pro20x",
+              "pro",
+              "max5x",
+              "max20x"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "provider_subscription",
+              "signed_token",
+              "imported_metadata"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "authoritative",
+              "derived",
+              "declared"
+            ]
+          },
+          "observed_at_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "allOf": [
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "grok_build"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "free",
+                      "supergrok",
+                      "heavy"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "grok_web"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "basic",
+                      "super",
+                      "heavy"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "chatgpt"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "free",
+                      "go",
+                      "plus",
+                      "pro5x",
+                      "pro20x"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "domain": {
+                    "enum": [
+                      "claude"
+                    ]
+                  },
+                  "tier": {
+                    "enum": [
+                      "unknown",
+                      "free",
+                      "pro",
+                      "max5x",
+                      "max20x"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "provider_subscription"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "authoritative"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "signed_token"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "derived"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "imported_metadata"
+                    ]
+                  },
+                  "confidence": {
+                    "enum": [
+                      "declared"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "ProviderAccountPoolItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id",
+          "channel_id",
+          "account_id",
+          "account_kind",
+          "auth_status",
+          "runtime_status",
+          "enabled",
+          "priority",
+          "weight",
+          "max_concurrency",
+          "active_leases",
+          "expires_at_ms",
+          "refresh_due_at_ms",
+          "quota_sync_due_at_ms",
+          "entitlement",
+          "presentation"
+        ],
+        "properties": {
+          "credential_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Exact non-secret credential revision loaded by the runtime source; null or absent means lineage unobserved."
+          },
+          "config_version_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ordinary runtime credential configuration scope. Native credential revisions use their global account namespace. Missing scope cannot establish current ordinary authorization."
+          },
+          "provider_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "channel_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "account_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "account_kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "auth_status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "reauth_required",
+              "disabled",
+              "expired"
+            ]
+          },
+          "runtime_status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "cooling",
+              "circuit_open",
+              "quota_blocked",
+              "unauthorized",
+              "recovery_in_flight",
+              "expired"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "max_concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "active_leases": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "expires_at_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refresh_due_at_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quota_sync_due_at_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entitlement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderAccountEntitlement"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "presentation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountRuntimePresentation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Identity and channel labels; operational IDs remain exact. Native identity observations may be newer than the immutable scheduling snapshot."
+          }
+        }
+      }
+    }
+  },
+  "source_observation": {
+    "status": "BLOCKED; read-only observation",
+    "authorization_continuity_status": "PASS",
+    "observed_now_ms": 1791863784162,
+    "authorized_last_refresh_at_ms": 1791689742670,
+    "observed_at_utc": "2026-10-13T03:56:24.162573+00:00",
+    "unit": {
+      "MainPID": "0",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "FragmentPath": "",
+      "Transient": "no"
+    },
+    "ports_listening": [],
+    "competing_processes": [],
+    "production": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "a2a47fc24a41730d9a4f4295fdc00d3d5c747ae8651598ad069cf6abda97e4d3"
+    },
+    "production_function_sha256": "bd655d7f56b2c07fc1d9081761d2d7a28d42c22f3d5eaba581bc0fd7a7c0a110",
+    "production_config": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "source_account": {
+      "provider": "build",
+      "enabled": 1,
+      "auth_status": "active",
+      "revision": 144,
+      "worker_claim_kind": null,
+      "last_refresh_at_ms": 1791859182663,
+      "continuation_floor_revision": 77,
+      "continuation_current_revision": 145
+    },
+    "source_schema": 31,
+    "source_pool": {
+      "runtime_status": "available",
+      "credential_revision": null,
+      "expires_at_ms": 1791880782392,
+      "active_leases": 0
+    },
+    "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "identity_digest_matches_authorized_source": true,
+    "source_changed_field_names": [
+      "credential_ciphertext",
+      "refresh_due_at_ms",
+      "last_refresh_at_ms",
+      "revision",
+      "import_batch_id",
+      "updated_at_ms",
+      "continuation_current_revision"
+    ],
+    "remaining_material_seconds": 16998.23,
+    "historical_budget_intents": 35,
+    "historical_gateway_pin_confirmed_sends": 34,
+    "authorized_native_revision": 136,
+    "authorized_continuation_current_revision": 137,
+    "authorized_continuation_floor_revision": 77,
+    "management_get_intents": 2,
+    "new_provider_calls": 0,
+    "oauth_refresh_reauthorization": 0,
+    "classification": "QUALIFICATION_REJECTED",
+    "exception_type": "AssertionError",
+    "failed_source_line": 24
+  }
+}

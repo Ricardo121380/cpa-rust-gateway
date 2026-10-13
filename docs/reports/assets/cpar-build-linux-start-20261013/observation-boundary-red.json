@@ -1,0 +1,11 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/full-flow-tests.py",
+    "FullFlow.test_missing_state_value_preserves_diagnostic_identity_fields",
+    "FullFlow.test_cleanup_binding_does_not_upgrade_failed_identity_gate"
+  ],
+  "exit_code": 1,
+  "raw_sha256": "c718f7cd368c3108fa1afc2df2d1b41e7b4e977230ef02cd42e7b16ea9fbfb4c"
+}

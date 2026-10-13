@@ -1,0 +1,10 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/linux-oracle-tests.py"
+  ],
+  "exit_code": 0,
+  "raw_sha256": "c1097a49bfb37bd373ccb53edeeff6832026ac93810dd9b93ac0b5abbc04079c",
+  "layer": "OFFLINE_REAL_RECEIPT_ORACLE"
+}

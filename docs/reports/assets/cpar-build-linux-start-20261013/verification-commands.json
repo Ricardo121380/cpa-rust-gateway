@@ -1,0 +1,46 @@
+{
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-linux-start-20261013/tools/full-flow-tests.py"
+      ],
+      "exit_code": 0,
+      "log": "local-final-complete.log.gz",
+      "raw_sha256": "d04a7ab6a7d6f8defabbbb19691a9589defa4ed54109184c4a232c106ea9f7f3",
+      "gzip_sha256": "2957a6052111f74ca55543862bfadfe2ab6fcad092439a96b8db772ea0782a63",
+      "layer": "LOCAL_SIMULATED"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "docs/reports/assets/cpar-build-linux-start-20261013/tools/linux-oracle-tests.py"
+      ],
+      "exit_code": 0,
+      "log": "linux-oracle-final.log.gz",
+      "raw_sha256": "c1097a49bfb37bd373ccb53edeeff6832026ac93810dd9b93ac0b5abbc04079c",
+      "gzip_sha256": "dbb5da3b6f00a8caf638c59c830eb526073031ae8f8d266f24ac06fa2847161a",
+      "layer": "OFFLINE_REAL_RECEIPT_ORACLE"
+    },
+    {
+      "command": [
+        "scripts/check.sh",
+        "docs"
+      ],
+      "environment": {
+        "CHECK_REPORT_PATH": "docs/reports/assets/cpar-build-linux-start-20261013/docs-gate.md"
+      },
+      "exit_code": 0,
+      "raw_sha256": "5fdac218a1831f252dffcd00529fa3aff4c3d43418c14ef7391f6eca022f6e08",
+      "gzip_sha256": "c4b6d0d89032dfc4869a5f52351e375f422b68aed3a0a0771f70d74383863895",
+      "log": "docs-gate-final.log.gz",
+      "layer": "LOCAL_DOCS_STATIC",
+      "staged_scope_includes_only_owned_files": true
+    }
+  ],
+  "product_builds": 0,
+  "dependency_installs": 0,
+  "product_full_reruns": 0
+}

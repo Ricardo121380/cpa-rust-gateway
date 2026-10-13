@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "preserved_files": 88,
+  "user_AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "old_report_asset_bytes_and_modes_unchanged": true,
+  "old_private_payload_freeze_sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
+  "all_old_stopped_budgets_remain_stopped": true
+}

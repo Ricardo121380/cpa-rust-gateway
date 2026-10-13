@@ -1,0 +1,15 @@
+{
+  "command": [
+    "scripts/check.sh",
+    "docs"
+  ],
+  "environment": {
+    "CHECK_REPORT_PATH": "docs/reports/assets/cpar-build-linux-start-20261013/docs-gate.md"
+  },
+  "exit_code": 0,
+  "raw_sha256": "5fdac218a1831f252dffcd00529fa3aff4c3d43418c14ef7391f6eca022f6e08",
+  "gzip_sha256": "c4b6d0d89032dfc4869a5f52351e375f422b68aed3a0a0771f70d74383863895",
+  "log": "docs-gate-final.log.gz",
+  "layer": "LOCAL_DOCS_STATIC",
+  "staged_scope_includes_only_owned_files": true
+}

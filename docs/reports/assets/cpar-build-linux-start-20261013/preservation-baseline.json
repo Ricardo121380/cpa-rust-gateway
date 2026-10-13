@@ -1,0 +1,354 @@
+{
+  "AGENTS.md": {
+    "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/github-progress-append-9.md": {
+    "sha256": "9b2df35df3c15fe00ecd8515db57c86304c2e960ff1f66079f3351dc0050d4b4",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-gap-local.log.gz": {
+    "sha256": "84f8daa55e04f6c202ed05569e0764b78619375d354e6419f7700d08142458fc",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/stop-latch.json": {
+    "sha256": "706eae1f68dc714aad7487f9bcd765efbd8b786d3db4b7d2576dbccfd378ba38",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/exit.json": {
+    "sha256": "75969b64d192713c2d97d7bf667484b4b4e54194d858aa368f69c74b33bae73b",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/upload.json": {
+    "sha256": "ab02bd0f80192802fe1802c7c6b12ef7accdc93edb031bd544c9f824ff7e2429",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/actual-commands.json": {
+    "sha256": "414e00132f5c61a4128c527ecb2598b88d328770a108ed759aeeb8f1d940e9e5",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/delivery-checks.json": {
+    "sha256": "cf946242befff022f6c59bdc0d6443ba157449190f6866dcb5cff5f56f04e6d8",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate.log.gz": {
+    "sha256": "b2dce788bee7017d0cbee9e355f6e0908169c6214d7b5e6a56dee865201b67cf",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/actual-summary.json": {
+    "sha256": "7e5dd8567cb15714ade8b367bb633ba92940f64e720eefc091f994a1c84e8c7b",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-green.log.gz": {
+    "sha256": "d06d4a9f6f2719393814540e522944e4f9df876801b6db8e5e617dbce6f3c6b6",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.log.gz": {
+    "sha256": "956ac768f0e9ec66af94ab1171ddb9ce3ac860ee6cd539900547e902ed49e773",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/legacy-source-observation.json": {
+    "sha256": "4f198f4350ea95c81ec71cc29715c1e279c5295fc9d0edb6c4ce405e624dedac",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/frozen-bytes-verification.json": {
+    "sha256": "07ac78d40113e1db7f216c7b34e7a0b3b33ad964a14d3b60fa40054c6d74e6e3",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/payload-package.json": {
+    "sha256": "97235e0213150da7d1830d909b552aa56c782f09d32c399b93b53bfef5a4d0a7",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/full-flow-green-final.log.gz": {
+    "sha256": "b0d2c33c6915e5542fe4e4d8dbf4758a4ec38a2716c87d63f4b4968c24633729",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-post-stop.json": {
+    "sha256": "a14ab1bdf3d941baf2182945a04142c5e501b0d376845bb9e6834494e42ae27a",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.md": {
+    "sha256": "83c40c80d6d3a8280f58a1f3b62e8ec3dd61a97a932b30595278f1d249d2c9c8",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/github-initial.json": {
+    "sha256": "b24f031d18f17dd9e946c21596d7c02745611fe50144f3254d79b2bc759914ff",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/github-readback-9.json": {
+    "sha256": "067c7140fda3e7172c9f5e7d7351867d8cab9760df496887d34e30c70b82390c",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/observation-1.json": {
+    "sha256": "a73485b33523250f18cab35e372f54878861e820eb461d72ce265063d253d3ce",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/prestart-exit-red.log.gz": {
+    "sha256": "90161d87cfe632334c134505fb9d23f035766340f2ab66c834d0f17cba7740d5",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/local-checks.json": {
+    "sha256": "05323d28269da26b1d54bc394795f1eabbada2201d11ad6f2e67d961bf20fdd7",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-preparation-third.json": {
+    "sha256": "360d8416e2d05f6d53d29f8aa7b71bd013844078179be74dd59f4d05932bfcbc",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/contract-fixtures.json": {
+    "sha256": "43e43f2da3a7e17a2da348c1f376d28f62604ede32c674d1c481f6f6c95057ee",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/local-preservation.json": {
+    "sha256": "88b3f57ed6eb4a15043e5f82c49fd23d2280f5e50fa74f6bdac8c043ea6448ac",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/batch-contract.md": {
+    "sha256": "0df3d698990f16ac6479f13443435bd7c1633ea8a1173f8f53da0765cf215d1d",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/identity-bound-cleanup.json": {
+    "sha256": "94750374e46c40c0ec5ed14b9973e00d50d2fc3634c1a495af1fd43eb2e17a1c",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-gap-start.log.gz": {
+    "sha256": "a9b623621d7c7268a7816d9f8693bbe63f006fd731d06efda56860e80cf2c026",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-post-stop.log.gz": {
+    "sha256": "f11d2224fb7b2ea542a7761b3a277bf59daaf46fb81128a36da382ba3f66c716",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/identity-observation.json": {
+    "sha256": "c868814a3929d26a0ff08c55330652c6660f4f30985b27332aaad0e264f72925",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/control-tests-green.log.gz": {
+    "sha256": "60d0615fb269b87884ee5f26090c48895f73a6980bdeaf6341a4d998dcc3bb9f",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-pre-execution.md": {
+    "sha256": "615ac0b8d99cc90b4cb0cf91e37ea357e59a3fdcaf19bc9f76b4bb9c3eae6268",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-repaired.log.gz": {
+    "sha256": "64de3bea189a191a9e6e666dbf6bb27b3c1c896681ae85ea20d25e9a9cb9952e",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/local-tests.log.gz": {
+    "sha256": "85e74ecee90c1944ab7f1b1616812e4db440a291fe2adef7175b60e569ac4252",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-post-stop.md": {
+    "sha256": "701a3e100a92970ca77468d98300e59d6cda52e1ba7e30e8e507a3cbbf0cd673",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-preparation-first.json": {
+    "sha256": "9f26eb911629eebefd3256bba86499ae7fd075c6b64d61b94c5b5e3c10de6108",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/fresh-exit-verification.json": {
+    "sha256": "c733526899fab9fff9504221d4bf5d4c37f1ae39cae518ab5ac9849e7858d5d2",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-control.log.gz": {
+    "sha256": "11dcfb70a0d0bed1693c01aa184b3c98ab74730e817618ce1d6d8ffb17a3a8fd",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/start.json": {
+    "sha256": "fcbd9f72d635810ceb17ea45ded88aba14ba10bb5b3dcecb10b09cae3894f5d8",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-preparation-closure.json": {
+    "sha256": "18630751b9b8abc88023714dcf759571ec63bd3ed5594ed97fef4a310b62ec10",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/reuse.json": {
+    "sha256": "91809f605f0bd8287c9e662d99714372d407032b41f452a19830b209753d312e",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate.json": {
+    "sha256": "99bcfdfcea851647c065e4f52f2c3a5062f6c36b55911eca9a9b3fb10e9730ea",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-post-stop-scope.json": {
+    "sha256": "4a2f45abdcd1948862994d64c56741186d97080865c2dd5b9146187e3013949c",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/post-stop-exit-green-focused.log.gz": {
+    "sha256": "9da30c538b389e10dbdcc170a6d8397c5d20c3a53e80ace60b688b61a9948415",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-gap-green.log.gz": {
+    "sha256": "dfecd81596602346f45b93aff6190a8ca8141626459d72c14fb5e332ed53200a",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/payload-freeze.json": {
+    "sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-gap-control.log.gz": {
+    "sha256": "cc78b3de9f731304fff49c7720d3246f879b380395385849501f0d890f260f16",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/assembled-launch.json": {
+    "sha256": "7a245d36e065c5228f6873cf24172e6c28b1e5f4de137a67f268d1e01b8b2f06",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/prepare.json": {
+    "sha256": "b798e107630ae51433e2c27e9a95fd68c9932f18d18f157dcac7044e438c204d",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/post-stop-checks.json": {
+    "sha256": "8adeb5331728edecaf05a73f29f375ffaf3248d646ea509c20e909f0c466d7d0",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/full-flow-red.log.gz": {
+    "sha256": "069687b76e1f6509e7388979d5e83016e58b8a9001e8f31504bfbd195fa414c1",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/upload-exit-red.log.gz": {
+    "sha256": "440851ca69aaed602434e14051e451c4be3bbee131cf28bec156a034b773297d",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-pre-execution.json": {
+    "sha256": "aa2d6a33767174352b996a3d49c826af7cca5582e3b3cf4a2672fe89a61c6008",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/start-tests.log.gz": {
+    "sha256": "03fcf849e34e0ac48f6bf7a047f48011992f645232c5804fcb70494a5a84a7af",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/github-readback-57.json": {
+    "sha256": "1e3c515288c8dfa60139e9b3caf5c397347d818bba1a711c9e8121a9b2b7aa8e",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate.md": {
+    "sha256": "5b117ba9353abbc65e3866436bb23a69ae726e7e7c7ca14b6fae56763dd3532c",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-repaired.md": {
+    "sha256": "6ea20e7956ef4aff814ab73cc31b5cbe77ef40b2537025f19c875b9b502668f2",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-preparation-second.json": {
+    "sha256": "ce6d3e777d0e80eb442a3f3f4bad160851c01828bc98a3046d7002ae98063c43",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/post-stop-exit-green.log.gz": {
+    "sha256": "2b2f1810b35277be25c9058fd9335057bda52a2c3053a9d6136d4d1a9ac4bd09",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/full-flow-green-bound.log.gz": {
+    "sha256": "1e40a1657a69b666b5fed0f3dc9ce9d6669c85f2023c5ff6aff8c05a7d4e8ba4",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/post-stop-exit-red.log.gz": {
+    "sha256": "6e869dec32077ce54672430fa69c4a2401525915bf09a66e056872e822f1fd8f",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/github-progress-append-57.md": {
+    "sha256": "9b2df35df3c15fe00ecd8515db57c86304c2e960ff1f66079f3351dc0050d4b4",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/github-progress-append-47.md": {
+    "sha256": "9b2df35df3c15fe00ecd8515db57c86304c2e960ff1f66079f3351dc0050d4b4",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-upload-exit.json": {
+    "sha256": "447bec3d1528e9cda4398cf9f88589795039ff27e60ccee4a72c679cb3463b95",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/github-readback-47.json": {
+    "sha256": "9a73413aac53f01f8942a947e83984314b079201770aa32db33c2d5d7a01bb00",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/verification-commands.json": {
+    "sha256": "3a15551f53aac7cc1ee49134717416e43046790c16eb688c11f7aef78b021527",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-gap-red.log.gz": {
+    "sha256": "61f36efcd81259e0bba6278997f42938af30dfdd16d4ff08ad768c0b38337162",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/identity-bound-cleanup-final.json": {
+    "sha256": "aa4ad160947ecee8239ef83f272d6ff44873d7a2c9a2b39fbc3fd1a27584c96e",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/user-authorization.json": {
+    "sha256": "cb9037bd7dad9880988897a614d59f69930411a66e2de3b67f18395d3c00830a",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/review-post-stop.md": {
+    "sha256": "dbc75f0ab82cac42fafa2516e9d178afe69b691a5cf5b965c23a0e5a8b57c417",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-repaired.json": {
+    "sha256": "db0a2efbe81530f915cd4b7a9d28a80556fdbe731aed71cd9d43ca29abf5c7bf",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-chat.py": {
+    "sha256": "4c56b0b96ba798f23756252c954146c0604e27cc2fca49c76996836de9b0fb3e",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-tests.py": {
+    "sha256": "e37e2bdde778ff9fa909410a5b4d6369487d887860013e8d1f549292c7733967",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-start.py": {
+    "sha256": "726c38cb829aa8bca759a164d95e2b96bfc649810f40fd3e3d347bb7a2f17705",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/identity-bound-resource-exit.py": {
+    "sha256": "314da56b7880d6e58b1e8324e8ec43b551ca1a40ac6111d3b63d86849a179720",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/start-regression-tests.py": {
+    "sha256": "ee47e080df2ffb8d1926855807176ac0a044c7de43457ecff2a12e4dc9df3f5b",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-pin.py": {
+    "sha256": "8c820db1eec69d2f69e8f7fea0f80b7c6bd04fe2369fae5e70e7629e3239523c",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-exit.py": {
+    "sha256": "779e9a9afffef0c2b5bbcaf44435f4689ddfd63230f2ab47b8fb4a975c1ed515",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-readiness.py": {
+    "sha256": "8bb7d18f2d12ee2154bbf977b375f91efc6bbf35685217f8bec715a833fea487",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/local-control.py": {
+    "sha256": "fd4c2f166722ec74f18e20b2cfcb49c6e656e5aaaa28ba108e87e3e64959986e",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/full-flow-tests.py": {
+    "sha256": "023d55d13d60c03db9a53ee0aeb9b87a406edf95f338efc0e92086b4e17c6b7d",
+    "mode": "0o644"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/launch_recipe.py": {
+    "sha256": "4f0de87b85ffa58e29784423da1ae1d39f9296cd6b21d55fde297591ce14379a",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/qualification.py": {
+    "sha256": "a7718f86a1b0437a6ed2f076f6e96595f27cf2dc1893f4738d9939316cb30237",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/control-regression-tests.py": {
+    "sha256": "06bb05d37a866c75677374e5ef6ef78beb940bbebbde879e057aa2cb2ea18b6d",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-prepare.py": {
+    "sha256": "50fa205cbaa0040fdd4495bed7b9cfb560d635d1690ef1ea5448906166f5fb12",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-no-launch-exit.py": {
+    "sha256": "5b948b4a2a2aca33b0e884ec3ec383da4541a8ceac9bbc8634fcc3f22ce8e92a",
+    "mode": "0o600"
+  },
+  "docs/reports/assets/cpar-build-chat-json-rehearsal-20261013/tools/remote-upload.py": {
+    "sha256": "907cb3a02d954ca53e8a4ead675d2b6d6f80089d8f267010488c5dd952efd14b",
+    "mode": "0o600"
+  }
+}

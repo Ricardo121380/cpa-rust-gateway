@@ -1,0 +1,23 @@
+[
+  {
+    "issue": 47,
+    "original_snapshot_sha256": "1c8cec7f7fb379e0490e66a6e3e0c7c968744c549dafbe44932253ad94281cf2",
+    "rendered_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+    "only_trailing_empty_lines_removed": true,
+    "raw_external_json_preserved_privately": true
+  },
+  {
+    "issue": 57,
+    "original_snapshot_sha256": "e3488e30646f928f5de93a0264ae65005987ca9006e4e2ae72c520641c8a8405",
+    "rendered_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+    "only_trailing_empty_lines_removed": true,
+    "raw_external_json_preserved_privately": true
+  },
+  {
+    "issue": 9,
+    "original_snapshot_sha256": "47d50c3ff6a560a752635e4191a3cc7b17ae354d591a74356f764bb78e39accf",
+    "rendered_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+    "only_trailing_empty_lines_removed": true,
+    "raw_external_json_preserved_privately": true
+  }
+]

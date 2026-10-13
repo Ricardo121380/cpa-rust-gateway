@@ -1,0 +1,124 @@
+{
+  "command": [
+    "ssh",
+    "-T",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "new-vps",
+    "sudo -n python3 -"
+  ],
+  "remote_script_sha256": "1fd75fe600b9935644b4a2e3eeddcbec40ce652c97253aaf07f44d021d235496",
+  "freeze_sha256": "3bcfa283a775b2c63da589de3de25b41906ba6ad0d97e14848d1fe51e1850b03",
+  "remote_exit_code": 1,
+  "stdout_sha256": "dad71441e40427b128176f39b277f96c72ecc515cbc85bb4d16a59255b7b35d1",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "layer": "REAL_LINUX_SYSTEM_SYNTHETIC",
+    "scenario": "exec_failure",
+    "run": 2,
+    "formal_account_qualification": "NOT_RUN",
+    "provider_intents": 0,
+    "provider_requests": 0,
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "preparation": [
+      {
+        "action": "create",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "validate",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "action": "publish",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "status": "FAIL",
+    "startup_gates": {
+      "exec": "FAIL",
+      "identity": "UNKNOWN",
+      "listeners": "UNKNOWN",
+      "application": "UNKNOWN",
+      "quiet_audit": "UNKNOWN"
+    },
+    "launch": {
+      "status": "RETURNED",
+      "returncode": 1,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f750831f2d69b4a4edb2f7ef01535d404cf1ffdc32e00f42de4a6f26aaf4be7f",
+      "timeout_seconds": 25
+    },
+    "failure_reason": "exec_handshake_failed",
+    "preset_negative": true,
+    "resource_exit_status": "PASS",
+    "isolation": null,
+    "http_statuses": [],
+    "flat_observation_seconds": null,
+    "post_stop_flat_seconds": 5,
+    "production_identity_preserved": true,
+    "identity": null,
+    "startup_observations": {
+      "unit": "cpar-linux-start-synthetic-20261013-2.service",
+      "launch": {
+        "status": "RETURNED",
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "f750831f2d69b4a4edb2f7ef01535d404cf1ffdc32e00f42de4a6f26aaf4be7f",
+        "timeout_seconds": 25
+      },
+      "observations": [
+        {
+          "phase": "launch_requested",
+          "utc": "2026-10-13T09:06:39.462557+00:00",
+          "monotonic_seconds": 6809067.56529002
+        },
+        {
+          "phase": "identity",
+          "utc": "2026-10-13T09:06:39.475461+00:00",
+          "monotonic_seconds": 6809067.578180536,
+          "systemd": {
+            "Type": "",
+            "MainPID": "0",
+            "Result": "success",
+            "ExecMainStartTimestampMonotonic": "0",
+            "ExecMainPID": "0",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "ControlGroup": "",
+            "LoadState": "not-found",
+            "ActiveState": "inactive",
+            "SubState": "dead",
+            "ActiveEnterTimestampMonotonic": "0",
+            "InactiveEnterTimestampMonotonic": "0"
+          },
+          "process": {
+            "pid": 0
+          },
+          "failure_reasons": [
+            "main_pid_absent"
+          ]
+        },
+        {
+          "phase": "validation_failed",
+          "utc": "2026-10-13T09:06:39.482863+00:00",
+          "monotonic_seconds": 6809067.585583843,
+          "failure_reason": "exec_handshake_failed",
+          "exception_type": "StartupError"
+        }
+      ],
+      "gates": {
+        "exec": "FAIL",
+        "identity": "UNKNOWN",
+        "listeners": "UNKNOWN",
+        "application": "UNKNOWN",
+        "quiet_audit": "UNKNOWN"
+      }
+    }
+  }
+}

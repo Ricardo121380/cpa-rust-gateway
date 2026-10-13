@@ -1,0 +1,9 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "docs/reports/assets/cpar-build-linux-start-20261013/tools/full-flow-tests.py"
+  ],
+  "exit_code": 1,
+  "raw_sha256": "b46c8da891f161b12042008596772efb19735d18cdea1253e23047695df1f639"
+}
