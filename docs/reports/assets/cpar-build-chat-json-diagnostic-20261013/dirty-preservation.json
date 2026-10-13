@@ -1,0 +1,16 @@
+{
+  "status": "PASS for baseline regular files and symlink targets; coarse directories NOT_BASELINED",
+  "initial_entries": 48364,
+  "fingerprinted_regular_files": 48307,
+  "fingerprinted_symlinks": 10,
+  "fingerprinted_entries_checked": 48317,
+  "changed_fingerprinted_entries": 0,
+  "coarse_directory_entries": 47,
+  "coarse_current_directories": 47,
+  "coarse_scope": "initial git status had47 untracked directory entries; contents were not recursively hashed, no all-byte claim",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "elapsed_seconds": 17.738,
+  "initial_inventory_sha256": "31a57ce919bec75ec000699e713c54dc6b74fd7aff007ecb504dad9e8d4206bf",
+  "fingerprint_semantics": "48307 regular byte/mode hashes;10 symlink type and target strings;47 directory entries not recursively fingerprinted",
+  "checker_correction": "initial schema differs by kind; no-mode/no-sha symlink records use target; initial absent records represent coarse directory entries"
+}

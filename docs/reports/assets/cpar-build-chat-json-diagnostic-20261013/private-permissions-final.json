@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "root_and_directories": "0700",
+  "files": "0600",
+  "symlinks": 0,
+  "paths_checked": 120,
+  "additional_preparation_log_modes_corrected": 4,
+  "stopped_state_and_frozen_package_bytes_unchanged": true,
+  "owned_paths_only": true
+}

@@ -1,0 +1,29 @@
+{
+  "47": {
+    "state": "open",
+    "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+    "comment_id": 6081215242,
+    "comment_prefix_sha256": "d3d03d644bebf9189a4e42cfe80bb3017e01cc8118e34259bb89c0628a076586",
+    "comment_characters": 26655,
+    "dependencies": 8,
+    "initial_body_progress_dependencies_unchanged": true
+  },
+  "57": {
+    "state": "open",
+    "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+    "comment_id": 6081234278,
+    "comment_prefix_sha256": "dd62ab31b74871a67d9fcbeea2f30c36aacb63cb9599a445bf36c25c8edd6ad0",
+    "comment_characters": 30368,
+    "dependencies": 23,
+    "initial_body_progress_dependencies_unchanged": true
+  },
+  "9": {
+    "state": "open",
+    "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+    "comment_id": 6081235490,
+    "comment_prefix_sha256": "7857b1ddacf956bd3dc35b16768425f8beda81ccbc2b6e80765d4cf38dc15a1f",
+    "comment_characters": 29114,
+    "dependencies": 0,
+    "initial_body_progress_dependencies_unchanged": true
+  }
+}

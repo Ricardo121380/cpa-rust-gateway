@@ -1,0 +1,12 @@
+{
+  "inventory_inspection": "one helper accidentally printed per-path types; output truncated; no file contents or secrets; subsequent output bounded",
+  "preservation_checker_red": "wrong homogeneous-record assumptions raised unexpected_path_type/KeyError and10 false symlink mismatches; original schema is file kind/mode/sha, symlink kind/target, nonfile kind only",
+  "preservation_checker_fix": "reuse completed48307 actual byte/mode checks; verify10 targets according to exact initial schema; no directory all-byte claim",
+  "retained_private_receipts": [
+    "dirty-preservation-checker-red.json",
+    "dirty-preservation-detail.json"
+  ],
+  "provider_calls": 0,
+  "qualification_retries": 0,
+  "github_draft_first_attempt": "stdin non-UTF8 SyntaxError before execution; no artifacts or external writes; exact UTF-8 drafts created through file tool"
+}
