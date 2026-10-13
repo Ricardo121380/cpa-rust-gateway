@@ -1,0 +1,31 @@
+{
+  "scope": "FIXED_SOURCE_REUSE_PLUS_FINAL_LINUX_RUNTIME_AND_DIAGNOSTIC_PRE_EXECUTION",
+  "fixed_head": "9d670ba720fce2c92b7f1ba11516cee397ff1037",
+  "at_utc": "2026-10-13T15:52:22.771193+00:00",
+  "payload_freeze_sha256": "d00c82797519a31c5973717c0eb5c628d70a9078baa089248c75ac63fe3d5f61",
+  "system_gate_sha256": "bef8815f766c09c5a13eb0ea007a115a8685e692100e12f6e56c19fba6f169e5",
+  "system_freeze_sha256": "f67a5091ba93741ecfd1e0e1608a8b25df708aeb605714f91bab384b8b960d4f",
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "reviewer": "/root/standards_gate_narrow",
+      "hard_findings": 0,
+      "new_judgement_findings": 0,
+      "inherited_heuristics": 1
+    },
+    "Spec": {
+      "status": "PASS",
+      "reviewer": "/root/spec_gate_narrow",
+      "blockers": 0,
+      "scope_creep": 0
+    }
+  },
+  "source_reuse": "initial other-source coverage plus independent deadline-fix terminal by18 unchanged SHA; runtime/head9d670ba7/helper increment independently checked",
+  "system_runs": 4,
+  "system_gate_status": "PASS",
+  "readback_sha256": "4ecc26a38cafd03cb6437460237a74e8aad12abf87921ed0c1c1eae71171d894",
+  "formal_execution_allowed": "CONDITIONAL_ON_ONCE_READONLY_SAME_AUTHORIZATION_QUALIFICATION_GT_3600_AND_FRESH_START_GATES",
+  "actual_account_material": "NOT_RUN",
+  "actual_pin_chat": "NOT_RUN",
+  "product_build_test_reused": true
+}

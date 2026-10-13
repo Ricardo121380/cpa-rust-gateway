@@ -1,0 +1,12 @@
+{
+  "status": "NOT_RUN",
+  "source_head": "9d670ba720fce2c92b7f1ba11516cee397ff1037",
+  "observed_at_utc": "2026-10-13T15:56:19.219727+00:00",
+  "api_path": "repos/Ricardo121380/cpa-rust-gateway/actions/runs?head_sha=9d670ba720fce2c92b7f1ba11516cee397ff1037&per_page=100",
+  "exit_code": 0,
+  "response_sha256": "a2790a384d7d281e7395679000c35d27768d89dbd7052f725b8f4688beb59915",
+  "total_count": 0,
+  "workflow_runs": [],
+  "workflow_dispatches": 0,
+  "pushes": 0
+}

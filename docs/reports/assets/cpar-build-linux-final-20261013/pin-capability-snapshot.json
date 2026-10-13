@@ -1,0 +1,133 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "956c3c7330191aa142629d11b92db30ec17afcb1a6538c6ecc586a88d4a5f76b",
+  "stdout_sha256": "6cfc3c65bc3df96ad8b2c5da906c7383c72b4a04ba83f4146d2a8f9d59e7897f",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "status": "READ_ONLY_RETAINED_SNAPSHOT",
+    "inspection_sha256": "7d4096fbfa6537d786a074b5695031e15148cd6dda306b505e77d8aebc74fce1",
+    "inventory": {
+      "client_keys": {
+        "items": [
+          {
+            "id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+            "access_group_id": "77deaecc7fc60260b5d13eeb484a00695c2e6db45794cb3ec158d3c60f4a1246",
+            "status": "active",
+            "expires_at_ms": null
+          }
+        ],
+        "error": null,
+        "complete": true,
+        "item_field_names": [
+          "access_group_id",
+          "expires_at_ms",
+          "id",
+          "last_request_at_ms",
+          "prefix",
+          "status"
+        ]
+      },
+      "access_groups": {
+        "items": [
+          {
+            "id": "77deaecc7fc60260b5d13eeb484a00695c2e6db45794cb3ec158d3c60f4a1246",
+            "status": "active"
+          }
+        ],
+        "error": null,
+        "complete": true,
+        "item_field_names": [
+          "id",
+          "limits",
+          "name",
+          "status"
+        ]
+      },
+      "public_models": {
+        "items": [
+          {
+            "id": "cpar-build-model",
+            "model_name": "grok-4.5",
+            "status": "active",
+            "capabilities": {}
+          }
+        ],
+        "error": null,
+        "complete": true,
+        "item_field_names": [
+          "capabilities",
+          "display_name",
+          "id",
+          "model_name",
+          "status"
+        ]
+      },
+      "routes": {
+        "items": [
+          {
+            "id": "cpar-build-route",
+            "public_model_id": "cpar-build-model",
+            "max_attempts": 1,
+            "bootstrap_timeout_ms": 30000
+          }
+        ],
+        "error": null,
+        "complete": true,
+        "item_field_names": [
+          "bootstrap_timeout_ms",
+          "id",
+          "max_attempts",
+          "policy",
+          "public_model_id"
+        ]
+      },
+      "candidates": {
+        "items": [
+          {
+            "id": "cpar-build-candidate",
+            "route_id": "cpar-build-route",
+            "endpoint_id": "cpar-build-endpoint",
+            "upstream_model": "grok-4.5",
+            "enabled": true,
+            "capability_override": {
+              "allow_unlisted_model": true
+            },
+            "transform_mode": "canonical_bridge"
+          }
+        ],
+        "error": null,
+        "complete": true,
+        "item_field_names": [
+          "capability_override",
+          "credential_scope",
+          "enabled",
+          "endpoint_id",
+          "id",
+          "priority",
+          "route_id",
+          "transform_mode",
+          "upstream_model",
+          "weight"
+        ]
+      }
+    },
+    "route_grants": [
+      {
+        "access_group_evidence_id": "77deaecc7fc60260b5d13eeb484a00695c2e6db45794cb3ec158d3c60f4a1246",
+        "error": null,
+        "routes": [
+          {
+            "route_id": "cpar-build-route",
+            "enabled": true
+          }
+        ]
+      }
+    ],
+    "capability_read_errors": [],
+    "declaration_count": 0,
+    "configuration_stable": true,
+    "management_get_requests": 22,
+    "new_management_http_calls": 0,
+    "new_provider_calls": 0
+  }
+}

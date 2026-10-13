@@ -774,6 +774,41 @@ class FullFlow(unittest.TestCase):
         pin = json.loads(raw)
         assert_dto(pin, schemas['ChannelPin'], schemas)
 
+    def test_missing_serving_declaration_blocks_before_reservation_and_exits(self):
+        for absence in ['no_models', 'no_sources']:
+            f = self.fixture()
+            self.assertEqual(f.through('start')[0], 0)
+            original = f.management
+            def without_declaration(path, source):
+                value = original(path, source)
+                if not source and path.startswith('/admin/models/effective'):
+                    value = json.loads(json.dumps(value))
+                    if absence == 'no_models':
+                        value['items'] = []
+                    else:
+                        for item in value['items']: item['sources'] = []
+                return value
+            f.management = without_declaration
+            code, state = f.invoke('pin')
+            self.assertNotEqual(code, 0); self.assertTrue(state['stopped'])
+            budget = json.loads((f.epoch / 'budget.json').read_text())
+            self.assertTrue(budget['stopped'])
+            self.assertEqual((budget['new_pin_intents'], budget['new_basic_intents']), (0, 0))
+            summary = json.loads((f.public / 'pin.json').read_text())['result']
+            self.assertEqual(summary['status'], 'BLOCKED')
+            self.assertEqual(summary['new_pin_intent'], 0)
+            before = len(f.http_calls)
+            self.assertNotEqual(f.invoke('pin')[0], 0)
+            self.assertNotEqual(f.invoke('chat')[0], 0)
+            self.assertEqual(len(f.http_calls), before)
+            self.assertFalse([row for row in f.http_calls if row[1] == 'POST'])
+            self.assertEqual(f.invoke('exit')[0], 0)
+            final = json.loads((f.epoch / 'final-receipt.json').read_text())
+            self.assertEqual(final['resource_exit_status'], 'PASS')
+            self.assertEqual(final['count_reconciliation_status'], 'PASS')
+            self.assertEqual(final['new_gateway_pin_actual_sends'], 0)
+            self.assertFalse(f.started)
+
     def test_no_observation_exit_uses_fresh_baseline_and_tool_hash_is_binding(self):
         f = self.fixture()
         self.assertEqual(f.invoke('exit')[0], 0)

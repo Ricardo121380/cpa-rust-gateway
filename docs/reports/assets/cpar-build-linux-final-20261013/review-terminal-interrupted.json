@@ -1,0 +1,16 @@
+{
+  "scope": "initial runtime terminal review attempt",
+  "fixed_head": "9d670ba720fce2c92b7f1ba11516cee397ff1037",
+  "axes": {
+    "Standards": {
+      "status": "PARTIAL_NO_TERMINAL",
+      "reviewer": "/root/standards_linux_terminal"
+    },
+    "Spec": {
+      "status": "PARTIAL_NO_TERMINAL",
+      "reviewer": "/root/spec_linux_terminal"
+    }
+  },
+  "reason": "No terminal after bounded collection message; both interrupted and never used as PASS",
+  "formal_execution_allowed": false
+}

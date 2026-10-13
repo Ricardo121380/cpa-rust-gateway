@@ -1,0 +1,20 @@
+{
+  "kind": "LOCAL_BEFORE_RESERVATION_LOCK_DENIAL",
+  "command_action": "prepare",
+  "exit_code": 2,
+  "native_output": {
+    "status": "BLOCKED; another local operation owns execution"
+  },
+  "guard": "local-control.py nonblocking flock exception returns before main(action)",
+  "provider_intents_added": 0,
+  "remote_dispatches_added": 0,
+  "formal_prepare_reservation_added": 0,
+  "state_after": {
+    "phase": "EXECUTING_UPLOAD",
+    "formal_actions": [
+      "upload"
+    ]
+  },
+  "assessment": "known local no-dispatch rejection; no formal execution result or unknown side effect; preserve without treating it as completed preparation",
+  "at_utc": "2026-10-13T15:54:40.111766+00:00"
+}

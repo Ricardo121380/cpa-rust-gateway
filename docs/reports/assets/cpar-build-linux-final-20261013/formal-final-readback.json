@@ -1,0 +1,39 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "59876a65791316c4be625b785bbe89e54813d83abbcf9a5bd00639b8dfeda6e7",
+  "stdout_sha256": "ad98193009bfabfdfc3611a71d9b2ec3d23093f7ad30e3919d036bda62fe589c",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "status": "PASS",
+    "kind": "READ_ONLY_FINAL_FORMAL_RESOURCE_AND_COUNT_READBACK",
+    "unit": {
+      "MainPID": "0",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "resource_exit_status": "PASS",
+    "budget_stopped": true,
+    "unused_intents_permanently_sealed": 2,
+    "new_pin_intents": 0,
+    "new_chat_intents": 0,
+    "new_gateway_pin_confirmed_sends": 0,
+    "new_event_counts": {
+      "attempt": 0,
+      "request": 0,
+      "request_finished": 0,
+      "usage": 0
+    },
+    "new_ledger_rows": 0,
+    "native_capture_count": 0,
+    "actual_fresh_pin_lease": null,
+    "startup_observations_preserved": true,
+    "raw_exit_receipt_matches_public_projection": true,
+    "production_identity_preserved": true,
+    "historical_hashes_preserved": true,
+    "provider_independent_receive_count": "UNKNOWN",
+    "provider_cost": "UNKNOWN",
+    "new_provider_calls_in_readback": 0,
+    "new_launches_in_readback": 0
+  }
+}

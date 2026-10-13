@@ -1,0 +1,41 @@
+{
+  "status": "BLOCKED_BEFORE_PIN_AND_CHAT",
+  "actual_new_provider_intents": 0,
+  "actual_new_pin_intents": 0,
+  "actual_new_chat_intents": 0,
+  "pin_entry_invocations": 1,
+  "pin_entry_status": "BLOCKED_BEFORE_RESERVATION",
+  "chat_status": "NOT_RUN",
+  "actual_fresh_pin_lease": null,
+  "native_capture_count": 0,
+  "new_event_counts": {
+    "attempt": 0,
+    "request": 0,
+    "request_finished": 0,
+    "usage": 0
+  },
+  "new_ledger_rows": 0,
+  "unused_intents_permanently_sealed": 2,
+  "budget_stopped": true,
+  "resource_exit_status": "PASS",
+  "next_protocol_matrix_readiness": "BLOCKED",
+  "first_blocker": {
+    "file": "tools/remote-pin.py",
+    "line": 91,
+    "assertion": "len(declarations) == 1",
+    "actual": 0,
+    "expected": 1
+  },
+  "reason_declaration_empty": "UNKNOWN; actual effective page body was not retained by frozen collector",
+  "old_502_root_cause": "UNKNOWN",
+  "provider_independent_receive_count": "UNKNOWN",
+  "actual_cost": "UNKNOWN",
+  "code_after_stop": "only local regression test and supplemental readonly/report assets; actual execution sources and freezes unchanged",
+  "source_refs": [
+    "pin.json",
+    "pin-presend-assertion-analysis.json",
+    "pin-capability-snapshot.json",
+    "exit.json",
+    "formal-final-readback.json"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "status": "CONFIRMED_PRESEND_BLOCKER",
+  "raw_snapshot_comparison_receipt": "pin-presend-offline-check.json",
+  "raw_source_line_labels": "original script labels were3 lines low; corrected here from current frozen file",
+  "first_failed_assertion": {
+    "file": "tools/remote-pin.py",
+    "line": 91,
+    "expression": "assert len(declarations) == 1",
+    "actual": 0,
+    "expected": 1
+  },
+  "prefix_account_pool_checks": "PASS: one sameaccount/native146 activeenabled/no worker, one candidatepool/zero lease/valid expiry/revision147",
+  "actual_fresh_pin_lease": null,
+  "pin_request_artifact_exists": false,
+  "pin_response_artifact_exists": false,
+  "actual_new_pin_intents": 0,
+  "actual_new_chat_intents": 0,
+  "chat_status": "NOT_RUN",
+  "old_502_root_cause": "UNKNOWN; no Chat executed in this epoch",
+  "next_matrix_readiness": "BLOCKED; capability declaration qualification not established",
+  "new_provider_calls_in_this_analysis": 0
+}

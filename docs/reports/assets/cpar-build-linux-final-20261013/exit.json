@@ -1,0 +1,106 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "e54708ddd4dd897e2ee3b836481b35a484f58896d5304542abe516955a6f3994",
+  "stdout_sha256": "9e93281e3a1e959825ac8f73437e9fcfbbeb2fd1f21aea5cd078b5b348c02dc3",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-13T16:01:08.471826+00:00",
+  "result": {
+    "status": "PASS; resource exit and count reconciliation",
+    "resource_exit_status": "PASS",
+    "count_reconciliation_status": "PASS",
+    "exit_observations_sha256": "c1dc6b20f1e0238b9e644456c1cea119be6069bd158de5a2789b767fa3805831",
+    "stop_intent_sha256": "5fd6a293f736e76ffcf6cefbee7340621004dacb912cd23e4c8ba08d2bdbc107",
+    "observed_at_utc": "2026-10-13T16:01:08.221183+00:00",
+    "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "process_pid_before_stop": 2683088,
+    "main_pid_after_stop": 0,
+    "temporary_ports_listening": [],
+    "post_stop_flat_seconds": 5,
+    "network_audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "network_audit_events": [],
+    "new_pin_intents": 0,
+    "new_basic_intents": 0,
+    "new_pin_actual_sends": 0,
+    "new_pin_confirmed_sends_lower_bound": 0,
+    "pin_send_accounting_complete": true,
+    "new_basic_attempts": 0,
+    "basic_send_accounting_complete": true,
+    "new_basic_confirmed_sends_lower_bound": 0,
+    "new_gateway_pin_confirmed_sends_lower_bound": 0,
+    "new_gateway_pin_actual_sends": 0,
+    "new_event_counts": {
+      "attempt": 0,
+      "request": 0,
+      "request_finished": 0,
+      "usage": 0
+    },
+    "inherited_event_counts": {
+      "attempt": 1,
+      "request": 1,
+      "request_finished": 1,
+      "usage": 1
+    },
+    "new_ledger_rows": 0,
+    "all_attempt_outcomes_including_inherited": [
+      "succeeded"
+    ],
+    "all_attempt_retry_decisions_including_inherited": [
+      "completed"
+    ],
+    "billing_including_inherited": [
+      {
+        "cost_microunits": null,
+        "cost_confidence": "unpriced",
+        "billing_status": "unpriced"
+      }
+    ],
+    "budget": {
+      "schema_version": 1,
+      "kind": "chat_json_502_diagnostic",
+      "historical_inference_requests": 35,
+      "historical_gateway_pin_confirmed_sends": 34,
+      "new_pin_intents": 0,
+      "new_basic_intents": 0,
+      "new_inference_limit": 2,
+      "new_pin_limit": 1,
+      "new_basic_limit": 1,
+      "cumulative_inference_limit": 37,
+      "stopped": true,
+      "pin_status": "NOT_RUN",
+      "chat_status": "NOT_RUN",
+      "provider_receive_count": null,
+      "actual_cost": null,
+      "retries": 0,
+      "fallbacks": 0,
+      "refresh_reauthorization": 0
+    },
+    "account_native_revision": 146,
+    "worker_claim": null,
+    "production_after": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "dca3a7a34532447432fae49036bdde3d67412861b3b8bfcf737f62ab7fa2966c"
+    },
+    "production_active_configuration": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "historical_file_hashes_preserved": true,
+    "provider_http_receive_count": "UNKNOWN; independent Provider receive counter unavailable",
+    "new_provider_calls_in_exit": 0,
+    "management_get_intents_in_exit": 1,
+    "private_file_count": 47,
+    "private_inventory_sha256": "3270fde87b50ddea2c9eba9c44d2bc85519ef48fad3eecee08e0188290344c90"
+  }
+}

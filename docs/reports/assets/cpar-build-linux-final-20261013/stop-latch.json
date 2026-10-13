@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "9a920b1376d2630fdb93d69d7a76c816b34627900977657292e77b9726a9837b",
+  "stdout_sha256": "46a95a19a1e17ab4b93aab54bf6fcb1ff62f92e1c50b0adeebd6127057d09309",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-13T16:00:29.573997+00:00",
+  "result": {
+    "status": "PASS; stop latched",
+    "epoch_created": true,
+    "upload_created": true,
+    "provider_calls": 0
+  }
+}

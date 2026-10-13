@@ -1,0 +1,33 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "66d78ff9dfd1dbc535cf3212ef2f441fcb3c866d67631963b0f05e5dca814e04",
+  "stdout_sha256": "35dba16966f6b54b9aaad2bfe49baa5bb1fbcb4c284c7400197eff3e5a92ef35",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-13T15:54:41.009024+00:00",
+  "result": {
+    "status": "PASS",
+    "directory": "/var/lib/cpa-rust-gateway/acceptance/cpar-build-20261010/bin/chat-json-linux-final-20261013",
+    "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "uploaded_hashes": {
+      "cpar_build_json_diagnostic.py": "e0aec5d82e3f56f9a59a3ac4de73b9a31ae3656e0b066d38ec011e181c034477",
+      "cpar_new_build_acceptance.py": "fc15d63a82c2686582f915580f9b635ae7cc0b8cee4ac03f1fcfc706826b7854",
+      "remote-chat.py": "b3e48c2eb05c7d80a5df78254f7da6f965d82005be2a367ec51e9f23b2550c17",
+      "remote-start.py": "9977d3db22660874b55f6942cb6ee6f47c4c4c4d9b6d4332a58a94bddac65390",
+      "remote-pin.py": "e427551892b9047dcf40603a497383d8df4f6fd1e70b26812bf54d118ad83b48",
+      "remote-exit.py": "351608c9ee6f34a60b1daa3bca317cf298eb8ae296fc3d83734fc0b5b2a719dd",
+      "remote-readiness.py": "684b8393c756d2752f758719454b6de07b6a5dd99a15dddb53e37e6d8d953d45",
+      "gateway-build-metadata.json": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+      "artifact-manifest.json": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+      "launch_recipe.py": "cd89b3f69656fc7b2ad712981d1de9e3e25a1a67af9dd9ae50986c42d2205e01",
+      "cpar-batch-c-live.py": "7d4187759fb86210d5791c37a397f385e4c3254c69bf1f95319bdd55ee5f992f",
+      "qualification.py": "a7718f86a1b0437a6ed2f076f6e96595f27cf2dc1893f4738d9939316cb30237",
+      "remote-prepare.py": "ee8888611dbd3ca931dea62c3a35b06a4b6e0143eba4fc75989da10a5a3903cd",
+      "historical-cost-authorization.json": "77980e82623fa9913bd0623803f1a0f6b33857335127ad96fde5064f0ebaaa0f",
+      "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+      "user-authorization.json": "ac749ae5af70eabc2afd5c8c1145a564c95ff52e1f921514e2d0b08095dba94a",
+      "startup_probe.py": "a4e40feff241801ba2d60772b0a370f612b07590b738e78e4abaedfba38fcf95"
+    },
+    "overwrite_count": 0,
+    "provider_calls": 0
+  }
+}

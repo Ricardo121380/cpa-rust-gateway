@@ -1,0 +1,179 @@
+{
+  "exit_code": 0,
+  "script_sha256": "42d6982b490d27564475f6e61cb4aa9dce36d7ef2843d9be592f9512c6d5ebd0",
+  "stdout_sha256": "595411e62f86dad76b0d7d61b80b3b4c1324616865c0160bfc2a6ee3e62a1971",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "status": "PASS; retained snapshot comparisons only",
+    "kind": "OFFLINE_ASSERTION_COMPARISON_NO_DISPATCH",
+    "inspection_sha256": "7d4096fbfa6537d786a074b5695031e15148cd6dda306b505e77d8aebc74fce1",
+    "pin_driver_sha256": "e427551892b9047dcf40603a497383d8df4f6fd1e70b26812bf54d118ad83b48",
+    "start_receipt_sha256": "e295060a74adc7587cc219435ab66adfb5eeee8fcf9b6f0e82bdf42f368a2996",
+    "checks": [
+      {
+        "assertion": "account_count",
+        "source_line": 81,
+        "passed": true,
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "assertion": "account_identity",
+        "source_line": 81,
+        "passed": true,
+        "actual": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+        "expected": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+      },
+      {
+        "assertion": "account_native_fields",
+        "source_line": 82,
+        "passed": true,
+        "actual": [
+          146,
+          1,
+          "active",
+          null
+        ],
+        "expected": [
+          146,
+          1,
+          "active",
+          null
+        ]
+      },
+      {
+        "assertion": "candidate_pool_count_and_no_lease",
+        "source_line": 84,
+        "passed": true,
+        "actual": {
+          "count": 1,
+          "active_leases": 0
+        },
+        "expected": {
+          "count": 1,
+          "active_leases": 0
+        }
+      },
+      {
+        "assertion": "candidate_expiry_margin",
+        "source_line": 85,
+        "passed": true,
+        "actual": 1791923142393,
+        "expected": "> recorded pin-result observed time +600s"
+      },
+      {
+        "assertion": "candidate_revision",
+        "source_line": 86,
+        "passed": true,
+        "actual": 147,
+        "expected": 147
+      },
+      {
+        "assertion": "declaration_count",
+        "source_line": 88,
+        "passed": false,
+        "actual": 0,
+        "expected": 1
+      },
+      {
+        "assertion": "declaration_source",
+        "source_line": 90,
+        "passed": false,
+        "actual": null,
+        "expected": "serving_snapshot"
+      },
+      {
+        "assertion": "declaration_client_key_evidence_id",
+        "source_line": 91,
+        "passed": false,
+        "actual": null,
+        "expected": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025"
+      },
+      {
+        "assertion": "declaration_config_version_id",
+        "source_line": 92,
+        "passed": false,
+        "actual": null,
+        "expected": "cpar-build-config-20261010"
+      },
+      {
+        "assertion": "declaration_config_revision",
+        "source_line": 92,
+        "passed": false,
+        "actual": null,
+        "expected": 9
+      },
+      {
+        "assertion": "declaration_route_id",
+        "source_line": 93,
+        "passed": false,
+        "actual": null,
+        "expected": "cpar-build-route"
+      },
+      {
+        "assertion": "declaration_route_candidate_id",
+        "source_line": 93,
+        "passed": false,
+        "actual": null,
+        "expected": "cpar-build-candidate"
+      },
+      {
+        "assertion": "declaration_endpoint_id",
+        "source_line": 94,
+        "passed": false,
+        "actual": null,
+        "expected": "cpar-build-endpoint"
+      },
+      {
+        "assertion": "declaration_upstream_model",
+        "source_line": 94,
+        "passed": false,
+        "actual": null,
+        "expected": "grok-4.5"
+      },
+      {
+        "assertion": "declaration_capabilities",
+        "source_line": 95,
+        "passed": false,
+        "actual": null,
+        "expected": {
+          "reasoning": true,
+          "parallel": false,
+          "stored": true,
+          "continuation": true,
+          "compact": true,
+          "websocket": true
+        }
+      }
+    ],
+    "first_mismatch": {
+      "assertion": "declaration_count",
+      "source_line": 88,
+      "passed": false,
+      "actual": 0,
+      "expected": 1
+    },
+    "candidate_pool_safe_fields": {
+      "runtime_status": "available",
+      "credential_revision": 147,
+      "expires_at_ms": 1791923142393,
+      "active_leases": 0
+    },
+    "declaration_safe_fields": {
+      "source": null,
+      "client_key_evidence_id": null,
+      "config_version_id": null,
+      "config_revision": null,
+      "route_id": null,
+      "route_candidate_id": null,
+      "endpoint_id": null,
+      "upstream_model": null,
+      "capabilities": null
+    },
+    "pin_request_artifact_exists": false,
+    "pin_response_artifact_exists": false,
+    "provider_intents": 0,
+    "new_http_calls": 0,
+    "new_launches": 0
+  }
+}
