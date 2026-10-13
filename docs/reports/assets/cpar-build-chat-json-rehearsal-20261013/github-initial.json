@@ -1,0 +1,26 @@
+{
+  "47": {
+    "status": "OPEN",
+    "is_issue": true,
+    "progress_id": 6081215242,
+    "progress_body_sha256": "b0216f2016cccccd53e79561907025fb99a624c8e77de05127f495caa32433b8",
+    "protected_issue_sha256": "862240b4ed8451477b9a5040e6e48259f665fc29f0150ea8c86a6cea227dacbb",
+    "dependencies_count": 8
+  },
+  "57": {
+    "status": "OPEN",
+    "is_issue": true,
+    "progress_id": 6081234278,
+    "progress_body_sha256": "8393bc413cce0f8bcae3396378d721691cb088eb782150a35290cba0dfc4183b",
+    "protected_issue_sha256": "dcde5d00d3568c23788a6f0ab545a1225174557902c3c06e9fc81ec64134e4b3",
+    "dependencies_count": 23
+  },
+  "9": {
+    "status": "OPEN",
+    "is_issue": true,
+    "progress_id": 6081235490,
+    "progress_body_sha256": "454e355d5815335ebc99ba2ef7ba9068ab407db4d05c8af124c9d16c69ac50e6",
+    "protected_issue_sha256": "a1b5595d02f7d4186a42ad9e1593d968d9e1abe7f6efdeaad6c2f189ccf037ba",
+    "dependencies_count": 0
+  }
+}

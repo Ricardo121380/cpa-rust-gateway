@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "gate": "supplemental docs/static",
+  "steps": 7,
+  "checked_head": "b3838630960934da03bc7ce4c916625e89bdaf8c",
+  "raw_log_sha256": "52e2a4a1715d1c9c58d238dec59e57792375f33ceaab2c5a11c2b6d709a50bbc",
+  "gzip_sha256": "b2dce788bee7017d0cbee9e355f6e0908169c6214d7b5e6a56dee865201b67cf",
+  "scope_classifier": "code; Python assets not docs-only",
+  "product_full": "REUSED; unchanged inputs and user explicitly forbids redundant Full/build/dependency work",
+  "driver_gate": "27 local checks PASS"
+}
