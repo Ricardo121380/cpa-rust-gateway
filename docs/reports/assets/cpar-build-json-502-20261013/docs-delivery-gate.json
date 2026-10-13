@@ -1,0 +1,18 @@
+{
+  "source_sha": "bd8117a7e672c880a578939d13015f6e9d93d31d",
+  "command": [
+    "./scripts/check.sh",
+    "docs"
+  ],
+  "started_at_utc": "2026-10-13T02:21:25.213776+00:00",
+  "finished_at_utc": "2026-10-13T02:23:32.368743+00:00",
+  "exit_code": 0,
+  "result": "PASS",
+  "expected_step_count": 7,
+  "raw_sha256": "bbc4ebea4e5969a2bb2606fcaaa18fd4fba8eb66ebd82b971098b007f1c32a12",
+  "scope": "final report, review archive and GitHub exact readback evidence",
+  "product_full_rerun": false,
+  "task_phase_reuse_source": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
+  "remote_ci": "NOT_RUN",
+  "gzip_sha256": "a643fd27c7292b52277edb859ec6da763f2d9936d8b19f7366f954543b617827"
+}

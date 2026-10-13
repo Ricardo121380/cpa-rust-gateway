@@ -65,6 +65,8 @@ LOCAL_SIMULATED，真实 Provider 请求0，不能算入六组合验收或精确
 冻结在 `78acbcda00561a38d4964026fec362070a7a487b`：全部30文件，
 Standards **PASS / 0发现**、Spec **PASS / 0发现**。
 本批复用完整 Task/Phase，不因只有证据变化重做无变化的产品 Full 或构建。
+GitHub 读回及收口资料的[最终 docs 检查](assets/cpar-build-json-502-20261013/docs-delivery-gate.json)
+在冻结提交 `bd8117a7e672c880a578939d13015f6e9d93d31d` 上再次 **7/7 PASS**。
 远端 CI、正式发布、部署和生产验收均 NOT_RUN。
 
 ## 本次资格检查与永久停止
