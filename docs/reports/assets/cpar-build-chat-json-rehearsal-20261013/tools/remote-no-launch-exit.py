@@ -1,4 +1,4 @@
-"""Read-only exit proof for a batch blocked before upload/epoch creation."""
+"""Read-only resource proof before prepare, including failed/partial upload."""
 import ast
 import datetime
 import hashlib
@@ -20,7 +20,10 @@ assert not base.is_symlink() and base.stat().st_uid == 0
 assert stat.S_IMODE(base.stat().st_mode) == 0o700
 assert len(sys.argv) == 2
 expected = json.loads(sys.argv[1])
-assert set(expected) in (set(), {'production', 'production_config'})
+assert set(expected) == {'baseline', 'payload'}
+baseline = expected['baseline']
+assert set(baseline) in (set(), {'production', 'production_config'})
+expected_upload = {'freeze.json': expected['payload']['freeze_sha256'], **expected['payload']['files']}
 sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
 historical = {str(path.relative_to(base)): sha(path)
               for path in base.rglob('*') if path.is_file() and not path.is_symlink()}
@@ -39,7 +42,20 @@ ports = [int(row.split()[1].rsplit(':', 1)[1], 16)
          for family in ['tcp', 'tcp6']
          for row in pathlib.Path('/proc/net', family).read_text().splitlines()[1:]
          if row.split()[3] == '0A' and int(row.split()[1].rsplit(':', 1)[1], 16) in [19180, 19181]]
-assert not ports and not epoch.exists() and not uploaded.exists() and not audit.exists()
+assert not ports and not epoch.exists() and not audit.exists()
+upload_inventory = {}
+if uploaded.exists():
+    assert not uploaded.is_symlink() and uploaded.is_dir() and uploaded.stat().st_uid == 0
+    assert stat.S_IMODE(uploaded.stat().st_mode) == 0o700
+    for path in uploaded.iterdir():
+        assert path.name in expected_upload and path.is_file() and not path.is_symlink() and path.stat().st_uid == 0
+        mode = stat.S_IMODE(path.stat().st_mode)
+        assert mode in ([0o600, 0o700] if path.name == 'gateway-aarch64-unknown-linux-gnu' else [0o600])
+        upload_inventory[path.name] = {'sha256': sha(path), 'mode': mode}
+mismatches = [name for name, row in upload_inventory.items() if row['sha256'] != expected_upload[name]]
+missing = sorted(set(expected_upload) - set(upload_inventory))
+integrity = ('NOT_UPLOADED' if not uploaded.exists() else 'MISMATCH' if mismatches else
+             'PARTIAL' if missing else 'PASS')
 assert stat.S_IMODE((base / 'private').stat().st_mode) == 0o700
 # Capture and owned epoch permissions retain their original strict boundary.
 # The three earlier bootstrap receipts have pre-existing 0644 modes under the
@@ -71,8 +87,8 @@ tree = ast.parse((base / 'private/bootstrap.py').read_text())
 node = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'production')
 exec(compile(ast.Module(body=[node], type_ignores=[]), 'production-proof', 'exec'))
 fresh_production = production()
-if expected:
-    assert fresh_production == expected['production']
+if baseline:
+    assert fresh_production == baseline['production']
 args = pathlib.Path('/proc', fresh_production['MainPID'], 'cmdline').read_bytes().decode().split('\0')
 credentials = pathlib.Path(args[args.index('--credential-dir') + 1])
 client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -81,24 +97,33 @@ with client.open(urllib.request.Request('http://127.0.0.1:18181/admin/config-ver
     assert response.status == 200
     active = [{key: row[key] for key in ['id', 'revision', 'status']}
               for row in json.load(response) if row['status'] == 'active']
-if expected:
-    assert active == expected['production_config']
+if baseline:
+    assert active == baseline['production_config']
 time.sleep(5)
-assert not epoch.exists() and not uploaded.exists() and not audit.exists()
+assert not epoch.exists() and not audit.exists()
+assert uploaded.exists() == bool(upload_inventory or integrity != 'NOT_UPLOADED')
+if uploaded.exists():
+    assert set(path.name for path in uploaded.iterdir()) == set(upload_inventory)
+    assert all(sha(uploaded / name) == row['sha256'] and stat.S_IMODE((uploaded / name).stat().st_mode) == row['mode']
+               for name, row in upload_inventory.items())
 assert all(sha(base / name) == digest for name, digest in historical.items())
 assert all(stat.S_IMODE((base / name).stat().st_mode) == mode for name, mode in mode_inventory.items())
 assert production() == fresh_production
 print(json.dumps({'status': 'PASS', 'observed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   'remote_epoch_status': 'NOT_CREATED', 'owned_process_stop_status': 'NOT_STARTED', 'temporary_unit': unit,
                   'temporary_ports': ports, 'competing_processes': competitors,
-                  'new_epoch_upload_audit_absent': True, 'flat_observation_seconds': 5,
+                  'new_epoch_upload_audit_absent': not uploaded.exists(), 'flat_observation_seconds': 5,
+                  'remote_upload_status': 'CREATED' if uploaded.exists() else 'NOT_CREATED',
+                  'payload_integrity_status': integrity, 'uploaded_files_observed': len(upload_inventory),
+                  'uploaded_missing_names': missing, 'uploaded_mismatched_names': mismatches,
+                  'upload_inventory_sha256': hashlib.sha256(json.dumps(upload_inventory, sort_keys=True).encode()).hexdigest(),
                   'old_stopped_epoch_unchanged': True, 'historical_frozen_files_verified': len(prepare['historical_file_hashes']),
                   'old_uploaded_payloads_verified': len(freeze['files']), 'protected_root_files_flat': len(historical),
                   'protected_root_inventory_sha256': hashlib.sha256(json.dumps(historical, sort_keys=True).encode()).hexdigest(),
                   'owned_epoch_and_capture_modes': '0700/0600; root owner; no symlinks',
                   'private_parent_mode': '0700', 'historical_bootstrap_modes_preserved': 'three existing 0644 receipts',
                   'resource_exit_status': 'PASS', 'production': fresh_production, 'production_config': active,
-                  'production_baseline_comparison': 'PASS' if expected else 'NOT_OBSERVED; fresh read-only baseline stable',
+                  'production_baseline_comparison': 'PASS' if baseline else 'NOT_OBSERVED; fresh read-only baseline stable',
                   'new_inference_intents': 0, 'new_gateway_pin_confirmed_sends': 0,
                   'provider_independent_receive_count': 'UNKNOWN', 'actual_provider_cost': 'UNKNOWN',
                   'management_get_intents': 1, 'production_writes': 0, 'remote_files_written': 0}))

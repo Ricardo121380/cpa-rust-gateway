@@ -514,7 +514,17 @@ class Fixture:
             self.calls.append(self.action)
             if input == (self.private / 'upload.tar').read_bytes():
                 script = (self.public / 'tools/remote-upload.py').read_text()
-                code, out, err = self.execute(script, [sha((self.private / 'payload/freeze.json').read_bytes())], input)
+                expected = sha((self.private / 'payload/freeze.json').read_bytes())
+                if self.failure == 'upload-before-directory': expected = '0' * 64
+                if self.failure == 'upload-partial':
+                    partial = io.BytesIO()
+                    with tarfile.open(fileobj=partial, mode='w') as archive:
+                        for name in ['freeze.json', 'artifact-manifest.json', 'gateway-build-metadata.json']:
+                            archive.add(self.private / 'payload' / name, arcname=name)
+                    input = partial.getvalue()
+                code, out, err = self.execute(script, [expected], input)
+                if self.failure == 'upload-complete-unknown' and not code:
+                    code, err = 1, 'LOCAL_SIMULATED lost transport result after upload'
             else:
                 code, out, err = self.execute(input.decode())
         elif len(command) >= 3 and command[1] == '-c':
@@ -611,6 +621,25 @@ class FullFlow(unittest.TestCase):
         (f.public / 'tools/remote-no-launch-exit.py').write_text('# changed frozen tool\n')
         self.assertNotEqual(f.invoke('observe')[0], 0)
         self.assertEqual(f.calls, [])
+
+    def test_upload_absent_partial_and_complete_unknown_have_independent_exit(self):
+        for failure in ['upload-before-directory', 'upload-partial', 'upload-complete-unknown']:
+            f = self.fixture(); f.failure = failure
+            self.assertNotEqual(f.through('upload')[0], 0)
+            before = len(f.http_calls)
+            self.assertNotEqual(f.invoke('upload')[0], 0)
+            self.assertNotEqual(f.invoke('prepare')[0], 0)
+            self.assertEqual(len(f.http_calls), before)
+            self.assertEqual(f.invoke('exit')[0], 0)
+            receipt = json.loads((f.public / 'exit.json').read_text())['result']
+            self.assertEqual(receipt['resource_exit_status'], 'PASS')
+            self.assertEqual(receipt['remote_epoch_status'], 'NOT_CREATED')
+            self.assertEqual(receipt['owned_process_stop_status'], 'NOT_STARTED')
+            self.assertEqual(receipt['payload_integrity_status'], {
+                'upload-before-directory': 'NOT_UPLOADED', 'upload-partial': 'PARTIAL',
+                'upload-complete-unknown': 'PASS'}[failure])
+            self.assertTrue(json.loads((f.private / 'stage.json').read_text())['stopped'])
+            self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
 
     def test_candidate_revision_missing_null_or_changed_rejects_before_pin(self):
         for revision in ['missing', None, 146]:

@@ -141,8 +141,11 @@ def main(action):
     if action == 'upload':
         result = remote(upload_script.decode(), 'upload', stream=(PRIVATE / 'upload.tar').read_bytes(),
                         arguments=(hashlib.sha256((PRIVATE / 'payload/freeze.json').read_bytes()).hexdigest(),))
-    elif action == 'exit' and 'upload' not in state['formal_actions']:
-        wrapper = 'import sys\nsys.argv = ' + repr(['frozen-no-launch-exit', json.dumps(state.get('qualification_baseline', {}))]) + '\n'
+    elif action == 'exit' and 'prepare' not in state['formal_actions']:
+        proof = {'baseline': state.get('qualification_baseline', {}),
+                 'payload': {'freeze_sha256': hashlib.sha256((PRIVATE / 'payload/freeze.json').read_bytes()).hexdigest(),
+                             'files': frozen['files']}}
+        wrapper = 'import sys\nsys.argv = ' + repr(['frozen-no-launch-exit', json.dumps(proof)]) + '\n'
         result = remote(wrapper + no_launch_exit.decode(), 'exit', timeout=60)
     else:
         # Execute the reviewed uploaded bytes; no inline unreviewed remote edit.

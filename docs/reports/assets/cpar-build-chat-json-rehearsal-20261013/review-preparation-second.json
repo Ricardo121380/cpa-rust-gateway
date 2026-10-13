@@ -1,0 +1,31 @@
+{
+  "base": "9b6d70615d7507114aeab0007b34ea9db81d6182",
+  "target": "c0e9ea29df9b033c28666fc1f4ca08824ae79cdc",
+  "axes": {
+    "Standards": {
+      "status": "PARTIAL",
+      "reason": "No terminal verdict after bounded wait and one call to conclude; interrupted without granting PASS"
+    },
+    "Spec": {
+      "status": "FAIL",
+      "coverage": {
+        "objects": 45,
+        "gzip": 14
+      },
+      "payload_binding": "PASS;16 payloads +17 tar members +controller/upload/no-launch",
+      "schema_closure": "PASS; source8/candidate12 exact OpenAPI",
+      "finding": {
+        "classification": "wrongbehavior / missing",
+        "path": "tools/local-control.py",
+        "line": 144,
+        "reason": "upload recorded before transport; failed/partial upload exit depends on absent/incomplete uploaded remote-exit program"
+      }
+    }
+  },
+  "real": "NOT_RUN",
+  "red": {
+    "tests": 18,
+    "failures": 1,
+    "raw_sha256": "31f3c6cfd8ddfa41d9446da047d14ff89f4cb36f0ef6f83e4898d4d02a8870c0"
+  }
+}
