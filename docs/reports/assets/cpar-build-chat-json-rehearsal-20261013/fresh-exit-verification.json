@@ -1,0 +1,70 @@
+{
+  "exit_code": 0,
+  "script_sha256": "1213b543f2723a73b4789146745dbd648cddcd4e210ffbfe94becd8848147b81",
+  "stdout_sha256": "11ccd2e27554550e0ab5de3a0609a485b72b18fa8e4ffc37ea47c6afc276bc41",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "status": "PASS",
+    "purpose": "READ_ONLY_FINAL_EXIT_VERIFICATION; not qualification observation",
+    "observed_at_utc": "2026-10-13T06:33:57.993637+00:00",
+    "checks": {
+      "unit_main_pid_zero": true,
+      "old_owned_pid_absent": true,
+      "temporary_ports_released": true,
+      "post_stop_audit_flat": true,
+      "network_audit_zero_bytes": true,
+      "history_hashes_unchanged": true,
+      "private_modes": true,
+      "production_matches_fresh_prepare": true,
+      "active_configuration_matches_fresh_prepare": true,
+      "epoch_budget_stopped": true,
+      "historical_budget_stopped": true,
+      "new_intents_zero": true,
+      "new_events_zero": true,
+      "new_ledger_rows_zero": true,
+      "new_native_capture_files_zero": true
+    },
+    "main_pid": 0,
+    "temporary_ports": [],
+    "post_stop_flat_seconds": 5,
+    "network_audit_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "network_audit_bytes": 0,
+    "historical_files_verified": 381,
+    "historical_mismatch_count": 0,
+    "private_mode_failure_count": 0,
+    "production": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "dca3a7a34532447432fae49036bdde3d67412861b3b8bfcf737f62ab7fa2966c"
+    },
+    "production_active_configuration": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "new_event_counts": {
+      "request": 0,
+      "attempt": 0,
+      "request_finished": 0,
+      "usage": 0
+    },
+    "new_ledger_rows": 0,
+    "native_capture_file_count": 0,
+    "new_pin_intents": 0,
+    "new_chat_intents": 0,
+    "new_gateway_pin_confirmed_sends": 0,
+    "provider_independent_receive_count": "UNKNOWN",
+    "actual_provider_cost": "UNKNOWN",
+    "provider_calls": 0,
+    "mutations": 0
+  }
+}

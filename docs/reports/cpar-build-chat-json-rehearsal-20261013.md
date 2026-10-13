@@ -80,6 +80,12 @@ Task42/42、Phase45/45的gzip及完整原始日志摘要、完整历史两轴审
 
 新增完整流程测试覆盖晚到稳定身份的安全退出及停止前持久化，并以exe路径、argv/state、guard、重复环境和PID启动时刻五种错误确认不停止未知进程。完整流程20/20新通过；未改控制器2/2、资格9/9、启动2/2复用，总计33/33 LOCAL_SIMULATED；docs/static7/7通过。准确命令、exit1 RED与exit0 GREEN、源代码及raw/gzip摘要见 [停止后检查](assets/cpar-build-chat-json-rehearsal-20261013/post-stop-checks.json)、[RED](assets/cpar-build-chat-json-rehearsal-20261013/post-stop-exit-red.log.gz)、[GREEN](assets/cpar-build-chat-json-rehearsal-20261013/post-stop-exit-green.log.gz)、[门槛](assets/cpar-build-chat-json-rehearsal-20261013/docs-gate-post-stop.md)。
 
-实际执行driver仍为400bb672，原freeze `53c1e388...`、私有payload、tar和远端已上传代码保持不变；停止后源代码修复没有重新打包、上传、启动或真实调用。原执行代码可从该Git提交及保留的私有payload取得，不能把修复后的源码摘要当本次实际执行身份。停止后修复和交付材料的独立两轴完整审查单列归档，尚待收口。
+实际执行driver仍为400bb672，原freeze `53c1e388...`、私有payload、tar和远端已上传代码保持不变；停止后源代码修复没有重新打包、上传、启动或真实调用。原执行代码可从该Git提交及保留的私有payload取得，不能把修复后的源码摘要当本次实际执行身份。停止后修复及交付材料独立完整Standards PASS、Spec PASS，80/80对象及22 gzip覆盖，finding均0。见 [完整审查](assets/cpar-build-chat-json-rehearsal-20261013/review-post-stop.md)及[回执](assets/cpar-build-chat-json-rehearsal-20261013/review-post-stop.json)。
 
-诊断与保真规则缺口消除后才提出下一轮基础矩阵。六组合最多60新意图及扩展仍需独立授权，本批不执行。#47/#57/#9保持正文/AC/依赖/状态，只在本批真实停止交付后追加既有progress并独立读回，不按局部结果关闭整票。
+## 交付收口
+
+最终只读退出复核再次PASS：临时MainPID0、旧PID不存在、端口释放、5秒审计平坦且总字节0；381历史文件、旧/新停止预算、私有权限及本批新鲜生产进程/配置基线均保持。新增native捕获文件0，Request/Attempt/Finished/Usage和账本新增仍为0。该检查是退出证据复核，不是额外资格观察，没有写入、启动、刷新或Provider调用。见 [最终退出复核](assets/cpar-build-chat-json-rehearsal-20261013/fresh-exit-verification.json)。本地250历史文件和用户AGENTS.md摘要/权限保持，原payload与tar未变，见 [本地保留](assets/cpar-build-chat-json-rehearsal-20261013/local-preservation.json)。
+
+已把经完整审查的脱敏段落追加到既有progress，未新建评论：[#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)。每次PATCH后通过独立GET读回，完整正文等于原历史前缀加本批段落；工单正文/AC、标题、标签、assignee、milestone、锁与OPEN状态均保持，依赖边数仍8/23/0。见 [47读回](assets/cpar-build-chat-json-rehearsal-20261013/github-readback-47.json)、[57读回](assets/cpar-build-chat-json-rehearsal-20261013/github-readback-57.json)、[9读回](assets/cpar-build-chat-json-rehearsal-20261013/github-readback-9.json)。不按局部结果关闭整票，本地报告没有push。
+
+尚缺真实完整启动门槛、fresh Pin实际lease、原Chat诊断及完整保真验收结论。原启动断言的具体原因和旧502根因保持UNKNOWN；退出驱动缺口已离线修复，不能把这个修复当真实启动或诊断通过。本批未使用的2次意图随停止锁存，不恢复或转移。诊断与保真规则缺口消除后才提出下一轮基础矩阵；后续新诊断以及六组合最多60新意图及扩展均需独立授权，本批不提出或执行矩阵。

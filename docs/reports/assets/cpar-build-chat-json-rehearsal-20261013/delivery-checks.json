@@ -1,0 +1,101 @@
+{
+  "status": "PASS",
+  "observed_at_utc": "2026-10-13T06:36:01.777331+00:00",
+  "preserved_local_prior_files": 250,
+  "prior_file_mismatches": 0,
+  "user_agents_hash_preserved": true,
+  "private_mode_failures": 0,
+  "executed_payload_and_tar_preserved": true,
+  "product_web_prism_and_build_input_diff_empty": true,
+  "post_stop_review": {
+    "Standards": "PASS",
+    "Spec": "PASS",
+    "target": "0602faaf9df3d707e887bce27c203c28065e6905",
+    "objects": 80,
+    "gzip": 22
+  },
+  "final_readonly_resource_exit": "PASS",
+  "github_existing_progress_append_readback": {
+    "47": "PASS; OPEN; 8 dependency edges",
+    "57": "PASS; OPEN; 23 dependency edges",
+    "9": "PASS; OPEN; 0 dependency edges"
+  },
+  "formal_state_preserved": {
+    "phase": "EXECUTING_EXIT",
+    "stopped": true,
+    "actions": [
+      "upload",
+      "prepare",
+      "start",
+      "exit"
+    ]
+  },
+  "real_pin_chat_retest_calls": 0,
+  "unused_new_intents_retired": 2,
+  "new_intents": 0,
+  "new_gateway_pin_confirmed_sends": 0,
+  "provider_independent_receive_count": "UNKNOWN",
+  "actual_provider_cost": "UNKNOWN",
+  "push_release_deployment": "NOT_RUN",
+  "final_commands": [
+    {
+      "command": "ruby scripts/check-doc-links.rb",
+      "exit_code": 0,
+      "result": "doc-links: ok (1119 Markdown files)"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "output/cpar-build-chat-json-rehearsal-20261013/github-append-readback.py",
+        "47"
+      ],
+      "exit_code": 0,
+      "patch_exit_code": 0,
+      "independent_get_readback": "PASS"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "output/cpar-build-chat-json-rehearsal-20261013/github-append-readback.py",
+        "57"
+      ],
+      "exit_code": 0,
+      "patch_exit_code": 0,
+      "independent_get_readback": "PASS"
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "output/cpar-build-chat-json-rehearsal-20261013/github-append-readback.py",
+        "9"
+      ],
+      "exit_code": 0,
+      "patch_exit_code": 0,
+      "independent_get_readback": "PASS"
+    }
+  ],
+  "fresh_exit_readonly_command": {
+    "argv": [
+      "ssh",
+      "-T",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "ConnectTimeout=10",
+      "new-vps",
+      "sudo -n python3 -"
+    ],
+    "private_script": "output/cpar-build-chat-json-rehearsal-20261013/fresh-exit-verification.py",
+    "script_sha256": "1213b543f2723a73b4789146745dbd648cddcd4e210ffbfe94becd8848147b81",
+    "exit_code": 0,
+    "provider_calls": 0,
+    "mutations": 0
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "base": "9b6d70615d7507114aeab0007b34ea9db81d6182",
+  "target": "0602faaf9df3d707e887bce27c203c28065e6905",
+  "completed_at_utc": "2026-10-13T06:29:43.116296+00:00",
+  "scope_sha256": "4a2f45abdcd1948862994d64c56741186d97080865c2dd5b9146187e3013949c",
+  "coverage": {
+    "full_new_or_modified_objects": 29,
+    "unchanged_full_review_byte_reuse": 51,
+    "total_objects": 80,
+    "new_gzip_full_read": 4,
+    "unchanged_gzip_full_coverage_reused": 18,
+    "total_gzip": 22,
+    "missing_paths": 0,
+    "extra_paths": 0,
+    "byte_mismatches": 0
+  },
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "reviewer": "/root/post_stop_standards",
+      "hard_findings": 0,
+      "heuristic_findings": 0
+    },
+    "Spec": {
+      "status": "PASS",
+      "reviewer": "/root/post_stop_spec",
+      "missing": 0,
+      "partial": 0,
+      "wrongbehavior": 0,
+      "extra": 0
+    }
+  },
+  "validation": "Archived 20 full flow plus unchanged 13 local checks; docs/static7; no reviewer test rerun or remote operation",
+  "actual_diagnostic": "NOT_RUN; actual startup gate failed; later cleanup is resource evidence only",
+  "resource_exit": "PASS; separate identity-bound cleanup",
+  "post_stop_fix_real_retested": false,
+  "executed_payload_freeze_sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
+  "actual_execution_driver_source": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d",
+  "post_stop_remote_exit_source_sha256": "779e9a9afffef0c2b5bbcaf44435f4689ddfd63230f2ab47b8fb4a975c1ed515",
+  "historical_fail_red_partial_preserved": true,
+  "github_drafts_reviewed": 3,
+  "github_write_readback_at_review": "NOT_RUN; main will execute authorized append only after both PASS"
+}
