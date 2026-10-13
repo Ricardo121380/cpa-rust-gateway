@@ -90,6 +90,8 @@ def main(action):
     assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == frozen['local_controller_sha256']
     upload_script = (PUBLIC / 'tools/remote-upload.py').read_bytes()
     assert hashlib.sha256(upload_script).hexdigest() == frozen['upload_tool_sha256']
+    no_launch_exit = (PUBLIC / 'tools/remote-no-launch-exit.py').read_bytes()
+    assert hashlib.sha256(no_launch_exit).hexdigest() == frozen['no_launch_exit_tool_sha256']
     verified_payload = {}
     for name, expected_hash in frozen['files'].items():
         content = (PRIVATE / 'payload' / name).read_bytes()
@@ -113,8 +115,10 @@ def main(action):
         script = verified_payload['qualification.py'].decode() + '\n' + (
             verified_payload['remote-readiness.py'].decode().replace('from qualification import classify', ''))
         result = remote(script, name, timeout=40)
+        if all(key in result for key in ('production', 'production_config')):
+            state['qualification_baseline'] = {key: result[key] for key in ('production', 'production_config')}
+            save(PRIVATE / 'stage.json', state)
         row['classification'] = qualification['classify'](result)
-        state['qualification_baseline'] = {key: result[key] for key in ('production', 'production_config')}
         state['phase'] = row['classification']
         save(PRIVATE / 'stage.json', state)
         print(json.dumps({'phase': state['phase'], 'observation': len(state['observations']),
@@ -137,6 +141,9 @@ def main(action):
     if action == 'upload':
         result = remote(upload_script.decode(), 'upload', stream=(PRIVATE / 'upload.tar').read_bytes(),
                         arguments=(hashlib.sha256((PRIVATE / 'payload/freeze.json').read_bytes()).hexdigest(),))
+    elif action == 'exit' and 'upload' not in state['formal_actions']:
+        wrapper = 'import sys\nsys.argv = ' + repr(['frozen-no-launch-exit', json.dumps(state.get('qualification_baseline', {}))]) + '\n'
+        result = remote(wrapper + no_launch_exit.decode(), 'exit', timeout=60)
     else:
         # Execute the reviewed uploaded bytes; no inline unreviewed remote edit.
         frozen = json.loads((PRIVATE / 'payload/freeze.json').read_text())

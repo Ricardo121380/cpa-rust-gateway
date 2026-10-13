@@ -1,0 +1,36 @@
+{
+  "base": "9b6d70615d7507114aeab0007b34ea9db81d6182",
+  "target": "c4e453c3c960330ba5c5e7f75575dbdb41c72043",
+  "full_coverage": {
+    "objects": 36,
+    "gzip": 8
+  },
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "actionable": 0,
+      "coverage": "36/36 full text+hunks; 8/8 gzip full decompression; bytes and payload binding match"
+    },
+    "Spec": {
+      "status": "FAIL",
+      "findings": [
+        {
+          "path": "tools/local-control.py",
+          "line": 116,
+          "reason": "Rejected observation cannot retain baseline and pre-upload exit cannot use uploaded script; no-launch exit not connected"
+        },
+        {
+          "path": "tools/full-flow-tests.py",
+          "line": 333,
+          "reason": "Pin fixture missing request_id and stage completed not in versioned enum; subset validation insufficient"
+        }
+      ]
+    }
+  },
+  "real": "NOT_RUN",
+  "red": {
+    "tests": 16,
+    "failures": 2,
+    "raw_sha256": "d8a9e67945dbe74f8928c4735eb2e3bc9be2218e7267ae5c1b836c93049810e6"
+  }
+}

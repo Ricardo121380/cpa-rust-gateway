@@ -22,9 +22,13 @@ Task42/42、Phase45/45的gzip及完整原始日志摘要、完整历史两轴审
 
 完整流程 `observe → upload → prepare → start → pin → chat → exit` 在隔离文件系统、实际SQLite数据库和外部操作替身中执行实际控制器与各阶段顶层程序；实际REMOTE_READ库存收集器、Pin freezer、预算save/fsync、HTTP请求序列化、捕获decoder及Request/Attempt/Usage/ledger检查都运行。systemd、Linux /proc/UID/固定校验材料、时间和HTTP传输替身明确标为LOCAL_SIMULATED；各远端阶段不返回固定PASS。测试自己的PASS资格文件仅为本地测试授权，不能用作实际独立审查。
 
-14项测试包含多个边界子场景：缺失/null source成功；source非null漂移；候选缺失/null/漂移；fresh Pin lease缺失/漂移；prepare不足整小时或未知；启动认证首次失败不重试、启动未知和审计新增；Pin/Chat未知永久停止；操作槽与预算发送前持久化；重入/停止后拒绝；冻结字节漂移；Attempt/request/payload/lease及账本source_event错配；严格502拒绝的原生Usage保留；失败/缺证据发送计数UNKNOWN独立于资源退出；prepare/start失败无start receipt时退出。
+17项测试包含多个边界子场景：缺失/null source成功；source非null漂移；候选缺失/null/漂移；fresh Pin lease缺失/漂移；prepare不足整小时或未知；启动认证首次失败不重试、启动未知和审计新增；Pin/Chat未知永久停止；操作槽与预算发送前持久化；重入/停止后拒绝；冻结字节漂移；Attempt/request/payload/lease及账本source_event错配；严格502拒绝的原生Usage保留；失败/缺证据发送计数UNKNOWN独立于资源退出；prepare/start失败无start receipt时退出。
 
 保留RED后做三处本批驱动最小修复：source摘要非null校验补到prepare/start；Chat `error:null`不会中断发送后证据收集，HTTP200仍要求无具体错误、成功Attempt与Finished；无成功start receipt时走只读资源证明，使用本批观察持久化的新鲜生产基线，保留启动失败的实际停机状态，不停止身份不明进程。不改Rust产品、生产schema或保真规则。
+
+第一次完整审查覆盖36/36对象与8/8完整gzip：Standards PASS，Spec FAIL，保留原结论后实际回归得到16项/2 FAIL。最小修复将观察返回的生产基线在资格判断前持久化，并绑定、接入未上传时的只读退出程序；没有此前观察基线时明确标记NOT_OBSERVED，同时检查当次新鲜生产状态稳定，不虚构恢复目标。对应版本DTO夹具扩展到全部引用闭包（source8、candidate12），完整校验池字段、Pin请求和响应：补request_id/attempt_id，成功不输出非法stage=completed。源端摘要compat字段与旧DTO分开说明；候选和实际lease仍严格。修复后完整流程17/17 PASS，总计30/30。未发生真实观察或发送。
+
+见 [第一次完整审查](assets/cpar-build-chat-json-rehearsal-20261013/review-preparation-first.json)、[审查缺口RED](assets/cpar-build-chat-json-rehearsal-20261013/review-gap-red.log.gz)和[修复GREEN](assets/cpar-build-chat-json-rehearsal-20261013/review-gap-green.log.gz)。
 
 见 [对应版本的契约与脱敏观察夹具](assets/cpar-build-chat-json-rehearsal-20261013/contract-fixtures.json)、[完整流程测试](assets/cpar-build-chat-json-rehearsal-20261013/tools/full-flow-tests.py)、[初始RED](assets/cpar-build-chat-json-rehearsal-20261013/full-flow-red.log.gz)、[无start退出RED](assets/cpar-build-chat-json-rehearsal-20261013/prestart-exit-red.log.gz)、[完整GREEN](assets/cpar-build-chat-json-rehearsal-20261013/full-flow-green-bound.log.gz)。
 

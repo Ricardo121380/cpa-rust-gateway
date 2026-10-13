@@ -25,13 +25,14 @@ class ControllerBoundary(unittest.TestCase):
         private = root / 'output/cpar-build-chat-json-rehearsal-20261013'
         (public / 'tools').mkdir(parents=True)
         (private / 'payload').mkdir(parents=True, mode=0o700)
-        for name in ['local-control.py', 'qualification.py', 'remote-upload.py']:
+        for name in ['local-control.py', 'qualification.py', 'remote-upload.py', 'remote-no-launch-exit.py']:
             shutil.copyfile(TOOLS / name, public / 'tools' / name)
         (private / 'payload/qualification.py').write_bytes((TOOLS / 'qualification.py').read_bytes())
         (private / 'payload/remote-readiness.py').write_text('# FROZEN_OBSERVATION\n')
         (public / 'tools/remote-readiness.py').write_text('# UNREVIEWED_OBSERVATION\n')
         sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
         freeze = {'local_controller_sha256': sha(public / 'tools/local-control.py'),
+                  'no_launch_exit_tool_sha256': sha(public / 'tools/remote-no-launch-exit.py'),
                   'upload_tool_sha256': sha(public / 'tools/remote-upload.py'),
                   'files': {name: sha(private / 'payload' / name)
                             for name in ['qualification.py', 'remote-readiness.py']}}

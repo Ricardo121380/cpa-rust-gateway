@@ -43,6 +43,39 @@ sha = lambda value: hashlib.sha256(value).hexdigest()
 opaque = lambda value: sha(('cpar-evidence:' + str(value)).encode())
 
 
+def assert_dto(value, schema, schemas):
+    """Check only the frozen OpenAPI schemas used by this transport fixture."""
+    if '$ref' in schema:
+        return assert_dto(value, schemas[schema['$ref'].rsplit('/', 1)[1]], schemas)
+    for keyword in ['anyOf', 'oneOf']:
+        if keyword in schema:
+            matches = 0
+            for branch in schema[keyword]:
+                try:
+                    assert_dto(value, branch, schemas)
+                    matches += 1
+                except AssertionError:
+                    pass
+            assert matches == 1 if keyword == 'oneOf' else matches >= 1
+            return
+    kinds = schema.get('type', [])
+    kinds = [kinds] if isinstance(kinds, str) else kinds
+    actual = {dict: 'object', list: 'array', str: 'string', int: 'integer', bool: 'boolean', type(None): 'null'}[type(value)]
+    assert not kinds or actual in kinds, (actual, kinds)
+    if 'enum' in schema: assert value in schema['enum'], (value, schema['enum'])
+    if 'const' in schema: assert value == schema['const']
+    if isinstance(value, dict):
+        assert set(schema.get('required', [])).issubset(value), ('required', schema.get('required'), value.keys())
+        properties = schema.get('properties', {})
+        if schema.get('additionalProperties') is False: assert set(value).issubset(properties)
+        for key in value.keys() & properties.keys(): assert_dto(value[key], properties[key], schemas)
+    if type(value) is int:
+        assert value >= schema.get('minimum', value) and value <= schema.get('maximum', value)
+    if isinstance(value, str):
+        assert schema.get('minLength', 0) <= len(value) <= schema.get('maxLength', len(value))
+        if 'pattern' in schema: assert re.fullmatch(schema['pattern'], value)
+
+
 @contextlib.contextmanager
 def process_file_lifetime():
     """In-process programs need the descriptor cleanup that process exit provides."""
@@ -147,6 +180,7 @@ class Fixture:
         write_json(self.base / 'private/chat-json-502-20261011/prepare-receipt.json', {'historical_file_hashes': {
             'private/final-receipt.json': sha((self.base / 'private/final-receipt.json').read_bytes())}})
         write_json(self.base / 'private/chat-json-502-20261011/budget.json', {'stopped': True})
+        write_json(self.base / 'bin/chat-json-502-20261011/freeze.json', {'files': {}})
         self.payload = json.dumps({'model': 'grok-4.5', 'messages': [
             {'role': 'user', 'content': 'Remember ACCEPT:' + 'a' * 24 + '. Reply READY.'}],
             'stream': False, 'max_completion_tokens': 4096}, separators=(',', ':')).encode()
@@ -172,6 +206,15 @@ class Fixture:
             approved.append(value)
         write_json(self.base / 'private/recovered-launch.json', {'command': approved})
         write_json(self.base / 'private/copy-runtime-options.json', [])
+        legacy = ['private/recovered-launch.json', 'private/guard-preflight-corrected.json', 'private/bootstrap-receipt.json']
+        for name in legacy:
+            path = self.base / name
+            if not path.exists(): write_json(path, {'layer': 'LOCAL_SIMULATED'})
+            path.chmod(0o644)
+        receipt = self.base / 'private/chat-json-502-20261011/prepare-receipt.json'
+        previous = json.loads(receipt.read_text())
+        previous['historical_file_hashes'].update({name: sha((self.base / name).read_bytes()) for name in legacy})
+        write_json(receipt, previous)
         self.cost = b'LOCAL_SIMULATED historical cost authority'
         self.substitutions = {
             BASE: str(self.base), '/var/lib/cpa-rust-gateway': str(self.production_root),
@@ -217,7 +260,7 @@ class Fixture:
 
     def freeze_payload(self, approved):
         payload = self.private / 'payload'
-        for name in ['local-control.py', 'remote-upload.py']:
+        for name in ['local-control.py', 'remote-upload.py', 'remote-no-launch-exit.py']:
             shutil.copyfile(TOOLS / name, self.public / 'tools' / name)
         for p in TOOLS.glob('*.py'):
             if p.name.startswith('remote-') and p.name not in ['remote-upload.py', 'remote-no-launch-exit.py'] or p.name in ['qualification.py', 'launch_recipe.py']:
@@ -243,6 +286,7 @@ class Fixture:
                   'files': {p.name: sha(p.read_bytes()) for p in payload.iterdir()},
                   'assembled_launch_sha256': sha(json.dumps(launch, separators=(',', ':')).encode()),
                   'local_controller_sha256': sha((self.public / 'tools/local-control.py').read_bytes()),
+                  'no_launch_exit_tool_sha256': sha((self.public / 'tools/remote-no-launch-exit.py').read_bytes()),
                   'upload_tool_sha256': sha((self.public / 'tools/remote-upload.py').read_bytes())}
         write_json(payload / 'freeze.json', frozen)
         with tarfile.open(self.private / 'upload.tar', 'w') as archive:
@@ -273,14 +317,19 @@ class Fixture:
         value = {'provider_id': 'cpar-build-provider', 'channel_id': 'p12-12-production-grok-build-endpoint' if source else 'cpar-build-endpoint',
                  'account_id': self.account_id, 'account_kind': 'native', 'active_leases': 0,
                  'enabled': True, 'auth_status': 'active', 'runtime_status': 'available', 'max_concurrency': 1,
+                 'priority': 0, 'weight': 1, 'refresh_due_at_ms': None, 'quota_sync_due_at_ms': None,
+                 'entitlement': None, 'presentation': None,
                  'expires_at_ms': int(time.time() * 1000) + 7200000}
         # One frozen expiry across source, candidate, Pin and Chat reads.
         value['expires_at_ms'] = self.expiry
         revision = self.source_revision if source else self.candidate_revision
         if revision != 'missing': value['credential_revision'] = revision
+        if not source: value['config_version_id'] = 'cpar-build-config-20261010'
         schema = CONTRACTS['source_api' if source else 'candidate_api']['schemas']['ProviderAccountPoolItem']
-        self_fields = set(value) - ({'credential_revision'} if source else set())
-        assert self_fields.issubset(schema['properties'])
+        # The explicitly authorized source-summary extension is separate from
+        # the old DTO. All actual old fields and every candidate field validate.
+        checked = {k: v for k, v in value.items() if not (source and k == 'credential_revision')}
+        assert_dto(checked, schema, CONTRACTS['source_api' if source else 'candidate_api']['schemas'])
         return value
 
     def capabilities(self):
@@ -327,16 +376,21 @@ class Fixture:
         if url.path.endswith('/channel-pin'):
             self.assert_reserved('pin')
             body = json.loads(request.data)
+            schemas = CONTRACTS['candidate_api']['schemas']
+            assert_dto(body, schemas['ChannelPinInput'], schemas)
             assert body['credential_revision'] == 144 and body['requested_model'] == 'grok-4.5'
             if self.failure == 'pin-timeout': raise TimeoutError('LOCAL_SIMULATED')
             (self.base / 'audit' / (EPOCH + '.jsonl')).write_text('{"event":"connect_build_allowed"}\n')
             pin = dict(body, outcome='succeeded', attempt_count=1, upstream_sent=True, response_started=True,
-                       stage='completed', config_version_id='cpar-build-config-20261010', config_revision=9,
+                       request_id='fixture-pin-request', config_version_id='cpar-build-config-20261010', config_revision=9,
+                       runtime_credential_revision=145, server_instance='fixture-server',
+                       connection_revision=9, permission_basis='management_key_projection',
                        runtime_build=SOURCE + ':LOCAL_SIMULATED', observed_at_ms=int(time.time() * 1000),
-                       execution={'route_candidate_id': 'cpar-build-candidate', 'upstream_model': 'grok-4.5',
+                       execution={'attempt_id': 'fixture-pin-attempt', 'route_candidate_id': 'cpar-build-candidate', 'upstream_model': 'grok-4.5',
                            'identity': {'channel': 'grok.build', 'credential_revision': self.lease_revision,
                                'config_version_id': 'cpar-build-config-20261010', 'config_revision': 9,
                                'egress': {'kind': 'direct'}, 'capabilities': self.capabilities()}})
+            assert_dto(pin, schemas['ChannelPin'], schemas)
             return Response(pin)
         assert url.path == '/v1/chat/completions' and url.port == 19180
         self.assert_reserved('chat')
@@ -525,6 +579,38 @@ class FullFlow(unittest.TestCase):
         f.source_revision = 146
         self.assertNotEqual(f.invoke('prepare')[0], 0)
         self.assertFalse(f.started)
+
+    def test_rejected_observation_and_before_upload_have_no_creation_exit_proof(self):
+        for revision in [146, 'missing']:
+            f = self.fixture(source_revision=revision)
+            code, state = f.through('observe')
+            self.assertEqual(code == 0, revision == 'missing')
+            self.assertEqual(f.invoke('exit')[0], 0)
+            receipt = json.loads((f.public / 'exit.json').read_text())['result']
+            self.assertEqual(receipt['remote_epoch_status'], 'NOT_CREATED')
+            self.assertEqual(receipt['owned_process_stop_status'], 'NOT_STARTED')
+            self.assertFalse((f.base / 'bin' / EPOCH).exists())
+            self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
+            self.assertNotEqual(f.invoke('exit')[0], 0)
+
+    def test_pin_wire_response_matches_frozen_candidate_dto(self):
+        f = self.fixture()
+        self.assertEqual(f.through('pin')[0], 0)
+        schemas = CONTRACTS['candidate_api']['schemas']
+        raw = (f.epoch / 'chat-json/pin-private.json').read_text()
+        pin = json.loads(raw)
+        assert_dto(pin, schemas['ChannelPin'], schemas)
+
+    def test_no_observation_exit_uses_fresh_baseline_and_tool_hash_is_binding(self):
+        f = self.fixture()
+        self.assertEqual(f.invoke('exit')[0], 0)
+        receipt = json.loads((f.public / 'exit.json').read_text())['result']
+        self.assertEqual(receipt['production_baseline_comparison'], 'NOT_OBSERVED; fresh read-only baseline stable')
+        self.assertFalse([r for r in f.http_calls if r[1] == 'POST'])
+        f = self.fixture()
+        (f.public / 'tools/remote-no-launch-exit.py').write_text('# changed frozen tool\n')
+        self.assertNotEqual(f.invoke('observe')[0], 0)
+        self.assertEqual(f.calls, [])
 
     def test_candidate_revision_missing_null_or_changed_rejects_before_pin(self):
         for revision in ['missing', None, 146]:

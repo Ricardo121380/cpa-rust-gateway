@@ -20,6 +20,7 @@ assert not base.is_symlink() and base.stat().st_uid == 0
 assert stat.S_IMODE(base.stat().st_mode) == 0o700
 assert len(sys.argv) == 2
 expected = json.loads(sys.argv[1])
+assert set(expected) in (set(), {'production', 'production_config'})
 sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
 historical = {str(path.relative_to(base)): sha(path)
               for path in base.rglob('*') if path.is_file() and not path.is_symlink()}
@@ -69,8 +70,10 @@ assert not competitors
 tree = ast.parse((base / 'private/bootstrap.py').read_text())
 node = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'production')
 exec(compile(ast.Module(body=[node], type_ignores=[]), 'production-proof', 'exec'))
-assert production() == expected['production']
-args = pathlib.Path('/proc', expected['production']['MainPID'], 'cmdline').read_bytes().decode().split('\0')
+fresh_production = production()
+if expected:
+    assert fresh_production == expected['production']
+args = pathlib.Path('/proc', fresh_production['MainPID'], 'cmdline').read_bytes().decode().split('\0')
 credentials = pathlib.Path(args[args.index('--credential-dir') + 1])
 client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 with client.open(urllib.request.Request('http://127.0.0.1:18181/admin/config-versions', headers={
@@ -78,12 +81,13 @@ with client.open(urllib.request.Request('http://127.0.0.1:18181/admin/config-ver
     assert response.status == 200
     active = [{key: row[key] for key in ['id', 'revision', 'status']}
               for row in json.load(response) if row['status'] == 'active']
-assert active == expected['production_config']
+if expected:
+    assert active == expected['production_config']
 time.sleep(5)
 assert not epoch.exists() and not uploaded.exists() and not audit.exists()
 assert all(sha(base / name) == digest for name, digest in historical.items())
 assert all(stat.S_IMODE((base / name).stat().st_mode) == mode for name, mode in mode_inventory.items())
-assert production() == expected['production']
+assert production() == fresh_production
 print(json.dumps({'status': 'PASS', 'observed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   'remote_epoch_status': 'NOT_CREATED', 'owned_process_stop_status': 'NOT_STARTED', 'temporary_unit': unit,
                   'temporary_ports': ports, 'competing_processes': competitors,
@@ -93,7 +97,8 @@ print(json.dumps({'status': 'PASS', 'observed_at_utc': datetime.datetime.now(dat
                   'protected_root_inventory_sha256': hashlib.sha256(json.dumps(historical, sort_keys=True).encode()).hexdigest(),
                   'owned_epoch_and_capture_modes': '0700/0600; root owner; no symlinks',
                   'private_parent_mode': '0700', 'historical_bootstrap_modes_preserved': 'three existing 0644 receipts',
-                  'production': production(), 'production_config': active,
+                  'resource_exit_status': 'PASS', 'production': fresh_production, 'production_config': active,
+                  'production_baseline_comparison': 'PASS' if expected else 'NOT_OBSERVED; fresh read-only baseline stable',
                   'new_inference_intents': 0, 'new_gateway_pin_confirmed_sends': 0,
                   'provider_independent_receive_count': 'UNKNOWN', 'actual_provider_cost': 'UNKNOWN',
                   'management_get_intents': 1, 'production_writes': 0, 'remote_files_written': 0}))
