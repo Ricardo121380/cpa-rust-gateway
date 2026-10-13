@@ -1,11 +1,11 @@
 {
   "status": "PASS",
   "payload_files": 16,
-  "freeze_sha256": "154ffa4fd13862f2f715ba1b65378cf1fd168965d2c9815a637608e110f3602a",
-  "tar_sha256": "d6f26acf4adb3f60d12e855303c6ecaa8bf67cb6499f00e66d0df80c39b47f0a",
+  "freeze_sha256": "c30d2688d0b182f4a97d3a30216e0b7421ff8c0a6a360d6c71eeb145b8ec4545",
+  "tar_sha256": "b051aea8b6b93ac520a36e6d99c5d6b125a2b741d0e2e4cc2e84511f126420c4",
   "tar_bytes": 19804160,
   "binary_manifest_rows_verified": 2,
   "new_product_builds": 0,
   "dependency_installs": 0,
-  "previous_package": "both earlier freezes/tars retained privately and in Git history; never uploaded"
+  "previous_package": "all earlier freezes/tars retained privately and in Git history; never uploaded"
 }

@@ -3,7 +3,7 @@
   "kind": "chat_json_502_diagnostic",
   "epoch": "chat-json-diagnostic-20261013",
   "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
-  "driver_source_sha": "4cb9c3ffedb288116e21ef944f46a9b5c278af32",
+  "driver_source_sha": "8dc608486434013d0697b1e4ae548785152dcd4f",
   "fixed_driver_source_sha": "c23d2c356ec0253d93e41ca94aac821ad167fcd6",
   "files": {
     "gateway-aarch64-unknown-linux-gnu": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
@@ -18,7 +18,7 @@
     "remote-start.py": "188962232fec7ae02d7b357261ee521d9961d32e27fff73152274b0fb38eb7fc",
     "remote-pin.py": "4b757e153a8b8773fdd97385f79ed5711994b4b79c277cef98c014455bed7d0b",
     "remote-exit.py": "17d15dad92dddc9f368b4407696416b6e2c93f1c280d79b27651dfe3af64074c",
-    "remote-readiness.py": "822468a2f1fe143c9575d55755a01279052d6d663b6bc9145041e71684a6840f",
+    "remote-readiness.py": "9b3a29414f4225abe89857c5c1f68b56733caa14b02eb120f4c2e1e3f0f0a19c",
     "remote-prepare.py": "3573ae62eb9a28026be2d1dc5892709185ba1c1a73778c455b7655b8a8d4f7ba",
     "launch_recipe.py": "4f0de87b85ffa58e29784423da1ae1d39f9296cd6b21d55fde297591ce14379a",
     "qualification.py": "02b03d67124cee27f79bdab1d4a29e3bf0612b7981f5bc403736f8d68b909c16"
@@ -28,5 +28,5 @@
   "approved_recipe_file_sha256": "af73dd3177479147adca982bfcc95de7264442845f7b5a31e134643bc998bff0",
   "copy_runtime_options_file_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
   "upload_tool_sha256": "e675970fe997bffce2d69b228f1f5b49dd6b090c1c3195f5ae12130522a5fdf2",
-  "local_controller_sha256": "a1d6dadcbad92acce578f91ffa0eb089badcb0130c06149a0525d125fd102990"
+  "local_controller_sha256": "47b23c722e2f8a3aaa32a25d3a2191febbd99d24a262f9d7ba8b2aaeca4d900f"
 }

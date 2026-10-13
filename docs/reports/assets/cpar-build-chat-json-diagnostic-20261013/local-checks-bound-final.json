@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "tests": 12,
+  "bound_preparation": 8,
+  "controller_regressions": 2,
+  "actual_startup_regressions": 2,
+  "raw_log_sha256": "3361ce0607e70a2969ff06e047899c2437bb80aeaf48ff762cd7d78fdf8f2dd5",
+  "gzip_sha256": "fceffbf639607f531655d1508ae09591e0ba4839ad5ec0dee71332a98e313288",
+  "qualification_observations": 0,
+  "real_start": "NOT_RUN",
+  "provider_calls": 0,
+  "dependency_installs": 0,
+  "product_rebuilds": 0
+}
