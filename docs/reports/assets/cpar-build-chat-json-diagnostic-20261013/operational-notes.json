@@ -1,0 +1,5 @@
+{
+  "initial_scouts": "INTERRUPTED without final verdict; not PASS; primary verified exact known files",
+  "local_reuse_checker_first_attempt": "PARTIAL: included post-gate remote-final-readback path absent at c23d2c35; no product failure; corrected to exact seven executed driver files",
+  "remote_recipe_read": "PASS; one SSH read of fixed approved recipe and options only; no material/pool/management GET/Provider/write"
+}

@@ -1,0 +1,12 @@
+{
+  "observed_at_utc": "2026-10-13T03:12:15.796178+00:00",
+  "head": "810d210f7217c479ebc1376150fb3a45609b7759",
+  "branch": "codex/prism-v4-delivery",
+  "dirty_paths": 48364,
+  "dirty_inventory_sha256": "31a57ce919bec75ec000699e713c54dc6b74fd7aff007ecb504dad9e8d4206bf",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "historical_inference_intents": 35,
+  "historical_gateway_pin_confirmed_sends": 34,
+  "provider_independent_receives": "UNKNOWN",
+  "actual_provider_cost": "UNKNOWN"
+}

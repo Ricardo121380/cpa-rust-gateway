@@ -1,0 +1,35 @@
+{
+  "47": {
+    "state": "open",
+    "body_sha256": "5e63ae0e82d05fc56d1adc485bef00198113484c7ace232f1336ac0ca53bbabf",
+    "comment_id": 6081215242,
+    "comment_sha256": "d3d03d644bebf9189a4e42cfe80bb3017e01cc8118e34259bb89c0628a076586",
+    "comment_characters": 26655,
+    "dependency_count": 8,
+    "raw_issue_file_sha256": "5a5b660fb9e2fd74a473d8e78d16a2cfdec255cc9b3514ce8362705c0849d981",
+    "raw_comment_file_sha256": "191599bdbd6a8f6ab78f1a32e9f1a55a2cde263eaf0e481aaed88a50e6f05037",
+    "raw_dependency_file_sha256": "25b1e4f7e5c830f1aecc3124406e875885533728fe62acfbc2a96f418cf4262d"
+  },
+  "57": {
+    "state": "open",
+    "body_sha256": "cdd968238ea0601b03a3b130d6ed612ded71309af2b2ef9622d10182e76e441f",
+    "comment_id": 6081234278,
+    "comment_sha256": "dd62ab31b74871a67d9fcbeea2f30c36aacb63cb9599a445bf36c25c8edd6ad0",
+    "comment_characters": 30368,
+    "dependency_count": 23,
+    "raw_issue_file_sha256": "afddc6d925f8830a723169cbd2c6fb8666bcd9db4abacd35fdf761db2e9b4f59",
+    "raw_comment_file_sha256": "553fece65e12e5a27d4284a03c708adc6cc762e86f7573224e9f8de0fbe1e7f4",
+    "raw_dependency_file_sha256": "5ed3961c3eb401033d412284688c0408710dd13a831ad86c3df9afdda0b58564"
+  },
+  "9": {
+    "state": "open",
+    "body_sha256": "ad15acac4149b1c313ea568fcbfee54c42106aac40302bb1afa43e60bddfb6c7",
+    "comment_id": 6081235490,
+    "comment_sha256": "7857b1ddacf956bd3dc35b16768425f8beda81ccbc2b6e80765d4cf38dc15a1f",
+    "comment_characters": 29114,
+    "dependency_count": 0,
+    "raw_issue_file_sha256": "defbb6840d8fdf3b203d74333c50a922e0a011de710688781281389a3bef9885",
+    "raw_comment_file_sha256": "50984194f9e3b905df90b2443944f1ea3eef115d2f1c662d624d2a352c846a1d",
+    "raw_dependency_file_sha256": "cf1cbb66a638b4860a516671fb74850e6ccf787fe6c4c8d29e9c04efe880bd05"
+  }
+}
