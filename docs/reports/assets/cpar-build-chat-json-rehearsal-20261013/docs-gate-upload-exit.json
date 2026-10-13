@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "gate": "supplemental docs/static",
+  "steps": 7,
+  "checked_head": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d",
+  "raw_log_sha256": "4fb5b8048390117c3c7d4a3540b05c5a4208ab1cd5f1924b84197ed6e2b78934",
+  "gzip_sha256": "956ac768f0e9ec66af94ab1171ddb9ce3ac860ee6cd539900547e902ed49e773",
+  "scope_classifier": "code; Python driver behavior",
+  "product_full": "REUSED; verified unchanged inputs; no product build or dependency install",
+  "driver_gate": "31 LOCAL_SIMULATED checks PASS"
+}

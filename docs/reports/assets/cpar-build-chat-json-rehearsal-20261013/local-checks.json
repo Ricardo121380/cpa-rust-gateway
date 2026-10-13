@@ -1,26 +1,30 @@
 {
   "status": "PASS",
   "layer": "LOCAL_SIMULATED",
-  "code_source_sha": "6ff7a51634bd7814b74736db85fc36b07f761d91",
-  "full_flow_tests": 17,
+  "code_source_sha": "400bb6724a40ff976fe1f07363c0e2e554d9bb6d",
+  "full_flow_tests": 18,
   "preparation_tests": 9,
   "controller_tests": 2,
   "startup_tests": 2,
-  "total_tests": 30,
-  "red_defects": 5,
+  "total_tests": 31,
+  "red_defects": 6,
   "provider_calls": 0,
   "builds": 0,
   "dependency_installs": 0,
   "product_full": "REUSED Task42/42 Phase45/45; hashes matched",
-  "payload_freeze_sha256": "d9d6e8954cb8e8b1000ce8e5970ea6c3c3cd650fd0cfee745ed7be74a5152f8c",
+  "payload_freeze_sha256": "53c1e3885231bd22a91d9c58d986c6638c6dd596c640afd0e9f6e6f92b88821a",
   "test_logs": {
-    "review-gap-green": "dfecd81596602346f45b93aff6190a8ca8141626459d72c14fb5e332ed53200a",
+    "upload-exit-green": "d06d4a9f6f2719393814540e522944e4f9df876801b6db8e5e617dbce6f3c6b6",
     "review-gap-local": "84f8daa55e04f6c202ed05569e0764b78619375d354e6419f7700d08142458fc",
-    "review-gap-control": "cc78b3de9f731304fff49c7720d3246f879b380395385849501f0d890f260f16",
+    "upload-exit-control": "11dcfb70a0d0bed1693c01aa184b3c98ab74730e817618ce1d6d8ffb17a3a8fd",
     "review-gap-start": "a9b623621d7c7268a7816d9f8693bbe63f006fd731d06efda56860e80cf2c026"
   },
   "versioned_schema_closure": {
     "source": 8,
     "candidate": 12
+  },
+  "unchanged_test_reuse": {
+    "preparation": 9,
+    "startup": 2
   }
 }
