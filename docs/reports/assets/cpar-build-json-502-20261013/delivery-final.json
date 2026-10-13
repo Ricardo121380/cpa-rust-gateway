@@ -1,0 +1,41 @@
+{
+  "status": "PASS for owned delivery static and preservation checks",
+  "checked_at_utc": "2026-10-13T02:33:35.807359+00:00",
+  "baseline_head": "201dbe2e283b9c07c85b6054779f53f4d368afd2",
+  "review_target": "4104b5a373d50e53c2f57bfab67617d8debf43f7",
+  "reviewed_union_files": 43,
+  "review_axes": {
+    "Standards": "PASS/0",
+    "Spec": "PASS/0 after independent supplement; original PARTIAL retained"
+  },
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_unchanged_and_unstaged": true,
+  "initial_status_sha256": "2acd9f2b46883a09b60ea63e9d6ea4a7cab36aae1aefe26b80882f1e121c1df7",
+  "initial_dirty_paths_exist": 119,
+  "initial_dirty_paths_missing": 0,
+  "product_build_sources_equal_bf822": true,
+  "private_directories": "0700",
+  "private_files": "0600",
+  "private_symlinks": 0,
+  "private_entry_count": 104,
+  "json_gzip_helper_syntax": "PASS",
+  "review_archive_digests": "PASS",
+  "github": "3 existing comments appended/readback PASS; issues OPEN",
+  "diagnostic": "BLOCKED_BEFORE_PREPARE",
+  "new_intents": 0,
+  "new_confirmed_sends": 0,
+  "historical_intents": 35,
+  "historical_confirmed_sends": 34,
+  "provider_receives": "UNKNOWN",
+  "provider_cost": "UNKNOWN",
+  "six_combination_acceptance": "NOT_RUN 0/6",
+  "resource_exit": "PASS / NOT_CREATED_VERIFIED",
+  "remote_ci_release_deploy_production_acceptance": "NOT_RUN",
+  "no_push": true,
+  "no_following_real_epoch": true,
+  "limits": [
+    "only AGENTS has fresh initial content hash; unrelated untracked paths verified existence, not complete tree byte hashes",
+    "remote resource/production observations apply to recorded readiness and exit windows",
+    "post-target final verdict archives and report links are root static-verified, not claimed as part of earlier target"
+  ]
+}
