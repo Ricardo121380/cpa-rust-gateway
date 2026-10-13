@@ -1,0 +1,174 @@
+{
+  "status": "PASS",
+  "root_mode": "0700",
+  "files_mode": "0600",
+  "symlinks": 0,
+  "owned_paths_only": true,
+  "corrected_paths": [
+    {
+      "path": "readiness-failure-export.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-bound-final.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "controller-bound-final.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "start-red.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "start-red.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "controller-bound-final.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-bound-final.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "controller-red.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-after-repair.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-green.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate-repair.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate-final.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-after-start.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "start-bound-final.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate-pre-execution.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "controller-green.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "start-green.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-red.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate-pre-execution.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "start-green.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "controller-green.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "start-bound-final.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate-final.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "docs-gate-repair.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "parent-spec.md",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-after-start.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-green.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "controller-red.stdout",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    },
+    {
+      "path": "local-tests-after-repair.stderr",
+      "old_mode": "0o644",
+      "new_mode": "0o600"
+    }
+  ]
+}
