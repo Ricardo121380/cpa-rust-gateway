@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "checked_at_utc": "2026-10-13T02:20:52.188796+00:00",
+  "json_syntax": "all owned JSON",
+  "helper_ast": "both initial retained and final read-only helpers",
+  "gzip": "all owned logs decompress",
+  "github": "all three independent readbacks PASS/OPEN",
+  "agents_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "agents_unchanged_from_task_baseline": true,
+  "product_and_prism_worktree_changes": 0,
+  "private_directories": "0700",
+  "private_files": "0600",
+  "private_symlinks": 0,
+  "private_entry_count": 103,
+  "native_response_created_this_batch": false,
+  "remote_launch_or_inference_after_qualification_stop": false,
+  "prior_failure_and_correction": "local-permission-correction.json",
+  "limits": "local private permission readback and byte baseline for AGENTS; not a new full unrelated-untracked byte baseline"
+}

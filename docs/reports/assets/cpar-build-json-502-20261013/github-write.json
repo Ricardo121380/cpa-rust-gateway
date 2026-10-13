@@ -1,0 +1,41 @@
+{
+  "status": "PASS; all three existing comments appended and independently GET matched",
+  "updated_at_utc": "2026-10-13T02:18:59.335253+00:00",
+  "review_target": "78acbcda00561a38d4964026fec362070a7a487b",
+  "items": [
+    {
+      "number": 47,
+      "comment_id": 6081215242,
+      "patch_exit_code": 0,
+      "independent_get_matches": true,
+      "state": "comment append only",
+      "new_body_sha256": "d3d03d644bebf9189a4e42cfe80bb3017e01cc8118e34259bb89c0628a076586",
+      "history_prefix_preserved": true,
+      "marker_count": 1,
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242"
+    },
+    {
+      "number": 57,
+      "comment_id": 6081234278,
+      "patch_exit_code": 0,
+      "independent_get_matches": true,
+      "state": "comment append only",
+      "new_body_sha256": "dd62ab31b74871a67d9fcbeea2f30c36aacb63cb9599a445bf36c25c8edd6ad0",
+      "history_prefix_preserved": true,
+      "marker_count": 1,
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278"
+    },
+    {
+      "number": 9,
+      "comment_id": 6081235490,
+      "patch_exit_code": 0,
+      "independent_get_matches": true,
+      "state": "comment append only",
+      "new_body_sha256": "7857b1ddacf956bd3dc35b16768425f8beda81ccbc2b6e80765d4cf38dc15a1f",
+      "history_prefix_preserved": true,
+      "marker_count": 1,
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490"
+    }
+  ],
+  "retry_after_mutation": "none; separate GET reconciles actual state"
+}

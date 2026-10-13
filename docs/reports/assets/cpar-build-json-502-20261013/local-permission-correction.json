@@ -1,0 +1,16 @@
+{
+  "status": "PASS after owned local report-copy permission correction",
+  "corrected_at_utc": "2026-10-13T02:20:52.049656+00:00",
+  "initial_static_check": "FAIL at private-tree mode assertion; no success receipt emitted",
+  "object": "this batch local private copy of public docs-gate.md",
+  "previous_mode": "0644",
+  "parent_mode": "0700",
+  "new_mode": "0600",
+  "bytes_sha256": "d981fad132c7c0955d33d9fad0c4126813d621f4929d9c89b7ea28515441817d",
+  "bytes_unchanged": true,
+  "native_or_credentials": false,
+  "old_remote_history_modified": false,
+  "scope": "one owned local report copy only",
+  "subsequent_git_add": "previous attempt failed because missing delivery-static.json; staged no paths",
+  "subsequent_commit": "no commit was created; no tracked or old evidence was overwritten"
+}

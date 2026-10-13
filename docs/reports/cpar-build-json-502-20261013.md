@@ -117,12 +117,21 @@ NOT_CREATED_VERIFIED；临时 unit MainPID0/not-found，19180/19181无监听或�
 的 payloads 字段，依据实际 files/name 结构闭合，原 PARTIAL 不作 PASS。没有重建任何
 失败原始日志，原生响应和凭据未进入公开证据。
 
+最终[本地静态核验](assets/cpar-build-json-502-20261013/delivery-static.json)为 PASS：
+本批 JSON/辅助脚本语法、gzip、GitHub 读回及私有0700/0600均核实。
+首次核验发现本批公开 docs 报告的一份本地私有副本为0644，已仅对该自有副本收紧为
+0600并保持字节；[修正回执](assets/cpar-build-json-502-20261013/local-permission-correction.json)
+保留首次失败及影响范围。该文件不含原生响应或凭据，未修改旧远端权限。
+
 ## GitHub 与后续条件
 
 三票初始均 OPEN，原进度各一条；依赖分别8/23/0，见
 [初始三票摘要](assets/cpar-build-json-502-20261013/github-initial-summary.json)。
-只向既有评论追加本次脱敏记录，保留历史前缀、正文/AC、state、元数据及分页依赖，
-写入后独立 GET 核对；写入与读回结果单独封存。三票局部修复不满足整体关闭条件。
+已向三票既有评论各追加一次本次脱敏记录，并独立 GET 读回全部评论、票正文及完整
+分页依赖，结果 **PASS**，见[写入与读回](assets/cpar-build-json-502-20261013/github-readback.md)。
+#47/#57/#9 的历史前缀分别24,298/27,999/26,738字符精确保留，评论各仍一条，
+本批标记各只出现一次；原正文/AC、state、受保护元数据和8/23/0依赖保持。
+三票继续 **OPEN**，局部修复不满足整体关闭条件。
 只提交本批拥有证据，用户 AGENTS 与无关文件保留，见
 [保存核验](assets/cpar-build-json-502-20261013/workspace-preservation.json)；
 不 push 或发布/部署。
