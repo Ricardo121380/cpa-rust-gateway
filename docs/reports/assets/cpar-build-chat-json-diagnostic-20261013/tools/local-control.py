@@ -54,6 +54,7 @@ def remote(script, name, timeout=150, stream=None, arguments=()):
     (PRIVATE / (name + '.stdout')).write_bytes(result.stdout)
     (PRIVATE / (name + '.stderr')).write_bytes(result.stderr)
     receipt = {'exit_code': result.returncode,
+               'executed_script_sha256': hashlib.sha256(script.encode()).hexdigest(),
                'stdout_sha256': hashlib.sha256(result.stdout).hexdigest(),
                'stderr_sha256': hashlib.sha256(result.stderr).hexdigest(),
                'observed_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}

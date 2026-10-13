@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "all_batch_python_files_parse": 14,
+  "actual_failure_handler": "offline AssertionError exports closed rejection and available fresh runtime baseline; no message/credential/native content",
+  "failure_export_sha256": "e87bbd321fe11417c7da6cfa48c650bd47f1d5cacc800760fbce9806f1bf20f0",
+  "no_launch_exit": "derived exact prior approved read-only script; new owned paths/unit and distinct NOT_CREATED / NOT_STARTED only",
+  "provider_calls": 0,
+  "remote_actions": 0
+}
