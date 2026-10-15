@@ -1,0 +1,18 @@
+{
+  "head": "3163542007fb4fab56a64f34d1bf17f573a5dd5a",
+  "status": "NOT_RUN; no push or dispatch",
+  "result": {
+    "actions": {
+      "exit_code": 0,
+      "total_count": 0,
+      "message": null,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "checks": {
+      "exit_code": 1,
+      "total_count": null,
+      "message": "No commit found for SHA: 3163542007fb4fab56a64f34d1bf17f573a5dd5a",
+      "stderr_sha256": "24d8b2faca4ba967a30522b02c602ca71c8c8da94aab6b0239c41bd006c56219"
+    }
+  }
+}

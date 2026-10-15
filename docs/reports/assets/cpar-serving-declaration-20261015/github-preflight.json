@@ -1,0 +1,26 @@
+{
+  "status": "PASS_PREPARED_ONLY",
+  "records": {
+    "47": {
+      "comment_id": 6081215242,
+      "before_body_sha256": "9af8eeac0ba620efd7f952d81ae70ce82fd448f6e07d68bd396f40a9642fd014",
+      "after_body_sha256": "863fa87207d724fd58be6e4ef232a686432a87ec5c0ddfa7400033e95fa524c9",
+      "expected_prefix_preserved": true,
+      "state": "open"
+    },
+    "57": {
+      "comment_id": 6081234278,
+      "before_body_sha256": "a34b5a3a4eda2e5780e39b43dda3780fac72a31ce842e61d17ef8fba4101edb5",
+      "after_body_sha256": "609940a86663d8ea6c06a61ed81c6448c3e044da4b8804c050ebf00431a8eba8",
+      "expected_prefix_preserved": true,
+      "state": "open"
+    },
+    "9": {
+      "comment_id": 6081235490,
+      "before_body_sha256": "928379e07d459ee481494ddbb3238eddc940e0f58280a26204587bf094f5dd52",
+      "after_body_sha256": "a130f74b9f0ea0ddbf7ee8aacfd9fbc89cb0a6648c252ce92585fa9310cecb1e",
+      "expected_prefix_preserved": true,
+      "state": "open"
+    }
+  }
+}

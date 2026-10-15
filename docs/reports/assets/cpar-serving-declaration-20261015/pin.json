@@ -1,0 +1,84 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "62f8567cd9432e1173f563281faebe726e14fc9a4fdd4e4ba4e7c19ffae93ef8",
+  "stdout_sha256": "f1152fdb6ac4759cc32430d3680ef3f73d8b3abe087e59343898736246960b76",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-15T05:44:23.241716+00:00",
+  "result": {
+    "combination": "chat-json",
+    "status": "PASS",
+    "new_pin_intent": 1,
+    "historical_inference_requests": 35,
+    "basic_sent_requests": 0,
+    "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "management_get_requests": 44,
+    "presend_target": {
+      "channel": "grok.build",
+      "endpoint_id": "cpar-build-endpoint",
+      "route_id": "cpar-build-route",
+      "route_candidate_id": "cpar-build-candidate",
+      "upstream_model": "grok-4.5",
+      "public_model": "grok-4.5",
+      "response_model": "grok-4.5",
+      "credential_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+      "credential_revision": 153,
+      "config_version_id": "cpar-build-config-20261010",
+      "config_revision": 9,
+      "egress_evidence_id": "69aa38e91dc761ae26632216b5fc04e7362ce1437b2116cc15340c6c77e830b6",
+      "egress_revision": {
+        "source": "not_applicable"
+      },
+      "protocol": "chat",
+      "mode": "json",
+      "parameters": {
+        "max_completion_tokens": 4096
+      },
+      "capabilities": {
+        "reasoning": true,
+        "parallel": false,
+        "stored": true,
+        "continuation": true,
+        "compact": true,
+        "websocket": true
+      },
+      "declaration_evidence": {
+        "source": "serving_snapshot",
+        "config_version_id": "cpar-build-config-20261010",
+        "config_revision": 9,
+        "capabilities": {
+          "reasoning": true,
+          "parallel": false,
+          "stored": true,
+          "continuation": true,
+          "compact": true,
+          "websocket": true
+        },
+        "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+        "projection_id": "d7775c19a4e6e01e2bcc67df31e61e534784838a1daba34422b5e495f2f5dafa",
+        "observed_at_utc": "2026-10-15T05:44:20.988000+00:00",
+        "route_id": "cpar-build-route",
+        "route_candidate_id": "cpar-build-candidate",
+        "endpoint_id": "cpar-build-endpoint",
+        "upstream_model": "grok-4.5"
+      },
+      "declaration_observed_at_utc": "2026-10-15T05:44:20.988000+00:00"
+    },
+    "presend_runtime": {
+      "pid": 972264,
+      "process_start": "696962272",
+      "artifact_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+      "artifact_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+      "manifest_sha256": "a16d9373318271ca98dd4037c87ed81f7b2ae1f86c049d0e20b5a44e2444d2cd"
+    },
+    "management_pin_http_status": 200,
+    "pin_outcome": "succeeded",
+    "pin_attempt_count": 1,
+    "pin_upstream_sent": true,
+    "pin_stage": "http_status",
+    "pin_response_started": true,
+    "private_pin_sha256": "6be8a015a21160cea629a950e2eaa6244b621d8a57849caad93d5065c9d6709e",
+    "observed_at_utc": "2026-10-15T05:44:23.000703+00:00",
+    "new_basic_intents": 0
+  }
+}

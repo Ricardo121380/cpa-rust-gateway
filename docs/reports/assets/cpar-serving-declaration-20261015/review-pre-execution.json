@@ -1,0 +1,26 @@
+{
+  "base": "0e0c3e7f035cc108294a4250d402c3e78d6a0c36",
+  "head": "3163542007fb4fab56a64f34d1bf17f573a5dd5a",
+  "recorded_at_utc": "2026-10-15T05:41:27.673264+00:00",
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "agent": "/root/preflight_standards",
+      "terminal": "complete",
+      "hard_findings": 0,
+      "scope": "0e0c3e7f...31635420; no test/SSH/Provider",
+      "summary": "New clone-only catalog archive/detach, fail-closed collector, exact18-file freeze, unchanged release runtime and accurate evidence layers verified."
+    },
+    "Spec": {
+      "status": "PASS",
+      "agent": "/root/preflight_spec",
+      "terminal": "complete",
+      "blocking_findings": 0,
+      "scope": "same fixed diff, batch-contract and actual evidence",
+      "summary": "No missing prerequisite code or scope creep; real qualification/start/declaration/Pin/Chat remain conditional runtime gates; old HTTP unknown retained."
+    }
+  },
+  "payload_freeze_sha256": "13c1404942aa62215ebc3f89be090b2c27ea473f6f5a4d1001ef56e80cfcba72",
+  "system_gate_sha256": "bef8815f766c09c5a13eb0ea007a115a8685e692100e12f6e56c19fba6f169e5",
+  "actual_formal_gates": "NOT_RUN; review is conditional, not real Provider acceptance"
+}

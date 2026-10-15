@@ -1,0 +1,14 @@
+{
+  "initial_status": "FAIL_HELPER_PATH_PROJECTION",
+  "initial_receipt": "formal-final-readback.json",
+  "initial_source": "formal-final-readback.py",
+  "resource_checks_before_failure": "unit/PID/cgroup/stop intent/startup observation already passed",
+  "correction": "private_files keys are base relative, not epoch relative; enforce exact epoch prefix before resolving against base",
+  "new_runtime_launches": 0,
+  "new_provider_intents": 0,
+  "second_receipt": "formal-final-readback-corrected.json",
+  "second_failure": "structured inventory facts compared to string digest",
+  "final_source": "formal-final-readback-final.py",
+  "final_status": "PASS",
+  "inventory_semantics": "immutable capture rehash plus durable SQLite SQL; checkpoint file lifecycle separate"
+}

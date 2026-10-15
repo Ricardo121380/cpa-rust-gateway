@@ -1,0 +1,117 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "300c498240cf2d7d04d8d7b829b8dfab7dd608e7cfc535159566c4055aa47aaf",
+  "stdout_sha256": "7aa129af005a6aa3264c08758f2c5007461f94f9b97e72df62858c7c096b4080",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-15T05:45:08.451059+00:00",
+  "result": {
+    "status": "PASS; resource exit and count reconciliation",
+    "resource_exit_status": "PASS",
+    "count_reconciliation_status": "PASS",
+    "exit_observations_sha256": "fd97645265110fbb82160214a969a6bc2865e71fa61b1178e11001982d2e56a4",
+    "stop_intent_sha256": "0fd4c8545571adcf9e78bbf9618699d89779ca000e2efa454df40d5a8731e532",
+    "observed_at_utc": "2026-10-15T05:45:08.193402+00:00",
+    "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "process_pid_before_stop": 972264,
+    "main_pid_after_stop": 0,
+    "temporary_ports_listening": [],
+    "post_stop_flat_seconds": 5,
+    "network_audit_sha256": "78dc83f113534a0c1fc109adc57d048740b1c6646233925e29445e1335881086",
+    "network_audit_events": [
+      "dns_build_allowed",
+      "connect_build_allowed",
+      "dns_build_allowed"
+    ],
+    "new_pin_intents": 1,
+    "new_basic_intents": 1,
+    "new_pin_actual_sends": 1,
+    "new_pin_confirmed_sends_lower_bound": 1,
+    "pin_send_accounting_complete": true,
+    "new_basic_attempts": 1,
+    "basic_send_accounting_complete": true,
+    "new_basic_confirmed_sends_lower_bound": 1,
+    "new_gateway_pin_confirmed_sends_lower_bound": 2,
+    "new_gateway_pin_actual_sends": 2,
+    "new_event_counts": {
+      "attempt": 1,
+      "request": 1,
+      "request_finished": 1,
+      "usage": 1
+    },
+    "inherited_event_counts": {
+      "attempt": 1,
+      "request": 1,
+      "request_finished": 1,
+      "usage": 1
+    },
+    "new_ledger_rows": 1,
+    "all_attempt_outcomes_including_inherited": [
+      "succeeded",
+      "succeeded"
+    ],
+    "all_attempt_retry_decisions_including_inherited": [
+      "completed",
+      "completed"
+    ],
+    "billing_including_inherited": [
+      {
+        "cost_microunits": null,
+        "cost_confidence": "unpriced",
+        "billing_status": "unpriced"
+      },
+      {
+        "cost_microunits": null,
+        "cost_confidence": "unpriced",
+        "billing_status": "unpriced"
+      }
+    ],
+    "budget": {
+      "schema_version": 1,
+      "kind": "chat_json_502_diagnostic",
+      "historical_inference_requests": 35,
+      "historical_gateway_pin_confirmed_sends": 34,
+      "new_pin_intents": 1,
+      "new_basic_intents": 1,
+      "new_inference_limit": 2,
+      "new_pin_limit": 1,
+      "new_basic_limit": 1,
+      "cumulative_inference_limit": 37,
+      "stopped": true,
+      "pin_status": "PASS",
+      "chat_status": "REPRODUCED",
+      "provider_receive_count": null,
+      "actual_cost": null,
+      "retries": 0,
+      "fallbacks": 0,
+      "refresh_reauthorization": 0
+    },
+    "account_native_revision": 152,
+    "worker_claim": null,
+    "production_after": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "dca3a7a34532447432fae49036bdde3d67412861b3b8bfcf737f62ab7fa2966c"
+    },
+    "production_active_configuration": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "historical_file_hashes_preserved": true,
+    "provider_http_receive_count": "UNKNOWN; independent Provider receive counter unavailable",
+    "new_provider_calls_in_exit": 0,
+    "management_get_intents_in_exit": 1,
+    "private_file_count": 62,
+    "private_inventory_sha256": "78dd0d065b95a9256f7cc57c8f6962da8bdf786b6775ab65cfa1743dba64d198"
+  }
+}

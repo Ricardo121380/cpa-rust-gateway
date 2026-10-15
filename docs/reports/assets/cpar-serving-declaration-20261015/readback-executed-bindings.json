@@ -1,0 +1,26 @@
+[
+  {
+    "name": "formal-final-readback",
+    "executed_script_sha256": "ff127baef3cf2bcc042479639b8d8e1578a4fb23fa392ac12cf08faf998fbceb",
+    "source": "formal-final-readback.py",
+    "wrapper_prefix": "expected_exit = repr(exit.json.result) + newline",
+    "exit_receipt_sha256": "8d8eba589c648b474c398e31a9c66002ffbd76a064a36c703730518abe8575da",
+    "exit_code": 1
+  },
+  {
+    "name": "formal-final-readback-corrected",
+    "executed_script_sha256": "03f9e544e8f95a6ba40dcd8c49af58e9cb7b01d6041e95656330d7997fe8d2b6",
+    "source": "formal-final-readback-corrected.py",
+    "wrapper_prefix": "expected_exit = repr(exit.json.result) + newline",
+    "exit_receipt_sha256": "8d8eba589c648b474c398e31a9c66002ffbd76a064a36c703730518abe8575da",
+    "exit_code": 1
+  },
+  {
+    "name": "formal-final-readback-final",
+    "executed_script_sha256": "f9e86f14e462ee063a7bad730730cd00c2fee04dafcabc6689bc58eba659a3aa",
+    "source": "formal-final-readback-final.py",
+    "wrapper_prefix": "expected_exit = repr(exit.json.result) + newline",
+    "exit_receipt_sha256": "8d8eba589c648b474c398e31a9c66002ffbd76a064a36c703730518abe8575da",
+    "exit_code": 0
+  }
+]

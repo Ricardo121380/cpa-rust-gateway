@@ -1,0 +1,86 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "8988fd68938cf24ff810801a4563dc928ba62545b4b53cd9ed0d1757771c22f3",
+  "stdout_sha256": "afd78bdcef4dbe899301fa0e473ef0306052bd1a249192d43c57bb181709a052",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-15T05:43:41.283497+00:00",
+  "result": {
+    "status": "PASS",
+    "startup_gates": {
+      "exec": "PASS",
+      "identity": "PASS",
+      "listeners": "PASS",
+      "application": "PASS",
+      "quiet_audit": "PASS"
+    },
+    "startup_observations_sha256": "da95fcbafa15d51495f25af9893f8dbd0701ae89d5ae7d104f86b966bb92af62",
+    "observed_at_utc": "2026-10-15T05:43:40.965672+00:00",
+    "source_sha": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+    "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "manifest_sha256": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+    "pid": 972264,
+    "process_start": "696962272",
+    "service": "cpar-build-chat-json-serving-20261015.service",
+    "actual_argv_exact_match": true,
+    "argv_sha256": "066326aa780f1b4a50594bc4070d0c3dc7045d01d3de8dea797d33da3b85fffd",
+    "assembled_launch_sha256": "ae3609d4db2ee0a170e37dee5022f4de8b259f4c06c1035e163c6202a1339349",
+    "configuration_id": "cpar-build-config-20261010",
+    "configuration_revision": 9,
+    "account_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54",
+    "native_revision": 152,
+    "runtime_projection_revision": 153,
+    "source_ciphertext_and_all_account_fields_match_except_import_batch": true,
+    "source_key_version_match": 1,
+    "expires_at_ms": 1792050222392,
+    "worker_claim": null,
+    "guard_sha256": "91c943c76884a2b674a0b24d5d4876ff40cf61b53c379ffe2d04a062a0dddf06",
+    "guard_mapped": true,
+    "listening_ports": [
+      19180,
+      19181
+    ],
+    "listener_pid": 972264,
+    "listener_socket_ownership_verified": true,
+    "background_provider_tasks": "disabled",
+    "flat_observation_seconds": 65.46548114158213,
+    "new_network_audit_events": 0,
+    "competing_state_processes": [],
+    "management_audit_unchanged": true,
+    "management_get_requests": 5,
+    "production_before": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "dca3a7a34532447432fae49036bdde3d67412861b3b8bfcf737f62ab7fa2966c"
+    },
+    "production_active_configuration": [
+      {
+        "id": "kimi-binding-a65aff19-302e-471c-846c-2ed3a6a4af75",
+        "revision": "rev-1",
+        "status": "active"
+      }
+    ],
+    "production_after": {
+      "MainPID": "499070",
+      "NRestarts": "0",
+      "ExecMainStartTimestampMonotonic": "5514090365162",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/etc/systemd/system/cpa-rust-gateway.service",
+      "unit_sha256": "fe8e5fb9329a478c17fac3b23a8a3c29bc6048aab7f6af6db82e14589bc49213",
+      "binary_sha256": "0b516c319d901f5a544f0ca9e10bf0338601ba4dc40c92ea6921bb0706fbc54b",
+      "current_target": "/opt/cpa-rust-gateway/releases/b0cf36e387b774439acc23830221389eb3ac74d0",
+      "caddyfile_sha256": "dca3a7a34532447432fae49036bdde3d67412861b3b8bfcf737f62ab7fa2966c"
+    },
+    "provider_inference_requests": 0,
+    "catalog_requests": 0,
+    "preserved_historical_file_count": 753,
+    "historical_inventory_sha256": "da0a11b4571cdc08ece613acbe23d817e96d5d72cd036d5538a5e8e3d177f2cf"
+  }
+}

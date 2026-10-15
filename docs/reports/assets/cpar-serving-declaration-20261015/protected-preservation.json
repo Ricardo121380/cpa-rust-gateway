@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "historical_files_checked": 209,
+  "changed_count": 0,
+  "inventory_sha256": "8bfed9e83b55f1f1864e6f1479fb42286178fbaca5e301fad73a601eb2e4451e",
+  "user_AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "user_AGENTS_unchanged": true,
+  "old_stop_budgets": "all preserved; no resume or transfer"
+}

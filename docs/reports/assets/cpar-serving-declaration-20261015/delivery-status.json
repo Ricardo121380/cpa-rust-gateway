@@ -1,0 +1,52 @@
+{
+  "status": "SERVING_CHAIN_FIXED; CHAT_502_REPRODUCED; EPOCH_STOPPED",
+  "product_source": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "driver_review_head": "3163542007fb4fab56a64f34d1bf17f573a5dd5a",
+  "payload_freeze_sha256": "13c1404942aa62215ebc3f89be090b2c27ea473f6f5a4d1001ef56e80cfcba72",
+  "prepare_margin_at_receipt_seconds": 7283.987449951172,
+  "formal_runtime_launches": 1,
+  "optional_remote_zero_provider_runs": 0,
+  "fresh_pin_calls": 1,
+  "original_chat_calls": 1,
+  "new_intents": 2,
+  "new_gateway_pin_confirmed_sends": 2,
+  "historical_intents": 35,
+  "historical_gateway_pin_confirmed_sends": 34,
+  "cumulative_intents": 37,
+  "cumulative_gateway_pin_confirmed_sends": 36,
+  "budget_stopped": true,
+  "unused_intents": 0,
+  "pin_status": "PASS",
+  "chat_status": "REPRODUCED",
+  "chat_http_status": 502,
+  "rejection": "unknown_extensions",
+  "native_transport_status": 200,
+  "actual_pin_and_chat_lease_revision": 153,
+  "new_event_counts": {
+    "attempt": 1,
+    "request": 1,
+    "request_finished": 1,
+    "usage": 1
+  },
+  "new_ledger_rows": 1,
+  "provider_independent_receive_count": null,
+  "actual_provider_cost": null,
+  "matrix_status": "NOT_RUN; prerequisites BLOCKED",
+  "resource_exit_status": "PASS",
+  "independent_readback_initial_failures": [
+    "base-relative inventory path wrongly resolved from epoch",
+    "inventory values are structured sha256/bytes/mode facts rather than strings"
+  ],
+  "final_readback": "formal-final-readback-final.json",
+  "readback_result_sha256": "35acbdb958e71a4e9a9004f7bdc37c8e62889bbee15457ecbba6f209d360cab0",
+  "preserved_unknowns": [
+    "historical second Client Key/effective HTTP page facts",
+    "historical old502 exact root cause",
+    "exact native extension causing current unknown_extensions",
+    "Provider-independent receive count",
+    "actual Provider cost"
+  ],
+  "github_status": "PASS3/3; all OPEN",
+  "remote_ci_status": "NOT_RUN",
+  "final_material_review": "PENDING; pre-execution PASS/PASS remains fixed"
+}

@@ -1,0 +1,130 @@
+{
+  "exit_code": 0,
+  "executed_script_sha256": "f9e86f14e462ee063a7bad730730cd00c2fee04dafcabc6689bc58eba659a3aa",
+  "stdout_sha256": "571c2a86a26e16cdfbfa0b2fb5c81ade1e33dc9d3752d529079c05579f62d354",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "observed_at_utc": "2026-10-15T05:49:20.522732+00:00",
+  "result": {
+    "status": "PASS",
+    "kind": "READ_ONLY_FINAL_FORMAL_RESOURCE_AND_COUNT_READBACK",
+    "unit": {
+      "MainPID": "0",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "resource_exit_status": "PASS",
+    "budget_stopped": true,
+    "unused_intents": 0,
+    "new_pin_intents": 1,
+    "new_chat_intents": 1,
+    "new_gateway_pin_confirmed_sends": 2,
+    "new_event_counts": {
+      "attempt": 1,
+      "request": 1,
+      "request_finished": 1,
+      "usage": 1
+    },
+    "new_ledger_rows": 1,
+    "actual_fresh_pin_lease_revision": 153,
+    "chat_status": "REPRODUCED",
+    "http_status": 502,
+    "rejection": "unknown_extensions",
+    "declaration_reads": [
+      {
+        "name": "inspection-0-private.json",
+        "sha256": "7e604d804e8ad792a15df09f9e27f940e0f9047d04f5da9e19245d38b4fe3da1",
+        "key_pages": 1,
+        "effective_pages": 1,
+        "models": 1,
+        "sources": 1,
+        "declaration": {
+          "source": "serving_snapshot",
+          "config_version_id": "cpar-build-config-20261010",
+          "config_revision": 9,
+          "capabilities": {
+            "reasoning": true,
+            "parallel": false,
+            "stored": true,
+            "continuation": true,
+            "compact": true,
+            "websocket": true
+          },
+          "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+          "projection_id": "d7775c19a4e6e01e2bcc67df31e61e534784838a1daba34422b5e495f2f5dafa",
+          "observed_at_utc": "2026-10-15T05:44:20.988000+00:00",
+          "route_id": "cpar-build-route",
+          "route_candidate_id": "cpar-build-candidate",
+          "endpoint_id": "cpar-build-endpoint",
+          "upstream_model": "grok-4.5"
+        }
+      },
+      {
+        "name": "inspection-1-private.json",
+        "sha256": "55be22822c9a7b3100b1468e3ee65a661164b1f33d5f929d0eacd47b9e32d144",
+        "key_pages": 1,
+        "effective_pages": 1,
+        "models": 1,
+        "sources": 1,
+        "declaration": {
+          "source": "serving_snapshot",
+          "config_version_id": "cpar-build-config-20261010",
+          "config_revision": 9,
+          "capabilities": {
+            "reasoning": true,
+            "parallel": false,
+            "stored": true,
+            "continuation": true,
+            "compact": true,
+            "websocket": true
+          },
+          "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+          "projection_id": "d7775c19a4e6e01e2bcc67df31e61e534784838a1daba34422b5e495f2f5dafa",
+          "observed_at_utc": "2026-10-15T05:44:22.966000+00:00",
+          "route_id": "cpar-build-route",
+          "route_candidate_id": "cpar-build-candidate",
+          "endpoint_id": "cpar-build-endpoint",
+          "upstream_model": "grok-4.5"
+        }
+      },
+      {
+        "name": "chat-presend-runtime-private.json",
+        "sha256": "f97852cc88ccc063c806b4951a4c0057d2c0e9b7b3c99da3a5a109eaaa1546d2",
+        "key_pages": 1,
+        "effective_pages": 1,
+        "models": 1,
+        "sources": 1,
+        "declaration": {
+          "source": "serving_snapshot",
+          "config_version_id": "cpar-build-config-20261010",
+          "config_revision": 9,
+          "capabilities": {
+            "reasoning": true,
+            "parallel": false,
+            "stored": true,
+            "continuation": true,
+            "compact": true,
+            "websocket": true
+          },
+          "client_key_evidence_id": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025",
+          "projection_id": "d7775c19a4e6e01e2bcc67df31e61e534784838a1daba34422b5e495f2f5dafa",
+          "observed_at_utc": "2026-10-15T05:44:39.478000+00:00",
+          "route_id": "cpar-build-route",
+          "route_candidate_id": "cpar-build-candidate",
+          "endpoint_id": "cpar-build-endpoint",
+          "upstream_model": "grok-4.5"
+        }
+      }
+    ],
+    "startup_observations_preserved": true,
+    "raw_exit_receipt_matches_public_projection": true,
+    "immutable_inventory_verified_count": 59,
+    "sqlite_verification": "durable event/ledger/catalog/account SQL; checkpoint lifecycle distinct from capture-time inventory",
+    "production_identity_preserved": true,
+    "historical_hashes_preserved": true,
+    "provider_independent_receive_count": "UNKNOWN",
+    "provider_cost": "UNKNOWN",
+    "new_provider_calls_in_readback": 0,
+    "new_launches_in_readback": 0
+  }
+}
