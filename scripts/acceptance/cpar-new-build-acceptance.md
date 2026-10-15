@@ -58,6 +58,21 @@ configuration and the same route/candidate/endpoint/upstream model and Client Ke
 formal preflight requires this fresh projection and compares it with the frozen declaration.
 Public capabilities, configured overrides and management inventory do not replace this proof.
 
+The collector records `capability_reads`: every Client Key and effective-model page has its
+HTTP status, bounded-body digest, cursor digests, configuration/Key/group context and model/source
+counts. Missing and null source declarations remain distinct and unknown. Enumeration failures,
+cursor cycles and context/projection changes make `capability_read_complete=false`; an empty
+error list alone is not a completeness proof. The final configuration read covers these pages.
+
+An owned diagnostic instance copied from an old state also inherits its durable discovery cache.
+An expired inherited catalog can remove an otherwise configured model from the serving view.
+The narrowly scoped `cpar_isolated_serving.py` preparation archives that expired target in the new
+private epoch before detaching it from the new copy, only with the existing explicit unlisted
+exception, exact candidate/Key/grant and catalog owner. It never changes the original state,
+client permissions, target or capability configuration. A fresh runtime must compile the prepared
+copy; reusing a previously compiled snapshot cannot establish the result. This preparation is not
+new discovery or Provider evidence. Runtime catalog ownership/expiry restrictions remain intact.
+
 Given an **existing authorized** protected Channel Pin receipt, freeze the observed combination
 without sending inference:
 

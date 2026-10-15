@@ -1,0 +1,132 @@
+{
+  "exit_code": 0,
+  "script_sha256": "566d0f305ddd96d9fe3f03fc778a9ec9ee8a66c4beb36f0cf34a3ebc6648f104",
+  "stdout_sha256": "0bfcc43f39803f0e9dac3f7e632db20b64f37de366c16c23ab8dd2597d785f55",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "result": {
+    "kind": "STOPPED_ARTIFACT_READ",
+    "unit": {
+      "MainPID": "0",
+      "LoadState": "not-found"
+    },
+    "observed_at_utc": "2026-10-15T05:21:17.736372+00:00",
+    "inspection_sha256": "7d4096fbfa6537d786a074b5695031e15148cd6dda306b505e77d8aebc74fce1",
+    "database_sha256": "cea5bd75b688b02f8eeca7b055da1348c61bce65a1613e077135fe3d16c087a4",
+    "capability_observation_count": 0,
+    "capability_read_errors": [],
+    "provider_intents": 0,
+    "management_http_requests": 0,
+    "new_runtime_launches": 0,
+    "configuration": [
+      {
+        "id": "cpar-build-config-20261010",
+        "revision": 9,
+        "status": "active"
+      }
+    ],
+    "models": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "id": "cpar-build-model",
+        "model_name": "grok-4.5",
+        "status": "active",
+        "capabilities_json": "{}"
+      }
+    ],
+    "routes": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "id": "cpar-build-route",
+        "public_model_id": "cpar-build-model",
+        "max_attempts": 1
+      }
+    ],
+    "candidates": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "id": "cpar-build-candidate",
+        "route_id": "cpar-build-route",
+        "endpoint_id": "cpar-build-endpoint",
+        "upstream_model": "grok-4.5",
+        "enabled": 1,
+        "credential_scope": "endpoint_bindings",
+        "capability_override_json": "{\"allow_unlisted_model\":true}"
+      }
+    ],
+    "keys": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "status": "active",
+        "expires_at_ms": null,
+        "access_group_id_evidence_id": "77deaecc7fc60260b5d13eeb484a00695c2e6db45794cb3ec158d3c60f4a1246",
+        "id_evidence": "ff7ef703ed7ad99438aa143c89b8f17704d93746574f3e557875440274181025"
+      }
+    ],
+    "groups": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "status": "active",
+        "id_evidence": "77deaecc7fc60260b5d13eeb484a00695c2e6db45794cb3ec158d3c60f4a1246"
+      }
+    ],
+    "grants": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "route_id": "cpar-build-route",
+        "enabled": 1,
+        "access_group_id_evidence_id": "77deaecc7fc60260b5d13eeb484a00695c2e6db45794cb3ec158d3c60f4a1246"
+      }
+    ],
+    "catalog_targets": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "endpoint_id": "cpar-build-endpoint",
+        "snapshot_version": 1,
+        "observed_at_ms": 1791629244152,
+        "stale_at_ms": 1791650844152,
+        "expires_at_ms": 1791888444152,
+        "credential_id_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+      }
+    ],
+    "catalog_models": [
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "endpoint_id": "cpar-build-endpoint",
+        "model": "grok-4.5",
+        "present_in_last_success": 1,
+        "credential_id_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+      },
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "endpoint_id": "cpar-build-endpoint",
+        "model": "grok-4.6",
+        "present_in_last_success": 1,
+        "credential_id_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+      },
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "endpoint_id": "cpar-build-endpoint",
+        "model": "grok-4.7",
+        "present_in_last_success": 1,
+        "credential_id_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+      },
+      {
+        "config_version_id": "cpar-build-config-20261010",
+        "endpoint_id": "cpar-build-endpoint",
+        "model": "grok-4.7-build-fast",
+        "present_in_last_success": 1,
+        "credential_id_evidence_id": "5beff1b67bd35a0547fe42e4b72970a80f0c2c28a77596c29703d83f397c3d54"
+      }
+    ],
+    "native_accounts": [
+      {
+        "provider": "build",
+        "enabled": 1,
+        "auth_status": "active",
+        "revision": 146,
+        "worker_claim_kind": null
+      }
+    ],
+    "schema_version": 34
+  }
+}

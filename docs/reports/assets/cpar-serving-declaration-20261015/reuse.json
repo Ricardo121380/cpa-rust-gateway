@@ -1,0 +1,24 @@
+{
+  "binary": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/output/cpar-build-json-502-20261011/artifacts/gateway-aarch64-unknown-linux-gnu",
+    "sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+    "matches_prior": true
+  },
+  "manifest": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-build-json-502-20261011/artifact-manifest.json",
+    "sha256": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+    "matches_prior": true
+  },
+  "metadata": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/docs/reports/assets/cpar-build-json-502-20261011/gateway-build-metadata.json",
+    "sha256": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+    "matches_prior": true
+  },
+  "rust_change": "only a new test inside cfg(test); release runtime source is identical to bf822b14",
+  "system4": "PASS_REUSED; exact startup_probe/launch_recipe and product artifact; remote-start/exit only new epoch paths",
+  "system_gate_sha256": "bef8815f766c09c5a13eb0ea007a115a8685e692100e12f6e56c19fba6f169e5",
+  "Task": "PASS_REUSED42/42",
+  "Phase": "PASS_REUSED45/45",
+  "new_release_builds": 0,
+  "new_system_runs": 0
+}

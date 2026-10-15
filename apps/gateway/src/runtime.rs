@@ -13748,6 +13748,142 @@ mod tests {
     }
 
     #[test]
+    fn isolated_catalog_preparation_restores_serving_declaration_over_management_http()
+    -> Result<(), Box<dyn Error>> {
+        use actix_web::{App, http::StatusCode, test, web};
+        use gateway_control::management_mutation_service::ManagementMutationService;
+        use gateway_http_actix::management_resources::{
+            ManagementResourceHttpState, ManagementRuntimeFacade,
+            RejectingManagementEndpointWorkflow, SystemManagementRuntimeClock,
+            configure_management_resources,
+        };
+        use gateway_http_actix::management_security::{
+            ManagementBrowserPolicy, ManagementHttpState, ManagementKey, ManagementNetworkPolicy,
+        };
+        let directory = TemporaryDirectory::new()?;
+        let database = directory.path().join("isolated-catalog.sqlite3");
+        let secrets = test_secret_store()?;
+        let mut configuration = p12_configuration_for(&secrets, "isolated-catalog")?;
+        configuration.public_models[0].model_name = "grok-4.5".to_owned();
+        configuration.route_candidates[0].upstream_model = "grok-4.5".to_owned();
+        SqliteControlPlaneRepository::open(&database)?.write_configuration(&configuration)?;
+        let now = super::system_now_ms_runtime()?;
+        SqliteCatalogSnapshotStore::open(&database)?.record_success(
+            configuration.version.id.as_str(),
+            &ModelCatalogTarget::new(
+                configuration.endpoints[0].id.clone(),
+                configuration.credentials[0].id.clone(),
+            ),
+            [DiscoveredModel::try_new("grok-4.5")?],
+            now - 604_800_000,
+        )?;
+        let mut lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            super::deployment_route_compiler(&database)?,
+            ManagementActor::try_new("isolated-catalog-test")?,
+        )?;
+        let composition = super::build_data_plane_composition(
+            &database,
+            &secrets,
+            Arc::clone(lifecycle.registry()),
+            ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x74; 32])?),
+        )?;
+        lifecycle.set_runtime_preparer(composition.reload.clone());
+        lifecycle.publish_configuration(&configuration.version.id)?;
+        let key = "mgmt_isolated_catalog_synthetic_01234567890123456789";
+        let read = |runtime: Box<dyn ManagementRuntimeFacade>| -> Result<Value, Box<dyn Error>> {
+            let security = ManagementHttpState::new(
+                ManagementKey::try_new(key)?,
+                ManagementNetworkPolicy::LoopbackOnly,
+                ManagementBrowserPolicy::DenyBrowserOrigins,
+            )?;
+            let resources = ManagementResourceHttpState::with_workflow_and_runtime(
+                ManagementMutationService::new(
+                    SqliteControlPlaneRepository::open(&database)?,
+                    secrets.clone(),
+                ),
+                Box::new(RejectingManagementEndpointWorkflow::new()),
+                runtime,
+                Box::new(SystemManagementRuntimeClock),
+            );
+            actix_web::rt::System::new().block_on(async {
+                let app = test::init_service(
+                    App::new()
+                        .app_data(web::Data::new(security))
+                        .app_data(web::Data::new(resources))
+                        .configure(configure_management_resources),
+                )
+                .await;
+                let request = test::TestRequest::get()
+                    .uri("/admin/models/effective?client_key_id=p12-runtime-client-key&limit=200")
+                    .insert_header(("X-Management-Key", key))
+                    .insert_header(("X-Config-Version", "isolated-catalog"))
+                    .peer_addr("127.0.0.1:12345".parse()?)
+                    .to_request();
+                let response = test::call_service(&app, request).await;
+                assert_eq!(response.status(), StatusCode::OK);
+                Ok(test::read_body_json(response).await)
+            })
+        };
+        let before = read(Box::new(composition.reload.as_ref().clone()))?;
+        assert_eq!(
+            before["items"],
+            serde_json::json!([]),
+            "expired inherited catalog blocks the exact model"
+        );
+        let target = serde_json::json!({"config_version_id":"isolated-catalog", "route_id": configuration.model_routes[0].id.as_str(),
+            "route_candidate_id":configuration.route_candidates[0].id.as_str(), "endpoint_id":configuration.endpoints[0].id.as_str(),
+            "upstream_model":"grok-4.5", "credential_id":configuration.credentials[0].id.as_str(), "client_key_id":"p12-runtime-client-key"});
+        let output = std::process::Command::new("python3")
+            .arg(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../scripts/acceptance/cpar_isolated_serving.py"
+            ))
+            .arg(&database)
+            .arg(target.to_string())
+            .arg(now.to_string())
+            .arg(directory.path().join("catalog-before.json"))
+            .output()?;
+        assert!(
+            output.status.success(),
+            "isolated catalog preparation failed"
+        );
+        let refreshed_lifecycle = ManagementService::bootstrap(
+            SqliteControlPlaneRepository::open(&database)?,
+            super::deployment_route_compiler(&database)?,
+            ManagementActor::try_new("fresh-isolated-catalog-test")?,
+        )?;
+        let refreshed = super::build_data_plane_composition(
+            &database,
+            &secrets,
+            Arc::clone(refreshed_lifecycle.registry()),
+            ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x74; 32])?),
+        )?;
+        let after = read(Box::new(refreshed.reload.as_ref().clone()))?;
+        assert_eq!(after["items"].as_array().ok_or("models")?.len(), 1);
+        assert_eq!(after["items"][0]["id"], "grok-4.5");
+        let source = &after["items"][0]["sources"][0];
+        assert_eq!(source["catalog_admission"], "allowed_unlisted");
+        assert_eq!(source["capability_evidence"]["source"], "serving_snapshot");
+        assert_eq!(
+            source["capability_evidence"]["config_version_id"],
+            "isolated-catalog"
+        );
+        let capabilities = source["capability_evidence"]["capabilities"]
+            .as_object()
+            .ok_or("declarations")?;
+        assert_eq!(capabilities.len(), 6);
+        assert!(capabilities.values().all(Value::is_boolean));
+        assert_ne!(before["projection_id"], after["projection_id"]);
+        let connection = gateway_store::open(&database)?;
+        assert_eq!(
+            connection.query_row("SELECT count(*) FROM gateway_event_log", [], |row| row
+                .get::<_, i64>(0))?,
+            0
+        );
+        Ok(())
+    }
+    #[test]
     fn effective_model_facade_distinguishes_missing_empty_and_non_serving_contexts()
     -> Result<(), Box<dyn Error>> {
         use gateway_http_actix::management_resources::ManagementEffectiveModelContext;

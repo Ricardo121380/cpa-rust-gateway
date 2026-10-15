@@ -1,0 +1,131 @@
+test_effective_failure_and_empty_stages_are_distinct (__main__.CollectorTests) ... test_effective_page_context_and_projection_changes_fail_closed (__main__.CollectorTests) ... test_final_configuration_read_covers_effective_enumeration (__main__.CollectorTests) ... ERROR
+test_key_cursor_cycle_is_incomplete (__main__.CollectorTests) ... ok
+test_second_key_read_error_cannot_look_successful (__main__.CollectorTests) ... ok
+test_success_retains_page_context_and_complete_declaration (__main__.CollectorTests) ... ERROR
+test_target_key_on_second_page_is_enumerated (__main__.CollectorTests) ... ERROR
+
+======================================================================
+ERROR: test_effective_failure_and_empty_stages_are_distinct (__main__.CollectorTests) (kind='models')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 146, in test_effective_failure_and_empty_stages_are_distinct
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_effective_failure_and_empty_stages_are_distinct (__main__.CollectorTests) (kind='sources')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 146, in test_effective_failure_and_empty_stages_are_distinct
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_effective_failure_and_empty_stages_are_distinct (__main__.CollectorTests) (kind='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 146, in test_effective_failure_and_empty_stages_are_distinct
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_effective_failure_and_empty_stages_are_distinct (__main__.CollectorTests) (kind='null')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 146, in test_effective_failure_and_empty_stages_are_distinct
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_effective_page_context_and_projection_changes_fail_closed (__main__.CollectorTests) (field='config_version')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 166, in test_effective_page_context_and_projection_changes_fail_closed
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_effective_page_context_and_projection_changes_fail_closed (__main__.CollectorTests) (field='access_group_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 166, in test_effective_page_context_and_projection_changes_fail_closed
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_effective_page_context_and_projection_changes_fail_closed (__main__.CollectorTests) (field='client_key_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 166, in test_effective_page_context_and_projection_changes_fail_closed
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_effective_page_context_and_projection_changes_fail_closed (__main__.CollectorTests) (field='projection_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 166, in test_effective_page_context_and_projection_changes_fail_closed
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_final_configuration_read_covers_effective_enumeration (__main__.CollectorTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 177, in test_final_configuration_read_covers_effective_enumeration
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_success_retains_page_context_and_complete_declaration (__main__.CollectorTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 96, in test_success_retains_page_context_and_complete_declaration
+    result, _ = self.collect()
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+======================================================================
+ERROR: test_target_key_on_second_page_is_enumerated (__main__.CollectorTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 119, in test_target_key_on_second_page_is_enumerated
+    result, _ = self.collect(change)
+  File "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/scripts/test-cpar-serving-declaration.py", line 85, in collect
+    exec(compile('if True:\n' + block, 'real-collector-inventory', 'exec'), context)
+  File "real-collector-inventory", line 145, in <module>
+NameError: name 're' is not defined
+
+----------------------------------------------------------------------
+Ran 7 tests in 7.314s
+
+FAILED (errors=11)

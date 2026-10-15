@@ -1,0 +1,55 @@
+{
+  "recorded_at_utc": "2026-10-15T05:35:05.023434+00:00",
+  "layer": "LOCAL_SIMULATED; real local management HTTP/runtime regression separate from Provider",
+  "suites": [
+    {
+      "log": "collector-final.log",
+      "log_sha256": "ac754202ffbfdcdcc434c813c7f9012ce2a606a76c041546068d5b61c0c54fe4",
+      "test_count": 9,
+      "status": "PASS",
+      "source": "scripts/test-cpar-serving-declaration.py",
+      "source_sha256": "495fec678ef24396a9c948a831989e018d2195978a4e1c4472ff26915b05ced3"
+    },
+    {
+      "log": "full-flow-green.log",
+      "log_sha256": "d1e7092ee5dad9aadbc821cb16981637f3ff0d279b65984a253d476d7d7a9d3d",
+      "test_count": 39,
+      "status": "PASS",
+      "source": "docs/reports/assets/cpar-serving-declaration-20261015/tools/full-flow-tests.py",
+      "source_sha256": "585476b2b8f3466f3e35703b5f4513e8249f202a1f36f2d2c25fae4e707a33b4"
+    },
+    {
+      "log": "formal-oracle.log",
+      "log_sha256": "034736cae6f3538cfacadbc96389f6cd15cccbf85e78bcb0b31559a28ae09e86",
+      "test_count": 54,
+      "status": "PASS",
+      "source": "scripts/test-cpar-new-build-acceptance.py",
+      "source_sha256": "1506d48dc8f0dc1cd0fabd51c1bedada85fe227d5b353b0bfe845939d7d39bd2"
+    },
+    {
+      "log": "runtime-final.log",
+      "log_sha256": "94ffbf0e6b21053b413b3cadcdd12476c797797bbf9cebdb13ca87e2cf4caf6d",
+      "test_count": 1,
+      "status": "PASS",
+      "source": "apps/gateway/src/runtime.rs",
+      "source_sha256": "42aa3d5ebb9c5fbaac083175704dbe91e2fff7c9c8f52bbabb62421a11bfa0b7"
+    },
+    {
+      "log": "owner-isolation.log",
+      "log_sha256": "65729759d261c5ba6e9bbb70abbd6df2a9ab0572ed98d44edcfbd1b720177310",
+      "test_count": 1,
+      "status": "PASS",
+      "source": "apps/gateway/src/runtime.rs",
+      "source_sha256": "42aa3d5ebb9c5fbaac083175704dbe91e2fff7c9c8f52bbabb62421a11bfa0b7"
+    }
+  ],
+  "new_provider_calls": 0,
+  "preserved_red_logs": [
+    "collector-red.log",
+    "runtime-red-boundary.log",
+    "full-flow-expanded.log"
+  ],
+  "optional_remote_observation_runs": 0,
+  "initial_local_payload_freeze_sha256": "2246ebd727069e0928cd6a99638b3cf28faa862b3cd13877e53bc98c723c4527",
+  "payload_freeze_sha256": "13c1404942aa62215ebc3f89be090b2c27ea473f6f5a4d1001ef56e80cfcba72"
+}

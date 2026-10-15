@@ -1,0 +1,16 @@
+   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+error[E0599]: no method named `apply` found for struct `std::sync::Arc<RuntimePublicationController>` in the current scope
+     --> apps/gateway/src/runtime.rs:13816:36
+      |
+13816 |         assert!(composition.reload.apply(None));
+      |                                    ^^^^^ method not found in `std::sync::Arc<RuntimePublicationController>`
+      |
+      = help: items from traits can only be used if the trait is in scope
+help: trait `NativeAccountRuntime` which provides `apply` is implemented but not in scope; perhaps you want to import it
+      |
+ 8345 +     use gateway_http_actix::management_resources::native_accounts::NativeAccountRuntime;
+      |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `gateway` (bin "gateway" test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

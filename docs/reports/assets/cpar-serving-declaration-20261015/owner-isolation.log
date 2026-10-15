@@ -1,0 +1,14 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s
+     Running unittests src/main.rs (target/debug/deps/gateway-14662d417b6e7eb8)
+
+running 1 test
+test runtime::tests::native_account_changes_rebuild_the_running_generation_including_an_empty_pool ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 211 filtered out; finished in 0.17s
+
+     Running tests/component_smoke.rs (target/debug/deps/component_smoke-930d932e27f350a0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

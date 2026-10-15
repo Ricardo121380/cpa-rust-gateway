@@ -471,6 +471,8 @@ def verify_current_declaration(target, runtime):
     declarations = runtime.get("capability_observations")
     available(isinstance(declarations, list), "current_capabilities_unavailable")
     frozen = target["declaration_evidence"]
+    if "capability_reads" in runtime:
+        verify_capability_collection(runtime, frozen["client_key_evidence_id"])
     matches = [row for row in declarations if all(row.get(key) == frozen[key] for key in
         ("client_key_evidence_id", "route_id", "route_candidate_id", "endpoint_id", "upstream_model"))]
     available(len(matches) == 1 and matches[0].get("source") == "serving_snapshot", "current_capability_source_unknown")
@@ -481,6 +483,15 @@ def verify_current_declaration(target, runtime):
     for row in (actual, frozen):
         observed = datetime.datetime.fromisoformat(row["observed_at_utc"])
         available(observed.tzinfo is not None and -30 <= (datetime.datetime.now(datetime.timezone.utc) - observed).total_seconds() <= 600, "capability_observation_stale")
+
+
+def verify_capability_collection(runtime, client_key_evidence_id):
+    reads = runtime.get("capability_reads") or {}
+    keys = reads.get("client_keys") or {}
+    available(runtime.get("capability_read_complete") is True and keys.get("complete") is True,
+              "capability_enumeration_incomplete")
+    available(keys.get("key_evidence_ids", []).count(client_key_evidence_id) == 1,
+              "target_client_key_not_enumerated")
 
 
 def execution_binding(plan, runtime, base_url):
@@ -1003,16 +1014,25 @@ if INVENTORY:
     host=opts['--management-listen']
     if not host.startswith(('127.0.0.1:', '[::1]:')): raise ValueError('management_not_loopback')
     headers={'X-Management-Key':key}
+    last_read={}
     def get(path):
+        last_read.clear()
         try:
             with opener.open(urllib.request.Request('http://'+host+path,headers=headers),timeout=15) as response:
+                last_read['http_status']=response.status
                 raw=response.read(4*1024*1024+1)
-                if len(raw)>4*1024*1024:raise ValueError('inventory_size')
+                last_read.update(body_sha256=hashlib.sha256(raw).hexdigest(),body_bytes=len(raw))
+                if len(raw)>4*1024*1024:return None,None,'inventory_size'
                 return json.loads(raw),response.headers.get('ETag'),None
-        except urllib.error.HTTPError as e:return None,None,'http_'+str(e.code)
+        except urllib.error.HTTPError as e:
+            last_read['http_status']=e.code
+            return None,None,'http_'+str(e.code)
+        except (urllib.error.URLError,TimeoutError,OSError):return None,None,'transport_error'
+        except (json.JSONDecodeError,UnicodeDecodeError):return None,None,'invalid_json'
     versions,_,error=get('/admin/config-versions')
     active=[v for v in versions or [] if v.get('status')=='active']
     result['active_configuration']={k:active[0].get(k) for k in ['id','status','revision']} if len(active)==1 else None
+    result['configuration_read_error']=error
     if len(active)==1:headers['X-Config-Version']=active[0]['id']
     projections={
       '/admin/upstreams':('upstreams',['id','kind','enabled','egress_policy_id']),
@@ -1066,8 +1086,6 @@ if INVENTORY:
             next_path=path+('&' if '?' in path else '?')+'cursor='+urllib.parse.quote(cursor,safe='')
         else:error='pagination_limit'
         result['inventory'][name]={'items':rows,'etags':etags,'error':error,'complete':error is None and len(set(etags))<=1,'item_field_names':sorted(field_names)}
-    versions_after,_,_=get('/admin/config-versions')
-    result['configuration_stable']=active==[v for v in versions_after or [] if v.get('status')=='active']
     result['route_grants']=[]
     groups,_,_=get('/admin/access-groups')
     groups=groups.get('items',[]) if isinstance(groups,dict) else groups
@@ -1076,31 +1094,90 @@ if INVENTORY:
         grants=grants.get('items',[]) if isinstance(grants,dict) else grants
         result['route_grants'].append({'access_group_evidence_id':opaque(group['id']),'error':error,'routes':[{k:row.get(k) for k in ['route_id','enabled']} for row in grants or []]})
     runtime['capability_observations']=[]
-    keys,_,error=get('/admin/client-keys')
-    keys=keys.get('items',[]) if isinstance(keys,dict) else keys
     result['capability_read_errors']=[]
-    for key in keys or []:
-        path='/admin/models/effective?client_key_id='+urllib.parse.quote(key['id'],safe='')+'&limit=200'
+    reads={'client_keys':{},'effective_models':[]}
+    result['capability_reads']=runtime['capability_reads']=reads
+    def read_pages(path,context):
+        context.update(pages=[],complete=False)
+        cursors=set()
+        etags=set()
+        next_path=path
         for page_number in range(20):
-            page,_,error=get(path)
+            value,etag,error=get(next_path)
+            page_context={**last_read,'page_number':page_number+1,'error':error,
+                          'request_cursor_sha256':opaque(urllib.parse.parse_qs(urllib.parse.urlsplit(next_path).query).get('cursor',[None])[0])}
+            context['pages'].append(page_context)
+            if not error and not (isinstance(value,list) or isinstance(value,dict) and isinstance(value.get('items'),list)):
+                error=page_context['error']='invalid_page'
             if error:
-                result['capability_read_errors'].append({'client_key_evidence_id':opaque(key['id']),'error':error})
-                break
-            for model in page.get('items',[]):
-                for candidate in model.get('sources',[]):
+                result['capability_read_errors'].append({'client_key_evidence_id':context.get('client_key_evidence_id'),'stage':context['stage'],'page_number':page_number+1,'error':error})
+                return
+            rows=value['items'] if isinstance(value,dict) else value
+            cursor=value.get('next_cursor') if isinstance(value,dict) else None
+            page_context.update(item_count=len(rows),response_cursor_sha256=opaque(cursor),etag=etag)
+            etags.add(etag)
+            yield value,rows,page_context
+            if cursor is None:
+                context['complete']=len(etags)<=1
+                if not context['complete']:
+                    result['capability_read_errors'].append({'stage':context['stage'],'error':'etag_changed'})
+                return
+            if not isinstance(cursor,str) or not cursor or cursor in cursors:
+                result['capability_read_errors'].append({'stage':context['stage'],'error':'cursor_invalid_or_repeated'})
+                return
+            cursors.add(cursor)
+            next_path=path+('&' if '?' in path else '?')+'cursor='+urllib.parse.quote(cursor,safe='')
+        result['capability_read_errors'].append({'stage':context['stage'],'error':'pagination_limit'})
+    keys=[]
+    key_context=reads['client_keys']
+    key_context.update(stage='client_keys',key_evidence_ids=[])
+    for value,rows,page_context in read_pages('/admin/client-keys',key_context):
+        projected=[]
+        for key_row in rows:
+            if not isinstance(key_row,dict) or not isinstance(key_row.get('id'),str) or not key_row['id']:
+                result['capability_read_errors'].append({'stage':'client_keys','error':'invalid_key'})
+                continue
+            keys.append(key_row)
+            projected.append({'id':opaque(key_row['id']),'access_group_evidence_id':opaque(key_row.get('access_group_id')),'status':key_row.get('status'),'field_names':sorted(key_row)})
+        page_context['keys']=projected
+        key_context['key_evidence_ids'].extend(row['id'] for row in projected)
+    if len(set(key_context['key_evidence_ids']))!=len(keys):
+        result['capability_read_errors'].append({'stage':'client_keys','error':'duplicate_key'})
+    for key_row in keys if key_context['complete'] and not result['capability_read_errors'] else []:
+        context={'stage':'effective_models','client_key_evidence_id':opaque(key_row['id'])}
+        reads['effective_models'].append(context)
+        path='/admin/models/effective?client_key_id='+urllib.parse.quote(key_row['id'],safe='')+'&limit=200'
+        projection_id=None
+        for page,models,page_context in read_pages(path,context):
+            for field in ['config_version','projection_id','observed_at_ms']:
+                page_context[field]=page.get(field)
+            page_context.update(client_key_evidence_id=opaque(page.get('client_key_id')),access_group_evidence_id=opaque(page.get('access_group_id')),models=[])
+            if (page.get('config_version')!=headers.get('X-Config-Version') or page.get('client_key_id')!=key_row['id'] or page.get('access_group_id')!=key_row.get('access_group_id') or not isinstance(page.get('projection_id'),str) or not re.fullmatch('[0-9a-f]{64}',page['projection_id']) or projection_id is not None and page['projection_id']!=projection_id or type(page.get('observed_at_ms')) is not int):
+                result['capability_read_errors'].append({'stage':'effective_models','client_key_evidence_id':opaque(key_row['id']),'error':'effective_context_or_projection_mismatch'})
+            projection_id=page.get('projection_id')
+            for model in models:
+                source_rows=model.get('sources')
+                model_context={'id':model.get('id'),'route_id':model.get('route_id'),'source_count':len(source_rows) if isinstance(source_rows,list) else None,'sources':[]}
+                page_context['models'].append(model_context)
+                if not isinstance(source_rows,list):
+                    result['capability_read_errors'].append({'stage':'effective_models','error':'invalid_sources'})
+                    continue
+                for candidate in source_rows:
+                    raw_declaration=candidate.get('capability_evidence')
+                    model_context['sources'].append({'candidate_id':candidate.get('candidate_id'),'endpoint_id':candidate.get('endpoint_id'),'catalog_admission':candidate.get('catalog_admission'),'declaration_state':'missing' if 'capability_evidence' not in candidate else 'null' if raw_declaration is None else 'object' if isinstance(raw_declaration,dict) else 'invalid','declaration_field_names':sorted(raw_declaration) if isinstance(raw_declaration,dict) else []})
                     declaration=candidate.get('capability_evidence') or {}
+                    if not isinstance(declaration,dict):
+                        result['capability_read_errors'].append({'stage':'effective_models','error':'invalid_declaration'})
+                        declaration={}
                     runtime['capability_observations'].append({
                         'source':declaration.get('source'),'config_version_id':declaration.get('config_version_id'),
                         'config_revision':declaration.get('config_revision'),'capabilities':declaration.get('capabilities'),
-                        'client_key_evidence_id':opaque(key['id']),'projection_id':page.get('projection_id'),
-                        'observed_at_utc':datetime.datetime.fromtimestamp(page['observed_at_ms']/1000,datetime.timezone.utc).isoformat(),
+                        'client_key_evidence_id':opaque(key_row['id']),'projection_id':page.get('projection_id'),
+                        'observed_at_utc':datetime.datetime.fromtimestamp(page['observed_at_ms']/1000,datetime.timezone.utc).isoformat() if type(page.get('observed_at_ms')) is int else None,
                         'route_id':model.get('route_id'),'route_candidate_id':candidate.get('candidate_id'),
                         'endpoint_id':candidate.get('endpoint_id'),'upstream_model':model.get('id'),
                     })
-            cursor=page.get('next_cursor')
-            if not cursor:break
-            path=path.split('&cursor=')[0]+'&cursor='+urllib.parse.quote(cursor,safe='')
-        else:result['capability_read_errors'].append({'client_key_evidence_id':opaque(key['id']),'error':'pagination_limit'})
+    runtime['capability_read_complete']=key_context['complete'] and all(row['complete'] for row in reads['effective_models']) and not result['capability_read_errors']
     result['bindings']=[]
     endpoints,_,_=get('/admin/endpoints')
     endpoints=endpoints.get('items',[]) if isinstance(endpoints,dict) else endpoints
@@ -1108,6 +1185,9 @@ if INVENTORY:
         bindings,_,error=get('/admin/endpoints/'+urllib.parse.quote(endpoint['id'],safe='')+'/credential-bindings')
         bindings=bindings.get('items',[]) if isinstance(bindings,dict) else bindings
         result['bindings'].append({'endpoint_id':endpoint['id'],'error':error,'items':[{'credential_evidence_id':opaque(row.get('credential_id')),'enabled':row.get('enabled')} for row in bindings or []]})
+    versions_after,_,error=get('/admin/config-versions')
+    result['configuration_read_error_after']=error
+    result['configuration_stable']=result['configuration_read_error'] is None and error is None and len(active)==1 and active==[v for v in versions_after or [] if v.get('status')=='active']
 runtime['stable_process']=runtime['stable_process'] and pid==int(subprocess.check_output(['systemctl','show',service,'--value','--property=MainPID'])) and start==(proc/'stat').read_text().rsplit(')',1)[1].split()[19]
 result['inventory_observed_at_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
 if INVENTORY:

@@ -1,0 +1,21 @@
+   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.29s
+     Running unittests src/main.rs (target/debug/deps/gateway-14662d417b6e7eb8)
+
+running 1 test
+
+thread 'runtime::tests::isolated_catalog_preparation_restores_serving_declaration_over_management_http' (60756294) panicked at apps/gateway/src/runtime.rs:13823:9:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test runtime::tests::isolated_catalog_preparation_restores_serving_declaration_over_management_http ... FAILED
+
+failures:
+
+failures:
+    runtime::tests::isolated_catalog_preparation_restores_serving_declaration_over_management_http
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 211 filtered out; finished in 0.15s
+
+error: test failed, to rerun pass `-p gateway --bin gateway`
