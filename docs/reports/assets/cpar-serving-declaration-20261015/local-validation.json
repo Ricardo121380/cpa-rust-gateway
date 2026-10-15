@@ -27,20 +27,22 @@
       "source_sha256": "1506d48dc8f0dc1cd0fabd51c1bedada85fe227d5b353b0bfe845939d7d39bd2"
     },
     {
-      "log": "runtime-final.log",
-      "log_sha256": "94ffbf0e6b21053b413b3cadcdd12476c797797bbf9cebdb13ca87e2cf4caf6d",
+      "log": "runtime-final.log.gz",
       "test_count": 1,
       "status": "PASS",
       "source": "apps/gateway/src/runtime.rs",
-      "source_sha256": "42aa3d5ebb9c5fbaac083175704dbe91e2fff7c9c8f52bbabb62421a11bfa0b7"
+      "source_sha256": "42aa3d5ebb9c5fbaac083175704dbe91e2fff7c9c8f52bbabb62421a11bfa0b7",
+      "uncompressed_log_sha256": "94ffbf0e6b21053b413b3cadcdd12476c797797bbf9cebdb13ca87e2cf4caf6d",
+      "log_sha256": "c4df5809ba6d5143d80f98c1d3385e2da8e9e6e6279c50d06fc7ad6ca27d5450"
     },
     {
-      "log": "owner-isolation.log",
-      "log_sha256": "65729759d261c5ba6e9bbb70abbd6df2a9ab0572ed98d44edcfbd1b720177310",
+      "log": "owner-isolation.log.gz",
       "test_count": 1,
       "status": "PASS",
       "source": "apps/gateway/src/runtime.rs",
-      "source_sha256": "42aa3d5ebb9c5fbaac083175704dbe91e2fff7c9c8f52bbabb62421a11bfa0b7"
+      "source_sha256": "42aa3d5ebb9c5fbaac083175704dbe91e2fff7c9c8f52bbabb62421a11bfa0b7",
+      "uncompressed_log_sha256": "65729759d261c5ba6e9bbb70abbd6df2a9ab0572ed98d44edcfbd1b720177310",
+      "log_sha256": "e301eb67433818387aada802ef7ccc550caec2fab0d5e8519031f5f96b435092"
     }
   ],
   "new_provider_calls": 0,

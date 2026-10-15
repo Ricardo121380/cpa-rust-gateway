@@ -1,0 +1,10 @@
+{
+  "fixed_commit": "5b37d980",
+  "diff_check": "FAIL; exact raw logs had terminal blank lines",
+  "resolution": "gzip exact log bytes; private originals retained; no source or execution change",
+  "logs": [
+    "owner-isolation.log",
+    "runtime-final.log",
+    "runtime-green-fresh.log"
+  ]
+}
