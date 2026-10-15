@@ -48,5 +48,12 @@
   ],
   "github_status": "PASS3/3; all OPEN",
   "remote_ci_status": "NOT_RUN",
-  "final_material_review": "PENDING; pre-execution PASS/PASS remains fixed"
+  "final_material_review": {
+    "Standards": "PASS",
+    "Spec_execution_material_contract": "PASS",
+    "complete_protocol_acceptance": "FAIL",
+    "whole_ticket": "BLOCKED",
+    "fixed_head": "f72dddb134f4227a4eaa65b9162ceac401c956bc"
+  },
+  "work_request_status": "completed: serving repair verified and one authorized diagnostic performed; remaining protocol defect and matrix gates retained"
 }

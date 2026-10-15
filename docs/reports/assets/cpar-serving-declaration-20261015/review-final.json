@@ -1,0 +1,30 @@
+{
+  "base": "3163542007fb4fab56a64f34d1bf17f573a5dd5a",
+  "head": "f72dddb134f4227a4eaa65b9162ceac401c956bc",
+  "recorded_at_utc": "2026-10-15T06:00:12.823111+00:00",
+  "scope": "final actual execution, preserved failures, readback, report and GitHub evidence; no execution-source change",
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "agent": "/root/delivery_standards",
+      "terminal": "complete",
+      "hard_findings": 0,
+      "suggestions": 0,
+      "verified": "18 payload hashes/19 tar members; exact raw freeze; 11 output bindings; three readback wrappers; preserved helper failures; actual counts/unknowns; 209 historical files and AGENTS; GitHub body-only prefix/metadata/dependencies"
+    },
+    "Spec": {
+      "status": "PASS",
+      "agent": "/root/delivery_spec",
+      "terminal": "complete",
+      "new_blocking_findings": 0,
+      "scope_creep": 0,
+      "execution_and_material_contract": "PASS",
+      "complete_protocol_acceptance": "FAIL; actual Chat502",
+      "whole_ticket": "BLOCKED; incomplete",
+      "verified": "margin,65s,three declarations,actual lease,original request,2 intents/2 sends,permanent stop,exit,GitHub and unresolved facts"
+    }
+  },
+  "provider_calls_added_by_reviews": 0,
+  "independent_receive_and_cost": "UNKNOWN",
+  "pre_execution_review": "review-pre-execution.json"
+}

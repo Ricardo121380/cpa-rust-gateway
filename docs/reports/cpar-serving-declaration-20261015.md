@@ -81,3 +81,5 @@ Chat结果产生后预算永久stopped，2/2新意图已用，无未用额度。
 GitHub既有progress [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490) 已完成授权追加，旧body逐字节前缀保持。独立GET确认完整新body等于准备载荷，issue正文/AC/state/labels/assignees/milestone等保持；依赖分页均1页，数量8/23/0，OPEN数0/11/0，边与状态保持。仅#47的updated_at随本次授权comment修改更新，按独立issue读回精确绑定；没有忽略依赖状态变化或关闭票。
 
 执行审查点31635420的Actions匹配run0，Checks因远端不识别本地提交返回422；记录为NOT_RUN，没有把空pending当作正在运行。没有push/dispatch、发布/部署/生产变更。最终静态核验用户AGENTS摘要保持，209份本地历史文件内容/权限不变；远端历史保护由prepare/start/exit及最终读回核对。实际原生捕获、凭据和私有快照仅保留在0700/0600保护范围。
+
+最终独立交付核验固定31635420→f72dddb1：**Standards PASS（硬缺陷0/建议0）；Spec本批执行及材料契约PASS（新增阻塞0/scope creep0），完整协议验收FAIL（本次Chat502），整票BLOCKED/未完成。** 两路终态均complete，实际payload/原始freeze/日志/读回wrapper/GitHub历史与依赖得到独立字节核对；未重跑测试、SSH或Provider。此次最终审查和本地提交不升级真实Chat、矩阵或发布资格。
