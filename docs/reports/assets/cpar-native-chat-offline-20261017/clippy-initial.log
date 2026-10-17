@@ -1,0 +1,78 @@
+    Checking gateway-core v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-core)
+    Checking gateway-protocol v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-protocol)
+    Checking gateway-provider v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-provider)
+    Checking gateway-auth v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-auth)
+    Checking gateway-observability v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-observability)
+    Checking protocol-openai-chat v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/protocol-openai-chat)
+    Checking protocol-openai-responses v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/protocol-openai-responses)
+    Checking protocol-anthropic v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/protocol-anthropic)
+    Checking gateway-stream v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-stream)
+    Checking gateway-upstream v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-upstream)
+    Checking gateway-store v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-store)
+    Checking provider-anthropic-compatible v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-anthropic-compatible)
+    Checking gateway-catalog v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-catalog)
+    Checking gateway-router v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-router)
+    Checking provider-kiro v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-kiro)
+    Checking provider-openai-compatible v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-openai-compatible)
+    Checking provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+    Checking gateway-control v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-control)
+    Checking gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)
+    Checking gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+error: used `assert!` with an equality comparison
+   --> apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs:296:5
+    |
+296 | /     assert!(
+297 | |         format!("{:x}", Sha256::digest(&payload))
+298 | |             == "245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062"
+299 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_assert_eq
+    = note: `-D clippy::manual-assert-eq` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_assert_eq)]`
+help: replace it with `assert_eq!(..)`
+    |
+296 ~     assert_eq!(
+297 ~         format!("{:x}", Sha256::digest(&payload)), "245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062"
+    |
+
+error: used `assert!` with an equality comparison
+   --> apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs:367:5
+    |
+367 |     assert!(error["error"]["code"] == "UpstreamProtocolError");
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_assert_eq
+help: replace it with `assert_eq!(..)`
+    |
+367 -     assert!(error["error"]["code"] == "UpstreamProtocolError");
+367 +     assert_eq!(error["error"]["code"], "UpstreamProtocolError");
+    |
+
+error: used `assert!` with an equality comparison
+   --> apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs:368:5
+    |
+368 | /     assert!(
+369 | |         error["error"]["message"] == "response projection cannot represent the response metadata"
+370 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_assert_eq
+help: replace it with `assert_eq!(..)`
+    |
+368 ~     assert_eq!(
+369 ~         error["error"]["message"], "response projection cannot represent the response metadata"
+    |
+
+error: this function has too many lines (132/100)
+     --> apps/gateway/src/runtime.rs:13751:5
+      |
+13751 | /     fn isolated_catalog_preparation_restores_serving_declaration_over_management_http()
+13752 | |     -> Result<(), Box<dyn Error>> {
+      | |_________________________________^
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_lines
+      = note: `-D clippy::too-many-lines` implied by `-D warnings`
+      = help: to override `-D warnings` add `#[allow(clippy::too_many_lines)]`
+
+error: could not compile `gateway` (bin "gateway" test) due to 4 previous errors

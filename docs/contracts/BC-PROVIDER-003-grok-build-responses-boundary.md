@@ -83,6 +83,20 @@ wrappers forward it. The HTTP observer preserves known fields on a later project
 failure using non-additive merging and existing exact-Usage idempotence. Unread or invalid
 Usage remains unavailable. No transport success or missing row establishes free usage.
 
+Native Build Usage is not limited to the four currently mapped source counters. Unknown
+root or detail fields are retained together under `grok.build.usage`, including explicit
+zero/null/empty values. Without a proven target mapping the existing response projector
+rejects that extension; no native price field is treated as an independently confirmed
+charge. A supplied `total_tokens` must confirm checked input-plus-output arithmetic when
+both counters are known. A total with a missing operand stays retained and unsupported,
+without inventing the absent counter. Absent/null totals remain absent evidence.
+
+If projection rejects the Usage event itself, that event has already left the inner
+queue. The runtime preserves its validated snapshot for the existing failure flush,
+without another upstream read, additive merging or a second ledger entry. A response
+with an unsupported summary or Usage remains a failed Request even when its Attempt
+succeeded. This tightens fidelity; it does not add a cross-protocol representation.
+
 The opt-in private runtime transport decorator in [ADR-0105](../adr/ADR-0105-projection-failure-observation.md)
 is separate from ordinary Debug/log sampling: exact source and public request hash,
 Chat JSON only, one exclusive capture, anchored 0700/0600 private files, original body
@@ -93,6 +107,10 @@ remain value-free. Native content never enters Git, GitHub or external model inp
 
 - `grok_build_projection_rejection_has_safe_reason_and_request_id`
 - `grok_build_projection_failure_preserves_usage_and_ledger`
+- `grok_build_native_summary_and_usage_public_matrix`
+- `native_usage_unknown_fields_are_retained_and_fail_closed`
+- `native_usage_totals_must_confirm_known_counters`
+- `native_summary_is_not_a_reasoning_body_and_item_metadata_stays_strict`
 - `grok_build_diagnostic_is_private_selected_and_one_shot`
 - `grok_build_diagnostic_rejects_unsafe_directory_or_source`
 

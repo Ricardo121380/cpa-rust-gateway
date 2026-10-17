@@ -1,0 +1,50 @@
+{
+  "id": "synthetic-response",
+  "object": "response",
+  "status": "completed",
+  "output": [
+    {
+      "id": "synthetic-reasoning",
+      "summary": [
+        {
+          "text": "SYNTHETIC_SUMMARY",
+          "type": "summary_text"
+        }
+      ],
+      "type": "reasoning",
+      "status": "completed"
+    },
+    {
+      "content": [
+        {
+          "type": "output_text",
+          "text": "SYNTHETIC_ANSWER",
+          "logprobs": [],
+          "annotations": []
+        }
+      ],
+      "id": "synthetic-message",
+      "role": "assistant",
+      "type": "message",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 228,
+    "input_tokens_details": {
+      "cached_tokens": 128
+    },
+    "output_tokens": 159,
+    "output_tokens_details": {
+      "reasoning_tokens": 158
+    },
+    "total_tokens": 387,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 0,
+    "cost_in_usd_ticks": 123000000,
+    "synthetic_cost_details": {
+      "input_tokens": 11,
+      "output_tokens": 17
+    }
+  }
+}

@@ -1,0 +1,23 @@
+   Compiling provider-grok v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/provider-grok)
+   Compiling gateway-http-actix v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/crates/gateway-http-actix)
+   Compiling gateway v0.1.0 (/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/apps/gateway)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.38s
+     Running unittests src/main.rs (target/debug/deps/gateway-14662d417b6e7eb8)
+
+running 1 test
+
+thread 'runtime::batch_c::grok::native_chat_offline::grok_build_native_summary_and_usage_public_matrix' (63609067) panicked at apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs:229:17:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test runtime::batch_c::grok::native_chat_offline::grok_build_native_summary_and_usage_public_matrix ... FAILED
+
+failures:
+
+failures:
+    runtime::batch_c::grok::native_chat_offline::grok_build_native_summary_and_usage_public_matrix
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 213 filtered out; finished in 1.87s
+
+error: test failed, to rerun pass `-p gateway --bin gateway`

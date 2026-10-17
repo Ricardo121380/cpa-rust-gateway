@@ -1,0 +1,11 @@
+{
+  "head": "ec534918647a483344dfd5dbb4abc2a36fb8c5d8",
+  "captured_at": "2026-10-17T04:34:12.118206+00:00",
+  "status_sha256": "960e1546170eb2913b889736919d23d4b37e22ec33f75edd9ccd14b47de49bd8",
+  "tracked_dirty": {
+    "AGENTS.md": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+  },
+  "untracked_count": 48863,
+  "provider_calls": 0,
+  "remote_launches": 0
+}

@@ -69,7 +69,7 @@ fn rich_output() -> Value {
     ])
 }
 
-fn request(protocol: &str, streaming: bool) -> (&'static str, Value) {
+pub(super) fn request(protocol: &str, streaming: bool) -> (&'static str, Value) {
     match protocol {
         "responses" => (
             "/v1/responses",
@@ -162,7 +162,7 @@ async fn grok_build_projection_rejection_has_safe_reason_and_request_id() -> Tes
     Ok(())
 }
 
-struct ReplayUsageSink(Arc<dyn GatewayEventSink>);
+pub(super) struct ReplayUsageSink(pub(super) Arc<dyn GatewayEventSink>);
 impl GatewayEventSink for ReplayUsageSink {
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         self.0.try_emit(event)

@@ -2311,6 +2311,12 @@ fn parse_usage(
     let object = value.as_object().ok_or_else(|| error.clone())?;
     let input_tokens = optional_u64(object, "input_tokens", error)?;
     let output_tokens = optional_u64(object, "output_tokens", error)?;
+    let total_tokens = optional_u64(object, "total_tokens", error)?;
+    if let (Some(input), Some(output), Some(total)) = (input_tokens, output_tokens, total_tokens)
+        && input.checked_add(output) != Some(total)
+    {
+        return Err(error.clone());
+    }
     let reasoning_tokens = object
         .get("output_tokens_details")
         .filter(|value| !value.is_null())
@@ -2329,10 +2335,45 @@ fn parse_usage(
         })
         .transpose()?
         .flatten();
+    // The four typed counters do not exhaust native Usage. Retain the complete object when
+    // anything else has no proven representation, including a total that cannot be derived.
+    // The shared projector then rejects it; decoded_usage still exposes the known counters
+    // on that failed Request's successful Attempt. Native price fields never become a bill.
+    let unrepresented = object.keys().any(|key| {
+        !matches!(
+            key.as_str(),
+            "input_tokens"
+                | "output_tokens"
+                | "total_tokens"
+                | "input_tokens_details"
+                | "output_tokens_details"
+        )
+    }) || [
+        ("input_tokens_details", "cached_tokens"),
+        ("output_tokens_details", "reasoning_tokens"),
+    ]
+    .iter()
+    .any(|(field, known)| {
+        object
+            .get(*field)
+            .and_then(Value::as_object)
+            .is_some_and(|details| details.keys().any(|key| key != known))
+    }) || total_tokens.is_some()
+        && (input_tokens.is_none() || output_tokens.is_none());
+    let mut extensions = RawExtensions::default();
+    if unrepresented {
+        extensions
+            .try_insert(
+                "grok.build.usage",
+                RawJson::from_json_string(value.to_string()).map_err(|_| error.clone())?,
+            )
+            .map_err(|_| error.clone())?;
+    }
     if input_tokens.is_none()
         && output_tokens.is_none()
         && reasoning_tokens.is_none()
         && cached_tokens.is_none()
+        && extensions.is_empty()
     {
         return Ok(None);
     }
@@ -2343,6 +2384,7 @@ fn parse_usage(
         output_tokens,
         reasoning_tokens,
         cached_tokens,
+        extensions,
         ..Usage::default()
     }))
 }

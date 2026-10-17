@@ -1,0 +1,79 @@
+{
+  "canonical_events": [
+    {
+      "kind": "response_start",
+      "ordinal_zero_based": 0
+    },
+    {
+      "kind": "message_start",
+      "ordinal_zero_based": 1
+    },
+    {
+      "kind": "output_item_start",
+      "ordinal_zero_based": 2
+    },
+    {
+      "kind": "reasoning_delta",
+      "ordinal_zero_based": 3,
+      "part_field": "summary",
+      "part_index": 0
+    },
+    {
+      "kind": "output_item_end",
+      "ordinal_zero_based": 4
+    },
+    {
+      "kind": "output_item_start",
+      "ordinal_zero_based": 5
+    },
+    {
+      "kind": "text_delta",
+      "ordinal_zero_based": 6
+    },
+    {
+      "kind": "output_item_end",
+      "ordinal_zero_based": 7
+    },
+    {
+      "kind": "usage_delta",
+      "ordinal_zero_based": 8,
+      "unrepresented_usage_extension_count": 0
+    },
+    {
+      "kind": "message_end",
+      "ordinal_zero_based": 9
+    },
+    {
+      "kind": "response_end",
+      "ordinal_zero_based": 10
+    }
+  ],
+  "external_provider_calls": 0,
+  "mock_transport_receives": 1,
+  "native_decode": "PASS",
+  "original_request_unchanged": true,
+  "projections": [
+    {
+      "event": "reasoning_delta",
+      "ordinal_zero_based": 3,
+      "protocol": "chat",
+      "reason": "UnknownExtensions",
+      "status": "REJECTED"
+    },
+    {
+      "event": "reasoning_delta",
+      "ordinal_zero_based": 3,
+      "protocol": "messages",
+      "reason": "UnknownExtensions",
+      "status": "REJECTED"
+    },
+    {
+      "protocol": "responses",
+      "status": "PASS"
+    }
+  ],
+  "public_chat_http_status": 502,
+  "public_safe_error_verified": true,
+  "request_id_present": true,
+  "status": "PASS; original failure reproduced offline"
+}

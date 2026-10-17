@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "observed_at": "2026-10-17T04:47:13.991197+00:00",
+  "epoch": "chat-json-serving-20261015",
+  "native_bytes": 673,
+  "native_sha256": "7b5a3c2766766397af638665aaa7160f351780232a2c06f11d8f784ebbfdaa96",
+  "decompressed_bytes": 1393,
+  "decompressed_sha256": "1105cd2ae1bebc25bc75794057cee7851e9f508980682650effeaa34b0a58ab1",
+  "request_sha256": "245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062",
+  "source_revision": "bf822b14a62c21cf582a7539e3635f69bd8b7677",
+  "binary_sha256": "cdadcb2cd679fe02e291f7a02fd6714aa92df816a91a5624858112ad19818b1e",
+  "manifest_sha256": "655c037df68c5657b250105bbb07bed665210a7f6b20ea8d8b88aab488157a56",
+  "metadata_sha256": "d5e87f208ec6ab4265a272d4be5d331bbb0865e30abfa62fa6556671d96cb78c",
+  "request_id": "p1-request-71cc49273ebb7382fa61cd5f984e8c51-0",
+  "attempt_id": "attempt:45:p1-request-71cc49273ebb7382fa61cd5f984e8c51-0:1",
+  "embedded_source_metadata_exact_match": true,
+  "capture_request_attempt_sidecar_ledger_match": true,
+  "actual_lease_revision": 153,
+  "native_usage": {
+    "input_tokens": 228,
+    "output_tokens": 159,
+    "reasoning_tokens": 158,
+    "cached_tokens": 128,
+    "cache_read_tokens": null,
+    "cache_creation_tokens": null,
+    "provenance": "measured",
+    "input_accounting": "inclusive"
+  },
+  "ledger_rows": 1,
+  "ledger_cost": null,
+  "native_usage_extra_root_fields": 4,
+  "native_reported_cost_present": true,
+  "native_reported_cost_is_zero": false,
+  "unknown_usage_object_key_sha256": "3c425705071574051d6bc92d91df15a0787041a964e8caf9d1132f804a7c6fa0",
+  "unknown_usage_object_shape": {
+    "kind": "object",
+    "fields": {
+      "input_tokens": {
+        "kind": "int",
+        "is_zero": false
+      },
+      "output_tokens": {
+        "kind": "int",
+        "is_zero": false
+      }
+    }
+  },
+  "native_model_equals_requested_public_model": false,
+  "minimal_fixture_output_shape_matches": true,
+  "unknown_native_semantics": "UNKNOWN; a field name or price-shaped integer is not an independent billing receipt",
+  "external_provider_calls": 0,
+  "runtime_launches": 0
+}

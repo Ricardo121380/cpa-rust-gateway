@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "AGENTS_sha256_preserved": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "original_porcelain_paths_present": 48864,
+  "tested_source_hashes_match": true,
+  "native_value_privacy_scan_files": 36,
+  "native_value_leaks": 0,
+  "scope": "owned new files plus changed source; old tracked files protected by diff; pre-existing path existence is not a byte-hash claim",
+  "provider_calls": 0,
+  "raw_native_in_owned_public_files": false
+}

@@ -4326,6 +4326,7 @@ struct ProjectedEventSource {
     inner: Box<dyn ResponsesEventSource>,
     projector: ProtocolResponseProjector,
     request_id: Option<RequestId>,
+    rejected_usage: Option<Usage>,
 }
 
 impl ProjectedEventSource {
@@ -4334,6 +4335,7 @@ impl ProjectedEventSource {
             inner,
             projector: ProtocolResponseProjector::new(target),
             request_id: None,
+            rejected_usage: None,
         }
     }
 
@@ -4353,7 +4355,13 @@ impl ProjectedEventSource {
 
 impl ResponsesEventSource for ProjectedEventSource {
     fn decoded_usage(&self) -> Option<Usage> {
-        self.inner.decoded_usage()
+        match self.inner.decoded_usage() {
+            Some(buffered) => Some(Usage::merge_snapshot(
+                self.rejected_usage.as_ref(),
+                &buffered,
+            )),
+            None => self.rejected_usage.clone(),
+        }
     }
 
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>> {
@@ -4366,6 +4374,11 @@ impl ResponsesEventSource for ProjectedEventSource {
                     Ok(Some(projected)) => return Ok(Some(projected)),
                     Ok(None) => {}
                     Err(reason) => {
+                        // The rejecting event has already left the inner queue. Keep its known
+                        // counters observable for the failure flush without another upstream read.
+                        if let CanonicalEvent::UsageDelta(delta) = &event {
+                            self.rejected_usage = Some(delta.usage.clone());
+                        }
                         tracing::warn!(target: "response_projection", stage = "protocol_projection", rejection = %reason,
                             request_id = self.request_id.as_ref().map(RequestId::as_str), "response projection rejected");
                         return Err(GatewayError::response_projection(reason));
@@ -13748,6 +13761,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one isolated runtime fixture verifies the inherited catalog and fresh HTTP bootstrap"
+    )]
     fn isolated_catalog_preparation_restores_serving_declaration_over_management_http()
     -> Result<(), Box<dyn Error>> {
         use actix_web::{App, http::StatusCode, test, web};

@@ -1,0 +1,20 @@
+{
+  "observed_at": "2026-10-17T04:34:44.292251+00:00",
+  "script_sha256": "c4c15a17706339e810ffe270cf6d672ef460c43ed4ca34377ce3e71a81953adb",
+  "returncode": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "provider_calls": 0,
+  "runtime_launches": 0,
+  "status": "PASS",
+  "private_files": 10,
+  "remote_state": {
+    "MainPID": "0",
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead"
+  },
+  "budget_stopped": true,
+  "native_bytes": 673,
+  "native_sha256": "7b5a3c2766766397af638665aaa7160f351780232a2c06f11d8f784ebbfdaa96",
+  "request_sha256": "245c50f95d487dbfa3333f0e33eb4978ea2cedd2c3d9bd1f1010aafbaaab6062"
+}

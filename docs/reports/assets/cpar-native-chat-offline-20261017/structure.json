@@ -1,0 +1,306 @@
+{
+  "decompressed_bytes": 1393,
+  "structure": {
+    "kind": "object",
+    "fields": {
+      "created_at": {
+        "kind": "int",
+        "is_zero": false
+      },
+      "completed_at": {
+        "kind": "int",
+        "is_zero": false
+      },
+      "id": {
+        "kind": "string",
+        "bytes": 36
+      },
+      "max_output_tokens": {
+        "kind": "int",
+        "is_zero": false
+      },
+      "model": {
+        "kind": "string",
+        "bytes": 14
+      },
+      "object": {
+        "kind": "string",
+        "bytes": 8,
+        "enum": "response"
+      },
+      "output": {
+        "kind": "array",
+        "length": 2,
+        "items": [
+          {
+            "kind": "object",
+            "fields": {
+              "id": {
+                "kind": "string",
+                "bytes": 39
+              },
+              "summary": {
+                "kind": "array",
+                "length": 1,
+                "items": [
+                  {
+                    "kind": "object",
+                    "fields": {
+                      "text": {
+                        "kind": "string",
+                        "bytes": 25
+                      },
+                      "type": {
+                        "kind": "string",
+                        "bytes": 12,
+                        "enum": "summary_text"
+                      }
+                    }
+                  }
+                ]
+              },
+              "type": {
+                "kind": "string",
+                "bytes": 9,
+                "enum": "reasoning"
+              },
+              "status": {
+                "kind": "string",
+                "bytes": 9,
+                "enum": "completed"
+              }
+            }
+          },
+          {
+            "kind": "object",
+            "fields": {
+              "content": {
+                "kind": "array",
+                "length": 1,
+                "items": [
+                  {
+                    "kind": "object",
+                    "fields": {
+                      "type": {
+                        "kind": "string",
+                        "bytes": 11,
+                        "enum": "output_text"
+                      },
+                      "text": {
+                        "kind": "string",
+                        "bytes": 5
+                      },
+                      "logprobs": {
+                        "kind": "array",
+                        "length": 0,
+                        "items": []
+                      },
+                      "annotations": {
+                        "kind": "array",
+                        "length": 0,
+                        "items": []
+                      }
+                    }
+                  }
+                ]
+              },
+              "id": {
+                "kind": "string",
+                "bytes": 40
+              },
+              "role": {
+                "kind": "string",
+                "bytes": 9,
+                "enum": "assistant"
+              },
+              "type": {
+                "kind": "string",
+                "bytes": 7,
+                "enum": "message"
+              },
+              "status": {
+                "kind": "string",
+                "bytes": 9,
+                "enum": "completed"
+              }
+            }
+          }
+        ]
+      },
+      "parallel_tool_calls": {
+        "kind": "bool",
+        "is_zero": false
+      },
+      "previous_response_id": {
+        "kind": "null"
+      },
+      "reasoning": {
+        "kind": "object",
+        "fields": {
+          "effort": {
+            "kind": "string",
+            "bytes": 4
+          },
+          "summary": {
+            "kind": "string",
+            "bytes": 8
+          }
+        }
+      },
+      "temperature": {
+        "kind": "float",
+        "is_zero": false
+      },
+      "text": {
+        "kind": "object",
+        "fields": {
+          "format": {
+            "kind": "object",
+            "fields": {
+              "type": {
+                "kind": "string",
+                "bytes": 4
+              }
+            }
+          }
+        }
+      },
+      "tool_choice": {
+        "kind": "string",
+        "bytes": 4
+      },
+      "tools": {
+        "kind": "array",
+        "length": 0,
+        "items": []
+      },
+      "top_p": {
+        "kind": "float",
+        "is_zero": false
+      },
+      "usage": {
+        "kind": "object",
+        "fields": {
+          "input_tokens": {
+            "kind": "int",
+            "is_zero": false
+          },
+          "input_tokens_details": {
+            "kind": "object",
+            "fields": {
+              "cached_tokens": {
+                "kind": "int",
+                "is_zero": false
+              }
+            }
+          },
+          "output_tokens": {
+            "kind": "int",
+            "is_zero": false
+          },
+          "output_tokens_details": {
+            "kind": "object",
+            "fields": {
+              "reasoning_tokens": {
+                "kind": "int",
+                "is_zero": false
+              }
+            }
+          },
+          "total_tokens": {
+            "kind": "int",
+            "is_zero": false
+          },
+          "num_sources_used": {
+            "kind": "int",
+            "is_zero": true
+          },
+          "num_server_side_tools_used": {
+            "kind": "int",
+            "is_zero": true
+          },
+          "cost_in_usd_ticks": {
+            "kind": "int",
+            "is_zero": false
+          },
+          "unknown-key-sha256:3c425705071574051d6bc92d91df15a0787041a964e8caf9d1132f804a7c6fa0": {
+            "kind": "object",
+            "fields": {
+              "input_tokens": {
+                "kind": "int",
+                "is_zero": false
+              },
+              "output_tokens": {
+                "kind": "int",
+                "is_zero": false
+              }
+            }
+          }
+        }
+      },
+      "user": {
+        "kind": "null"
+      },
+      "incomplete_details": {
+        "kind": "null"
+      },
+      "status": {
+        "kind": "string",
+        "bytes": 9,
+        "enum": "completed"
+      },
+      "store": {
+        "kind": "bool",
+        "is_zero": false
+      },
+      "metadata": {
+        "kind": "object",
+        "fields": {
+          "unknown-key-sha256:6cd2242c988fafc6907e4140e989995f554db30fbd5cb6af3bcf34255414d51d": {
+            "kind": "string",
+            "bytes": 19
+          }
+        }
+      },
+      "background": {
+        "kind": "bool",
+        "is_zero": false
+      },
+      "service_tier": {
+        "kind": "string",
+        "bytes": 7
+      },
+      "truncation": {
+        "kind": "string",
+        "bytes": 8
+      },
+      "top_logprobs": {
+        "kind": "int",
+        "is_zero": true
+      },
+      "presence_penalty": {
+        "kind": "float",
+        "is_zero": true
+      },
+      "frequency_penalty": {
+        "kind": "float",
+        "is_zero": true
+      },
+      "prompt_cache_key": {
+        "kind": "null"
+      },
+      "max_tool_calls": {
+        "kind": "null"
+      },
+      "safety_identifier": {
+        "kind": "null"
+      },
+      "error": {
+        "kind": "null"
+      },
+      "instructions": {
+        "kind": "null"
+      }
+    }
+  }
+}
