@@ -114,6 +114,13 @@ Build未知字段意义、独立费用、模型别名、专用产品消费者及
 最终固定base/head/文件集的Standards与Spec双轴审查在本批交付冻结后记录；此段将在终态回执
 绑定时注明各自结论。不会用依赖门禁PASS替代协议或真实验收PASS。
 
+首次固定 `31258418→a09611e2` 的49文件审查为Standards PASS（0/0）、Spec本批一致性FAIL
+（P2 1项，scope creep0）：SDK包锁使用外部临时相对路径，报告的clean npm ci不能可靠复现。
+[首轮审查](assets/cpar-field-contract-dependency-20261017/review-initial.md)永久保留。实际clean ci
+先复现RED，之后仅修portable锁metadata/路径键，9包版本/URL/integrity与7项结果不变；
+另一全新目录clean ci＋probe GREEN，见 [replay](assets/cpar-field-contract-dependency-20261017/consumer-clean-replay.json)。
+此修复只涉及消费者验收材料，不改产品/Cargo依赖/协议；修正范围会重新固定并独立审查。
+
 本批只允许追加既有progress #47/comment6081215242、#57/comment6081234278、#9/comment6081235490。
 同步采用body-only PATCH，旧前缀保留；各次独立GET评论，之后重读全部评论/工单及双向分页依赖。
 当前预检三票均OPEN，依赖8/23/0，#57仍11个OPEN依赖。原body/AC、metadata和依赖不得修改。

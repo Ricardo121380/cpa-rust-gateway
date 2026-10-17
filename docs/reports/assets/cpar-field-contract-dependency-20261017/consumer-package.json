@@ -1,4 +1,7 @@
 {
+  "name": "cpar-native-fidelity-consumer-probe",
+  "version": "0.0.0",
+  "private": true,
   "dependencies": {
     "@anthropic-ai/sdk": "0.135.0",
     "openai": "7.36.0"

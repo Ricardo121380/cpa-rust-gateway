@@ -65,6 +65,11 @@
 结果见 [results](assets/cpar-field-contract-dependency-20261017/consumer-results.json)。
 全部 fetch 由内存 Response 替换，SDK未建立socket；7 mock fetch，外部Provider=0。
 
+首次Spec审查发现原npm `--prefix /tmp`生成的包锁含外部相对package路径。保留原锁和
+实际clean `npm ci`的RED后，只修正portable根metadata与`node_modules/`键；9包版本/URL/integrity
+不变。另一个全新目录实际执行`npm ci --offline --ignore-scripts --no-audit --no-fund`及probe，
+七项输出与原回执逐字节相等，见 [clean replay](assets/cpar-field-contract-dependency-20261017/consumer-clean-replay.json)。
+
 | 实际消费者场景 | 观察 | 允许结论 |
 |---|---|---|
 | 三协议JSON | root/message/usage未知字段保留；Responses helper另生成output_text | 这些固定版本JSON读取不删除所测字段；未证明展示/业务使用 |

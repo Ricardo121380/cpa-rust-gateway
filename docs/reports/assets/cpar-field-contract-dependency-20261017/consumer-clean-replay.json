@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "initial_documented_ci_exit": 1,
+  "fixed_clean_ci_exit": 0,
+  "commands": [
+    "npm ci --offline --ignore-scripts --no-audit --no-fund",
+    "node consumer-probe.mjs"
+  ],
+  "cwd": "/private/tmp/cpar-consumer-clean-replay-20261017",
+  "npm": "11.19.1",
+  "node": "v26.8.2",
+  "sdk_versions_unchanged": true,
+  "all_nine_dependency_versions_urls_integrities_unchanged": true,
+  "all_seven_results_byte_equal": true,
+  "package_lock_sha256": "968d7b4f4abb581a0e63df66cc09e4b542d4163fa2c173db666f14bd7f698975",
+  "provider_calls": 0
+}
