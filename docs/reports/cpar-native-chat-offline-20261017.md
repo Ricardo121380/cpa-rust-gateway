@@ -74,7 +74,7 @@
 
 测试驱动先有缺PathBuf import、误用Messages错误schema、误把Responses正常error:null字段选成错误、误将response.failed内已交付output当作error文本几份FAIL；原日志单列保留。修正的是驱动对已确定codec契约的读取，产品断言不降低；Usage缺失的1→0则是独立产品RED并实际修复。
 
-本批涉及共享公开Usage/failure边界，因此实际执行项目本地Full，结果 **FAIL**：45步中43步PASS，Dependency policy FAIL，最后RustSec audit因fail-stop为NOT_RUN。Rust测试 **1515 PASS / 0 FAIL / 13 IGNORED**；Clippy、格式、Prism双build、真实本地进程/loopback回归、Source policy、秘密扫描、191项契约测试引用及文档链接均PASS。private probe在普通Full中按设计ignored，已在显式本地capture replay单独执行。详见 [local-validation](assets/cpar-native-chat-offline-20261017/local-validation.json)、[Full逐步回执](assets/cpar-native-chat-offline-20261017/local-full-steps.md)和不可改写的 [Full原日志](assets/cpar-native-chat-offline-20261017/local-full.log)。
+本批涉及共享公开Usage/failure边界，因此实际执行项目本地Full，结果 **FAIL**：45步中43步PASS，Dependency policy FAIL，最后RustSec audit因fail-stop为NOT_RUN。Rust测试 **1515 PASS / 0 FAIL / 13 IGNORED**；Clippy、格式、Prism双build、真实本地进程/loopback回归、Source policy、秘密扫描、191项契约测试引用及文档链接均PASS。private probe在普通Full中按设计ignored，已在显式本地capture replay单独执行。详见 [local-validation](assets/cpar-native-chat-offline-20261017/local-validation.json)、[Full逐步回执](assets/cpar-native-chat-offline-20261017/local-full-steps.md)和无损压缩保留的 [Full原日志](assets/cpar-native-chat-offline-20261017/local-full.log.gz)。
 
 失败来自本批未更改的Cargo.lock中rustls 0.23.45命中四份现行公告：[RUSTSEC-2026-0346](https://rustsec.org/advisories/RUSTSEC-2026-0346.html)、[0347](https://rustsec.org/advisories/RUSTSEC-2026-0347.html)、[0348](https://rustsec.org/advisories/RUSTSEC-2026-0348.html)、[0349](https://rustsec.org/advisories/RUSTSEC-2026-0349.html)。公告给出的修复版本均为≥0.23.46，但本批未做依赖升级、豁免或部署影响评估；该门禁仍FAIL，后续候选还需独立解决此阻塞。没有用定向绿测覆盖Full失败，也没有无理由重复Full。
 
@@ -100,3 +100,5 @@
 只有决策、必要实现和新候选门槛完成后，才有理由另行授权真实复测。最小建议预算是新epoch fresh Pin≤1＋**原字节Chat≤1**（总≤2）；不自动转移旧预算。发送前冻结新source/binary/manifest/process/config/Key/route/account/实际lease/model/egress与原请求SHA。待验证假设必须是已实现映射在同一真实形状上能够完整交付；已知必拒而未改变映射时预算应为0。首个FAIL/UNKNOWN/身份或证据矛盾立即永久停止，无retry/fallback/换账号模型/refresh/修复后追加。
 
 GitHub #47/#57/#9当前均OPEN；本批仅授权追加既有progress，原正文/AC/metadata和依赖保留，写后独立读取核对。离线修复不关闭渠道、收口或父规格；远端CI、真实矩阵、发布、部署及生产仍NOT_RUN。
+
+原始测试输出含工具生成的尾随空白。全部13份原日志字节保留在本地及本批首个提交，最终交付另以确定性gzip无损归档，解压逐字节相等；[log-archives](assets/cpar-native-chat-offline-20261017/log-archives.json)绑定原件/压缩件摘要。此证据包装不改写任何RED或Full FAIL，也未重跑Full。

@@ -1,0 +1,110 @@
+{
+  "status": "PASS",
+  "method": "lossless gzip, mtime=0; exact original output retained locally and in the preceding source commit",
+  "files": [
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/clippy-initial.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/clippy-initial.log",
+      "raw_bytes": 5133,
+      "raw_sha256": "1cc4e1c7fccd83899d21a4fce88c11e5bbe5e1d97c7fe75c51884dbb3a37eff3",
+      "archive_sha256": "9623578819374ecff4ad6bbfe9d407338c5cf7659aa6b566eac770c5fc5067f1",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/local-full.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/local-full.log",
+      "raw_bytes": 302465,
+      "raw_sha256": "e7c311296efc11d1ccdd4b6452f7b5af6f9866128a3d775472e4926e207a3857",
+      "archive_sha256": "1d599369c3d670ce32ef1638a0348e4a5f93bb07b145998f01e7658182881bcf",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/private-replay-final.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/private-replay-final.log",
+      "raw_bytes": 574,
+      "raw_sha256": "f3b6529ce7230fc867c57f2569ddb374e1dce59aeaddac658bf5eccb4a583423",
+      "archive_sha256": "467fac8703adef71891d75a5d55046a60eedfbcb3a29897198a96c7a568dab17",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/private-replay-harness-compile-fail.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/private-replay-harness-compile-fail.log",
+      "raw_bytes": 725,
+      "raw_sha256": "646d07b7721656157bf627003a476a49680dacfd24fc6ae538dd774b80e83aa9",
+      "archive_sha256": "92d245ca45ede2718a010b966714754ac8bdcd43282b7859281cc7482eea1644",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/private-replay-red.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/private-replay-red.log",
+      "raw_bytes": 678,
+      "raw_sha256": "42af7449f7b6dc95503a4e2556740e7fad0f02543a2258a91705e9831cc96e1a",
+      "archive_sha256": "dd479b30d24c477757df7498756fbb83a20d687552de1ec8f9d57533645ad606",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/provider-final.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/provider-final.log",
+      "raw_bytes": 610,
+      "raw_sha256": "96fe9d92f6d2cb7bf31f357626ea84d813283efca5e81f3e2023ab749a825640",
+      "archive_sha256": "4af3b986c93095be9ae002835c3813fa26ee98a67a3ea2600fe85a905a9eaf7b",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/provider-green.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/provider-green.log",
+      "raw_bytes": 610,
+      "raw_sha256": "7295011665bb48ce54a5d550505cb6ad134f30dffb81e5b8d5af7d43516d7211",
+      "archive_sha256": "d0e26a4b2d89157e0558083be0383b0fd16519fe3deea27b4b5f24b0bb51971b",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/provider-red.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/provider-red.log",
+      "raw_bytes": 1999,
+      "raw_sha256": "d755eececc8193f5d051ae87461ae242f01a81ca28c87f0cab407981d63b9865",
+      "archive_sha256": "fda5bd27a188db6da4085c278a3929518a2b29ba0400a2ec925cc03a33923605",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-green.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-green.log",
+      "raw_bytes": 682,
+      "raw_sha256": "1bdf4d8717a0c6b81e563236bf8a6273a229da0c455aab73f53a2249ccafad05",
+      "archive_sha256": "726f82ed598fc6530da640a5ea6cd44b89d3908127cac8a63ba5413d76723994",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-harness-envelope-fail.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-harness-envelope-fail.log",
+      "raw_bytes": 917,
+      "raw_sha256": "529447a8ef3b9a62b194c26adf866bc27f2c4f166dc25a032d3357c1d25d06f9",
+      "archive_sha256": "92f95de518ab33b9027d39274ff80f09747c6fc71f7f26cbe666987b969966bc",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-harness-error-envelope-fail.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-harness-error-envelope-fail.log",
+      "raw_bytes": 1052,
+      "raw_sha256": "de9d5be824d5e6b3fc4bd02dd879784f31172132974eef92b8b4509129853fe7",
+      "archive_sha256": "b4a8ce9a5ccb3005a131938d9af07294bf2d6f1d7d8bd1b8f9c38a8c440b23ee",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-harness-error-frame-fail.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-harness-error-frame-fail.log",
+      "raw_bytes": 1246,
+      "raw_sha256": "d30855bcb2da5f25c263902027ddb7dc7f57ddb27604fe9ec6d41857a6a23f41",
+      "archive_sha256": "6b677a10382b38925b64fee7f9f1213c83c2461db716700998fa15a7d05aceb6",
+      "raw_retained_locally": true
+    },
+    {
+      "path": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-usage-red.log.gz",
+      "raw_path_local": "docs/reports/assets/cpar-native-chat-offline-20261017/public-matrix-usage-red.log",
+      "raw_bytes": 1243,
+      "raw_sha256": "8ab39c74155573a8f903240ceda37071e627d33fb0cbbbc534420a02d9526407",
+      "archive_sha256": "a7e98141ed652f1fa9a451c7b09c658c61c9cf4abba19be6a06516384fce27eb",
+      "raw_retained_locally": true
+    }
+  ]
+}
