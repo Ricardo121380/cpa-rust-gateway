@@ -112,3 +112,5 @@ GitHub #47/#57/#9当前均OPEN；本批仅授权追加既有progress，原正文
 [同步回执](assets/cpar-native-chat-offline-20261017/github-sync-summary.json)记录PASS3/3，created comments0、closed issues0、issue正文/metadata写入0、push=false。三票均OPEN。新增本地只读绑定回执将实际GitHub响应/载荷摘要保留，以便独立核验；它不包含私有原生响应。
 
 最终核验只针对交付文档、GitHub证据及源文件摘要，不重跑已稳定源码的Full。受测六个Rust文件与固定源码摘要保持，`AGENTS.md`用户修改保持，旧binary/manifest/metadata与所有原始失败仍保留；本批真实Provider调用0、远端新实例0、部署0。诊断和已授权可执行修复已交付；三协议可表达性、真实验收、依赖Full门禁和新候选资格继续BLOCKED，不自动安排下一轮。
+
+最终固定审查范围为 **`ec534918→5ae68580`，46文件**，通过原产品/材料审查加8文件交付增量独立覆盖：[最终双轴审查](assets/cpar-native-chat-offline-20261017/review-final.md)。两路交付增量终态complete：Standards PASS（硬发现0/建议0）；Spec PARTIAL/BLOCKED，材料/同步一致性PASS（新增违约/遗漏0、scope creep0）。独立核对27份GitHub原件/载荷摘要、精确4636字节追加正文、三次comment body/identity及issue/dependency保护字段；PATCH与GET整对象仅avatar URL查询串有服务端展示差异，没有把整对象称为逐字节相等。记录审查本身的后续本地提交只增审查回执和文档/ownership记账，不更改受审源码、执行证据、已同步正文或当前阻塞。

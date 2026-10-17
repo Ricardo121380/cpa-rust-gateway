@@ -46,7 +46,9 @@
     "docs/reports/assets/cpar-native-chat-offline-20261017/github-append.md",
     "docs/reports/assets/cpar-native-chat-offline-20261017/github-sync-summary.json",
     "docs/reports/assets/cpar-native-chat-offline-20261017/github-readback-bindings.json",
-    "docs/reports/assets/cpar-native-chat-offline-20261017/delivery-checks.json"
+    "docs/reports/assets/cpar-native-chat-offline-20261017/delivery-checks.json",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/review-final.json",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/review-final.md"
   ],
   "scope": "only this batch; AGENTS and output capture excluded"
 }
