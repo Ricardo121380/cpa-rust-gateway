@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-10-17T08:25:27.873Z",
+  "review_base": "312584184e7680594878460499c39af0a244d440",
+  "review_head": "a0aafba8e67b4881bc68802693f8ea63e50c266f",
+  "Full_source": "2f43057c9d718aee5904da12564d54ac697bf8b4",
+  "scope": "Final review/preservation/report recording only; no product, schema, execution-log or GitHub suffix change.",
+  "checks": [
+    {
+      "command": "scripts/secret-scan.sh --staged",
+      "exit": 0,
+      "output": "secret-scan: ok (--staged)\n"
+    },
+    {
+      "command": "scripts/check-doc-links.rb",
+      "exit": 0,
+      "output": "doc-links: ok (1165 Markdown files)\n"
+    },
+    {
+      "command": "scripts/check-contract-tests.rb",
+      "exit": 0,
+      "output": "contract-tests: ok (191 referenced tests resolved)\n"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit": 0,
+      "output": ""
+    }
+  ],
+  "Full_rerun": "Not required for this result-only recording; prior immutable product-source Full is 45/45 PASS.",
+  "unrelated_preservation": "55204 regular files and 10 symbolic links unchanged; AGENTS exact original SHA retained."
+}

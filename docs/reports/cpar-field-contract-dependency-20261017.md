@@ -22,7 +22,10 @@
 开始冻结55,218个tracked/nonignored untracked文件。除本批拥有的 Cargo.lock、ADR索引、
 ADR-0101新增链接和traceability四条既有路径，55,214个文件的字节/长度/权限均未变；
 用户 AGENTS 和所有其他原有未跟踪内容保留。[preservation](assets/cpar-field-contract-dependency-20261017/preservation.json)
-记录完整本地manifest摘要及检查数量。新材料仅在本批ADR、报告/assets与独立output目录。
+记录完整本地manifest摘要及检查数量；[最终保留核对](assets/cpar-field-contract-dependency-20261017/preservation-final.json)
+再次核对同一批原有文件。55,204个普通文件及10个符号链接均保持原字节/长度/权限；
+末态脚本初次跟随链接与初始link-byte清单比较的误报回执独立保留，未改变任何旧链接或目标。
+新材料仅在本批ADR、报告/assets与独立output目录。
 
 只读探子的两项不完整结果没有记为执行PASS：SDK安装/保存受只读角色约束，初始Python无tomllib。
 主代理补完固定SDK实际执行、锁差异及约束核对；另直接定位冻结driver里的
@@ -111,20 +114,27 @@ Build未知字段意义、独立费用、模型别名、专用产品消费者及
 
 ## Review and GitHub reconciliation
 
-最终固定base/head/文件集的Standards与Spec双轴审查在本批交付冻结后记录；此段将在终态回执
-绑定时注明各自结论。不会用依赖门禁PASS替代协议或真实验收PASS。
+最终固定base/head/文件集的Standards与Spec双轴审查均已完成，以下分别记录结论。
+依赖门禁PASS不替代协议或真实验收PASS。
+
+最终固定审查 **`312584184e7680594878460499c39af0a244d440 → a0aafba8e67b4881bc68802693f8ea63e50c266f`，55文件**：
+两路增量复核结合首轮完整覆盖，均complete。**Standards PASS（硬发现0、建议0）；
+本批Spec一致性PASS（新增违约0、scope creep0），初P2 closed；原#9仍PARTIAL/BLOCKED。**
+见 [最终双轴回执](assets/cpar-field-contract-dependency-20261017/review-final.md)及
+[固定文件摘要](assets/cpar-field-contract-dependency-20261017/review-final.json)。主代理点验55份
+commit/working bytes、Full原日志、SDK9包/7结果、ci红绿归档、39份GitHub绑定及AGENTS保留。
+记录审查本身的后续提交只增加结果/保留记账和本段，不改受审schema、源码、执行证据或已同步正文。
 
 首次固定 `31258418→a09611e2` 的49文件审查为Standards PASS（0/0）、Spec本批一致性FAIL
 （P2 1项，scope creep0）：SDK包锁使用外部临时相对路径，报告的clean npm ci不能可靠复现。
 [首轮审查](assets/cpar-field-contract-dependency-20261017/review-initial.md)永久保留。实际clean ci
 先复现RED，之后仅修portable锁metadata/路径键，9包版本/URL/integrity与7项结果不变；
 另一全新目录clean ci＋probe GREEN，见 [replay](assets/cpar-field-contract-dependency-20261017/consumer-clean-replay.json)。
-此修复只涉及消费者验收材料，不改产品/Cargo依赖/协议；修正范围会重新固定并独立审查。
+此修复只涉及消费者验收材料，不改产品/Cargo依赖/协议；修正范围已重新固定并独立审查。
 
 本批只允许追加既有progress #47/comment6081215242、#57/comment6081234278、#9/comment6081235490。
 同步采用body-only PATCH，旧前缀保留；各次独立GET评论，之后重读全部评论/工单及双向分页依赖。
-当前预检三票均OPEN，依赖8/23/0，#57仍11个OPEN依赖。原body/AC、metadata和依赖不得修改。
-同步结果在实际执行/回读后单独追加，准备或PATCH返回不冒称已验证。
+实际预检三票均OPEN，依赖8/23/0，#57仍11个OPEN依赖；回读确认这些状态保持。
 
 实际同步现已 **PASS 3/3**：对既有 [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、
 [#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、
@@ -138,8 +148,9 @@ Build未知字段意义、独立费用、模型别名、专用产品消费者及
 
 新增材料静态检查的两个初始失败亦保留：合成SDK占位符碰到16字符扫描阈值，缩短后七项
 probe结果不变；合法unified diff的空白context行碰到whitespace门禁，原patch本地保留并以
-gzip逐字节归档。未放宽扫描/whitespace或加例外；最终扫描、1162份Markdown链接、191项
-契约引用、JSON/Python语法和diff静态检查均通过。
+gzip逐字节归档。未放宽扫描/whitespace或加例外；秘密扫描、Markdown链接、191项
+契约引用、JSON/Python语法和diff静态检查均通过。最终审查回执的文档提交另作同类静态核对，
+见 [交付静态回执](assets/cpar-field-contract-dependency-20261017/delivery-static.json)。
 
 ## Next batch and candidate prerequisites
 

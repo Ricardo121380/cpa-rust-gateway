@@ -1,0 +1,318 @@
+{
+  "base": "312584184e7680594878460499c39af0a244d440",
+  "head": "a0aafba8e67b4881bc68802693f8ea63e50c266f",
+  "files": [
+    "Cargo.lock",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/ADR-0106-native-fidelity-profile.md",
+    "docs/adr/README.md",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/advisory-databases.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/baseline.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-ci-green.log.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-ci-red.log.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-clean-replay.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-identity.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-initial.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-lock-initial.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-lock.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-probe.mjs",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-results-first.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-results.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/decisions.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/dependency-change.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/duplicates-after.txt.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/duplicates-before.txt.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-final-steps.md",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-final.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-final.log.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-rustls-only-steps.md",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-rustls-only.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-rustls-only.log.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-steps.md",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-append.md",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-preflight-interruption.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-readback-bindings.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-sync-summary.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github_sync.py",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/history-check.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/native-fidelity-v1.schema.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/preservation.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/quinn-proposal-audit.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/quinn-proto-proposal.patch.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/research-verification.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/review-initial.md",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/review-spec.md",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/static-final.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/static-initial.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/static-whitespace-failure.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-binding.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-harness-interpreter-failure.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-harness-interpreter-failure.log.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-probe.py",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-probe.rs",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-receipt.json",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tree-after.txt.gz",
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tree-before.txt.gz",
+    "docs/reports/cpar-field-contract-dependency-20261017.md",
+    "docs/reports/cpar-field-mapping-acceptance-20261017.md",
+    "docs/traceability.md"
+  ],
+  "bindings": {
+    "Cargo.lock": {
+      "bytes": 90046,
+      "sha256": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce"
+    },
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md": {
+      "bytes": 6407,
+      "sha256": "da24f31ebb1aef77a48f9d9a696ea61504e8a0091333dea16e64bd63ee1ab3f5"
+    },
+    "docs/adr/ADR-0106-native-fidelity-profile.md": {
+      "bytes": 20664,
+      "sha256": "117396b52adb4bf218704adfe7ead78b49176b0c56bbb172c3a0f3f56f781cbe"
+    },
+    "docs/adr/README.md": {
+      "bytes": 19835,
+      "sha256": "8a66e537d68128fcd0177ed8875365fc10aad7032e4e9316f7640617c8bb12d2"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/advisory-databases.json": {
+      "bytes": 409,
+      "sha256": "fd35e86fab6cbaff60fca814c8e7c9b36ff49a4c6b7d9a2625ee2143994d8449"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/baseline.json": {
+      "bytes": 2635,
+      "sha256": "6f494008ea449b0dfd4d177eff700ae39a82fd2b02941253ba6a9191243a8d35"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-ci-green.log.gz": {
+      "bytes": 47,
+      "sha256": "88724540f5a4964c436ec167399b78c183a0c6cff121f5fa35897ed7c89cf548"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-ci-red.log.gz": {
+      "bytes": 1537,
+      "sha256": "b3c754b51de091d7166ad51d475df8c7f68bf67ec41ab79e950eb0f1597059b4"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-clean-replay.json": {
+      "bytes": 558,
+      "sha256": "af38b0c93e12435d1c8259855bb8399dbe873f4383a7f1c6a26718a5f10499e8"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-identity.json": {
+      "bytes": 2157,
+      "sha256": "2f40e2c4405850226a25e3ec852b6406ff66c472e6c90adc651d8c97814d7534"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-initial.json": {
+      "bytes": 87,
+      "sha256": "1847fbb685b8d9029139d4373983c42ec363947e978eb9947dd58c1d7b3ce8ba"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-lock-initial.json": {
+      "bytes": 4909,
+      "sha256": "7d69082f599ac1f750489c418532e4ca10faef41241b93d9a89ab43aa4c21572"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package-lock.json": {
+      "bytes": 4526,
+      "sha256": "968d7b4f4abb581a0e63df66cc09e4b542d4163fa2c173db666f14bd7f698975"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-package.json": {
+      "bytes": 177,
+      "sha256": "87045ca31c91bb38739d3c0a78406adefaed9ae409bb4cfb9d763c9defc0547c"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-probe.mjs": {
+      "bytes": 8734,
+      "sha256": "f01354d1cea209c5dee7762be78ea94060b6d8ffd375a09b3186759caab51558"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-results-first.json": {
+      "bytes": 1687,
+      "sha256": "4565bcd00575e5e24f3325e2c40302310dbd64045683416e6cae91822f09cbf2"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-results.json": {
+      "bytes": 1932,
+      "sha256": "da56d2f358810e1a4228063319ce1c0156b32036cdbc4f3e1c9b5f2d11a677ca"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/decisions.json": {
+      "bytes": 527,
+      "sha256": "6fc0191fddcb7a926e19feb26788bb759d991a0f456a926b5f972e4861706228"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/dependency-change.json": {
+      "bytes": 1158,
+      "sha256": "a3f60a2d715fdd20b82736e348dbf72b55f444b8ce5c2391913c546e3d4b9c0d"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/duplicates-after.txt.gz": {
+      "bytes": 3786,
+      "sha256": "31ab8eb906cb81c4abf877d587768bc0ceea7cfcab2fd4ad7d3c5fa106d40e6d"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/duplicates-before.txt.gz": {
+      "bytes": 3786,
+      "sha256": "970f045ff5d249d7e9993877083476ae5521388e369dea0a955e99150269aa4e"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-final-steps.md": {
+      "bytes": 1848,
+      "sha256": "fff6e583b8f3bed590e0d3db412995fdcca6ec963e8a826942e7a2fd8510d62b"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-final.json": {
+      "bytes": 900,
+      "sha256": "919bb4e74325f67d3392e597fcd20773b262d7749f2b3e24273dbe8cb8df7ecd"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-final.log.gz": {
+      "bytes": 49842,
+      "sha256": "1a2be1e04fb691c2a367db9c68039a478f5662ef54d99deaf53c4ac311736963"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-rustls-only-steps.md": {
+      "bytes": 1817,
+      "sha256": "c9a7c8c2555e4fb119f2abd70bdcf2f53b6cec019661a674cc0f64c88a09390a"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-rustls-only.json": {
+      "bytes": 571,
+      "sha256": "7837c34af25f53816f9f26e698251d7c52662d8b6356359281b475f78f4e420f"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-rustls-only.log.gz": {
+      "bytes": 50375,
+      "sha256": "e463c0efdfb651b46b0c8b8b3b74b3c15f3fd4bbf1746c2576d0c3085051b68b"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/full-steps.md": {
+      "bytes": 1817,
+      "sha256": "c9a7c8c2555e4fb119f2abd70bdcf2f53b6cec019661a674cc0f64c88a09390a"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-append.md": {
+      "bytes": 3050,
+      "sha256": "d1ff8c30881d6ccc4c7c9320b209fa07d35bb9991513ce2675894a2894cc94fb"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-preflight-interruption.json": {
+      "bytes": 409,
+      "sha256": "0e8221d7aafd2f632814b7b6edae8a5e7c31e74d78fac2a5e0e057e9acfb80bd"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-readback-bindings.json": {
+      "bytes": 7828,
+      "sha256": "dac4a689b05aa587ef32617eb0a4429cd430d159cce95174f85f47742cd05958"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github-sync-summary.json": {
+      "bytes": 2327,
+      "sha256": "da52c518efeba23251960fc38881ea878385b891c3be1eac1f5f4d00b9d62854"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/github_sync.py": {
+      "bytes": 5998,
+      "sha256": "0b311fa97749a3179d89a46fa0aa4800fa53f09fde6da01eb6029d9e40b6c2c7"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/history-check.json": {
+      "bytes": 284,
+      "sha256": "e423703cdb5522e5a0ff8d245feac541bd2f5d49f4e0badd3d1cd3cff0070319"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/native-fidelity-v1.schema.json": {
+      "bytes": 6646,
+      "sha256": "e8cd7e482329804c0b01fc95324ed4d8776754640a10f7fae74d1d4030b7ba72"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/preservation.json": {
+      "bytes": 615,
+      "sha256": "faaf35982275a8fdefd753dcc26ff224cad291b91d546e55c867a673abf4e67b"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/quinn-proposal-audit.json": {
+      "bytes": 445,
+      "sha256": "ffa32b1ea5ad1491d638d51db1f7f0198e8842fabc6227732e80e0384052b312"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/quinn-proto-proposal.patch.gz": {
+      "bytes": 339,
+      "sha256": "68904bb66a3644b9177812d16efa98a1c26b5b05f3d98887b8b1149ff4496abe"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/research-verification.json": {
+      "bytes": 1851,
+      "sha256": "77143c600c0b869bdb9b6b3f42c995571f3d8671fc4317526e460e80148ae5b3"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/review-initial.md": {
+      "bytes": 2036,
+      "sha256": "3764333b5a2be411309945f493e87f76b9137c74ad4b9c940ae74dff5e78bed6"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/review-spec.md": {
+      "bytes": 3885,
+      "sha256": "ac5084177832ec8f3c8a29cdbdb8829880950e2a594d2c6e294829825f16e17d"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/static-final.json": {
+      "bytes": 1031,
+      "sha256": "1e567b743c93d218a345500e629ae37cd94f4e8b748fa70b13daaff020bac3ed"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/static-initial.json": {
+      "bytes": 388,
+      "sha256": "ed2033a01edeb82e0d3f4a4b25c49d011a3c88550773a913331d387a5ff7d993"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/static-whitespace-failure.json": {
+      "bytes": 499,
+      "sha256": "5db2a4e83f2a54d0e829353fae21a64578ef8826a7423296f7b6b53d3fd124c7"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-binding.json": {
+      "bytes": 799,
+      "sha256": "55ecbca9edd13f72fabd5410e2084a8d031ccc2f62013517b323c96e5cc9925f"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-harness-interpreter-failure.json": {
+      "bytes": 248,
+      "sha256": "6fec45f0ebd9bce043faed1d88016458ea162ca2244bc4ade2b5649ca1c8df2f"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-harness-interpreter-failure.log.gz": {
+      "bytes": 348,
+      "sha256": "791ee86b429d4c1ca179be2c301bda2dc13aa820f71e9d50eda1c539cd97c027"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-probe.py": {
+      "bytes": 6805,
+      "sha256": "a644a3f77fa7ed1a32c81b0676d34cb91334f34e0ac27e8be4b982d6a9f3ede0"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-probe.rs": {
+      "bytes": 3144,
+      "sha256": "014b5a4797c3a312fd5917c545eff1e3c55a3c2666a3688a07570f8acf19b5bb"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tls-receipt.json": {
+      "bytes": 1640,
+      "sha256": "5449885e414266d0d4255c35ee918707103cf5211d8ee5476642e94509455284"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tree-after.txt.gz": {
+      "bytes": 811,
+      "sha256": "843b3cd81e8557b958eb5f45d3b7933c1124506930a9f4640ee81d61d1ec1c5b"
+    },
+    "docs/reports/assets/cpar-field-contract-dependency-20261017/tree-before.txt.gz": {
+      "bytes": 811,
+      "sha256": "689fc66e982bce9069abfd54d1d8e2ad0c8fe53bdb2e4badc9d097e4b26330ae"
+    },
+    "docs/reports/cpar-field-contract-dependency-20261017.md": {
+      "bytes": 12921,
+      "sha256": "0bd24a9da66f7940c48959cfec2e56a6200fca548fcfc7f76ff35eebc77b748d"
+    },
+    "docs/reports/cpar-field-mapping-acceptance-20261017.md": {
+      "bytes": 9640,
+      "sha256": "1a71e892654694e0078a4e7766d858613f5218c09c5ceb62b6e32b248e40dfd6"
+    },
+    "docs/traceability.md": {
+      "bytes": 81019,
+      "sha256": "a7a3d6060f9498119a044a050f14ca486b5ec2715b375d5656c679f78bcc6ec5"
+    }
+  },
+  "coverage": "first complete 49-file reviews plus independent 10-file correction; 55 final files",
+  "axes": {
+    "Standards": {
+      "status": "PASS",
+      "terminal": "complete",
+      "reviewer": "/root/corrected_standards",
+      "hard_findings": 0,
+      "suggestions": 0
+    },
+    "Spec": {
+      "batch_consistency": "PASS",
+      "original_spec": "PARTIAL/BLOCKED",
+      "terminal": "complete",
+      "reviewer": "/root/corrected_spec",
+      "new_violations": 0,
+      "scope_creep": 0,
+      "initial_P2": "closed; initial FAIL and RED retained"
+    }
+  },
+  "root_verification": {
+    "fixed_working_files_equal_git_head": 55,
+    "github_objects_verified": 39,
+    "raw_full_log_hashes": true,
+    "package_records_equal_except_keys_and_root_metadata": true,
+    "ci_red_green_archives_equal_originals": true,
+    "AGENTS_preserved": true
+  },
+  "Full_source": "2f43057c9d718aee5904da12564d54ac697bf8b4",
+  "Full": "45/45 PASS",
+  "protocol_implementation": "NOT_RUN; strict current paths unchanged",
+  "actual_alias_and_cost": "UNKNOWN",
+  "provider_calls": 0,
+  "formal_candidates": 0,
+  "deployment": 0,
+  "recorded_at": "2026-10-17T08:21:56.278429+00:00"
+}

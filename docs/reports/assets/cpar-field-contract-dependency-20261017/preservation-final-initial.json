@@ -1,0 +1,29 @@
+{
+  "status": "FAIL",
+  "checked_at": "2026-10-17T08:24:04.572491+00:00",
+  "initial_manifest_sha256": "50de523e7caf88ba4af00133548ced3d45190fcaac93b2b1697c48f3f4f12b00",
+  "initial_files": 55218,
+  "owned_existing_paths": [
+    "Cargo.lock",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "unrelated_files_verified_unchanged": 55214,
+  "drift": [
+    "output/channel-metadata-release-20260927/fallback-arm",
+    "output/channel-metadata-release-20260927/fallback-x64",
+    "output/kimi-quota-release-20260927/fallback-arm",
+    "output/kimi-quota-release-20260927/fallback-x64",
+    "output/m4-message-diagnostic-20260927/fallback-arm",
+    "output/m4-message-diagnostic-20260927/fallback-x64",
+    "output/m4-owned-reasoning-20260927/fallback-arm",
+    "output/m4-owned-reasoning-20260927/fallback-x64",
+    "output/prism-polish-release-20260928/fallback-arm",
+    "output/prism-polish-release-20260928/fallback-x64"
+  ],
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "review_head": "a0aafba8e67b4881bc68802693f8ea63e50c266f",
+  "preserves": "All initial nonignored unrelated tracked/untracked bytes, sizes and modes; old candidate/failure/budget artifacts retained.",
+  "raw_private_responses": "Local hash processing only; no content emitted."
+}

@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-10-17T08:24:54.438354+00:00",
+  "initial_manifest_sha256": "50de523e7caf88ba4af00133548ced3d45190fcaac93b2b1697c48f3f4f12b00",
+  "initial_files": 55218,
+  "owned_existing_paths": [
+    "Cargo.lock",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "unrelated_files_verified_unchanged": 55214,
+  "drift": [],
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "review_head": "a0aafba8e67b4881bc68802693f8ea63e50c266f",
+  "preserves": "All initial nonignored unrelated tracked/untracked bytes, sizes and modes; old candidate/failure/budget artifacts retained.",
+  "raw_private_responses": "Local hash processing only; no content emitted.",
+  "regular_files_verified_unchanged": 55204,
+  "symbolic_links_verified_unchanged": 10,
+  "method": "Regular files use content hash, stat size/mode. Symbolic links use link bytes, lstat size/mode, matching initial manifest semantics.",
+  "initial_followed_symlink_failure": {
+    "path": "docs/reports/assets/cpar-field-contract-dependency-20261017/preservation-final-initial.json",
+    "sha256": "087e189f4b701c9101143b390e9c09780d787ff0dba715c8fb7d0b8669fcf0ab",
+    "status": "FAIL from comparing link manifest records with followed target-file bytes; no actual original-file drift"
+  }
+}
