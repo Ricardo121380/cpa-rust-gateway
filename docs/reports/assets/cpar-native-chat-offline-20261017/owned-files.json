@@ -40,7 +40,10 @@
     "docs/reports/assets/cpar-native-chat-offline-20261017/tools/inspect.py",
     "docs/reports/assets/cpar-native-chat-offline-20261017/usage-extensions-native.json",
     "docs/reports/assets/cpar-native-chat-offline-20261017/owned-files.json",
-    "docs/reports/assets/cpar-native-chat-offline-20261017/log-archives.json"
+    "docs/reports/assets/cpar-native-chat-offline-20261017/log-archives.json",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/review-pre-sync.json",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/review-pre-sync.md",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/github-append.md"
   ],
   "scope": "only this batch; AGENTS and output capture excluded"
 }
