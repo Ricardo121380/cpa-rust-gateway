@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-17",
+  "profile_and_usage": "accepted opt-in native-v1 plus dedicated consumer, complete Attempt-owned encrypted non-billing Usage evidence for next batch",
+  "models": "accepted literal or scope-bound independently attested aliases with three-way assertions; actual Build relation remains UNKNOWN",
+  "additional_dependency": "explicitly authorized quinn-proto 0.11.16 -> 0.11.18 and updated Full",
+  "provider_calls_authorized": 0,
+  "implementation": "next batch; no current protocol behavior change"
+}

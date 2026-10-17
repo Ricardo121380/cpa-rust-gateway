@@ -1,0 +1,8 @@
+{
+  "status": "NOT_RUN_TLS13",
+  "cause": "macOS system Python 3.9.6 uses LibreSSL2.8.3; setting TLSv1_3 fails before that client scenario",
+  "product_failure": false,
+  "build": "PASS",
+  "first_tls12_scenario_ran": true,
+  "provider_calls": 0
+}

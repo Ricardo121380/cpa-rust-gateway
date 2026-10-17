@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "production_boundary": "UpstreamClientPool::send/Standard reqwest DNS-pinned path",
+  "provider_calls": 0,
+  "global_trust_writes": 0,
+  "verification_disabled": false,
+  "records": [
+    {
+      "case": "tls12",
+      "tcp_accepts": 1,
+      "http_requests": 1,
+      "tls_version": "TLSv1.2",
+      "client_exit": 0,
+      "client_result": "VERIFIED_TLS_HTTP_SUCCESS",
+      "client_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "PASS"
+    },
+    {
+      "case": "wrong-host",
+      "tcp_accepts": 1,
+      "http_requests": 0,
+      "tls_version": null,
+      "tls_rejected": true,
+      "client_exit": 0,
+      "client_result": "VERIFIED_TLS_REJECTION",
+      "client_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "PASS"
+    },
+    {
+      "case": "untrusted-ca",
+      "tcp_accepts": 1,
+      "http_requests": 0,
+      "tls_version": null,
+      "tls_rejected": true,
+      "client_exit": 0,
+      "client_result": "VERIFIED_TLS_REJECTION",
+      "client_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "PASS"
+    },
+    {
+      "case": "tls13-openssl3",
+      "http_requests": 1,
+      "tls_version": "TLSv1.3",
+      "server_accept_limit": 1,
+      "server_stderr_sha256": "e0b8c00c1ba1d7fb98a4b1aad8d62dea44c906d11d4b1a27fab5c9e03f48cb53",
+      "client_exit": 0,
+      "client_result": "VERIFIED_TLS_HTTP_SUCCESS",
+      "client_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "PASS"
+    }
+  ]
+}

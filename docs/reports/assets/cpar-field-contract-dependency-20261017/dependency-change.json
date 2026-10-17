@@ -1,0 +1,39 @@
+{
+  "dependency_head": "28568553ce5d8754f4063884c1c9c37821f68c9f",
+  "lock_only": true,
+  "old_rustls": "0.23.45",
+  "new_rustls": "0.23.46",
+  "features": [
+    "ring",
+    "std",
+    "tls12"
+  ],
+  "unrelated_lock_changes": 0,
+  "duplicate_graph_unchanged": true,
+  "Cargo_lock_sha256": "6b90b065b2565129596e7e5a35cecd678632ea401ced47de6539c1ae60b6a0c7",
+  "advisories": [
+    "RUSTSEC-2026-0346",
+    "RUSTSEC-2026-0347",
+    "RUSTSEC-2026-0348",
+    "RUSTSEC-2026-0349"
+  ],
+  "patched_lower_bound": "0.23.46",
+  "advisory_ignores_added": 0,
+  "rustls_vcs": {
+    "git": {
+      "sha1": "f04804fa13341a9b1dc02b5d1dd8a746f2c4b7fb"
+    },
+    "path_in_vcs": "rustls"
+  },
+  "final_dependency_head": "2f43057c9d718aee5904da12564d54ac697bf8b4",
+  "quinn_proto": {
+    "before": "0.11.16",
+    "after": "0.11.18",
+    "authorization": "explicit user decision card 3",
+    "constraint": "quinn0.11.11 requires ^0.11.15",
+    "MSRV": "1.85 unchanged",
+    "active_all_features_all_targets_graph": "not enabled",
+    "lock_delta": "version and checksum only"
+  },
+  "Cargo_lock_final_sha256": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce"
+}

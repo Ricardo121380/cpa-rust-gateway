@@ -1,0 +1,23 @@
+{
+  "status": "FAIL",
+  "source": "28568553ce5d8754f4063884c1c9c37821f68c9f",
+  "passed_steps": 44,
+  "failed_step": "RustSec audit",
+  "rust_tests": {
+    "passed": 1515,
+    "failed": 0,
+    "ignored": 13
+  },
+  "Dependency_policy": "PASS",
+  "RustSec_audit": "FAIL",
+  "new_advisories": [
+    "RUSTSEC-2026-0338",
+    "RUSTSEC-2026-0339",
+    "RUSTSEC-2026-0340",
+    "RUSTSEC-2026-0341",
+    "RUSTSEC-2026-0342"
+  ],
+  "rustls_advisories_resolved": true,
+  "raw_log_sha256": "176aeed467371d95d9f38022e4f322bb2daf6619efd7abb647574d1927606c2f",
+  "Provider_calls": 0
+}

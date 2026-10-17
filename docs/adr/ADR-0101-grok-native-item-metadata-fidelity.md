@@ -48,6 +48,11 @@ authentication scheme. Passing local fixtures cannot close real-channel combinat
 
 ## Consequences
 
+[ADR-0106](ADR-0106-native-fidelity-profile.md) records the subsequently approved direction for
+an explicitly negotiated native-fidelity profile and dedicated consumers. Its implementation
+and field-contract qualification remain pending. The default strict bridge rules below stay
+effective; this link neither enables a capability nor declares a standard-client combination passed.
+
 - This supplements the codec subset in [ADR-0057](ADR-0057-grok-official-tool-reasoning-capability-boundary.md).
   Its provider isolation and native Search non-capability remain unchanged.
 - Native metadata survives JSON/SSE projection, event serialization, and explicit public Responses

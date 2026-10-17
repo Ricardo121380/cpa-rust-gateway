@@ -1,0 +1,41 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "command": [
+        "scripts/secret-scan.sh",
+        "--staged"
+      ],
+      "exit": 0,
+      "output": "secret-scan: ok (--staged)\n",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "scripts/check-doc-links.rb"
+      ],
+      "exit": 0,
+      "output": "doc-links: ok (1162 Markdown files)\n",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "scripts/check-contract-tests.rb"
+      ],
+      "exit": 0,
+      "output": "contract-tests: ok (191 referenced tests resolved)\n",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exit": 0,
+      "output": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

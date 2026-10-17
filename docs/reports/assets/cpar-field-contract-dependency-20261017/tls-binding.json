@@ -1,0 +1,17 @@
+{
+  "library_source_commit": "28568553ce5d8754f4063884c1c9c37821f68c9f",
+  "source_files": {
+    "crates/gateway-upstream/src/upstream_client.rs": "f3f875b15f425e436b007867b6da350c2c5013d0e948cac509b7ebdb26cd5453",
+    "crates/gateway-upstream/src/egress_policy.rs": "430e14df6a6756e989773fb0039b7273bb7e1c5c7b222f49a2ebbc7461b789e5"
+  },
+  "temporary_probe_lock_sha256": "671622067ca8669b3a340a3ac544269ad1865a956a501328f94e23083250a10e",
+  "binary_sha256": "1fa3ff8d0c160195a2a01f59ed7a14c17ccb02001cae2d109fbc621abd97388f",
+  "rustls": "0.23.46",
+  "TLS_server": [
+    "Python3.9.6 LibreSSL2.8.3 TLS1.2",
+    "OpenSSL3.6.3 TLS1.3"
+  ],
+  "not_provider_acceptance": true,
+  "probe_source_sha256": "014b5a4797c3a312fd5917c545eff1e3c55a3c2666a3688a07570f8acf19b5bb",
+  "probe_unsafe_code": "deny"
+}

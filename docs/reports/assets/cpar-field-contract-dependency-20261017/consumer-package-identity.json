@@ -1,0 +1,55 @@
+{
+  "openai": {
+    "version": "7.36.0",
+    "dist": {
+      "shasum": "f8d4cbbced96f9d216d8bda24b987dff8de18214",
+      "tarball": "https://registry.npmjs.org/openai/-/openai-7.36.0.tgz",
+      "fileCount": 3972,
+      "integrity": "sha512-IiTbJojXJ8h24yjcibcD2kHCEMLjLOCyq6WuPe165xCgj4HphVCk/fb1I1jPZBDyFCR5O444Zl9Pyk1ajE8VkA==",
+      "signatures": [
+        {
+          "sig": "MEYCIQC5pggnXOciYxmp1sThcPtmNGXw0hSZZxTyTau6FyKWHQIhAI2g1XpqoWDfaXyRWMNTMD8QazzpXHcd3Y0aBrQt9vrT",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+          "sig": "MEYCIQChcCxIrrppXPIAjOymFm20E37mSOs6CLdITdLe05LejQIhAJnceQ9+NEev8KVYArLjC4ptakHkaNEMoelIwcOFeHv8"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/openai@7.36.0",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "unpackedSize": 22507672
+    },
+    "gitHead": "430f240e5c57d2d30226bdde84a1f7cd9d1c62eb"
+  },
+  "@anthropic-ai/sdk": {
+    "version": "0.135.0",
+    "dist": {
+      "shasum": "0b4a0a1daabe725217d6b8ea2fe16425c66ab662",
+      "tarball": "https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-0.135.0.tgz",
+      "fileCount": 2725,
+      "integrity": "sha512-WWrdL57JhU5KoynpTjt9GXK6k7ud9nPw2uw/Trn+oBXh6s0KpjhAccWZm2Qxw08ARYG1UDQj5iC+JO42j1rt/g==",
+      "signatures": [
+        {
+          "sig": "MEQCIDmZOoSq60pcksw0fC17haWQOMahdvuCw+So2QHhcNEkAiB2i7sRIO9fF47Yh3BUYma0UmNIyBZ9qYhJO8idZStryg==",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+          "sig": "MEUCIHmcFRrFnqSkvkZwCZOYfHaSVLXxjXtdnAif+/2TLolEAiEA3pASaRv5EKQMnfueJPgaV6tKueufw19Roj9afJWxd6c="
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@anthropic-ai%2fsdk@0.135.0",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "unpackedSize": 14570310
+    }
+  }
+}

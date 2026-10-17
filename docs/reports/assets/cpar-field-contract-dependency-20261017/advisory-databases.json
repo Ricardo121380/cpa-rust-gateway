@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-17T07:53:13.007002+00:00",
+  "databases": [
+    {
+      "path": "/Users/huangrui/.cargo/advisory-db",
+      "head": "64f92cdc64401fab47baa10e2e11fe382aa57155",
+      "tracked_clean": true
+    },
+    {
+      "path": "/Users/huangrui/.cargo/advisory-dbs/advisory-db-3157b0e258782691",
+      "head": "64f92cdc64401fab47baa10e2e11fe382aa57155",
+      "tracked_clean": true
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "versions": {
+    "openai": "7.36.0",
+    "anthropic": "0.135.0",
+    "node": "v26.8.2"
+  },
+  "fixtures": "synthetic only",
+  "external_network_calls": 0,
+  "records": [
+    {
+      "name": "chat-json",
+      "status": "PASS_EXECUTION",
+      "result": {
+        "root_extension": true,
+        "message_extension": true,
+        "usage_extension": true
+      }
+    },
+    {
+      "name": "responses-json",
+      "status": "PASS_EXECUTION",
+      "result": {
+        "root_extension": true,
+        "usage_extension": true,
+        "output_text": "ab"
+      }
+    },
+    {
+      "name": "messages-json",
+      "status": "PASS_EXECUTION",
+      "result": {
+        "root_extension": true,
+        "usage_extension": true
+      }
+    },
+    {
+      "name": "chat-sse-helper",
+      "status": "PASS_EXECUTION",
+      "result": {
+        "raw_chunks": 3,
+        "raw_delta_extensions": 2,
+        "final_delta_extension": {
+          "fragment": "b"
+        },
+        "root_extension": true,
+        "usage_extension": true
+      }
+    },
+    {
+      "name": "responses-sse-helper",
+      "status": "OBSERVED_REJECTION",
+      "error": "Unhandled response stream event: unknown"
+    },
+    {
+      "name": "responses-sse-helper-without-custom-event-control",
+      "status": "PASS_EXECUTION",
+      "result": {
+        "final_root_extension": true,
+        "final_usage_extension": true,
+        "output_text": "ab"
+      }
+    },
+    {
+      "name": "messages-sse-helper",
+      "status": "PASS_EXECUTION",
+      "result": {
+        "events": 6,
+        "custom_events_delivered": 0,
+        "raw_delta_extensions": 1,
+        "final_content_extension": null,
+        "final_usage_extension": null,
+        "root_from_start": true
+      }
+    }
+  ],
+  "numeric_precision": {
+    "raw_json_preserved": true,
+    "ordinary_JSON_parse_value": "9007199254740992",
+    "exact_integer_preserved": false
+  },
+  "mock_fetch_calls": 7
+}

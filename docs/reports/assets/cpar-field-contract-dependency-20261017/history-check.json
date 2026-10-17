@@ -1,0 +1,11 @@
+{
+  "old_archives_verified": 13,
+  "old_full": "FAIL; unchanged 43 PASS / dependency FAIL / audit NOT_RUN",
+  "old_review": {
+    "Standards": "PASS",
+    "Spec": "PARTIAL/BLOCKED"
+  },
+  "private_capture_read": false,
+  "provider_calls": 0,
+  "old_github_bound_files_verified": 27
+}

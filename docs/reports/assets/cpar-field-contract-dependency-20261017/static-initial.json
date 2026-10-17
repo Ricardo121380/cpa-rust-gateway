@@ -1,0 +1,9 @@
+{
+  "status": "FAIL",
+  "step": "staged secret scan",
+  "path": "docs/reports/assets/cpar-field-contract-dependency-20261017/consumer-probe.mjs",
+  "cause": "synthetic SDK placeholder has 16 characters and matches existing literal secret pattern",
+  "real_secret": false,
+  "original_probe_sha256": "0f459e0bc5459287e82195d13b15f4b469c6004aa4875700c64f7433203dcf8d",
+  "new_ignores": 0
+}

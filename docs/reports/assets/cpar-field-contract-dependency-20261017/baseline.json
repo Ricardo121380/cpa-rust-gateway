@@ -1,0 +1,55 @@
+{
+  "head": "312584184e7680594878460499c39af0a244d440",
+  "at": "2026-10-17T07:31:55.035894+00:00",
+  "files_frozen": 55218,
+  "manifest_sha256": "50de523e7caf88ba4af00133548ced3d45190fcaac93b2b1697c48f3f4f12b00",
+  "status_sha256": "2acd9f2b46883a09b60ea63e9d6ea4a7cab36aae1aefe26b80882f1e121c1df7",
+  "AGENTS": {
+    "mode": 420,
+    "size": 3419,
+    "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+  },
+  "previous_tested_source_matches": true,
+  "previous_Full": {
+    "status": "FAIL",
+    "command": "CHECK_REPORT_PATH=docs/reports/assets/cpar-native-chat-offline-20261017/local-full-steps.md scripts/check.sh full",
+    "exit_code": 1,
+    "passed_steps": 43,
+    "failed_step": "Dependency policy",
+    "failure_scope": "unchanged Cargo.lock/current advisory database; no dependency update authorized or performed",
+    "rust_tests": {
+      "passed": 1515,
+      "failed": 0,
+      "ignored": 13
+    },
+    "rustsec_audit": "NOT_RUN; full stopped at dependency policy",
+    "public_matrix": {
+      "tests_passed": 1,
+      "subcases": 12,
+      "transport": "local injected; external Provider calls 0"
+    },
+    "new_provider_regression_tests_passed": 3,
+    "private_original_replay": "PASS for reproducing original HTTP502; Chat/Messages summary rejected; Responses extra Usage rejected",
+    "source_files_sha256": {
+      "apps/gateway/src/runtime.rs": "252dc4f498962ae07db7207485b1bbb744b334dab5f2d93330aa2699c78ee8a7",
+      "apps/gateway/src/runtime/batch_c/grok.rs": "afef8365b4767ed881a1c4ca457d6a4e9c0b771e63ff14893b30582aa2e02b15",
+      "apps/gateway/src/runtime/batch_c/grok/projection_usage.rs": "1e9f85ce862e93e910f27a0a8420a4d824c5c47e92d47f9fd025c89b1f4f630a",
+      "apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs": "3e47010257ab0c9608dfd6d97e4662c3778409b6e4710f5d668dec1d2872d2d3",
+      "crates/provider-grok/src/build_responses.rs": "e4f0db3720d99864b310e2878cc455bce191708e9bb8ef6a803ed3820be87b01",
+      "crates/provider-grok/tests/cpar_native_usage.rs": "ce3b5d1f8cafcb10df27c0cde4dbe3afd545f0f192e2cd9d0f3572ee98357f8b"
+    },
+    "log_sha256": "e7c311296efc11d1ccdd4b6452f7b5af6f9866128a3d775472e4926e207a3857",
+    "full_failure_preserved": true,
+    "provider_calls": 0,
+    "remote_ci": "NOT_RUN",
+    "release_candidates": 0,
+    "dependency_advisories": [
+      "RUSTSEC-2026-0346",
+      "RUSTSEC-2026-0347",
+      "RUSTSEC-2026-0348",
+      "RUSTSEC-2026-0349"
+    ],
+    "Cargo_lock_sha256": "2a71e5011b7f6329cff69155160bf503dc81cb68b29360c4fb2f1ad5fc3f3aa0"
+  },
+  "old_release_materials_and_stopped_budgets": "preserved; no runtime action"
+}

@@ -258,3 +258,8 @@ CPAR-38 / #47 的 Chat JSON 502 诊断与失败观测修复对应
 [ADR-0105](adr/ADR-0105-projection-failure-observation.md) 及其中列出的 HTTP、Provider、
 Router 和日志契约。真实新 epoch、历史组合、完整矩阵、候选与发布资格独立记录；
 本条不关闭 #47、#57 或父规格 #9。
+
+CPAR-38 / #47 的三协议字段映射决策准备对应
+[ADR-0106](adr/ADR-0106-native-fidelity-profile.md)（用户已确认方向；实现契约草稿）与
+[字段验收矩阵](reports/cpar-field-mapping-acceptance-20261017.md)。完整Usage证据、原生metadata、
+summary/body及模型关系未实施；标准与协商消费者资格分列，#47/#57/#9仍未关闭。

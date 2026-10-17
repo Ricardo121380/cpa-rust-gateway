@@ -1,0 +1,33 @@
+{
+  "read_only_scouts": {
+    "reasoning_fields": "complete; source/docs inspection",
+    "usage_model_fields": "complete; source/docs inspection; generic driver absence does not prove frozen driver absence",
+    "rustls_advisory": "partial; initial tomllib module unavailable, root verified exact lock delta and registry constraints",
+    "consumer_probe": "partial; read-only scout could not install/save, root completed isolated SDK execution"
+  },
+  "root_verification": {
+    "historical_archives": 13,
+    "historical_github_bindings": 27,
+    "original_verify_success_fidelity": "found in docs/reports/assets/cpar-serving-declaration-20261015/tools/remote-chat.py:44-46; unchanged",
+    "private_original_capture": "not opened for reasoning or output",
+    "new_protocol_behavior": "none"
+  },
+  "official_sources": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0346.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0347.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0348.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0349.html",
+    "https://github.com/rustls/rustls/releases/tag/v/0.23.46",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0338.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0339.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0340.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0341.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0342.html",
+    "https://developers.openai.com/api/docs/guides/reasoning",
+    "https://developers.openai.com/api/reference/resources/chat/subresources/completions/streaming-events",
+    "https://platform.claude.com/docs/en/build-with-claude/thinking",
+    "https://docs.x.ai/developers/rest-api-reference/inference/responses",
+    "https://docs.x.ai/developers/cost-tracking",
+    "https://docs.x.ai/developers/models"
+  ]
+}

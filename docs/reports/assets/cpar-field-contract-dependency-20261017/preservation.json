@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "initial_files": 55218,
+  "owned_existing_paths": [
+    "Cargo.lock",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "unrelated_files_verified_unchanged": 55214,
+  "drift": [],
+  "AGENTS_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+  "new_owned_material": "this batch ADR/report/assets and output/cpar-field-contract-dependency-20261017 only",
+  "private_capture_not_opened": true,
+  "old_candidates_failures_budgets": "unchanged bytes and modes for all original nonignored files"
+}

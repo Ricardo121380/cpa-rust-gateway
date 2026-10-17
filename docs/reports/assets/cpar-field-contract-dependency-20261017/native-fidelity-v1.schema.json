@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cpar:native-fidelity:v1:proposed",
+  "title": "Proposed cpar_fidelity envelope; runtime byte and semantic checks are additionally mandatory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "source", "output", "usage", "metadata", "model_binding", "semantic_order"],
+  "properties": {
+    "schema": {"const": "cpar.native-fidelity.v1"},
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["channel_kind", "protocol"],
+      "properties": {"channel_kind": {"const": "grok.build"}, "protocol": {"const": "responses"}}
+    },
+    "output": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["output_index", "item"],
+        "properties": {
+          "output_index": {"type": "integer", "minimum": 0, "maximum": 255},
+          "item": {"oneOf": [{"$ref": "#/$defs/message"}, {"$ref": "#/$defs/reasoning"}, {"$ref": "#/$defs/functionCall"}]}
+        }
+      }
+    },
+    "usage": {"$ref": "#/$defs/nativeField"},
+    "metadata": {
+      "type": "object", "additionalProperties": false, "required": ["raw_json"],
+      "properties": {"raw_json": {"type": "string", "minLength": 2, "maxLength": 131072}}
+    },
+    "model_binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["public_model", "upstream_model", "native_model", "relation"],
+      "properties": {
+        "public_model": {"$ref": "#/$defs/id"},
+        "upstream_model": {"$ref": "#/$defs/id"},
+        "native_model": {"$ref": "#/$defs/nativeModel"},
+        "relation": {"enum": ["literal", "attested_alias", "unknown"]},
+        "evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "allOf": [
+        {"if": {"properties": {"relation": {"const": "attested_alias"}}}, "then": {"required": ["evidence_sha256"]}, "else": {"not": {"required": ["evidence_sha256"]}}}
+      ]
+    },
+    "semantic_order": {
+      "type": "array", "maxItems": 4096,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["ordinal", "kind"],
+        "properties": {
+          "ordinal": {"type": "integer", "minimum": 0, "maximum": 4095},
+          "kind": {"enum": ["response_start", "message_start", "item_start", "text_delta", "reasoning_delta", "tool_start", "tool_arguments", "tool_end", "item_end", "usage", "message_end", "response_end"]},
+          "item_id": {"$ref": "#/$defs/id"},
+          "field": {"enum": ["summary", "content"]},
+          "part_index": {"type": "integer", "minimum": 0, "maximum": 63},
+          "source_sequence_u64": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,19})$"}
+        },
+        "dependentRequired": {"field": ["item_id", "part_index"], "part_index": ["item_id", "field"]}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "status": {"enum": ["in_progress", "completed", "incomplete"]},
+    "nativeField": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["presence"], "properties": {"presence": {"const": "absent"}}},
+        {"type": "object", "additionalProperties": false, "required": ["presence"], "properties": {"presence": {"const": "null"}}},
+        {"type": "object", "additionalProperties": false, "required": ["presence", "raw_json"], "properties": {"presence": {"const": "object"}, "raw_json": {"type": "string", "minLength": 2, "maxLength": 65536}}}
+      ]
+    },
+    "nativeModel": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["presence"], "properties": {"presence": {"const": "absent"}}},
+        {"type": "object", "additionalProperties": false, "required": ["presence"], "properties": {"presence": {"const": "null"}}},
+        {"type": "object", "additionalProperties": false, "required": ["presence", "value"], "properties": {"presence": {"const": "value"}, "value": {"$ref": "#/$defs/id"}}}
+      ]
+    },
+    "textPart": {
+      "type": "object", "additionalProperties": false, "required": ["type", "text"],
+      "properties": {
+        "type": {"const": "output_text"}, "text": {"type": "string", "maxLength": 1048576},
+        "annotations": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/urlCitation"}},
+        "logprobs": {"oneOf": [{"type": "null"}, {"type": "array", "maxItems": 0}]}
+      }
+    },
+    "urlCitation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "start_index", "end_index", "url", "title"],
+      "properties": {
+        "type": {"const": "url_citation"},
+        "start_index": {"type": "integer", "minimum": 0}, "end_index": {"type": "integer", "minimum": 0},
+        "url": {"type": "string", "maxLength": 1048576}, "title": {"type": "string", "maxLength": 1048576}
+      }
+    },
+    "message": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "role", "content"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "type": {"const": "message"}, "status": {"$ref": "#/$defs/status"},
+        "role": {"const": "assistant"}, "phase": {"enum": ["analysis", "final_answer"]},
+        "content": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/textPart"}}
+      }
+    },
+    "reasoning": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "summary"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "type": {"const": "reasoning"}, "status": {"$ref": "#/$defs/status"},
+        "encrypted_content": {"type": "null"},
+        "summary": {
+          "type": "array", "maxItems": 64,
+          "items": {"type": "object", "additionalProperties": false, "required": ["type", "text"], "properties": {"type": {"const": "summary_text"}, "text": {"type": "string", "maxLength": 1048576}}}
+        },
+        "content": {
+          "type": "array", "maxItems": 64,
+          "items": {"type": "object", "additionalProperties": false, "required": ["type", "text"], "properties": {"type": {"const": "reasoning_text"}, "text": {"type": "string", "maxLength": 1048576}}}
+        }
+      }
+    },
+    "functionCall": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "call_id", "name", "arguments"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "type": {"const": "function_call"}, "status": {"$ref": "#/$defs/status"},
+        "call_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/id"},
+        "arguments": {"type": "string", "maxLength": 1048576}
+      }
+    }
+  }
+}

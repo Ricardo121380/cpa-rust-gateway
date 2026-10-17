@@ -1,0 +1,9 @@
+{
+  "status": "FAIL",
+  "step": "git diff --cached --check",
+  "cause": "a valid unified diff contains a single-space context line; byte-exact original preserved locally and as lossless gzip",
+  "raw_patch_sha256": "49fe04fc25fb0d9e2d91e1ecf5de903d6a5679b1ebd93950b4439a66c3da9ef6",
+  "archive_sha256": "68904bb66a3644b9177812d16efa98a1c26b5b05f3d98887b8b1149ff4496abe",
+  "original_local_question_link": "plain patch retained at original path, intentionally untracked",
+  "gate_exception": false
+}

@@ -1,0 +1,10 @@
+{
+  "initial_sync_phase": "read-only issue GET within preflight; PATCH0",
+  "initial_get_error_sha256": "b46db27541e173949ae6a3f832d5703bd46de59632a395bf3c1187627ee141ba",
+  "diagnostic_read_only_get_exit": 0,
+  "diagnostic_error_classes": [],
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "mutations": 0,
+  "issue_state": "open",
+  "preserved_preflight_files": 0
+}

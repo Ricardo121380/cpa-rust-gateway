@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "source": "2f43057c9d718aee5904da12564d54ac697bf8b4",
+  "source_checkout_clean_before_and_after": true,
+  "command": "scripts/check.sh full",
+  "passed_steps": 45,
+  "Dependency_policy": "PASS",
+  "RustSec_audit": "PASS",
+  "rust_tests": {
+    "passed": 1515,
+    "failed": 0,
+    "ignored": 13
+  },
+  "Cargo_lock_sha256": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+  "raw_log_sha256": "1398ed8c9821d0a363e8c7084963f2d7035fb51223cce8b3741139fd4f422f38",
+  "gzip_log_sha256": "1a2be1e04fb691c2a367db9c68039a478f5662ef54d99deaf53c4ac311736963",
+  "old_Full_failures_preserved": [
+    "prior batch 43PASS/dependencyFAIL/auditNOT_RUN",
+    "rustls-only 44PASS/auditFAIL"
+  ],
+  "provider_calls": 0,
+  "remote_ci": "NOT_RUN",
+  "release_candidates": 0,
+  "deployment": 0,
+  "protocol_profile_implementation": "NOT_RUN; default strict behavior unchanged"
+}
