@@ -104,3 +104,11 @@ GitHub #47/#57/#9当前均OPEN；本批仅授权追加既有progress，原正文
 原始测试输出含工具生成的尾随空白。全部13份原日志字节保留在本地及本批首个提交，最终交付另以确定性gzip无损归档，解压逐字节相等；[log-archives](assets/cpar-native-chat-offline-20261017/log-archives.json)绑定原件/压缩件摘要。此证据包装不改写任何RED或Full FAIL，也未重跑Full。
 
 固定 `ec534918→7a876527` 的40文件双轴审查已完成收敛：[审查记录](assets/cpar-native-chat-offline-20261017/review-pre-sync.md)及固定范围/摘要回执。Standards PASS（硬发现0/建议0）；Spec PARTIAL/BLOCKED（新实现违约0/scope creep0，既存契约/真实验收/Full阻塞保留）。初次两路探子的猜测路径错误和PARTIAL均记录，后续收窄补完各自达到complete；没有把初次不完整审查写成PASS。
+
+## GitHub 收口与最终边界
+
+已按审查后的 [追加正文](assets/cpar-native-chat-offline-20261017/github-append.md)，对既有progress [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47#issuecomment-6081215242)、[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57#issuecomment-6081234278)、[#9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9#issuecomment-6081235490)各执行一次body-only PATCH。每次写后独立GET，三票随后再次完整comment/issue/分页依赖读取；正文逐字节等于旧body＋追加正文，历史前缀保持，issue正文/AC/state/labels/assignees/milestone及依赖边/状态均保持。依赖数量8/23/0，OPEN依赖0/11/0；评论编辑导致的updated_at按实际issue读回精确核对。
+
+[同步回执](assets/cpar-native-chat-offline-20261017/github-sync-summary.json)记录PASS3/3，created comments0、closed issues0、issue正文/metadata写入0、push=false。三票均OPEN。新增本地只读绑定回执将实际GitHub响应/载荷摘要保留，以便独立核验；它不包含私有原生响应。
+
+最终核验只针对交付文档、GitHub证据及源文件摘要，不重跑已稳定源码的Full。受测六个Rust文件与固定源码摘要保持，`AGENTS.md`用户修改保持，旧binary/manifest/metadata与所有原始失败仍保留；本批真实Provider调用0、远端新实例0、部署0。诊断和已授权可执行修复已交付；三协议可表达性、真实验收、依赖Full门禁和新候选资格继续BLOCKED，不自动安排下一轮。

@@ -43,7 +43,10 @@
     "docs/reports/assets/cpar-native-chat-offline-20261017/log-archives.json",
     "docs/reports/assets/cpar-native-chat-offline-20261017/review-pre-sync.json",
     "docs/reports/assets/cpar-native-chat-offline-20261017/review-pre-sync.md",
-    "docs/reports/assets/cpar-native-chat-offline-20261017/github-append.md"
+    "docs/reports/assets/cpar-native-chat-offline-20261017/github-append.md",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/github-sync-summary.json",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/github-readback-bindings.json",
+    "docs/reports/assets/cpar-native-chat-offline-20261017/delivery-checks.json"
   ],
   "scope": "only this batch; AGENTS and output capture excluded"
 }

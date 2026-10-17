@@ -1,0 +1,17 @@
+{
+  "status": "PASS for preservation and local delivery checks; full remains FAIL",
+  "at": "2026-10-17T05:01:27.788954+00:00",
+  "reviewed_code_head": "7a876527987256c761ee043cb8128eba94fac172",
+  "product_commit": "b98322ef",
+  "source_hashes_unchanged": true,
+  "AGENTS_unchanged": true,
+  "raw_logs_exactly_preserved": 13,
+  "github": "PASS3/3; one PATCH each; independent GETs; OPEN3/3",
+  "provider_calls": 0,
+  "new_remote_instances": 0,
+  "new_release_candidates": 0,
+  "deployment": false,
+  "push": false,
+  "full": "FAIL; dependency policy",
+  "spec": "PARTIAL/BLOCKED"
+}

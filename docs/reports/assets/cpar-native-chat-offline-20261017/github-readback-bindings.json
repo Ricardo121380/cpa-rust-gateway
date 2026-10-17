@@ -1,0 +1,114 @@
+{
+  "status": "PASS",
+  "scope": "only public GitHub issue/comment/dependency snapshots and body-only payloads; no native capture",
+  "files": {
+    "output/cpar-native-chat-offline-20261017/github-sync/47-after-comment.json": {
+      "bytes": 70330,
+      "sha256": "9f2b90eb21ce0f95d46938345aa07816504a51ec764662eaac25dda6ed6bbd12"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-after-deps.json": {
+      "bytes": 97722,
+      "sha256": "66a9be9e6b501c33f79d194bb6fed15dc77e5571faa8003b78c11080e8ed1765"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-after-issue.json": {
+      "bytes": 8303,
+      "sha256": "b88f959b740d5df7644a223fc096f69fc8475db76e863c03e3577c9474936e0a"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-before-comment.json": {
+      "bytes": 65673,
+      "sha256": "0b979b94b201bbaaf7d69309cf861fe05221b8b9c48683e945f8b75350459c6f"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-before-deps.json": {
+      "bytes": 97722,
+      "sha256": "66a9be9e6b501c33f79d194bb6fed15dc77e5571faa8003b78c11080e8ed1765"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-before-issue.json": {
+      "bytes": 8303,
+      "sha256": "aca913f758235d42ff3514a44ce01f0216185c185e2af3151eca47fed4197440"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-immediate-comment.json": {
+      "bytes": 70330,
+      "sha256": "9f2b90eb21ce0f95d46938345aa07816504a51ec764662eaac25dda6ed6bbd12"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-patch.json": {
+      "bytes": 70287,
+      "sha256": "1b8465ac344f986a0fe316a4331db168592070e51c1f378945acb836bf375dc6"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/47-payload.json": {
+      "bytes": 68356,
+      "sha256": "8cbe1b847b35442907d9b02424ab902a7da01a21af67fb6b6bbefdce46abfea3"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-after-comment.json": {
+      "bytes": 77031,
+      "sha256": "a732c15228ff4e3115d4208e6094000450d9cb560fff78762f4db872c2434bc2"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-after-deps.json": {
+      "bytes": 321439,
+      "sha256": "35ae825673cf66372b2a710472a82fbddbc2a263ff95450ba1a576f54f4daae7"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-after-issue.json": {
+      "bytes": 10835,
+      "sha256": "79f4550670452e62631afef0bdf17b52a6692b93137351dabb237ca0b37710d6"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-before-comment.json": {
+      "bytes": 72374,
+      "sha256": "14adb691dc5e7cd24b77b087a04ba50dda00fff2d779a22c6b950e77bf5af0c9"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-before-deps.json": {
+      "bytes": 321439,
+      "sha256": "06197b2465a6fe5df24545e6ed5a1740cf7ac3767fc0c3ecc9c4245633d7a0b6"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-before-issue.json": {
+      "bytes": 10835,
+      "sha256": "3df0f369e7c677e0d581479e3a6b103b5d14beb92eee178bce32d7aef1252bb7"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-immediate-comment.json": {
+      "bytes": 77031,
+      "sha256": "a732c15228ff4e3115d4208e6094000450d9cb560fff78762f4db872c2434bc2"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-patch.json": {
+      "bytes": 76988,
+      "sha256": "b94fc7cb5611864b5308711b13c641b8a1e2db71092af231094ed2a3ebbc3431"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/57-payload.json": {
+      "bytes": 75057,
+      "sha256": "3618283e4bd4bf1a726861978775664c799a11df7d945a6f328d77d19183d36f"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-after-comment.json": {
+      "bytes": 74972,
+      "sha256": "b827a03f528c1ab7b275137c1bb7d3b0a5ef7cf0b2ac2081026a3be9ba6b5371"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-after-deps.json": {
+      "bytes": 9,
+      "sha256": "93a632246f28a39eedc6577fda8be826f662ca408592e96b1b2b26b4256eea3d"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-after-issue.json": {
+      "bytes": 54070,
+      "sha256": "66eeef34ac0b00369fdcebc965e556200b052bc96db1695a9f42a239d03ca0e2"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-before-comment.json": {
+      "bytes": 70315,
+      "sha256": "6bc189324ff1b472a329afd47fd160248927ca4ec3920a9c1dbdf6b2592bd780"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-before-deps.json": {
+      "bytes": 9,
+      "sha256": "93a632246f28a39eedc6577fda8be826f662ca408592e96b1b2b26b4256eea3d"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-before-issue.json": {
+      "bytes": 54070,
+      "sha256": "4fc3878ce7a19a240d9d71f894bfc0a67e442e080daa9d22c4d05cbd52b685e6"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-immediate-comment.json": {
+      "bytes": 74972,
+      "sha256": "b827a03f528c1ab7b275137c1bb7d3b0a5ef7cf0b2ac2081026a3be9ba6b5371"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-patch.json": {
+      "bytes": 74929,
+      "sha256": "d51cb18d2d9d11d84d97355a3e5465a27cb5ba91736ca9369319fb019a6dfceb"
+    },
+    "output/cpar-native-chat-offline-20261017/github-sync/9-payload.json": {
+      "bytes": 73000,
+      "sha256": "0eddf7ea775c3225d0c307e35bd7026004d7064e1aef42a12048f934751bbbe3"
+    }
+  }
+}
