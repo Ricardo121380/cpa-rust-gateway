@@ -1,0 +1,41 @@
+{
+  "assignees": [
+    {
+      "id": "U_kgDOB7zHNg",
+      "login": "Ricardo121380",
+      "name": "Ricardo",
+      "databaseId": 0
+    }
+  ],
+  "body": "## Parent\n\n[产品规格 #58：CPAR Rust 网关目标与三客户端首版范围](https://github.com/Ricardo121380/cpa-rust-gateway/issues/58)\n\n## What to build\n\n固定版本的 Codex CLI 和原版 Pi CLI 经实际 CPAR 公开入口与生产 Build 装配，分别完成至少两次相关工具循环及后续问答。两者各有兼容、失败和取消记录，均通过才完成本票。\n\n覆盖 #58 用户故事 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 49, 56；验收场景 T01, T02, T03, T06, T08, T10。\n\n本票承接 #58 的已确认范围；实际开工须有用户明确指令。真实账号、收费请求、共享服务与发布部署分别遵守既有授权边界。\n\n各验收组必须全部满足；可分别记录进展，任一必需组受阻时整票不能标完成。\n\n## Acceptance criteria\n\n### Codex CLI\n\n- [ ] 冻结实际客户端版本、可执行入口、独立配置与请求行为；隔离用户真实凭据、会话和工作目录，并实际证明测试进程不能向真实 Provider 外发。\n- [ ] 通过真实公开监听器、鉴权、生产 compiler/factory/执行链和受控 Build transport 完成回答、两次相关工具循环、工具结果返回和后续问答；仅 SDK 或直接调用 projector 不算通过。\n- [ ] 依据实际请求补齐本范围内必要的控制和历史兼容；不改客户端代码、不删除请求字段、不猜 budget/effort、不降低能力声明来制造成功。已知不兼容请求在发送前拒绝，并以独立受控接收数为零验证。\n- [ ] 验证流式增量、工具 ID/参数/结果、取消、失败终态和已知用量；以独立接收数证明无额外发送，并核对同次 Attempt 的加密证据。\n- [ ] 实际依赖的并行、续接或其他模式必须取得适用资格；无法兑现时保留具体阻断，不把可启动或一次文本成功记作完整闭环。\n- [ ] 交付可复现配置与隔离验收记录，仅声明该 CLI/版本/模式的本地受控结果；实际 Grok Build、桌面版及其他形态不继承 PASS。\n\n### Pi CLI\n\n- [ ] 核对所选 Pi CLI 实际入口、版本及其加载的依赖身份，明确区分原版 Pi、Pi AI SDK 与 only-my-pi；不擅自修改全局安装或其他项目。\n- [ ] 隔离配置、凭据、历史和工作目录，实际验证外发限制；经公开监听器、生产 Build 装配和受控上游完成两次相关工具循环及后续问答。\n- [ ] 把实际 reasoning effort/summary/include、工具及结果历史纳入同一公共链路；保留需要的 owned reasoning/身份与顺序，不能以 helper round-trip 替代 CLI 执行。\n- [ ] 必要请求控制必须准确实现或明确拒绝，客户端必需能力缺失时保持阻断；已知不兼容请求在发送前拒绝，独立受控接收数为零。不通过删字段、关能力或切换客户端实现规避失败。\n- [ ] 验证增量流、取消、失败、工具关联、用量、exact Attempt 加密证据及独立接收数；正常任务和错误路径都有可复现记录。\n- [ ] 只声明所选 Pi CLI 形态的本地受控结果；真实 Grok、其他 Pi 发行形态及桌面端继续单独取证。\n\n## Blocked by\n\n- #61：标准 Responses 的 JSON、SSE 与工具闭环\n",
+  "comments": [
+    {
+      "id": "IC_kwDOUGxUj88AAAABdLB_wA",
+      "author": {
+        "login": "Ricardo121380"
+      },
+      "authorAssociation": "OWNER",
+      "body": "# 独立准备结果：保持 #62 OPEN / BLOCKED\n\n依本轮明确授权，在 #61 未关闭时完成限定的 #62 独立准备。正式 `Blocked by #61`、原验收条件与 #61 的 cost **NOT_ADMITTED** 均保持；未重做无新增材料的 cost 搜索，也未将标准合成正例解释为成功元数据留存、真实 Grok Build 或首版通过。\n\n- **固定身份**：实际 `/opt/homebrew/bin/codex` 为 Codex 0.161.0；实际 `/opt/homebrew/bin/pi` 指向原版 `@earendil-works/pi-coding-agent/dist/cli.js`，运行 0.84.3。Pi 包声明的 `dist/bundle/cli.js` 只做版本探针；没有修链或换入口。实际 ESM 证明私有 Pi AI SDK 0.84.3 / OpenAI Node 6.40.0。only-my-pi 单独辨识，未用于推理。\n- **受控链路**：真实 CLI 进程 → CPAR 真实公开 HTTP/鉴权 → production compiler/factory/执行链 → 实际 leased Build adapter → 既有受控 transport handoff → 独立 loopback TCP 上游。仅新增 cfg(test) 测试及驱动，无生产 endpoint/协议放宽。HOME、配置、凭据、历史、工作/工具目录隔离；同一个继承的 Seatbelt 边界实际拒绝 IPv4/IPv6 非 loopback 连接、真实用户目录读取及临时目录外写入（EPERM）。\n- **Codex：FAIL / BLOCKED**。未经删改的实际请求包含 namespace/web_search，被现有 function-only codec 在发送前返回400；独立 receive/Attempt/Usage/ledger 均0，唯一 turn.failed。reasoning 实为 summary=auto 而无 effort；该额外语义冲突仅作静态定位，未猜 effort 或裁字段重发。必需工具闭环、原生 SSE/失败/取消未成立，不能称客户端可用。\n- **原版 Pi：限定标准路径通过**。保留实际默认 medium/auto/include、read/bash/edit/write 和控制字段；完成回答、read(seed=41) → bash(42并保存/读回) 两次相关工具循环及后续问答，共5个独立上游请求。summary 身份、call ID、完整参数/结果历史与顺序、增量流和唯一终态已核对。只证明顺序显式历史模式，不外推并行或服务端续接。\n- **取消/失败/计数限制**：同一 Pi PID 从 abort 到观测结束保持存活，14,975ms 时上游关闭且实际 lease=0，随后才清理进程；一秒严格探针仍FAIL，不是新增产品SLA。测试判据曾遗漏整段存活核对，已以实际提前 SIGTERM 反例复现旧误通过并修复为准确失败，仅为测试判据 RED/GREEN。Pi 失败公共终态和 durable Usage/ledger 为20/7，客户端 error 却默认显示0，保留PARTIAL。独立接收与 Request/Attempt/Usage/source-event/ledger 分场景关联；取消无终态Usage不推出零费用。已知 background 负例400、receive/Attempt增量0，未混作原始CLI请求。\n- **#61 前置仍 BLOCKED**：标准成功/失败 owner-scoped reader 的完整原生 Usage companion 为 None / UNKNOWN。#59 失败留存不能替代成功元数据完整加密、成功交付前确认及 exact Attempt 授权读回；未给成功 fixture 加 cost/未知字段。\n\n验证：最终代码候选 `6490922141f64aa4222c907634b02502cffb11cd`；不可变验证源码 `2fc4777abbac3e6b203323a0884d7a011308bac3`（六文件哈希一致，16份既有用户文档 overlays 仅用于验证）。**Full 45/45；Rust1542 passed /0 failed /14 ignored；400.288s**。同源码实际CLI默认检查1/0；严格一秒探针0/1，原始失败证据保留。归档96成员独立读回一致，秘密扫描和静态检查通过。固定基线 `1743dd08` → 证据候选 `368c9b92` 的双轴复核：**Standards PASS，0规范违规/0 Fowler判断项；Spec PARTIAL/BLOCKED，3类整票缺口，0 scope creep、无最终增量新增行为缺陷**。\n\n本地报告：`docs/reports/cpar-62-independent-20261019.md`；证据：`docs/reports/assets/cpar-62-independent-20261019/`。本轮只提交自有增量，原有 dirty/untracked 库存保留。提交尚未 push，因此上述源码/报告为本地可审查材料。\n\n**#62 继续 OPEN / BLOCKED；依赖与原 AC 不变。未修改 #61 或其他工单，未推进 #63–#67。真实 Provider、真实账号/新增请求预算、push、部署、发布与远端CI均 NOT_RUN。**\n",
+      "createdAt": "2026-10-18T17:06:56Z",
+      "includesCreatedEdit": false,
+      "isMinimized": false,
+      "minimizedReason": "",
+      "reactionGroups": [],
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62#issuecomment-6252691392",
+      "viewerDidAuthor": true
+    }
+  ],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 62,
+  "state": "OPEN",
+  "title": "Codex 与 Pi 的 Responses 受控工具闭环",
+  "updatedAt": "2026-10-18T17:06:56Z",
+  "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62"
+}

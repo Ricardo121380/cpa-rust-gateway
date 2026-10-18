@@ -209,7 +209,16 @@ Standards 为 0 个 documented breaches、0 个 Fowler judgement findings；Spec
 公开构建诊断只保留 message 分类及 stderr；原始 JSON 与 SHA256 留在私有 run，扫描器未修改。
 巨量原始 ESM debug 亦保留私有 run，仓库保存实际加载路径、安装清单及 stderr 精确哈希。
 
-固定基线 `1743dd0801ac5f99fd80a98253d341205b3a465b` 到最终候选的复核结果见
-[最终双轴评审回执](assets/cpar-62-independent-20261019/review-final.json)；当前等待该轮复核，不提前宣称通过。
-授权 #62 结果评论及独立读回随后记录；#62 继续 OPEN / BLOCKED，正式依赖不变。
+固定基线 `1743dd0801ac5f99fd80a98253d341205b3a465b` 到候选 `368c9b92ed743f3f43700d1a59d6b2eb44359c47` 的复核结果见
+[最终双轴评审回执](assets/cpar-62-independent-20261019/review-final.json)。Standards **PASS，0 条规范违规、0 条 Fowler 判断项**；
+Spec **PARTIAL / BLOCKED，3 类整票完成缺口、0 项 scope creep，未发现最终增量新增行为缺陷**。
+同轴最严重事项分别为：Standards 无；Spec 为 Codex 必需工具闭环仍阻断。原 P2 测试判据漏洞已独立确认封住。
+复核后只补评审与远端读回文档，没有源码、fixture 或断言变动。
+已追加[一条授权 #62 独立准备评论](https://github.com/Ricardo121380/cpa-rust-gateway/issues/62#issuecomment-6252691392)，
+[独立读回](assets/cpar-62-independent-20261019/remote-result-readback.json)确认正文 SHA256 完全一致，
+#62 仍 OPEN，唯一 blocker #61 的原生 ID 不变，#62 的 blocking 边也原样保留。
+#58/#61 的正文、状态、标签、认领、全部既有评论与自身 updatedAt 前后相同；所有原生依赖 ID、方向及状态不变。
+依赖 GET 中嵌入的 #62 对象仅 comments 从 0 到 1、updated_at 随本条评论变化，已逐字段绑定到这次写入窗口；
+不能把这个引用对象变化写成 #61 被修改。#62 未改写正文或原 AC。
+本轮分支提交只含自有代码/报告/资产，原有修改和未跟踪库存保留；#62 继续 OPEN / BLOCKED。
 真实 Provider、真实账号/新预算、push、部署、发布与远端 CI 均 NOT_RUN。

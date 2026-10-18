@@ -1,0 +1,55 @@
+{
+  "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62#issuecomment-6252691392",
+  "comment_id": 6252691392,
+  "body_exact_readback": true,
+  "body_sha256": "9715f620514ae70f3fcb810e036f12577ec92ed225cf4bccc4ad1e0236c177dd",
+  "created_at": "2026-10-18T17:06:56Z",
+  "updated_at": "2026-10-18T17:06:56Z",
+  "write_window_start": "2026-10-18T17:06:55.259884+00:00",
+  "write_window_end": "2026-10-18T17:06:57.043567+00:00",
+  "metadata_drift_bound": "Only #62 updatedAt and comment count changed within the single comment write window, including #62 objects embedded in dependency GETs; #58/#61 own updatedAt unchanged.",
+  "comment_view_representation": "Single-comment GET user.avatar_url has an extra u cache query parameter; same scheme/host/path/v. All other fields, including author id and exact body, match paginated comments GET.",
+  "dependency_reference_metadata_drift": [
+    {
+      "container_issue": 61,
+      "direction": "blocking",
+      "reference_issue": 62,
+      "fields": [
+        "comments",
+        "updated_at"
+      ],
+      "comments_delta": 1,
+      "updated_at": "2026-10-18T17:06:56Z",
+      "bounded_by_single_authorized_comment": true
+    }
+  ],
+  "issues": {
+    "58": {
+      "body_title_state_labels_assignees_unchanged": true,
+      "original_comments_exactly_unchanged": true,
+      "added_comment_ids": [],
+      "native_dependency_ids_direction_state_body_unchanged": true,
+      "state": "OPEN",
+      "updatedAt": "2026-10-18T03:15:12Z"
+    },
+    "61": {
+      "body_title_state_labels_assignees_unchanged": true,
+      "original_comments_exactly_unchanged": true,
+      "added_comment_ids": [],
+      "native_dependency_ids_direction_state_body_unchanged": true,
+      "state": "OPEN",
+      "updatedAt": "2026-10-18T15:19:58Z"
+    },
+    "62": {
+      "body_title_state_labels_assignees_unchanged": true,
+      "original_comments_exactly_unchanged": true,
+      "added_comment_ids": [
+        6252691392
+      ],
+      "native_dependency_ids_direction_state_body_unchanged": true,
+      "state": "OPEN",
+      "updatedAt": "2026-10-18T17:06:56Z"
+    }
+  },
+  "scope": "one authorized #62 result comment; no body/state/dependency edits"
+}

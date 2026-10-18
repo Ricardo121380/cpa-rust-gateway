@@ -1,6 +1,42 @@
 {
-  "status": "PENDING",
   "fixed_baseline": "1743dd0801ac5f99fd80a98253d341205b3a465b",
+  "candidate": "368c9b92ed743f3f43700d1a59d6b2eb44359c47",
+  "diff_command": "git diff 1743dd0801ac5f99fd80a98253d341205b3a465b...368c9b92ed743f3f43700d1a59d6b2eb44359c47",
+  "commits": [
+    "368c9b92 docs: seal strengthened #62 CLI liveness and Full evidence",
+    "64909221 test(grok): prove CLI stays alive through cancellation observation",
+    "d1779728 docs: record scoped #62 CLI evidence and retained blockers",
+    "062775a9 test(grok): add isolated actual CLI preparation for #62"
+  ],
+  "diff_sha256": "6aca7806ef120195a6ca16def78a63461b9396fc560255b1b82b3489f0c9c329",
+  "status": "COMPLETE",
   "delivery_code_commit": "6490922141f64aa4222c907634b02502cffb11cd",
-  "note": "Final independent Standards / Spec reviews run after sealing this evidence candidate; #62 remains OPEN/BLOCKED."
+  "standards": {
+    "verdict": "PASS",
+    "documented_standard_breaches": 0,
+    "fowler_judgement_findings": 0,
+    "worst_same_axis_issue": null,
+    "resolved_supplemental_p2": "same-process liveness throughout cancellation observation",
+    "report": "complete\nStandards verdict: PASS; documented-standard breaches 0; Fowler judgement findings 0; worst same-axis issue none.\nReviewed all six code files, full report, AGENTS/workspace lints/source policy/contracts/ADR. No actionable standard breach or heuristic smell. Original P2 cancellation oracle gap is closed: Python polls the same Popen while waiting, rechecks after release observation; Rust requires rpc_alive=true and identical PID before writing cli_kept_alive. One Popen cannot hide intermediate death by restarting. Independently read back all 96 archive members, bytes and SHA256. Forced early-exit regression now reports RuntimeError: Pi RPC exited during cancellation observation, exit=1, early_exit_accepted=false. Normal same-PID observation 14,975ms, lease0/peer-close1, one-second qualifier remains false. All six files match final candidate and Full source; Full log independently totals Rust1542/0/14, steps45/45. No tests rerun.",
+    "sources": [
+      "scripts/acceptance/cpar62-cli.py:275",
+      "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli.rs:139"
+    ]
+  },
+  "spec": {
+    "verdict": "PARTIAL/BLOCKED",
+    "whole_issue_completion_gap_classes": 3,
+    "scope_creep": 0,
+    "new_behavior_defects": 0,
+    "worst_same_axis_issue": "Codex required tool loop remains blocked",
+    "report": "complete\nSpec verdict: whole issue PARTIAL/BLOCKED; authorized independent preparation slice matches scope. Three completion gap classes; scope creep0; new final-increment behavior defects0. Worst issue: Codex required tool loops cannot start.\n1. Codex raw namespace/web_search request400, independent receive/Attempt/Usage/ledger0; required two related tools and follow-up plus native failure/cancellation remain blocked. Correct presend rejection is not client usability.\n2. exact Attempt complete encrypted metadata and formal #61 prerequisite remain absent. Owner-scoped reader returns None/native_companion UNKNOWN. Standard Usage/ledger and #59 failed retention cannot substitute for successful metadata qualification and confirmation/readback before delivery.\n3. Pi public failure and durable Usage20/7, but actual CLI error input/output/totalTokens default0. Client failure-usage accuracy remains partial.\nVerified cancellation oracle fix, early-SIGTERM negative exit1, and same-PID positive observation14,975ms. One-second probe remains FAIL, is not product SLA. Six code files match immutable Full source; all96 archive hashes match. No CLI/Provider/Full reruns.",
+    "sources": [
+      "docs/reports/assets/cpar-62-independent-20261019/issue-62-initial.json:1",
+      "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/oracles.rs:85",
+      "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/oracles.rs:155",
+      "docs/reports/assets/cpar-62-independent-20261019/liveness-fixed/actual-cli/pi-failure/client.json:22"
+    ]
+  },
+  "review_mode": "independent parallel read-only one-shot subagents",
+  "subsequent_changes": "Review receipts, remote comment/readback and report closeout only; no source/fixture/assertion changes."
 }

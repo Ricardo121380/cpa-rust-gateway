@@ -1,0 +1,83 @@
+{
+  "58": {
+    "state": "OPEN",
+    "assignees": [],
+    "updatedAt": "2026-10-18T03:15:12Z",
+    "title_body_state_labels_unchanged_from_initial": true,
+    "comments": 0,
+    "dependencies": {
+      "blocked_by": {
+        "numbers": [],
+        "ids": [],
+        "unchanged_ids": true
+      },
+      "blocking": {
+        "numbers": [],
+        "ids": [],
+        "unchanged_ids": true
+      }
+    }
+  },
+  "61": {
+    "state": "OPEN",
+    "assignees": [
+      "Ricardo121380"
+    ],
+    "updatedAt": "2026-10-18T15:19:58Z",
+    "title_body_state_labels_unchanged_from_initial": true,
+    "comments": 3,
+    "dependencies": {
+      "blocked_by": {
+        "numbers": [
+          59,
+          60
+        ],
+        "ids": [
+          5906830972,
+          5906831303
+        ],
+        "unchanged_ids": true
+      },
+      "blocking": {
+        "numbers": [
+          62,
+          63
+        ],
+        "ids": [
+          5906832311,
+          5906832622
+        ],
+        "unchanged_ids": true
+      }
+    }
+  },
+  "62": {
+    "state": "OPEN",
+    "assignees": [
+      "Ricardo121380"
+    ],
+    "updatedAt": "2026-10-18T15:40:05Z",
+    "title_body_state_labels_unchanged_from_initial": true,
+    "comments": 0,
+    "dependencies": {
+      "blocked_by": {
+        "numbers": [
+          61
+        ],
+        "ids": [
+          5906831609
+        ],
+        "unchanged_ids": true
+      },
+      "blocking": {
+        "numbers": [
+          66
+        ],
+        "ids": [
+          5906833834
+        ],
+        "unchanged_ids": true
+      }
+    }
+  }
+}
