@@ -1,0 +1,10 @@
+{
+  "branch": "codex/prism-v4-delivery",
+  "head": "1743dd0801ac5f99fd80a98253d341205b3a465b",
+  "initial_index_entries_changed": 0,
+  "preservation_entries": 55696,
+  "scope": "#62 independent preparation only; #61 remains OPEN/BLOCKED; cost NOT_ADMITTED",
+  "private_original_manifest_sha256": "1f32f29463375005a96211ed3f87e200b7611f585f82a2b405db22d23c620a11",
+  "public_path_hashed_manifest_sha256": "f659b077bc9d7587821914054e91e39d7fe720216fa0f18d2872ccbc3d051646",
+  "path_inventory_note": "Public manifest hashes path names; exact original path mapping and original status are retained privately."
+}

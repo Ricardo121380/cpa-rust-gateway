@@ -1,0 +1,5 @@
+{
+  "exit": 0,
+  "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+  "stderr": ""
+}

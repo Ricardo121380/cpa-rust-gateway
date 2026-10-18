@@ -1,0 +1,12 @@
+ M AGENTS.md
+ M README.md
+ M README.zh-CN.md
+ M docs/06-development-plan.md
+ M docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md
+ M docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md
+ M docs/adr/ADR-0106-native-fidelity-profile.md
+ M docs/adr/README.md
+ M docs/traceability.md
+
+Untracked status rows: 49032
+Original complete path inventory retained privately; public inventory uses path SHA256 keys.

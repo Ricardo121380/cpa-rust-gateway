@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/usr/bin/sandbox-exec",
+    "-f",
+    "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-20261018-2rzziqp_/sealed-cli-prompt-red-final/isolated.sb",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/deps/gateway-73e16e067fb70849",
+    "actual_cli_public_build_qualification",
+    "--ignored",
+    "--nocapture"
+  ],
+  "exit": 101,
+  "require_prompt_release": true,
+  "cancellation": {
+    "cli_kept_alive": true,
+    "eventually_released_before_server_stop": true,
+    "leases_after_first_second": 1,
+    "leases_before_cli_exit": 0,
+    "peer_close_before_cli_exit": 1,
+    "released_within_first_second": false,
+    "total_observation_ms": 14978
+  },
+  "installs_unchanged": true,
+  "claim": "local controlled independent preparation; #62 remains blocked"
+}

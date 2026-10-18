@@ -1,0 +1,26 @@
+[
+  {
+    "path": "sealed-cli/build.log",
+    "match_count": 2,
+    "all_are_async_task_artifact_path_suffixes": false,
+    "public_diagnostics": "sealed-cli-build.log.diagnostics.log",
+    "original_bytes": 295046,
+    "original_sha256": "0ef678e4d8cef5df370c65aa46cf28fe2e4c15c1c511187eaf040a06f4294c9d"
+  },
+  {
+    "path": "sealed-cli-final/build.log",
+    "match_count": 2,
+    "all_are_async_task_artifact_path_suffixes": false,
+    "public_diagnostics": "sealed-cli-final-build.log.diagnostics.log",
+    "original_bytes": 301693,
+    "original_sha256": "7acc63c133de9c64f0f4ba85460f0369ffc55e56cc0dabdffce3cb63fa7fe4e6"
+  },
+  {
+    "path": "sealed-cli-prompt-red-final/build.log",
+    "match_count": 2,
+    "all_are_async_task_artifact_path_suffixes": false,
+    "public_diagnostics": "sealed-cli-prompt-red-final-build.log.diagnostics.log",
+    "original_bytes": 300449,
+    "original_sha256": "a16b788ac678cbe7ead9018522a4352afb864ae0149340b2ee1a46cd8af594a3"
+  }
+]

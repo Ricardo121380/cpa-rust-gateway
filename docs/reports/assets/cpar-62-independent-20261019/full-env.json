@@ -1,0 +1,6 @@
+{
+  "cargo": "/Users/huangrui/.cargo/bin/cargo",
+  "wrapper": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-20261018-2rzziqp_/full-bin",
+  "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target",
+  "RUST_TEST_THREADS": "4"
+}

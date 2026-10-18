@@ -1,0 +1,20 @@
+{
+  "runs": [
+    {
+      "name": "sealed-cli-final",
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 61.066136500000006
+    },
+    {
+      "name": "sealed-cli-prompt-red-final",
+      "exit": 1,
+      "expected_exit": 1,
+      "elapsed_seconds": 29.049239374999992
+    }
+  ],
+  "owned_source_parity": true,
+  "source_commit": "28d1c42f0c13e92c1b77f7ba350c25cf12a599a0",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-validation-062775a9",
+  "worktree_status": ""
+}

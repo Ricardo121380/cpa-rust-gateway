@@ -1,0 +1,5 @@
+{
+  "source_commit": "28d1c42f0c13e92c1b77f7ba350c25cf12a599a0",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-validation-062775a9",
+  "reason": "same immutable tree on specified non-temporary filesystem; existing outside-temp write probe must target a non-temporary repository"
+}

@@ -1,0 +1,362 @@
+{
+  "codex-standard": {
+    "http": 400,
+    "headers": {
+      "accept": "text/event-stream",
+      "content-type": "application/json",
+      "user-agent": "codex_exec/0.161.0 (Mac OS 27.0.0; arm64) dumb (codex_exec; 0.161.0)"
+    },
+    "controls": {
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "model": "grok-4.5",
+      "parallel_tool_calls": true,
+      "prompt_cache_key": "01a14fda-ab8e-7e63-b227-0a27035289f4",
+      "reasoning": {
+        "summary": "auto"
+      },
+      "store": false,
+      "stream": true,
+      "tool_choice": "auto"
+    },
+    "tools": [
+      {
+        "type": "function",
+        "name": "exec_command"
+      },
+      {
+        "type": "function",
+        "name": "write_stdin"
+      },
+      {
+        "type": "function",
+        "name": "request_user_input"
+      },
+      {
+        "type": "function",
+        "name": "view_image"
+      },
+      {
+        "type": "namespace",
+        "name": "multi_agent_v1"
+      },
+      {
+        "type": "function",
+        "name": "get_goal"
+      },
+      {
+        "type": "function",
+        "name": "create_goal"
+      },
+      {
+        "type": "function",
+        "name": "update_goal"
+      },
+      {
+        "type": "web_search",
+        "name": null
+      }
+    ],
+    "observations": {
+      "accounting": {
+        "attempts": 0,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "client": "codex",
+      "public": [
+        {
+          "client_usable": false,
+          "http": 400
+        }
+      ],
+      "received": 0,
+      "released_before_server_stop": true,
+      "released_within_one_second": true,
+      "scenario": "standard",
+      "success_metadata_retention": "BLOCKED_BY_61"
+    }
+  },
+  "pi-standard": {
+    "http": 200,
+    "headers": {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "user-agent": "pi (darwin 27.0.0; arm64)",
+      "x-stainless-lang": "js",
+      "x-stainless-package-version": "6.40.0"
+    },
+    "controls": {
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 16384,
+      "model": "grok-4.5",
+      "prompt_cache_key": "01a14fda-b1f9-7de8-86bf-fa6e6778b9e5",
+      "reasoning": {
+        "effort": "medium",
+        "summary": "auto"
+      },
+      "store": false,
+      "stream": true
+    },
+    "tools": [
+      {
+        "type": "function",
+        "name": "read"
+      },
+      {
+        "type": "function",
+        "name": "bash"
+      },
+      {
+        "type": "function",
+        "name": "edit"
+      },
+      {
+        "type": "function",
+        "name": "write"
+      }
+    ],
+    "observations": {
+      "accounting": {
+        "attempts": 5,
+        "client_requests": 5,
+        "cost": "UNKNOWN",
+        "finished": 6,
+        "ledger": 5,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+            "source_event_id": "usage-attempt:c998c22f7c173d4122a8b4d58193b113a2d261758d0be4b99b676a6288136059"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+            "source_event_id": "usage-attempt:c68c6afe95eb32faa1fe6d6bbcfcedccd30437cd4074ffb7ef3278e97de9811f"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+            "source_event_id": "usage-attempt:bfef8b81acf05eb1ce0b73c1a7fa4ac77018f4f403d274fa7fab2e9980ac9617"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+            "source_event_id": "usage-attempt:0bb90d13ea4cff61eaa5b0ee28446a0ec15ca29a73ad8775d550491563680e4a"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+            "source_event_id": "usage-attempt:e7a903038b40cbdd8f2a095b5fcbaf65957a53eff37e233dc93d4e84ab252280"
+          }
+        ],
+        "outcome": "Succeeded",
+        "requests_including_negative_probe": 6,
+        "usage": 5
+      },
+      "client": "pi",
+      "public": [
+        {
+          "chunks": 24,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 20,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 39,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 21,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 21,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        }
+      ],
+      "received": 5,
+      "released_before_server_stop": true,
+      "released_within_one_second": true,
+      "scenario": "standard",
+      "success_metadata_retention": "BLOCKED_BY_61"
+    }
+  },
+  "pi-failure": {
+    "http": 200,
+    "headers": {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "user-agent": "pi (darwin 27.0.0; arm64)",
+      "x-stainless-lang": "js",
+      "x-stainless-package-version": "6.40.0"
+    },
+    "controls": {
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 16384,
+      "model": "grok-4.5",
+      "prompt_cache_key": "01a14fda-c3f9-7765-be49-767bb5b17a34",
+      "reasoning": {
+        "effort": "medium",
+        "summary": "auto"
+      },
+      "store": false,
+      "stream": true
+    },
+    "tools": [
+      {
+        "type": "function",
+        "name": "read"
+      },
+      {
+        "type": "function",
+        "name": "bash"
+      },
+      {
+        "type": "function",
+        "name": "edit"
+      },
+      {
+        "type": "function",
+        "name": "write"
+      }
+    ],
+    "observations": {
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 1,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-041b503aef2351f00dde13234d5b8a2e-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-041b503aef2351f00dde13234d5b8a2e-0",
+            "source_event_id": "usage-attempt:bc52cd64b6e85cc7dd8d897eb9008cacde518b588c43cb7f83dac70f2dc2e9c6"
+          }
+        ],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 1
+      },
+      "client": "pi",
+      "public": [
+        {
+          "chunks": 6,
+          "completed": 0,
+          "failed": 1,
+          "http": 200
+        }
+      ],
+      "received": 1,
+      "released_before_server_stop": true,
+      "released_within_one_second": true,
+      "scenario": "failure",
+      "success_metadata_retention": "BLOCKED_BY_61"
+    }
+  },
+  "pi-cancel": {
+    "http": 200,
+    "headers": {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "user-agent": "pi (darwin 27.0.0; arm64)",
+      "x-stainless-lang": "js",
+      "x-stainless-package-version": "6.40.0"
+    },
+    "controls": {
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "max_output_tokens": 16384,
+      "model": "grok-4.5",
+      "prompt_cache_key": "01a14fda-cf2f-744c-9245-a2d9c184573b",
+      "reasoning": {
+        "effort": "medium",
+        "summary": "auto"
+      },
+      "store": false,
+      "stream": true
+    },
+    "tools": [
+      {
+        "type": "function",
+        "name": "read"
+      },
+      {
+        "type": "function",
+        "name": "bash"
+      },
+      {
+        "type": "function",
+        "name": "edit"
+      },
+      {
+        "type": "function",
+        "name": "write"
+      }
+    ],
+    "observations": {
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Cancelled",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "client": "pi",
+      "public": [
+        {
+          "chunks": 6,
+          "completed": 0,
+          "failed": 0,
+          "http": 200
+        }
+      ],
+      "received": 1,
+      "released_before_server_stop": true,
+      "released_within_one_second": false,
+      "scenario": "cancel",
+      "success_metadata_retention": "BLOCKED_BY_61"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "cli_kept_alive": true,
+  "eventually_released_before_server_stop": true,
+  "leases_after_first_second": 1,
+  "leases_before_cli_exit": 0,
+  "peer_close_before_cli_exit": 1,
+  "released_within_first_second": false,
+  "total_observation_ms": 14978
+}

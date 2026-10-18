@@ -1,0 +1,821 @@
+[
+    StoredGatewayEvent {
+        ordinal: 1,
+        kind: Request,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095091,
+        ),
+        event: GatewayEvent::Request(
+            RequestEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+                ),
+                client_key_id: ClientKeyId(
+                    "p12-runtime-client-key",
+                ),
+                access_group_id: Some(
+                    AccessGroupId(
+                        "p12-runtime-group",
+                    ),
+                ),
+                protocol: OpenAiResponses,
+                requested_model: "<redacted>",
+                public_model: "<redacted>",
+                route_alias_present: false,
+                streaming: true,
+                started_at_ms: Some(
+                    1792341095091,
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 2,
+        kind: Attempt,
+        event_id: "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0:1",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095195,
+        ),
+        event: GatewayEvent::Attempt(
+            AttemptEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+                ),
+                attempt_id: AttemptId(
+                    "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0:1",
+                ),
+                attempt_number: 1,
+                route_id: RouteId(
+                    "p12-runtime-route",
+                ),
+                route_candidate_id: RouteCandidateId(
+                    "p12-runtime-candidate",
+                ),
+                credential_id: CredentialId(
+                    "grok-d5671b6780e6c95cf29ffa6b3a39eb84",
+                ),
+                endpoint_id: EndpointId(
+                    "p12-krill-endpoint",
+                ),
+                upstream_id: UpstreamId(
+                    "p12-runtime-upstream",
+                ),
+                upstream_model: "<redacted>",
+                started_at_ms: 1792341095093,
+                ended_at_ms: 1792341095195,
+                outcome: Succeeded,
+                retry_decision: Completed,
+                execution_identity: Some(
+                    AttemptExecutionIdentity(<protected identifiers>),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 3,
+        kind: Usage,
+        event_id: "usage-attempt:c998c22f7c173d4122a8b4d58193b113a2d261758d0be4b99b676a6288136059",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+            ),
+        ),
+        occurred_at_ms: None,
+        event: GatewayEvent::Usage(
+            UsageEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+                ),
+                response_id: ResponseId(
+                    "response-62-0",
+                ),
+                usage: UsageSummary {
+                    provenance: Measured,
+                    input_accounting: Inclusive,
+                    input_tokens: Some(
+                        20,
+                    ),
+                    output_tokens: Some(
+                        7,
+                    ),
+                    reasoning_tokens: None,
+                    cache_read_tokens: None,
+                    cache_creation_tokens: None,
+                    cached_tokens: None,
+                },
+                attempt_id: Some(
+                    AttemptId(
+                        "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0:1",
+                    ),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 4,
+        kind: RequestFinished,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095457,
+        ),
+        event: GatewayEvent::RequestFinished(
+            RequestFinishedEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-0",
+                ),
+                started_at_ms: 1792341095091,
+                finished_at_ms: 1792341095457,
+                duration_ms: 366,
+                first_content_ms: Some(
+                    144,
+                ),
+                outcome: Succeeded,
+                error_code: None,
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 5,
+        kind: Request,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095464,
+        ),
+        event: GatewayEvent::Request(
+            RequestEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+                ),
+                client_key_id: ClientKeyId(
+                    "p12-runtime-client-key",
+                ),
+                access_group_id: Some(
+                    AccessGroupId(
+                        "p12-runtime-group",
+                    ),
+                ),
+                protocol: OpenAiResponses,
+                requested_model: "<redacted>",
+                public_model: "<redacted>",
+                route_alias_present: false,
+                streaming: true,
+                started_at_ms: Some(
+                    1792341095464,
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 6,
+        kind: Attempt,
+        event_id: "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1:1",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095468,
+        ),
+        event: GatewayEvent::Attempt(
+            AttemptEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+                ),
+                attempt_id: AttemptId(
+                    "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1:1",
+                ),
+                attempt_number: 1,
+                route_id: RouteId(
+                    "p12-runtime-route",
+                ),
+                route_candidate_id: RouteCandidateId(
+                    "p12-runtime-candidate",
+                ),
+                credential_id: CredentialId(
+                    "grok-d5671b6780e6c95cf29ffa6b3a39eb84",
+                ),
+                endpoint_id: EndpointId(
+                    "p12-krill-endpoint",
+                ),
+                upstream_id: UpstreamId(
+                    "p12-runtime-upstream",
+                ),
+                upstream_model: "<redacted>",
+                started_at_ms: 1792341095466,
+                ended_at_ms: 1792341095468,
+                outcome: Succeeded,
+                retry_decision: Completed,
+                execution_identity: Some(
+                    AttemptExecutionIdentity(<protected identifiers>),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 7,
+        kind: Usage,
+        event_id: "usage-attempt:c68c6afe95eb32faa1fe6d6bbcfcedccd30437cd4074ffb7ef3278e97de9811f",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+            ),
+        ),
+        occurred_at_ms: None,
+        event: GatewayEvent::Usage(
+            UsageEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+                ),
+                response_id: ResponseId(
+                    "response-62-1",
+                ),
+                usage: UsageSummary {
+                    provenance: Measured,
+                    input_accounting: Inclusive,
+                    input_tokens: Some(
+                        20,
+                    ),
+                    output_tokens: Some(
+                        7,
+                    ),
+                    reasoning_tokens: None,
+                    cache_read_tokens: None,
+                    cache_creation_tokens: None,
+                    cached_tokens: None,
+                },
+                attempt_id: Some(
+                    AttemptId(
+                        "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1:1",
+                    ),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 8,
+        kind: RequestFinished,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095713,
+        ),
+        event: GatewayEvent::RequestFinished(
+            RequestFinishedEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-1",
+                ),
+                started_at_ms: 1792341095464,
+                finished_at_ms: 1792341095713,
+                duration_ms: 248,
+                first_content_ms: Some(
+                    45,
+                ),
+                outcome: Succeeded,
+                error_code: None,
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 9,
+        kind: Request,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095721,
+        ),
+        event: GatewayEvent::Request(
+            RequestEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+                ),
+                client_key_id: ClientKeyId(
+                    "p12-runtime-client-key",
+                ),
+                access_group_id: Some(
+                    AccessGroupId(
+                        "p12-runtime-group",
+                    ),
+                ),
+                protocol: OpenAiResponses,
+                requested_model: "<redacted>",
+                public_model: "<redacted>",
+                route_alias_present: false,
+                streaming: true,
+                started_at_ms: Some(
+                    1792341095721,
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 10,
+        kind: Attempt,
+        event_id: "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2:1",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341095728,
+        ),
+        event: GatewayEvent::Attempt(
+            AttemptEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+                ),
+                attempt_id: AttemptId(
+                    "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2:1",
+                ),
+                attempt_number: 1,
+                route_id: RouteId(
+                    "p12-runtime-route",
+                ),
+                route_candidate_id: RouteCandidateId(
+                    "p12-runtime-candidate",
+                ),
+                credential_id: CredentialId(
+                    "grok-d5671b6780e6c95cf29ffa6b3a39eb84",
+                ),
+                endpoint_id: EndpointId(
+                    "p12-krill-endpoint",
+                ),
+                upstream_id: UpstreamId(
+                    "p12-runtime-upstream",
+                ),
+                upstream_model: "<redacted>",
+                started_at_ms: 1792341095725,
+                ended_at_ms: 1792341095728,
+                outcome: Succeeded,
+                retry_decision: Completed,
+                execution_identity: Some(
+                    AttemptExecutionIdentity(<protected identifiers>),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 11,
+        kind: Usage,
+        event_id: "usage-attempt:bfef8b81acf05eb1ce0b73c1a7fa4ac77018f4f403d274fa7fab2e9980ac9617",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+            ),
+        ),
+        occurred_at_ms: None,
+        event: GatewayEvent::Usage(
+            UsageEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+                ),
+                response_id: ResponseId(
+                    "response-62-2",
+                ),
+                usage: UsageSummary {
+                    provenance: Measured,
+                    input_accounting: Inclusive,
+                    input_tokens: Some(
+                        20,
+                    ),
+                    output_tokens: Some(
+                        7,
+                    ),
+                    reasoning_tokens: None,
+                    cache_read_tokens: None,
+                    cache_creation_tokens: None,
+                    cached_tokens: None,
+                },
+                attempt_id: Some(
+                    AttemptId(
+                        "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2:1",
+                    ),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 12,
+        kind: RequestFinished,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341096223,
+        ),
+        event: GatewayEvent::RequestFinished(
+            RequestFinishedEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-2",
+                ),
+                started_at_ms: 1792341095721,
+                finished_at_ms: 1792341096223,
+                duration_ms: 501,
+                first_content_ms: Some(
+                    45,
+                ),
+                outcome: Succeeded,
+                error_code: None,
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 13,
+        kind: Request,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341096250,
+        ),
+        event: GatewayEvent::Request(
+            RequestEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+                ),
+                client_key_id: ClientKeyId(
+                    "p12-runtime-client-key",
+                ),
+                access_group_id: Some(
+                    AccessGroupId(
+                        "p12-runtime-group",
+                    ),
+                ),
+                protocol: OpenAiResponses,
+                requested_model: "<redacted>",
+                public_model: "<redacted>",
+                route_alias_present: false,
+                streaming: true,
+                started_at_ms: Some(
+                    1792341096250,
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 14,
+        kind: Attempt,
+        event_id: "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3:1",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341096254,
+        ),
+        event: GatewayEvent::Attempt(
+            AttemptEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+                ),
+                attempt_id: AttemptId(
+                    "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3:1",
+                ),
+                attempt_number: 1,
+                route_id: RouteId(
+                    "p12-runtime-route",
+                ),
+                route_candidate_id: RouteCandidateId(
+                    "p12-runtime-candidate",
+                ),
+                credential_id: CredentialId(
+                    "grok-d5671b6780e6c95cf29ffa6b3a39eb84",
+                ),
+                endpoint_id: EndpointId(
+                    "p12-krill-endpoint",
+                ),
+                upstream_id: UpstreamId(
+                    "p12-runtime-upstream",
+                ),
+                upstream_model: "<redacted>",
+                started_at_ms: 1792341096252,
+                ended_at_ms: 1792341096254,
+                outcome: Succeeded,
+                retry_decision: Completed,
+                execution_identity: Some(
+                    AttemptExecutionIdentity(<protected identifiers>),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 15,
+        kind: Usage,
+        event_id: "usage-attempt:0bb90d13ea4cff61eaa5b0ee28446a0ec15ca29a73ad8775d550491563680e4a",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+            ),
+        ),
+        occurred_at_ms: None,
+        event: GatewayEvent::Usage(
+            UsageEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+                ),
+                response_id: ResponseId(
+                    "response-62-3",
+                ),
+                usage: UsageSummary {
+                    provenance: Measured,
+                    input_accounting: Inclusive,
+                    input_tokens: Some(
+                        20,
+                    ),
+                    output_tokens: Some(
+                        7,
+                    ),
+                    reasoning_tokens: None,
+                    cache_read_tokens: None,
+                    cache_creation_tokens: None,
+                    cached_tokens: None,
+                },
+                attempt_id: Some(
+                    AttemptId(
+                        "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3:1",
+                    ),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 16,
+        kind: RequestFinished,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341096474,
+        ),
+        event: GatewayEvent::RequestFinished(
+            RequestFinishedEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-3",
+                ),
+                started_at_ms: 1792341096250,
+                finished_at_ms: 1792341096474,
+                duration_ms: 224,
+                first_content_ms: Some(
+                    45,
+                ),
+                outcome: Succeeded,
+                error_code: None,
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 17,
+        kind: Request,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341096480,
+        ),
+        event: GatewayEvent::Request(
+            RequestEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+                ),
+                client_key_id: ClientKeyId(
+                    "p12-runtime-client-key",
+                ),
+                access_group_id: Some(
+                    AccessGroupId(
+                        "p12-runtime-group",
+                    ),
+                ),
+                protocol: OpenAiResponses,
+                requested_model: "<redacted>",
+                public_model: "<redacted>",
+                route_alias_present: false,
+                streaming: true,
+                started_at_ms: Some(
+                    1792341096480,
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 18,
+        kind: Attempt,
+        event_id: "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4:1",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341096485,
+        ),
+        event: GatewayEvent::Attempt(
+            AttemptEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+                ),
+                attempt_id: AttemptId(
+                    "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4:1",
+                ),
+                attempt_number: 1,
+                route_id: RouteId(
+                    "p12-runtime-route",
+                ),
+                route_candidate_id: RouteCandidateId(
+                    "p12-runtime-candidate",
+                ),
+                credential_id: CredentialId(
+                    "grok-d5671b6780e6c95cf29ffa6b3a39eb84",
+                ),
+                endpoint_id: EndpointId(
+                    "p12-krill-endpoint",
+                ),
+                upstream_id: UpstreamId(
+                    "p12-runtime-upstream",
+                ),
+                upstream_model: "<redacted>",
+                started_at_ms: 1792341096483,
+                ended_at_ms: 1792341096485,
+                outcome: Succeeded,
+                retry_decision: Completed,
+                execution_identity: Some(
+                    AttemptExecutionIdentity(<protected identifiers>),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 19,
+        kind: Usage,
+        event_id: "usage-attempt:e7a903038b40cbdd8f2a095b5fcbaf65957a53eff37e233dc93d4e84ab252280",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+            ),
+        ),
+        occurred_at_ms: None,
+        event: GatewayEvent::Usage(
+            UsageEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+                ),
+                response_id: ResponseId(
+                    "response-62-4",
+                ),
+                usage: UsageSummary {
+                    provenance: Measured,
+                    input_accounting: Inclusive,
+                    input_tokens: Some(
+                        20,
+                    ),
+                    output_tokens: Some(
+                        7,
+                    ),
+                    reasoning_tokens: None,
+                    cache_read_tokens: None,
+                    cache_creation_tokens: None,
+                    cached_tokens: None,
+                },
+                attempt_id: Some(
+                    AttemptId(
+                        "attempt:45:p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4:1",
+                    ),
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 20,
+        kind: RequestFinished,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341096706,
+        ),
+        event: GatewayEvent::RequestFinished(
+            RequestFinishedEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-4",
+                ),
+                started_at_ms: 1792341096480,
+                finished_at_ms: 1792341096706,
+                duration_ms: 226,
+                first_content_ms: Some(
+                    43,
+                ),
+                outcome: Succeeded,
+                error_code: None,
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 21,
+        kind: Request,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-5",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-5",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341097908,
+        ),
+        event: GatewayEvent::Request(
+            RequestEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-5",
+                ),
+                client_key_id: ClientKeyId(
+                    "p12-runtime-client-key",
+                ),
+                access_group_id: Some(
+                    AccessGroupId(
+                        "p12-runtime-group",
+                    ),
+                ),
+                protocol: OpenAiResponses,
+                requested_model: "<redacted>",
+                public_model: "<redacted>",
+                route_alias_present: false,
+                streaming: true,
+                started_at_ms: Some(
+                    1792341097908,
+                ),
+            },
+        ),
+    },
+    StoredGatewayEvent {
+        ordinal: 22,
+        kind: RequestFinished,
+        event_id: "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-5",
+        request_id: Some(
+            RequestId(
+                "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-5",
+            ),
+        ),
+        occurred_at_ms: Some(
+            1792341097909,
+        ),
+        event: GatewayEvent::RequestFinished(
+            RequestFinishedEvent {
+                request_id: RequestId(
+                    "p1-request-be5d29e1b85531ddb17a92a1b8ceee5b-5",
+                ),
+                started_at_ms: 1792341097908,
+                finished_at_ms: 1792341097909,
+                duration_ms: 0,
+                first_content_ms: None,
+                outcome: Failed,
+                error_code: Some(
+                    ClientRequestError,
+                ),
+            },
+        ),
+    },
+]

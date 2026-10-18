@@ -1,0 +1,11 @@
+(version 1)
+(allow default)
+(deny network-outbound)
+(deny network-inbound)
+(allow network-outbound (remote ip "localhost:*"))
+(allow network-inbound (local ip "localhost:*"))
+
+(deny file-read* (subpath "/Users") (subpath "/Volumes/Asgard/Agentprojects"))
+(allow file-read* (literal "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/deps/gateway-73e16e067fb70849") (literal "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-validation-062775a9/scripts/acceptance/cpar62-cli.py"))
+(deny file-write*)
+(allow file-write* (subpath "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T") (literal "/dev/null"))

@@ -1,0 +1,14 @@
+{
+  "initial_entries": 55696,
+  "changed_initial_entries": [],
+  "counts_by_type": {
+    "32768": 55636,
+    "40960": 10,
+    "16384": 50
+  },
+  "elapsed_seconds": 20.560430041,
+  "owned_normalization": {
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "remove only the owned mod cli line"
+  },
+  "directory_scope": "directory entries are not recursive descendant-byte proof"
+}
