@@ -137,6 +137,18 @@ async fn actual_cli_public_build_qualification() -> TestResult {
         );
         assert_eq!(active_leases(&fixture), 0);
         if scenario == "cancel" {
+            let alive: Value =
+                serde_json::from_slice(&std::fs::read(directory.join("cancel-client-alive"))?)?;
+            assert_eq!(
+                alive["rpc_alive"], true,
+                "same CLI must still be alive after the release observation"
+            );
+            let diagnostic_path = directory.join("cancel-diagnostic.json");
+            let mut diagnostic: Value = serde_json::from_slice(&std::fs::read(&diagnostic_path)?)?;
+            assert_eq!(alive["pid"], diagnostic["cli_pid"]);
+            diagnostic["cli_kept_alive"] = alive["rpc_alive"].clone();
+            diagnostic["alive_after_observation"] = alive;
+            std::fs::write(diagnostic_path, serde_json::to_vec_pretty(&diagnostic)?)?;
             assert!(
                 wait_until(|| peer.closed.load(Ordering::SeqCst) == 1).await,
                 "actual Pi abort closes the upstream socket"
@@ -225,9 +237,10 @@ async fn observe_live_cancel(
     std::fs::write(
         directory.join("cancel-diagnostic.json"),
         serde_json::to_vec_pretty(&json!({
-            "cli_kept_alive":true,"released_within_first_second":immediate,"leases_after_first_second":leases_after_first_second,
+            "cli_alive_at_abort":rpc["rpc_alive"],"cli_pid":rpc["pid"],
+            "released_within_first_second":immediate,"leases_after_first_second":leases_after_first_second,
             "eventually_released_before_server_stop":eventual,"total_observation_ms":started.elapsed().as_millis(),
-            "leases_before_cli_exit":active_leases(fixture),"peer_close_before_cli_exit":peer.closed.load(Ordering::SeqCst)
+            "leases_at_observation_end":active_leases(fixture),"peer_close_at_observation_end":peer.closed.load(Ordering::SeqCst)
         }))?,
     )?;
     std::fs::write(

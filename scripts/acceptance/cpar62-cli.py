@@ -275,9 +275,15 @@ def client(name, scenario, directory, base):
                         (root / "abort-complete").write_text(json.dumps({"rpc_alive": process.poll() is None, "pid": process.pid}) + "\n")
                         limit = time.monotonic() + 25
                         while not (root / "cancel-observed").exists():
+                            if process.poll() is not None:
+                                raise RuntimeError("Pi RPC exited during cancellation observation")
                             if time.monotonic() > limit:
                                 raise TimeoutError("live CLI cancellation observation barrier")
                             time.sleep(0.01)
+                        alive = {"rpc_alive": process.poll() is None, "pid": process.pid}
+                        (root / "cancel-client-alive").write_text(json.dumps(alive) + "\n")
+                        if not alive["rpc_alive"]:
+                            raise RuntimeError("Pi RPC exited before final cancellation liveness proof")
                     break
         finally:
             stop_process(process)
