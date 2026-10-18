@@ -1,0 +1,27 @@
+{
+  "stage": "FIRST_STAGE_B",
+  "research_status": "BOUNDED_SEARCH_COMPLETE",
+  "field": "cost_in_usd_ticks",
+  "channel": "grok.build.responses",
+  "endpoint": "https://cli-chat-proxy.grok.com/v1/responses",
+  "production_profile": "1.0.50",
+  "representations": ["Responses JSON", "Responses SSE"],
+  "admission": "NOT_ADMITTED",
+  "issue": 61,
+  "issue_state": "OPEN",
+  "completion": "PARTIAL_BLOCKED",
+  "remaining_evidence": [
+    "First-party production endpoint/profile applicability or verifiable release/source correspondence",
+    "Explicit JSON and SSE field/container/phase applicability and semantics",
+    "Production missing/null/zero, numeric and anomalous-shape contract",
+    "Applicable semantic independence from answer/summary/tools/standard Usage/model identity"
+  ],
+  "draft_status": "PROPOSED_UNAPPROVED",
+  "existing_user_decision": "KEEP_NOT_ADMITTED_AND_WAIT_FOR_FIRST_PARTY_EVIDENCE",
+  "implementation": "NOT_RUN_BLOCKED_BY_FIELD_QUALIFICATION",
+  "new_provider_requests": 0,
+  "private_capture_or_real_credential_reads": 0,
+  "profile_changed": false,
+  "other_fields_or_aliases_admitted": false,
+  "next_tickets_started": false
+}

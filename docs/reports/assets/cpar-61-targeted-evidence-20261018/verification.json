@@ -1,0 +1,153 @@
+{
+  "status": "PASS_FINAL_STATIC_AND_PRESERVATION",
+  "baseline": {
+    "head": "db68928e3f3c6cd78ddca152d205b047b41147a7",
+    "branch": "codex/prism-v4-delivery",
+    "created_utc": "2026-10-18T15:04:07.428962+00:00",
+    "policy": "sha256 for pre-existing modified tracked files; metadata-only for other paths, no private capture or credentials reopened",
+    "entries": 55691,
+    "changed_tracked": [
+      "AGENTS.md",
+      "README.md",
+      "README.zh-CN.md",
+      "docs/06-development-plan.md",
+      "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "docs/adr/README.md",
+      "docs/traceability.md"
+    ],
+    "index_empty": true
+  },
+  "baseline_manifest_sha256": "201fc06f593a6eaa28e3f8db3a2188a477036b358a6800d37109581ed8cfc19d",
+  "protected_modified_tracked_files": [
+    {
+      "path": "AGENTS.md",
+      "mode": 420,
+      "size": 3419,
+      "mtime_ns": 1790617358994642305,
+      "kind": "file",
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+    },
+    {
+      "path": "README.md",
+      "mode": 420,
+      "size": 23011,
+      "mtime_ns": 1792291477304772342,
+      "kind": "file",
+      "sha256": "c82e240d37175f70ca1c8cffbc000e1b0672c585278b854455ed6708a510d542"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "mode": 420,
+      "size": 21329,
+      "mtime_ns": 1792291477305191801,
+      "kind": "file",
+      "sha256": "128eaf73e38b23f87e6b7ed9bfc7a9ef0848e7a0b3f9f26ec031084bc3bf8845"
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "mode": 420,
+      "size": 617177,
+      "mtime_ns": 1792256370322576745,
+      "kind": "file",
+      "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5"
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "mode": 420,
+      "size": 10266,
+      "mtime_ns": 1792291376015565779,
+      "kind": "file",
+      "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb"
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "mode": 420,
+      "size": 6735,
+      "mtime_ns": 1792291376015891655,
+      "kind": "file",
+      "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131"
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "mode": 420,
+      "size": 21302,
+      "mtime_ns": 1792291376016077364,
+      "kind": "file",
+      "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "mode": 420,
+      "size": 21452,
+      "mtime_ns": 1792331326466369385,
+      "kind": "file",
+      "sha256": "adc84b833f60865e76ee995962584c377b66c1f2545624e323db194def687fb2"
+    },
+    {
+      "path": "docs/traceability.md",
+      "mode": 420,
+      "size": 83658,
+      "mtime_ns": 1792331326467242849,
+      "kind": "file",
+      "sha256": "29a2829c0a163be7bd1b04a0e81c83f60b416c51d6e461674bb639d8aac5e310"
+    }
+  ],
+  "untracked_preservation_scope": "Metadata comparison only; no private content was reopened",
+  "static_checks": [
+    {
+      "command": "scripts/check-doc-links.rb",
+      "exit_code": 0,
+      "stdout": "doc-links: ok (1209 Markdown files)\n",
+      "stderr": ""
+    },
+    {
+      "command": "scripts/secret-scan.sh --staged",
+      "exit_code": 0,
+      "stdout": "secret-scan: ok (--staged)\n",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "implementation_and_behavior_tests": "NOT_RUN_STAGE_1_B",
+  "full": "NOT_RUN_STAGE_1_B",
+  "second_stage_code_review": "NOT_RUN_STAGE_1_B",
+  "preservation": {
+    "status": "PASS",
+    "baseline_entries_checked": 55691,
+    "modified_tracked_sha256_checked": 9,
+    "mismatches": [],
+    "staged_owned_paths": [
+      "docs/reports/assets/cpar-61-targeted-evidence-20261018/field-decision.json",
+      "docs/reports/assets/cpar-61-targeted-evidence-20261018/public-source-manifest.json",
+      "docs/reports/assets/cpar-61-targeted-evidence-20261018/remote-result.json",
+      "docs/reports/assets/cpar-61-targeted-evidence-20261018/verification.json",
+      "docs/reports/cpar-61-targeted-evidence-20261018.md"
+    ],
+    "untracked_byte_parity_claimed": false
+  },
+  "checked_utc": "2026-10-18T15:22:09.006862+00:00",
+  "remote_readback": "PASS",
+  "json_files_validated": 4,
+  "feedback": [
+    {
+      "kind": "premature_status_display",
+      "exit_code": 1,
+      "error": "KeyError: write",
+      "scope": "A display command read the PENDING remote-result placeholder before the readback process completed",
+      "disposition": "No remote write retried; completed independent readback passed all checks"
+    }
+  ],
+  "owned_content_sha256": {
+    "docs/reports/assets/cpar-61-targeted-evidence-20261018/field-decision.json": "0ce8c86842d5c4307c2f16c12e86f2c6c1754032d6e5a969a222536271ddac4c",
+    "docs/reports/assets/cpar-61-targeted-evidence-20261018/public-source-manifest.json": "0a73515793b4b8b64ff83e62882ca0cb2fef45364790bee6faadce6c52b2059a",
+    "docs/reports/assets/cpar-61-targeted-evidence-20261018/remote-result.json": "bbc54825c8a58dd4e5c0cdccaf117677d85a3a928d22ae14eae87d9ce833d271",
+    "docs/reports/cpar-61-targeted-evidence-20261018.md": "32c1f823b36340fcdc49bad22bcf625c9ab3b1d215b359bf242d640a9d6959c8"
+  }
+}

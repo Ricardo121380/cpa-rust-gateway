@@ -1,0 +1,424 @@
+{
+  "purpose": "Bounded primary-source qualification research; no field admission",
+  "frozen_source_ref": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "frozen_source_rev": "559751fdcec02d413e4c57c8832ab275e4f44980",
+  "fixed_production_profile": "1.0.50",
+  "observed_current_stable": "1.0.62",
+  "profile_changed": false,
+  "main_agent_spotchecks": [
+    {
+      "id": "main-ref",
+      "url": "https://api.github.com/repos/xai-org/grok-build/git/ref/heads/main",
+      "observed_utc": "2026-10-18T15:12:36.383034+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 334,
+      "sha256": "108a52dd7f04c0b3dcdc4cd4dd6e53730c3c25608c84a93e8ab3b005257a5456",
+      "final_url": "https://api.github.com/repos/xai-org/grok-build/git/ref/heads/main"
+    },
+    {
+      "id": "stable",
+      "url": "https://x.ai/cli/stable",
+      "observed_utc": "2026-10-18T15:12:36.383567+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 6,
+      "sha256": "7e819e28bc2f91abe9f3f76884b4be4d7ac3db94d2585ad3fbfc3dffa4135d44",
+      "final_url": "https://x.ai/cli/stable"
+    },
+    {
+      "id": "stable-fallback",
+      "url": "https://storage.googleapis.com/grok-build-public-artifacts/cli/stable",
+      "observed_utc": "2026-10-18T15:12:36.384187+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 6,
+      "sha256": "7e819e28bc2f91abe9f3f76884b4be4d7ac3db94d2585ad3fbfc3dffa4135d44",
+      "final_url": "https://storage.googleapis.com/grok-build-public-artifacts/cli/stable"
+    },
+    {
+      "id": "source-readme",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/README.md",
+      "observed_utc": "2026-10-18T15:12:36.384473+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 5757,
+      "sha256": "322066de9f5bc136295bd0ae4f1752cef3d8dcb1a8f9d88044609e7b6d7abcf7",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/README.md"
+    },
+    {
+      "id": "source-version",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-version/src/lib.rs",
+      "observed_utc": "2026-10-18T15:12:36.384621+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 3720,
+      "sha256": "e48e64f30b2ba8061d0c68bc7140849f27f287a2ee40c3261d29ea4c8862ce06",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-version/src/lib.rs",
+      "previous_sha256": "e48e64f30b2ba8061d0c68bc7140849f27f287a2ee40c3261d29ea4c8862ce06",
+      "unchanged": true
+    },
+    {
+      "id": "source-revision",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/SOURCE_REV",
+      "observed_utc": "2026-10-18T15:12:36.384749+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 41,
+      "sha256": "ef218bf538f31e240aff551a39d6d9a6564b03bb2a75c49f309bf46015ee3030",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/SOURCE_REV",
+      "previous_sha256": "ef218bf538f31e240aff551a39d6d9a6564b03bb2a75c49f309bf46015ee3030",
+      "unchanged": true
+    },
+    {
+      "id": "source-client",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs",
+      "observed_utc": "2026-10-18T15:12:36.384876+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 143544,
+      "sha256": "5b9ff7c6fbbb7eddbda9877539e66d6a8214e508201da7a7d0e60d6f3ab650ab",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs",
+      "previous_sha256": "5b9ff7c6fbbb7eddbda9877539e66d6a8214e508201da7a7d0e60d6f3ab650ab",
+      "unchanged": true
+    },
+    {
+      "id": "source-conversation",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation.rs",
+      "observed_utc": "2026-10-18T15:12:37.371160+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 200909,
+      "sha256": "3037023d7dd661b187134dbd4872ae66d7931b75bc3849367bc9b4875735399f",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation.rs",
+      "previous_sha256": "3037023d7dd661b187134dbd4872ae66d7931b75bc3849367bc9b4875735399f",
+      "unchanged": true
+    },
+    {
+      "id": "source-stream",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/stream/responses.rs",
+      "observed_utc": "2026-10-18T15:12:37.403578+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 70118,
+      "sha256": "d32bf24f6985abc3e78d3f761c82a0cf292b7942ee2adf7be78757010cc9c56a",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/stream/responses.rs",
+      "previous_sha256": "d32bf24f6985abc3e78d3f761c82a0cf292b7942ee2adf7be78757010cc9c56a",
+      "unchanged": true
+    },
+    {
+      "id": "llms",
+      "url": "https://docs.x.ai/llms.txt",
+      "observed_utc": "2026-10-18T15:12:37.414226+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 19292,
+      "sha256": "9d9ebff2c1e65f63ac59552f44064b0714ad441cdd55c15ad54bf40b3c9534d6",
+      "final_url": "https://docs.x.ai/llms.txt"
+    },
+    {
+      "id": "openapi",
+      "url": "https://docs.x.ai/openapi.json",
+      "observed_utc": "2026-10-18T15:12:37.428798+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 228761,
+      "sha256": "ee418da1de9d6b66648250e1ecb9fdd98cef472dde7b05c66cc9d0db8dad7f1f",
+      "final_url": "https://docs.x.ai/openapi.json"
+    },
+    {
+      "id": "headless",
+      "url": "https://docs.x.ai/build/cli/headless-scripting.md",
+      "observed_utc": "2026-10-18T15:12:37.442065+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 5304,
+      "sha256": "a4f39daf25f81aba5dba79265d12d0e4ec444e6b28dcbe3c2335c05401052097",
+      "final_url": "https://docs.x.ai/build/cli/headless-scripting.md"
+    },
+    {
+      "id": "status-line",
+      "url": "https://docs.x.ai/build/features/status-line.md",
+      "observed_utc": "2026-10-18T15:12:37.468534+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "http_status": 200,
+      "bytes": 4028,
+      "sha256": "c85b53a0bb498e35618446f135f8104150ccf394e70d5627e78f1385fb6a91cb",
+      "final_url": "https://docs.x.ai/build/features/status-line.md"
+    }
+  ],
+  "additional_scout_get_receipts": [
+    {
+      "url": "https://api.github.com/repos/xai-org/grok-build/git/refs?per_page=100&page=1",
+      "observed_utc": "2026-10-18T15:06:33Z",
+      "http_status": 200,
+      "bytes": 336,
+      "sha256": "b51b7ebd314619d89435aa56fa5588d7b492c5ac800646a0f73c134bcc3dfe47",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://api.github.com/repos/xai-org/grok-build/git/refs?per_page=100&page=2",
+      "observed_utc": "2026-10-18T15:07:01Z",
+      "http_status": 200,
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://api.github.com/repos/xai-org/grok-build/branches?per_page=100&page=1",
+      "observed_utc": "2026-10-18T15:07:01Z",
+      "http_status": 200,
+      "bytes": 199,
+      "sha256": "dd9789de9eabcdcc2af2ad84d7088898f99229f2b8bc7eb10f637d361cd2befa",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://api.github.com/repos/xai-org/grok-build/branches?per_page=100&page=2",
+      "observed_utc": "2026-10-18T15:07:28Z",
+      "http_status": 200,
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://api.github.com/repos/xai-org/grok-build/tags?per_page=100&page=1",
+      "observed_utc": "2026-10-18T15:06:33Z",
+      "http_status": 200,
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://api.github.com/repos/xai-org/grok-build/releases?per_page=100&page=1",
+      "observed_utc": "2026-10-18T15:06:33Z",
+      "http_status": 200,
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://x.ai/cli/install.sh",
+      "observed_utc": "2026-10-18T15:07:01Z",
+      "http_status": 200,
+      "bytes": 19501,
+      "sha256": "7fd6fdc75d9418b2e58356726fcbf1ae849416f773925da07d0ccc7a60d3e791",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://x.ai/cli/install.ps1",
+      "observed_utc": "2026-10-18T15:07:01Z",
+      "http_status": 200,
+      "bytes": 20886,
+      "sha256": "c83dac29885215c79137e48cbc034d3d7c8c11afba3082ff1df0e0769aa902a4",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://docs.x.ai/build/overview",
+      "observed_utc": "2026-10-18T15:08:12Z",
+      "http_status": 200,
+      "bytes": 318664,
+      "sha256": "e9d26228240c9de4ef9247ec209b51250f41bf1e31000998238b044f883aee68",
+      "evidence_origin": "release scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://docs.x.ai/sitemap.xml",
+      "observed_utc": "2026-10-18T15:07:04.936217Z",
+      "http_status": 200,
+      "bytes": 37766,
+      "sha256": "7696176b3d343ce8472241a6c86b4b0bed99bac8c618e5ebe45b69d92000809f",
+      "evidence_origin": "field scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://docs.x.ai/build/overview.md",
+      "observed_utc": "2026-10-18T15:07:47.509006Z",
+      "http_status": 200,
+      "bytes": 3733,
+      "sha256": "3edf9fc3a63dad3f663d48ade2f6fb597d7829087d65d0b219ba157826b69802",
+      "evidence_origin": "field scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://docs.x.ai/build/settings/reference.md",
+      "observed_utc": "2026-10-18T15:07:47.509631Z",
+      "http_status": 200,
+      "bytes": 20591,
+      "sha256": "7103d3f948beebd747a59c85dcd91812906884122b0711fac3198ab870dc3e8d",
+      "evidence_origin": "field scout, read-only unauthenticated GET"
+    },
+    {
+      "url": "https://docs.x.ai/developers/cost-tracking.md",
+      "observed_utc": "2026-10-18T15:07:47.510186Z",
+      "http_status": 200,
+      "bytes": 10400,
+      "sha256": "c88fe3940f28a06c73d45228006a147ad8eaabe8684d6ef8266655867a5f4f23",
+      "evidence_origin": "field scout, read-only unauthenticated GET"
+    }
+  ],
+  "queries": {
+    "release_scout": [
+      "site:x.ai \"grok\" \"1.0.50\" (\"provenance\" OR \"attestation\" OR \"manifest\" OR \"source revision\")",
+      "site:github.com/xai-org/grok-build \"1.0.50\"",
+      "\"grok-build\" \"1.0.50\" (manifest OR provenance OR attestation OR checksum OR SOURCE_REV)",
+      "\"2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8\" \"1.0.50\"",
+      "\"559751fdcec02d413e4c57c8832ab275e4f44980\" \"1.0.50\""
+    ],
+    "field_scout": [
+      "site:docs.x.ai \"Grok Build\" \"cost\"",
+      "site:docs.x.ai \"cost_in_usd_ticks\"",
+      "site:x.ai \"cost_in_usd_ticks\"",
+      "site:github.com/xai-org/grok-build \"cost_in_usd_ticks\"",
+      "site:docs.x.ai/build (\"cost_in_usd_ticks\" OR \"cost_usd_ticks\")",
+      "(\"cli-chat-proxy.grok.com\" OR \"grok.build.responses\") (\"cost_in_usd_ticks\" OR schema)"
+    ]
+  },
+  "query_limits": {
+    "release_queries": 5,
+    "field_queries": 6,
+    "repo_list_per_page": 100,
+    "maximum_pages": 3,
+    "maximum_pages_used": 2,
+    "ended_at_empty_pages": true
+  },
+  "retrieval_limitations": [
+    {
+      "url": "https://x.ai/changelog/build",
+      "direct_get_utc": "2026-10-18T15:06:33Z",
+      "direct_get_http_status": 403,
+      "web_extraction": "Official page text readable by scouts and main; raw origin status/body hash unavailable from extraction service",
+      "supported_scope": "1.0.50 release/date record only, not artifact/source/profile mapping"
+    },
+    {
+      "url": "https://x.ai/build/changelog",
+      "direct_get_utc": "2026-10-18T15:07:28Z",
+      "direct_get_http_status": 403
+    },
+    {
+      "url": "https://docs.x.ai/docs/grok-build",
+      "web_extraction": "inaccessible",
+      "http_status": null
+    },
+    {
+      "url": "https://x.ai/grok-build",
+      "web_extraction": "inaccessible",
+      "http_status": null
+    },
+    {
+      "url": "https://docs.x.ai/sitemap.xml",
+      "web_extraction": "initial Internal Error",
+      "subsequent_direct_get_http_status": 200
+    }
+  ],
+  "bounded_negative_checks": [
+    {
+      "source": "current official installers",
+      "patterns": "manifest|attest|provenance|sbom|sha256|checksum|SOURCE_REV|revision (case-insensitive)",
+      "finding": "No release mapping entry; PowerShell SHA256 matches belong to MinGit ZIP branch only"
+    },
+    {
+      "source": "four current Build Markdown pages: overview/headless-scripting/settings-reference/status-line",
+      "patterns": [
+        "cost_in_usd_ticks",
+        "cost_usd_ticks",
+        "cli-chat-proxy",
+        "grok.build.responses",
+        "1.0.50",
+        "schema",
+        "openapi"
+      ],
+      "finding": "All zero in each fetched body, scout check only"
+    },
+    {
+      "source": "official openapi.json",
+      "patterns": [
+        "cli-chat-proxy",
+        "grok.build.responses",
+        "1.0.50"
+      ],
+      "finding": "All zero, independently spotchecked; llms.txt:220 explicitly scopes API to api.x.ai"
+    }
+  ],
+  "decisive_source_locations": [
+    {
+      "source_id": "source-client",
+      "lines": "124-157",
+      "fact": "completed/incomplete SSE: cost pointer -> as_i64 -> positive capture; cost carried separately"
+    },
+    {
+      "source_id": "source-client",
+      "lines": "1276-1383",
+      "fact": "JSON create_response deserializes typed Response; no authority from omission"
+    },
+    {
+      "source_id": "source-conversation",
+      "lines": "830-833,858-862",
+      "fact": "10^10 ticks per USD; client comment on REST zero backfill and invalid negatives; client normalization, not production schema"
+    },
+    {
+      "source_id": "source-stream",
+      "lines": "615-649",
+      "fact": "Known counters, cost and item conversion are separate client operations"
+    },
+    {
+      "source_id": "source-version",
+      "lines": "11-20",
+      "fact": "Release pipeline injects version; no release/source relation supplied"
+    },
+    {
+      "source_id": "llms",
+      "lines": "220",
+      "fact": "OpenAPI explicitly belongs to api.x.ai REST API"
+    },
+    {
+      "source_id": "headless",
+      "lines": "31-42",
+      "fact": "CLI stdout formats, not HTTP Responses JSON/SSE"
+    },
+    {
+      "source_id": "status-line",
+      "lines": "34",
+      "fact": "Process-scoped cost display, restart/resume scope differs from wire qualification"
+    }
+  ],
+  "openapi_exclusion": {
+    "info_title": "xAI's REST API",
+    "info_version": "1.0.0",
+    "ModelUsage_cost_type": [
+      "integer",
+      "null"
+    ],
+    "Usage_cost_type": "integer",
+    "MediaUsage_cost_type": "integer",
+    "used_as_build_authority": false
+  },
+  "excluded_as_missing_authority": [
+    "generic xAI same-name field",
+    "typed-client omission",
+    "single historical sample",
+    "synthetic fixture/allowlist",
+    "PROPOSED cost contract",
+    "SSE extrapolation to JSON",
+    "alternate transport/profile"
+  ],
+  "admission": "NOT_ADMITTED",
+  "negative_scope": "Only fetched bodies, listed refs and recorded queries; no universal absence claim",
+  "safety": {
+    "provider_requests": 0,
+    "real_credentials_read": 0,
+    "private_capture_read": 0,
+    "binary_or_installer_executed": false,
+    "binary_downloaded": false,
+    "repository_modified_by_scouts": false
+  }
+}
