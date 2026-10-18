@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "entries_checked": 49041,
+  "duration_seconds": 22.919,
+  "checked_at": "2026-10-18T14:24:41.717421+00:00",
+  "owned_append_exceptions": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "drift": [],
+  "directory_scope": "lstat type/mode/size only; no recursive descendant-byte claim",
+  "real_index_empty": true,
+  "status_matches_initial_excluding_owned_closeout": true,
+  "products": {
+    "crates/gateway-http-actix/src/lib.rs": {
+      "sha256": "e58744426c18ca06425cc6b6e39caa5ca162f8557f144b61c874f64dc58be8f3",
+      "current_candidate_full_exact": true
+    },
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": {
+      "sha256": "5235f7533642990c58361011b79331bbf7bbf951684509d6a1ae42012a219db0",
+      "current_candidate_full_exact": true
+    },
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": {
+      "sha256": "8c2d21180b6ef5c7edb079edc1223cec515f3f27f1f3665543274d136bd0ba3a",
+      "current_candidate_full_exact": true
+    },
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/recording_faults.rs": {
+      "sha256": "2b64f5a34a01a3c322d021415011f478f46cfb66a982e2627526d873b30fdf69",
+      "current_candidate_full_exact": true
+    }
+  },
+  "code_candidate": "fc1c4755c05bdfa7d91812fd77b9494225cc161a",
+  "full_source": "38443146c1528d081794156261f6859ad195e255"
+}

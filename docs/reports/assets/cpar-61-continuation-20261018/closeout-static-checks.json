@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-10-18T14:25:57.827835+00:00",
+  "scope": "documentation/receipts only after fixed product review; temporary index; no Full repetition",
+  "checks": [
+    {
+      "command": [
+        "scripts/check.sh",
+        "docs"
+      ],
+      "exit_code": 0,
+      "output": "\n==> Document links\ndoc-links: ok (1208 Markdown files)\n\n==> Contract tests\ncontract-tests: ok (222 referenced tests resolved)\n\n==> Plan state\nplan-state: ok (131 tasks, 1 IN_PROGRESS)\n\n==> Canary thresholds\np12-08-canary: ok (direct cutover; 72h/1250-success observation; no production split; severity taxonomy present)\n\n==> Caddy split\np12-caddy-split: ok (direct CPAR cutover; no production split; management plane unexposed; rollback restores CPA)\n\n==> Tracked secret scan\nsecret-scan: ok (--all)\n\n==> Git whitespace\n\ncheck: docs passed\n"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "status": "PASS"
+}

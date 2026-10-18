@@ -1,0 +1,51 @@
+[
+  [
+    {
+      "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/comments/6248583351",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/60#issuecomment-6248583351",
+      "issue_url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/60",
+      "id": 6248583351,
+      "node_id": "IC_kwDOUGxUj88AAAABdHHQtw",
+      "user": {
+        "login": "Ricardo121380",
+        "id": 129812278,
+        "node_id": "U_kgDOB7zHNg",
+        "avatar_url": "https://avatars.githubusercontent.com/u/129812278?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/Ricardo121380",
+        "html_url": "https://github.com/Ricardo121380",
+        "followers_url": "https://api.github.com/users/Ricardo121380/followers",
+        "following_url": "https://api.github.com/users/Ricardo121380/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Ricardo121380/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/Ricardo121380/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Ricardo121380/subscriptions",
+        "organizations_url": "https://api.github.com/users/Ricardo121380/orgs",
+        "repos_url": "https://api.github.com/users/Ricardo121380/repos",
+        "events_url": "https://api.github.com/users/Ricardo121380/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/Ricardo121380/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "created_at": "2026-10-18T10:07:50Z",
+      "updated_at": "2026-10-18T10:07:50Z",
+      "body": "#60 实施完成：本地验收 PASS\n\n仅实施本票。已按 `implement`、TDD 和 `code-review` 完成实际公共入口复现、最小实现、离线验证、独立双轴评审及本地提交。\n\n本地提交：`f2453ff25d7b1c56d42dfb1d0cf26cba674d4db4`（分支 `codex/prism-v4-delivery`，**未推送**）。基线为 `be6cf15b11a0834fe98fd5e07277390efe15e424`；54 个提交文件只含本轮增量，已有 9 个跟踪脏文件及全部历史/未跟踪材料保留。下列新文档及收据目前在本地提交中，不能作为远端 CI 或已发布证据。\n\n| #60 验收条件 | 结果与证据 |\n| --- | --- |\n| 公共 JSON/SSE 三段模型身份 | PASS：公共 handler 保留原始请求与准入 public model，生产 driver/实际 Build adapter 绑定本次选中 upstream，公共测试独立核对实收 body/header 与原生响应。只接受字面等值或预先冻结、已批准且范围匹配的可信别名证明。 |\n| 缺失、类型、响应阶段与别名失败可辨 | PASS：封闭安全原因分别覆盖缺失、非法类型/形状、原生名不符、阶段矛盾、不适用证明；不会用公共 model 覆盖原生证据。JSON 与 SSE 使用同一身份状态，SSE created/in_progress/completed/incomplete/failed 均检查适用快照。 |\n| 发送前拒绝 / 响应后无附加推理 | PASS：先取得公共 RED；受控独立 HTTP 接收数在发送前拒绝为 **0**，原生响应后矛盾为 **1**。保留三次 attempt 配置与备用 candidate，未触发重试、账号/模型切换或透明 fallback；晚拒绝未读后续 tail。 |\n| Request/Attempt、凭据/租约、配置及渠道边界 | PASS：证明冻结 source hash/依据、有效期、三个具体名、配置修订、实际 route/candidate/credential 修订、owner、渠道、协议/模式和 Build profile；最终 binding 还绑定本次 Request。未读取当前 inventory 补造历史。 |\n| 合成正反例与真实 UNKNOWN | PASS：6 个公共测试组覆盖字面等值、适用合成别名、17 类范围/时效/冲突反例、缺失/类型与四种后续阶段冲突。stock composition 证明集合为空；原真实样本别名仍 **UNKNOWN**，旧 oracle 与原始失败证据保留，未请求真实预算。 |\n| 范围及 #59 能力保持 | PASS：#59 公共失败诊断、精确切片、加密持久化确认、exact-owner 读回、幂等与已知用量归属回归通过；storage/CLI **8/8**。未新增 read-ahead/上游推理，不将未知价格用于计费；未放开普通元数据、改变 reasoning/客户端策略、实施 native-v1 或 #61。 |\n\n验证与评审：\n\n- `scripts/check.sh full`：**45/45 PASS**；Rust **1532 passed / 0 failed / 13 ignored**。包含 Clippy、dependency policy、RustSec audit、前端构建、真实本地进程及受控多轮装配。\n- Full 源对象：`a903dea84afaab3f81daca51d16f10def2488a0c`；固定评审候选：`540e24fbffa25b06857469ae7d4fd59a773d505a`。最终提交的 25 个产品/测试文件与两者逐字节相同；其余后续变化为报告、评审和证据归档。\n- workspace 全套 Rust 测试在 loopback-only 系统 sandbox 下运行，独立证明 loopback PASS、非 loopback `192.0.2.1:443` 被 EPERM 拒绝。纯本地流/RSS guard 使用原有装配：额外 Seatbelt 包装会阻止平台 ps 启动，原始失败与独立复现均保留，没有改仓库脚本或降低断言。\n- **Standards PASS**：硬违规 0，P0/P1/P2 为 0，P3 判断项 1（两条公共 RED 回归有测试装配重复，非阻断，保留直接装配，未扩大重构）。**Spec PASS**：P0/P1/P2/P3 全部 0。两轴分别记录。\n- 最终文档链接、契约测试引用、`cargo fmt --all -- --check`、diff 与暂存秘密扫描 PASS。29 份原始日志（含所有 RED、准备反馈与中间失败）经未压缩秘密扫描后归档，逐文件 SHA256 与归档读回一致。\n\n本地证据：\n\n- `docs/reports/cpar-60-model-identity-20261018.md`\n- `docs/adr/ADR-0110-build-model-identity.md`\n- `docs/contracts/BC-PROVIDER-024-build-model-identity.md`\n- `docs/reports/assets/cpar-60-20261018/` 下 `full-receipt.json`、`full-steps.md`、`review-final.md`、`review-candidate.json`、`network-denial.json`、`final-preservation.json`、`log-manifest.json` 与 `validation-logs.tar.gz`。\n\n真实账号/Provider、三个实际客户端、远端 CI、部署与生产均 **NOT_RUN**。这不解除原真实别名阻断、不推进后续票。没有修改或关闭 #58、#59、#9、#47、#57；不推送、不部署、不发布。\n\n关闭前重新读取 #60 正文、评论、分配及原生阻塞：仍 OPEN、分配 Ricardo121380、无 blocker、正文与标签未变。六项验收及必需检查已满足；在本评论独立读回一致后，仅将 #60 以 completed 关闭，并再次读取确认。完成后停止。\n",
+      "author_association": "OWNER",
+      "pin": null,
+      "reactions": {
+        "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/comments/6248583351/reactions",
+        "total_count": 0,
+        "+1": 0,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0
+      },
+      "performed_via_github_app": null,
+      "minimized": null
+    }
+  ]
+]

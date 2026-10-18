@@ -1,0 +1,20 @@
+{
+  "started_at": "2026-10-18T14:21:58.110366+00:00",
+  "command": [
+    "gh",
+    "issue",
+    "comment",
+    "61",
+    "--repo",
+    "Ricardo121380/cpa-rust-gateway",
+    "--body-file",
+    "docs/reports/assets/cpar-61-continuation-20261018/issue-61-result-comment.md"
+  ],
+  "body_sha256": "431abaef56b48e33e35552bfaa48287b5d6471f7c5ab82c2d9fa88bbe94ae475",
+  "mutation": "single result comment on #61; no issue state/body/metadata/dependency change",
+  "finished_at": "2026-10-18T14:22:00.300231+00:00",
+  "exit_code": 0,
+  "stdout": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61#issuecomment-6251016058\n",
+  "stderr": "",
+  "status": "WRITE_RETURNED_URL"
+}

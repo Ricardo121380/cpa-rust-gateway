@@ -1,0 +1,39 @@
+{
+  "started_at": "2026-10-18T14:21:42.184413+00:00",
+  "index_scope": "temporary index; real index unchanged",
+  "checks": [
+    {
+      "command": [
+        "scripts/check-doc-links.rb"
+      ],
+      "exit_code": 0,
+      "output": "doc-links: ok (1208 Markdown files)\n"
+    },
+    {
+      "command": [
+        "scripts/check-contract-tests.rb"
+      ],
+      "exit_code": 0,
+      "output": "contract-tests: ok (222 referenced tests resolved)\n"
+    },
+    {
+      "command": [
+        "scripts/secret-scan.sh",
+        "--staged"
+      ],
+      "exit_code": 0,
+      "output": "secret-scan: ok (--staged)\n"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "status": "PASS"
+}

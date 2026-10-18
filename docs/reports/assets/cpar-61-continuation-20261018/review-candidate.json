@@ -1,0 +1,19 @@
+{
+  "baseline": "9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8",
+  "candidate": "fc1c4755c05bdfa7d91812fd77b9494225cc161a",
+  "diff_command": "git diff 9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8...HEAD",
+  "pinned_diff_command": "git diff 9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8...fc1c4755c05bdfa7d91812fd77b9494225cc161a",
+  "commit_list": [
+    "fc1c4755 #61 Release cancelled Build SSE sources before local recording completes"
+  ],
+  "changed_count": 70,
+  "product_parity_with_full": "PASS",
+  "all_product_files": [
+    "crates/gateway-http-actix/src/lib.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/recording_faults.rs"
+  ],
+  "source_commit": "38443146c1528d081794156261f6859ad195e255",
+  "source_tree": "772742747fb119507815860bc86074f35782a564"
+}

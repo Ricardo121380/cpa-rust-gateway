@@ -1,0 +1,112 @@
+{
+  "started_at": "2026-10-18T14:22:33.030075+00:00",
+  "finished_at": "2026-10-18T14:22:41.688734+00:00",
+  "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61#issuecomment-6251016058",
+  "comment_id": 6251016058,
+  "comment_exact_body_match": true,
+  "body_sha256": "431abaef56b48e33e35552bfaa48287b5d6471f7c5ab82c2d9fa88bbe94ae475",
+  "comment_created_within_write_window": true,
+  "checks": [
+    {
+      "number": 58,
+      "kind": "issue",
+      "only_authorized_change": true
+    },
+    {
+      "number": 58,
+      "kind": "comments",
+      "only_authorized_change": true
+    },
+    {
+      "number": 58,
+      "kind": "dependencies",
+      "only_authorized_change": true
+    },
+    {
+      "number": 59,
+      "kind": "issue",
+      "only_authorized_change": true
+    },
+    {
+      "number": 59,
+      "kind": "comments",
+      "only_authorized_change": true
+    },
+    {
+      "number": 59,
+      "kind": "dependencies",
+      "only_authorized_change": true
+    },
+    {
+      "number": 60,
+      "kind": "issue",
+      "only_authorized_change": true
+    },
+    {
+      "number": 60,
+      "kind": "comments",
+      "only_authorized_change": true
+    },
+    {
+      "number": 60,
+      "kind": "dependencies",
+      "only_authorized_change": true
+    },
+    {
+      "number": 61,
+      "kind": "issue",
+      "only_authorized_change": true
+    },
+    {
+      "number": 61,
+      "kind": "comments",
+      "only_authorized_change": false
+    },
+    {
+      "number": 61,
+      "kind": "dependencies",
+      "only_authorized_change": true
+    },
+    {
+      "number": 62,
+      "kind": "issue",
+      "only_authorized_change": true
+    },
+    {
+      "number": 62,
+      "kind": "comments",
+      "only_authorized_change": true
+    },
+    {
+      "number": 62,
+      "kind": "dependencies",
+      "only_authorized_change": true
+    },
+    {
+      "number": 63,
+      "kind": "issue",
+      "only_authorized_change": true
+    },
+    {
+      "number": 63,
+      "kind": "comments",
+      "only_authorized_change": true
+    },
+    {
+      "number": 63,
+      "kind": "dependencies",
+      "only_authorized_change": true
+    }
+  ],
+  "issue_states": {
+    "58": "open",
+    "59": "closed",
+    "60": "closed",
+    "61": "open",
+    "62": "open",
+    "63": "open"
+  },
+  "other_issues_and_all_dependency_identities_states": "DRIFT",
+  "status": "FAIL",
+  "pagination": "gh api --paginate --slurp per_page=100; all comments and both native dependency directions"
+}

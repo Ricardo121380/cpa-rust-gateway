@@ -34,6 +34,34 @@
   "actual_clients": "NOT_RUN",
   "push": "NOT_RUN",
   "deployment": "NOT_RUN",
-  "review": "PENDING",
-  "preservation": "PASS: 49041 original entries, with the two owned append suffixes removed for comparison"
+  "review": {
+    "baseline": "9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8",
+    "candidate": "fc1c4755c05bdfa7d91812fd77b9494225cc161a",
+    "standards": {
+      "status": "PASS_WITH_NIT",
+      "hard_violations": 0,
+      "heuristic_findings": 1,
+      "worst": "P3 possible test duplication"
+    },
+    "spec": {
+      "status": "PARTIAL_BLOCKED",
+      "completion_blocking_groups": 2,
+      "new_behavior_bugs_found": 0,
+      "scope_creep_found": 0,
+      "worst": "actual field qualification and successful pre-delivery persistence missing"
+    },
+    "reviewers_reran_tests": false,
+    "receipt": "review-final.md"
+  },
+  "preservation": "PASS: 49041 original entries, with the two owned append suffixes removed for comparison",
+  "remote_result": {
+    "status": "PASS",
+    "issue": 61,
+    "state": "OPEN",
+    "mutation": "one result comment only",
+    "comment_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61#issuecomment-6251016058",
+    "receipt": "remote-readback-final.json",
+    "initial_verification_failure_retained": "remote-readback.json; author avatar_url representation differs between API endpoints",
+    "other_issues_and_dependency_identities_states": "UNCHANGED"
+  }
 }

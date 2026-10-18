@@ -1,0 +1,51 @@
+[
+  [
+    {
+      "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/comments/6247217177",
+      "html_url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/59#issuecomment-6247217177",
+      "issue_url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/59",
+      "id": 6247217177,
+      "node_id": "IC_kwDOUGxUj88AAAABdFz4GQ",
+      "user": {
+        "login": "Ricardo121380",
+        "id": 129812278,
+        "node_id": "U_kgDOB7zHNg",
+        "avatar_url": "https://avatars.githubusercontent.com/u/129812278?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/Ricardo121380",
+        "html_url": "https://github.com/Ricardo121380",
+        "followers_url": "https://api.github.com/users/Ricardo121380/followers",
+        "following_url": "https://api.github.com/users/Ricardo121380/following{/other_user}",
+        "gists_url": "https://api.github.com/users/Ricardo121380/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/Ricardo121380/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/Ricardo121380/subscriptions",
+        "organizations_url": "https://api.github.com/users/Ricardo121380/orgs",
+        "repos_url": "https://api.github.com/users/Ricardo121380/repos",
+        "events_url": "https://api.github.com/users/Ricardo121380/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/Ricardo121380/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "created_at": "2026-10-18T07:37:53Z",
+      "updated_at": "2026-10-18T07:37:53Z",
+      "body": "#59 实施完成：失败请求的完整加密 Usage 诊断闭环\n\n本地提交：`be6cf15b11a0834fe98fd5e07277390efe15e424`，分支 `codex/prism-v4-delivery`，父提交 `3369c730e18f095bb4d9e1b506061e985a475fb9`。本次仅提交 #59 增量；**没有推送代码**，以下证据目前位于本地提交中。\n\n公共 Responses JSON/SSE 通过生产 compiler/factory、实际 leased Build adapter 执行受控请求。额外 Usage 仍按原契约失败；已收到的完整对象经现有有界队列、SecretStore/AEAD 和 SQLite 同一事务确认保存，随后可通过 exact-owner 只读 reader / `gateway usage-evidence` 授权读回。原文不进入普通事件、日志、审计或公开错误。\n\n| #59 验收项 | 结果及证据 |\n|---|---|\n| 实际公共入口、生产装配、JSON/SSE 当前拒绝与独立接收数 | PASS；真实 loopback TCP 完整接收后计数，每次为1；保留原公共 RED；拒绝后没有 EOF read-ahead或新增请求 |\n| 完整对象、原值/结构/缺失/null/0/精确数字、source/completeness及 exact Request/Attempt/Client Key | PASS；原始 Usage 切片精确读回，含超u64整数、长小数、嵌套及空值；owner/事件谱系核对 |\n| 现有加密/密钥/有界写入、真正确认、授权读回、隐私 | PASS；source事件与密文 commit后才回执；writer关闭flush前即可读回；排队/超时不视为留存；CLI仅独占0700目录下0600文件 |\n| owner/幂等/冲突、交换密文/篡改、写入/确认失败 | PASS；公开缺密钥及实际SQLite锁故障明确RecordingUnavailable；SSE恰有一个合法失败终态；所有者/密钥/密文/事件索引损坏失败关闭 |\n| 失败Usage/source-event/账本正确归属及幂等、费用UNKNOWN | PASS；单Attempt仅一个source/ledger；已验证计数保留；原生价格不用于造账，cost保持None/unpriced |\n| ADR/格式/TTL/reader/迁移恢复、文件重开/旧UNKNOWN/密钥认证 | PASS；schema35、固定30天排他过期及128行有界周期GC；schema34UNKNOWN；轮换、非空加密整库恢复、实际CLI子进程等8组通过 |\n| 不放开额外字段、不使原失败成功、不引入交付策略 | PASS；保留严格投影拒绝；本票只证明失败诊断闭环 |\n\n验证：修复后 `scripts/check.sh full` **45/45 PASS**，Rust **1526 passed / 0 failed / 13 ignored**；包含严格workspace Clippy、stock-process serve、Prism双构建、agent回归、文档/契约/秘密扫描、依赖策略与RustSec audit。定向验收使用系统loopback-only网络限制，非loopback合成目标被EPERM拒绝。staged secret与whitespace检查通过。\n\n独立 `$code-review`：固定 `3369c730...58bbec33`。**Standards PASS（0硬违例）/ Spec PASS（7/7 AC，0发现）**。首轮Standards P2真实复现后，reader复用既有canonical事件索引校验；首轮FAIL和RED保留。非阻断契约编号歧义已改为BC-OBS-006；确认等待重复代码P3作为判断性建议保留。最终21个产品文件与Full及评审候选逐字节一致，评审后仅增加收尾文档及编号引用修正。\n\n本地证据：\n- `docs/reports/cpar-59-encrypted-usage-20261018.md`：完整说明及7项验收表。\n- `docs/adr/ADR-0109-encrypted-failed-build-usage-evidence.md`、`docs/contracts/BC-OBS-006-native-usage-evidence.md`：持久化/reader/保留/迁移恢复契约。\n- `docs/reports/assets/cpar-59-20261018/full-after-review-steps.md`、`validation-summary.json`、`validation-source.json`：Full结果及21个产品文件身份。\n- 同目录 `review-final.md` / `review-round1.md`：双轴评审与原始发现。\n- 同目录 `validation-logs.tar.gz` / `log-manifest.json`：35份原始日志及哈希，含初次Full schema清单FAIL、公共/索引RED和后续GREEN。\n- 同目录 `final-preservation.json`：49,022个既有脏/未跟踪路径保留；两份共改文档仅提交本轮追加。\n\n关闭前已重新核对 #59 为OPEN、本人已认领、原生blocker为空；正文/标签/评论未漂移，#58保持原正文、元数据与OPEN。将按本次授权仅关闭 #59。#58/#9/#47/#57不修改，#60不推进。真实Provider/真实账号、代码push、远端CI、部署及发布均NOT_RUN，不授予三客户端或父规格完成资格。\n",
+      "author_association": "OWNER",
+      "pin": null,
+      "reactions": {
+        "url": "https://api.github.com/repos/Ricardo121380/cpa-rust-gateway/issues/comments/6247217177/reactions",
+        "total_count": 0,
+        "+1": 0,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0
+      },
+      "performed_via_github_app": null,
+      "minimized": null
+    }
+  ]
+]

@@ -149,12 +149,27 @@ rename preparation failed without moving a log, then verified copy/relocation su
 [Preservation](assets/cpar-61-continuation-20261018/preservation-precommit.json) verified all 49,041
 original entries; removing the two owned append suffixes restores their exact initial dirty hashes.
 
-Final independent Standards/Spec review is **PENDING** on the fixed baseline and committed candidate.
-No passing old Full is relabelled as validation of this continuation.
+Final independent [Standards/Spec review](assets/cpar-61-continuation-20261018/review-final.md)
+completed on baseline `9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8` and committed candidate
+`fc1c4755c05bdfa7d91812fd77b9494225cc161a`. Standards is **PASS_WITH_NIT: 0 hard violations,
+1 P3 possible test duplication**; the optional test-only extraction is recorded without changing
+the validated source. Spec is **PARTIAL/BLOCKED: 2 completion-blocking requirement groups,
+0 new behavior bugs and 0 scope creep found by static review**. Actual field qualification and
+successful pre-delivery persistence are still missing. Reviewers independently checked source/
+archive/ownership correspondence but did not rerun tests. No passing old Full is relabelled as
+validation of this continuation. Subsequent closeout changes contain documentation/receipts only;
+all four product/test blobs remain identical to this candidate and its Full source.
 
 ## Completion boundary
 
-Only #61 may receive a result comment. It stays OPEN; #62/#63 are not started. The next necessary
+One authorized [result comment](https://github.com/Ricardo121380/cpa-rust-gateway/issues/61#issuecomment-6251016058)
+was posted to #61. Independent single-comment and paginated list/issue/dependency readback
+confirmed the exact body, one new comment, OPEN state and unchanged other issues/edge identities
+and states ([receipt](assets/cpar-61-continuation-20261018/remote-readback-final.json)). The initial
+whole-object equality check failed solely because GitHub's two comment endpoints returned
+different avatar URL query strings for the same author; all remaining fields and old comments
+matched exactly. That failed receipt remains alongside the field-scoped verification; no second
+write was performed. #62/#63 are not started. The next necessary
 input remains first-party authority establishing the actual cost field's JSON/SSE/profile relation
 and shape, or a later explicitly approved field-specific channel contract. The user currently
 chose the first route. Once admitted, success projection/commit-before-bytes/terminal, full readback,
