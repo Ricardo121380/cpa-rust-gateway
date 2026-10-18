@@ -7,6 +7,7 @@ use gateway_upstream::{
 };
 use std::num::NonZeroUsize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+mod cli;
 mod recording_faults;
 
 struct SocketPeer {
