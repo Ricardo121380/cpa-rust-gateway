@@ -1,0 +1,87 @@
+{
+  "accounting": {
+    "attempts": 5,
+    "client_requests": 5,
+    "cost": "UNKNOWN",
+    "finished": 6,
+    "ledger": 5,
+    "lineage": [
+      {
+        "attempt_id": "attempt:45:p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-0:1",
+        "native_companion": "UNKNOWN",
+        "owner": "p12-runtime-client-key",
+        "request_id": "p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-0",
+        "source_event_id": "usage-attempt:2226850c25be07ac6b7dd1e8a69334aa8d182908b7122a83551e6ae62ad6a5c2"
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-1:1",
+        "native_companion": "UNKNOWN",
+        "owner": "p12-runtime-client-key",
+        "request_id": "p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-1",
+        "source_event_id": "usage-attempt:87afbd3a6f46778bf8ef639fbcc48658ad3da22ebfa7e1e13770ac78dd8f358f"
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-2:1",
+        "native_companion": "UNKNOWN",
+        "owner": "p12-runtime-client-key",
+        "request_id": "p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-2",
+        "source_event_id": "usage-attempt:522a6128c3c233ac39a4ad9808d47d5f25f5f807e767f31222cd89b79b3a977f"
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-3:1",
+        "native_companion": "UNKNOWN",
+        "owner": "p12-runtime-client-key",
+        "request_id": "p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-3",
+        "source_event_id": "usage-attempt:c6292607ae82309f08fc44eebb2686bb9d30520074ca3961f008ed8e7df1f259"
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-4:1",
+        "native_companion": "UNKNOWN",
+        "owner": "p12-runtime-client-key",
+        "request_id": "p1-request-00364d18f6bf9bbd63bdbe05698a2a2f-4",
+        "source_event_id": "usage-attempt:31554a276cb2679493fca1ba0474d10b551cd9bb6bbfa0e84fb31beb7e631365"
+      }
+    ],
+    "outcome": "Succeeded",
+    "requests_including_negative_probe": 6,
+    "usage": 5
+  },
+  "client": "pi",
+  "public": [
+    {
+      "chunks": 24,
+      "completed": 1,
+      "failed": 0,
+      "http": 200
+    },
+    {
+      "chunks": 20,
+      "completed": 1,
+      "failed": 0,
+      "http": 200
+    },
+    {
+      "chunks": 39,
+      "completed": 1,
+      "failed": 0,
+      "http": 200
+    },
+    {
+      "chunks": 21,
+      "completed": 1,
+      "failed": 0,
+      "http": 200
+    },
+    {
+      "chunks": 21,
+      "completed": 1,
+      "failed": 0,
+      "http": 200
+    }
+  ],
+  "received": 5,
+  "released_before_server_stop": true,
+  "released_within_one_second": true,
+  "scenario": "standard",
+  "success_metadata_retention": "BLOCKED_BY_61"
+}

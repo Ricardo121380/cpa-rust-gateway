@@ -1,0 +1,33 @@
+{
+  "source_commit": "2fc4777abbac3e6b203323a0884d7a011308bac3",
+  "tree": "01bdff9c81bbfb8d30ce0a2f8da9eb4406a90946",
+  "delivery_code_commit": "6490922141f64aa4222c907634b02502cffb11cd",
+  "fixed_baseline": "1743dd0801ac5f99fd80a98253d341205b3a465b",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-liveness-validation-64909221",
+  "overlays_validation_only": [
+    "AGENTS.md",
+    "CONTEXT.md",
+    "README.md",
+    "README.zh-CN.md",
+    "docs/06-development-plan.md",
+    "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/ADR-0106-native-fidelity-profile.md",
+    "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+    "docs/adr/ADR-0108-build-summary-standard-messages.md",
+    "docs/adr/README.md",
+    "docs/agents/domain.md",
+    "docs/agents/issue-tracker.md",
+    "docs/agents/triage-labels.md",
+    "docs/engineering-roadmap.md",
+    "docs/traceability.md"
+  ],
+  "owned_hashes": {
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "ecd21d313b278c8a656b2bd7268bd0691d3876d3c912aa1680c7d915d4b986f3",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli.rs": "c0ebc483047fcdc81747ee5a2ada8d4d4d4ad4976503ddcb5402f8ef4fe06fd0",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/http.rs": "1baeb9f04e754f44b60b25e2a908981fae75c70d97bad0ad567aaf0075c57c94",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/oracles.rs": "4ec7cefc7d1f2876a55c31958b785978ccdffc4ff2050cbe195e3694e61e96ae",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/peer.rs": "81f30b2f9c68fe2838f6c9b0270645928b808235463069f7a8596772b9362016",
+    "scripts/acceptance/cpar62-cli.py": "2c6537b21c36613e615c4e9a32a905339ea89011312f4b8d37401783a290b7b2"
+  }
+}

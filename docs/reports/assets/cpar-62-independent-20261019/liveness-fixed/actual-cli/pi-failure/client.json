@@ -1,0 +1,26 @@
+{
+  "command": [
+    "/opt/homebrew/bin/pi",
+    "--offline",
+    "--no-approve",
+    "--no-extensions",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--provider",
+    "cpar62",
+    "--model",
+    "grok-4.5",
+    "--mode",
+    "rpc"
+  ],
+  "shutdown_exit": 143,
+  "turn_outcomes": [
+    "error"
+  ],
+  "stdout": "{\"type\":\"response\",\"command\":\"prompt\",\"success\":true}\n{\"type\":\"agent_start\"}\n{\"type\":\"turn_start\"}\n{\"type\":\"message_start\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Report progress.\"}],\"timestamp\":1792342573144}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Report progress.\"}],\"timestamp\":1792342573144}}\n{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\",\"content\":[],\"api\":\"openai-responses\",\"provider\":\"cpar62\",\"model\":\"grok-4.5\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"pending\",\"timestamp\":1792342573262,\"responseId\":\"response-61\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"assistantMessageEvent\":{\"type\":\"text_start\",\"contentIndex\":0}}\n{\"type\":\"message_update\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"assistantMessageEvent\":{\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"partial-61\"}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"partial-61\"}],\"api\":\"openai-responses\",\"provider\":\"cpar62\",\"model\":\"grok-4.5\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"error\",\"timestamp\":1792342573262,\"responseId\":\"response-61\",\"rawStopReason\":\"failed\",\"errorMessage\":\"ProviderPermanent: the provider returned a permanent failure\"}}\n{\"type\":\"turn_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"partial-61\"}],\"api\":\"openai-responses\",\"provider\":\"cpar62\",\"model\":\"grok-4.5\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"error\",\"timestamp\":1792342573262,\"responseId\":\"response-61\",\"rawStopReason\":\"failed\",\"errorMessage\":\"ProviderPermanent: the provider returned a permanent failure\"},\"toolResults\":[]}\n{\"type\":\"agent_end\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Report progress.\"}],\"timestamp\":1792342573144},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"partial-61\"}],\"api\":\"openai-responses\",\"provider\":\"cpar62\",\"model\":\"grok-4.5\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"error\",\"timestamp\":1792342573262,\"responseId\":\"response-61\",\"rawStopReason\":\"failed\",\"errorMessage\":\"ProviderPermanent: the provider returned a permanent failure\"}],\"willRetry\":false}\n{\"type\":\"agent_settled\"}\n",
+  "stderr": "",
+  "stderr_sha256": "a912f2969d4121ff87cfda2a4cb0469d3aae0babe4a417507b4bc389db43e7a6",
+  "stderr_bytes": 159135818
+}

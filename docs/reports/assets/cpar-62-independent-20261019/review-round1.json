@@ -1,0 +1,79 @@
+{
+  "fixed_baseline": "1743dd0801ac5f99fd80a98253d341205b3a465b",
+  "candidate": "d17797281513ec5db5ddc41ce1942a2ee6184c82",
+  "standards": {
+    "status": "PASS",
+    "documented_breaches": 0,
+    "fowler_judgement_findings": 0,
+    "supplemental_correctness_finding": {
+      "priority": "P2",
+      "description": "Cancellation liveness sampled only at abort; early CLI exit could be mislabeled as kept alive through release.",
+      "locations": [
+        "scripts/acceptance/cpar62-cli.py:275",
+        "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli.rs:228"
+      ],
+      "not_a_documented_standard_breach": true
+    }
+  },
+  "spec": {
+    "status": "PARTIAL/BLOCKED",
+    "whole_issue_completion_gap_classes": 3,
+    "gaps": [
+      "Codex actual required tool loops blocked by presend 400",
+      "Exact Attempt successful metadata encryption and formal #61 dependency remain blocked",
+      "Pi client failure usage defaults to zero despite known gateway Usage/ledger"
+    ],
+    "slice_scope_creep": 0
+  },
+  "follow_up": {
+    "forced_cli_exit_before_fix": {
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-validation-062775a9",
+      "output": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-20261018-2rzziqp_/cancel-exit-red",
+      "exit": 0,
+      "elapsed_seconds": 30.875547083,
+      "forced_client_exit": {
+        "pid": 50995,
+        "signal": "SIGTERM",
+        "after_abort_complete": true
+      },
+      "diagnostic": {
+        "cli_kept_alive": true,
+        "eventually_released_before_server_stop": true,
+        "leases_after_first_second": 1,
+        "leases_before_cli_exit": 0,
+        "peer_close_before_cli_exit": 1,
+        "released_within_first_second": false,
+        "total_observation_ms": 14983
+      },
+      "early_exit_accepted": true
+    },
+    "forced_cli_exit_after_fix": {
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "output": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-20261018-2rzziqp_/cancel-exit-green",
+      "exit": 1,
+      "elapsed_seconds": 43.75015125,
+      "forced_client_exit": {
+        "pid": 51164,
+        "signal": "SIGTERM",
+        "after_abort_complete": true
+      },
+      "diagnostic": {
+        "cli_alive_at_abort": true,
+        "cli_pid": 51164,
+        "eventually_released_before_server_stop": true,
+        "leases_after_first_second": 1,
+        "leases_at_observation_end": 0,
+        "peer_close_at_observation_end": 1,
+        "released_within_first_second": false,
+        "total_observation_ms": 14978
+      },
+      "early_exit_accepted": false
+    },
+    "fix_commit": "64909221",
+    "classification": "Test-oracle correctness; no production RED/GREEN claim",
+    "owned_fixed_hashes": {
+      "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli.rs": "c0ebc483047fcdc81747ee5a2ada8d4d4d4ad4976503ddcb5402f8ef4fe06fd0",
+      "scripts/acceptance/cpar62-cli.py": "2c6537b21c36613e615c4e9a32a905339ea89011312f4b8d37401783a290b7b2"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-validation-062775a9",
+  "output": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-20261018-2rzziqp_/cancel-exit-red",
+  "exit": 0,
+  "elapsed_seconds": 30.875547083,
+  "forced_client_exit": {
+    "pid": 50995,
+    "signal": "SIGTERM",
+    "after_abort_complete": true
+  },
+  "diagnostic": {
+    "cli_kept_alive": true,
+    "eventually_released_before_server_stop": true,
+    "leases_after_first_second": 1,
+    "leases_before_cli_exit": 0,
+    "peer_close_before_cli_exit": 1,
+    "released_within_first_second": false,
+    "total_observation_ms": 14983
+  },
+  "early_exit_accepted": true
+}

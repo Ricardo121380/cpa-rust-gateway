@@ -1,0 +1,589 @@
+{
+  "versions": {
+    "codex": {
+      "command": [
+        "/opt/homebrew/bin/codex",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "codex-cli 0.161.0\n",
+      "stderr": ""
+    },
+    "pi-shell": {
+      "command": [
+        "/opt/homebrew/bin/pi",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "pi-declared-bin": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "node": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "v26.8.2\n",
+      "stderr": ""
+    }
+  },
+  "packages": {
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/package.json": {
+      "name": "@earendil-works/pi-coding-agent",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/jws/package.json": {
+      "name": "jws",
+      "version": "4.0.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/json-schema-to-ts/package.json": {
+      "name": "json-schema-to-ts",
+      "version": "3.1.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/hosted-git-info/package.json": {
+      "name": "hosted-git-info",
+      "version": "9.0.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@types/node/package.json": {
+      "name": "@types/node",
+      "version": "22.19.19"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/formdata-polyfill/package.json": {
+      "name": "formdata-polyfill",
+      "version": "4.0.10"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/shebang-regex/package.json": {
+      "name": "shebang-regex",
+      "version": "3.0.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/jwa/package.json": {
+      "name": "jwa",
+      "version": "2.0.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/web-streams-polyfill/package.json": {
+      "name": "web-streams-polyfill",
+      "version": "3.3.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/jiti/package.json": {
+      "name": "jiti",
+      "version": "2.7.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/extend/package.json": {
+      "name": "extend",
+      "version": "3.0.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@anthropic-ai/sdk/package.json": {
+      "name": "@anthropic-ai/sdk",
+      "version": "0.91.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/node-domexception/package.json": {
+      "name": "node-domexception",
+      "version": "1.0.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/agent-base/package.json": {
+      "name": "agent-base",
+      "version": "7.1.4"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/ms/package.json": {
+      "name": "ms",
+      "version": "2.1.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/lru-cache/package.json": {
+      "name": "lru-cache",
+      "version": "11.4.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/node-fetch/package.json": {
+      "name": "node-fetch",
+      "version": "3.3.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/path-expression-matcher/package.json": {
+      "name": "path-expression-matcher",
+      "version": "1.5.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/balanced-match/package.json": {
+      "name": "balanced-match",
+      "version": "4.0.4"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/retry/package.json": {
+      "name": "retry",
+      "version": "0.13.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/base64-js/package.json": {
+      "name": "base64-js",
+      "version": "1.5.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/strnum/package.json": {
+      "name": "strnum",
+      "version": "2.3.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/typebox/package.json": {
+      "name": "typebox",
+      "version": "1.3.7"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/signal-exit/package.json": {
+      "name": "signal-exit",
+      "version": "3.0.7"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@silvia-odwyer/photon-node/package.json": {
+      "name": "@silvia-odwyer/photon-node",
+      "version": "0.3.4"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/gaxios/package.json": {
+      "name": "gaxios",
+      "version": "7.1.4"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/ignore/package.json": {
+      "name": "ignore",
+      "version": "7.0.5"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/middleware-websocket/package.json": {
+      "name": "@aws-sdk/middleware-websocket",
+      "version": "3.972.19"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/middleware-eventstream/package.json": {
+      "name": "@aws-sdk/middleware-eventstream",
+      "version": "3.972.12"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/token-providers/package.json": {
+      "name": "@aws-sdk/token-providers",
+      "version": "3.1048.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-node/package.json": {
+      "name": "@aws-sdk/credential-provider-node",
+      "version": "3.972.42"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/types/package.json": {
+      "name": "@aws-sdk/types",
+      "version": "3.973.8"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/core/package.json": {
+      "name": "@aws-sdk/core",
+      "version": "3.974.11"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-env/package.json": {
+      "name": "@aws-sdk/credential-provider-env",
+      "version": "3.972.37"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-ini/package.json": {
+      "name": "@aws-sdk/credential-provider-ini",
+      "version": "3.972.41"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/xml-builder/package.json": {
+      "name": "@aws-sdk/xml-builder",
+      "version": "3.972.24"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-sso/package.json": {
+      "name": "@aws-sdk/credential-provider-sso",
+      "version": "3.972.41"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/nested-clients/package.json": {
+      "name": "@aws-sdk/nested-clients",
+      "version": "3.997.9"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/client-bedrock-runtime/package.json": {
+      "name": "@aws-sdk/client-bedrock-runtime",
+      "version": "3.1048.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-http/package.json": {
+      "name": "@aws-sdk/credential-provider-http",
+      "version": "3.972.39"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-login/package.json": {
+      "name": "@aws-sdk/credential-provider-login",
+      "version": "3.972.41"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-process/package.json": {
+      "name": "@aws-sdk/credential-provider-process",
+      "version": "3.972.37"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/eventstream-handler-node/package.json": {
+      "name": "@aws-sdk/eventstream-handler-node",
+      "version": "3.972.16"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/signature-v4-multi-region/package.json": {
+      "name": "@aws-sdk/signature-v4-multi-region",
+      "version": "3.996.27"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/util-locate-window/package.json": {
+      "name": "@aws-sdk/util-locate-window",
+      "version": "3.965.5"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-sdk/credential-provider-web-identity/package.json": {
+      "name": "@aws-sdk/credential-provider-web-identity",
+      "version": "3.972.41"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/fast-xml-builder/package.json": {
+      "name": "fast-xml-builder",
+      "version": "1.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/tslib/package.json": {
+      "name": "tslib",
+      "version": "2.8.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/safe-buffer/package.json": {
+      "name": "safe-buffer",
+      "version": "5.2.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/fast-xml-parser/package.json": {
+      "name": "fast-xml-parser",
+      "version": "5.7.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/marked/package.json": {
+      "name": "marked",
+      "version": "18.0.5"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/xml-naming/package.json": {
+      "name": "xml-naming",
+      "version": "0.1.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/json-bigint/package.json": {
+      "name": "json-bigint",
+      "version": "1.0.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/undici/package.json": {
+      "name": "undici",
+      "version": "8.9.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/p-retry/package.json": {
+      "name": "p-retry",
+      "version": "4.6.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/p-retry/node_modules/@types/retry/package.json": {
+      "name": "@types/retry",
+      "version": "0.12.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/proper-lockfile/package.json": {
+      "name": "proper-lockfile",
+      "version": "4.1.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/proper-lockfile/node_modules/retry/package.json": {
+      "name": "retry",
+      "version": "0.12.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-client/package.json": {
+      "name": "@earendil-works/pi-client",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-telemetry/package.json": {
+      "name": "@earendil-works/pi-telemetry",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-agent-core/package.json": {
+      "name": "@earendil-works/pi-agent-core",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/package.json": {
+      "name": "@earendil-works/pi-ai",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui/package.json": {
+      "name": "@earendil-works/pi-tui",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-protocol/package.json": {
+      "name": "@earendil-works/pi-protocol",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/diff/package.json": {
+      "name": "diff",
+      "version": "8.0.4"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/bignumber.js/package.json": {
+      "name": "bignumber.js",
+      "version": "9.3.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/undici-types/package.json": {
+      "name": "undici-types",
+      "version": "6.21.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/chalk/package.json": {
+      "name": "chalk",
+      "version": "5.6.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner/clipboard-darwin-universal/package.json": {
+      "name": "@mariozechner/clipboard-darwin-universal",
+      "version": "0.3.9"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner/clipboard-darwin-arm64/package.json": {
+      "name": "@mariozechner/clipboard-darwin-arm64",
+      "version": "0.3.9"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner/clipboard/package.json": {
+      "name": "@mariozechner/clipboard",
+      "version": "0.3.9"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/path-key/package.json": {
+      "name": "path-key",
+      "version": "3.1.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/brace-expansion/package.json": {
+      "name": "brace-expansion",
+      "version": "5.0.9"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/google-auth-library/package.json": {
+      "name": "google-auth-library",
+      "version": "10.6.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/long/package.json": {
+      "name": "long",
+      "version": "5.3.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/semver/package.json": {
+      "name": "semver",
+      "version": "7.8.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/ecdsa-sig-formatter/package.json": {
+      "name": "ecdsa-sig-formatter",
+      "version": "1.0.11"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/minimatch/package.json": {
+      "name": "minimatch",
+      "version": "10.2.5"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/highlight.js/package.json": {
+      "name": "highlight.js",
+      "version": "10.7.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/gcp-metadata/package.json": {
+      "name": "gcp-metadata",
+      "version": "8.1.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@babel/runtime/package.json": {
+      "name": "@babel/runtime",
+      "version": "7.29.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/get-east-asian-width/package.json": {
+      "name": "get-east-asian-width",
+      "version": "1.6.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-crypto/util/package.json": {
+      "name": "@aws-crypto/util",
+      "version": "5.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-crypto/sha256-browser/package.json": {
+      "name": "@aws-crypto/sha256-browser",
+      "version": "5.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-crypto/sha256-js/package.json": {
+      "name": "@aws-crypto/sha256-js",
+      "version": "5.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-crypto/crc32/package.json": {
+      "name": "@aws-crypto/crc32",
+      "version": "5.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws-crypto/supports-web-crypto/package.json": {
+      "name": "@aws-crypto/supports-web-crypto",
+      "version": "5.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/protobufjs/package.json": {
+      "name": "protobufjs",
+      "version": "7.6.5"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/ts-algebra/package.json": {
+      "name": "ts-algebra",
+      "version": "2.0.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@nodable/entities/package.json": {
+      "name": "@nodable/entities",
+      "version": "2.1.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/buffer-equal-constant-time/package.json": {
+      "name": "buffer-equal-constant-time",
+      "version": "1.0.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/yaml/package.json": {
+      "name": "yaml",
+      "version": "2.9.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@google/genai/package.json": {
+      "name": "@google/genai",
+      "version": "1.52.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/cross-spawn/package.json": {
+      "name": "cross-spawn",
+      "version": "7.0.6"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/fetch-http-handler/package.json": {
+      "name": "@smithy/fetch-http-handler",
+      "version": "5.4.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/is-array-buffer/package.json": {
+      "name": "@smithy/is-array-buffer",
+      "version": "2.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/signature-v4/package.json": {
+      "name": "@smithy/signature-v4",
+      "version": "5.4.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/types/package.json": {
+      "name": "@smithy/types",
+      "version": "4.14.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/core/package.json": {
+      "name": "@smithy/core",
+      "version": "3.24.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/node-http-handler/package.json": {
+      "name": "@smithy/node-http-handler",
+      "version": "4.7.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/util-buffer-from/package.json": {
+      "name": "@smithy/util-buffer-from",
+      "version": "2.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/util-utf8/package.json": {
+      "name": "@smithy/util-utf8",
+      "version": "2.3.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@smithy/credential-provider-imds/package.json": {
+      "name": "@smithy/credential-provider-imds",
+      "version": "4.3.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/grok-mermaid/package.json": {
+      "name": "grok-mermaid",
+      "version": "0.2.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/utf8/package.json": {
+      "name": "@protobufjs/utf8",
+      "version": "1.1.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/path/package.json": {
+      "name": "@protobufjs/path",
+      "version": "1.1.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/base64/package.json": {
+      "name": "@protobufjs/base64",
+      "version": "1.1.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/codegen/package.json": {
+      "name": "@protobufjs/codegen",
+      "version": "2.0.5"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/fetch/package.json": {
+      "name": "@protobufjs/fetch",
+      "version": "1.1.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/float/package.json": {
+      "name": "@protobufjs/float",
+      "version": "1.0.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/aspromise/package.json": {
+      "name": "@protobufjs/aspromise",
+      "version": "1.1.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/pool/package.json": {
+      "name": "@protobufjs/pool",
+      "version": "1.1.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@protobufjs/eventemitter/package.json": {
+      "name": "@protobufjs/eventemitter",
+      "version": "1.1.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/partial-json/package.json": {
+      "name": "partial-json",
+      "version": "0.1.7"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/https-proxy-agent/package.json": {
+      "name": "https-proxy-agent",
+      "version": "7.0.6"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/bowser/package.json": {
+      "name": "bowser",
+      "version": "2.14.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/http-proxy-agent/package.json": {
+      "name": "http-proxy-agent",
+      "version": "7.0.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@aws/lambda-invoke-store/package.json": {
+      "name": "@aws/lambda-invoke-store",
+      "version": "0.2.4"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/data-uri-to-buffer/package.json": {
+      "name": "data-uri-to-buffer",
+      "version": "4.0.1"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/fetch-blob/package.json": {
+      "name": "fetch-blob",
+      "version": "3.2.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/which/package.json": {
+      "name": "which",
+      "version": "2.0.2"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/google-logging-utils/package.json": {
+      "name": "google-logging-utils",
+      "version": "1.1.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/graceful-fs/package.json": {
+      "name": "graceful-fs",
+      "version": "4.2.11"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/ws/package.json": {
+      "name": "ws",
+      "version": "8.21.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/openai/package.json": {
+      "name": "openai",
+      "version": "6.40.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/shebang-command/package.json": {
+      "name": "shebang-command",
+      "version": "2.0.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/debug/package.json": {
+      "name": "debug",
+      "version": "4.4.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/isexe/package.json": {
+      "name": "isexe",
+      "version": "2.0.0"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/examples/extensions/gondolin/package.json": {
+      "name": "pi-extension-gondolin",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/examples/extensions/sandbox/package.json": {
+      "name": "pi-extension-sandbox",
+      "version": "1.14.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/examples/extensions/custom-provider-gitlab-duo/package.json": {
+      "name": "pi-extension-custom-provider-gitlab-duo",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/examples/extensions/with-deps/package.json": {
+      "name": "pi-extension-with-deps",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/examples/extensions/custom-provider-anthropic/package.json": {
+      "name": "pi-extension-custom-provider-anthropic",
+      "version": "0.84.3"
+    }
+  },
+  "node": "/opt/homebrew/Cellar/node/26.8.2/bin/node",
+  "codex_actual_native": "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+  "pi_actual_entry": "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js",
+  "pi_declared_bin": {
+    "pi": "dist/bundle/cli.js"
+  },
+  "only_my_pi": {
+    "link": "../share/only-my-pi/current-stack/bin/pi",
+    "realpath": "/Users/huangrui/.local/share/only-my-pi/stacks/7444c7fb3a6a91bbe077ba2e15bd157b63265f368a480db8b81f959b43d9aea0/bin/pi",
+    "executed": false
+  },
+  "install_manifest_sha256": "3137abae151b090bfd6e62f5d4026de463a3cd4e2c22bfc79f36a3f9d2b2b8df",
+  "source_head": "2fc4777abbac3e6b203323a0884d7a011308bac3",
+  "test_binary_sha256": "0f609c45813002184210536dce24b26551056491d9a818f4fdaf047a8e6a16da"
+}

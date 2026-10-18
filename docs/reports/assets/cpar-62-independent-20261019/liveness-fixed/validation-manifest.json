@@ -1,0 +1,501 @@
+{
+  "source_commit": "2fc4777abbac3e6b203323a0884d7a011308bac3",
+  "owned_hashes": {
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "ecd21d313b278c8a656b2bd7268bd0691d3876d3c912aa1680c7d915d4b986f3",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli.rs": "c0ebc483047fcdc81747ee5a2ada8d4d4d4ad4976503ddcb5402f8ef4fe06fd0",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/http.rs": "1baeb9f04e754f44b60b25e2a908981fae75c70d97bad0ad567aaf0075c57c94",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/oracles.rs": "4ec7cefc7d1f2876a55c31958b785978ccdffc4ff2050cbe195e3694e61e96ae",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli/peer.rs": "81f30b2f9c68fe2838f6c9b0270645928b808235463069f7a8596772b9362016",
+    "scripts/acceptance/cpar62-cli.py": "2c6537b21c36613e615c4e9a32a905339ea89011312f4b8d37401783a290b7b2"
+  },
+  "members": [
+    {
+      "path": "full-liveness.log",
+      "bytes": 304484,
+      "sha256": "4ba141e2886a618ddfcf4c4351dce76a41de248266eebe91570ff299fff98e5a"
+    },
+    {
+      "path": "full-liveness-source.json",
+      "bytes": 1893,
+      "sha256": "ebc5f64e8acab4209b069ca9392fad2adf455e7d70eb8e2950b3fbd4adb7778f"
+    },
+    {
+      "path": "full-liveness-result.json",
+      "bytes": 2153,
+      "sha256": "829c74b083ddf2b19421e9ebbf18c621b9880e3919877f3cdf7ec5c2e766c504"
+    },
+    {
+      "path": "full-liveness-steps.md",
+      "bytes": 1848,
+      "sha256": "f5af7253aa601e2621d4983b8cd6dd1ba50dd2381663f18721f9607fbbdbb2dd"
+    },
+    {
+      "path": "liveness-npm-ci.log",
+      "bytes": 29,
+      "sha256": "bcc98509743cbd01853cfd94dee600d87b9b166c11fe5ed173eb724efe0f4fa2"
+    },
+    {
+      "path": "cancel-exit-probe.py",
+      "bytes": 1775,
+      "sha256": "6af6590050a52405fb11eea8591ee94e913c9ac2e2006dbe60e04283d755ec52"
+    },
+    {
+      "path": "validate-liveness.py",
+      "bytes": 5189,
+      "sha256": "2383106d332c1169e6bd9fe3b9bdcef96ab5e5afd3e72321ec4e177f4a06b8d2"
+    },
+    {
+      "path": "cancel-exit-red.probe.json",
+      "bytes": 668,
+      "sha256": "76dca06a73fa8a8f041ae2e9305e1789a357fa6cd38b36ee62c2f717c89f3029"
+    },
+    {
+      "path": "cancel-exit-green.probe.json",
+      "bytes": 690,
+      "sha256": "559a8194454341cd4e394e642759a04a8a905cb5c91d52f180b2390838e19d49"
+    },
+    {
+      "path": "cancel-exit-red/qualification.log",
+      "bytes": 225,
+      "sha256": "df9a99e15f8234eabc1937566758d26bba84c881a74a3151dcda5a7b69ec5867"
+    },
+    {
+      "path": "cancel-exit-green/qualification.log",
+      "bytes": 1137,
+      "sha256": "bef302bd97c6da5c65cdd0a57354f5d3cc82e4e81a3b06fd5028054e6e057d01"
+    },
+    {
+      "path": "cancel-exit-green/pi-cancel/driver.stderr",
+      "bytes": 481,
+      "sha256": "87dc4fa8d7b31fbe7e4fc93d1ef514d94520b434d0188b6b7b456c7c848447fd"
+    },
+    {
+      "path": "liveness-cli/codex-standard/client.json",
+      "bytes": 1274,
+      "sha256": "ddf9be33e8eac926bca5b6e200c8a728ac3f2baa99bff4447d1b172e53de48a2"
+    },
+    {
+      "path": "liveness-cli/codex-standard/ingress.json",
+      "bytes": 50225,
+      "sha256": "f03d3ebc6792898aaea7d527366cad07e20c054ef449fe1e260822336197584b"
+    },
+    {
+      "path": "liveness-cli/codex-standard/upstream.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "liveness-cli/codex-standard/events.txt",
+      "bytes": 2026,
+      "sha256": "5b5da29b1bf8e61a3e23a0a0e24bf21dc2b495ac0539ae4945a36d8f9959163d"
+    },
+    {
+      "path": "liveness-cli/codex-standard/loaded-esm.json",
+      "bytes": 73,
+      "sha256": "e767fc26eed1e1406f320224f8214aa7751a071a37e56491a34636228c02f38c"
+    },
+    {
+      "path": "liveness-cli/codex-standard/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-cli/codex-standard/observations.json",
+      "bytes": 501,
+      "sha256": "bba29dae9b051b21a54710948ac056bd56e0dddcd1f6975016169e0f6e8176e3"
+    },
+    {
+      "path": "liveness-cli/codex-standard/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli/codex-standard/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli/pi-standard/client.json",
+      "bytes": 46776,
+      "sha256": "6791b5967c4bf608bd95f396907524cfde452d85fa034dc6d696affb5219fc27"
+    },
+    {
+      "path": "liveness-cli/pi-standard/ingress.json",
+      "bytes": 88455,
+      "sha256": "c0f07ce32c3b573875e82d442ea328151f3da167cd790e7e7af2a5e6943916a8"
+    },
+    {
+      "path": "liveness-cli/pi-standard/upstream.json",
+      "bytes": 45153,
+      "sha256": "da3a6e4030170aa73f8dd63d1e320b23dc7813c746c0a40a3bd52f3ee720cf29"
+    },
+    {
+      "path": "liveness-cli/pi-standard/events.txt",
+      "bytes": 27115,
+      "sha256": "a1bf11271d6da561ce35acdd0373d03ef66c74513c6238799cc2159e2b035063"
+    },
+    {
+      "path": "liveness-cli/pi-standard/loaded-esm.json",
+      "bytes": 172055,
+      "sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b"
+    },
+    {
+      "path": "liveness-cli/pi-standard/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-cli/pi-standard/observations.json",
+      "bytes": 2714,
+      "sha256": "2abe1a7ef32ec4b02bc6cee26e986ff794c4f39802bd076eb5d54e00ad7f2136"
+    },
+    {
+      "path": "liveness-cli/pi-standard/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli/pi-standard/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli/pi-failure/client.json",
+      "bytes": 3775,
+      "sha256": "43f9e46667b96aca4a9db8cb23c3d9fcd8ecd7fe79f57e4c4959188cbcecd9f2"
+    },
+    {
+      "path": "liveness-cli/pi-failure/ingress.json",
+      "bytes": 10216,
+      "sha256": "804b373ccdc97234aa828c5b227c23ff21a15fb7a4ad2026e9b53cce2ab82df0"
+    },
+    {
+      "path": "liveness-cli/pi-failure/upstream.json",
+      "bytes": 7671,
+      "sha256": "2a4cf832906070fe06654d2df90ee3fa49adda1b24d1f0d3e2a8d6000bc83da6"
+    },
+    {
+      "path": "liveness-cli/pi-failure/events.txt",
+      "bytes": 5072,
+      "sha256": "34867f03dcdf60571a1c393df467769beef4157c3fac0e3d07cbff036099047c"
+    },
+    {
+      "path": "liveness-cli/pi-failure/loaded-esm.json",
+      "bytes": 172055,
+      "sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b"
+    },
+    {
+      "path": "liveness-cli/pi-failure/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-cli/pi-failure/observations.json",
+      "bytes": 893,
+      "sha256": "d06ad3951e48ef6d870f61fb3df32322b3c88df73e25d07234be5f372bca8194"
+    },
+    {
+      "path": "liveness-cli/pi-failure/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli/pi-failure/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/client.json",
+      "bytes": 3766,
+      "sha256": "97f0963d71a8534181aa23cbd1ac04765607f833f01386fad3cfb33eef295b6b"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/ingress.json",
+      "bytes": 9410,
+      "sha256": "787acd7ee98740324feaf106c4b6252deab4ad354da422a2899cd2aecc6705a1"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/upstream.json",
+      "bytes": 7670,
+      "sha256": "7b6984b2548aa5c426f13b6e28cf783f54a8b0745c1cd681836477c553945bf5"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/events.txt",
+      "bytes": 3665,
+      "sha256": "3be2b7881cefca7a3f0022550507891640aea9a33be75ece588e806263ac8b5f"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/loaded-esm.json",
+      "bytes": 172055,
+      "sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/cancel-diagnostic.json",
+      "bytes": 384,
+      "sha256": "8bec9758ee0348d543f36bf715ddf2f8b317d8d04218ba46772502e3b1c02852"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/observations.json",
+      "bytes": 530,
+      "sha256": "9e232754709b9da27a670da9d17e12a4bc937beeda58acce949c80b557d482b3"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/abort-complete",
+      "bytes": 34,
+      "sha256": "548d578d1dcda2a0b91c1df6eb5feaaf0751e16b186eb2ab0b4a56389366d7c5"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/cancel-client-alive",
+      "bytes": 34,
+      "sha256": "548d578d1dcda2a0b91c1df6eb5feaaf0751e16b186eb2ab0b4a56389366d7c5"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli/pi-cancel/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-cli-build-diagnostics.json",
+      "bytes": 1880,
+      "sha256": "1249a7811531310c906c1530f6c31e46374eb299f37ed2c49f11540e11bbecea"
+    },
+    {
+      "path": "liveness-cli/qualification.log",
+      "bytes": 225,
+      "sha256": "3e1a92948e66eaa31d25dfd1793c46ad22d7b1532e59098fb9acfef6e17017a6"
+    },
+    {
+      "path": "liveness-cli-driver.log",
+      "bytes": 212,
+      "sha256": "f5745025eef1b89959845e40355da8c43bd113f4fdb910e59cfe814f84943add"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/client.json",
+      "bytes": 1274,
+      "sha256": "af184301a9691d655d849a36e7b0429ee658f69c4a633a74811819ff5e9f1f0e"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/ingress.json",
+      "bytes": 50295,
+      "sha256": "db86c21ec59160bdcd82f24ea183b8be578439d2adb80c584d8688b2a6aa585b"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/upstream.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/events.txt",
+      "bytes": 2026,
+      "sha256": "12e068178a2eddfd1bfe89f248fa03fc1c39000f03ed82e30e5b17e0e1c4efc2"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/loaded-esm.json",
+      "bytes": 73,
+      "sha256": "e767fc26eed1e1406f320224f8214aa7751a071a37e56491a34636228c02f38c"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/observations.json",
+      "bytes": 501,
+      "sha256": "bba29dae9b051b21a54710948ac056bd56e0dddcd1f6975016169e0f6e8176e3"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red/codex-standard/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/client.json",
+      "bytes": 46776,
+      "sha256": "7df0dd53ea8e8181a88e88d327d16e24c07afebbb4f1314d2bace4b0971751b0"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/ingress.json",
+      "bytes": 88497,
+      "sha256": "4b46cf477de574509a4ca01acbe52bc2639cb43235077a423aec2ca55fe7c372"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/upstream.json",
+      "bytes": 45188,
+      "sha256": "15f9f85f847aec0fa9aa01ba075d026eaf317961e16e6dfed3b691827ab8e8bd"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/events.txt",
+      "bytes": 27115,
+      "sha256": "4c717aaaa2567988d4da2f16d2a95c2e304107a2a702ae248129243a2b0b653c"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/loaded-esm.json",
+      "bytes": 172055,
+      "sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/observations.json",
+      "bytes": 2714,
+      "sha256": "0e771eb7c8a00b3888f9c633cb262143421fc3ae276b72dbbe702f563ab2b306"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red/pi-standard/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/client.json",
+      "bytes": 3775,
+      "sha256": "cc0c1202c3971682bb17d4950c09c16c93a8fcd8659d8dd386d5a02a6d12d324"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/ingress.json",
+      "bytes": 10223,
+      "sha256": "d54c5a4008fa3626ca39bd6d629519a6b41fbf4df51f894ff8e9fe677012d627"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/upstream.json",
+      "bytes": 7678,
+      "sha256": "9351712bdb7f9e5db5599272b783a284a602149fda900e5c3143422e866c71d7"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/events.txt",
+      "bytes": 5072,
+      "sha256": "c77b327f730648ea1192b3ce57d93919ea8f56bdc52aa9dc027df601b1bdbab3"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/loaded-esm.json",
+      "bytes": 172055,
+      "sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/observations.json",
+      "bytes": 893,
+      "sha256": "c67748514c0c18f171f7d65402d7dc9d88d311101a7330439686c79064fd0874"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red/pi-failure/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/client.json",
+      "bytes": 3766,
+      "sha256": "923c741050df36da92598171ab880c9c05eec73b3beec2b497d36ed9d9e7d1ce"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/ingress.json",
+      "bytes": 9417,
+      "sha256": "6bbc8c10f7f4c7b28949579bc834d0ec3838fed2d52d2610a4a56b81fde9b30d"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/upstream.json",
+      "bytes": 7677,
+      "sha256": "432e0270eae8ef038d29a2dd3dd7a1cda7e3d471a76e694ff8ddbf3717b9a82f"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/events.txt",
+      "bytes": 3665,
+      "sha256": "1bff75b01bcbba4b48c0b5d9305a0bed637cb0da6ec499e2712c5fccd65ace13"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/loaded-esm.json",
+      "bytes": 172055,
+      "sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/isolation.json",
+      "bytes": 195,
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/cancel-diagnostic.json",
+      "bytes": 384,
+      "sha256": "fe47b8adcd83c2c5e3801712737bd8ac9564bf4498d18dffd65238ab81841902"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/observations.json",
+      "bytes": 530,
+      "sha256": "9e232754709b9da27a670da9d17e12a4bc937beeda58acce949c80b557d482b3"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/abort-complete",
+      "bytes": 34,
+      "sha256": "7894158dd8d1b8a695597c228c0627e89257de6c0f3c8ec0422c1d9ae954314a"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/cancel-client-alive",
+      "bytes": 34,
+      "sha256": "7894158dd8d1b8a695597c228c0627e89257de6c0f3c8ec0422c1d9ae954314a"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/driver.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red/pi-cancel/driver.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "liveness-prompt-red-build-diagnostics.json",
+      "bytes": 371,
+      "sha256": "7b73446cf16c402f712591a9457ca3320c23e942f3c2e1ef30a99c50d7cf5fa5"
+    },
+    {
+      "path": "liveness-prompt-red/qualification.log",
+      "bytes": 799,
+      "sha256": "4fc9223548b828b752cda7916e0727c6221511e982bc7d7c6c26384e992714b0"
+    },
+    {
+      "path": "liveness-prompt-red-driver.log",
+      "bytes": 566,
+      "sha256": "280a60df203733fc16c3ee459d29cd4aace5801227d923f90fa58f81e435c048"
+    }
+  ],
+  "archive_sha256": "f9881c8dfabc373411702cfc511481a45a46ec00b9cc78e7e5ca9be39959fffc",
+  "member_readback": "PASS",
+  "secret_scan": {
+    "exit": 0,
+    "raw_files": 96,
+    "decompressed_install_manifests": 2
+  },
+  "raw_esm_debug": "Retained privately; exact hashes and normalized module paths supplied."
+}

@@ -13,7 +13,7 @@
 本轮只认领 #62，并获准追加独立准备结果；没有修改 #61 或其他工单。
 [基线回执](assets/cpar-62-independent-20261019/baseline-summary.json)固定 55,696 个既有项。
 既有文档修改、未跟踪材料和历史失败均保留，不属于本轮提交。
-[保留核对](assets/cpar-62-independent-20261019/preservation-after-code.json)证明 55,636 个常规文件、10 个符号链接
+[保留核对](assets/cpar-62-independent-20261019/preservation-final.json)证明 55,636 个常规文件、10 个符号链接
 逐项不变；50 个目录项仅核对目录元数据，不宣称递归核验嵌套仓库后代。唯一原有代码文件只增加 `mod cli;`。
 完整原始路径/状态库存留在私有 run；公开库存以路径 SHA256 绑定，避免把历史路径名称写入公开材料。
 
@@ -118,8 +118,10 @@ Pi 回传 function_call 时不重复原生 function item id，但 call_id 保持
 
 ## 取消、失败用量与 exact Attempt 的限制
 
-取消测试在实际 CLI 收到文本时观察真实 lease=1，再发送 RPC abort。收到 aborted 后 CLI 保持存活，
-继续观测连接和 lease，再允许退出进程；避免用进程退出或 server.stop 代替取消证明。
+取消测试在实际 CLI 收到文本时观察真实 lease=1，再发送 RPC abort。收到 aborted 后继续观测连接和 lease，
+等待期间检查进程未退出，观测结束后再采样同一 PID 的存活状态，随后才允许清理进程。
+[结束存活证明](assets/cpar-62-independent-20261019/liveness-fixed/actual-cli/pi-cancel/cancel-client-alive)
+与 abort-complete、连接/lease 观测共同证明 CLI 覆盖整个窗口；不能用进程退出或 server.stop 代替取消证明。
 独立上游在约 15 秒收到关闭，lease=0，均早于 CLI 退出和停止 HTTP server；只收到 1 个请求。
 公开流观测到一次合法 keepalive comment，没有伪造 completed/failed 或读取新 Usage。
 HTTP/1.1 FIN 与合法写半关闭的歧义、Actix 持续响应以及既有 15 秒 SSE keepalive 与该观测吻合；
@@ -162,37 +164,52 @@ HTTP/1.1 FIN 与合法写半关闭的歧义、Actix 持续响应以及既有 15 
 
 ## 验证与评审
 
-六份新增/接入测试文件构成代码候选 `062775a9`；没有生产协议/adapter 行为修改。
-Grok factory 公共定向回归：**28 passed / 0 failed / 2 ignored**，包含旧 #59/#60/#61；
-新增实际 CLI opt-in 用例与旧私有 capture 均明确 ignored，实际 CLI 结果另列。
-严格 directed Clippy、Rust format、Python syntax、暂存秘密扫描和空白已通过。
-新增 harness 的早期非法事件索引、嵌套沙箱、接收/Request 计数假设、keepalive parser、语法与编译反馈均保留，
-没有将这些测试驱动问题记成生产 RED/GREEN。必要的最小生产兼容修复为 **无**：本轮发现项均没有既有契约支持的安全最小放行。
+六份新增/接入测试文件初始候选为 `062775a9`；最终代码候选为 `6490922141f64aa4222c907634b02502cffb11cd`。
+没有生产协议、adapter、依赖或 endpoint 行为修改。Grok factory 公共定向回归为
+**28 passed / 0 failed / 2 ignored**，包括旧 #59/#60/#61。实际 CLI opt-in 用例由单独入口执行，
+不能用 Full 中的 ignored 替代其运行结果。Rust format、Python syntax、严格 Clippy、秘密扫描及空白检查均通过。
 
-不可变源码 `28d1c42f0c13e92c1b77f7ba350c25cf12a599a0`，tree `7e9586552c65f9703e7ddc85424aec8c7006848b`：
-**Full PASS 45/45；Rust 1542 passed / 0 failed / 14 ignored；390.805 秒**。
-见 [Full 源码身份](assets/cpar-62-independent-20261019/full-source.json)、
-[步骤](assets/cpar-62-independent-20261019/full-steps.md)和[摘要](assets/cpar-62-independent-20261019/validation-summary.json)。
-初次 Full 被临时 wrapper 误套到依赖 ps 的 soak guard，FAIL 保留；只修正临时 wrapper 作用范围，源码及断言未改。
+[首轮双轴评审及后续反例](assets/cpar-62-independent-20261019/review-round1.json)保留：
+Standards 为 0 个 documented breaches、0 个 Fowler judgement findings；Spec 为 3 类整票完成缺口。
+评审另指出取消判据的 P2 正确性漏洞：原驱动只在 aborted 时检查一次进程，之后可能把提前退出引起的释放误记为存活取消。
+在同一真实 CLI 链路，发送 aborted 后主动 SIGTERM 结束 Pi，旧判据仍通过并写 `cli_kept_alive=true`；
+修复后同一反例准确失败，错误为 `Pi RPC exited during cancellation observation`，不再声称整段存活。
+这是**测试判据 RED/GREEN**，不是生产兼容修复或 Provider 证据；历史通过回执不再作为整段存活证明。
+最小修复只增加等待期间的退出检查、观测结束的同 PID 存活证明，以及 Rust 对该证明的核对。
+其他早期 harness 的事件索引、沙箱、计数、keepalive parser、语法与编译反馈均保留，未改写为生产 RED/GREEN。
+必要的最小生产兼容修复为 **无**：Codex 发现项没有既有契约支持的安全最小放行。
 
-[同提交实际 CLI 回放](assets/cpar-62-independent-20261019/sealed-cli-replays-final.json)：默认准备检查 **1 passed / 0 failed**；
-严格一秒探针 **0 passed / 1 failed**，失败原因恰为该快速释放诊断。最终 CLI 持续存活观测为 **14,969 ms**，
-CLI 退出前 peer close=1、lease=0；随后才清理进程。两次回放均确认安装树未变，六份代码与 Full 对应哈希一致。
-[实际请求/结果矩阵](assets/cpar-62-independent-20261019/actual-cli/compatibility-matrix.json)、
-[客户端身份](assets/cpar-62-independent-20261019/actual-cli/client-identity.json)及
-[严格探针](assets/cpar-62-independent-20261019/prompt-release-red/pi-cancel/cancel-diagnostic.json)分别保留。
+最终不可变源码 `2fc4777abbac3e6b203323a0884d7a011308bac3`，tree `01bdff9c81bbfb8d30ce0a2f8da9eb4406a90946`：
+**Full PASS 45/45；Rust 1542 passed / 0 failed / 14 ignored；400.288 秒**。
+见 [源码与六文件哈希](assets/cpar-62-independent-20261019/liveness-fixed/full-liveness-source.json)、
+[Full 步骤](assets/cpar-62-independent-20261019/liveness-fixed/full-liveness-steps.md)和
+[汇总](assets/cpar-62-independent-20261019/liveness-fixed/full-liveness-result.json)。
+同一提交、同一 Asgard 验证 checkout 随后执行两次实际 CLI，tracked/index 始终干净；
+16 份既有用户文档 overlays 只用于验证，不进入当前分支增量。
+
+[最终实际 CLI 回放](assets/cpar-62-independent-20261019/liveness-fixed/liveness-cli-replays.json)：
+默认准备检查 **1 passed / 0 failed**；严格一秒探针 **0 passed / 1 failed**，失败原因恰为该快速释放诊断。
+默认回放在同一 Pi PID 存活窗口内 **14,975 ms** 观察到 peer close=1、lease=0；严格回放为 **14,979 ms**。
+两次均有观测结束的正向存活回执，之后才清理进程。安装树逐项未变，六份代码与 Full 哈希一致。
+[实际请求/结果矩阵](assets/cpar-62-independent-20261019/liveness-fixed/actual-cli/compatibility-matrix.json)、
+[客户端身份](assets/cpar-62-independent-20261019/liveness-fixed/actual-cli/client-identity.json)及
+[严格探针](assets/cpar-62-independent-20261019/liveness-fixed/prompt-release-red/pi-cancel/cancel-diagnostic.json)分别保留。
 默认准备检查 PASS 不意味着 Codex 可用、快速取消通过或 #62 全票通过。
 
-Full 在 OS 临时目录 checkout 执行；其后的 CLI 外部写入探针拒绝该位置后，在 Asgard 新建同一提交的干净 checkout 回放。
-Asgard 新 checkout 的首次构建因缺 Prism node_modules 停止；按锁离线 npm ci 后回放完成。两项前置失败均保留，
-均没有启动真实 Provider，也未改源码。两个验证 checkout tracked/index 均干净；16 份既有用户文档 overlays 只用于验证，
-不进入当前分支增量。
+旧源码 `28d1c42f` 的 Full 45/45、实际 CLI 回放、一秒探针 FAIL 和原始日志全部保留为历史证据，
+不替代新代码候选的 Full 或加强后的整段存活证明。首次 Full 的临时 cargo wrapper 误套 soak guard、
+临时目录 checkout 的外部写入探针失败、Asgard checkout 首次缺 Prism 构建依赖，均原样保留；
+这些前置失败都未启动真实 Provider。按锁离线准备依赖后才执行当前同提交验证。
 
-[历史反馈归档](assets/cpar-62-independent-20261019/historical-validation-manifest.json)与
-[最终归档清单](assets/cpar-62-independent-20261019/final-validation-manifest.json)绑定原始/诊断日志字节、哈希与逐成员读回。
-所有拟提交的明文证据均执行同一仓库秘密策略；Cargo compiler-artifact JSON 的文件名后缀触发了 key 形状规则，
-公开构建诊断只保留 message 分类及 stderr，原始 JSON 和 SHA256 留在私有 run；未修改扫描器。
-巨量原始 ESM debug 保留在私有 run，仓库保存实际加载路径、安装文件清单及 stderr 精确哈希，不提交重复模块对象转储。
+[历史归档](assets/cpar-62-independent-20261019/historical-validation-manifest.json)、
+[首版归档](assets/cpar-62-independent-20261019/final-validation-manifest.json)和
+[修复后归档](assets/cpar-62-independent-20261019/liveness-fixed/validation-manifest.json)
+分别绑定字节、哈希与逐成员读回；修复后归档 96 个成员全部独立读回一致。
+所有拟提交明文证据及解压安装库存均执行同一仓库秘密策略。Cargo compiler-artifact JSON 的文件名后缀触发 key 形状规则，
+公开构建诊断只保留 message 分类及 stderr；原始 JSON 与 SHA256 留在私有 run，扫描器未修改。
+巨量原始 ESM debug 亦保留私有 run，仓库保存实际加载路径、安装清单及 stderr 精确哈希。
 
-固定基线 `1743dd0801ac5f99fd80a98253d341205b3a465b` 的 Standards/Spec 双轴评审及授权 #62 评论/读回正在收尾，
-完成前不预报评审通过。后续仅补本轮文档和证据。真实 Provider、真实账号/新预算、push、部署、发布与远端 CI 均 NOT_RUN。
+固定基线 `1743dd0801ac5f99fd80a98253d341205b3a465b` 到最终候选的复核结果见
+[最终双轴评审回执](assets/cpar-62-independent-20261019/review-final.json)；当前等待该轮复核，不提前宣称通过。
+授权 #62 结果评论及独立读回随后记录；#62 继续 OPEN / BLOCKED，正式依赖不变。
+真实 Provider、真实账号/新预算、push、部署、发布与远端 CI 均 NOT_RUN。
