@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "mode": "full",
+  "source_commit": "a903dea84afaab3f81daca51d16f10def2488a0c",
+  "steps_passed": 45,
+  "steps_failed": 0,
+  "rust_passed": 1532,
+  "rust_failed": 0,
+  "rust_ignored": 13,
+  "workspace_tests_loopback_only": true,
+  "standalone_soak_guard": "original controlled in-memory/RSS harness; macOS platform ps cannot spawn inside Seatbelt",
+  "worktree_clean": true,
+  "log_sha256": "1d485f592ace577a0b3ae451871fea7508319604f951adb2004daf15fa4a4750",
+  "steps_sha256": "bd3d08dd506a9bec34e4e0b4160e4f10a6371a831eaca6c4c033544ebcc929b5"
+}

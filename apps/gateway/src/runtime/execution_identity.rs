@@ -388,6 +388,8 @@ mod tests {
         )?
         .request;
         let driver = EndpointAttemptDriver {
+            admitted_public_model: None,
+            grok_build_model_alias_proofs: Arc::from([]),
             execution_configuration: Some((
                 SnapshotVersion::try_new("execution-before")?,
                 ConfigRevision::try_new(7)?,

@@ -1106,6 +1106,7 @@ struct P12RoutedResponsesExecutor {
     channel_pin_in_flight: AtomicUsize,
     native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
     grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
+    grok_build_model_alias_proofs: Arc<[provider_grok::GrokBuildModelAliasProof]>,
 }
 
 impl P12RoutedResponsesExecutor {
@@ -1124,6 +1125,7 @@ impl P12RoutedResponsesExecutor {
         runtime_health: Arc<RuntimeHealthRegistry>,
         runtime_quota: Arc<RuntimeQuotaRegistry>,
         grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
+        grok_build_model_alias_proofs: Arc<[provider_grok::GrokBuildModelAliasProof]>,
         codex_oauth_proxy: UpstreamProxy,
         web_proxy: Option<UpstreamProxy>,
         flaresolverr_proxy: Option<UpstreamProxy>,
@@ -1368,6 +1370,7 @@ impl P12RoutedResponsesExecutor {
                 channel_pin_in_flight: AtomicUsize::new(0),
                 native_grok_egress,
                 grok_build_cache_identity_deriver,
+                grok_build_model_alias_proofs,
             },
             provider_account_pools,
             route_explain_scheduler,
@@ -1532,6 +1535,8 @@ impl P12RoutedResponsesExecutor {
         };
         let endpoints = Arc::clone(&self.endpoints);
         let driver = EndpointAttemptDriver {
+            admitted_public_model: Some(public_model.model_name().to_owned()),
+            grok_build_model_alias_proofs: self.grok_build_model_alias_proofs.clone(),
             execution_configuration: Some((self.snapshot_version.clone(), self.config_revision)),
             execution_egress: std::sync::Mutex::new(None),
             failed_usage: std::sync::Mutex::new(None),
@@ -1983,6 +1988,8 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             }
             let exact_continuation = continuation_pin.is_some();
             let driver = EndpointAttemptDriver {
+                admitted_public_model: Some(execution.admitted_public_model().to_owned()),
+                grok_build_model_alias_proofs: self.grok_build_model_alias_proofs.clone(),
                 execution_configuration: Some((snapshot_version.clone(), self.config_revision)),
                 execution_egress: std::sync::Mutex::new(None),
                 failed_usage: std::sync::Mutex::new(None),
@@ -4443,6 +4450,7 @@ struct CompatibleEgressSelection {
 }
 
 struct EndpointAttemptDriver {
+    admitted_public_model: Option<String>,
     execution_configuration: Option<(SnapshotVersion, ConfigRevision)>,
     execution_egress: Mutex<Option<execution_identity::CapturedEgress>>,
     failed_usage: Mutex<Option<(ResponseId, Usage)>>,
@@ -4470,6 +4478,7 @@ struct EndpointAttemptDriver {
     channel_pin_observation: Option<Arc<P13ChannelPinObservation>>,
     native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
     grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
+    grok_build_model_alias_proofs: Arc<[provider_grok::GrokBuildModelAliasProof]>,
 }
 
 /// Request-local, value-free observation used by Channel Pin to distinguish a rejected lease
@@ -5138,6 +5147,49 @@ impl EndpointAttemptDriver {
         }
     }
 
+    fn build_model_binding(
+        &self,
+        runtime: &EndpointRuntime,
+        candidate: &SnapshotRouteCandidate,
+        credential: &CredentialLease,
+    ) -> Result<provider_grok::GrokBuildModelBinding, AttemptFailure> {
+        let public_model = self
+            .admitted_public_model
+            .as_deref()
+            .unwrap_or(&self.request.requested_model);
+        if self.grok_build_model_alias_proofs.is_empty() {
+            provider_grok::GrokBuildModelBinding::literal(public_model, candidate.upstream_model())
+        } else {
+            let (version, revision) = self
+                .execution_configuration
+                .as_ref()
+                .ok_or_else(|| AttemptFailure::NonRetryable(internal_error()))?;
+            let (_, _, route) = self
+                .reasoning_binding
+                .as_ref()
+                .ok_or_else(|| AttemptFailure::NonRetryable(internal_error()))?;
+            let scope = provider_grok::GrokBuildModelAliasScope {
+                lineage: stored_response_execution_lineage(version, route, candidate, credential)
+                    .map_err(AttemptFailure::NonRetryable)?,
+                config_revision: revision.as_i64(),
+                channel: runtime.channel.clone(),
+                client_key_id: self.client_key_id.clone(),
+                client_protocol: self.client_protocol,
+                mode: grok_build_execution_mode(self.mode),
+                client_profile: provider_grok::GROK_BUILD_CLIENT_VERSION.to_owned(),
+            };
+            provider_grok::GrokBuildModelBinding::for_execution(
+                &scope,
+                public_model,
+                candidate.upstream_model(),
+                &self.grok_build_model_alias_proofs,
+                system_now_ms()?,
+                &self.request_id,
+            )
+        }
+        .map_err(AttemptFailure::NonRetryable)
+    }
+
     /// Runs one Canonical attempt through the fixed Grok Build OAuth Responses runtime.
     async fn start_grok_build(
         &self,
@@ -5149,6 +5201,7 @@ impl EndpointAttemptDriver {
         let ProjectedProtocolRequest::Canonical(request) = projected else {
             return Err(AttemptFailure::NonRetryable(upstream_protocol_error()));
         };
+        let model_binding = self.build_model_binding(runtime, candidate, credential)?;
         let build_credential =
             GrokBuildCredential::import_active_runtime(credential.secret_bytes(), system_now_ms()?)
                 .map_err(|_| AttemptFailure::NonRetryable(credential_unavailable_error()))?;
@@ -5187,6 +5240,7 @@ impl EndpointAttemptDriver {
             transport,
         )
         .map_err(AttemptFailure::NonRetryable)?
+        .with_model_binding(model_binding)
         .with_provider_egress_attempt(native_egress)
         .with_cache_identity_deriver(Arc::clone(&self.grok_build_cache_identity_deriver));
         let adapter = if let (Some((codec, version, route)), Some(client)) =
@@ -9748,6 +9802,8 @@ mod tests {
             r#"{"model":"gateway-model","input":"fail over safely","stream":false}"#,
         )?;
         let driver = EndpointAttemptDriver {
+            admitted_public_model: None,
+            grok_build_model_alias_proofs: Arc::from([]),
             execution_configuration: None,
             execution_egress: std::sync::Mutex::new(None),
             failed_usage: std::sync::Mutex::new(None),
@@ -9906,6 +9962,7 @@ mod tests {
                 Arc::clone(&runtime_health),
                 runtime_quota,
                 Arc::new(GrokBuildCacheIdentityDeriver::new([0xC4; 32])),
+                Arc::from([]),
                 UpstreamProxy::Direct,
                 None,
                 None,
@@ -10092,6 +10149,8 @@ mod tests {
             "../../../tests/fixtures/openai-responses/request-canonical.json"
         ))?;
         let driver = EndpointAttemptDriver {
+            admitted_public_model: None,
+            grok_build_model_alias_proofs: Arc::from([]),
             execution_configuration: None,
             execution_egress: std::sync::Mutex::new(None),
             failed_usage: std::sync::Mutex::new(None),

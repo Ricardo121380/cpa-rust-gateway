@@ -29,6 +29,24 @@ impl fmt::Display for ResponseProjectionRejection {
 }
 impl Error for ResponseProjectionRejection {}
 
+/// Closed reasons for rejecting an unproven Build model identity, without native values.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModelIdentityRejection {
+    /// The admitted public model cannot be bound to the selected upstream before dispatch.
+    RequestMismatch,
+    /// An applicable native response snapshot omitted its model.
+    MissingNativeModel,
+    /// The native model has an invalid type or bounded identifier shape.
+    InvalidNativeModel,
+    /// The native model is not the selected model or an attested alias.
+    NativeModelMismatch,
+    /// A later response snapshot changed the native model.
+    ResponseModelConflict,
+    /// A supplied frozen alias proof does not cover this execution.
+    AliasNotApplicable,
+}
+
 /// Stable internal error category used across gateway layers.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -188,6 +206,8 @@ pub struct GatewayError {
     scope: ErrorScope,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     projection_rejection: Option<ResponseProjectionRejection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    model_identity_rejection: Option<ModelIdentityRejection>,
 }
 
 impl GatewayError {
@@ -201,6 +221,7 @@ impl GatewayError {
             code,
             scope,
             projection_rejection: None,
+            model_identity_rejection: None,
         }
     }
 
@@ -211,7 +232,35 @@ impl GatewayError {
             code: GatewayErrorCode::UpstreamProtocolError,
             scope: ErrorScope::Stream,
             projection_rejection: Some(reason),
+            model_identity_rejection: None,
         }
+    }
+
+    /// Creates a non-retryable, value-free model admission or native response failure.
+    #[must_use]
+    pub const fn model_identity(reason: ModelIdentityRejection) -> Self {
+        let (code, scope) = match reason {
+            ModelIdentityRejection::RequestMismatch
+            | ModelIdentityRejection::AliasNotApplicable => {
+                (GatewayErrorCode::ClientRequestError, ErrorScope::Request)
+            }
+            _ => (
+                GatewayErrorCode::UpstreamProtocolError,
+                ErrorScope::Provider,
+            ),
+        };
+        Self {
+            code,
+            scope,
+            projection_rejection: None,
+            model_identity_rejection: Some(reason),
+        }
+    }
+
+    /// Returns a closed model-identity reason, without exposing any model or proof content.
+    #[must_use]
+    pub const fn model_identity_rejection(&self) -> Option<ModelIdentityRejection> {
+        self.model_identity_rejection
     }
 
     /// Returns the specific response-projection reason, when known.
@@ -235,6 +284,28 @@ impl GatewayError {
     /// Returns the fixed, secret-free diagnostic message for the error category.
     #[must_use]
     pub const fn safe_message(&self) -> &'static str {
+        if let Some(reason) = self.model_identity_rejection {
+            return match reason {
+                ModelIdentityRejection::RequestMismatch => {
+                    "model identity rejected before dispatch: public and upstream models are unproven"
+                }
+                ModelIdentityRejection::MissingNativeModel => {
+                    "model identity rejected: native model is missing"
+                }
+                ModelIdentityRejection::InvalidNativeModel => {
+                    "model identity rejected: native model has an invalid shape"
+                }
+                ModelIdentityRejection::NativeModelMismatch => {
+                    "model identity rejected: native and upstream models are unproven"
+                }
+                ModelIdentityRejection::ResponseModelConflict => {
+                    "model identity rejected: native response phases contradict"
+                }
+                ModelIdentityRejection::AliasNotApplicable => {
+                    "model identity rejected before dispatch: alias proof is not applicable"
+                }
+            };
+        }
         if let Some(reason) = self.projection_rejection {
             return match reason {
                 ResponseProjectionRejection::ReasoningUnsupported => {

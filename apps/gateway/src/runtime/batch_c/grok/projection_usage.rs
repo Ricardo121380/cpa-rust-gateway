@@ -21,12 +21,12 @@ impl GrokBuildTransport for ProjectionPeer {
             let body: Value =
                 serde_json::from_slice(request.body()).map_err(|_| internal_error())?;
             let streaming = body["stream"] == true;
-            let mut response = json!({"id":"projection-response","object":"response","status":"completed","output":self.output});
+            let mut response = json!({"id":"projection-response","model":body["model"],"object":"response","status":"completed","output":self.output});
             if let Some(usage) = &self.usage {
                 response["usage"] = usage.clone();
             }
             let bytes = if streaming {
-                let start = json!({"type":"response.created","response":{"id":"projection-response","status":"in_progress","output":[]}});
+                let start = json!({"type":"response.created","response":{"id":"projection-response","model":body["model"],"status":"in_progress","output":[]}});
                 let mut wire = format!("event: response.created\ndata: {start}\n\n");
                 for (index, item) in self
                     .output

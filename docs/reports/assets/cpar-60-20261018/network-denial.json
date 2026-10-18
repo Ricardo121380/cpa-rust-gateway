@@ -1,0 +1,7 @@
+{
+  "time": "2026-10-18T09:35:27.821513+00:00",
+  "loopback": "PASS",
+  "non_loopback_target": "192.0.2.1:443",
+  "errno": 1,
+  "non_loopback": "PASS_DENIED"
+}

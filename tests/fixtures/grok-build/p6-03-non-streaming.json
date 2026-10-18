@@ -1,5 +1,6 @@
 {
   "id": "resp-grok-build-01",
+  "model": "grok-4.5-build",
   "status": "completed",
   "output": [
     {

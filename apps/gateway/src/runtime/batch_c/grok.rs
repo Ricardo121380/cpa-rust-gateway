@@ -1,4 +1,5 @@
 use super::*;
+mod model_identity;
 mod native_chat_offline;
 mod projection_usage;
 mod usage_evidence;
@@ -21,6 +22,7 @@ impl Peer {
     fn reply(&self, url: &str, body: &[u8]) -> Result<(bool, Vec<u8>), GatewayError> {
         let body: Value = serde_json::from_slice(body).map_err(|_| internal_error())?;
         let streaming = body["stream"] == true;
+        let native_model = body["model"].clone();
         let history = body.to_string();
         let second_call = history.contains("next-question");
         let tools = if second_call {
@@ -41,14 +43,14 @@ impl Peer {
         } else {
             json!([{"id":"msg-c","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"answer","annotations":[]}]}])
         };
-        let response = json!({"id":"resp-c","object":"response","status":"completed","output":output,"usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}});
+        let response = json!({"id":"resp-c","model":native_model,"object":"response","status":"completed","output":output,"usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}});
         if !streaming {
             return Ok((
                 false,
                 serde_json::to_vec(&response).map_err(|_| internal_error())?,
             ));
         }
-        let start = json!({"type":"response.created","response":{"id":"resp-c","status":"in_progress","output":[]}});
+        let start = json!({"type":"response.created","response":{"id":"resp-c","model":native_model,"status":"in_progress","output":[]}});
         let mut frames = format!("event: response.created\ndata: {start}\n\n");
         for (index, item) in response["output"]
             .as_array()

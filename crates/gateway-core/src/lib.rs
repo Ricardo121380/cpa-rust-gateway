@@ -30,7 +30,9 @@ pub use canonical_event::{
     UsageProvenance,
 };
 pub use canonical_request::CanonicalRequest;
-pub use error::{ErrorScope, GatewayError, GatewayErrorCode, ResponseProjectionRejection};
+pub use error::{
+    ErrorScope, GatewayError, GatewayErrorCode, ModelIdentityRejection, ResponseProjectionRejection,
+};
 pub use execution_identity::{AttemptExecutionIdentity, EffectiveCapabilities, ExecutionEgress};
 pub use gateway_event::{
     AttemptEvent, AttemptOutcome, AttemptRetryDecision, DiagnosticEvent, EventEmission,

@@ -1,0 +1,7 @@
+{
+  "old": "BC-PROVIDER-016-build-model-identity",
+  "conflict": "BC-PROVIDER-016-grok-official-runtime-isolation",
+  "new": "BC-PROVIDER-024-build-model-identity",
+  "scope": "new ticket documents only",
+  "product_changes": false
+}

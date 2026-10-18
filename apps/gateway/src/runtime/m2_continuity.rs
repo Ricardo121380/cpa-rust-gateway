@@ -42,7 +42,7 @@ impl GrokBuildTransport for Transport {
                 {"id":"call-item","type":"function_call","call_id":"tool-call","name":"local_tool","arguments":"{}","status":"completed"}
             ],"usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}});
             let (content_type, bytes) = if self.streaming {
-                let start = serde_json::json!({"type":"response.created","response":{"id":id,"status":"in_progress","output":[]}});
+                let start = serde_json::json!({"type":"response.created","response":{"id":id,"model":"grok-model","status":"in_progress","output":[]}});
                 let mut frames = format!("event: response.created\ndata: {start}\n\n");
                 for (index, item) in response["output"]
                     .as_array()

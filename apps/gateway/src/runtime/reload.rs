@@ -154,6 +154,8 @@ impl RuntimeFactory {
                     Arc::clone(&runtime_health),
                     Arc::clone(&runtime_quota),
                     grok_build_cache_identity_deriver,
+                    // No independently approved real Build alias evidence is installed.
+                    Arc::from([]),
                     codex_oauth_proxy,
                     web_proxy,
                     flaresolverr_proxy,

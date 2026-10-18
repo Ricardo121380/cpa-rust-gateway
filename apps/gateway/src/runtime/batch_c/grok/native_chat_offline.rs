@@ -77,7 +77,7 @@ fn offline_fixture(peer: Arc<dyn GrokBuildTransport>) -> Result<Fixture, Box<dyn
 }
 
 fn synthetic_peer(native: &Value) -> Result<Arc<OfflinePeer>, Box<dyn Error>> {
-    let start = json!({"type":"response.created","response":{"id":native["id"],"status":"in_progress","output":[]}});
+    let start = json!({"type":"response.created","response":{"id":native["id"],"model":native["model"],"status":"in_progress","output":[]}});
     let mut sse = format!("event: response.created\ndata: {start}\n\n");
     for (index, item) in native["output"]
         .as_array()
@@ -106,6 +106,9 @@ async fn grok_build_native_summary_and_usage_public_matrix() -> TestResult {
         for protocol in ["chat", "messages", "responses"] {
             for streaming in [false, true] {
                 let mut native: Value = serde_json::from_str(SYNTHETIC)?;
+                // Independent synthetic model identity for the projection/Usage oracle. The
+                // saved fixture and ignored real-capture oracle remain byte-for-byte unchanged.
+                native["model"] = json!("grok-4.5");
                 if extra_usage {
                     native["usage"]["cost_in_usd_ticks"] = json!(123_000_000);
                     native["usage"]["num_server_side_tools_used"] = json!(0);

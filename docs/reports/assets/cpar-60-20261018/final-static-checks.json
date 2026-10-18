@@ -1,0 +1,35 @@
+{
+  "checks": [
+    {
+      "command": [
+        "scripts/check-doc-links.rb"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "scripts/check-contract-tests.rb"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "status": "PASS"
+}

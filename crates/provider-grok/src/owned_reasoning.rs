@@ -538,6 +538,7 @@ mod tests {
             None,
             &bytes,
             Some(owner.clone()),
+            None,
         )?;
         let downstream = encode_response(
             &canonical,

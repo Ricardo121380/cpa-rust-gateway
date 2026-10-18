@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 
 // Literal source bytes, deliberately outside Value/to_string: absent, null, zero, a number
 // above u64, and a decimal whose digits must survive diagnostic readback.
-const RAW_USAGE: &str = r#"{ "input_tokens":20,"output_tokens":7,"total_tokens":27,"input_tokens_details":{"cached_tokens":0,"unknown":null},"output_tokens_details":{"reasoning_tokens":3},"cost_in_usd_ticks":18446744073709551616123,"fraction":0.123456789012345678901234567890,"opaque":{"null":null,"zero":0,"array":[],"marker":"PRIVATE_USAGE_59"} }"#;
+pub(super) const RAW_USAGE: &str = r#"{ "input_tokens":20,"output_tokens":7,"total_tokens":27,"input_tokens_details":{"cached_tokens":0,"unknown":null},"output_tokens_details":{"reasoning_tokens":3},"cost_in_usd_ticks":18446744073709551616123,"fraction":0.123456789012345678901234567890,"opaque":{"null":null,"zero":0,"array":[],"marker":"PRIVATE_USAGE_59"} }"#;
 
 struct LoopbackBuild {
     url: String,
@@ -52,13 +52,13 @@ impl LoopbackBuild {
             }
             counter.fetch_add(1, Ordering::SeqCst);
             let response = format!(
-                r#"{{"id":"evidence-response","object":"response","status":"completed","output":[],"usage":{RAW_USAGE}}}"#
+                r#"{{"id":"evidence-response","model":"grok-4.5","object":"response","status":"completed","output":[],"usage":{RAW_USAGE}}}"#
             );
             let (kind, bytes) = if streaming {
                 (
                     "text/event-stream",
                     format!(
-                        "event: response.created\ndata: {{\"type\":\"response.created\",\"response\":{{\"id\":\"evidence-response\",\"status\":\"in_progress\",\"output\":[]}}}}\n\nevent: response.completed\ndata: {{\"type\":\"response.completed\",\"response\":{response}}}\n\n"
+                        "event: response.created\ndata: {{\"type\":\"response.created\",\"response\":{{\"id\":\"evidence-response\",\"model\":\"grok-4.5\",\"status\":\"in_progress\",\"output\":[]}}}}\n\nevent: response.completed\ndata: {{\"type\":\"response.completed\",\"response\":{response}}}\n\n"
                     ),
                 )
             } else {

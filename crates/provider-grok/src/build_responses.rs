@@ -897,12 +897,13 @@ impl GrokBuildResponsesDecoder {
     ///
     /// Returns a safe provider/stream protocol error for malformed or unrepresentable input.
     pub fn decode_non_streaming(input: &[u8]) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned(input, None)
+        Self::decode_owned(input, None, None)
     }
 
     fn decode_owned(
         input: &[u8],
         owner: Option<crate::GrokBuildReasoningOwner>,
+        expected_model: Option<String>,
     ) -> Result<CanonicalResponse, GatewayError> {
         let value = parse_strict_json(input, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
             .map_err(|()| provider_protocol_error())?;
@@ -911,6 +912,7 @@ impl GrokBuildResponsesDecoder {
 
         let mut state = GrokBuildResponsesDecodeState {
             reasoning_owner: owner,
+            expected_model,
             raw_usage: received_usage_slice(input, false)?,
             ..Default::default()
         };
@@ -940,16 +942,17 @@ impl GrokBuildResponsesDecoder {
         content_encoding: Option<&str>,
         input: &[u8],
     ) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned_with_encoding(content_encoding, input, None)
+        Self::decode_owned_with_encoding(content_encoding, input, None, None)
     }
 
     pub(crate) fn decode_owned_with_encoding(
         content_encoding: Option<&str>,
         input: &[u8],
         owner: Option<crate::GrokBuildReasoningOwner>,
+        expected_model: Option<String>,
     ) -> Result<CanonicalResponse, GatewayError> {
         let decoded = decode_non_streaming_content_encoding(content_encoding, input)?;
-        Self::decode_owned(&decoded, owner)
+        Self::decode_owned(&decoded, owner, expected_model)
     }
 }
 
@@ -994,6 +997,10 @@ pub struct GrokBuildResponsesStreamDecoder {
 }
 
 impl GrokBuildResponsesStreamDecoder {
+    pub(crate) fn with_expected_model(mut self, model: String) -> Self {
+        self.state.expected_model = Some(model);
+        self
+    }
     /// Creates an empty SSE decoder.
     #[must_use]
     pub fn new() -> Self {
@@ -1071,6 +1078,8 @@ impl fmt::Debug for GrokBuildResponsesStreamDecoder {
 
 #[derive(Clone, Default)]
 struct GrokBuildResponsesDecodeState {
+    expected_model: Option<String>,
+    native_model: Option<String>,
     reasoning_owner: Option<crate::GrokBuildReasoningOwner>,
     raw_usage: Option<(RawJson, gateway_core::NativeUsageSource)>,
     canonical: CanonicalEventState,
@@ -1097,6 +1106,8 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildResponsesDecodeState")
+            .field("expected_model", &self.expected_model.is_some())
+            .field("native_model", &self.native_model.is_some())
             .field("native_usage_present", &self.raw_usage.is_some())
             .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("canonical", &self.canonical)
@@ -1312,6 +1323,11 @@ impl GrokBuildResponsesDecodeState {
         let response_id = required_identifier(response, "id", stream_protocol_error())?;
         let canonical_id =
             ResponseId::try_new(response_id.to_owned()).map_err(|_| stream_protocol_error())?;
+        self.validate_model(response)?;
+        self.native_model = response
+            .get("model")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
         self.emit(
             events,
             CanonicalEvent::ResponseStart(ResponseStart {
@@ -2262,12 +2278,40 @@ impl GrokBuildResponsesDecodeState {
     }
 
     fn require_matching_response(&self, response: &Map<String, Value>) -> Result<(), GatewayError> {
+        self.validate_model(response)?;
         let response_id = required_identifier(response, "id", stream_protocol_error())?;
         if self.response_id.as_deref() == Some(response_id) {
             Ok(())
         } else {
             Err(stream_protocol_error())
         }
+    }
+
+    fn validate_model(&self, response: &Map<String, Value>) -> Result<(), GatewayError> {
+        use gateway_core::ModelIdentityRejection as Rejection;
+        let Some(expected) = self.expected_model.as_deref() else {
+            return Ok(());
+        };
+        let value = response
+            .get("model")
+            .ok_or_else(|| GatewayError::model_identity(Rejection::MissingNativeModel))?;
+        let model = value
+            .as_str()
+            .filter(|model| crate::model_identity::valid_model(model))
+            .ok_or_else(|| GatewayError::model_identity(Rejection::InvalidNativeModel))?;
+        if self
+            .native_model
+            .as_deref()
+            .is_some_and(|previous| previous != model)
+        {
+            return Err(GatewayError::model_identity(
+                Rejection::ResponseModelConflict,
+            ));
+        }
+        if model != expected {
+            return Err(GatewayError::model_identity(Rejection::NativeModelMismatch));
+        }
+        Ok(())
     }
 
     fn emit(

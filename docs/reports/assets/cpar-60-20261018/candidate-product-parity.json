@@ -1,0 +1,156 @@
+{
+  "candidate": "a903dea84afaab3f81daca51d16f10def2488a0c",
+  "product_files": [
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "sha256": "c80d806d144f28387733d15a50ee88b7f8ba170727cd5e993f3bbb5290f0c6f2",
+      "size": 658647,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_a_native.rs",
+      "sha256": "45abb163c8ecc87f6e96637167780d4a2e3d17c86fa77d307707ba135217df79",
+      "size": 12991,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c.rs",
+      "sha256": "92320945134b8743404edf12636345867206fb98e7aabc176c098734baff978d",
+      "size": 29576,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok.rs",
+      "sha256": "80f2f9bec7c5987206bb771e9c8cbfe4761f7f120f608cad64e83db445b081a8",
+      "size": 27769,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/model_identity.rs",
+      "sha256": "55c76ebbf00f508f6496b8e12eda031a7a41284e64f3cb9039860268d00cc7af",
+      "size": 32185,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs",
+      "sha256": "e3804b2584d192f9c6494b87b1a879ad03a98ca35bd388a8981a98918f38c658",
+      "size": 18669,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/projection_usage.rs",
+      "sha256": "84b770a9a525cc5ce5d682484cbcdf0e0ce5e48b7abf11af2e77714f4579d98d",
+      "size": 23877,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/usage_evidence.rs",
+      "sha256": "b8ecb7a8a7aadf6547d3b23b7443b45be42c39f1f3eec6a826b74386034bfdef",
+      "size": 21353,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/execution_identity.rs",
+      "sha256": "2af75a2a04374a9c2dba298950ecd93c7f1c25a51986fdf90b4cfc7289c2865f",
+      "size": 23670,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/m2_continuity.rs",
+      "sha256": "20e81624499ce845722ed2997d52c7312bfb0e4293b73c05d54857bf89ed9479",
+      "size": 33087,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/src/runtime/reload.rs",
+      "sha256": "147124f9e70646460c0fefbc09c40cf09d3935858e6b14c33f0b13e822a8599e",
+      "size": 32736,
+      "mode": "0o644"
+    },
+    {
+      "path": "apps/gateway/tests/cpar59_usage_evidence.rs",
+      "sha256": "9349fc3ef7567ba5c155f7c4de698798148f90e700147ad53b64e99f089e25a4",
+      "size": 25074,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/gateway-core/src/error.rs",
+      "sha256": "1de7e206670d388880738116b8bfed18ebd62ae2f2ba377b5d89bb0ccee8a571",
+      "size": 18785,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/gateway-core/src/lib.rs",
+      "sha256": "6630f5b4af45518293d444001259140b11a9c7ef62b8e9ea456c935dfa726b7e",
+      "size": 2459,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/gateway-http-actix/src/lib.rs",
+      "sha256": "793f4e507582b0113f0be1e8157e12acd70a772fe5ce7050f00b6a46b7d91442",
+      "size": 302733,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/gateway-router/src/lib.rs",
+      "sha256": "edd98b39e7715d7eba7b844520606e2020ed9354083689554d4eb237e0bcc044",
+      "size": 26829,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/provider-grok/src/build_responses.rs",
+      "sha256": "f2b9fa41a75fad3bbb0011da66daad31facfd51ff62a622c01c4e50eae071d74",
+      "size": 101834,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/provider-grok/src/inference.rs",
+      "sha256": "1f7a78a9514d3bd09460c5c61063c081f603908c9697476f55755612877200e1",
+      "size": 24106,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/provider-grok/src/lib.rs",
+      "sha256": "73d86c2659b1fe1fad273053c8d0cfbebaa4a601a09eeaebcd38b9ede3a8be51",
+      "size": 12569,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/provider-grok/src/model_identity.rs",
+      "sha256": "62b1b5a2745f49b4527481e8b3b4b7745ec0c1e79baf77a63f58b5aff8c8dea9",
+      "size": 8902,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/provider-grok/src/owned_reasoning.rs",
+      "sha256": "43858903c709bed07eb4cdc838848b8f57c6d7232a662e8b1c6015506124cbf7",
+      "size": 25407,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/provider-grok/tests/p13_11e_native_egress.rs",
+      "sha256": "d2bda4bd64adf108b2827b1048aa9bc4a015e2fbf55af928590a005f2e84beeb",
+      "size": 16005,
+      "mode": "0o644"
+    },
+    {
+      "path": "crates/provider-grok/tests/p6_09_inference_adapter.rs",
+      "sha256": "7f68b6197112ab11900e2f637ce5bb78b02fb1acf932b6f5509b9bd0c3ff4210",
+      "size": 19656,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/fixtures/grok-build/p6-03-non-streaming.json",
+      "sha256": "e72a315b1656fe1a9a44352ea98e6f019f670ef68f0a0a24eb7eb36b9d5ab0cf",
+      "size": 919,
+      "mode": "0o644"
+    },
+    {
+      "path": "tests/fixtures/grok-build/p6-03-stream.sse",
+      "sha256": "3cf0f46beac8c52e8d62dbbe76321c589bbed3bb7b3bfd272ec3f5421db517b9",
+      "size": 3337,
+      "mode": "0o644"
+    }
+  ],
+  "all_equal": true
+}

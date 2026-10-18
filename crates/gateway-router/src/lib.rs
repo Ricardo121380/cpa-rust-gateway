@@ -185,6 +185,7 @@ pub enum ResponsesClientTransport {
 pub struct ResponsesExecution {
     context: RequestContext,
     request: CanonicalRequest,
+    admitted_public_model: Option<String>,
     client_protocol: ProtocolFormat,
     native_payload: Option<Arc<[u8]>>,
     route_id: Option<RouteId>,
@@ -224,6 +225,7 @@ impl ResponsesExecution {
         Self {
             context,
             request,
+            admitted_public_model: None,
             client_protocol: ProtocolFormat::OpenAiResponses,
             native_payload: None,
             route_id,
@@ -256,6 +258,7 @@ impl ResponsesExecution {
         Self {
             context,
             request,
+            admitted_public_model: None,
             client_protocol,
             native_payload: Some(native_payload),
             route_id,
@@ -281,6 +284,21 @@ impl ResponsesExecution {
     #[must_use]
     pub fn request(&self) -> &CanonicalRequest {
         &self.request
+    }
+
+    /// Carries the ingress-resolved public identity separately from the original alias.
+    #[must_use]
+    pub fn with_admitted_public_model(mut self, model: String) -> Self {
+        self.admitted_public_model = Some(model);
+        self
+    }
+
+    /// Returns the resolved public identity; legacy embeddings retain their requested name.
+    #[must_use]
+    pub fn admitted_public_model(&self) -> &str {
+        self.admitted_public_model
+            .as_deref()
+            .unwrap_or(&self.request.requested_model)
     }
 
     /// Returns the trusted protocol selected by the ingress decoder.
@@ -409,6 +427,7 @@ impl fmt::Debug for ResponsesExecution {
             .debug_struct("ResponsesExecution")
             .field("context", &self.context)
             .field("request", &self.request)
+            .field("admitted_public_model", &"<redacted>")
             .field("client_protocol", &self.client_protocol)
             .field(
                 "native_payload_len",

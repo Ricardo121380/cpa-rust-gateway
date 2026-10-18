@@ -14,6 +14,11 @@ mod continuity_state;
 mod credential_runtime;
 mod grok2api_migration;
 mod inference;
+mod model_identity;
+pub use model_identity::{
+    GrokBuildAliasAuthority, GrokBuildModelAliasAssertion, GrokBuildModelAliasProof,
+    GrokBuildModelAliasScope, GrokBuildModelBinding,
+};
 mod oauth;
 mod owned_reasoning;
 pub use owned_reasoning::{GrokBuildReasoningCodec, GrokBuildReasoningOwner};

@@ -82,7 +82,9 @@ async fn build_adapter_uses_exact_lease_once_and_closes_after_semantic_event() -
         transport.clone(),
     )?
     .with_provider_egress_attempt(Arc::new(attempt.clone()));
-    let mut source = adapter.execute(request_context()?, request()?).await?;
+    let mut build_request = request()?;
+    build_request.requested_model = "grok-4.5-build".into();
+    let mut source = adapter.execute(request_context()?, build_request).await?;
     while source.next_event().await?.is_some() {}
 
     let snapshot = attempt.snapshot()?;

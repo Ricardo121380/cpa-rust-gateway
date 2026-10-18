@@ -184,7 +184,7 @@ fn held_stream_management_change(remove: bool) -> Result<(), Box<dyn Error>> {
         transport.clone(),
     )?;
     let request = protocol_openai_responses::decode_request(
-        r#"{"model":"p12-test-model","input":"synthetic held stream","stream":true}"#,
+        r#"{"model":"grok-4.5-build","input":"synthetic held stream","stream":true}"#,
     )?
     .request;
     let context = RequestContext::new(RequestId::try_new("batch-a-native-request")?);

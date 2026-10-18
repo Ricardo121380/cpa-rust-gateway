@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-18T10:06:18.567198+00:00",
+  "initial_entries": 49041,
+  "hashed_entries_unchanged": 48979,
+  "append_only": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "directory_placeholders_preserved": 50,
+  "directory_baseline_limit": "No recursive hash proof for nested-repository directory placeholders",
+  "unexpected_changes": [],
+  "real_index_empty_before_staging": true,
+  "status": "PASS",
+  "symlinks_preserved": 10,
+  "symlink_checks": [
+    "readlink target string equals baseline",
+    "link mtime/ctime predate baseline manifest"
+  ],
+  "count_reconciliation": "48979 hashed files + 10 symlinks + 2 append-only shared documents + 50 directory placeholders = 49041",
+  "historical_receipt_note": "preservation.json used 48989 as unchanged record count including 10 symlinks, not 48989 hashed regular files; its zero unexpected changes remains valid"
+}

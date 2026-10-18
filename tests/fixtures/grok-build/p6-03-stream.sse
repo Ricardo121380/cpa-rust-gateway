@@ -1,5 +1,5 @@
 event: response.created
-data: {"type":"response.created","response":{"id":"resp-grok-build-01","status":"in_progress","output":[],"usage":null}}
+data: {"type":"response.created","response":{"id":"resp-grok-build-01","model":"grok-4.5-build","status":"in_progress","output":[],"usage":null}}
 
 event: response.output_item.added
 data: {"type":"response.output_item.added","item":{"id":"rsn-grok-build-01","type":"reasoning","status":"in_progress","content":[{"type":"reasoning_text","text":""}]}}
@@ -41,4 +41,4 @@ event: response.output_item.done
 data: {"type":"response.output_item.done","item":{"id":"fc-grok-build-01","type":"function_call","call_id":"call-grok-build-01","name":"lookup_weather","arguments":"{\"city\":\"Shanghai\"}","status":"completed"}}
 
 event: response.completed
-data: {"type":"response.completed","response":{"id":"resp-grok-build-01","status":"completed","output":[{"id":"rsn-grok-build-01","type":"reasoning","status":"completed","content":[{"type":"reasoning_text","text":"Check weather."}]},{"id":"msg-grok-build-01","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"It is sunny."}]},{"id":"fc-grok-build-01","type":"function_call","call_id":"call-grok-build-01","name":"lookup_weather","arguments":"{\"city\":\"Shanghai\"}","status":"completed"}],"usage":{"input_tokens":12,"input_tokens_details":{"cached_tokens":2},"output_tokens":8,"output_tokens_details":{"reasoning_tokens":3},"total_tokens":20}}}
+data: {"type":"response.completed","response":{"id":"resp-grok-build-01","model":"grok-4.5-build","status":"completed","output":[{"id":"rsn-grok-build-01","type":"reasoning","status":"completed","content":[{"type":"reasoning_text","text":"Check weather."}]},{"id":"msg-grok-build-01","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"It is sunny."}]},{"id":"fc-grok-build-01","type":"function_call","call_id":"call-grok-build-01","name":"lookup_weather","arguments":"{\"city\":\"Shanghai\"}","status":"completed"}],"usage":{"input_tokens":12,"input_tokens_details":{"cached_tokens":2},"output_tokens":8,"output_tokens_details":{"reasoning_tokens":3},"total_tokens":20}}}

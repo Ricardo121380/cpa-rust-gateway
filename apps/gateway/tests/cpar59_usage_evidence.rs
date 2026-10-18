@@ -13,6 +13,7 @@ use std::{
     os::unix::fs::{MetadataExt, PermissionsExt},
     path::PathBuf,
     process::Command,
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -21,10 +22,12 @@ const RAW: &str = r#"{ "input_tokens":3,"output_tokens":5,"zero":0,"null":null,"
 struct Directory(PathBuf);
 impl Directory {
     fn new() -> Result<Self, Box<dyn Error>> {
+        static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
-            "cpar59-{}-{}",
+            "cpar59-{}-{}-{}",
             std::process::id(),
-            SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos()
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos(),
+            NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed),
         ));
         fs::create_dir(&path)?;
         fs::set_permissions(&path, fs::Permissions::from_mode(0o700))?;

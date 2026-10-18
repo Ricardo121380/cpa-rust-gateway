@@ -259,6 +259,7 @@ pub struct GrokBuildInferenceAdapter {
     egress_attempt: Option<Arc<GrokNativeEgressAttempt>>,
     cache_identity_deriver: Option<Arc<GrokBuildCacheIdentityDeriver>>,
     reasoning_owner: Option<crate::GrokBuildReasoningOwner>,
+    model_binding: Option<crate::GrokBuildModelBinding>,
 }
 
 impl GrokBuildInferenceAdapter {
@@ -292,7 +293,15 @@ impl GrokBuildInferenceAdapter {
             egress_attempt: None,
             cache_identity_deriver: None,
             reasoning_owner: None,
+            model_binding: None,
         })
+    }
+
+    /// Supplies the explicit pre-dispatch public/upstream/native identity policy.
+    #[must_use]
+    pub fn with_model_binding(mut self, binding: crate::GrokBuildModelBinding) -> Self {
+        self.model_binding = Some(binding);
+        self
     }
 
     /// Adds authenticated stateless reasoning ownership for this selected attempt.
@@ -324,6 +333,7 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildInferenceAdapter")
+            .field("model_binding", &self.model_binding.is_some())
             .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("provider_id", &self.provider_id)
             .field("credential", &self.credential)
@@ -358,8 +368,15 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let egress_attempt = self.egress_attempt.clone();
         let cache_identity_deriver = self.cache_identity_deriver.clone();
         let reasoning_owner = self.reasoning_owner.clone();
+        let model_binding = self.model_binding.clone();
 
         Box::pin(async move {
+            let binding = model_binding.map_or_else(
+                || crate::GrokBuildModelBinding::literal(&request.requested_model, &upstream_model),
+                Ok,
+            )?;
+            let expected_native_model =
+                binding.expected_native_model(&upstream_model, context.request_id())?;
             let cache_identity = request
                 .prompt_cache_key
                 .as_deref()
@@ -425,6 +442,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         Some(content_encoding.decoder_value()),
                         &bytes,
                         reasoning_owner,
+                        Some(expected_native_model),
                     )?;
                     let events = decoded.into_events();
                     let source =
@@ -434,8 +452,11 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 GrokBuildExecutionMode::Streaming
                     if content_type == GrokBuildResponseContentType::EventStream =>
                 {
-                    let source = Box::new(StreamingEventSource::new(body, reasoning_owner))
-                        as Box<dyn CanonicalEventSource>;
+                    let source = Box::new(StreamingEventSource::new(
+                        body,
+                        reasoning_owner,
+                        expected_native_model,
+                    )) as Box<dyn CanonicalEventSource>;
                     Ok(wrap_egress_source(source, egress_attempt))
                 }
                 _ => Err(provider_protocol_error()),
@@ -509,10 +530,13 @@ impl StreamingEventSource {
     fn new(
         body: Box<dyn GrokBuildResponseBody>,
         owner: Option<crate::GrokBuildReasoningOwner>,
+        expected_model: String,
     ) -> Self {
         Self {
             body,
-            decoder: GrokBuildResponsesStreamDecoder::new().with_reasoning_owner(owner),
+            decoder: GrokBuildResponsesStreamDecoder::new()
+                .with_reasoning_owner(owner)
+                .with_expected_model(expected_model),
             pending: VecDeque::new(),
             response_started: false,
             terminal_failure_emitted: false,

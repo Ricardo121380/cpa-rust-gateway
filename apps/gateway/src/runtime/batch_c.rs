@@ -123,7 +123,20 @@ fn fixture_with_storage(
         channel,
         secret,
         stored,
-        |_| Ok(()),
+        |configuration| {
+            // Existing Build projection/Usage tests need a literal admitted identity. Keep their
+            // original requested alias and actual upstream, and resolve that alias explicitly.
+            if channel.adapter == "grok.build.responses" && channel.model != "p12-test-model" {
+                configuration.public_models[0].model_name = channel.model.into();
+                configuration.model_aliases.push(
+                    gateway_store::control_plane::ModelAliasConfiguration {
+                        alias: "p12-test-model".into(),
+                        public_model_id: configuration.public_models[0].id.clone(),
+                    },
+                );
+            }
+            Ok(())
+        },
         |endpoints| configure(endpoints.values_mut().next().ok_or("runtime endpoint")?),
     )
 }
@@ -138,6 +151,26 @@ fn fixture_with_configuration(
     stored: bool,
     prepare: impl FnOnce(&mut ControlPlaneConfiguration) -> TestResult,
     configure: impl FnOnce(&mut BTreeMap<EndpointId, EndpointRuntime>) -> TestResult,
+) -> Result<Fixture, Box<dyn Error>> {
+    fixture_with_model_alias_proofs(channel, secret, stored, prepare, configure, |_, _| {
+        Ok(Arc::from([]))
+    })
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "isolated production bootstrap precedes frozen synthetic policy injection"
+)]
+fn fixture_with_model_alias_proofs(
+    channel: Channel,
+    secret: &[u8],
+    stored: bool,
+    prepare: impl FnOnce(&mut ControlPlaneConfiguration) -> TestResult,
+    configure: impl FnOnce(&mut BTreeMap<EndpointId, EndpointRuntime>) -> TestResult,
+    freeze: impl FnOnce(
+        &P12RoutedResponsesExecutor,
+        &ControlPlaneConfiguration,
+    ) -> Result<Arc<[provider_grok::GrokBuildModelAliasProof]>, Box<dyn Error>>,
 ) -> Result<Fixture, Box<dyn Error>> {
     let directory = TemporaryDirectory::new()?;
     let database = directory.path().join("batch-c.sqlite3");
@@ -270,6 +303,7 @@ fn fixture_with_configuration(
                     Arc::new(RuntimeHealthRegistry::new()),
                     Arc::new(RuntimeQuotaRegistry::new()),
                     Arc::new(GrokBuildCacheIdentityDeriver::new([0x64; 32])),
+                    Arc::from([]),
                     UpstreamProxy::Direct,
                     None,
                     None,
@@ -281,6 +315,7 @@ fn fixture_with_configuration(
             .join()
             .map_err(|_| "runtime factory thread")
     })??;
+    executor.grok_build_model_alias_proofs = freeze(&executor, &configuration)?;
     configure(Arc::get_mut(&mut executor.endpoints).ok_or("shared endpoints")?)?;
     let executor = Arc::new(executor);
     let mut state = ResponsesHttpState::with_snapshot_metadata_and_event_sink(

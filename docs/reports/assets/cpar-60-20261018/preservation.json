@@ -1,0 +1,15 @@
+{
+  "initial_entries": 49041,
+  "hashed_entries_unchanged": 48989,
+  "append_only": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "retained_directory_placeholders": 50,
+  "directory_baseline_limit": "git ls-files reported nested repositories as directory placeholders; no recursive byte baseline was claimed for them",
+  "unexpected_changes": [],
+  "symlink_target_content_and_prebaseline_metadata_verified": true,
+  "symlink_count": 10,
+  "baseline_manifest_sha256": "6ccd0f6c2fdc21d61ae7b85d7061e0c6065c3735387f38f08a78912f5c8aa158",
+  "index_still_empty": true
+}

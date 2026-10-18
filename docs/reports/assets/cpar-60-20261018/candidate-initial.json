@@ -1,0 +1,27 @@
+{
+  "base": "be6cf15b11a0834fe98fd5e07277390efe15e424",
+  "candidate": "5b8a08e3d763a803c3b070b701785a3b1107b124",
+  "tree": "9bb62c756157017ea5952b9ad58d35499aa2de3c",
+  "files": [
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs",
+    "crates/provider-grok/src/model_identity.rs",
+    "docs/adr/ADR-0110-build-model-identity.md",
+    "docs/adr/README.md",
+    "docs/contracts/BC-PROVIDER-016-build-model-identity.md",
+    "docs/reports/assets/cpar-60-20261018/cpar60-blockers-initial.json",
+    "docs/reports/assets/cpar-60-20261018/cpar60-claim-readback.json",
+    "docs/reports/assets/cpar-60-20261018/cpar60-issue58-initial.json",
+    "docs/reports/assets/cpar-60-20261018/cpar60-issue60-initial.json",
+    "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "docs/reports/assets/cpar-60-20261018/network-denial.json",
+    "docs/reports/cpar-60-model-identity-20261018.md",
+    "docs/traceability.md"
+  ],
+  "diff_command": "git diff be6cf15b11a0834fe98fd5e07277390efe15e424...5b8a08e3d763a803c3b070b701785a3b1107b124",
+  "commits": [
+    "5b8a08e3 Implement #60 Build model identity for fixed local validation"
+  ],
+  "original_index_empty": true,
+  "status": "INVALID_PREPARATION_OWNED_FILE_ENUMERATION",
+  "validation_run": false
+}

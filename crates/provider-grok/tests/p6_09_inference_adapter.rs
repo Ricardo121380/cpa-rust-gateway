@@ -219,14 +219,14 @@ fn credential() -> Result<GrokBuildCredential, provider_grok::GrokBuildOAuthErro
 
 fn request() -> Result<CanonicalRequest, Box<dyn Error>> {
     Ok(decode_request(
-        r#"{"model":"gateway-build","input":"Reply with exactly: ready","max_output_tokens":32}"#,
+        r#"{"model":"grok-4.5-build","input":"Reply with exactly: ready","max_output_tokens":32}"#,
     )?
     .request)
 }
 
 fn request_with_thinking() -> Result<CanonicalRequest, Box<dyn Error>> {
     Ok(decode_request(
-        r#"{"model":"gateway-build","input":"Reply with exactly: ready","max_output_tokens":32,"reasoning":{"effort":"medium"}}"#,
+        r#"{"model":"grok-4.5-build","input":"Reply with exactly: ready","max_output_tokens":32,"reasoning":{"effort":"medium"}}"#,
     )?
     .request)
 }
@@ -499,7 +499,7 @@ async fn native_reasoning_continuation_survives_public_json_sse_and_legacy_histo
                 }
                 assert_eq!(results.len(), 1);
                 input.extend(results.clone());
-                let replay = decode_request(&json!({"model":"grok-4.5", "input":input, "reasoning":{"effort":"low"}, "stream":upstream_stream}).to_string())?;
+                let replay = decode_request(&json!({"model":"grok-4.5-build", "input":input, "reasoning":{"effort":"low"}, "stream":upstream_stream}).to_string())?;
                 let events = collect(adapter.execute(context()?, replay.request).await?).await?;
                 assert_success_shape(&events);
                 assert_eq!(transport.call_count(), 2);
@@ -544,7 +544,7 @@ fn public_continuation_response(
     use protocol_openai_responses::{
         OpenAiResponseMetadata, OpenAiResponsesSseEncoder, encode_response,
     };
-    let metadata = OpenAiResponseMetadata::try_new("grok-4.5", 1_700_000_000)?;
+    let metadata = OpenAiResponseMetadata::try_new("grok-4.5-build", 1_700_000_000)?;
     let canonical = gateway_core::CanonicalResponse::try_new(events)?;
     let projected = gateway_router::project_protocol_response(
         &canonical,

@@ -1502,7 +1502,11 @@ async fn execute_responses_websocket_turn(
     execution = execution.with_client_transport(ResponsesClientTransport::WebSocket);
     let mut source = state
         .executor
-        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+        .execute_routed(
+            execution
+                .with_admitted_public_model(public_model.clone())
+                .with_event_sink(usage_observer.event_sink.clone()),
+        )
         .await
         .inspect_err(|error| usage_observer.fail(error))?;
     let Some(first @ CanonicalEvent::ResponseStart(_)) = source
@@ -1920,7 +1924,11 @@ async fn chat_completions(
         .with_route_snapshot(route.snapshot);
         let mut source = match state
             .executor
-            .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+            .execute_routed(
+                execution
+                    .with_admitted_public_model(public_model.clone())
+                    .with_event_sink(usage_observer.event_sink.clone()),
+            )
             .await
         {
             Ok(source) => source,
@@ -2101,7 +2109,11 @@ async fn responses(
         }
         let mut source = match state
             .executor
-            .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+            .execute_routed(
+                execution
+                    .with_admitted_public_model(public_model.clone())
+                    .with_event_sink(usage_observer.event_sink.clone()),
+            )
             .await
         {
             Ok(source) => source,
@@ -2318,7 +2330,11 @@ async fn compact_responses(
     .with_route_snapshot(route.snapshot);
     let mut source = match state
         .executor
-        .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+        .execute_routed(
+            execution
+                .with_admitted_public_model(public_model.clone())
+                .with_event_sink(usage_observer.event_sink.clone()),
+        )
         .await
     {
         Ok(source) => source,
@@ -2625,7 +2641,11 @@ async fn messages(
         .with_route_snapshot(route.snapshot);
         let mut source = match state
             .executor
-            .execute_routed(execution.with_event_sink(usage_observer.event_sink.clone()))
+            .execute_routed(
+                execution
+                    .with_admitted_public_model(public_model.clone())
+                    .with_event_sink(usage_observer.event_sink.clone()),
+            )
             .await
         {
             Ok(source) => source,

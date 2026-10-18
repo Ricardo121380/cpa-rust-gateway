@@ -1,0 +1,6 @@
+{
+  "probe": "local self RSS via platform ps under loopback-only policy",
+  "returncode": 71,
+  "stderr": "sandbox-exec: execvp() of '/bin/ps' failed: Operation not permitted",
+  "stdout_is_numeric": false
+}
