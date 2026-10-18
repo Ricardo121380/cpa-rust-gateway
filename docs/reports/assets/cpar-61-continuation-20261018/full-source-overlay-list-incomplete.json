@@ -1,0 +1,33 @@
+{
+  "source_commit": "38443146c1528d081794156261f6859ad195e255",
+  "tree": "772742747fb119507815860bc86074f35782a564",
+  "branch_baseline": "9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar-61-continuation-full-a6aefd9924",
+  "products": {
+    "crates/gateway-http-actix/src/lib.rs": "e58744426c18ca06425cc6b6e39caa5ca162f8557f144b61c874f64dc58be8f3",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "5235f7533642990c58361011b79331bbf7bbf951684509d6a1ae42012a219db0",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "8c2d21180b6ef5c7edb079edc1223cec515f3f27f1f3665543274d136bd0ba3a",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/recording_faults.rs": "2b64f5a34a01a3c322d021415011f478f46cfb66a982e2627526d873b30fdf69"
+  },
+  "user_overlays_in_validation_only": [
+    "AGENTS.md",
+    "CONTEXT.md",
+    "README.md",
+    "README.zh-CN.md",
+    "docs/06-development-plan.md",
+    "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/ADR-0106-native-fidelity-profile.md",
+    "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+    "docs/adr/ADR-0108-build-summary-standard-messages.md",
+    "docs/agents/domain.md",
+    "docs/agents/issue-tracker.md",
+    "docs/agents/triage-labels.md",
+    "docs/engineering-roadmap.md"
+  ],
+  "environment": {
+    "RUST_TEST_THREADS": "4",
+    "workspace_rust_tests": "loopback-only Seatbelt",
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target"
+  }
+}

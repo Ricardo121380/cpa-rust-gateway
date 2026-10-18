@@ -130,7 +130,28 @@ The [field review](../reports/cpar-61-field-qualification-20261018.md) is incomp
 actual JSON/SSE field. This section grants no metadata separation, root/item/part success
 retention, Messages summary omission, real alias or #61 completion.
 
+## #61 cancellation continuation (cost remains NOT_ADMITTED)
+
+[ADR-0112](../adr/ADR-0112-cancelled-stream-source-release.md) releases the upstream source and
+actual credential lease as soon as a received terminal/error or cancellation no longer needs it.
+An already pending local Usage confirmation can finish after resource release, without a second
+submission or an upstream read. Validated received Usage remains Attempt-bound and unpriced;
+unreceived terminal Usage stays UNKNOWN. The delivery owner keeps the Request incomplete/cancelled
+even if the native Attempt started and local recording later commits.
+
+Controlled public tests use the production compiler/factory and actual Build adapter. Only the
+fixed outbound request's socket handoff is replaced with an admitted numeric loopback target;
+the real UpstreamClientPool enforces idle and total deadlines. Body drop and real socket reset,
+physical truncation and semantic EOF, pending standard/private receipts, and an explicit later
+request establish scoped cancellation and capacity recovery. A TCP write-half-close alone is not
+defined as cancellation. No cost success policy, profile/transport switch or extra read is added.
+
 ## Corresponding tests
+
+- `public_build_disconnect_releases_upstream_before_pending_usage_receipt`
+- `public_build_cancellation_and_disconnect_stop_reads_and_restore_capacity`
+- `public_build_upstream_eof_idle_and_total_timeout_fail_once_without_resend`
+- `public_build_evidence_conflict_fails_once_and_keeps_original_exact_usage`
 
 - `public_build_rejects_unreviewed_root_fields_and_shapes`
 - `public_build_rejects_invalid_added_item_status`

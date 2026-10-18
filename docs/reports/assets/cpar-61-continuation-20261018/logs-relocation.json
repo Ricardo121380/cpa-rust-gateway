@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "members": 17,
+  "private_raw_copy": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar61-continuation-ap5sw2q4/raw-logs",
+  "verified_archive": "validation-logs.tar.gz",
+  "initial_preparation_error": "Path.rename rejected cross-device relocation with errno 18; no source log moved. Corrected to verified copy before removing this run own loose copy. No pre-existing entry touched."
+}

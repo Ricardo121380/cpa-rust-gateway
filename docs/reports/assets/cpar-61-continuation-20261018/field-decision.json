@@ -1,0 +1,9 @@
+{
+  "decision": "KEEP_NOT_ADMITTED",
+  "user_answer": "保持 NOT_ADMITTED，等待补充一手依据（推荐）",
+  "draft": "docs/reports/cpar-61-cost-contract-draft-20261018.md",
+  "recorded_at": "2026-10-18T13:41:55.268196+00:00",
+  "dependent_success_implementation": "BLOCKED",
+  "independent_build_cancel_failure_work": "CONTINUE",
+  "new_inference_requests": 0
+}

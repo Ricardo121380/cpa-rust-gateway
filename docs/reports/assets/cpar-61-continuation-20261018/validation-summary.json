@@ -1,0 +1,39 @@
+{
+  "ticket": 61,
+  "ticket_status": "PARTIAL_BLOCKED",
+  "field_admission": "NOT_ADMITTED",
+  "field_decision": "user keeps NOT_ADMITTED pending first-party evidence",
+  "full": {
+    "status": "PASS",
+    "steps": 45,
+    "source_commit": "38443146c1528d081794156261f6859ad195e255",
+    "tree": "772742747fb119507815860bc86074f35782a564",
+    "duration_seconds": 554.041,
+    "rust": {
+      "passed": 1542,
+      "failed": 0,
+      "ignored": 13
+    }
+  },
+  "directed_public_build": {
+    "passed": 28,
+    "failed": 0,
+    "ignored": 1,
+    "scope": "runtime::batch_c::grok: Build and shared native factory regressions"
+  },
+  "new_lifecycle_matrix": {
+    "groups": 4,
+    "controlled_variants": 9,
+    "status": "PASS",
+    "included_in_directed": true
+  },
+  "clippy": "PASS",
+  "all_raw_logs": 17,
+  "product_parity_with_full": "PASS",
+  "real_provider": "NOT_RUN",
+  "actual_clients": "NOT_RUN",
+  "push": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "review": "PENDING",
+  "preservation": "PASS: 49041 original entries, with the two owned append suffixes removed for comparison"
+}

@@ -1,0 +1,27 @@
+{
+  "command": [
+    "sandbox-exec",
+    "-f",
+    "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway",
+    "runtime::batch_c::grok::standard_responses::lifecycle",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+  "started_at": "2026-10-18T13:46:41.257306+00:00",
+  "exit_code": 0,
+  "duration_seconds": 18.29,
+  "source_sha256": {
+    "crates/gateway-http-actix/src/lib.rs": "e58744426c18ca06425cc6b6e39caa5ca162f8557f144b61c874f64dc58be8f3",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "5235f7533642990c58361011b79331bbf7bbf951684509d6a1ae42012a219db0",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "cbc5685107e5d81556b8508e74f582e3031eb42e66f9628b4effbac3ae1caf2c"
+  },
+  "log_sha256": "eee8925f11ef8f05e2f4c086d754587bcefbe79375864c2eee5b5c1b872598fc"
+}

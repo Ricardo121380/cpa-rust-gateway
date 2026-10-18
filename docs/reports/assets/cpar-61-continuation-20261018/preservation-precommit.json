@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "entries_checked": 49041,
+  "duration_seconds": 21.242,
+  "owned_append_exceptions": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "drift": [],
+  "directory_scope": "lstat mode/size only, no recursive descendants claim"
+}

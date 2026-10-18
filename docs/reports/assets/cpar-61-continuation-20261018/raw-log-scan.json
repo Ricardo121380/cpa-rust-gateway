@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "command": [
+    "scripts/secret-scan.sh",
+    "--all"
+  ],
+  "scope": "temporary index containing only uncompressed new raw logs; real index unchanged",
+  "log_count": 17,
+  "stdout": "secret-scan: ok (--all)\n",
+  "stderr": "",
+  "exit_code": 0
+}

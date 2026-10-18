@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/adr/README.md",
+    "original_dirty_sha256": "db07fe2c27dbc6802eff1bb86616a791156119c4d2751e0cfa97e586fee0d1e6",
+    "own_suffix_bytes": 258,
+    "own_suffix_sha256": "445e04d6c18328a688224939c303eb953306fc24d311906202d4442066463861",
+    "staged_owned_blob_sha256": "a1bce7ea2bb7e7e3aa51b9ebcc4e019091e1ab65c2a42c9c0d1ac85c8f531ee4",
+    "preservation": "PASS"
+  },
+  {
+    "path": "docs/traceability.md",
+    "original_dirty_sha256": "327fe21963c37c96a544bc925944f570c6aa7537a556533135bc5da281e6e433",
+    "own_suffix_bytes": 412,
+    "own_suffix_sha256": "f180edfef79c559b465db12eaa1141d968d68da6a7c5ee81be2d648806f1e763",
+    "staged_owned_blob_sha256": "a91a4b0d75b06442f28c76ee8df162300854867297cfcb23224bdc4c29572b48",
+    "preservation": "PASS"
+  }
+]

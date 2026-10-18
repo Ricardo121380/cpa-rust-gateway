@@ -1,0 +1,19 @@
+{
+  "runtime": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.8.2",
+    "npm": "11.19.1"
+  },
+  "cargo_wrapper": {
+    "path": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar61-continuation-ap5sw2q4/validation-bin/cargo",
+    "sha256": "f81c676afae2a26280d43ecbc7c37de6591a26500731b9c45e44ea2c392a143b",
+    "policy": "sandbox only cargo test --workspace; other required commands unchanged"
+  },
+  "network_policy": {
+    "path": "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "sha256": "590a6f7ce58f352483cd6388d620244205204876a3169ee04d94526faae9c501"
+  },
+  "workspace_rust_test_threads": 4,
+  "provider_inference_requests": 0
+}

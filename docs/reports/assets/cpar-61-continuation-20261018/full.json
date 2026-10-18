@@ -1,0 +1,17 @@
+{
+  "command": [
+    "scripts/check.sh",
+    "full"
+  ],
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar-61-continuation-full-a6aefd9924",
+  "started_at": "2026-10-18T13:55:55.435662+00:00",
+  "exit_code": 0,
+  "duration_seconds": 554.041,
+  "source_sha256": {
+    "crates/gateway-http-actix/src/lib.rs": "e58744426c18ca06425cc6b6e39caa5ca162f8557f144b61c874f64dc58be8f3",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "5235f7533642990c58361011b79331bbf7bbf951684509d6a1ae42012a219db0",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "8c2d21180b6ef5c7edb079edc1223cec515f3f27f1f3665543274d136bd0ba3a",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/recording_faults.rs": "2b64f5a34a01a3c322d021415011f478f46cfb66a982e2627526d873b30fdf69"
+  },
+  "log_sha256": "53a20aa5b5fffa20361e05ce352558aa7bea553b83d74d3a54b3cd2d54117746"
+}

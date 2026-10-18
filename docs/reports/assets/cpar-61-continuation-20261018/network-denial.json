@@ -1,0 +1,13 @@
+{
+  "command": [
+    "sandbox-exec",
+    "-f",
+    "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "python3",
+    "-c",
+    "import socket,json; s=socket.socket(); s.settimeout(1);\ntry:s.connect(('192.0.2.1',443));print('UNEXPECTED_CONNECTED')\nexcept OSError as e:print(json.dumps({'errno':e.errno,'error':str(e)}))"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"errno\": 1, \"error\": \"[Errno 1] Operation not permitted\"}\n",
+  "stderr": ""
+}

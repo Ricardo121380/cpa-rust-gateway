@@ -1,0 +1,13 @@
+{
+  "baseline": "9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8",
+  "source_commit": "2a95ba7f0427365615e5f518cd7d637bd9968548",
+  "tree": "fcfe0d2559bd37316475b94bc998aadebe4ab745",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar-61-continuation-red-05182e2739",
+  "note": "Current public tests on unchanged baseline production; isolated RED, not branch rollback.",
+  "products": {
+    "crates/gateway-http-actix/src/lib.rs": "793f4e507582b0113f0be1e8157e12acd70a772fe5ce7050f00b6a46b7d91442",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "5235f7533642990c58361011b79331bbf7bbf951684509d6a1ae42012a219db0",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "8c2d21180b6ef5c7edb079edc1223cec515f3f27f1f3665543274d136bd0ba3a",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/recording_faults.rs": "2b64f5a34a01a3c322d021415011f478f46cfb66a982e2627526d873b30fdf69"
+  }
+}

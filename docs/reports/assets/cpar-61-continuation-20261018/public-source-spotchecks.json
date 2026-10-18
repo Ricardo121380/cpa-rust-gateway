@@ -1,0 +1,32 @@
+[
+  {
+    "path": "crates/codegen/xai-grok-sampler/src/client.rs",
+    "sha256": "5b9ff7c6fbbb7eddbda9877539e66d6a8214e508201da7a7d0e60d6f3ab650ab",
+    "bytes": 143544,
+    "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs"
+  },
+  {
+    "path": "crates/codegen/xai-grok-sampling-types/src/conversation.rs",
+    "sha256": "3037023d7dd661b187134dbd4872ae66d7931b75bc3849367bc9b4875735399f",
+    "bytes": 200909,
+    "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation.rs"
+  },
+  {
+    "path": "crates/codegen/xai-grok-sampler/src/stream/responses.rs",
+    "sha256": "d32bf24f6985abc3e78d3f761c82a0cf292b7942ee2adf7be78757010cc9c56a",
+    "bytes": 70118,
+    "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/stream/responses.rs"
+  },
+  {
+    "path": "crates/codegen/xai-grok-version/src/lib.rs",
+    "sha256": "e48e64f30b2ba8061d0c68bc7140849f27f287a2ee40c3261d29ea4c8862ce06",
+    "bytes": 3720,
+    "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-version/src/lib.rs"
+  },
+  {
+    "path": "SOURCE_REV",
+    "sha256": "ef218bf538f31e240aff551a39d6d9a6564b03bb2a75c49f309bf46015ee3030",
+    "bytes": 41,
+    "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/SOURCE_REV"
+  }
+]

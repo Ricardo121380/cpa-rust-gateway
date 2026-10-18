@@ -3203,15 +3203,16 @@ async fn start_bounded_transport(
 }
 
 async fn pump_source(
-    mut source: Box<dyn ResponsesEventSource>,
+    source: Box<dyn ResponsesEventSource>,
     sender: CanonicalEventSender,
     cancellation: StreamCancellation,
     mut usage_observer: UsageEventObserver,
     stored_response: Option<StoredResponseWriteContext>,
     first: CanonicalEvent,
 ) {
+    let mut source = Some(source);
     pump_source_events(
-        source.as_mut(),
+        &mut source,
         sender,
         cancellation,
         &mut usage_observer,
@@ -3219,7 +3220,11 @@ async fn pump_source(
         first,
     )
     .await;
-    usage_observer.remember_decoded_usage(source.decoded_usage());
+    if let Some(source) = source.as_ref() {
+        usage_observer.remember_decoded_usage(source.decoded_usage());
+    }
+    // A local confirmation must not keep an upstream socket or credential lease alive.
+    drop(source);
     if let Err(error) = usage_observer.flush_usage().await {
         usage_observer.fail(&error);
     }
@@ -3230,7 +3235,7 @@ async fn pump_source(
     reason = "one lifecycle pump preserves private confirmation and single-terminal ordering"
 )]
 async fn pump_source_events(
-    source: &mut dyn ResponsesEventSource,
+    source: &mut Option<Box<dyn ResponsesEventSource>>,
     mut sender: CanonicalEventSender,
     cancellation: StreamCancellation,
     usage_observer: &mut UsageEventObserver,
@@ -3255,10 +3260,13 @@ async fn pump_source_events(
         None => None,
     };
     loop {
+        let Some(active) = source.as_mut() else {
+            return;
+        };
         let next = tokio::select! {
             biased;
             () = cancellation.cancelled() => return,
-            next = source.next_event() => next,
+            next = active.next_event() => next,
         };
 
         match next {
@@ -3267,6 +3275,12 @@ async fn pump_source_events(
                     event,
                     CanonicalEvent::ResponseEnd(_) | CanonicalEvent::StreamError(_)
                 );
+                if terminal {
+                    usage_observer.remember_decoded_usage(
+                        source.as_ref().and_then(|source| source.decoded_usage()),
+                    );
+                    drop(source.take());
+                }
                 if !matches!(event, CanonicalEvent::StreamError(_))
                     && let Some(capture) = stored_capture.as_mut()
                 {
@@ -3298,9 +3312,29 @@ async fn pump_source_events(
                     send_terminal_failure(&mut sender, error, &cancellation).await;
                     return;
                 }
-                if let Err(error) = usage_observer.observe(&event).await {
+                let mut cancelled_usage = None;
+                let observed = {
+                    let confirmation = usage_observer.observe(&event);
+                    tokio::pin!(confirmation);
+                    tokio::select! {
+                        biased;
+                        () = cancellation.cancelled() => {
+                            cancelled_usage = source.as_ref().and_then(|source| source.decoded_usage());
+                            drop(source.take());
+                            // Finish this one local confirmation after releasing network/lease
+                            // ownership. Dropping it or flushing again could lose or replay Usage.
+                            confirmation.await
+                        }
+                        result = &mut confirmation => result,
+                    }
+                };
+                usage_observer.remember_decoded_usage(cancelled_usage);
+                if let Err(error) = observed {
                     usage_observer.fail(&error);
                     send_terminal_failure(&mut sender, error, &cancellation).await;
+                    return;
+                }
+                if cancellation.is_cancelled() {
                     return;
                 }
                 if let Err(error) = sender.send(event.clone()).await {
@@ -3331,7 +3365,10 @@ async fn pump_source_events(
             Err(error) => {
                 // A rejected Usage may already be decoded in the source. Confirm it before
                 // publishing the failure, without asking the upstream for another event.
-                usage_observer.remember_decoded_usage(source.decoded_usage());
+                usage_observer.remember_decoded_usage(
+                    source.as_ref().and_then(|source| source.decoded_usage()),
+                );
+                drop(source.take());
                 let error = usage_observer.flush_usage().await.err().unwrap_or(error);
                 usage_observer.fail(&error);
                 send_terminal_failure(&mut sender, error, &cancellation).await;

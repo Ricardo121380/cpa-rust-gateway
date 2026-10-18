@@ -1,0 +1,8 @@
+{
+  "head": "9f7c15f72615ba25ea7ba47f4e0e992780d4f4a8",
+  "index": "",
+  "entry_count": 49041,
+  "baseline_sha256": "4cec831327270e860773dcb3edce154fb625104f7c1cb685bfbd43b0dc2ca529",
+  "compressed_sha256": "1f7e20b4195a448d5cd886a4c87a3501f875d1272f7a16933265038903b56256",
+  "note": "Original dirty regular-file bytes and modes, symlink targets and modes, nested-repository directory metadata. No descendant-byte claim for directory entries."
+}

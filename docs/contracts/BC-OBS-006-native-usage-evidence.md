@@ -105,7 +105,26 @@ key versions and exclusive expiry on an isolated copy. Do not apply the destruct
 or perform a binary-only rollback to remove retained evidence. Production restore/release still
 requires separate authorization and applicable artifact/system evidence.
 
+## #61 cancellation and conflict continuation
+
+[ADR-0112](../adr/ADR-0112-cancelled-stream-source-release.md) separates source/lease lifetime
+from a pending local confirmation. Cancellation releases network resources before finishing the
+same already-started confirmation. It does not reset the observer's single-submission state,
+re-enqueue a companion, read more upstream or change Request cancellation into success.
+Confirmed complete Usage and the Request's incomplete delivery are distinct facts.
+
+A public production-Build conflict test commits one complete companion and submits competing
+same-Attempt bytes with identical known counters at the existing event port. The real writer
+rejects/quarantines that conflict, preserves the original exact authorized readback and one
+Usage/source/ledger identity, and the public stream has one RecordingUnavailable failure.
+This is a controlled conflict injection, not a field admission or extra Provider request.
+The user retained cost NOT_ADMITTED; successful separated-metadata timing/fault qualification
+remains blocked. Schema, payload, reader, keys, TTL and settlement are unchanged.
+
 ## Corresponding tests
+
+- `public_build_disconnect_releases_upstream_before_pending_usage_receipt`
+- `public_build_evidence_conflict_fails_once_and_keeps_original_exact_usage`
 
 - `public_responses_rejection_retains_complete_encrypted_usage`
 - `public_responses_reports_private_recording_failure_without_losing_counters`
