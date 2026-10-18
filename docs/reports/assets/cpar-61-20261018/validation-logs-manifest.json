@@ -1,0 +1,125 @@
+{
+  "status": "PASS",
+  "archive": "validation-logs.tar.gz",
+  "archive_sha256": "f92f15d8f98936b003f1c10ac84ddb8cde09c90ef5e29a6e3a6d4059f416b3b1",
+  "archive_bytes": 129362,
+  "log_count": 23,
+  "members": [
+    {
+      "path": "logs/clippy-directed-fixed.log",
+      "bytes": 176,
+      "sha256": "bf6678c957ce60da8187c709fddff31d338fa084269b5770a5771412ff92136f"
+    },
+    {
+      "path": "logs/clippy-directed.log",
+      "bytes": 3365,
+      "sha256": "ffe98f44d1b692ac6fa21fd74aab4291fc615bd92264bd296339fc985aca2d70"
+    },
+    {
+      "path": "logs/coalesced-usage-green.log",
+      "bytes": 738,
+      "sha256": "47e011a7a34859fc9f2f7653f9e31914ee94f5767f538fbef5f09467ea91295c"
+    },
+    {
+      "path": "logs/coalesced-usage-red.log",
+      "bytes": 2221,
+      "sha256": "8b33c8bf5b52f555c93df168518a7005ca80a294fe422ca78da826372b91403b"
+    },
+    {
+      "path": "logs/directed-driver.log",
+      "bytes": 12810,
+      "sha256": "7487b7f24963414bb4bbdfcf63ef6726b50b2ab2c2bb97da82bf61753fae2cdd"
+    },
+    {
+      "path": "logs/failed-usage-green.log",
+      "bytes": 738,
+      "sha256": "b0b049b6e63f9b5163b1994068c380e15c2e773a5f5c8324dbecadbf8a6ac690"
+    },
+    {
+      "path": "logs/failed-usage-red.log",
+      "bytes": 1097,
+      "sha256": "a8b97d986da8f9880c1ee17d419618b123b7adca4ea7353cd562f74379430d66"
+    },
+    {
+      "path": "logs/full-after-wrapper.log",
+      "bytes": 195142,
+      "sha256": "f837c5c2d9f550574fa41cf0e76be5b8bf6f8288f363357ff3983553bc5b9cea"
+    },
+    {
+      "path": "logs/full-final.log",
+      "bytes": 123497,
+      "sha256": "398b0f44b8304ce205be11e0b10a86d3e8ebfdd55ce79a44747b10f57e8d4284"
+    },
+    {
+      "path": "logs/full-reviewed-code.log",
+      "bytes": 295949,
+      "sha256": "8de9f1157b7a28016b2b8898d9f5d3bd7a96fcb6f8f01fba4d626a29c93a367a"
+    },
+    {
+      "path": "logs/full.log",
+      "bytes": 4313,
+      "sha256": "9427ec7b28f21f98ee16c10d38f66b422a12c945ae045a3983e0d71d381aa5d9"
+    },
+    {
+      "path": "logs/native-parser-regression.log",
+      "bytes": 4955,
+      "sha256": "07d1986a7beba4c42618c0cadaa6cd85c780f67de6144500baa1ffebad613076"
+    },
+    {
+      "path": "logs/phase-green.log",
+      "bytes": 727,
+      "sha256": "a58980722d15edd3bbde05c19290cc159c58c8c92b4f8489fed25a4c8201d967"
+    },
+    {
+      "path": "logs/phase-red.log",
+      "bytes": 2016,
+      "sha256": "032ecff09ca2549054b9215d93bb3fbfb662a8061e4677fe2f46150fc338ccf1"
+    },
+    {
+      "path": "logs/public-build-regression.log",
+      "bytes": 7664,
+      "sha256": "126dd00297260978d49f9d4f26e80f29e78067167e6c83a72386711858f09eb5"
+    },
+    {
+      "path": "logs/public-disconnect-regression.log",
+      "bytes": 615,
+      "sha256": "9728f023b4c55ec3c499eb4712194d2addfcb040b1347cf21ad9bac8d30ac047"
+    },
+    {
+      "path": "logs/public-tool-rounds.log",
+      "bytes": 508,
+      "sha256": "3bc8fe2b567aa2e40f1954ba4faa44fa1bdf1a113a23cddc53a6a81d7bdac26a"
+    },
+    {
+      "path": "logs/root-green.log",
+      "bytes": 729,
+      "sha256": "e23128b245a58485fc74587788b933c322021f418d028234690901babeb6b0a0"
+    },
+    {
+      "path": "logs/root-red.log",
+      "bytes": 2581,
+      "sha256": "492e9e10aaad1c8fa0cbf834a06fba2033a0ab937b335cc0bf443baab5f4eb31"
+    },
+    {
+      "path": "logs/status-green.log",
+      "bytes": 721,
+      "sha256": "9a0006240d218770ce0c5f2e9ad275015487ff3d2b5ea094c471f22581d3b2bd"
+    },
+    {
+      "path": "logs/status-red.log",
+      "bytes": 2548,
+      "sha256": "b455a89a332600bcc1b16d2df7510733a349527bb8562d95219bb0674ddd6917"
+    },
+    {
+      "path": "logs/upstream-timeout-isolated.log",
+      "bytes": 792,
+      "sha256": "ba467515f5caa873dbac59a1bfc971eebb2c02b8280ae0df952a58fb7c61a6f7"
+    },
+    {
+      "path": "logs/usage-storage-regression.log",
+      "bytes": 985,
+      "sha256": "1abeef81db9b67acd9d140b3526f09045ece9bc878bc29783d31c9d7896d1060"
+    }
+  ],
+  "readback": "Every uncompressed member size and hash compared with original; source RED/FAIL logs remain untouched"
+}

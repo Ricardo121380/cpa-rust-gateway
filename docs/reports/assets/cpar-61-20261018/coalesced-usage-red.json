@@ -1,0 +1,28 @@
+{
+  "command": [
+    "sandbox-exec",
+    "-f",
+    "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway",
+    "public_build_failed_sse_retains_received_usage_on_exact_attempt",
+    "--",
+    "--nocapture"
+  ],
+  "started_at": "2026-10-18T11:05:32.337311+00:00",
+  "exit_code": 101,
+  "duration_seconds": 34.76,
+  "source_sha256": {
+    "crates/provider-grok/src/build_responses.rs": "a353dac26149f476cde2a48789fac12af5afc73879009fe00ed1656db3294903",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "5299beae986c056fc381d350cc208c56527e3e11775bee300b3cef3ad2d82b72",
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs": "61410914b2605a46b9082e2adbbe2538e523d6308b3ae674c88ebad80b39d510",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "f2e2e9d06eced934ff6caeb1c2a6a4bbb8bb13ce4c83cfb795bb8bdf7cdd1abe",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/tool_rounds.rs": "fc74b6ca5dadf7f763ee5b3195babb25e25947b707c4c7c0cffbfabfb6dd85e5"
+  },
+  "log_sha256": "8b33c8bf5b52f555c93df168518a7005ca80a294fe422ca78da826372b91403b"
+}

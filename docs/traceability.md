@@ -267,3 +267,5 @@ summary/body及模型关系未实施；标准与协商消费者资格分列，#4
 #59 的 Grok Build 失败完整诊断闭环对应 [ADR-0109](adr/ADR-0109-encrypted-failed-build-usage-evidence.md)、[BC-OBS-006](contracts/BC-OBS-006-native-usage-evidence.md) 与 [本轮报告](reports/cpar-59-encrypted-usage-20261018.md)。公共 Responses JSON/SSE、加密证据与已知用量/账本分别核对；不授予额外字段、客户端或真实渠道成功资格，不推进 #60 或关闭 #58/#9/#47/#57。
 
 #60 的三段模型身份核对对应 [ADR-0110](adr/ADR-0110-build-model-identity.md)、[BC-PROVIDER-024](contracts/BC-PROVIDER-024-build-model-identity.md) 与 [本轮报告](reports/cpar-60-model-identity-20261018.md)。公共 Responses JSON/SSE 经生产装配验证字面/合成冻结别名、范围拒绝、阶段一致性及独立零/一次接收；真实样本别名继续 UNKNOWN，不放开额外 Usage、不改变 reasoning 或推进 #61、#58/#9/#47/#57。
+
+#61 的标准 Responses 准备对应 [ADR-0111](adr/ADR-0111-build-response-rejection-integrity.md)、[字段资格记录](reports/cpar-61-field-qualification-20261018.md) 与 [本轮报告](reports/cpar-61-responses-20261018.md)。仅修复独立公共拒绝/失败 Usage 缺口及验证既有标准工具/summary；实际字段 JSON/SSE 共同资格与成功留存仍 BLOCKED，#61 保持 OPEN，不推进其他工单。

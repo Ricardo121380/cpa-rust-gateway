@@ -1,0 +1,150 @@
+{
+  "status": "PASS",
+  "read_at": "2026-10-18T11:14:26.788650+00:00",
+  "issues": [
+    {
+      "issue": 58,
+      "state": "OPEN",
+      "body_same": true,
+      "labels_same": true,
+      "comments_same": true,
+      "body_sha256": "05be6b4d2ead2272f37af7cb226cde4611cb1e13c3ed6ac715eec06f132958e6",
+      "dependencies": [
+        {
+          "relation": "blocked_by",
+          "targets": [],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [],
+          "same_normalized_response": true
+        },
+        {
+          "relation": "blocking",
+          "targets": [],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [],
+          "same_normalized_response": true
+        }
+      ]
+    },
+    {
+      "issue": 59,
+      "state": "CLOSED",
+      "body_same": true,
+      "labels_same": true,
+      "comments_same": true,
+      "body_sha256": "45044230795dc046a7cca5d57318f4c537cb1434aca5cda6f488b2e808a93a58",
+      "dependencies": [
+        {
+          "relation": "blocked_by",
+          "targets": [],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [],
+          "same_normalized_response": true
+        },
+        {
+          "relation": "blocking",
+          "targets": [
+            {
+              "number": 61,
+              "state": "open"
+            }
+          ],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [
+            {
+              "issue": 61,
+              "keys": [
+                "assignee",
+                "assignees",
+                "updated_at"
+              ]
+            }
+          ],
+          "same_normalized_response": false
+        }
+      ]
+    },
+    {
+      "issue": 60,
+      "state": "CLOSED",
+      "body_same": true,
+      "labels_same": true,
+      "comments_same": true,
+      "body_sha256": "4c0558dca8d9fe47445e8c123d90d2d26a4a09c9a24fa8e3364c381010f43b49",
+      "dependencies": [
+        {
+          "relation": "blocked_by",
+          "targets": [],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [],
+          "same_normalized_response": true
+        },
+        {
+          "relation": "blocking",
+          "targets": [
+            {
+              "number": 61,
+              "state": "open"
+            }
+          ],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [
+            {
+              "issue": 61,
+              "keys": [
+                "assignee",
+                "assignees",
+                "updated_at"
+              ]
+            }
+          ],
+          "same_normalized_response": false
+        }
+      ]
+    },
+    {
+      "issue": 61,
+      "state": "OPEN",
+      "body_same": true,
+      "labels_same": true,
+      "comments_same": true,
+      "body_sha256": "85c7ecd73fe765a898bd3e336cd8933149379f2cf506310bb15044a528fb0b08",
+      "dependencies": [
+        {
+          "relation": "blocked_by",
+          "targets": [
+            {
+              "number": 59,
+              "state": "closed"
+            },
+            {
+              "number": 60,
+              "state": "closed"
+            }
+          ],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [],
+          "same_normalized_response": true
+        },
+        {
+          "relation": "blocking",
+          "targets": [
+            {
+              "number": 62,
+              "state": "open"
+            },
+            {
+              "number": 63,
+              "state": "open"
+            }
+          ],
+          "same_edges_and_states": true,
+          "response_metadata_deltas": [],
+          "same_normalized_response": true
+        }
+      ]
+    }
+  ],
+  "authorized_mutation": "Only #61 assigned to Ricardo121380; result comment not yet posted",
+  "comparison_note": "Initial API arrays and new --slurp page arrays normalized. Dependency edges/states unchanged; nested #61 assignment/update metadata is expected from the independently read-back claim. First container-only DRIFT receipt is retained."
+}

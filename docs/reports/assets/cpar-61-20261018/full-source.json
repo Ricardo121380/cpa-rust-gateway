@@ -1,0 +1,23 @@
+{
+  "source_commit": "8bf3dd278c6fe147f853a3268bae037e19693995",
+  "baseline": "f2453ff25d7b1c56d42dfb1d0cf26cba674d4db4",
+  "tree": "760508482c10029da881d52095a4177463df773f",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar-61-full-8bf3dd278c6f",
+  "preserved_documentation_overlay": [
+    "CONTEXT.md",
+    "docs/agents/domain.md",
+    "docs/agents/issue-tracker.md",
+    "docs/agents/triage-labels.md",
+    "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+    "docs/adr/ADR-0108-build-summary-standard-messages.md",
+    "docs/engineering-roadmap.md"
+  ],
+  "products": {
+    "crates/provider-grok/src/build_responses.rs": "a353dac26149f476cde2a48789fac12af5afc73879009fe00ed1656db3294903",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "5299beae986c056fc381d350cc208c56527e3e11775bee300b3cef3ad2d82b72",
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs": "61410914b2605a46b9082e2adbbe2538e523d6308b3ae674c88ebad80b39d510",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "6eddb98cc3ad45e6a6ca4e30dc7bd86a2bc1eb1f8e050f2c26f1b8d6d5fe5139",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/tool_rounds.rs": "fc74b6ca5dadf7f763ee5b3195babb25e25947b707c4c7c0cffbfabfb6dd85e5"
+  },
+  "note": "Isolated local validation object only; baseline user changes are not authorized for the final branch commit."
+}

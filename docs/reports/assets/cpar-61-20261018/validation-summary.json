@@ -1,0 +1,58 @@
+{
+  "ticket": 61,
+  "ticket_status": "PARTIAL_BLOCKED",
+  "full": "PASS",
+  "completed_full_runs": [
+    "FAIL: validation wrapper blocked RSS ps",
+    "FAIL: rendered spec EOF whitespace",
+    "FAIL: existing gateway-upstream total-timeout test; exact isolated unchanged test passed"
+  ],
+  "last_completed_workspace_rust": {
+    "passed": 1538,
+    "failed": 0,
+    "ignored": 13
+  },
+  "directed": {
+    "passed": 73,
+    "failed": 0,
+    "ignored": 1
+  },
+  "review": {
+    "baseline": "f2453ff25d7b1c56d42dfb1d0cf26cba674d4db4",
+    "candidate": "d4ac176b149bf427820235b4a69902cd9fa4d340",
+    "standards": {
+      "verdict": "PASS",
+      "hard_findings": 0,
+      "judgements": 1,
+      "worst": "Nonblocking possible Duplicated Code in test setup"
+    },
+    "spec": {
+      "verdict": "PARTIAL_BLOCKED",
+      "completion_blocking_groups": 2,
+      "new_behavioral_bugs": 0,
+      "worst": "Actual field qualification and metadata success persistence missing"
+    },
+    "initial_findings_retained": "review-round1.md"
+  },
+  "real_provider": "NOT_RUN",
+  "actual_clients": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "push": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "previous_full_source": "6ff3fcc8b6ee3d31f4406b91e66703601bf378ae",
+  "full_source": "8ea7d88086d219dbdb91348335bc4fd31fb56411",
+  "full_steps_passed": 45,
+  "full_duration_seconds": 418.17,
+  "workspace_rust": {
+    "passed": 1538,
+    "failed": 0,
+    "ignored": 13
+  },
+  "coalesced_failure_regression": {
+    "passed": 1,
+    "failed": 0,
+    "variants": "standard/extra Usage \u00d7 separate/coalesced frame; same public test"
+  },
+  "preservation": "PASS: 49041 entries with declared nested-directory scope",
+  "dependency_readback": "PASS after page normalization; #61 claim metadata only"
+}

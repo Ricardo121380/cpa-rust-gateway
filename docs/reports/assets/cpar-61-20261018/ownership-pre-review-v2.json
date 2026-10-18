@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "new_untracked_paths": 47,
+  "new_modified_tracked_paths": [
+    "apps/gateway/src/runtime/batch_c/grok.rs",
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs",
+    "crates/provider-grok/src/build_responses.rs",
+    "docs/contracts/BC-PROVIDER-003-grok-build-responses-boundary.md"
+  ],
+  "unexpected_paths": [],
+  "initial_staged_paths": [],
+  "current_staged_paths": [],
+  "previous_receipt_note": "The first comparator called newly modified tracked files new paths; this version distinguishes untracked creation from owned tracked edits."
+}

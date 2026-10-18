@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "logs": 23,
+  "findings_paths_only": [],
+  "policy": "scripts/secret-scan.sh literal pattern; values never printed",
+  "pattern_sha256": "b3d5c8767cdc3f22d8c59cbdb48fd4b980cb16bc7558fb83a7da2c6da1f423c0"
+}

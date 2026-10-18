@@ -1,0 +1,31 @@
+{
+  "command": [
+    "sandbox-exec",
+    "-f",
+    "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "provider-grok",
+    "--test",
+    "p6_03_build_responses",
+    "--test",
+    "native_output_fidelity",
+    "--test",
+    "cpar_c_native_metadata",
+    "--test",
+    "cpar_native_usage"
+  ],
+  "started_at": "2026-10-18T10:46:44.898822+00:00",
+  "exit_code": 0,
+  "duration_seconds": 17.31,
+  "source_sha256": {
+    "crates/provider-grok/src/build_responses.rs": "a353dac26149f476cde2a48789fac12af5afc73879009fe00ed1656db3294903",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "5299beae986c056fc381d350cc208c56527e3e11775bee300b3cef3ad2d82b72",
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs": "61410914b2605a46b9082e2adbbe2538e523d6308b3ae674c88ebad80b39d510",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "4e8eec5629b69f7dafac178aa296c44df653d9469ad942bcdcba0c40fcd94bff",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/tool_rounds.rs": "31aec732494ca70406c1cc814923fe789e1960f60f785a6335160f2d4d2a5817"
+  },
+  "log_sha256": "07d1986a7beba4c42618c0cadaa6cd85c780f67de6144500baa1ffebad613076"
+}

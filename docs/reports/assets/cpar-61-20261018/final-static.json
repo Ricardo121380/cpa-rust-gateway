@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "run_at": "2026-10-18T11:18:02.032694+00:00",
+  "checks": [
+    {
+      "command": [
+        "scripts/check-doc-links.rb"
+      ],
+      "exit_code": 0,
+      "stdout": "doc-links: ok (1196 Markdown files)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "scripts/check-contract-tests.rb"
+      ],
+      "exit_code": 0,
+      "stdout": "contract-tests: ok (216 referenced tests resolved)\n",
+      "stderr": ""
+    }
+  ],
+  "scope": "Final documentation-only closeout after frozen product review; product tests remain bound to the passing Full source"
+}

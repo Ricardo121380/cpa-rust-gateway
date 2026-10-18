@@ -109,7 +109,35 @@ object slice, with a closed `grok.build.usage_source` label for JSON versus SSE 
 The public projector still rejects it. The sensitive companion is excluded from ordinary events;
 authorized readback, fixed TTL, commit confirmation and failure semantics follow ADR-0109.
 
+## #61 rejection preparation (metadata admission remains blocked)
+
+[ADR-0111](../adr/ADR-0111-build-response-rejection-integrity.md) closes the Build response root
+schema around consumed semantics and validates supplied item statuses before normalization.
+JSON and SSE use the same root rules. The fixed `object` tag, output/status shapes and applicable
+error/incomplete details are checked; unmapped root fields fail instead of disappearing.
+Created/in-progress SSE snapshots cannot contradict their phase or silently carry unconsumed
+nonempty output/Usage. Existing model-identity validation still precedes these shape checks.
+
+A native failed SSE terminal parses its already received Usage before failure. Valid counters
+remain on the same Attempt; extra Usage still rejects and uses BC-OBS-006's confirmed exact
+encrypted companion. No subsequent frame, request, retry or bill is needed to establish this.
+Failure commits before any already-coalesced tail is interpreted, so transport chunk boundaries
+cannot erase that Usage. A separately delivered tail stays unread; successful chunks keep their
+strict conflict checks.
+The received complete Usage object is not a claim that the whole failed response was retained.
+
+The [field review](../reports/cpar-61-field-qualification-20261018.md) is incomplete for a shared
+actual JSON/SSE field. This section grants no metadata separation, root/item/part success
+retention, Messages summary omission, real alias or #61 completion.
+
 ## Corresponding tests
+
+- `public_build_rejects_unreviewed_root_fields_and_shapes`
+- `public_build_rejects_invalid_added_item_status`
+- `public_build_failed_sse_retains_received_usage_on_exact_attempt`
+- `public_build_rejects_conflicting_sse_snapshot_status`
+- `public_build_rejects_known_request_controls_before_any_send`
+- `public_build_standard_json_and_fragmented_sse_keep_two_tool_cycles`
 
 - `grok_build_projection_rejection_has_safe_reason_and_request_id`
 - `grok_build_projection_failure_preserves_usage_and_ledger`

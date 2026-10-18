@@ -1,0 +1,16 @@
+{
+  "head": "f2453ff25d7b1c56d42dfb1d0cf26cba674d4db4",
+  "branch": "codex/prism-v4-delivery",
+  "initial_staged_paths": 0,
+  "existing_dirty_untracked_paths": 49041,
+  "existing_bytes": 21787017265,
+  "private_manifest": ".git/cpar61/preservation-baseline.json",
+  "manifest_sha256": "2c9e5f08aa325d32a461ec66bf1025e142616717e5304ad9aa502e947fc21dbb",
+  "tracked_initial_patch_sha256": "edd7a56efdcb6f4e291a7cacda18b59924aef31f7899b62cd493d72cbcff87bf",
+  "by_kind": {
+    "regular_files": 48981,
+    "symlinks": 10,
+    "nested_directory_entries": 50
+  },
+  "nested_directory_scope": "entry size and mode only; no descendant byte-parity claim"
+}

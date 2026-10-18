@@ -1,0 +1,19 @@
+{
+  "command": [
+    "sandbox-exec",
+    "-f",
+    "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway",
+    "public_build_rejects_unreviewed_root_fields_and_shapes",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 30.65
+}

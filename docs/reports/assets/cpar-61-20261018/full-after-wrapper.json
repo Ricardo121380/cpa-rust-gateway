@@ -1,0 +1,17 @@
+{
+  "command": [
+    "scripts/check.sh",
+    "full"
+  ],
+  "started_at": "2026-10-18T10:50:40.605295+00:00",
+  "exit_code": 2,
+  "duration_seconds": 447.55,
+  "source_sha256": {
+    "crates/provider-grok/src/build_responses.rs": "a353dac26149f476cde2a48789fac12af5afc73879009fe00ed1656db3294903",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "5299beae986c056fc381d350cc208c56527e3e11775bee300b3cef3ad2d82b72",
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs": "61410914b2605a46b9082e2adbbe2538e523d6308b3ae674c88ebad80b39d510",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "6eddb98cc3ad45e6a6ca4e30dc7bd86a2bc1eb1f8e050f2c26f1b8d6d5fe5139",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/tool_rounds.rs": "fc74b6ca5dadf7f763ee5b3195babb25e25947b707c4c7c0cffbfabfb6dd85e5"
+  },
+  "log_sha256": "f837c5c2d9f550574fa41cf0e76be5b8bf6f8288f363357ff3983553bc5b9cea"
+}

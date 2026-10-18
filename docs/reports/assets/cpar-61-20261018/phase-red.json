@@ -1,0 +1,27 @@
+{
+  "command": [
+    "sandbox-exec",
+    "-f",
+    "docs/reports/assets/cpar-60-20261018/loopback-only.sb",
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway",
+    "public_build_rejects_conflicting_sse_snapshot_status",
+    "--",
+    "--nocapture"
+  ],
+  "started_at": "2026-10-18T10:42:31.459228+00:00",
+  "exit_code": 101,
+  "duration_seconds": 19.68,
+  "source_sha256": {
+    "crates/provider-grok/src/build_responses.rs": "9394f0a468c7be82d6de4d8a0714d6fc2b3c895d0228ba45f6d4f9e838f5f8f6",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "5299beae986c056fc381d350cc208c56527e3e11775bee300b3cef3ad2d82b72",
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs": "c1158117ef0c3353c186b934962bec7f0fe86007021a3590063908a8d9226929",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs": "83240c7937ff1573d432498f38fcf46a8a48c60f78cd923f295bdf81b1680a83"
+  },
+  "log_sha256": "032ecff09ca2549054b9215d93bb3fbfb662a8061e4677fe2f46150fc338ccf1"
+}

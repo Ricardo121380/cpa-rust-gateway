@@ -1018,7 +1018,8 @@ impl GrokBuildResponsesStreamDecoder {
     /// Accepts one arbitrary raw SSE byte chunk and returns newly decoded Canonical events.
     ///
     /// State is committed only after the complete chunk is valid, so a malformed chunk cannot
-    /// advance the stream after partially decoded semantic events.
+    /// advance the stream after partially decoded semantic events. A validated failure commits
+    /// immediately and stops decoding: a coalesced tail cannot erase already received Usage.
     ///
     /// # Errors
     ///
@@ -1042,6 +1043,9 @@ impl GrokBuildResponsesStreamDecoder {
                 let mut record = std::mem::take(&mut pending);
                 record.truncate(record_length);
                 state.handle_sse_record(&record, &mut events)?;
+                if matches!(events.last(), Some(CanonicalEvent::StreamError(_))) {
+                    break;
+                }
             } else if pending.len() > MAX_GROK_BUILD_SSE_FRAME_BYTES + 4 {
                 return Err(stream_protocol_error());
             }
@@ -1154,6 +1158,14 @@ impl GrokBuildResponsesDecodeState {
         item: &Map<String, Value>,
         completed: bool,
     ) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+        if item.get("status").is_some_and(|value| {
+            !matches!(
+                value.as_str(),
+                Some("in_progress" | "completed" | "incomplete")
+            )
+        }) {
+            return Err(stream_protocol_error());
+        }
         let mut value = Value::Object(item.clone());
         if value.get("encrypted_content").is_some_and(|v| !v.is_null()) {
             self.reasoning_owner
@@ -1238,10 +1250,11 @@ impl GrokBuildResponsesDecodeState {
     ) -> Result<(), GatewayError> {
         let result = (|| match event_name {
             "keepalive" => Ok(()),
-            "response.created" => self.handle_response_created(
-                required_object(object, "response", stream_protocol_error())?,
-                events,
-            ),
+            "response.created" => {
+                let response = required_object(object, "response", stream_protocol_error())?;
+                self.handle_response_created(response, events)?;
+                validate_snapshot_status(response, "in_progress")
+            }
             "response.in_progress" => self.handle_response_in_progress(required_object(
                 object,
                 "response",
@@ -1324,6 +1337,7 @@ impl GrokBuildResponsesDecodeState {
         let canonical_id =
             ResponseId::try_new(response_id.to_owned()).map_err(|_| stream_protocol_error())?;
         self.validate_model(response)?;
+        validate_response_root(response)?;
         self.native_model = response
             .get("model")
             .and_then(Value::as_str)
@@ -1343,7 +1357,8 @@ impl GrokBuildResponsesDecodeState {
         &self,
         response: &Map<String, Value>,
     ) -> Result<(), GatewayError> {
-        self.require_matching_response(response)
+        self.require_matching_response(response)?;
+        validate_snapshot_status(response, "in_progress")
     }
 
     fn handle_output_item_added(
@@ -2120,6 +2135,19 @@ impl GrokBuildResponsesDecodeState {
     ) -> Result<(), GatewayError> {
         let response = required_object(event, "response", stream_protocol_error())?;
         self.require_matching_response(response)?;
+        validate_snapshot_status(response, "failed")?;
+        if let Some(usage) =
+            parse_usage(response, self.raw_usage.as_ref(), &stream_protocol_error())?
+        {
+            self.emit(
+                events,
+                CanonicalEvent::UsageDelta(UsageDelta {
+                    usage,
+                    is_final: true,
+                    extensions: RawExtensions::default(),
+                }),
+            )?;
+        }
         self.emit(
             events,
             CanonicalEvent::StreamError(StreamError {
@@ -2279,6 +2307,7 @@ impl GrokBuildResponsesDecodeState {
 
     fn require_matching_response(&self, response: &Map<String, Value>) -> Result<(), GatewayError> {
         self.validate_model(response)?;
+        validate_response_root(response)?;
         let response_id = required_identifier(response, "id", stream_protocol_error())?;
         if self.response_id.as_deref() == Some(response_id) {
             Ok(())
@@ -2323,6 +2352,69 @@ impl GrokBuildResponsesDecodeState {
         events.push(event);
         Ok(())
     }
+}
+
+// Only fields consumed by this decoder are admitted. In particular, a familiar-looking
+// metadata/control/timestamp field has no separation authority merely because it is JSON.
+fn validate_response_root(response: &Map<String, Value>) -> Result<(), GatewayError> {
+    if response.keys().any(|key| {
+        !matches!(
+            key.as_str(),
+            "id" | "model"
+                | "object"
+                | "status"
+                | "output"
+                | "usage"
+                | "incomplete_details"
+                | "error"
+        )
+    }) || response.get("object").is_some_and(|v| v != "response")
+        || response.get("output").is_some_and(|v| !v.is_array())
+        || response.get("status").is_some_and(|v| {
+            !matches!(
+                v.as_str(),
+                Some("in_progress" | "completed" | "incomplete" | "failed")
+            )
+        })
+        || response.get("error").is_some_and(|v| {
+            !v.is_null()
+                && (response.get("status").and_then(Value::as_str) != Some("failed")
+                    || !v.is_object())
+        })
+        || response.get("incomplete_details").is_some_and(|v| {
+            !v.is_null()
+                && (response.get("status").and_then(Value::as_str) != Some("incomplete")
+                    || v.as_object().is_none_or(|details| {
+                        details.len() != 1
+                            || !matches!(
+                                details.get("reason").and_then(Value::as_str),
+                                Some("max_output_tokens" | "content_filter")
+                            )
+                    }))
+        })
+    {
+        return Err(stream_protocol_error());
+    }
+    Ok(())
+}
+
+fn validate_snapshot_status(
+    response: &Map<String, Value>,
+    expected: &str,
+) -> Result<(), GatewayError> {
+    if response
+        .get("status")
+        .is_some_and(|v| v.as_str() != Some(expected))
+        || expected == "in_progress"
+            && (response
+                .get("output")
+                .and_then(Value::as_array)
+                .is_some_and(|v| !v.is_empty())
+                || response.get("usage").is_some_and(|v| !v.is_null()))
+    {
+        return Err(stream_protocol_error());
+    }
+    Ok(())
 }
 
 fn normalize_tool_arguments(arguments: &str) -> Result<String, GatewayError> {

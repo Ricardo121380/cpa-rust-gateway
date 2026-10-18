@@ -1,0 +1,10 @@
+{
+  "new_paths": 51,
+  "unexpected_new_paths": [
+    "apps/gateway/src/runtime/batch_c/grok.rs",
+    "apps/gateway/src/runtime/batch_c/grok/model_identity.rs",
+    "crates/provider-grok/src/build_responses.rs",
+    "docs/contracts/BC-PROVIDER-003-grok-build-responses-boundary.md"
+  ],
+  "staged_paths": []
+}

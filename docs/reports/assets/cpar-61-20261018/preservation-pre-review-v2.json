@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checked_existing_paths": 49041,
+  "by_kind": {
+    "file": 48981,
+    "nested_directory_entry": 50,
+    "symlink": 10
+  },
+  "unrelated_changed_or_missing": [],
+  "owned_shared_appends": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "directory_scope": "Git reports nested repository directories as entries; only their original entry size and mode were frozen. No descendant byte-parity claim is made."
+}

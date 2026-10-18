@@ -8,22 +8,22 @@ use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 use std::sync::atomic::AtomicBool;
 
-struct ModelPeer {
+pub(super) struct ModelPeer {
     url: String,
-    requests: Arc<Mutex<Vec<ModelRequest>>>,
+    pub(super) requests: Arc<Mutex<Vec<ModelRequest>>>,
     stopping: Arc<AtomicBool>,
-    delivered: Arc<AtomicUsize>,
-    reads_after_body: Arc<AtomicUsize>,
+    pub(super) delivered: Arc<AtomicUsize>,
+    pub(super) reads_after_body: Arc<AtomicUsize>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
-struct ModelRequest {
-    body: Value,
-    model_override: String,
+pub(super) struct ModelRequest {
+    pub(super) body: Value,
+    pub(super) model_override: String,
 }
 
 impl ModelPeer {
-    fn start(streaming: bool, response: Value) -> Result<Self, Box<dyn Error>> {
+    pub(super) fn start(streaming: bool, response: Value) -> Result<Self, Box<dyn Error>> {
         let bytes = if streaming {
             let completed = response.clone();
             let mut created = response;
@@ -43,7 +43,17 @@ impl ModelPeer {
         Self::start_wire(streaming, bytes)
     }
 
-    fn start_wire(streaming: bool, bytes: String) -> Result<Self, Box<dyn Error>> {
+    pub(super) fn start_wire(streaming: bool, bytes: String) -> Result<Self, Box<dyn Error>> {
+        Self::start_sequence(streaming, vec![bytes])
+    }
+
+    pub(super) fn start_sequence(
+        streaming: bool,
+        responses: Vec<String>,
+    ) -> Result<Self, Box<dyn Error>> {
+        if responses.is_empty() {
+            return Err("synthetic response sequence is empty".into());
+        }
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
         listener.set_nonblocking(true)?;
         let url = format!("http://{}/responses", listener.local_addr()?);
@@ -52,6 +62,7 @@ impl ModelPeer {
         let stopping = Arc::new(AtomicBool::new(false));
         let stop = stopping.clone();
         let thread = std::thread::spawn(move || {
+            let mut request_index = 0;
             while !stop.load(Ordering::Acquire) {
                 let (mut socket, _) = match listener.accept() {
                     Ok(connection) => connection,
@@ -89,6 +100,8 @@ impl ModelPeer {
                         }
                     }
                 }
+                let bytes = &responses[request_index.min(responses.len() - 1)];
+                request_index += 1;
                 let kind = if streaming {
                     "text/event-stream"
                 } else {

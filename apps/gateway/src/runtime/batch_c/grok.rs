@@ -2,6 +2,7 @@ use super::*;
 mod model_identity;
 mod native_chat_offline;
 mod projection_usage;
+mod standard_responses;
 mod usage_evidence;
 use provider_grok::{
     GrokBuildResponseBody, GrokBuildResponseContentType, GrokBuildResponsesOutboundRequest,

@@ -136,3 +136,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0109 Encrypted native Usage evidence on rejected Build Attempts](ADR-0109-encrypted-failed-build-usage-evidence.md) — `#59 / #58 T06–T08`（Accepted；有界确认、exact owner、schema 35、授权本机 reader；标准 Usage 拒绝保持，验收见本票报告）。
 
 - [ADR-0110 Attempt-bound Grok Build model identity](ADR-0110-build-model-identity.md) — `#60 / #58 T02、T09`（Accepted；公共/实际上游/原生模型核对、冻结有范围证据与准确非重试拒绝；真实别名继续 UNKNOWN）。
+
+- [ADR-0111 Build response rejection integrity](ADR-0111-build-response-rejection-integrity.md) — `#61 / #58 T03、T07–T09`（Accepted；root/status/失败 SSE Usage 修复；实际元数据准入仍 BLOCKED，#61 保持 OPEN）。

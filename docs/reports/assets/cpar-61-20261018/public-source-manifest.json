@@ -1,0 +1,41 @@
+{
+  "repository": "xai-org/grok-build",
+  "ref": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "observed_at": "2026-10-18T10:45:28.274289+00:00",
+  "source": "read-only gh api, public files only",
+  "files": [
+    {
+      "path": "crates/codegen/xai-grok-sampler/src/client.rs",
+      "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs",
+      "sha256": "5b9ff7c6fbbb7eddbda9877539e66d6a8214e508201da7a7d0e60d6f3ab650ab",
+      "bytes": 143544
+    },
+    {
+      "path": "crates/codegen/xai-grok-sampler/src/stream/responses.rs",
+      "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/stream/responses.rs",
+      "sha256": "d32bf24f6985abc3e78d3f761c82a0cf292b7942ee2adf7be78757010cc9c56a",
+      "bytes": 70118
+    },
+    {
+      "path": "crates/codegen/xai-grok-sampling-types/src/conversation.rs",
+      "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation.rs",
+      "sha256": "3037023d7dd661b187134dbd4872ae66d7931b75bc3849367bc9b4875735399f",
+      "bytes": 200909
+    },
+    {
+      "path": "crates/codegen/xai-grok-sampling-types/src/types.rs",
+      "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/types.rs",
+      "sha256": "d27202235388c84d068b130d70beb48e866a4fa631bdd21fc374100e39ac6cea",
+      "bytes": 58943
+    },
+    {
+      "path": "crates/codegen/xai-grok-config/src/endpoints.rs",
+      "url": "https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-config/src/endpoints.rs",
+      "sha256": "1a8cdd04ad948d7a2d6fcdc932d90a3814dc9d93bfd06e9b920448bd71be4dfd",
+      "bytes": 17400
+    }
+  ],
+  "admission": "NOT_ADMITTED",
+  "sse_cost_semantics": "FIRST_PARTY_CLIENT_EVIDENCE",
+  "json_profile_applicability": "UNKNOWN"
+}

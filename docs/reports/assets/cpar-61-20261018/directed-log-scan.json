@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "files": 16,
+  "finding_files": [],
+  "scanner_exit": 1,
+  "stderr": "",
+  "file_sha256": {
+    "status-green.log": "9a0006240d218770ce0c5f2e9ad275015487ff3d2b5ea094c471f22581d3b2bd",
+    "failed-usage-green.log": "b0b049b6e63f9b5163b1994068c380e15c2e773a5f5c8324dbecadbf8a6ac690",
+    "public-build-regression.log": "126dd00297260978d49f9d4f26e80f29e78067167e6c83a72386711858f09eb5",
+    "clippy-directed.log": "ffe98f44d1b692ac6fa21fd74aab4291fc615bd92264bd296339fc985aca2d70",
+    "root-red.log": "492e9e10aaad1c8fa0cbf834a06fba2033a0ab937b335cc0bf443baab5f4eb31",
+    "status-red.log": "b455a89a332600bcc1b16d2df7510733a349527bb8562d95219bb0674ddd6917",
+    "public-disconnect-regression.log": "9728f023b4c55ec3c499eb4712194d2addfcb040b1347cf21ad9bac8d30ac047",
+    "phase-green.log": "a58980722d15edd3bbde05c19290cc159c58c8c92b4f8489fed25a4c8201d967",
+    "failed-usage-red.log": "a8b97d986da8f9880c1ee17d419618b123b7adca4ea7353cd562f74379430d66",
+    "clippy-directed-fixed.log": "bf6678c957ce60da8187c709fddff31d338fa084269b5770a5771412ff92136f",
+    "native-parser-regression.log": "07d1986a7beba4c42618c0cadaa6cd85c780f67de6144500baa1ffebad613076",
+    "public-tool-rounds.log": "3bc8fe2b567aa2e40f1954ba4faa44fa1bdf1a113a23cddc53a6a81d7bdac26a",
+    "usage-storage-regression.log": "1abeef81db9b67acd9d140b3526f09045ece9bc878bc29783d31c9d7896d1060",
+    "phase-red.log": "032ecff09ca2549054b9215d93bb3fbfb662a8061e4677fe2f46150fc338ccf1",
+    "directed-driver.log": "7487b7f24963414bb4bbdfcf63ef6726b50b2ab2c2bb97da82bf61753fae2cdd",
+    "root-green.log": "e23128b245a58485fc74587788b933c322021f418d028234690901babeb6b0a0"
+  }
+}

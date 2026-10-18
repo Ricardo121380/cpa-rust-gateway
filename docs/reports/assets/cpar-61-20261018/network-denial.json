@@ -1,0 +1,14 @@
+{
+  "exit_code": 0,
+  "data": {
+    "loopback": {
+      "connected": true
+    },
+    "non_loopback": {
+      "connected": false,
+      "errno": 1,
+      "error": "[Errno 1] Operation not permitted"
+    }
+  },
+  "stderr": ""
+}

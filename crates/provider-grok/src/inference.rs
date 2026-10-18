@@ -549,6 +549,10 @@ impl StreamingEventSource {
         if matches!(event, CanonicalEvent::ResponseStart(_)) {
             self.response_started = true;
         }
+        if matches!(event, CanonicalEvent::StreamError(_)) {
+            self.terminal_failure_emitted = true;
+            self.finished = true;
+        }
         Some(event)
     }
 
