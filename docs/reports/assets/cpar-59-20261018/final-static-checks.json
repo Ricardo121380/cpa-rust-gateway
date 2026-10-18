@@ -1,0 +1,9 @@
+{
+  "doc_links": "PASS: 1178 Markdown files",
+  "contract_tests": "PASS: 202 referenced tests resolved",
+  "staged_secret_scan": "PASS",
+  "staged_whitespace": "PASS",
+  "product_hash_identity": "PASS: 21/21 tested=reviewed=staged",
+  "post_review_delta": "only receipts/status and BC-OBS-006 contract numbering+links",
+  "no_full_rerun_for_document_delta": true
+}

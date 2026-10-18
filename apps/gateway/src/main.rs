@@ -17,6 +17,7 @@ mod provider_account_pool_adapter;
 mod provider_egress_status_adapter;
 mod runtime;
 mod storage_capacity;
+mod usage_evidence;
 
 use std::{collections::BTreeMap, env, error::Error, fmt, process::ExitCode};
 
@@ -81,6 +82,9 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
         }
         GatewayCommand::AdminLogin(command) => {
             admin_login::run(&command).map_err(CliError::AdminLogin)
+        }
+        GatewayCommand::UsageEvidence(command) => {
+            usage_evidence::run(&command).map_err(|()| CliError::UsageEvidence)
         }
     }
 }
@@ -224,6 +228,7 @@ fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
 }
 
 enum GatewayCommand {
+    UsageEvidence(usage_evidence::Command),
     Admin(AdminCommand),
     Serve(deployment::ServeCommand),
     CatalogCheck(deployment::ServeCommand, String, String, bool),
@@ -322,6 +327,9 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
     let mut arguments = arguments.into_iter();
     let top_level = arguments.next().ok_or(CliError::Usage)?;
     match top_level.as_str() {
+        "usage-evidence" => {
+            usage_evidence::parse(arguments.collect()).map(GatewayCommand::UsageEvidence)
+        }
         "admin" => parse_admin_command(arguments.collect()).map(GatewayCommand::Admin),
         "catalog-check" | "kimi-metadata-check" => {
             let mut options = parse_options(arguments.collect())?;
@@ -480,6 +488,9 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 
 fn print_usage() {
     println!(
+        "Private diagnostic: gateway usage-evidence --db <path> --master-key-dir <directory> --active-master-key-version <version> --client-key-id <owner> --request-id <id> --attempt-id <id> --output <new-file-in-private-0700-directory>"
+    );
+    println!(
         "Metadata acceptance: gateway <catalog-check|kimi-metadata-check> --state-dir <marked-isolated-copy> --credential-dir <absolute-dir> --endpoint-id <id> --credential-id <id> (no listeners, inference or background renewal)"
     );
     println!(
@@ -498,6 +509,7 @@ fn print_usage() {
 
 #[derive(Debug)]
 enum CliError {
+    UsageEvidence,
     Usage,
     MissingOption(&'static str),
     MissingValue,
@@ -514,6 +526,8 @@ enum CliError {
 impl fmt::Display for CliError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::UsageEvidence => formatter
+                .write_str("native Usage diagnostic unavailable; no retention confirmation"),
             Self::Usage => formatter.write_str("invalid command; pass --help for usage"),
             Self::MissingOption(option) => {
                 write!(formatter, "required option is missing: {option}")
@@ -543,6 +557,7 @@ impl Error for CliError {
             Self::GrokAdmin(error) => Some(error),
             Self::AdminLogin(error) => Some(error),
             Self::Usage
+            | Self::UsageEvidence
             | Self::MissingOption(_)
             | Self::MissingValue
             | Self::DuplicateOption

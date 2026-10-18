@@ -16,6 +16,8 @@ pub mod control_plane;
 pub mod credential_refresh;
 /// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.
 pub mod event_store;
+/// Private Attempt-scoped native Usage and its authorized read-only diagnostic boundary.
+pub mod native_usage;
 pub mod secret_store;
 /// Client-key-owned, AEAD-sealed Canonical Responses with bounded TTL and garbage collection.
 pub mod stored_response;
@@ -59,7 +61,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 34;
+pub const CURRENT_SCHEMA_VERSION: i64 = 35;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -238,6 +240,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 34,
         up: include_str!("../migrations/0034_attempt_execution.up.sql"),
         down: include_str!("../migrations/0034_attempt_execution.down.sql"),
+    },
+    Migration {
+        version: 35,
+        up: include_str!("../migrations/0035_native_usage_evidence.up.sql"),
+        down: include_str!("../migrations/0035_native_usage_evidence.down.sql"),
     },
 ];
 
@@ -772,6 +779,7 @@ mod tests {
                 "native_account_import_receipts",
                 "native_account_inventory_generation",
                 "native_account_management_events",
+                "native_usage_evidence",
                 "public_models",
                 "route_candidates",
                 "routing_price_policies",

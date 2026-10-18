@@ -1,0 +1,177 @@
+[
+  {
+    "name": "check-first.log",
+    "bytes": 2697,
+    "sha256": "4a3a9aaf902ba5ff538fbade302e67b82725c1dfb52e07a92b63f8ee0fdf7fc8"
+  },
+  {
+    "name": "clippy-fifth.log",
+    "bytes": 4466,
+    "sha256": "f73d8ee724b60d5a98ab948b80177b8545160856d5a8c3d942e1e6f23fb3ed81"
+  },
+  {
+    "name": "clippy-final.log",
+    "bytes": 1287,
+    "sha256": "9df7be1d4e6fe2a6178e0e57fbe3503d00cad525fc0ba33e21da46836b50040f"
+  },
+  {
+    "name": "clippy-first.log",
+    "bytes": 2604,
+    "sha256": "f40efdedfd3a7967988524a86d205ee0e4158ad8dcbac36d1340b0003fb1e043"
+  },
+  {
+    "name": "clippy-fourth.log",
+    "bytes": 1217,
+    "sha256": "da9474d9546bef2840270fff1038ccb09d1879eed0aa2e651c82d2b2b9c5fe3d"
+  },
+  {
+    "name": "clippy-second.log",
+    "bytes": 1578,
+    "sha256": "d018ac1f702740dff33cfb00a6540a9aba95daa85dad5ce497afc93f9603ce5c"
+  },
+  {
+    "name": "clippy-seventh.log",
+    "bytes": 176,
+    "sha256": "9423817c8215947f4965d4f60d2bdbe9348ae39ff58af1a46c7683c1e0d0d410"
+  },
+  {
+    "name": "clippy-sixth.log",
+    "bytes": 3222,
+    "sha256": "8ebc7745ffa2d6c03fba45633bfcec9888a71797093c44681d5f0739c7c98dde"
+  },
+  {
+    "name": "clippy-third.log",
+    "bytes": 2148,
+    "sha256": "56cc0f0bf2681dba696f33740d62077c3387a95ba4aeb3c7e147f94c0b0dee50"
+  },
+  {
+    "name": "evidence-targeted.log",
+    "bytes": 2328,
+    "sha256": "549306b9c57222861a3a5121abe36a53fed7e92993b981936ce97f336549c22e"
+  },
+  {
+    "name": "fault-red-behavior.log",
+    "bytes": 1147,
+    "sha256": "8a81a9f8120a4b022a196737301298106bd1d774b7e42807855d8e62739fe713"
+  },
+  {
+    "name": "fault-red-confirmed.log",
+    "bytes": 1098,
+    "sha256": "ffa9a8c2cd2037884286e8b156a9920412d029b77c5410e77c343138ccaf930c"
+  },
+  {
+    "name": "fault-red.log",
+    "bytes": 1486,
+    "sha256": "b20f6599ffc589e76565f195deb12c6782bd03372ff71556d01dee3a76c2a103"
+  },
+  {
+    "name": "full-after-review.log",
+    "bytes": 290024,
+    "sha256": "38b27906aba3835234c2b27a703a9590e5d1707806c0f4dd96aa43ccd994ebcf"
+  },
+  {
+    "name": "full-initial.log",
+    "bytes": 117536,
+    "sha256": "5e93bb9adcb58e0d7474cdb5d648807fcbf3f9d9a9ba95bae071e1d4e77e5ffc"
+  },
+  {
+    "name": "full.log",
+    "bytes": 290093,
+    "sha256": "eb6142136939f47eea88effb6d4463072cec9989daf06dcb59640e10866bed8c"
+  },
+  {
+    "name": "index-integrity-fixture-guard.log",
+    "bytes": 1730,
+    "sha256": "def9b43322b9cae50a43b2e2c990a0ebce6c62e042460f68c1f6b108c7fc2d69"
+  },
+  {
+    "name": "index-integrity-red.log",
+    "bytes": 911,
+    "sha256": "a8a3da76645383c4964acd88cd0127d53132673cb04e648d2b0c3987d8fa6553"
+  },
+  {
+    "name": "maintenance-green.log",
+    "bytes": 781,
+    "sha256": "e65ac938426d2a2883eab188f3bfe403fa6aa36a5af2c49f718c2365894d994f"
+  },
+  {
+    "name": "maintenance-red.log",
+    "bytes": 1786,
+    "sha256": "b649a007ce7341a5d98572658bd54f9695336b217d5e5d76ace6c5b1a9df3481"
+  },
+  {
+    "name": "missing-lineage-red.log",
+    "bytes": 980,
+    "sha256": "6595200641a5d724622bc4783831a9f7159c1a52a29d8789283e5d7abcb0d57b"
+  },
+  {
+    "name": "public-fault-complete.log",
+    "bytes": 3032,
+    "sha256": "b213d0d1f333d92b7a97a14de58ac1a43f4cce930261b4a217381cfe91a0bd63"
+  },
+  {
+    "name": "public-fault-confirmed.log",
+    "bytes": 919,
+    "sha256": "2f3f2397c23d1ed419910fafc3d210e966a5ce98587b0cc52aebf773948b391c"
+  },
+  {
+    "name": "public-final.log",
+    "bytes": 1366,
+    "sha256": "841812a69fc676ecec7ac2aff40e1dad116463b60aed62cfd615975f4cf8eb81"
+  },
+  {
+    "name": "public-green-first.log",
+    "bytes": 3088,
+    "sha256": "fce41a4cdfed6af49c481d14a9c97d48b5aa5aef9b0ea0e6af3c2fa468388e29"
+  },
+  {
+    "name": "public-green.log",
+    "bytes": 2100,
+    "sha256": "44c789cb9946823a19f244a3d87d578ac3e591abfb788099c8df9fb3c4cc6c1a"
+  },
+  {
+    "name": "public-legal-failure-green.log",
+    "bytes": 1238,
+    "sha256": "182c1bfa049f8f9b03c5d191546d88b296e63657d399612fbbb89823411950a2"
+  },
+  {
+    "name": "public-readback.log",
+    "bytes": 3886,
+    "sha256": "5ccea6b560eb6247510d9bb31f4acd1f678c71ddcd5aa7dc371e97612b6ea4af"
+  },
+  {
+    "name": "public-red-confirmed.log",
+    "bytes": 1071,
+    "sha256": "5e1ce9907370634845781554ffb0be357c9eef127b1148e58ac0096410449efa"
+  },
+  {
+    "name": "public-red.log",
+    "bytes": 1060,
+    "sha256": "0f57895fffe3c1a62d647cf2aae836f83146361792b66291832c2f4226ea4cea"
+  },
+  {
+    "name": "schema-inventory-green.log",
+    "bytes": 720,
+    "sha256": "43ba3f557a04cf1516b93b679a3032da51ef9686d0ff1c16f59ba58853340a45"
+  },
+  {
+    "name": "storage-cli-final.log",
+    "bytes": 1911,
+    "sha256": "3025d6c8929c83cba843d5c7c5bd809fcac80cfe12263374ba86676e211d5f39"
+  },
+  {
+    "name": "storage-cli-first.log",
+    "bytes": 1604,
+    "sha256": "209444524074068f840bff698363c23e08b77aa4426adf75118c40a0150dde9f"
+  },
+  {
+    "name": "storage-cli-green.log",
+    "bytes": 1753,
+    "sha256": "f9b7feb9728399cf207595decd8e82937018276921cda2d92070abcbe1949a87"
+  },
+  {
+    "name": "storage-index-green.log",
+    "bytes": 1975,
+    "sha256": "e077aceb7b8e7f3a7367a595c940c77e406894ba94aa050f3cdd0fe6ccf997b9"
+  }
+]

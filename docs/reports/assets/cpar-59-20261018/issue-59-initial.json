@@ -1,0 +1,16 @@
+{
+  "assignees": [],
+  "body": "## Parent\n\n[产品规格 #58：CPAR Rust 网关目标与三客户端首版范围](https://github.com/Ricardo121380/cpa-rust-gateway/issues/58)\n\n## What to build\n\n一次通过公共 Responses 入口的 Build 请求即使因额外 Usage 被拒绝，操作者也能经授权诊断读回该次 Attempt 已接收的完整原生用量证据；标准调用仍保持正确失败。\n\n覆盖 #58 用户故事 27, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 50, 56；验收场景 T06, T07, T08。\n\n本票承接 #58 的已确认范围；实际开工须有用户明确指令。真实账号、收费请求、共享服务与发布部署分别遵守既有授权边界。\n\n## Acceptance criteria\n\n- [ ] 从实际公共入口及生产应用装配执行合成 Build 请求，覆盖 JSON 与 SSE 的当前拒绝路径；有独立上游接收数，保留原拒绝与失败证据。\n- [ ] 按确切 Request、Attempt、Client Key 所有者保存完整原生 Usage 对象、必要来源标识和完整性状态；保留原值、结构、缺失/null/0及精确数字。只保存已经接收的材料，不为补齐证据额外读取或发送。\n- [ ] 复用现有 AEAD、密钥及有界写入机制，交付获授权的诊断读回；明文不进入普通事件、审计、日志或公开错误。不能用精简 UsageSummary 或仅排队代替完整持久化。\n- [ ] 完整性、owner、幂等和冲突可从读回及公开结果核对；相同 Attempt 不重复写账，异主和交换密文不能读到内容。写入/确认失败明确反馈，不虚报已留存。\n- [ ] 已验证标准计数与失败 Usage/source-event/账本保持正确归属和幂等；费用保持非结算或 UNKNOWN，不以原生价格字段造账。\n- [ ] 新持久化模型随本票明确 ADR、记录格式、保留/过期、reader 与最低迁移/恢复条件，包含文件重开、旧记录未知和密钥认证的必要验证；不把必要存储正确性推迟到发布前。\n- [ ] 不放开任何额外字段、不令原失败样本成功、不实现新的客户端交付策略。本票完成仅证明失败诊断闭环。\n\n## Blocked by\n\n- None（无工单前置；获准开发后可进入前沿）\n",
+  "comments": [],
+  "labels": [
+    {
+      "id": "LA_kwDOUGxUj88AAAAC5ZzI-g",
+      "name": "ready-for-agent",
+      "description": "规格充分，可由 agent 实施",
+      "color": "0E8A16"
+    }
+  ],
+  "number": 59,
+  "state": "OPEN",
+  "title": "Grok Build 失败请求的完整加密诊断闭环"
+}

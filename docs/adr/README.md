@@ -132,3 +132,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0104 Strict Chat output-limit projection](ADR-0104-chat-output-limit-projection.md) — `CPAR-38 / #47、#57、#9`（Accepted；现代总输出上限、原生字段保留与严格碰撞拒绝；候选与真实证据独立）
 - [ADR-0105 Source-bound observation of response projection failures](ADR-0105-projection-failure-observation.md) — `CPAR-38 / #47、#57、#9`（Accepted；安全拒绝原因、已确认 Request-ID、缓冲 Usage 与单次私有诊断；不授予全矩阵或发布资格）
 - [ADR-0106 Negotiated native fidelity for three public protocols](ADR-0106-native-fidelity-profile.md) — `CPAR-38 / #47、#57、#9`（Accepted方向；用户选择协商封套、完整非结算Usage、有证据模型关系；字段契约草稿与实现验收仍待下一批）
+
+- [ADR-0109 Encrypted native Usage evidence on rejected Build Attempts](ADR-0109-encrypted-failed-build-usage-evidence.md) — `#59 / #58 T06–T08`（Accepted；有界确认、exact owner、schema 35、授权本机 reader；标准 Usage 拒绝保持，验收见本票报告）。

@@ -10,6 +10,7 @@ mod execution_identity;
 mod gateway_event;
 mod id;
 mod message;
+mod native_usage;
 mod raw_extension;
 mod request_context;
 mod retry_gate;
@@ -46,6 +47,7 @@ pub use message::{
     CanonicalMessage, MessageContent, MessageRole, OpaqueContent, ReasoningHistory, TextContent,
     ToolCall, ToolResult, is_owned_reasoning_token,
 };
+pub use native_usage::{MAX_NATIVE_USAGE_BYTES, NativeUsageEvidence, NativeUsageSource};
 pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};
 pub use request_context::RequestContext;
 pub use retry_gate::{TransparentRetryGate, TransparentRetryGateFuture};

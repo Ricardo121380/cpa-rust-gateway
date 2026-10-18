@@ -1,0 +1,20 @@
+{
+  "command": [
+    "sandbox-exec",
+    "-f",
+    "docs/reports/assets/cpar-59-20261018/loopback-only.sb",
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "gateway",
+    "--test",
+    "cpar59_usage_evidence",
+    "native_usage_rejects_corrupted_source_event_indexes",
+    "--",
+    "--nocapture"
+  ],
+  "exit_code": 101,
+  "seconds": 22.759
+}

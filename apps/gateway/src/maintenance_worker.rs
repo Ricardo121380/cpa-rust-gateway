@@ -1,4 +1,4 @@
-//! Bounded owner for existing Stored Response/compaction TTL, without decrypting stored content.
+//! Bounded owner for encrypted response, compaction and native Usage TTL, without decryption.
 use std::{
     path::PathBuf,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -23,15 +23,21 @@ impl MaintenanceWorker {
                         .duration_since(UNIX_EPOCH)
                         .map_err(|_| ())?;
                     let now_ms = i64::try_from(now.as_millis()).map_err(|_| ())?;
-                    gateway_store::stored_response::maintain_expired_stored_data(
-                        database, now_ms, 256,
-                    )
-                    .map_err(|_| ())
+                    let (responses, compactions) =
+                        gateway_store::stored_response::maintain_expired_stored_data(
+                            &database, now_ms, 256,
+                        )
+                        .map_err(|_| ())?;
+                    let connection = gateway_store::open(database).map_err(|_| ())?;
+                    let native_usage =
+                        gateway_store::native_usage::purge_expired(&connection, now_ms)
+                            .map_err(|_| ())?;
+                    Ok::<_, ()>((responses, compactions, native_usage))
                 })
                 .await;
-                if let Ok(Ok((responses, compactions))) = result {
-                    if responses + compactions > 0 {
-                        tracing::info!(target: "stored_data_maintenance", responses, compactions, "expired stored data removed");
+                if let Ok(Ok((responses, compactions, native_usage))) = result {
+                    if responses + compactions + native_usage > 0 {
+                        tracing::info!(target: "stored_data_maintenance", responses, compactions, native_usage, "expired stored data removed");
                     }
                 } else {
                     tracing::warn!(target: "stored_data_maintenance", "stored data maintenance unavailable");
@@ -81,10 +87,12 @@ mod tests {
         )?;
         connection.execute("INSERT INTO stored_responses VALUES ('owner', 'live', 0, 9223372036854775807, 1, 1, zeroblob(41))", [])?;
         connection.execute("INSERT INTO stored_response_compactions VALUES ('owner', 'expired', 0, 1, 1, 1, zeroblob(41))", [])?;
+        connection.execute("INSERT INTO native_usage_evidence VALUES ('expired','request','owner','source-expired',0,1,1,1,zeroblob(41))",[])?;
+        connection.execute("INSERT INTO native_usage_evidence VALUES ('live','request','owner','source-live',0,9223372036854775807,1,1,zeroblob(41))",[])?;
         let worker = MaintenanceWorker::start(path.clone());
         actix_web::rt::time::timeout(Duration::from_secs(5), async {
             loop {
-                let expired: i64 = connection.query_row("SELECT (SELECT count(*) FROM stored_responses WHERE expires_at_ms = 1) + (SELECT count(*) FROM stored_response_compactions)", [], |row| row.get(0))?;
+                let expired: i64 = connection.query_row("SELECT (SELECT count(*) FROM stored_responses WHERE expires_at_ms = 1) + (SELECT count(*) FROM stored_response_compactions) + (SELECT count(*) FROM native_usage_evidence WHERE expires_at_ms=1)", [], |row| row.get(0))?;
                 if expired == 0 { return Ok::<(), Box<dyn Error>>(()); }
                 actix_web::rt::time::sleep(Duration::from_millis(10)).await;
             }
@@ -99,6 +107,14 @@ mod tests {
             |row| row.get(0),
         )?;
         assert_eq!(live, 1);
+        assert_eq!(
+            connection.query_row(
+                "SELECT count(*) FROM native_usage_evidence WHERE attempt_id='live'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )?,
+            1
+        );
         drop(connection);
         std::fs::remove_file(path)?;
         Ok(())

@@ -1,0 +1,13 @@
+{
+  "preserved_paths": 49022,
+  "original_content_and_mode": "PASS",
+  "stat_changes_since_prior_verification": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "only_owned_append_changed": "docs/traceability.md: contract number005->006",
+  "mixed_documents_partial_index": "HEAD bytes plus own append only",
+  "product_hashes_equal_tested_and_reviewed": 21,
+  "unexpected_changes": [],
+  "passed": true
+}

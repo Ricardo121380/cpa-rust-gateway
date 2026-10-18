@@ -129,6 +129,7 @@ async fn grok_build_native_summary_and_usage_public_matrix() -> TestResult {
                         receiver,
                         EventWriterConfig::try_new(4, Duration::from_millis(5))?,
                     )
+                    .with_native_usage_secret_store(test_secret_store()?)
                     .run(),
                 );
                 let app = test::init_service(

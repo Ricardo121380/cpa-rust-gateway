@@ -698,6 +698,7 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
     // bounded-growth risk is accepted explicitly rather than hidden.
     let event_writer =
         AsyncSqliteEventWriter::new(database, event_receiver, EventWriterConfig::default())
+            .with_native_usage_secret_store(secret_store.clone())
             .with_telemetry_pipeline(Arc::new(TelemetryPipeline::new(
                 Arc::clone(&telemetry_metrics),
                 Arc::new(TracingJsonExporter),
@@ -1064,6 +1065,13 @@ impl P12FanoutEventSink {
 }
 
 impl GatewayEventSink for P12FanoutEventSink {
+    fn emit_usage_evidence_confirmed(
+        &self,
+        event: gateway_core::UsageEvent,
+        evidence: gateway_core::NativeUsageEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        self.queue.emit_usage_evidence_confirmed(event, evidence)
+    }
     fn emit_confirmed(&self, event: GatewayEvent) -> gateway_core::EventEmissionFuture<'_> {
         Box::pin(async move {
             if let GatewayEvent::Attempt(attempt) = &event {

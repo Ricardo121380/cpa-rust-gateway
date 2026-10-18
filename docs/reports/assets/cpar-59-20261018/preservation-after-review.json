@@ -1,0 +1,9 @@
+{
+  "preserved_paths": 49022,
+  "content_and_mode_check": "PASS; full hash proof in preservation.json plus stat change audit",
+  "stat_changes_since_full_hash_verification": [],
+  "owned_document_prefixes_and_partial_index": "PASS",
+  "product_files_verified": 21,
+  "unexpected_changes": [],
+  "passed": true
+}

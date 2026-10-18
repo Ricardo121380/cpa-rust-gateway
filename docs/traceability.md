@@ -263,3 +263,5 @@ CPAR-38 / #47 的三协议字段映射决策准备对应
 [ADR-0106](adr/ADR-0106-native-fidelity-profile.md)（用户已确认方向；实现契约草稿）与
 [字段验收矩阵](reports/cpar-field-mapping-acceptance-20261017.md)。完整Usage证据、原生metadata、
 summary/body及模型关系未实施；标准与协商消费者资格分列，#47/#57/#9仍未关闭。
+
+#59 的 Grok Build 失败完整诊断闭环对应 [ADR-0109](adr/ADR-0109-encrypted-failed-build-usage-evidence.md)、[BC-OBS-006](contracts/BC-OBS-006-native-usage-evidence.md) 与 [本轮报告](reports/cpar-59-encrypted-usage-20261018.md)。公共 Responses JSON/SSE、加密证据与已知用量/账本分别核对；不授予额外字段、客户端或真实渠道成功资格，不推进 #60 或关闭 #58/#9/#47/#57。

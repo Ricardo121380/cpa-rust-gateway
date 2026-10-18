@@ -103,6 +103,12 @@ Chat JSON only, one exclusive capture, anchored 0700/0600 private files, origina
 bound, no outbound headers or credentials, no added read/retry/refresh. Normal diagnostics
 remain value-free. Native content never enters Git, GitHub or external model input.
 
+#59 adds [complete encrypted Usage diagnostics](BC-OBS-006-native-usage-evidence.md) through the
+existing bounded writer. For unrepresented Usage, `grok.build.usage` now retains the exact received
+object slice, with a closed `grok.build.usage_source` label for JSON versus SSE terminal origin.
+The public projector still rejects it. The sensitive companion is excluded from ordinary events;
+authorized readback, fixed TTL, commit confirmation and failure semantics follow ADR-0109.
+
 ## Corresponding tests
 
 - `grok_build_projection_rejection_has_safe_reason_and_request_id`

@@ -1,0 +1,26 @@
+{
+  "baseline": "3369c730e18f095bb4d9e1b506061e985a475fb9",
+  "product_files": {
+    "apps/gateway/src/main.rs": "0e7cd83973a25a88c6c2173e6f9433b745789ab809ec212f305b71aa4a32cc54",
+    "apps/gateway/src/maintenance_worker.rs": "341ef250f4f327bb2c054d32f35b2e60c096118dd59b0e54d9597c29a2f7c492",
+    "apps/gateway/src/runtime.rs": "628924a4b537694f3bb1666d8ea1af5c5a558d3565df8578ef120344cdfa5c35",
+    "apps/gateway/src/runtime/batch_c.rs": "94e3b121f674b7add699b7b245fe7d2929c89d873623fdadfc0ec92ac43e0c63",
+    "apps/gateway/src/runtime/batch_c/grok.rs": "9038beccd68fca5e7e91494a576cdb110389161e6587d22ee81102635e80e485",
+    "apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs": "49dc0b5b8fc71b40ca8efc9857c9e85a6fd4bc9cb0a5527ca6e156d0602f239c",
+    "apps/gateway/src/runtime/batch_c/grok/projection_usage.rs": "c72b8033b342e1b61889d4a5aa425f95181b6efe349adedf32acdd84198cebcd",
+    "apps/gateway/src/runtime/batch_c/grok/usage_evidence.rs": "e07d92e3c8743c914d1e1f1340b90ff0ee3daacdfdd4c797a769888c5ea8cf9c",
+    "apps/gateway/src/usage_evidence.rs": "a0c8c54ba62c063885a08a2a811b158e550409d425bf54bf4880ee380efb1fab",
+    "apps/gateway/tests/cpar59_usage_evidence.rs": "66cc58f7400a25a830c8930d7542f20d84aab46b69f6966aa1e934a53b091468",
+    "crates/gateway-core/src/gateway_event.rs": "b542ed6df35a8e034524df1909001965bf655029d8ca9365ba812eeeedc847ab",
+    "crates/gateway-core/src/lib.rs": "dfefcd149766ee94e9fdc3d05b4acc8332fec63a8ae2494cc388258cc835a54c",
+    "crates/gateway-core/src/native_usage.rs": "b1053f3d47cf7ac0846a6ab87a02fe1cf75ccd600d71afd7101664e1e6c32921",
+    "crates/gateway-http-actix/src/lib.rs": "d797c9778d3daa200be226fb092852d11f9b357fbcff122192159cd2f43c46be",
+    "crates/gateway-observability/src/lib.rs": "4bb67316057891bd0147895b11a3ab87eda82d80d497931447022a6eeabc6ae7",
+    "crates/gateway-store/migrations/0035_native_usage_evidence.down.sql": "e5a5cd2f33cfc790e3fed0a8a5c3126c72777c0b126d782039a82019d8aab998",
+    "crates/gateway-store/migrations/0035_native_usage_evidence.up.sql": "3211b680db2f1bd3b79daf8d987f280a2109fbbb292d585b6c1007df1987bd0d",
+    "crates/gateway-store/src/event_store.rs": "d1fee6999ee7a911d9cd595a4fc4ce841636b0fb49f5e87018e8afc14c6d8684",
+    "crates/gateway-store/src/lib.rs": "fdeb0c30fd50df7313cffa5f161b0662b1c64310c850a946cce6875d6e900645",
+    "crates/gateway-store/src/native_usage.rs": "99de69a6e21fbd1053884c073f47139f22ab657dd3d17e03d16e0cc8909ff5d6",
+    "crates/provider-grok/src/build_responses.rs": "f6ca0f3ffa1489877d50b656b89bd65cf5c30e5eb26ab6485cbe9926e7e6d5db"
+  }
+}

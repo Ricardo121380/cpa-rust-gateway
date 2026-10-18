@@ -1,0 +1,7 @@
+{
+  "profile": "loopback-only.sb",
+  "loopback": "PASS",
+  "probe_target": "192.0.2.1:443",
+  "nonloopback_denied": true,
+  "errno": 1
+}

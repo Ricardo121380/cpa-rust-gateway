@@ -3205,6 +3205,10 @@ async fn pump_source(
     }
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "one lifecycle pump preserves private confirmation and single-terminal ordering"
+)]
 async fn pump_source_events(
     source: &mut dyn ResponsesEventSource,
     mut sender: CanonicalEventSender,
@@ -3305,6 +3309,10 @@ async fn pump_source_events(
                 return;
             }
             Err(error) => {
+                // A rejected Usage may already be decoded in the source. Confirm it before
+                // publishing the failure, without asking the upstream for another event.
+                usage_observer.remember_decoded_usage(source.decoded_usage());
+                let error = usage_observer.flush_usage().await.err().unwrap_or(error);
                 usage_observer.fail(&error);
                 send_terminal_failure(&mut sender, error, &cancellation).await;
                 return;
@@ -3453,7 +3461,8 @@ fn system_now_ms() -> Result<i64, GatewayError> {
 ///
 /// It accepts lifecycle-validated events and Usage already validated by the attempt's decoder.
 /// Completion, failure and cancellation flush known counters; unknown counters stay absent.
-/// Canonical raw extensions are excluded from the durable record.
+/// Canonical raw extensions are excluded from ordinary events. Rejected Build Usage has a
+/// separate sensitive companion confirmed by the bounded encrypted writer.
 struct UsageEventObserver {
     request_id: RequestId,
     event_sink: Arc<dyn GatewayEventSink>,
@@ -3520,15 +3529,39 @@ impl UsageEventObserver {
             && let (Some(response_id), Some(usage)) =
                 (self.response_id.clone(), self.latest_usage.as_ref())
         {
-            self.event_sink
-                .emit_confirmed(GatewayEvent::Usage(UsageEvent::from_usage(
-                    self.request_id.clone(),
-                    response_id,
-                    usage,
-                )))
-                .await
-                .into_result()?;
+            // One confirmation attempt per request observer. The bounded writer owns any
+            // pending transaction after a timeout; the outer cleanup must not enqueue it again.
             self.final_usage_emitted = true;
+            let event = UsageEvent::from_usage(self.request_id.clone(), response_id, usage);
+            let result = if let Some(raw) = usage.extensions.get("grok.build.usage") {
+                let evidence = usage
+                    .extensions
+                    .get("grok.build.usage_source")
+                    .and_then(|source| {
+                        serde_json::from_str::<gateway_core::NativeUsageSource>(source.get()).ok()
+                    })
+                    .and_then(|source| {
+                        gateway_core::NativeUsageEvidence::try_new(source, raw.get().to_owned())
+                            .ok()
+                    });
+                if let Some(evidence) = evidence {
+                    self.event_sink
+                        .emit_usage_evidence_confirmed(event, evidence)
+                        .await
+                } else {
+                    // Invalid/over-limit evidence cannot erase already validated counters.
+                    self.event_sink
+                        .emit_confirmed(GatewayEvent::Usage(event))
+                        .await
+                        .into_result()?;
+                    gateway_core::EventEmission::PersistenceUnavailable
+                }
+            } else {
+                self.event_sink
+                    .emit_confirmed(GatewayEvent::Usage(event))
+                    .await
+            };
+            result.into_result()?;
         }
         Ok(())
     }
@@ -3623,6 +3656,7 @@ struct SseEncodingState<E> {
 /// stays permitted for as long as no semantic chunk has been written.
 struct ProtocolSseBody<E> {
     guard: Option<RequestGuard>,
+    failure_delivered: bool,
     chunks: Pin<Box<dyn Stream<Item = PendingSseChunk>>>,
     tracker: FirstSemanticEventTracker,
     _encoder: std::marker::PhantomData<E>,
@@ -3656,6 +3690,7 @@ where
 
         Self {
             guard,
+            failure_delivered: false,
             chunks,
             tracker,
             _encoder: std::marker::PhantomData,
@@ -3681,6 +3716,7 @@ where
         match body.chunks.as_mut().poll_next(context) {
             Poll::Ready(Some(chunk)) => {
                 if let Some(event) = chunk.delivery_event.as_ref() {
+                    body.failure_delivered |= matches!(event, CanonicalEvent::StreamError(_));
                     let _first_delivery = body.tracker.mark_delivered(event);
                     if let Some(guard) = &body.guard {
                         guard.observation.delivered(event);
@@ -3692,6 +3728,10 @@ where
                 if let Some(guard) = &mut body.guard {
                     match guard.poll_complete(context, true) {
                         Poll::Pending => return Poll::Pending,
+                        // The existing failure terminal is already delivered. An unconfirmed
+                        // lifecycle write remains unknown and cannot turn it into a second
+                        // transport failure (or a successful response).
+                        Poll::Ready(Err(_)) if body.failure_delivered => return Poll::Ready(None),
                         Poll::Ready(Err(error)) => return Poll::Ready(Some(Err(error))),
                         Poll::Ready(Ok(())) => {}
                     }

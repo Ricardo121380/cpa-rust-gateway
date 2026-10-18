@@ -1,6 +1,7 @@
 use super::*;
 mod native_chat_offline;
 mod projection_usage;
+mod usage_evidence;
 use provider_grok::{
     GrokBuildResponseBody, GrokBuildResponseContentType, GrokBuildResponsesOutboundRequest,
     GrokBuildTransport, GrokBuildTransportResponse, GrokConsoleResponseBody,

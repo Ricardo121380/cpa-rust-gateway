@@ -911,6 +911,7 @@ impl GrokBuildResponsesDecoder {
 
         let mut state = GrokBuildResponsesDecodeState {
             reasoning_owner: owner,
+            raw_usage: received_usage_slice(input, false)?,
             ..Default::default()
         };
         let mut events = Vec::new();
@@ -1071,6 +1072,7 @@ impl fmt::Debug for GrokBuildResponsesStreamDecoder {
 #[derive(Clone, Default)]
 struct GrokBuildResponsesDecodeState {
     reasoning_owner: Option<crate::GrokBuildReasoningOwner>,
+    raw_usage: Option<(RawJson, gateway_core::NativeUsageSource)>,
     canonical: CanonicalEventState,
     response_id: Option<String>,
     message_open: bool,
@@ -1095,6 +1097,7 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildResponsesDecodeState")
+            .field("native_usage_present", &self.raw_usage.is_some())
             .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("canonical", &self.canonical)
             .field("response_started", &self.response_id.is_some())
@@ -1205,6 +1208,13 @@ impl GrokBuildResponsesDecodeState {
             return Err(stream_protocol_error());
         }
         native::validate_event(object, &self.item_order, self.canonical.is_terminal())?;
+
+        if matches!(
+            event_name.as_str(),
+            "response.completed" | "response.incomplete" | "response.failed"
+        ) {
+            self.raw_usage = received_usage_slice(data.as_bytes(), true)?;
+        }
 
         self.handle_sse_event(&event_name, object, events)
     }
@@ -2050,7 +2060,9 @@ impl GrokBuildResponsesDecodeState {
         {
             return Err(stream_protocol_error());
         }
-        if let Some(usage) = parse_usage(response, &stream_protocol_error())? {
+        if let Some(usage) =
+            parse_usage(response, self.raw_usage.as_ref(), &stream_protocol_error())?
+        {
             self.emit(
                 events,
                 CanonicalEvent::UsageDelta(UsageDelta {
@@ -2298,8 +2310,38 @@ fn part_index(event: &Map<String, Value>, name: &str) -> Result<usize, GatewayEr
     }
 }
 
+fn received_usage_slice(
+    input: &[u8],
+    streaming: bool,
+) -> Result<Option<(RawJson, gateway_core::NativeUsageSource)>, GatewayError> {
+    // Strict duplicate/shape validation has already run. RawValue is used only to locate the
+    // original received span; unknown numeric values never make a Value/to_string round trip.
+    let mut root: BTreeMap<String, Box<serde_json::value::RawValue>> =
+        serde_json::from_slice(input).map_err(|_| provider_protocol_error())?;
+    if streaming {
+        let Some(response) = root.remove("response") else {
+            return Ok(None);
+        };
+        root = serde_json::from_str(response.get()).map_err(|_| stream_protocol_error())?;
+    }
+    Ok(root
+        .remove("usage")
+        .filter(|raw| raw.get() != "null")
+        .map(|raw| {
+            (
+                RawJson::from(raw),
+                if streaming {
+                    gateway_core::NativeUsageSource::BuildSseTerminal
+                } else {
+                    gateway_core::NativeUsageSource::BuildJson
+                },
+            )
+        }))
+}
+
 fn parse_usage(
     response: &Map<String, Value>,
+    raw: Option<&(RawJson, gateway_core::NativeUsageSource)>,
     error: &GatewayError,
 ) -> Result<Option<Usage>, GatewayError> {
     let Some(value) = response.get("usage") else {
@@ -2362,10 +2404,17 @@ fn parse_usage(
         && (input_tokens.is_none() || output_tokens.is_none());
     let mut extensions = RawExtensions::default();
     if unrepresented {
+        let (raw, source) = raw.ok_or_else(|| error.clone())?;
+        extensions
+            .try_insert("grok.build.usage", raw.clone())
+            .map_err(|_| error.clone())?;
         extensions
             .try_insert(
-                "grok.build.usage",
-                RawJson::from_json_string(value.to_string()).map_err(|_| error.clone())?,
+                "grok.build.usage_source",
+                RawJson::from_json_string(
+                    serde_json::to_string(source).map_err(|_| error.clone())?,
+                )
+                .map_err(|_| error.clone())?,
             )
             .map_err(|_| error.clone())?;
     }

@@ -1,0 +1,13 @@
+{
+  "baseline": "3369c730e18f095bb4d9e1b506061e985a475fb9",
+  "product_files": {
+    "apps/gateway/src/runtime/batch_c/grok/usage_evidence.rs": "e07d92e3c8743c914d1e1f1340b90ff0ee3daacdfdd4c797a769888c5ea8cf9c",
+    "apps/gateway/src/usage_evidence.rs": "a0c8c54ba62c063885a08a2a811b158e550409d425bf54bf4880ee380efb1fab",
+    "apps/gateway/tests/cpar59_usage_evidence.rs": "bfc6db6f87a0fafc62d6b53176663249d9aca188589bcd11ca27579ef642d27f",
+    "crates/gateway-core/src/native_usage.rs": "b1053f3d47cf7ac0846a6ab87a02fe1cf75ccd600d71afd7101664e1e6c32921",
+    "crates/gateway-store/migrations/0035_native_usage_evidence.down.sql": "e5a5cd2f33cfc790e3fed0a8a5c3126c72777c0b126d782039a82019d8aab998",
+    "crates/gateway-store/migrations/0035_native_usage_evidence.up.sql": "3211b680db2f1bd3b79daf8d987f280a2109fbbb292d585b6c1007df1987bd0d",
+    "crates/gateway-store/src/native_usage.rs": "953b84c137ef83dacd5825483de272f8948d93e3d6913335f37b286b6770ed04",
+    "crates/gateway-store/src/lib.rs": "f78af0785bdca8ce275cf4ce195d775ffb5a650d3bdafccfb2f52e7470b1df58"
+  }
+}

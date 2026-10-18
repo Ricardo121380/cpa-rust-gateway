@@ -85,6 +85,19 @@ pub trait GatewayEventSink: Send + Sync {
     fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
         Box::pin(async move { self.try_emit(event) })
     }
+
+    /// Confirms a sanitized Usage and its private companion through one bounded writer slot.
+    /// Unsupported embeddings preserve counters but cannot acknowledge private retention.
+    fn emit_usage_evidence_confirmed(
+        &self,
+        event: UsageEvent,
+        _evidence: crate::NativeUsageEvidence,
+    ) -> EventEmissionFuture<'_> {
+        Box::pin(async move {
+            let _ = self.emit_confirmed(GatewayEvent::Usage(event)).await;
+            EventEmission::PersistenceUnavailable
+        })
+    }
 }
 
 /// Default event sink for embeddings that have not yet attached an event consumer.

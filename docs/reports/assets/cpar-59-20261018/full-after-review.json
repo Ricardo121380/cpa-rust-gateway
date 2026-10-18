@@ -1,0 +1,14 @@
+{
+  "command": [
+    "scripts/check.sh",
+    "full"
+  ],
+  "environment": {
+    "CARGO_NET_OFFLINE": "true",
+    "npm_config_offline": "true",
+    "RUST_TEST_THREADS": "4",
+    "CHECK_REPORT_PATH": "docs/reports/assets/cpar-59-20261018/full-after-review-steps.md"
+  },
+  "exit_code": 0,
+  "seconds": 365.731
+}

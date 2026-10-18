@@ -1,0 +1,10 @@
+{
+  "preserved_paths": 49022,
+  "unchanged_content_and_mode": 49020,
+  "owned_append_preserves_original_bytes": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "unexpected_changes": [],
+  "passed": true
+}

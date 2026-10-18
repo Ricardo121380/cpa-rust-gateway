@@ -236,6 +236,7 @@ impl BoundedEventQueue {
         &self,
         event: GatewayEvent,
         receipt: Option<oneshot::Sender<EventEmission>>,
+        native_usage: Option<gateway_core::NativeUsageEvidence>,
     ) -> EventEmission {
         let required = event.priority() == GatewayEventPriority::Required;
         let sender = if required {
@@ -248,6 +249,7 @@ impl BoundedEventQueue {
         }
         let entry = QueuedEvent {
             event,
+            native_usage,
             receipt,
             health: self.health.clone(),
             required,
@@ -282,7 +284,7 @@ impl BoundedEventQueue {
 
 impl GatewayEventSink for BoundedEventQueue {
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
-        self.enqueue(event, None)
+        self.enqueue(event, None, None)
     }
 
     fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
@@ -297,7 +299,32 @@ impl GatewayEventSink for BoundedEventQueue {
                 return EventEmission::PersistenceUnavailable;
             }
             let (send, receive) = oneshot::channel();
-            let result = self.enqueue(event, Some(send));
+            let result = self.enqueue(event, Some(send), None);
+            if result != EventEmission::Enqueued {
+                return result;
+            }
+            if let Ok(Ok(result)) = tokio::time::timeout(Duration::from_secs(2), receive).await {
+                result
+            } else {
+                self.health
+                    .confirmation_failures
+                    .fetch_add(1, Ordering::Relaxed);
+                EventEmission::PersistenceUnavailable
+            }
+        })
+    }
+
+    fn emit_usage_evidence_confirmed(
+        &self,
+        event: gateway_core::UsageEvent,
+        evidence: gateway_core::NativeUsageEvidence,
+    ) -> EventEmissionFuture<'_> {
+        Box::pin(async move {
+            if !self.health.writer_attached.load(Ordering::Acquire) {
+                return EventEmission::PersistenceUnavailable;
+            }
+            let (send, receive) = oneshot::channel();
+            let result = self.enqueue(GatewayEvent::Usage(event), Some(send), Some(evidence));
             if result != EventEmission::Enqueued {
                 return result;
             }
@@ -349,6 +376,8 @@ impl RecordingHealth {
 pub struct QueuedEvent {
     /// Sanitized event, never request/response bodies or credential material.
     pub event: GatewayEvent,
+    /// Sensitive companion, never passed to ordinary telemetry or quarantine serialization.
+    pub native_usage: Option<gateway_core::NativeUsageEvidence>,
     receipt: Option<oneshot::Sender<EventEmission>>,
     health: Arc<RecordingHealth>,
     required: bool,
@@ -415,6 +444,22 @@ impl RequestEventSink {
     }
 }
 impl GatewayEventSink for RequestEventSink {
+    fn emit_usage_evidence_confirmed(
+        &self,
+        event: gateway_core::UsageEvent,
+        evidence: gateway_core::NativeUsageEvidence,
+    ) -> EventEmissionFuture<'_> {
+        Box::pin(async move {
+            match self.attach(GatewayEvent::Usage(event)) {
+                Ok(GatewayEvent::Usage(event)) if event.attempt_id().is_some() => {
+                    self.inner
+                        .emit_usage_evidence_confirmed(event, evidence)
+                        .await
+                }
+                _ => EventEmission::PersistenceUnavailable,
+            }
+        })
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         match self.attach(event) {
             Ok(event) => self.inner.try_emit(event),

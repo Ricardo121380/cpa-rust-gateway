@@ -164,6 +164,22 @@ async fn grok_build_projection_rejection_has_safe_reason_and_request_id() -> Tes
 
 pub(super) struct ReplayUsageSink(pub(super) Arc<dyn GatewayEventSink>);
 impl GatewayEventSink for ReplayUsageSink {
+    fn emit_usage_evidence_confirmed(
+        &self,
+        event: gateway_core::UsageEvent,
+        evidence: gateway_core::NativeUsageEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        Box::pin(async move {
+            let result = self
+                .0
+                .emit_usage_evidence_confirmed(event.clone(), evidence.clone())
+                .await;
+            if result != EventEmission::Persisted {
+                return result;
+            }
+            self.0.emit_usage_evidence_confirmed(event, evidence).await
+        })
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         self.0.try_emit(event)
     }

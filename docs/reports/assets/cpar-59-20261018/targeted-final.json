@@ -1,0 +1,57 @@
+[
+  {
+    "name": "public-legal-failure-green",
+    "command": [
+      "sandbox-exec",
+      "-f",
+      "docs/reports/assets/cpar-59-20261018/loopback-only.sb",
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "-p",
+      "gateway",
+      "usage_evidence",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "seconds": 33.363
+  },
+  {
+    "name": "maintenance-green",
+    "command": [
+      "sandbox-exec",
+      "-f",
+      "docs/reports/assets/cpar-59-20261018/loopback-only.sb",
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "-p",
+      "gateway",
+      "worker_cleans_expired_rows_and_stops_before_next_batch",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "seconds": 0.727
+  },
+  {
+    "name": "clippy-final",
+    "command": [
+      "cargo",
+      "clippy",
+      "--offline",
+      "--locked",
+      "--workspace",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "seconds": 17.345
+  }
+]

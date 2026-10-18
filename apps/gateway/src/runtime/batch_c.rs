@@ -47,6 +47,28 @@ struct Events(
     Mutex<Option<Arc<dyn GatewayEventSink>>>,
 );
 impl GatewayEventSink for Events {
+    fn emit_usage_evidence_confirmed(
+        &self,
+        event: gateway_core::UsageEvent,
+        evidence: gateway_core::NativeUsageEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        Box::pin(async move {
+            let sink = self.1.lock().ok().and_then(|sink| sink.clone());
+            let result = match sink {
+                Some(sink) => {
+                    sink.emit_usage_evidence_confirmed(event.clone(), evidence)
+                        .await
+                }
+                None => EventEmission::PersistenceUnavailable,
+            };
+            if result == EventEmission::Persisted
+                && let Ok(mut events) = self.0.lock()
+            {
+                events.push(GatewayEvent::Usage(event));
+            }
+            result
+        })
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         let sink = self.1.lock().ok().and_then(|sink| sink.clone());
         let result = sink.map_or(EventEmission::Enqueued, |sink| sink.try_emit(event.clone()));
