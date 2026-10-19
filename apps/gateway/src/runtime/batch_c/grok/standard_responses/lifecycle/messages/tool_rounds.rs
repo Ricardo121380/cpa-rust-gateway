@@ -1,11 +1,14 @@
 //! The client replays only standard Messages content; no helper restores hidden summary.
 use super::*;
+use sha2::{Digest, Sha256};
 
 fn output(round: usize) -> Value {
-    let mut items = super::super::super::tool_rounds::output(round)
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let original = super::super::super::tool_rounds::output(round);
+    let mut items = vec![original[0].clone(), original[1].clone()];
+    if round == 2 {
+        items[1]["arguments"] =
+            json!(r#"{"city":"上海","n":9007199254740993,"prior_result":"result-0"}"#);
+    }
     items[0]["summary"] = json!([{"type":"summary_text","text":format!("计划 {round}")},
         {"type":"summary_text","text":format!("辅助 🐦 {round}")}]);
     items.push(json!({"id":format!("reason-b-{round}"),"type":"reasoning","status":"completed","content":[],
@@ -273,10 +276,11 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
                 assert_eq!(result["stop_reason"], "tool_use");
                 assert_eq!(result["content"][0]["id"], format!("call-{round}"));
                 assert_eq!(result["content"][0]["name"], "lookup");
-                assert_eq!(
-                    result["content"][0]["input"],
-                    json!({"city":"上海","n":9_007_199_254_740_993_u64})
-                );
+                let mut expected = json!({"city":"上海","n":9_007_199_254_740_993_u64});
+                if round == 2 {
+                    expected["prior_result"] = json!("result-0");
+                }
+                assert_eq!(result["content"][0]["input"], expected);
             } else {
                 assert_eq!(result["content"][0]["text"], format!("回答 {round}"));
                 assert_eq!(result["stop_reason"], "end_turn");
@@ -297,7 +301,19 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
             );
             history.push(json!({"role":"assistant","content":result["content"]}));
             if round < 4 {
-                history.push(if tool {json!({"role":"user","content":[{"type":"tool_result","tool_use_id":format!("call-{round}"),"content":format!("result-{round}")}]})}
+                // The second controlled function consumes the first result from arguments
+                // actually delivered to this standard client, without any private lookup.
+                let tool_output = if round == 2 {
+                    format!(
+                        "{} -> result-2",
+                        result["content"][0]["input"]["prior_result"]
+                            .as_str()
+                            .ok_or("prior result")?
+                    )
+                } else {
+                    format!("result-{round}")
+                };
+                history.push(if tool {json!({"role":"user","content":[{"type":"tool_result","tool_use_id":format!("call-{round}"),"content":tool_output}]})}
                 else {json!({"role":"user","content":if round==1 {"next-question"} else {"follow-up"}})});
             }
             let records = peer.requests.lock().map_err(|_| "receiver")?;
@@ -312,16 +328,73 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
                     && !history_wire.contains("计划")
                     && !history_wire.contains("summary")
             );
-            if round == 1 || round == 3 {
-                let previous = round - 1;
+            for previous in [0, 2].into_iter().filter(|previous| round > *previous) {
                 let native = request.body["input"].as_array().ok_or("native history")?;
-                assert!(native.iter().any(|v| v["type"] == "function_call"
-                    && v["call_id"] == format!("call-{previous}")
-                    && v["name"] == "lookup"));
+                let call = native
+                    .iter()
+                    .find(|v| {
+                        v["type"] == "function_call"
+                            && v["call_id"] == format!("call-{previous}")
+                            && v["name"] == "lookup"
+                    })
+                    .ok_or("retained historical call")?;
+                assert_eq!(
+                    serde_json::from_str::<Value>(call["arguments"].as_str().ok_or("arguments")?)?,
+                    serde_json::from_str::<Value>(
+                        output(previous)[1]["arguments"]
+                            .as_str()
+                            .ok_or("expected arguments")?
+                    )?
+                );
                 assert!(native.iter().any(|v| v["type"] == "function_call_output"
                     && v["call_id"] == format!("call-{previous}")
-                    && v["output"] == format!("result-{previous}")));
+                    && v["output"]
+                        == if previous == 2 {
+                            "result-0 -> result-2"
+                        } else {
+                            "result-0"
+                        }));
             }
+            if round == 4 {
+                assert!(
+                    history_wire.contains("回答 1")
+                        && history_wire.contains("回答 3")
+                        && history_wire.contains("follow-up")
+                );
+            }
+            let summary_items = record
+                .evidence
+                .items()
+                .iter()
+                .map(|item| {
+                    let value: Value = serde_json::from_str(item.item.get())?;
+                    Ok(
+                        json!({"output_index":item.output_index,"item_id":value["id"],
+                    "part_count":value["summary"].as_array().ok_or("summary")?.len(),
+                    "body_present":value.get("content").is_some(),
+                    "item_sha256":format!("{:x}",Sha256::digest(item.item.get().as_bytes()))}),
+                    )
+                })
+                .collect::<Result<Vec<Value>, Box<dyn Error>>>()?;
+            let (key_version, ciphertext): (i64, Vec<u8>) = gateway_store::open(
+                &recording.database,
+            )?
+            .query_row(
+                "SELECT key_version,ciphertext FROM messages_summary_evidence WHERE attempt_id=?1",
+                [record.attempt.attempt_id().as_str()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )?;
+            eprintln!(
+                "CPAR63_RECEIPT {}",
+                json!({"synthetic":true,"streaming":streaming,"chunk_bytes":size,"round":round,
+                "request_id":request_id,"attempt_id":record.attempt.attempt_id(),"owner":record.client_key_id,
+                "response_id":record.evidence.response_id(),"source":record.evidence.source(),
+                "completeness":record.evidence.completeness(),"summary_items":summary_items,"reader_authenticated":true,
+                "key_version":key_version,"ciphertext_bytes":ciphertext.len(),"ciphertext_sha256":format!("{:x}",Sha256::digest(&ciphertext)),
+                "public_model":result["model"],"received_upstream_model":request.body["model"],"model_override":request.model_override,
+                "input_tokens":result["usage"]["input_tokens"],"output_tokens":result["usage"]["output_tokens"],
+                "receive_count":records.len(),"visible_history_only_verified":true,"cost":"UNKNOWN"})
+            );
             results.push(result);
         }
         if let Some(expected) = &json_results {
@@ -333,6 +406,12 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
         let database = recording.finish(&fixture, 0).await?;
         accounting(&database, 5).await?;
         assert_eq!(active_leases(&fixture), 0);
+        eprintln!(
+            "CPAR63_ACCOUNTING {}",
+            json!({"synthetic":true,"streaming":streaming,"chunk_bytes":size,
+            "receives":peer.requests.lock().map_err(|_|"receiver")?.len(),"requests":5,"attempts":5,"usage_rows":5,
+            "ledger_rows":5,"active_leases":active_leases(&fixture),"cost":"UNKNOWN"})
+        );
     }
     Ok(())
 }
