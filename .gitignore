@@ -49,3 +49,10 @@ deploy-secrets/
 docs/reports/private/
 tests/fixtures/private/
 benchmarks/private/
+
+# Local work areas; publish reviewed evidence under docs/reports instead.
+# Existing tracked evidence remains tracked. Ignoring a path does not delete it.
+/output/
+/.codegraph/
+/.playwright-cli/
+/test-results/
