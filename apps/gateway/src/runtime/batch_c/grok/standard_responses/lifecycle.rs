@@ -8,6 +8,7 @@ use gateway_upstream::{
 use std::num::NonZeroUsize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod cli;
+mod disconnect;
 mod recording_faults;
 
 struct SocketPeer {
@@ -19,6 +20,7 @@ struct SocketPeer {
 
 #[derive(Clone, Copy)]
 enum PeerEnd {
+    AwaitHeaders,
     Hold,
     Truncate,
     Eof,
@@ -46,6 +48,14 @@ impl SocketPeer {
                     received.push(request);
                     received.len() == 1
                 };
+                if first && matches!(end, PeerEnd::AwaitHeaders) {
+                    let mut byte = [0];
+                    let read = socket.read(&mut byte).await;
+                    if matches!(read, Ok(0)) || read.as_ref().is_err_and(closed_socket) {
+                        closure.fetch_add(1, Ordering::SeqCst);
+                    }
+                    continue;
+                }
                 // A later explicitly issued request proves that the same capacity is usable.
                 let body = if first {
                     bytes.clone()
@@ -270,6 +280,7 @@ async fn public_socket(
     })
     .disable_signals()
     .workers(1)
+    .h1_allow_half_closed(false)
     .listen(listener)?
     .run();
     let handle = server.handle();
@@ -438,7 +449,7 @@ async fn read_public_until(
 
 #[actix_web::test]
 async fn public_build_disconnect_releases_upstream_before_pending_usage_receipt() -> TestResult {
-    for extra in [false, true] {
+    for (extra, reset) in [(false, false), (false, true), (true, false), (true, true)] {
         let raw = if extra {
             r#"{"input_tokens":20,"output_tokens":7,"total_tokens":27,"cost_in_usd_ticks":1}"#
         } else {
@@ -460,9 +471,13 @@ async fn public_build_disconnect_releases_upstream_before_pending_usage_receipt(
                 "real serving lease is held before cancellation"
             );
         }
-        // An abortive client disconnect is observable immediately. A TCP write-half-close
-        // alone is also a legal request client that still intends to receive its response.
-        socket.set_zero_linger()?;
+        // The deployed inference listener cancels both orderly FIN and abortive RST.
+        // Management and clients that deliberately keep both halves open are separate.
+        if reset {
+            socket.set_zero_linger()?;
+        } else {
+            socket.shutdown().await?;
+        }
         drop(socket);
         let released = wait_until(|| peer.closed.load(Ordering::SeqCst) == 1).await;
         let leases = active_leases(&fixture);

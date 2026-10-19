@@ -14,6 +14,9 @@ import hashlib
 import tempfile
 import argparse
 import gzip
+import socket
+import select
+from urllib.parse import urlsplit
 
 
 CODEX_ROOT = Path("/opt/homebrew/lib/node_modules/@openai/codex")
@@ -76,6 +79,50 @@ def sha_file(path):
     return digest.hexdigest()
 
 
+def observe_client_tcp(root, base):
+    """Optional diagnostic hop: record EOF/reset, forward bytes, close on either peer's EOF.
+
+    This observes the CLI write half, not its local read-half state. Direct runs remain the
+    cancellation timing oracle; closing this relay is not a direct-listener observation.
+    """
+    target = urlsplit(base)
+    if target.hostname != "127.0.0.1" or target.scheme != "http":
+        raise ValueError("TCP observation requires the owned loopback listener")
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    port = listener.getsockname()[1]
+
+    def forward():
+        receipt = {"kind": "diagnostic TCP relay", "bytes": [0, 0]}
+        try:
+            with listener, listener.accept()[0] as caller, socket.create_connection(
+                    (target.hostname, target.port)) as gateway:
+                peers = [caller, gateway]
+                while True:
+                    ready, _, _ = select.select(peers, [], [], 30)
+                    if not ready:
+                        raise TimeoutError("diagnostic TCP relay idle")
+                    for source in ready:
+                        index = peers.index(source)
+                        receipt["direction"] = "client_to_gateway" if index == 0 else "gateway_to_client"
+                        chunk = source.recv(65536)
+                        if not chunk:
+                            receipt.update(read="EOF", observed_at_ms=time.time_ns() // 1_000_000)
+                            return
+                        receipt["bytes"][index] += len(chunk)
+                        peers[1 - index].sendall(chunk)
+        except OSError as error:
+            receipt.update(read=type(error).__name__, errno=error.errno,
+                           observed_at_ms=time.time_ns() // 1_000_000)
+        finally:
+            (root / "client-transport.json").write_text(json.dumps(receipt, indent=2) + "\n")
+
+    thread = threading.Thread(target=forward, daemon=True)
+    thread.start()
+    return f"http://127.0.0.1:{port}{target.path}", thread
+
+
 def installed_manifest():
     """Freeze install bytes, modes and links; no user config or credential files are read."""
     records = {}
@@ -135,7 +182,8 @@ def codex_success_checks(root):
     return {"status": "PASS" if all(checks.values()) else "FAIL", "checks": checks}
 
 
-def run_qualification(output, require_prompt_release=False, require_codex_success=False):
+def run_qualification(output, require_prompt_release=False, require_codex_success=False,
+                      observe_tcp=False):
     if sys.platform != "darwin":
         raise RuntimeError("this fixed-client runner requires macOS Seatbelt")
     root = Path(output).resolve()
@@ -200,6 +248,8 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
     env["CPAR62_RUN"] = str(root)
     if require_prompt_release:
         env["CPAR62_REQUIRE_PROMPT_RELEASE"] = "1"
+    if observe_tcp:
+        env["CPAR62_OBSERVE_CLIENT_TCP"] = "1"
     command = ["/usr/bin/sandbox-exec", "-f", str(profile), str(binary),
                "actual_cli_public_build_qualification", "--ignored", "--nocapture"]
     with (root / "qualification.log").open("w") as log:
@@ -213,6 +263,7 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
         "runner_status": "FAIL" if result.returncode or not unchanged
             or require_codex_success and codex_gate["status"] != "PASS" else "PASS",
         "require_prompt_release": require_prompt_release, "cancellation": cancel,
+        "tcp_observer": observe_tcp,
         "require_codex_success": require_codex_success, "codex_success_gate": codex_gate,
         "installs_unchanged": unchanged, "claim": "local controlled independent preparation; #62 remains blocked"}, indent=2) + "\n")
     if result.returncode or not unchanged:
@@ -224,6 +275,9 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
 
 def client(name, scenario, directory, base):
     root = Path(directory).resolve(strict=True)
+    observer = None
+    if name == "pi" and scenario == "cancel" and os.environ.get("CPAR62_OBSERVE_CLIENT_TCP"):
+        base, observer = observe_client_tcp(root, base)
     for item in ("home", "codex", "agent", "work", "tmp"):
         (root / item).mkdir(mode=0o700)
     (root / "work/seed.txt").write_text("41\n")
@@ -290,6 +344,8 @@ def client(name, scenario, directory, base):
         for reader in readers:
             reader.start()
         abort_sent = False
+        delta_at_ms = None
+        abort_sent_at_ms = None
         try:
             questions = (["Tell me you are ready to inspect seed.txt.", prompt,
                           "What value did the two tools produce, and how was it derived?"]
@@ -304,12 +360,14 @@ def client(name, scenario, directory, base):
                         raise RuntimeError("Pi RPC exited before agent_end")
                     delta = event.get("assistantMessageEvent", {})
                     if scenario == "cancel" and not abort_sent and delta.get("type") == "text_delta":
+                        delta_at_ms = time.time_ns() // 1_000_000
                         (root / "cancel-ready").write_text("observed actual CLI text delta\n")
                         limit = time.monotonic() + 5
                         while not (root / "cancel-proceed").exists():
                             if time.monotonic() > limit:
                                 raise TimeoutError("serving lease cancellation barrier")
                             time.sleep(0.01)
+                        abort_sent_at_ms = time.time_ns() // 1_000_000
                         process.stdin.write('{"type":"abort"}\n')
                         process.stdin.flush()
                         abort_sent = True
@@ -320,7 +378,10 @@ def client(name, scenario, directory, base):
                         break
                 if stop in ("error", "aborted", "missing"):
                     if scenario == "cancel":
-                        (root / "abort-complete").write_text(json.dumps({"rpc_alive": process.poll() is None, "pid": process.pid}) + "\n")
+                        (root / "abort-complete").write_text(json.dumps({
+                            "rpc_alive": process.poll() is None, "pid": process.pid,
+                            "delta_at_ms": delta_at_ms, "abort_sent_at_ms": abort_sent_at_ms,
+                            "rpc_aborted_at_ms": time.time_ns() // 1_000_000}) + "\n")
                         limit = time.monotonic() + 25
                         while not (root / "cancel-observed").exists():
                             if process.poll() is not None:
@@ -328,16 +389,21 @@ def client(name, scenario, directory, base):
                             if time.monotonic() > limit:
                                 raise TimeoutError("live CLI cancellation observation barrier")
                             time.sleep(0.01)
-                        alive = {"rpc_alive": process.poll() is None, "pid": process.pid}
+                        alive = {"rpc_alive": process.poll() is None, "pid": process.pid,
+                                 "observed_at_ms": time.time_ns() // 1_000_000}
                         (root / "cancel-client-alive").write_text(json.dumps(alive) + "\n")
                         if not alive["rpc_alive"]:
                             raise RuntimeError("Pi RPC exited before final cancellation liveness proof")
                     break
         finally:
+            cleanup_at_ms = time.time_ns() // 1_000_000
             stop_process(process)
+            if observer:
+                observer.join(timeout=2)
             for reader in readers:
                 reader.join(timeout=2)
         receipt = {"command": command, "shutdown_exit": process.returncode, "turn_outcomes": outcomes,
+                   "cleanup_started_at_ms": cleanup_at_ms,
                    "stdout": "".join(output), "stderr": "".join(errors)}
     modules = sorted(set(re.findall(r"file:///opt/homebrew/[^\s'\"<>)]*", receipt["stderr"])))
     (root / "loaded-esm.json").write_text(json.dumps(modules, indent=2) + "\n")
@@ -360,5 +426,8 @@ if __name__ == "__main__":
                             help="also require the one-second diagnostic probe; this is not a product SLA")
         parser.add_argument("--require-codex-success", action="store_true",
                             help="fail unless actual Codex completes the answer, two tool cycles and follow-up; expected HTTP400 is not success")
+        parser.add_argument("--observe-client-tcp", action="store_true",
+                            help="diagnostic TCP hop for Pi EOF/reset observation; direct runs remain the timing oracle")
         args = parser.parse_args()
-        run_qualification(args.output, args.require_prompt_release, args.require_codex_success)
+        run_qualification(args.output, args.require_prompt_release, args.require_codex_success,
+                          args.observe_client_tcp)

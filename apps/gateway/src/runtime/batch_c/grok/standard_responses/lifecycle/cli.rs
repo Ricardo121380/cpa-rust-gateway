@@ -16,6 +16,8 @@ struct Captured {
     headers: Value,
     status: u16,
     chunks: usize,
+    chunk_elapsed_ms: Vec<u128>,
+    started: Option<std::time::Instant>,
     wire: Vec<u8>,
 }
 type Ingress = Mutex<Vec<Captured>>;
@@ -63,6 +65,7 @@ async fn actual_cli_public_build_qualification() -> TestResult {
         })
         .disable_signals()
         .workers(1)
+        .h1_allow_half_closed(false)
         .listen(listener)?
         .run();
         let handle = server.handle();
@@ -96,7 +99,12 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 1,
                 "actual Pi has received text while the real lease is held"
             );
-            std::fs::write(directory.join("cancel-proceed"), b"lease observed at one\n")?;
+            std::fs::write(
+                directory.join("cancel-proceed"),
+                serde_json::to_vec(&json!({
+                    "lease":1,"observed_at_ms":system_now_ms_runtime()?
+                }))?,
+            )?;
         }
         let live_cancel = if scenario == "cancel" {
             Some(observe_live_cancel(&fixture, &peer, &directory).await?)
@@ -123,7 +131,7 @@ async fn actual_cli_public_build_qualification() -> TestResult {
             directory.join("upstream.json"),
             serde_json::to_vec_pretty(&received)?,
         )?;
-        let captured: Vec<_> = ingress.lock().map_err(|_|"ingress")?.iter().map(|v|json!({"path":v.path,"probe":v.probe,"body":v.request,"headers":v.headers,"status":v.status,"chunks":v.chunks,"wire":String::from_utf8_lossy(&v.wire)})).collect();
+        let captured: Vec<_> = ingress.lock().map_err(|_|"ingress")?.iter().map(|v|json!({"path":v.path,"probe":v.probe,"body":v.request,"headers":v.headers,"status":v.status,"chunks":v.chunks,"chunk_elapsed_ms":v.chunk_elapsed_ms,"wire":String::from_utf8_lossy(&v.wire)})).collect();
         std::fs::write(
             directory.join("ingress.json"),
             serde_json::to_vec_pretty(&captured)?,
@@ -195,7 +203,7 @@ async fn actual_cli_public_build_qualification() -> TestResult {
             eventually_released_before_stop,
             "bounded actual-client release must be observed before server cleanup"
         );
-        // Preserve the actual-client RED separately from eventual keepalive-driven release.
+        // Preserve the actual-client RED separately from eventual release.
         // This is a one-second diagnostic probe, not a newly approved product latency SLA.
         if std::env::var_os("CPAR62_REQUIRE_PROMPT_RELEASE").is_some() {
             assert!(
@@ -234,10 +242,17 @@ async fn observe_live_cancel(
     })
     .await
     .is_ok();
+    let released_at_ms = system_now_ms_runtime()?;
+    let lease_before_abort: Value =
+        serde_json::from_slice(&std::fs::read(directory.join("cancel-proceed"))?)?;
     std::fs::write(
         directory.join("cancel-diagnostic.json"),
         serde_json::to_vec_pretty(&json!({
             "cli_alive_at_abort":rpc["rpc_alive"],"cli_pid":rpc["pid"],
+            "rpc_timeline":rpc,"lease_before_abort":lease_before_abort,
+            "observation_end_at_ms":released_at_ms,
+            "release_observed_at_ms":eventual.then_some(released_at_ms),
+            "abort_to_release_upper_bound_ms":rpc["abort_sent_at_ms"].as_i64().filter(|_| eventual).map(|sent| released_at_ms.saturating_sub(sent)),
             "released_within_first_second":immediate,"leases_after_first_second":leases_after_first_second,
             "eventually_released_before_server_stop":eventual,"total_observation_ms":started.elapsed().as_millis(),
             "leases_at_observation_end":active_leases(fixture),"peer_close_at_observation_end":peer.closed.load(Ordering::SeqCst)

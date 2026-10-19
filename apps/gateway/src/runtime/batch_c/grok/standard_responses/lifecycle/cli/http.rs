@@ -32,6 +32,9 @@ impl<B: MessageBody> MessageBody for CaptureBody<B> {
         {
             let row = &mut rows[this.index];
             row.chunks += 1;
+            if let Some(started) = row.started {
+                row.chunk_elapsed_ms.push(started.elapsed().as_millis());
+            }
             if row.wire.len() + bytes.len() <= 8 * 1024 * 1024 {
                 row.wire.extend_from_slice(bytes);
             }
@@ -83,6 +86,7 @@ pub(super) async fn capture<B: MessageBody>(
             .map_err(|_| actix_web::error::ErrorInternalServerError("capture"))?;
         let index = rows.len();
         rows.push(Captured {
+            started: Some(std::time::Instant::now()),
             path,
             probe,
             request: body,
