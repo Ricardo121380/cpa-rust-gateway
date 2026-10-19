@@ -123,3 +123,12 @@ The public HTTP regressions are:
   insufficient Endpoint capability set; a complete set is admitted.
 - A clean OpenAI Responses to Anthropic Messages Bridge is admitted, and `Debug` diagnostics do
   not include model or prompt values.
+
+## 2026-10-19 summary-only Responses control
+
+[BC-PROTOCOL-009](BC-PROTOCOL-009-codex-responses-controls.md) requires Reasoning capability for
+`openai.responses.reasoning` even though typed explicit-effort Thinking is absent. Only a sole
+supported summary member is admitted for a Responses target. Typed Thinking collisions and
+Chat/Messages bridges reject. Passthrough performs the same control and capability checks.
+
+- `summary_only_reasoning_keeps_effort_absent_and_requires_native_reasoning_capability`

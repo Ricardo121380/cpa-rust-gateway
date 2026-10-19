@@ -37,6 +37,29 @@ pub use upstream_response::{
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "protocol-openai-responses";
 
+/// Decodes the reviewed summary-only control without inventing an effort.
+///
+/// This control is retained as `openai.responses.reasoning` on a Canonical request whose
+/// explicit-effort `thinking` is absent. Providers must reject a collision with typed Thinking.
+///
+/// # Errors
+/// Returns a value-free request error for any shape other than one supported summary selector,
+/// including duplicate names, an explicit null effort, and unknown controls.
+pub fn decode_summary_only_reasoning(raw: &RawJson) -> Result<Value, GatewayError> {
+    reject_duplicate_json_names(raw.get())?;
+    let value: Value = serde_json::from_str(raw.get()).map_err(|_| client_request_error())?;
+    let fields = object(&value)?;
+    if fields.len() != 1
+        || !matches!(
+            fields.get("summary").and_then(Value::as_str),
+            Some("auto" | "concise" | "detailed")
+        )
+    {
+        return Err(client_request_error());
+    }
+    Ok(value)
+}
+
 /// Encodes validated history with the Responses-required summary array.
 ///
 /// Older gateway/Pi histories can contain only `content`. Preserve their identity and text,
@@ -253,14 +276,19 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
         return Err(client_request_error());
     }
 
-    let thinking = match root.get("reasoning") {
-        None => None,
-        Some(value) => Some(decode_reasoning(value)?),
+    let (thinking, summary_only) = match root.get("reasoning") {
+        None => (None, None),
+        Some(value) if object(value)?.get("effort").is_none() => {
+            let raw = raw_json(value)?;
+            decode_summary_only_reasoning(&raw)?;
+            (None, Some(raw))
+        }
+        Some(value) => (Some(decode_reasoning(value)?), None),
     };
 
     let prompt_cache_key = optional_string(root, "prompt_cache_key")?;
     let prompt_cache_retention = optional_string(root, "prompt_cache_retention")?;
-    let extensions = extensions_except_with_prefix(
+    let mut extensions = extensions_except_with_prefix(
         root,
         &[
             "model",
@@ -276,6 +304,11 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
         ],
         "openai.responses.",
     )?;
+    if let Some(raw) = summary_only {
+        extensions
+            .try_insert("openai.responses.reasoning", raw)
+            .map_err(|_| client_request_error())?;
+    }
 
     Ok(DecodedResponsesRequest {
         request: CanonicalRequest {
@@ -2292,13 +2325,14 @@ mod tests {
     use std::error::Error;
 
     use gateway_core::{
-        CanonicalEvent, CanonicalResponse, ErrorScope, GatewayError, GatewayErrorCode,
+        CanonicalEvent, CanonicalRequest, CanonicalResponse, ErrorScope, GatewayError,
+        GatewayErrorCode, RawJson,
     };
 
     use super::{
         OpenAiResponseMetadata, OpenAiResponsesSseEncoder, ResponseMode, decode_compact_request,
-        decode_request, decode_websocket_request, encode_compaction_response, encode_error,
-        encode_model_list, encode_response,
+        decode_request, decode_summary_only_reasoning, decode_websocket_request,
+        encode_compaction_response, encode_error, encode_model_list, encode_response,
     };
 
     type TestResult = Result<(), Box<dyn Error>>;
@@ -2366,6 +2400,38 @@ mod tests {
             )
             .is_err()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn summary_only_reasoning_has_an_explicit_extension_and_no_effort_default() -> TestResult {
+        let decoded =
+            decode_request(r#"{"model":"m","input":"question","reasoning":{"summary":"auto"}}"#)?;
+        assert!(decoded.request.thinking.is_none());
+        let raw = decoded
+            .request
+            .extensions
+            .get("openai.responses.reasoning")
+            .ok_or("summary control")?;
+        assert_eq!(
+            decode_summary_only_reasoning(raw)?,
+            json!({"summary":"auto"})
+        );
+        let bytes = serde_json::to_vec(&decoded.request)?;
+        let reopened: CanonicalRequest = serde_json::from_slice(&bytes)?;
+        assert_eq!(reopened, decoded.request);
+        assert_eq!(serde_json::to_vec(&reopened)?, bytes);
+        for invalid in [
+            r"{}",
+            r#"{"summary":null}"#,
+            r#"{"summary":"unknown"}"#,
+            r#"{"summary":"auto","effort":null}"#,
+            r#"{"summary":"auto","future":true}"#,
+            r#"{"summary":"auto","summary":"detailed"}"#,
+        ] {
+            let raw = RawJson::from_json_string(invalid.to_owned())?;
+            assert!(decode_summary_only_reasoning(&raw).is_err(), "{invalid}");
+        }
         Ok(())
     }
 

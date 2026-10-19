@@ -1,0 +1,37 @@
+{
+  "fixed_baseline": "c39bc07b1d53f831199f21cc5ae5062c987670b2",
+  "candidate": "e0c385d25d40179ef34ea1df11e8eb6888454346",
+  "standards": {
+    "status": "FAIL",
+    "documented_breaches": 1,
+    "fowler_judgements": 1,
+    "findings": [
+      {
+        "priority": "P2",
+        "file": "crates/gateway-router/src/protocol_transform.rs:829",
+        "rule": "ADR-0113 and BC-PROTOCOL-009 duplicate-name rejection also applies at direct Canonical Router boundary",
+        "finding": "serde_json::Value merges repeated summary keys before the closed-shape check",
+        "scope": "public ingress and both builders already reject; no demonstrated public send bypass",
+        "reproduction": "router-duplicate-red.log: admitted Ok Canonical instead of ThinkingUnsupported",
+        "resolution": "reuse RawExtensions unique-map deserializer; test Canonical/CanonicalBridge/Passthrough"
+      },
+      {
+        "kind": "Fowler Duplicated Code",
+        "finding": "Router independently revalidates codec selector shape; initial parser semantics diverged",
+        "severity": "judgement; not independent hard violation"
+      }
+    ]
+  },
+  "spec": {
+    "status": "PARTIAL_BLOCKED",
+    "new_implementation_bugs": 0,
+    "scope_creep": 0,
+    "notes": [
+      "summary-only representation, routing/capability and two encoders match increment",
+      "three required Codex fields remain permitted BLOCKED",
+      "success gate is partial, not full native control/history/Usage/terminal/encryption qualification",
+      "old/new storage envelope test is not an actual old production database upgrade"
+    ]
+  },
+  "review_mode": "independent parallel read-only single-turn agents; static review, no Provider or tests by reviewers"
+}

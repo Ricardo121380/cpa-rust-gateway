@@ -1536,6 +1536,85 @@ mod tests {
     }
 
     #[test]
+    fn summary_only_and_legacy_effort_payloads_reopen_without_rewriting_or_replay_conflicts()
+    -> TestResult {
+        const LEGACY: &str = r#"{"requested_model":"model-a","messages":[],"tools":[],"thinking":{"effort":"medium","extensions":{"summary":"auto"}},"extensions":{}}"#;
+        let legacy: CanonicalRequest = serde_json::from_str(LEGACY)?;
+        assert_eq!(serde_json::to_string(&legacy)?, LEGACY);
+        let mut summary_only = legacy.clone();
+        summary_only.thinking = None;
+        summary_only.extensions.try_insert(
+            "openai.responses.reasoning",
+            gateway_core::RawJson::from_json_string(r#"{"summary":"auto"}"#.to_owned())?,
+        )?;
+        let old = StoredResponsePayload::try_new(
+            lineage()?,
+            "model-a",
+            1,
+            legacy.clone(),
+            canonical_response("resp-effort", "old")?,
+        )?;
+        let new = StoredResponsePayload::try_new(
+            lineage()?,
+            "model-a",
+            1,
+            summary_only.clone(),
+            canonical_response("resp-summary-only", "new")?,
+        )?;
+        let path = temporary_database_path();
+        let owner = client_key("client-a")?;
+        {
+            let store = SqliteStoredResponseStore::open(&path, secret_store(1, &[(1, 0x11)])?)?;
+            for payload in [&old, &new] {
+                assert_eq!(
+                    store.put_owned(&owner, 1_000, payload)?,
+                    StoredResponsePutOutcome::Stored
+                );
+            }
+        }
+        {
+            let store =
+                SqliteStoredResponseStore::open(&path, secret_store(2, &[(1, 0x11), (2, 0x22)])?)?;
+            for payload in [&old, &new] {
+                let reopened = store
+                    .get_owned(&owner, payload.response_id()?, 1_001)?
+                    .ok_or("owned payload")?;
+                assert_eq!(reopened.payload(), payload);
+                assert_eq!(
+                    store.put_owned(&owner, 1_000, reopened.payload())?,
+                    StoredResponsePutOutcome::Replayed
+                );
+                assert!(
+                    store
+                        .get_owned(&client_key("foreign")?, payload.response_id()?, 1_001)?
+                        .is_none()
+                );
+            }
+            assert_eq!(
+                serde_json::to_string(
+                    store
+                        .get_owned(&owner, old.response_id()?, 1_001)?
+                        .ok_or("old")?
+                        .payload()
+                        .request()
+                )?,
+                LEGACY
+            );
+            assert!(
+                store
+                    .get_owned(&owner, new.response_id()?, 1_001)?
+                    .ok_or("new")?
+                    .payload()
+                    .request()
+                    .thinking
+                    .is_none()
+            );
+        }
+        fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
     fn file_reopen_and_key_rotation_read_old_and_write_active_versions() -> TestResult {
         let path = temporary_database_path();
         let owner = client_key("client-a")?;

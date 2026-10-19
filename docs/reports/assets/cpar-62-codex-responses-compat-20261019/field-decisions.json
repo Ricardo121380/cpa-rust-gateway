@@ -1,0 +1,37 @@
+{
+  "summary_only_reasoning": {
+    "implementation": "PASS_CONTROLLED",
+    "canonical": "openai.responses.reasoning with thinking absent",
+    "production_service_1_0_50": "UNPROVEN",
+    "effective_effort": "UNKNOWN",
+    "real_provider": "NOT_RUN"
+  },
+  "namespace": {
+    "implementation": "BLOCKED",
+    "refusal": "ClientRequestError before send; namespaced output fails without flattening",
+    "missing": [
+      "fixed Build declaration/output/history qualification",
+      "unambiguous forced selector",
+      "complete qualified namespace/name identity and collision policy"
+    ]
+  },
+  "client_metadata": {
+    "implementation": "BLOCKED",
+    "observed_shape": "map<string,string>; x-codex-turn-metadata is a JSON string",
+    "refusal": "retained under named root extension; no admitted Build shape",
+    "missing": [
+      "fixed service interpretation/retention and shape contract"
+    ]
+  },
+  "web_search": {
+    "implementation": "BLOCKED",
+    "refusal": "declaration rejected before send",
+    "missing": [
+      "external_web_access=false cache-only qualification",
+      "fixed profile events/results/citations/history",
+      "all applicable Usage semantics"
+    ]
+  },
+  "issue_61": "OPEN / NOT_ADMITTED; unchanged formal dependency",
+  "issue_62": "OPEN / BLOCKED"
+}

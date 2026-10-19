@@ -92,3 +92,11 @@ Accepted external request
 selection/parallel controls, visible thinking, native metadata and source Usage evidence for
 CPAR batch B. Provider-specific budgets remain in reviewed protocol extensions; no approximate
 budget-to-effort mapping is authorized by the canonical effort label.
+
+## 2026-10-19 summary-only protocol control
+
+[ADR-0113](../adr/ADR-0113-responses-summary-without-effort.md) retains the existing explicit-effort
+Thinking invariant. A Responses summary request without effort uses the existing named root
+extension `openai.responses.reasoning`, with typed Thinking absent. No field or serialization
+shape changes. [BC-PROTOCOL-009](BC-PROTOCOL-009-codex-responses-controls.md) defines its closed
+values, collision/capability/bridge admission and storage/recovery boundary.

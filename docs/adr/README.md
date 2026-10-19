@@ -140,3 +140,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0111 Build response rejection integrity](ADR-0111-build-response-rejection-integrity.md) — `#61 / #58 T03、T07–T09`（Accepted；root/status/失败 SSE Usage 修复；实际元数据准入仍 BLOCKED，#61 保持 OPEN）。
 
 - [ADR-0112 Cancelled stream source release](ADR-0112-cancelled-stream-source-release.md) — `#61 continuation / #58 T03、T06、T08、T10`（Accepted；取消/失败先释放 source 与租约，再完成已有本地确认；cost 继续 NOT_ADMITTED）。
+
+- [ADR-0113 Responses summary requests without explicit effort](ADR-0113-responses-summary-without-effort.md) — `#62 / #58 T02、T03、T08`（Accepted；summary-only 精确保留、同协议准入与独立受控回归；其他 Codex 必需字段及固定服务端资格继续分列）。

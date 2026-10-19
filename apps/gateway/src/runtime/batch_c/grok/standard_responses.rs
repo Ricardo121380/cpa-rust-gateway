@@ -1,5 +1,6 @@
 //! #61 public production Build boundaries. All wire values and accounts are synthetic.
 use super::{model_identity::ModelPeer, *};
+mod codex_controls;
 mod lifecycle;
 mod tool_rounds;
 use gateway_store::{

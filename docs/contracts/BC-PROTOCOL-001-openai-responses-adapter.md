@@ -281,3 +281,11 @@ Rollback reverts this correction and its tests/supplement together. No migration
 is required; the prior decoder again rejects valid phase-only JSON and strips
 unvalidated paired fields in SSE. This is an independent O-01 defect and does not
 change the earlier thirteen P2 findings or decide E-05's lineage conflict.
+
+## 2026-10-19 summary-only admission supplement
+
+[BC-PROTOCOL-009](BC-PROTOCOL-009-codex-responses-controls.md) admits only the reviewed summary
+selector with absent effort, preserving absence in the existing root extension envelope. It does
+not admit namespace, client_metadata execution, hosted web search or unknown reasoning controls.
+The earlier explicit-effort representation and duplicate-name refusal remain. Actual CLI and
+fixed Build service qualifications are separate from faithful same-protocol encoding.

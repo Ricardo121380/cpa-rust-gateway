@@ -650,7 +650,13 @@ fn insert_root_extensions(
         let Some(name) = name.strip_prefix(OPENAI_RESPONSES_EXTENSION_PREFIX) else {
             return Err(provider_protocol_error());
         };
-        insert_extension(root, name, raw, ROOT_RESERVED_FIELDS)?;
+        if name == "reasoning" && !root.contains_key(name) {
+            let value = protocol_openai_responses::decode_summary_only_reasoning(raw)
+                .map_err(|_| provider_protocol_error())?;
+            root.insert(name.to_owned(), value);
+        } else {
+            insert_extension(root, name, raw, ROOT_RESERVED_FIELDS)?;
+        }
     }
     Ok(())
 }

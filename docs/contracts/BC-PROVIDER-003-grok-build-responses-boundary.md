@@ -182,3 +182,18 @@ defined as cancellation. No cost success policy, profile/transport switch or ext
 - `absolute_expiry_sources_reject_conflicts_and_out_of_range_expiries`
 - `official_cli_cache_source_is_file_only_bounded_and_exclusive`
 - `official_cli_cache_preflight_builds_without_network`
+
+## #62 summary-only request construction
+
+[ADR-0113](../adr/ADR-0113-responses-summary-without-effort.md) and
+[BC-PROTOCOL-009](BC-PROTOCOL-009-codex-responses-controls.md) define the reviewed summary-only
+object. The fixed Build encoder preserves the absent effort and revalidates the closed shape;
+its reserved-field protection rejects typed Thinking collisions. Existing model/lease/cache,
+output/history, strict Usage and failure rules remain. Controlled encoding/delivery does not
+establish production 1.0.50 service acceptance or effective default effort. Namespace,
+client_metadata and hosted search qualifications remain BLOCKED; no profile/capability changes.
+
+- `public_build_summary_only_reasoning_preserves_absent_effort`
+- `public_build_summary_only_json_and_fragmented_sse_keep_two_tool_cycles`
+- `public_build_codex_fields_remain_individually_blocked_before_send`
+- `public_build_namespaced_output_is_rejected_without_flattening_or_retry`

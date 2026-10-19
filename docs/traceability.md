@@ -271,3 +271,5 @@ summary/body及模型关系未实施；标准与协商消费者资格分列，#4
 #61 的标准 Responses 准备对应 [ADR-0111](adr/ADR-0111-build-response-rejection-integrity.md)、[字段资格记录](reports/cpar-61-field-qualification-20261018.md) 与 [本轮报告](reports/cpar-61-responses-20261018.md)。仅修复独立公共拒绝/失败 Usage 缺口及验证既有标准工具/summary；实际字段 JSON/SSE 共同资格与成功留存仍 BLOCKED，#61 保持 OPEN，不推进其他工单。
 
 #61 的取消与故障续作对应 [ADR-0112](adr/ADR-0112-cancelled-stream-source-release.md)、[cost 渠道契约草案](reports/cpar-61-cost-contract-draft-20261018.md) 与 [续作报告](reports/cpar-61-continuation-20261018.md)。用户保留 NOT_ADMITTED；仅完成不依赖该资格的 production Build 取消/断连/超时及已拒绝 Usage 的故障证据，不推进 #62/#63 或宣称整票完成。
+
+#62 的 Codex 请求兼容增量对应 [ADR-0113](adr/ADR-0113-responses-summary-without-effort.md)、[BC-PROTOCOL-009](contracts/BC-PROTOCOL-009-codex-responses-controls.md) 与 [本轮报告](reports/cpar-62-codex-responses-compat-20261019.md)。summary-only 保留 effort 缺失；namespace、client_metadata 和 web_search 固定 Build 资格仍 BLOCKED，实际 Codex 成功门槛单列，#61 的正式依赖和 NOT_ADMITTED 保持。

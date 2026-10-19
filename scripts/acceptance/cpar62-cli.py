@@ -94,7 +94,48 @@ def installed_manifest():
     return records
 
 
-def run_qualification(output, require_prompt_release=False):
+def codex_success_checks(root):
+    """A required success gate is separate from the historical expected-400 preparation oracle.
+
+    Missing observations fail closed. A future positive CLI scenario must supply every receipt;
+    this gate alone does not qualify a new client mode or #61 encrypted retention.
+    """
+    directory = root / "codex-standard"
+    receipt = json.loads((directory / "client.json").read_text())
+    observations = json.loads((directory / "observations.json").read_text())
+    ingress = [row for row in json.loads((directory / "ingress.json").read_text()) if not row["probe"]]
+    upstream = json.loads((directory / "upstream.json").read_text())
+    events = [json.loads(line) for line in receipt["stdout"].splitlines() if line.strip()]
+    history = upstream[-1].get("input", []) if upstream else []
+    history = [row for row in history if isinstance(row, dict)] if isinstance(history, list) else []
+    calls = [row for row in history if isinstance(row, dict) and row.get("type") == "function_call"]
+    results = [row for row in history if isinstance(row, dict) and row.get("type") == "function_call_output"]
+    correlated = len(calls) == 2 and len(results) == 2
+    if correlated:
+        call_ids = [row.get("call_id") for row in calls]
+        correlated = len(set(call_ids)) == 2 and all(call_ids) and all(
+            sum(result.get("call_id") == call_id for result in results) == 1
+            and history.index(calls[index]) < next(
+                position for position, result in enumerate(history)
+                if result.get("type") == "function_call_output" and result.get("call_id") == call_id)
+            for index, call_id in enumerate(call_ids))
+    accounting = observations["accounting"]
+    checks = {
+        "cli_exit_zero": receipt["exit"] == 0,
+        "answer_tool_task_and_follow_up": sum(row.get("type") == "turn.completed" for row in events) == 3
+            and not any(row.get("type") in ("turn.failed", "error") for row in events),
+        "five_incremental_public_responses": len(ingress) == 5
+            and all(row["status"] == 200 and row["chunks"] > 2 for row in ingress),
+        "independent_receives_and_exact_accounting": len(upstream) == 5
+            and all(accounting.get(name) == 5 for name in ("client_requests", "attempts", "usage", "ledger")),
+        "two_correlated_tool_results": correlated,
+        "actual_tool_file_result": (directory / "work/result.txt").exists()
+            and (directory / "work/result.txt").read_text() == "42\n",
+    }
+    return {"status": "PASS" if all(checks.values()) else "FAIL", "checks": checks}
+
+
+def run_qualification(output, require_prompt_release=False, require_codex_success=False):
     if sys.platform != "darwin":
         raise RuntimeError("this fixed-client runner requires macOS Seatbelt")
     root = Path(output).resolve()
@@ -166,11 +207,18 @@ def run_qualification(output, require_prompt_release=False):
     unchanged = before == installed_manifest()
     cancel_path = root / "pi-cancel/cancel-diagnostic.json"
     cancel = json.loads(cancel_path.read_text()) if cancel_path.exists() else None
+    codex_gate = codex_success_checks(root) if (root / "codex-standard/observations.json").exists() else {
+        "status": "FAIL", "reason": "missing actual Codex observations"}
     (root / "run.json").write_text(json.dumps({"command": command, "exit": result.returncode,
+        "runner_status": "FAIL" if result.returncode or not unchanged
+            or require_codex_success and codex_gate["status"] != "PASS" else "PASS",
         "require_prompt_release": require_prompt_release, "cancellation": cancel,
+        "require_codex_success": require_codex_success, "codex_success_gate": codex_gate,
         "installs_unchanged": unchanged, "claim": "local controlled independent preparation; #62 remains blocked"}, indent=2) + "\n")
     if result.returncode or not unchanged:
         raise RuntimeError("qualification failed or installed bytes drifted; see receipts")
+    if require_codex_success and codex_gate["status"] != "PASS":
+        raise RuntimeError("Codex success gate FAILED; expected-400 preparation is not compatibility; see run.json")
     print(f"Preparation oracles PASS; Codex BLOCKED; Pi cancellation latency is recorded separately; #62 OPEN/BLOCKED. Receipts: {root}")
 
 
@@ -310,5 +358,7 @@ if __name__ == "__main__":
         parser.add_argument("--output", required=True, help="new absolute directory beneath the OS temporary directory")
         parser.add_argument("--require-prompt-release", action="store_true",
                             help="also require the one-second diagnostic probe; this is not a product SLA")
+        parser.add_argument("--require-codex-success", action="store_true",
+                            help="fail unless actual Codex completes the answer, two tool cycles and follow-up; expected HTTP400 is not success")
         args = parser.parse_args()
-        run_qualification(args.output, args.require_prompt_release)
+        run_qualification(args.output, args.require_prompt_release, args.require_codex_success)

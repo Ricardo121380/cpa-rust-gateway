@@ -67,7 +67,7 @@ fn event(kind: &str, mut value: Value) -> String {
     format!("event: {kind}\ndata: {value}\n\n")
 }
 
-fn wire_response(round: usize, streaming: bool) -> Result<String, Box<dyn Error>> {
+pub(super) fn wire_response(round: usize, streaming: bool) -> Result<String, Box<dyn Error>> {
     let output = output(round);
     let mut terminal = response();
     terminal["output"] = output.clone();
@@ -146,6 +146,40 @@ fn wire_response(round: usize, streaming: bool) -> Result<String, Box<dyn Error>
 
 #[actix_web::test]
 async fn public_build_standard_json_and_fragmented_sse_keep_two_tool_cycles() -> TestResult {
+    run_tool_rounds(None).await
+}
+
+#[actix_web::test]
+async fn public_build_summary_only_json_and_fragmented_sse_keep_two_tool_cycles() -> TestResult {
+    run_tool_rounds(Some(json!({"summary":"auto"}))).await
+}
+
+fn round_result(bytes: &[u8], streaming: bool, round: usize) -> Result<Value, Box<dyn Error>> {
+    if !streaming {
+        return Ok(serde_json::from_slice(bytes)?);
+    }
+    let frames = public_frames(bytes)?;
+    assert_eq!(
+        frames
+            .iter()
+            .filter(|v| v["type"] == "response.completed")
+            .count(),
+        1,
+        "{}",
+        String::from_utf8_lossy(bytes)
+    );
+    if round == 0 || round == 2 {
+        let done = frames
+            .iter()
+            .find(|v| v["type"] == "response.function_call_arguments.done")
+            .ok_or("complete executable arguments")?;
+        assert_eq!(done["arguments"], r#"{"city":"上海","n":9007199254740993}"#);
+        serde_json::from_str::<Value>(done["arguments"].as_str().ok_or("arguments")?)?;
+    }
+    Ok(frames.last().ok_or("terminal")?["response"].clone())
+}
+
+async fn run_tool_rounds(reasoning: Option<Value>) -> TestResult {
     for (streaming, size) in [(false, 31), (true, 1), (true, 7), (true, 31)] {
         let responses = (0..5)
             .map(|round| wire_response(round, streaming))
@@ -170,10 +204,20 @@ async fn public_build_standard_json_and_fragmented_sse_keep_two_tool_cycles() ->
         .await;
         let mut history = vec![json!({"role":"user","content":"question"})];
         for round in 0..5 {
-            let reply=test::call_service(&app,test::TestRequest::post().uri("/v1/responses")
-                .insert_header(("authorization",format!("Bearer {}",fixture.key)))
-                .set_json(json!({"model":"p12-test-model","input":history,"stream":streaming,"max_output_tokens":19,
-                    "tools":[{"type":"function","name":"lookup","parameters":{"type":"object"}}]})).to_request()).await;
+            let mut body = json!({"model":"p12-test-model","input":history,"stream":streaming,"max_output_tokens":19,
+                "tools":[{"type":"function","name":"lookup","parameters":{"type":"object"}}]});
+            if let Some(reasoning) = &reasoning {
+                body["reasoning"] = reasoning.clone();
+            }
+            let reply = test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                    .set_json(body)
+                    .to_request(),
+            )
+            .await;
             let status = reply.status();
             let bytes = test::read_body(reply).await;
             assert_eq!(
@@ -182,29 +226,7 @@ async fn public_build_standard_json_and_fragmented_sse_keep_two_tool_cycles() ->
                 "{}",
                 String::from_utf8_lossy(&bytes)
             );
-            let result = if streaming {
-                let frames = public_frames(&bytes)?;
-                assert_eq!(
-                    frames
-                        .iter()
-                        .filter(|v| v["type"] == "response.completed")
-                        .count(),
-                    1,
-                    "{}",
-                    String::from_utf8_lossy(&bytes)
-                );
-                if round == 0 || round == 2 {
-                    let done = frames
-                        .iter()
-                        .find(|v| v["type"] == "response.function_call_arguments.done")
-                        .ok_or("complete executable arguments")?;
-                    assert_eq!(done["arguments"], r#"{"city":"上海","n":9007199254740993}"#);
-                    serde_json::from_str::<Value>(done["arguments"].as_str().ok_or("arguments")?)?;
-                }
-                frames.last().ok_or("terminal")?["response"].clone()
-            } else {
-                serde_json::from_slice::<Value>(&bytes)?
-            };
+            let result = round_result(&bytes, streaming, round)?;
             assert_eq!(result["output"], output(round));
             assert_eq!(result["model"], "grok-4.5");
             assert_eq!(result["usage"]["input_tokens"], 20);
@@ -218,6 +240,7 @@ async fn public_build_standard_json_and_fragmented_sse_keep_two_tool_cycles() ->
             assert_eq!(records[round].body["model"], "grok-4.5");
             assert_eq!(records[round].model_override, "grok-4.5");
             assert_eq!(records[round].body["max_output_tokens"], 19);
+            assert_eq!(records[round].body.get("reasoning"), reasoning.as_ref());
             if round > 0 {
                 assert!(
                     records[round]

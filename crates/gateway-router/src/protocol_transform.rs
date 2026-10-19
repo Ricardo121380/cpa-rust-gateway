@@ -822,6 +822,23 @@ fn validate_target_root_extensions(
             if !serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| value.is_boolean()) {
                 return Err(ProtocolTransformRejection::UnknownRequestExtensions);
             }
+        } else if target == ProtocolFormat::OpenAiResponses && name == "openai.responses.reasoning"
+        {
+            // A summary request with no effort is distinct from an explicit Thinking effort.
+            // Both representations together would invent precedence and must fail closed.
+            // RawExtensions' map deserializer rejects duplicate names before Value can merge
+            // them. The sole admitted value is a string, so no unchecked nested object remains.
+            let valid = serde_json::from_str::<RawExtensions>(raw.get()).is_ok_and(|fields| {
+                fields.iter().count() == 1
+                    && fields.get("summary").is_some_and(|summary| {
+                        serde_json::from_str::<Value>(summary.get()).is_ok_and(|value| {
+                            matches!(value.as_str(), Some("auto" | "concise" | "detailed"))
+                        })
+                    })
+            });
+            if request.thinking.is_some() || !valid {
+                return Err(ProtocolTransformRejection::ThinkingUnsupported);
+            }
         } else if target == ProtocolFormat::OpenAiResponses && name == "openai.responses.include" {
             // Pi requests encrypted reasoning alongside summaries. Keep the reviewed selector
             // intact for the Responses builder; other output expansions remain unsupported.
@@ -1062,6 +1079,10 @@ fn capability_rejection(
         return Err(ProtocolTransformRejection::ParallelToolsUnsupported);
     }
     let has_reasoning = request.thinking.is_some()
+        || request
+            .extensions
+            .get("openai.responses.reasoning")
+            .is_some()
         || request.messages.iter().any(|message| {
             message
                 .content
@@ -1482,6 +1503,135 @@ mod tests {
             assert_eq!(
                 wire.get("tool_choice"),
                 Some(&serde_json::from_str(raw_choice)?)
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn summary_only_duplicate_keys_are_rejected_by_router_in_every_mode()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut request = protocol_openai_responses::decode_request(
+            r#"{"model":"m","input":"direct Canonical boundary"}"#,
+        )?
+        .request;
+        request.extensions.try_insert(
+            "openai.responses.reasoning",
+            RawJson::from_json_string(r#"{"summary":"auto","summary":"detailed"}"#.to_owned())?,
+        )?;
+        let capabilities = all_capabilities()?;
+        for mode in [
+            SnapshotTransformMode::Canonical,
+            SnapshotTransformMode::CanonicalBridge,
+            SnapshotTransformMode::Passthrough,
+        ] {
+            assert_eq!(
+                project_protocol_request(input(
+                    &request,
+                    ProtocolFormat::OpenAiResponses,
+                    ProtocolFormat::OpenAiResponses,
+                    mode,
+                    NativePayloadAvailability::Exact,
+                    &capabilities
+                )),
+                Err(ProtocolTransformRejection::ThinkingUnsupported)
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn summary_only_reasoning_keeps_effort_absent_and_requires_native_reasoning_capability()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let capabilities = all_capabilities()?;
+        let without_reasoning = CapabilitySet::try_new([SemanticCapability::Streaming])?;
+        for summary in ["auto", "concise", "detailed"] {
+            let decoded = protocol_openai_responses::decode_request(
+                &serde_json::json!({"model":"m","input":"summary control","reasoning":{"summary":summary}}).to_string(),
+            )?;
+            assert!(decoded.request.thinking.is_none());
+            for mode in [
+                SnapshotTransformMode::Canonical,
+                SnapshotTransformMode::CanonicalBridge,
+                SnapshotTransformMode::Passthrough,
+            ] {
+                let projected = project_protocol_request(input(
+                    &decoded.request,
+                    ProtocolFormat::OpenAiResponses,
+                    ProtocolFormat::OpenAiResponses,
+                    mode,
+                    NativePayloadAvailability::Exact,
+                    &capabilities,
+                ))?;
+                if let ProjectedProtocolRequest::Canonical(projected) = projected {
+                    assert_eq!(projected, decoded.request);
+                    let outbound = OpenAiResponsesRequestBuilder::build(
+                        &OpenAiResponsesEndpoint::try_new(
+                            "https://relay.example",
+                            "/v1/responses",
+                        )?,
+                        &OpenAiResponsesApiKey::try_new("synthetic-secret")?,
+                        "m",
+                        &projected,
+                        decoded.mode,
+                    )?;
+                    let wire: Value = serde_json::from_slice(outbound.body())?;
+                    assert_eq!(wire["reasoning"], serde_json::json!({"summary":summary}));
+                    assert!(wire["reasoning"].get("effort").is_none());
+                }
+                assert_eq!(
+                    project_protocol_request(input(
+                        &decoded.request,
+                        ProtocolFormat::OpenAiResponses,
+                        ProtocolFormat::OpenAiResponses,
+                        mode,
+                        NativePayloadAvailability::Exact,
+                        &without_reasoning
+                    )),
+                    Err(ProtocolTransformRejection::ReasoningUnsupported)
+                );
+            }
+            for target in [
+                ProtocolFormat::OpenAiChatCompletions,
+                ProtocolFormat::AnthropicMessages,
+            ] {
+                assert!(
+                    project_protocol_request(input(
+                        &decoded.request,
+                        ProtocolFormat::OpenAiResponses,
+                        target,
+                        SnapshotTransformMode::LosslessBridge,
+                        NativePayloadAvailability::Exact,
+                        &capabilities
+                    ))
+                    .is_err()
+                );
+            }
+            let mut collision = decoded.request;
+            collision.thinking = Some(Thinking {
+                effort: ThinkingEffort::try_new("high")?,
+                extensions: RawExtensions::default(),
+            });
+            assert_eq!(
+                project_protocol_request(input(
+                    &collision,
+                    ProtocolFormat::OpenAiResponses,
+                    ProtocolFormat::OpenAiResponses,
+                    SnapshotTransformMode::Canonical,
+                    NativePayloadAvailability::Exact,
+                    &capabilities
+                )),
+                Err(ProtocolTransformRejection::ThinkingUnsupported)
+            );
+            assert!(
+                OpenAiResponsesRequestBuilder::build(
+                    &OpenAiResponsesEndpoint::try_new("https://relay.example", "/v1/responses")?,
+                    &OpenAiResponsesApiKey::try_new("synthetic-secret")?,
+                    "m",
+                    &collision,
+                    decoded.mode
+                )
+                .is_err()
             );
         }
         Ok(())

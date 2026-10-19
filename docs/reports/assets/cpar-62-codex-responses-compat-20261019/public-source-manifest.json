@@ -1,0 +1,81 @@
+{
+  "sources": [
+    {
+      "id": "openai-reasoning",
+      "url": "https://developers.openai.com/api/docs/guides/reasoning.md",
+      "final_url": "https://developers.openai.com/api/docs/guides/reasoning.md",
+      "http": 200,
+      "utc": "2026-10-19T05:28:52.963721+00:00",
+      "bytes": 70779,
+      "sha256": "a561487dd41db8828b5b9920d77275bdced3c3c07ba1fb9f3c3230c5aaeb925b"
+    },
+    {
+      "id": "openai-functions",
+      "url": "https://developers.openai.com/api/docs/guides/function-calling.md",
+      "final_url": "https://developers.openai.com/api/docs/guides/function-calling.md",
+      "http": 200,
+      "utc": "2026-10-19T05:28:53.080965+00:00",
+      "bytes": 77573,
+      "sha256": "ce460da5635ff6b235fd45bb94a425975fc438f5e47ba71705e7ebf689172ae1"
+    },
+    {
+      "id": "openai-web-search",
+      "url": "https://developers.openai.com/api/docs/guides/tools-web-search.md",
+      "final_url": "https://developers.openai.com/api/docs/guides/tools-web-search.md",
+      "http": 200,
+      "utc": "2026-10-19T05:28:52.894427+00:00",
+      "bytes": 47401,
+      "sha256": "7eee490dc188bf63708f31aae94e9191cef19cdd890a52578a73938cb718e19e"
+    },
+    {
+      "id": "openai-responses-create",
+      "url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+      "final_url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+      "http": 200,
+      "utc": "2026-10-19T05:28:53.634264+00:00",
+      "bytes": 506646,
+      "sha256": "98dbc86be77dc477b1b33b862b5edfd334f6d30870e39616bd6c5bc54a20a664"
+    },
+    {
+      "id": "codex-common",
+      "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/codex-api/src/common.rs",
+      "final_url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/codex-api/src/common.rs",
+      "http": 200,
+      "utc": "2026-10-19T05:28:53.942158+00:00",
+      "bytes": 14395,
+      "sha256": "052151729693439be83e0af587078d67275794b6db860bd6541c3470ab767244"
+    },
+    {
+      "id": "codex-metadata",
+      "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/core/src/responses_metadata.rs",
+      "final_url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/core/src/responses_metadata.rs",
+      "http": 200,
+      "utc": "2026-10-19T05:28:54.122948+00:00",
+      "bytes": 24943,
+      "sha256": "17821e5baed960026bc9b54f0af5085883c9c057647631fcd4d0070fdb3827bd"
+    },
+    {
+      "id": "build-client",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/client.rs",
+      "http": 200,
+      "utc": "2026-10-19T05:28:54.691766+00:00",
+      "bytes": 143544,
+      "sha256": "5b9ff7c6fbbb7eddbda9877539e66d6a8214e508201da7a7d0e60d6f3ab650ab"
+    },
+    {
+      "id": "build-tool-overrides",
+      "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/tool_overrides.rs",
+      "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/tool_overrides.rs",
+      "http": 200,
+      "utc": "2026-10-19T05:28:54.826885+00:00",
+      "bytes": 17620,
+      "sha256": "9c35a1fd25afaf93933a35b69d36f76fe2400de8983fae947481ac5ce9490784"
+    }
+  ],
+  "codex_revision": "979011409de0a60b52f179721948e65531d26144",
+  "build_public_revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "production_build_profile": "1.0.50",
+  "build_release_source_mapping": "UNPROVEN",
+  "real_provider": "NOT_RUN"
+}
