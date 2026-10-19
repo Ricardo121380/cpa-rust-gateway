@@ -132,3 +132,12 @@ supported summary member is admitted for a Responses target. Typed Thinking coll
 Chat/Messages bridges reject. Passthrough performs the same control and capability checks.
 
 - `summary_only_reasoning_keeps_effort_absent_and_requires_native_reasoning_capability`
+
+## #63 limited standard Messages delivery successor
+
+[ADR-0114](../adr/ADR-0114-confirmed-build-messages-summary.md) qualifies the actual
+GrokBuildResponses adapter + Messages + CanonicalBridge for an explicit limited delivery
+contract: reviewed summary is fully validated and encrypted before successful closure, while
+standard visible history carries the controlled tool loop. This is not full LosslessBridge.
+Passthrough, other adapters/protocols, request controls and unsupported reasoning remain strict.
+See [BC-OBS-007](BC-OBS-007-messages-summary-evidence.md); it grants no extra Usage admission.

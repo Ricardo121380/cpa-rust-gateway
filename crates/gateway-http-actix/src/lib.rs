@@ -3221,11 +3221,11 @@ async fn pump_source(
     )
     .await;
     if let Some(source) = source.as_ref() {
-        usage_observer.remember_decoded_usage(source.decoded_usage());
+        usage_observer.remember_source_evidence(source.as_ref());
     }
     // A local confirmation must not keep an upstream socket or credential lease alive.
     drop(source);
-    if let Err(error) = usage_observer.flush_usage().await {
+    if let Err(error) = usage_observer.flush_recording().await {
         usage_observer.fail(&error);
     }
 }
@@ -3276,9 +3276,9 @@ async fn pump_source_events(
                     CanonicalEvent::ResponseEnd(_) | CanonicalEvent::StreamError(_)
                 );
                 if terminal {
-                    usage_observer.remember_decoded_usage(
-                        source.as_ref().and_then(|source| source.decoded_usage()),
-                    );
+                    if let Some(source) = source.as_ref() {
+                        usage_observer.remember_source_evidence(source.as_ref());
+                    }
                     drop(source.take());
                 }
                 if !matches!(event, CanonicalEvent::StreamError(_))
@@ -3313,6 +3313,7 @@ async fn pump_source_events(
                     return;
                 }
                 let mut cancelled_usage = None;
+                let mut cancelled_summary = None;
                 let observed = {
                     let confirmation = usage_observer.observe(&event);
                     tokio::pin!(confirmation);
@@ -3320,6 +3321,7 @@ async fn pump_source_events(
                         biased;
                         () = cancellation.cancelled() => {
                             cancelled_usage = source.as_ref().and_then(|source| source.decoded_usage());
+                            cancelled_summary = source.as_ref().and_then(|source| source.decoded_messages_summary());
                             drop(source.take());
                             // Finish this one local confirmation after releasing network/lease
                             // ownership. Dropping it or flushing again could lose or replay Usage.
@@ -3329,6 +3331,9 @@ async fn pump_source_events(
                     }
                 };
                 usage_observer.remember_decoded_usage(cancelled_usage);
+                if cancelled_summary.is_some() {
+                    usage_observer.latest_summary = cancelled_summary;
+                }
                 if let Err(error) = observed {
                     usage_observer.fail(&error);
                     send_terminal_failure(&mut sender, error, &cancellation).await;
@@ -3365,11 +3370,15 @@ async fn pump_source_events(
             Err(error) => {
                 // A rejected Usage may already be decoded in the source. Confirm it before
                 // publishing the failure, without asking the upstream for another event.
-                usage_observer.remember_decoded_usage(
-                    source.as_ref().and_then(|source| source.decoded_usage()),
-                );
+                if let Some(source) = source.as_ref() {
+                    usage_observer.remember_source_evidence(source.as_ref());
+                }
                 drop(source.take());
-                let error = usage_observer.flush_usage().await.err().unwrap_or(error);
+                let error = usage_observer
+                    .flush_recording()
+                    .await
+                    .err()
+                    .unwrap_or(error);
                 usage_observer.fail(&error);
                 send_terminal_failure(&mut sender, error, &cancellation).await;
                 return;
@@ -3522,10 +3531,12 @@ fn system_now_ms() -> Result<i64, GatewayError> {
 /// separate sensitive companion confirmed by the bounded encrypted writer.
 struct UsageEventObserver {
     request_id: RequestId,
-    event_sink: Arc<dyn GatewayEventSink>,
+    event_sink: Arc<gateway_observability::RequestEventSink>,
     response_id: Option<ResponseId>,
     final_usage_emitted: bool,
     latest_usage: Option<gateway_core::Usage>,
+    latest_summary: Option<gateway_core::MessagesSummaryEvidence>,
+    summary_emitted: bool,
     observation: RequestObservation,
     guard: Option<RequestGuard>,
 }
@@ -3535,8 +3546,7 @@ impl UsageEventObserver {
         event_sink: Arc<dyn GatewayEventSink>,
         start: (std::time::Instant, i64),
     ) -> Self {
-        let event_sink: Arc<dyn GatewayEventSink> =
-            Arc::new(gateway_observability::RequestEventSink::new(event_sink));
+        let event_sink = Arc::new(gateway_observability::RequestEventSink::new(event_sink));
         let guard = RequestGuard::new_at(request_id.clone(), event_sink.clone(), start);
         Self {
             request_id,
@@ -3544,6 +3554,8 @@ impl UsageEventObserver {
             response_id: None,
             final_usage_emitted: false,
             latest_usage: None,
+            latest_summary: None,
+            summary_emitted: false,
             observation: guard.observation.clone(),
             guard: Some(guard),
         }
@@ -3562,6 +3574,36 @@ impl UsageEventObserver {
             ));
         }
     }
+    fn remember_source_evidence(&mut self, source: &dyn ResponsesEventSource) {
+        self.remember_decoded_usage(source.decoded_usage());
+        if let Some(evidence) = source.decoded_messages_summary() {
+            self.latest_summary = Some(evidence);
+        }
+    }
+    async fn flush_recording(&mut self) -> Result<(), GatewayError> {
+        let usage = self.flush_usage().await;
+        let summary = self.flush_summary().await;
+        usage.and(summary)
+    }
+    async fn flush_summary(&mut self) -> Result<(), GatewayError> {
+        if !self.summary_emitted
+            && let Some(evidence) = self.latest_summary.take()
+        {
+            self.summary_emitted = true;
+            if self
+                .event_sink
+                .emit_request_summary_confirmed(self.request_id.clone(), evidence)
+                .await
+                != gateway_core::EventEmission::Persisted
+            {
+                return Err(GatewayError::new(
+                    GatewayErrorCode::RecordingUnavailable,
+                    ErrorScope::Internal,
+                ));
+            }
+        }
+        Ok(())
+    }
     async fn observe(&mut self, event: &CanonicalEvent) -> Result<(), GatewayError> {
         self.observation.observe(event);
         match event {
@@ -3575,7 +3617,7 @@ impl UsageEventObserver {
                 }
             }
             CanonicalEvent::ResponseEnd(_) | CanonicalEvent::StreamError(_) => {
-                self.flush_usage().await?;
+                self.flush_recording().await?;
             }
             _ => {}
         }

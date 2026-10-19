@@ -273,3 +273,5 @@ summary/body及模型关系未实施；标准与协商消费者资格分列，#4
 #61 的取消与故障续作对应 [ADR-0112](adr/ADR-0112-cancelled-stream-source-release.md)、[cost 渠道契约草案](reports/cpar-61-cost-contract-draft-20261018.md) 与 [续作报告](reports/cpar-61-continuation-20261018.md)。用户保留 NOT_ADMITTED；仅完成不依赖该资格的 production Build 取消/断连/超时及已拒绝 Usage 的故障证据，不推进 #62/#63 或宣称整票完成。
 
 #62 的 Codex 请求兼容增量对应 [ADR-0113](adr/ADR-0113-responses-summary-without-effort.md)、[BC-PROTOCOL-009](contracts/BC-PROTOCOL-009-codex-responses-controls.md) 与 [本轮报告](reports/cpar-62-codex-responses-compat-20261019.md)。summary-only 保留 effort 缺失；namespace、client_metadata 和 web_search 固定 Build 资格仍 BLOCKED，实际 Codex 成功门槛单列，#61 的正式依赖和 NOT_ADMITTED 保持。
+
+#63 的标准 Messages 受控摘要交付对应 [ADR-0114](adr/ADR-0114-confirmed-build-messages-summary.md)、[BC-OBS-007](contracts/BC-OBS-007-messages-summary-evidence.md) 与[支持范围](support/grok-build-messages.md)。仅限定 Build/CanonicalBridge/Messages；完整 summary 加密确认与标准工具历史分开核对，不改变 #61 依赖或 cost NOT_ADMITTED。实际 Claude Code 留在 #64，真实 Provider、发布和部署分别验收。

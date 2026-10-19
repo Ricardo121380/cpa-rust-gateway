@@ -9,6 +9,7 @@ use std::num::NonZeroUsize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod cli;
 mod disconnect;
+mod messages;
 mod recording_faults;
 
 struct SocketPeer {
@@ -226,6 +227,14 @@ struct HeldReceipt {
     release: tokio::sync::Notify,
 }
 impl GatewayEventSink for HeldReceipt {
+    fn emit_summary_evidence_confirmed(
+        &self,
+        attempt: gateway_core::AttemptEvent,
+        evidence: gateway_core::MessagesSummaryEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        self.inner
+            .emit_summary_evidence_confirmed(attempt, evidence)
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         self.inner.try_emit(event)
     }
@@ -270,6 +279,19 @@ async fn wait_until(mut condition: impl FnMut() -> bool) -> bool {
 async fn public_socket(
     fixture: &Fixture,
 ) -> Result<(tokio::net::TcpStream, actix_web::dev::ServerHandle), Box<dyn Error>> {
+    public_socket_request(
+        fixture,
+        "/v1/responses",
+        json!({"model":"p12-test-model","input":"controlled lifecycle","stream":true}),
+    )
+    .await
+}
+
+async fn public_socket_request(
+    fixture: &Fixture,
+    uri: &str,
+    body: Value,
+) -> Result<(tokio::net::TcpStream, actix_web::dev::ServerHandle), Box<dyn Error>> {
     let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
     let address = listener.local_addr()?;
     let state = fixture.state.clone();
@@ -286,10 +308,9 @@ async fn public_socket(
     let handle = server.handle();
     actix_web::rt::spawn(server);
     let mut socket = tokio::net::TcpStream::connect(address).await?;
-    let body =
-        json!({"model":"p12-test-model","input":"controlled lifecycle","stream":true}).to_string();
+    let body = body.to_string();
     let request = format!(
-        "POST /v1/responses HTTP/1.1\r\nHost: {address}\r\nAuthorization: Bearer {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+        "POST {uri} HTTP/1.1\r\nHost: {address}\r\nAuthorization: Bearer {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
         fixture.key,
         body.len()
     );
@@ -374,6 +395,14 @@ struct Recording {
 
 impl Recording {
     fn start(fixture: &Fixture, hold_receipt: bool) -> Result<Self, Box<dyn Error>> {
+        Self::with_keys(fixture, hold_receipt, Some(test_secret_store()?))
+    }
+
+    fn with_keys(
+        fixture: &Fixture,
+        hold_receipt: bool,
+        secrets: Option<SecretStore>,
+    ) -> Result<Self, Box<dyn Error>> {
         let database = fixture.directory.path().join("batch-c.sqlite3");
         let (queue, receiver) = BoundedEventQueue::try_new(EventQueueConfig::try_new(64, 1)?)?;
         let queue: Arc<dyn GatewayEventSink> = Arc::new(queue);
@@ -386,15 +415,17 @@ impl Recording {
         });
         *fixture.events.1.lock().map_err(|_| "sink")? =
             Some(receipt.as_ref().map_or(queue, |v| v.clone()));
-        let writer = tokio::spawn(
-            AsyncSqliteEventWriter::new(
-                &database,
-                receiver,
-                EventWriterConfig::try_new(4, Duration::from_millis(5))?,
-            )
-            .with_native_usage_secret_store(test_secret_store()?)
-            .run(),
+        let writer = AsyncSqliteEventWriter::new(
+            &database,
+            receiver,
+            EventWriterConfig::try_new(4, Duration::from_millis(5))?,
         );
+        let writer = if let Some(secrets) = secrets {
+            writer.with_native_usage_secret_store(secrets)
+        } else {
+            writer
+        };
+        let writer = tokio::spawn(writer.run());
         Ok(Self {
             database,
             receipt,
@@ -482,6 +513,17 @@ async fn public_build_disconnect_releases_upstream_before_pending_usage_receipt(
         let released = wait_until(|| peer.closed.load(Ordering::SeqCst) == 1).await;
         let leases = active_leases(&fixture);
         receipt.release.notify_one();
+        // The body guard records cancellation asynchronously. Observe that durable outcome
+        // before abrupt test-server cleanup can discard its pending task under parallel load.
+        assert!(
+            wait_until(|| SqliteEventStore::open_read_only(&recording.database)
+                .and_then(|store| store.list_events())
+                .is_ok_and(|rows| rows.iter().any(
+                    |row| matches!(row.event(),GatewayEvent::RequestFinished(event)
+                    if event.outcome==gateway_core::RequestOutcome::Cancelled)
+                )))
+            .await
+        );
         server.stop(false).await;
         let database = recording.finish(&fixture, 0).await?;
         assert!(

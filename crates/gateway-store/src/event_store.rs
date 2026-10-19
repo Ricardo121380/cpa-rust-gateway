@@ -339,17 +339,18 @@ impl SqliteEventStore {
     /// Returns [`StoreError`] and leaves no partial rows when any record is invalid, conflicts,
     /// or `SQLite` rejects the transaction.
     pub fn append_batch(&mut self, events: &[GatewayEvent]) -> StoreResult<usize> {
-        self.append_with_native_usage(events, &[], None)
+        self.append_with_private_evidence(events, &[], &[], None)
     }
 
     #[allow(
         clippy::too_many_lines,
         reason = "atomic append, authenticated companion, exact replay and lifecycle state share one transaction"
     )]
-    fn append_with_native_usage(
+    fn append_with_private_evidence(
         &mut self,
         events: &[GatewayEvent],
         native: &[(usize, gateway_core::NativeUsageEvidence)],
+        summaries: &[(usize, gateway_core::MessagesSummaryEvidence)],
         secrets: Option<&crate::secret_store::SecretStore>,
     ) -> StoreResult<usize> {
         let records = events
@@ -366,6 +367,13 @@ impl SqliteEventStore {
         let mut source_existed = Vec::with_capacity(native.len());
         for (index, _) in native {
             source_existed.push(transaction.query_row("SELECT EXISTS(SELECT 1 FROM gateway_event_log WHERE event_type='usage' AND event_id=?1)",[&records[*index].event_id],|r|r.get::<_,bool>(0))?);
+        }
+        for (index, _) in summaries {
+            let exists: bool = transaction.query_row("SELECT EXISTS(SELECT 1 FROM gateway_event_log WHERE event_type='attempt' AND event_id=?1)",
+                [&records[*index].event_id],|r|r.get(0))?;
+            if !exists {
+                return Err(StoreError::InvalidPersistedGatewayEvent);
+            }
         }
         let mut inserted = 0;
         for (record, event) in records.iter().zip(events) {
@@ -484,6 +492,18 @@ impl SqliteEventStore {
             )?;
         }
         crate::native_usage::purge_expired(&transaction, crate::native_usage::now_ms()?)?;
+        for (index, evidence) in summaries {
+            let GatewayEvent::Attempt(attempt) = &events[*index] else {
+                return Err(StoreError::InvalidPersistedGatewayEvent);
+            };
+            crate::messages_summary::append(
+                &transaction,
+                attempt,
+                evidence,
+                secrets.ok_or(StoreError::InvalidPersistedGatewayEvent)?,
+            )?;
+        }
+        crate::messages_summary::purge_expired(&transaction, crate::native_usage::now_ms()?)?;
         transaction.commit()?;
         Ok(inserted)
     }
@@ -1226,6 +1246,12 @@ pub struct AsyncSqliteEventWriter {
     test_max_page_count: Option<Arc<std::sync::atomic::AtomicI64>>,
 }
 
+type EventWriteEntry = (
+    GatewayEvent,
+    Option<gateway_core::NativeUsageEvidence>,
+    Option<gateway_core::MessagesSummaryEvidence>,
+);
+
 impl AsyncSqliteEventWriter {
     /// Creates one asynchronous consumer for a file-backed durable event log.
     #[must_use]
@@ -1249,7 +1275,7 @@ impl AsyncSqliteEventWriter {
         }
     }
 
-    /// Reuses the process's configured external key ring for private native Usage companions.
+    /// Reuses the process's configured external key ring for private Usage and summary companions.
     /// No private confirmation succeeds without this explicitly supplied store.
     #[must_use]
     pub fn with_native_usage_secret_store(
@@ -1326,7 +1352,13 @@ impl AsyncSqliteEventWriter {
                 .write_events(
                     self.pending
                         .iter()
-                        .map(|v| (v.event.clone(), v.native_usage.clone()))
+                        .map(|v| {
+                            (
+                                v.event.clone(),
+                                v.native_usage.clone(),
+                                v.native_summary.clone(),
+                            )
+                        })
                         .collect(),
                     false,
                 )
@@ -1378,7 +1410,11 @@ impl AsyncSqliteEventWriter {
             self.update_pending_metric();
             match self
                 .write_events(
-                    vec![(event.event.clone(), event.native_usage.clone())],
+                    vec![(
+                        event.event.clone(),
+                        event.native_usage.clone(),
+                        event.native_summary.clone(),
+                    )],
                     false,
                 )
                 .await
@@ -1400,7 +1436,7 @@ impl AsyncSqliteEventWriter {
                     // This separate sanitized transaction never confirms private retention.
                     if event.native_usage.is_some() {
                         match self
-                            .write_events(vec![(event.event.clone(), None)], true)
+                            .write_events(vec![(event.event.clone(), None, None)], true)
                             .await
                         {
                             Ok(inserted) => {
@@ -1466,7 +1502,9 @@ impl AsyncSqliteEventWriter {
     }
 
     fn accept_event(&mut self, event: QueuedEvent) {
-        if let Some(telemetry) = &self.telemetry {
+        if event.native_summary.is_none()
+            && let Some(telemetry) = &self.telemetry
+        {
             let _ = telemetry.observe_event(&event.event);
         }
         match event.event.priority() {
@@ -1527,7 +1565,7 @@ impl AsyncSqliteEventWriter {
 
     async fn write_events(
         &mut self,
-        entries: Vec<(GatewayEvent, Option<gateway_core::NativeUsageEvidence>)>,
+        entries: Vec<EventWriteEntry>,
         preserving_private_summary: bool,
     ) -> Result<u64, EventWriteFailure> {
         let database_path = self.database_path.clone();
@@ -1553,7 +1591,18 @@ impl AsyncSqliteEventWriter {
                     return (Some(store), Err(StoreError::from(error)));
                 }
             }
-            let (events, native): (Vec<_>, Vec<_>) = entries.into_iter().unzip();
+            let mut events = Vec::with_capacity(entries.len());
+            let mut native = Vec::new();
+            let mut summaries = Vec::new();
+            for (index, (event, usage, summary)) in entries.into_iter().enumerate() {
+                events.push(event);
+                if let Some(evidence) = usage {
+                    native.push((index, evidence));
+                }
+                if let Some(evidence) = summary {
+                    summaries.push((index, evidence));
+                }
+            }
             if preserving_private_summary {
                 for event in &events {
                     let GatewayEvent::Usage(usage) = event else {
@@ -1566,12 +1615,8 @@ impl AsyncSqliteEventWriter {
                     }
                 }
             }
-            let native: Vec<_> = native
-                .into_iter()
-                .enumerate()
-                .filter_map(|(index, evidence)| evidence.map(|evidence| (index, evidence)))
-                .collect();
-            let result = store.append_with_native_usage(&events, &native, secrets.as_ref());
+            let result =
+                store.append_with_private_evidence(&events, &native, &summaries, secrets.as_ref());
             (Some(store), result)
         })
         .await;

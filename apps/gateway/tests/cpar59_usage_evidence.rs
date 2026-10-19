@@ -525,7 +525,10 @@ async fn native_usage_legacy_unknown_rotation_and_exclusive_expiry() -> TestResu
             .len(),
         count_before
     );
-    connection.execute("INSERT INTO schema_migrations(version) VALUES (36)", [])?;
+    connection.execute(
+        "INSERT INTO schema_migrations(version) VALUES (?1)",
+        [gateway_store::CURRENT_SCHEMA_VERSION + 1],
+    )?;
     assert!(SqliteNativeUsageReader::open(dir.db(), secrets(2, &[1, 2], false)?).is_err());
     Ok(())
 }
@@ -558,7 +561,7 @@ async fn native_usage_encrypted_snapshot_restores_with_original_keys() -> TestRe
     );
     assert_eq!(
         preflight_encrypted_backup(&artifact, &dir.0, &backup_key)?.source_schema_version(),
-        35
+        gateway_store::CURRENT_SCHEMA_VERSION
     );
     let restored = dir.0.join("restored.sqlite3");
     restore_encrypted_backup_to_empty_target(&artifact, &restored, &backup_key)?;

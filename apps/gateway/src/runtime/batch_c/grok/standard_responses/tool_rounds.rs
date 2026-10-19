@@ -48,7 +48,7 @@ impl GrokBuildTransport for Fragments {
     }
 }
 
-fn output(round: usize) -> Value {
+pub(super) fn output(round: usize) -> Value {
     let summary = json!({"id":format!("reason-{round}"),"type":"reasoning","status":"completed",
         "summary":[{"type":"summary_text","text":format!("计划 {round}")} ]});
     let item = if round == 0 || round == 2 {

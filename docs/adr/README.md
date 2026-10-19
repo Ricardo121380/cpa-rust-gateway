@@ -142,3 +142,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0112 Cancelled stream source release](ADR-0112-cancelled-stream-source-release.md) — `#61 continuation / #58 T03、T06、T08、T10`（Accepted；取消/失败先释放 source 与租约，再完成已有本地确认；cost 继续 NOT_ADMITTED）。
 
 - [ADR-0113 Responses summary requests without explicit effort](ADR-0113-responses-summary-without-effort.md) — `#62 / #58 T02、T03、T08`（Accepted；summary-only 精确保留、同协议准入与独立受控回归；其他 Codex 必需字段及固定服务端资格继续分列）。
+
+- [ADR-0114 Confirmed Build summary for standard Messages](ADR-0114-confirmed-build-messages-summary.md) — `#63 / #58 T02/T03/T05–T11`（Accepted；限定 CanonicalBridge 交付、schema 36 独立摘要密文与确认、授权 reader；实际客户端与真实 Provider 单列）。

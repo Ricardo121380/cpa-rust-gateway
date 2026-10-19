@@ -197,3 +197,12 @@ client_metadata and hosted search qualifications remain BLOCKED; no profile/capa
 - `public_build_summary_only_json_and_fragmented_sse_keep_two_tool_cycles`
 - `public_build_codex_fields_remain_individually_blocked_before_send`
 - `public_build_namespaced_output_is_rejected_without_flattening_or_retry`
+
+## #63 confirmed Messages summary successor
+
+[ADR-0114](../adr/ADR-0114-confirmed-build-messages-summary.md) adds an application-owned,
+actual-adapter-qualified Messages delivery policy after this unchanged native decoder. It retains
+complete confirmed summary item/part hierarchy in an independent encrypted namespace and waits
+for commit before successful closure. Native lifecycle, model identity, unknown content, cost
+NOT_ADMITTED and no-read-ahead rules remain. Responses continues to expose summary; no other
+Provider inherits the exception. Details: [BC-OBS-007](BC-OBS-007-messages-summary-evidence.md).

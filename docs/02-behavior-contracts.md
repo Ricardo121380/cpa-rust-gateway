@@ -525,3 +525,7 @@ exact PublicModel > exact ModelAlias
 - 自定义 Base URL 必须经过 EgressPolicy；本机和私网地址只能通过显式 Allowlist 放行。
 
 完整设计和验收示例见 [上游聚合、统一模型与自有 API 设计](05-upstream-aggregation-design.md)。
+
+#63 的限定 Build → 标准 Messages 摘要交付、独立密文与成功前确认遵循
+[BC-OBS-007](contracts/BC-OBS-007-messages-summary-evidence.md) 和
+[ADR-0114](adr/ADR-0114-confirmed-build-messages-summary.md)。

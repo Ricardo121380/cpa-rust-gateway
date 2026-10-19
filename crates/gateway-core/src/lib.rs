@@ -10,6 +10,7 @@ mod execution_identity;
 mod gateway_event;
 mod id;
 mod message;
+mod messages_summary;
 mod native_usage;
 mod raw_extension;
 mod request_context;
@@ -48,6 +49,10 @@ pub use id::{
 pub use message::{
     CanonicalMessage, MessageContent, MessageRole, OpaqueContent, ReasoningHistory, TextContent,
     ToolCall, ToolResult, is_owned_reasoning_token,
+};
+pub use messages_summary::{
+    MAX_MESSAGES_SUMMARY_BYTES, MessagesSummaryCompleteness, MessagesSummaryEvidence,
+    MessagesSummaryItem, MessagesSummarySource,
 };
 pub use native_usage::{MAX_NATIVE_USAGE_BYTES, NativeUsageEvidence, NativeUsageSource};
 pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};

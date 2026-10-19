@@ -19,8 +19,8 @@ use std::{
 };
 
 use gateway_core::{
-    AttemptId, DiagnosticEvent, EventEmission, EventEmissionFuture, GatewayEvent,
-    GatewayEventPriority, GatewayEventSink,
+    DiagnosticEvent, EventEmission, EventEmissionFuture, GatewayEvent, GatewayEventPriority,
+    GatewayEventSink,
 };
 use tokio::sync::{
     mpsc::{self, error::TrySendError},
@@ -237,6 +237,7 @@ impl BoundedEventQueue {
         event: GatewayEvent,
         receipt: Option<oneshot::Sender<EventEmission>>,
         native_usage: Option<gateway_core::NativeUsageEvidence>,
+        native_summary: Option<gateway_core::MessagesSummaryEvidence>,
     ) -> EventEmission {
         let required = event.priority() == GatewayEventPriority::Required;
         let sender = if required {
@@ -250,6 +251,7 @@ impl BoundedEventQueue {
         let entry = QueuedEvent {
             event,
             native_usage,
+            native_summary,
             receipt,
             health: self.health.clone(),
             required,
@@ -284,7 +286,7 @@ impl BoundedEventQueue {
 
 impl GatewayEventSink for BoundedEventQueue {
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
-        self.enqueue(event, None, None)
+        self.enqueue(event, None, None, None)
     }
 
     fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
@@ -299,7 +301,7 @@ impl GatewayEventSink for BoundedEventQueue {
                 return EventEmission::PersistenceUnavailable;
             }
             let (send, receive) = oneshot::channel();
-            let result = self.enqueue(event, Some(send), None);
+            let result = self.enqueue(event, Some(send), None, None);
             if result != EventEmission::Enqueued {
                 return result;
             }
@@ -319,12 +321,31 @@ impl GatewayEventSink for BoundedEventQueue {
         event: gateway_core::UsageEvent,
         evidence: gateway_core::NativeUsageEvidence,
     ) -> EventEmissionFuture<'_> {
+        self.confirm_private(GatewayEvent::Usage(event), Some(evidence), None)
+    }
+
+    fn emit_summary_evidence_confirmed(
+        &self,
+        attempt: gateway_core::AttemptEvent,
+        evidence: gateway_core::MessagesSummaryEvidence,
+    ) -> EventEmissionFuture<'_> {
+        self.confirm_private(GatewayEvent::Attempt(attempt), None, Some(evidence))
+    }
+}
+
+impl BoundedEventQueue {
+    fn confirm_private(
+        &self,
+        event: GatewayEvent,
+        usage: Option<gateway_core::NativeUsageEvidence>,
+        summary: Option<gateway_core::MessagesSummaryEvidence>,
+    ) -> EventEmissionFuture<'_> {
         Box::pin(async move {
             if !self.health.writer_attached.load(Ordering::Acquire) {
                 return EventEmission::PersistenceUnavailable;
             }
             let (send, receive) = oneshot::channel();
-            let result = self.enqueue(GatewayEvent::Usage(event), Some(send), Some(evidence));
+            let result = self.enqueue(event, Some(send), usage, summary);
             if result != EventEmission::Enqueued {
                 return result;
             }
@@ -378,6 +399,8 @@ pub struct QueuedEvent {
     pub event: GatewayEvent,
     /// Sensitive companion, never passed to ordinary telemetry or quarantine serialization.
     pub native_usage: Option<gateway_core::NativeUsageEvidence>,
+    /// Independent summary payload. The Attempt event is an idempotent transaction anchor.
+    pub native_summary: Option<gateway_core::MessagesSummaryEvidence>,
     receipt: Option<oneshot::Sender<EventEmission>>,
     health: Arc<RecordingHealth>,
     required: bool,
@@ -412,9 +435,31 @@ impl QueuedEvent {
 /// Request-local lineage: never uses a process-global evictable identity lookup.
 pub struct RequestEventSink {
     inner: Arc<dyn GatewayEventSink>,
-    attempt: Mutex<Option<AttemptId>>,
+    attempt: Mutex<Option<gateway_core::AttemptEvent>>,
 }
 impl RequestEventSink {
+    /// Binds private summary confirmation to this request's actual confirmed Attempt.
+    pub fn emit_request_summary_confirmed(
+        &self,
+        request_id: gateway_core::RequestId,
+        evidence: gateway_core::MessagesSummaryEvidence,
+    ) -> EventEmissionFuture<'_> {
+        Box::pin(async move {
+            let attempt = self
+                .attempt
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone();
+            match attempt {
+                Some(attempt) if attempt.request_id() == &request_id => {
+                    self.inner
+                        .emit_summary_evidence_confirmed(attempt, evidence)
+                        .await
+                }
+                _ => EventEmission::PersistenceUnavailable,
+            }
+        })
+    }
     /// Shares one confirmed-attempt identity between router and final usage observer.
     pub fn new(inner: Arc<dyn GatewayEventSink>) -> Self {
         Self {
@@ -430,12 +475,12 @@ impl RequestEventSink {
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .clone();
             if let (Some(explicit), Some(confirmed)) = (usage.attempt_id(), attempt.as_ref())
-                && explicit != confirmed
+                && explicit != confirmed.attempt_id()
             {
                 return Err(EventEmission::PersistenceUnavailable);
             }
             Ok(GatewayEvent::Usage(match (usage.attempt_id(), attempt) {
-                (None, Some(id)) => usage.with_attempt_id(id),
+                (None, Some(attempt)) => usage.with_attempt_id(attempt.attempt_id().clone()),
                 _ => usage,
             }))
         } else {
@@ -469,7 +514,7 @@ impl GatewayEventSink for RequestEventSink {
     fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
         Box::pin(async move {
             let attempt = if let GatewayEvent::Attempt(ref attempt) = event {
-                Some(attempt.attempt_id().clone())
+                Some(attempt.clone())
             } else {
                 None
             };

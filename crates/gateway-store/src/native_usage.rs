@@ -167,7 +167,11 @@ impl SqliteNativeUsageReader {
     }
 }
 
-fn read_event(connection: &Connection, kind: &str, id: &str) -> StoreResult<GatewayEvent> {
+pub(crate) fn read_event(
+    connection: &Connection,
+    kind: &str,
+    id: &str,
+) -> StoreResult<GatewayEvent> {
     let row = connection
         .query_row(
             "SELECT event_ordinal,event_type,event_id,request_id,occurred_at_ms,payload_json \

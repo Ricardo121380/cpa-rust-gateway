@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::sync::atomic::AtomicBool;
 
 pub(super) struct ModelPeer {
-    url: String,
+    pub(super) url: String,
     pub(super) requests: Arc<Mutex<Vec<ModelRequest>>>,
     stopping: Arc<AtomicBool>,
     pub(super) delivered: Arc<AtomicUsize>,

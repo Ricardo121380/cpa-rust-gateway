@@ -86,6 +86,9 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
         GatewayCommand::UsageEvidence(command) => {
             usage_evidence::run(&command).map_err(|()| CliError::UsageEvidence)
         }
+        GatewayCommand::MessagesSummaryEvidence(command) => {
+            usage_evidence::run_messages_summary(&command).map_err(|()| CliError::UsageEvidence)
+        }
     }
 }
 
@@ -228,6 +231,7 @@ fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
 }
 
 enum GatewayCommand {
+    MessagesSummaryEvidence(usage_evidence::Command),
     UsageEvidence(usage_evidence::Command),
     Admin(AdminCommand),
     Serve(deployment::ServeCommand),
@@ -327,6 +331,9 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
     let mut arguments = arguments.into_iter();
     let top_level = arguments.next().ok_or(CliError::Usage)?;
     match top_level.as_str() {
+        "messages-summary-evidence" => {
+            usage_evidence::parse(arguments.collect()).map(GatewayCommand::MessagesSummaryEvidence)
+        }
         "usage-evidence" => {
             usage_evidence::parse(arguments.collect()).map(GatewayCommand::UsageEvidence)
         }
@@ -488,7 +495,7 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 
 fn print_usage() {
     println!(
-        "Private diagnostic: gateway usage-evidence --db <path> --master-key-dir <directory> --active-master-key-version <version> --client-key-id <owner> --request-id <id> --attempt-id <id> --output <new-file-in-private-0700-directory>"
+        "Private diagnostic: gateway <usage-evidence|messages-summary-evidence> --db <path> --master-key-dir <directory> --active-master-key-version <version> --client-key-id <owner> --request-id <id> --attempt-id <id> --output <new-file-in-private-0700-directory>"
     );
     println!(
         "Metadata acceptance: gateway <catalog-check|kimi-metadata-check> --state-dir <marked-isolated-copy> --credential-dir <absolute-dir> --endpoint-id <id> --credential-id <id> (no listeners, inference or background renewal)"
@@ -527,7 +534,7 @@ impl fmt::Display for CliError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UsageEvidence => formatter
-                .write_str("native Usage diagnostic unavailable; no retention confirmation"),
+                .write_str("private evidence diagnostic unavailable; no retention confirmation"),
             Self::Usage => formatter.write_str("invalid command; pass --help for usage"),
             Self::MissingOption(option) => {
                 write!(formatter, "required option is missing: {option}")

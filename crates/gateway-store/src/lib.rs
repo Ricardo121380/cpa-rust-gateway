@@ -16,6 +16,8 @@ pub mod control_plane;
 pub mod credential_refresh;
 /// Append-only durable lifecycle event storage and its asynchronous bounded-queue consumer.
 pub mod event_store;
+/// Exact-owner encrypted Messages summary diagnostics.
+pub mod messages_summary;
 /// Private Attempt-scoped native Usage and its authorized read-only diagnostic boundary.
 pub mod native_usage;
 pub mod secret_store;
@@ -61,7 +63,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 35;
+pub const CURRENT_SCHEMA_VERSION: i64 = 36;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -245,6 +247,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 35,
         up: include_str!("../migrations/0035_native_usage_evidence.up.sql"),
         down: include_str!("../migrations/0035_native_usage_evidence.down.sql"),
+    },
+    Migration {
+        version: 36,
+        up: include_str!("../migrations/0036_messages_summary_evidence.up.sql"),
+        down: include_str!("../migrations/0036_messages_summary_evidence.down.sql"),
     },
 ];
 
@@ -769,6 +776,7 @@ mod tests {
                 "grok_build_response_ownership",
                 "management_audit_events",
                 "management_resource_audit_events",
+                "messages_summary_evidence",
                 "model_aliases",
                 "model_catalog_failures",
                 "model_catalog_models",

@@ -1,6 +1,7 @@
 //! Local authorized diagnostic reader. Plaintext goes only to an exclusive private file.
 use gateway_core::{AttemptId, ClientKeyId, RequestId};
 use gateway_store::{
+    messages_summary::SqliteMessagesSummaryReader,
     native_usage::SqliteNativeUsageReader,
     secret_store::{KeyVersion, MasterKeyRing, SecretStore},
 };
@@ -41,29 +42,46 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<Command, super::CliError> 
 }
 
 pub(crate) fn run(command: &Command) -> Result<(), ()> {
+    run_kind(command, false)
+}
+
+pub(crate) fn run_messages_summary(command: &Command) -> Result<(), ()> {
+    run_kind(command, true)
+}
+
+fn run_kind(command: &Command, summary: bool) -> Result<(), ()> {
     let key = KeyVersion::try_new(command.active).map_err(|_| ())?;
     let secrets = SecretStore::new(
         MasterKeyRing::load_from_directory(&command.key_directory, key).map_err(|_| ())?,
     );
-    let reader = SqliteNativeUsageReader::open(&command.database, secrets).map_err(|_| ())?;
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| ())?;
-    let record = reader
-        .get_owned(
-            &command.owner,
-            &command.request,
-            &command.attempt,
-            i64::try_from(now.as_millis()).map_err(|_| ())?,
-        )
-        .map_err(|_| ())?;
+    let now = i64::try_from(now.as_millis()).map_err(|_| ())?;
+    let record = if summary {
+        SqliteMessagesSummaryReader::open(&command.database, secrets)
+            .map_err(|_| ())?
+            .get_owned(&command.owner, &command.request, &command.attempt, now)
+            .map_err(|_| ())?
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|_| ())?
+    } else {
+        SqliteNativeUsageReader::open(&command.database, secrets)
+            .map_err(|_| ())?
+            .get_owned(&command.owner, &command.request, &command.attempt, now)
+            .map_err(|_| ())?
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|_| ())?
+    };
     let result = match record {
         Some(record) => serde_json::json!({"status":"retained","record":record}),
         None => serde_json::json!({"status":"unknown"}),
     };
     let bytes = Zeroizing::new(serde_json::to_vec(&result).map_err(|_| ())?);
     write_private(Path::new(&command.output), bytes.as_slice())?;
-    println!("usage evidence diagnostic written to private output");
+    println!("evidence diagnostic written to private output");
     Ok(())
 }
 

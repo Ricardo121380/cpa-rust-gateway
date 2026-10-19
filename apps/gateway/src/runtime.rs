@@ -505,6 +505,7 @@ mod batch_a_native;
 #[cfg(test)]
 mod batch_c;
 mod build_diagnostic;
+mod build_messages_summary;
 mod catalog_refresh;
 /// Production pieces that must be attached to the separate P12 listeners together.
 mod execution_identity;
@@ -1065,6 +1066,14 @@ impl P12FanoutEventSink {
 }
 
 impl GatewayEventSink for P12FanoutEventSink {
+    fn emit_summary_evidence_confirmed(
+        &self,
+        attempt: gateway_core::AttemptEvent,
+        evidence: gateway_core::MessagesSummaryEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        self.queue
+            .emit_summary_evidence_confirmed(attempt, evidence)
+    }
     fn emit_usage_evidence_confirmed(
         &self,
         event: gateway_core::UsageEvent,
@@ -2132,10 +2141,23 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                     started.lease(),
                 )?)?;
             }
+            let retain_messages_summary = client_protocol == ProtocolFormat::AnthropicMessages
+                && started.candidate().transform_mode()
+                    == gateway_router::SnapshotTransformMode::CanonicalBridge
+                && driver
+                    .endpoints
+                    .get(started.candidate().endpoint_id())
+                    .is_some_and(|runtime| {
+                        matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
+                    });
             let (source, selection) = started.into_parts();
             Ok(Box::new(LeaseHoldingEventSource {
                 source: Box::new(
                     ProjectedEventSource::new(source, client_protocol)
+                        .with_build_messages_summary(
+                            retain_messages_summary,
+                            mode == ResponsesResponseMode::Streaming,
+                        )
                         .with_request_id(driver.request_id.clone())
                         .with_tool_constraints(
                             gateway_router::ToolExecutionConstraints::from_request(
@@ -4342,6 +4364,7 @@ struct ProjectedEventSource {
     projector: ProtocolResponseProjector,
     request_id: Option<RequestId>,
     rejected_usage: Option<Usage>,
+    messages_summary: Option<build_messages_summary::BuildMessagesSummary>,
 }
 
 impl ProjectedEventSource {
@@ -4351,11 +4374,18 @@ impl ProjectedEventSource {
             projector: ProtocolResponseProjector::new(target),
             request_id: None,
             rejected_usage: None,
+            messages_summary: None,
         }
     }
 
     fn with_request_id(mut self, request_id: RequestId) -> Self {
         self.request_id = Some(request_id);
+        self
+    }
+
+    fn with_build_messages_summary(mut self, qualified: bool, streaming: bool) -> Self {
+        self.messages_summary =
+            qualified.then(|| build_messages_summary::BuildMessagesSummary::new(streaming));
         self
     }
 
@@ -4369,6 +4399,11 @@ impl ProjectedEventSource {
 }
 
 impl ResponsesEventSource for ProjectedEventSource {
+    fn decoded_messages_summary(&self) -> Option<gateway_core::MessagesSummaryEvidence> {
+        self.messages_summary
+            .as_ref()
+            .and_then(build_messages_summary::BuildMessagesSummary::evidence)
+    }
     fn decoded_usage(&self) -> Option<Usage> {
         match self.inner.decoded_usage() {
             Some(buffered) => Some(Usage::merge_snapshot(
@@ -4384,6 +4419,14 @@ impl ResponsesEventSource for ProjectedEventSource {
             loop {
                 let Some(event) = self.inner.next_event().await? else {
                     return Ok(None);
+                };
+                let event = if let Some(summary) = self.messages_summary.as_mut() {
+                    let Some(event) = summary.project(&event)? else {
+                        continue;
+                    };
+                    event
+                } else {
+                    event
                 };
                 match self.projector.project_event(&event) {
                     Ok(Some(projected)) => return Ok(Some(projected)),
@@ -4405,6 +4448,9 @@ impl ResponsesEventSource for ProjectedEventSource {
 }
 
 impl ResponsesEventSource for LeaseHoldingEventSource {
+    fn decoded_messages_summary(&self) -> Option<gateway_core::MessagesSummaryEvidence> {
+        self.source.decoded_messages_summary()
+    }
     fn decoded_usage(&self) -> Option<Usage> {
         self.source.decoded_usage()
     }

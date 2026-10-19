@@ -382,3 +382,10 @@ include focused tests plus a value-free verification receipt.
 CPAR is licensed under the [MIT License](LICENSE). You may use, copy, modify, merge, publish,
 distribute, sublicense and sell copies subject to retaining the copyright and permission notice.
 Reference-project attribution and license notes remain in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Controlled Grok Build Messages slice (#63)
+
+The standard Grok Build Messages path does not display reasoning summary. Confirmed summary is
+retained as encrypted diagnostics before successful JSON/SSE closure. The controlled scope uses
+explicit standard text/tool history; actual Claude Code, real Provider and #61 field/profile
+qualification remain separate. See [support scope](docs/support/grok-build-messages.md).

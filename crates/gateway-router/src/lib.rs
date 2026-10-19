@@ -494,6 +494,11 @@ pub trait ResponsesExecutor: Send + Sync {
 /// It is intentionally distinct from `gateway_provider::CanonicalEventSource`: transports see
 /// only router-owned canonical types, never Provider traits or concrete Provider implementations.
 pub trait ResponsesEventSource: Send {
+    /// Returns only confirmed summary items already received on a qualified Messages path.
+    /// No upstream reads occur; absent evidence remains unknown.
+    fn decoded_messages_summary(&self) -> Option<gateway_core::MessagesSummaryEvidence> {
+        None
+    }
     /// Returns the next canonical event or normal end-of-source.
     fn next_event(&mut self) -> ResponsesFuture<'_, Result<Option<CanonicalEvent>, GatewayError>>;
 

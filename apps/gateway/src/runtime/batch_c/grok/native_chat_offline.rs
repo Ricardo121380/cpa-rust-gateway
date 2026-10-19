@@ -153,7 +153,7 @@ async fn grok_build_native_summary_and_usage_public_matrix() -> TestResult {
                         .to_request(),
                 )
                 .await;
-                let success = protocol == "responses" && !extra_usage;
+                let success = matches!(protocol, "responses" | "messages") && !extra_usage;
                 let status = response.status();
                 let id = response
                     .headers()
@@ -171,7 +171,7 @@ async fn grok_build_native_summary_and_usage_public_matrix() -> TestResult {
                         StatusCode::BAD_GATEWAY
                     }
                 );
-                if success {
+                if success && protocol == "responses" {
                     let value: Value = if streaming {
                         wire.lines()
                             .filter_map(|line| line.strip_prefix("data: "))
@@ -189,6 +189,33 @@ async fn grok_build_native_summary_and_usage_public_matrix() -> TestResult {
                         value["usage"]["cpar_usage"]["cache_creation_tokens"],
                         Value::Null
                     );
+                } else if success {
+                    assert!(
+                        !wire.contains("SYNTHETIC_SUMMARY")
+                            && !wire.contains("thinking")
+                            && !wire.contains("signature")
+                    );
+                    assert!(wire.contains("SYNTHETIC_ANSWER"));
+                    let usage = if streaming {
+                        let frames = public_frames(wire.as_bytes())?;
+                        assert_eq!(
+                            frames
+                                .iter()
+                                .filter(|v| v["type"] == "message_stop")
+                                .count(),
+                            1
+                        );
+                        frames
+                            .iter()
+                            .find(|v| v["type"] == "message_delta")
+                            .ok_or("usage")?["usage"]
+                            .clone()
+                    } else {
+                        serde_json::from_str::<Value>(&wire)?["usage"].clone()
+                    };
+                    assert_eq!(usage["input_tokens"], 100);
+                    assert_eq!(usage["output_tokens"], 159);
+                    assert_eq!(usage["cpar_usage"]["reasoning_tokens"], 158);
                 } else {
                     let error: Value = wire
                         .lines()
@@ -253,6 +280,32 @@ async fn grok_build_native_summary_and_usage_public_matrix() -> TestResult {
                     })
                     .collect();
                 assert_eq!(attempts.len(), 1);
+                if success && protocol == "messages" {
+                    let request = rows
+                        .iter()
+                        .find_map(|r| match r.event() {
+                            GatewayEvent::Request(v) => Some(v),
+                            _ => None,
+                        })
+                        .ok_or("request")?;
+                    let record =
+                        gateway_store::messages_summary::SqliteMessagesSummaryReader::open(
+                            &database,
+                            test_secret_store()?,
+                        )?
+                        .get_owned(
+                            request.client_key_id(),
+                            request.request_id(),
+                            attempts[0].attempt_id(),
+                            system_now_ms_runtime()?,
+                        )?
+                        .ok_or("confirmed summary")?;
+                    assert_eq!(record.evidence.items().len(), 1);
+                    assert_eq!(
+                        serde_json::from_str::<Value>(record.evidence.items()[0].item.get())?,
+                        native["output"][0]
+                    );
+                }
                 assert_eq!(
                     usage.len(),
                     1,

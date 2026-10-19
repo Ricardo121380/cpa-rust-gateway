@@ -355,3 +355,9 @@ ADR/Contract；每个变更都应包含 focused test 和 value-free 验收记录
 CPAR 使用 [MIT License](LICENSE)。保留版权与许可声明后，可以使用、复制、修改、合并、发布、
 分发、再许可或销售。本项目参考的第三方项目及许可证说明见
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## Grok Build 标准 Messages 受控切片（#63）
+
+此路径不展示 Grok 思考摘要；已确认 summary 在 JSON/SSE 成功收口前完整加密留存。
+受控范围使用标准文本与工具历史，实际 Claude Code、真实 Provider 及 #61 字段/profile
+资格仍单独验收。参见[支持范围](docs/support/grok-build-messages.md)。
